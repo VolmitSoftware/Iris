@@ -472,14 +472,14 @@ public class IrisDimension extends IrisRegistrant {
         boolean write = false;
         boolean changed = false;
 
-        IO.delete(new File(datapacks, "iris/data/" + getLoadKey()));
+        IO.delete(new File(datapacks, "iris/data/" + getLoadKey().toLowerCase()));
 
         for (IrisBiome i : getAllBiomes(data)) {
             if (i.isCustom()) {
                 write = true;
 
                 for (IrisBiomeCustom j : i.getCustomDerivitives()) {
-                    File output = new File(datapacks, "iris/data/" + getLoadKey() + "/worldgen/biome/" + j.getId() + ".json");
+                    File output = new File(datapacks, "iris/data/" + getLoadKey().toLowerCase() + "/worldgen/biome/" + j.getId() + ".json");
 
                     if (!output.exists()) {
                         changed = true;

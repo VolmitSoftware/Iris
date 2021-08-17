@@ -38,12 +38,12 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
 
     /**
      * The root class to start command searching from
+     *
      * @return
      */
     VirtualDecreeCommand getRoot();
 
-    default boolean call(VolmitSender sender, String[] args)
-    {
+    default boolean call(VolmitSender sender, String[] args) {
         DecreeContext.touch(sender);
         return getRoot().invoke(sender, enhanceArgs(args));
     }
@@ -61,108 +61,77 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
     @Override
     default boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         J.aBukkit(() -> {
-            if(!call(new VolmitSender(sender), args))
-            {
+            if (!call(new VolmitSender(sender), args)) {
                 sender.sendMessage(C.RED + "Unknown Iris Command");
             }
         });
         return true;
     }
 
-    static KList<String> enhanceArgs(String[] args)
-    {
+    static KList<String> enhanceArgs(String[] args) {
         return enhanceArgs(args, true);
     }
 
-    static KList<String> enhanceArgs(String[] args, boolean trim)
-    {
+    static KList<String> enhanceArgs(String[] args, boolean trim) {
         KList<String> a = new KList<>();
 
-        if(args.length == 0)
-        {
+        if (args.length == 0) {
             return a;
         }
 
         StringBuilder flat = new StringBuilder();
-        for(String i : args)
-        {
-            if(trim)
-            {
-                if(i.trim().isEmpty())
-                {
+        for (String i : args) {
+            if (trim) {
+                if (i.trim().isEmpty()) {
                     continue;
                 }
 
                 flat.append(" ").append(i.trim());
-            }
-
-            else
-            {
-                if(i.endsWith(" "))
-                {
+            } else {
+                if (i.endsWith(" ")) {
                     flat.append(" ").append(i.trim()).append(" ");
                 }
             }
         }
 
-        flat = new StringBuilder(flat.length() > 0 ? trim ? flat.toString().trim().length() > 0 ?flat.substring(1).trim() : flat.toString().trim() : flat.substring(1) : flat);
+        flat = new StringBuilder(flat.length() > 0 ? trim ? flat.toString().trim().length() > 0 ? flat.substring(1).trim() : flat.toString().trim() : flat.substring(1) : flat);
         StringBuilder arg = new StringBuilder();
         boolean quoting = false;
 
-        for(int x = 0; x < flat.length(); x++)
-        {
+        for (int x = 0; x < flat.length(); x++) {
             char i = flat.charAt(x);
             char j = x < flat.length() - 1 ? flat.charAt(x + 1) : i;
             boolean hasNext = x < flat.length();
 
-            if(i == ' ' && !quoting)
-            {
-                if(!arg.toString().trim().isEmpty() && trim)
-                {
+            if (i == ' ' && !quoting) {
+                if (!arg.toString().trim().isEmpty() && trim) {
                     a.add(arg.toString().trim());
                     arg = new StringBuilder();
                 }
-            }
-
-            else if(i == '"')
-            {
-                if(!quoting && (arg.length() == 0))
-                {
+            } else if (i == '"') {
+                if (!quoting && (arg.length() == 0)) {
                     quoting = true;
-                }
-
-                else if(quoting)
-                {
+                } else if (quoting) {
                     quoting = false;
 
-                    if(hasNext && j == ' ')
-                    {
-                        if(!arg.toString().trim().isEmpty() && trim)
-                        {
+                    if (hasNext && j == ' ') {
+                        if (!arg.toString().trim().isEmpty() && trim) {
                             a.add(arg.toString().trim());
                             arg = new StringBuilder();
                         }
-                    }
-
-                    else if(!hasNext)
-                    {
-                        if(!arg.toString().trim().isEmpty() && trim)
-                        {
+                    } else if (!hasNext) {
+                        if (!arg.toString().trim().isEmpty() && trim) {
                             a.add(arg.toString().trim());
                             arg = new StringBuilder();
                         }
                     }
                 }
-            }
-
-            else
-            {
+            } else {
                 arg.append(i);
             }
         }
 
-        if(!arg.toString().trim().isEmpty() && trim)
-        {
+        if (!arg.toString().trim().isEmpty() && trim) {
             a.add(arg.toString().trim());
         }
 
@@ -171,14 +140,13 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
 
     /**
      * Get the handler for the specified type
+     *
      * @param type The type to handle
      * @return The corresponding {@link DecreeParameterHandler}, or null
      */
     static DecreeParameterHandler<?> getHandler(Class<?> type) {
-        for(DecreeParameterHandler<?> i : handlers)
-        {
-            if(i.supports(type))
-            {
+        for (DecreeParameterHandler<?> i : handlers) {
+            if (i.supports(type)) {
                 return i;
             }
         }

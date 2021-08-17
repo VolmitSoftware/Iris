@@ -34,15 +34,11 @@ public class FloatHandler implements DecreeParameterHandler<Float> {
 
     @Override
     public Float parse(String in) throws DecreeParsingException {
-        try
-        {
+        try {
             AtomicReference<String> r = new AtomicReference<>(in);
             double m = getMultiplier(r);
-            return (float)(Float.parseFloat(r.get()) * m);
-        }
-
-        catch(Throwable e)
-        {
+            return (float) (Float.parseFloat(r.get()) * m);
+        } catch (Throwable e) {
             throw new DecreeParsingException("Unable to parse float \"" + in + "\"");
         }
     }
@@ -58,8 +54,7 @@ public class FloatHandler implements DecreeParameterHandler<Float> {
     }
 
     @Override
-    public String getRandomDefault()
-    {
+    public String getRandomDefault() {
         return Form.f(RNG.r.d(0, 99.99), 1) + "";
     }
 }

@@ -20,6 +20,7 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -48,7 +49,7 @@ public class CommandIrisStudioEditBiome extends MortarCommand {
             return true;
         }
 
-        if (!Iris.proj.isProjectOpen()) {
+        if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender.sendMessage("There is not a studio currently loaded.");
             return true;
         }
@@ -57,7 +58,7 @@ public class CommandIrisStudioEditBiome extends MortarCommand {
             Player p = sender.player();
 
             try {
-                File f = Iris.proj.getActiveProject().getActiveProvider().getEngine().getBiome(p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ()).getLoadFile();
+                File f = Iris.service(StudioSVC.class).getActiveProject().getActiveProvider().getEngine().getBiome(p.getLocation().getBlockX(), p.getLocation().getBlockY(), p.getLocation().getBlockZ()).getLoadFile();
                 Desktop.getDesktop().open(f);
             } catch (Throwable e) {
                 Iris.reportError(e);

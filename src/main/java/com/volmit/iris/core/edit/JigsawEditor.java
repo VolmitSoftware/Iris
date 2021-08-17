@@ -20,6 +20,7 @@ package com.volmit.iris.core.edit;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawPiece;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawPieceConnector;
@@ -168,7 +169,7 @@ public class JigsawEditor implements Listener {
 
     public void onTick() {
         if (cl.flip()) {
-            Iris.wand.draw(cuboid, player);
+            Iris.service(WandSVC.class).draw(cuboid, player);
 
             f:
             for (IrisPosition i : falling.k()) {

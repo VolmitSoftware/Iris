@@ -16,13 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core;
+package com.volmit.iris.core.service;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.collection.KMap;
@@ -31,9 +33,11 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
-import lombok.Data;
+import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.zeroturnaround.zip.ZipUtil;
 import org.zeroturnaround.zip.commons.FileUtils;
 
@@ -41,55 +45,44 @@ import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
-@Data
-public class ProjectManager {
+public class StudioSVC implements IrisService {
     public static final String LISTING = "https://raw.githubusercontent.com/IrisDimensions/_listing/main/listing-v2.json";
     public static final String WORKSPACE_NAME = "packs";
-    private KMap<String, String> cacheListing = null;
+    private final KMap<String, String> cacheListing = null;
     private IrisProject activeProject;
     private static final AtomicCache<Integer> counter = new AtomicCache<>();
 
-    public ProjectManager() {
-        if (IrisSettings.get().isStudio()) {
-            J.a(() ->
-            {
-                File ignore = getWorkspaceFile(".gitignore");
+    @Override
+    public void onEnable() {
+        J.a(() ->
+        {
+            File ignore = getWorkspaceFile(".gitignore");
 
-                if (!ignore.exists()) {
-                    File m = Iris.getCached("Pack Ignore (.gitignore)", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/packignore.ignore");
-                    if (m != null) {
-                        try {
-                            IO.copyFile(m, ignore);
-                        } catch (IOException e) {
-                            Iris.reportError(e);
-                        }
-                    }
-                }
-            });
-        }
-    }
-
-    public static int countUniqueDimensions() {
-
-        return counter.aquire(() -> {
-            int v = 0;
-
-            try {
-                for (File i : Iris.instance.getDataFolder(WORKSPACE_NAME).listFiles()) {
+            if (!ignore.exists()) {
+                File m = Iris.getCached("Pack Ignore (.gitignore)", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/packignore.ignore");
+                if (m != null) {
                     try {
-                        if (i.isDirectory() && i.list().length > 0 && !Iris.proj.getListing(true).containsKey(i.getName())) {
-                            v++;
-                        }
-                    } catch (Throwable e) {
+                        IO.copyFile(m, ignore);
+                    } catch (IOException e) {
                         Iris.reportError(e);
                     }
                 }
-            } catch (Throwable e) {
-                Iris.reportError(e);
             }
-
-            return v;
         });
+    }
+
+    @Override
+    public void onDisable() {
+        if (IrisSettings.get().isStudio()) {
+            Iris.debug("Studio Mode Active: Closing Projects");
+
+            for (World i : Bukkit.getWorlds()) {
+                if (IrisToolbelt.isIrisWorld(i)) {
+                    Iris.debug("Closing Platform Generator " + i.getName());
+                    IrisToolbelt.access(i).close();
+                }
+            }
+        }
     }
 
     public IrisDimension installIntoWorld(VolmitSender sender, String type, File folder) {
@@ -99,15 +92,15 @@ public class ProjectManager {
         IrisDimension dim = IrisData.loadAnyDimension(type);
 
         if (dim == null) {
-            for (File i : Iris.proj.getWorkspaceFolder().listFiles()) {
+            for (File i : getWorkspaceFolder().listFiles()) {
                 if (i.isFile() && i.getName().equals(type + ".iris")) {
-                    sender.sendMessage("Found " + type + ".iris in " + ProjectManager.WORKSPACE_NAME + " folder");
+                    sender.sendMessage("Found " + type + ".iris in " + WORKSPACE_NAME + " folder");
                     ZipUtil.unpack(i, irispack);
                     break;
                 }
             }
         } else {
-            sender.sendMessage("Found " + type + " dimension in " + ProjectManager.WORKSPACE_NAME + " folder. Repackaging");
+            sender.sendMessage("Found " + type + " dimension in " + WORKSPACE_NAME + " folder. Repackaging");
             File f = new IrisProject(new File(getWorkspaceFolder(), type)).getPath();
 
             try {
@@ -120,8 +113,8 @@ public class ProjectManager {
         File dimf = new File(irispack, "dimensions/" + type + ".json");
 
         if (!dimf.exists() || !dimf.isFile()) {
-            Iris.proj.downloadSearch(sender, type, false);
-            File downloaded = Iris.proj.getWorkspaceFolder(type);
+            downloadSearch(sender, type, false);
+            File downloaded = getWorkspaceFolder(type);
 
             for (File i : downloaded.listFiles()) {
                 if (i.isFile()) {
@@ -170,6 +163,12 @@ public class ProjectManager {
 
         try {
             url = getListing(false).get(key);
+
+            if(url == null)
+            {
+                Iris.warn("ITS ULL for " + key);
+            }
+
             url = url == null ? key : url;
             Iris.info("Assuming URL " + url);
             String branch = "master";
@@ -190,7 +189,7 @@ public class ProjectManager {
 
     public void download(VolmitSender sender, String repo, String branch, boolean trim, boolean forceOverwrite) throws JsonSyntaxException, IOException {
         String url = "https://codeload.github.com/" + repo + "/zip/refs/heads/" + branch;
-        sender.sendMessage("Downloading " + url);
+        sender.sendMessage("Downloading " + url + " "); //The extra space stops a bug in adventure API from repeating the last letter of the URL
         File zip = Iris.getNonCachedFile("pack-" + trim + "-" + repo, url);
         File temp = Iris.getTemp();
         File work = new File(temp, "dl-" + UUID.randomUUID());
@@ -296,10 +295,6 @@ public class ProjectManager {
     }
 
     public KMap<String, String> getListing(boolean cached) {
-        if (cached && cacheListing != null) {
-            return cacheListing;
-        }
-
         JSONObject a;
 
         if (cached) {
@@ -315,6 +310,9 @@ public class ProjectManager {
                 l.put(i, a.getString(i));
         }
 
+        // TEMP FIX
+        l.put("IrisDimensions/overworld/master", "IrisDimensions/overworld/stable");
+        l.put("overworld", "IrisDimensions/overworld/stable");
         return l;
     }
 
@@ -329,7 +327,8 @@ public class ProjectManager {
 
     public void open(VolmitSender sender, long seed, String dimm) {
         try {
-            open(sender,seed, dimm, () -> {});
+            open(sender, seed, dimm, () -> {
+            });
         } catch (Exception e) {
             Iris.reportError(e);
             sender.sendMessage("Error when creating studio world:");
@@ -452,6 +451,10 @@ public class ProjectManager {
 
     public void create(VolmitSender sender, String s) {
         create(sender, s, "example");
+    }
+
+    public IrisProject getActiveProject() {
+        return activeProject;
     }
 
     public void updateWorkspace() {

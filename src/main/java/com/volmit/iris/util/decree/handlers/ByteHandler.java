@@ -36,13 +36,9 @@ public class ByteHandler implements DecreeParameterHandler<Byte> {
 
     @Override
     public Byte parse(String in) throws DecreeParsingException {
-        try
-        {
+        try {
             return Byte.parseByte(in);
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             throw new DecreeParsingException("Unable to parse byte \"" + in + "\"");
         }
     }
@@ -53,8 +49,7 @@ public class ByteHandler implements DecreeParameterHandler<Byte> {
     }
 
     @Override
-    public String getRandomDefault()
-    {
+    public String getRandomDefault() {
         return RNG.r.i(0, Byte.MAX_VALUE) + "";
     }
 }

@@ -78,6 +78,13 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
                 Position2 pr = null;
                 double d = Double.MAX_VALUE;
 
+                Iris.debug("Ps: " + p.size());
+
+                for(Position2 i : p)
+                {
+                    Iris.debug("- " + i.getX() + " " + i.getZ());
+                }
+
                 for (Position2 i : p) {
                     double dx = i.distance(px);
                     if (dx < d) {
@@ -88,7 +95,9 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
 
                 if (pr != null) {
                     e.getEntity().getWorld().playSound(e.getEntity().getLocation(), Sound.ITEM_TRIDENT_THROW, 1f, 1.6f);
-                    ((EnderSignal) e.getEntity()).setTargetLocation(new Location(e.getEntity().getWorld(), pr.getX(), 40, pr.getZ()));
+                    Location ll = new Location(e.getEntity().getWorld(), pr.getX(), 40, pr.getZ());
+                    Iris.debug("ESignal: " + ll.getBlockX() + " " + ll.getBlockZ());
+                    ((EnderSignal) e.getEntity()).setTargetLocation(ll);
                 }
             }
         }

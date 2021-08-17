@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core;
+package com.volmit.iris.core.service;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
@@ -39,6 +39,7 @@ import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.IntTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
+import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.Material;
@@ -49,11 +50,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ConversionManager {
-    private final KList<Converter> converters;
-    private final File folder;
-
-    public ConversionManager() {
+public class ConversionSVC implements IrisService {
+    @Override
+    public void onEnable() {
         folder = Iris.instance.getDataFolder("convert");
         converters = new KList<>();
 
@@ -63,6 +62,14 @@ public class ConversionManager {
 
                 }), 5);
     }
+
+    @Override
+    public void onDisable() {
+
+    }
+
+    private KList<Converter> converters;
+    private File folder;
 
     private String toPoolName(String poolReference) {
         return poolReference.split("\\Q:\\E")[1];

@@ -16,28 +16,34 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core;
+package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.edit.BlockEditor;
 import com.volmit.iris.core.edit.BukkitBlockEditor;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.plugin.IrisService;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldUnloadEvent;
 
-public class EditManager implements Listener {
-    private final KMap<World, BlockEditor> editors;
+public class EditSVC implements IrisService {
+    private KMap<World, BlockEditor> editors;
 
-    public EditManager() {
+    @Override
+    public void onEnable() {
         this.editors = new KMap<>();
-        Iris.instance.registerListener(this);
-        Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::update, 0, 0);
+        Iris.info("EDIT SVC ENABLED!");
+        Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::update, 1000, 1000);
+    }
+
+    @Override
+    public void onDisable() {
+        flushNow();
     }
 
     public BlockData get(World world, int x, int y, int z) {
@@ -90,11 +96,10 @@ public class EditManager implements Listener {
             return editors.get(world);
         }
 
-        BlockEditor e = null;
-        e = new BukkitBlockEditor(world);
-
+        BlockEditor e = new BukkitBlockEditor(world);
         editors.put(world, e);
 
         return e;
     }
+
 }

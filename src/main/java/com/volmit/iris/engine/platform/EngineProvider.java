@@ -43,8 +43,7 @@ public class EngineProvider {
             IrisData data = new IrisData(dataLocation);
             IrisDimension realDimension = data.getDimensionLoader().load(dimension);
 
-            if(realDimension == null)
-            {
+            if (realDimension == null) {
                 throw new RuntimeException("Cannot find dimension in " + data.getDataFolder().getAbsolutePath() + " with key " + dimension);
             }
 

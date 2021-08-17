@@ -19,6 +19,7 @@
 package com.volmit.iris.core.command;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.plugin.MortarCommand;
@@ -45,7 +46,7 @@ public class CommandIrisUpdateProject extends MortarCommand {
             return true;
         }
 
-        J.a(() -> Iris.proj.downloadSearch(sender, args[0], false, true));
+        J.a(() -> Iris.service(StudioSVC.class).downloadSearch(sender, args[0], false, true));
 
         return true;
     }

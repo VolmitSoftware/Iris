@@ -26,8 +26,6 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
-import org.bukkit.Bukkit;
-import org.bukkit.World;
 
 import java.io.File;
 
@@ -37,12 +35,10 @@ public class DimensionHandler implements DecreeParameterHandler<IrisDimension> {
         KMap<String, IrisDimension> p = new KMap<>();
 
         //noinspection ConstantConditions
-        for(File i : Iris.instance.getDataFolder("packs").listFiles())
-        {
-            if(i.isDirectory()) {
+        for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
+            if (i.isDirectory()) {
                 IrisData data = new IrisData(i, true);
-                for (IrisDimension j : data.getDimensionLoader().loadAll(data.getDimensionLoader().getPossibleKeys()))
-                {
+                for (IrisDimension j : data.getDimensionLoader().loadAll(data.getDimensionLoader().getPossibleKeys())) {
                     p.putIfAbsent(j.getLoadKey(), j);
                 }
 
@@ -60,27 +56,19 @@ public class DimensionHandler implements DecreeParameterHandler<IrisDimension> {
 
     @Override
     public IrisDimension parse(String in) throws DecreeParsingException, DecreeWhichException {
-        try
-        {
+        try {
             KList<IrisDimension> options = getPossibilities(in);
 
-            if(options.isEmpty())
-            {
+            if (options.isEmpty()) {
                 throw new DecreeParsingException("Unable to find Dimension \"" + in + "\"");
-            }
-
-            else if(options.size() > 1)
-            {
+            } else if (options.size() > 1) {
                 throw new DecreeWhichException();
             }
 
             return options.get(0);
-        }
-        catch(DecreeParsingException e){
+        } catch (DecreeParsingException e) {
             throw e;
-        }
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             throw new DecreeParsingException("Unable to find Dimension \"" + in + "\" because of an uncaught exception: " + e);
         }
     }
@@ -91,8 +79,7 @@ public class DimensionHandler implements DecreeParameterHandler<IrisDimension> {
     }
 
     @Override
-    public String getRandomDefault()
-    {
+    public String getRandomDefault() {
         return "dimension";
     }
 }

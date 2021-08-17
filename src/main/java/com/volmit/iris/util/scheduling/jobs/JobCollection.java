@@ -25,13 +25,11 @@ public class JobCollection implements Job {
     private String status;
     private final KList<Job> jobs;
 
-    public JobCollection(String name, Job... jobs)
-    {
+    public JobCollection(String name, Job... jobs) {
         this(name, new KList<>(jobs));
     }
 
-    public JobCollection(String name, KList<Job> jobs)
-    {
+    public JobCollection(String name, KList<Job> jobs) {
         this.name = name;
         status = null;
         this.jobs = new KList<>(jobs);
@@ -44,8 +42,7 @@ public class JobCollection implements Job {
 
     @Override
     public void execute() {
-        for(Job i : jobs)
-        {
+        for (Job i : jobs) {
             status = i.getName();
             i.execute();
         }

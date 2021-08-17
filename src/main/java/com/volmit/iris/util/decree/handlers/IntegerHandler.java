@@ -21,10 +21,8 @@ package com.volmit.iris.util.decree.handlers;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.RNG;
 
-import java.util.Locale;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class IntegerHandler implements DecreeParameterHandler<Integer> {
@@ -35,15 +33,11 @@ public class IntegerHandler implements DecreeParameterHandler<Integer> {
 
     @Override
     public Integer parse(String in) throws DecreeParsingException {
-        try
-        {
+        try {
             AtomicReference<String> r = new AtomicReference<>(in);
             double m = getMultiplier(r);
-            return (int)(Integer.valueOf(r.get()).doubleValue() * m);
-        }
-
-        catch(Throwable e)
-        {
+            return (int) (Integer.valueOf(r.get()).doubleValue() * m);
+        } catch (Throwable e) {
             throw new DecreeParsingException("Unable to parse integer \"" + in + "\"");
         }
     }
@@ -59,8 +53,7 @@ public class IntegerHandler implements DecreeParameterHandler<Integer> {
     }
 
     @Override
-    public String getRandomDefault()
-    {
+    public String getRandomDefault() {
         return RNG.r.i(0, 99) + "";
     }
 }

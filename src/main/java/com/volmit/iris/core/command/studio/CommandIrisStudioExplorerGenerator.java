@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.noise.IrisGenerator;
 import com.volmit.iris.util.collection.KList;
@@ -75,9 +76,9 @@ public class CommandIrisStudioExplorerGenerator extends MortarCommand {
         Supplier<Function2<Double, Double, Double>> l = () -> {
             long seed = 12345;
             IrisGenerator generator;
-            if (Iris.proj.isProjectOpen()) {
-                generator = Iris.proj.getActiveProject().getActiveProvider().getData().getGeneratorLoader().load(args[0]);
-                seed = Iris.proj.getActiveProject().getActiveProvider().getTarget().getWorld().seed();
+            if (Iris.service(StudioSVC.class).isProjectOpen()) {
+                generator = Iris.service(StudioSVC.class).getActiveProject().getActiveProvider().getData().getGeneratorLoader().load(args[0]);
+                seed = Iris.service(StudioSVC.class).getActiveProject().getActiveProvider().getTarget().getWorld().seed();
             } else {
                 generator = IrisData.loadAnyGenerator(args[0]);
             }

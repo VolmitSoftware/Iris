@@ -20,6 +20,7 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -63,7 +64,7 @@ public class CommandIrisStudioPackage extends MortarCommand {
             }
 
             String dim = args[0];
-            Iris.proj.compilePackage(sender, dim, o, m);
+            Iris.service(StudioSVC.class).compilePackage(sender, dim, o, m);
         });
 
         return true;

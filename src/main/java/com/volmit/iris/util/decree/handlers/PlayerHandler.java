@@ -40,25 +40,17 @@ public class PlayerHandler implements DecreeParameterHandler<Player> {
 
     @Override
     public Player parse(String in) throws DecreeParsingException, DecreeWhichException {
-        try
-        {
+        try {
             KList<Player> options = getPossibilities(in);
 
-            if(options.isEmpty())
-            {
+            if (options.isEmpty()) {
                 throw new DecreeParsingException("Unable to find Player \"" + in + "\"");
-            }
-
-            else if(options.size() > 1)
-            {
+            } else if (options.size() > 1) {
                 throw new DecreeWhichException();
             }
 
             return options.get(0);
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             throw new DecreeParsingException("Unable to find Player \"" + in + "\" because of an uncaught exception: " + e);
         }
     }
@@ -69,8 +61,7 @@ public class PlayerHandler implements DecreeParameterHandler<Player> {
     }
 
     @Override
-    public String getRandomDefault()
-    {
+    public String getRandomDefault() {
         return "playername";
     }
 }

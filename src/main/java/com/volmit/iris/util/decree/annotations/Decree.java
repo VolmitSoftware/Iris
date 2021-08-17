@@ -38,6 +38,7 @@ public @interface Decree {
 
     /**
      * Only allow if studio mode is enabled
+     *
      * @return defaults to false
      */
     boolean studio() default false;

@@ -34,15 +34,11 @@ public class DoubleHandler implements DecreeParameterHandler<Double> {
 
     @Override
     public Double parse(String in) throws DecreeParsingException {
-        try
-        {
+        try {
             AtomicReference<String> r = new AtomicReference<>(in);
             double m = getMultiplier(r);
             return Double.parseDouble(r.get()) * m;
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             throw new DecreeParsingException("Unable to parse double \"" + in + "\"");
         }
     }
@@ -58,8 +54,7 @@ public class DoubleHandler implements DecreeParameterHandler<Double> {
     }
 
     @Override
-    public String getRandomDefault()
-    {
+    public String getRandomDefault() {
         return Form.f(RNG.r.d(0, 99.99), 1) + "";
     }
 }

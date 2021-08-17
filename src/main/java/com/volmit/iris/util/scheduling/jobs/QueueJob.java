@@ -25,21 +25,18 @@ public abstract class QueueJob<T> implements Job {
     private int totalWork;
     private int completed;
 
-    public QueueJob()
-    {
+    public QueueJob() {
         totalWork = 0;
         completed = 0;
         queue = new KList<>();
     }
 
-    public void queue(T t)
-    {
+    public void queue(T t) {
         queue.add(t);
         totalWork++;
     }
 
-    public void queue(KList<T> f)
-    {
+    public void queue(KList<T> f) {
         queue.addAll(f);
         totalWork += f.size();
     }
@@ -49,8 +46,7 @@ public abstract class QueueJob<T> implements Job {
     @Override
     public void execute() {
         totalWork = queue.size();
-        while(queue.isNotEmpty())
-        {
+        while (queue.isNotEmpty()) {
             execute(queue.pop());
             completeWork();
         }

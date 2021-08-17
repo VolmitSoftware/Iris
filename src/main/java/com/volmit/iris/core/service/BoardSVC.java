@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core;
+package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -29,6 +29,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.RollingSequence;
+import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.Bukkit;
@@ -38,37 +39,37 @@ import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 
 import java.util.List;
 
-public class CoreBoardManager implements BoardProvider, Listener {
-
-    private final BossBar energyBar;
-    private final com.volmit.iris.util.board.BoardManager manager;
+public class BoardSVC implements IrisService, BoardProvider {
+    private BossBar energyBar;
+    private com.volmit.iris.util.board.BoardManager manager;
     private String mem = "...";
-    public final RollingSequence hits = new RollingSequence(20);
     public final RollingSequence tp = new RollingSequence(100);
     private final ChronoLatch cl = new ChronoLatch(1000);
     private final ChronoLatch ecl = new ChronoLatch(50);
 
-    public CoreBoardManager() {
-        Iris.instance.registerListener(this);
-        //@builder
+    @Override
+    public void onEnable() {
         manager = new com.volmit.iris.util.board.BoardManager(Iris.instance, BoardSettings.builder()
                 .boardProvider(this)
                 .scoreDirection(ScoreDirection.DOWN)
                 .build());
         energyBar = Bukkit.createBossBar("Spawner Energy " + 0, BarColor.BLUE, BarStyle.SOLID);
-        //@done
+    }
+
+    @Override
+    public void onDisable() {
+        manager.onDisable();
+        energyBar.removeAll();
     }
 
     @EventHandler
     public void on(PlayerChangedWorldEvent e) {
         J.s(() -> updatePlayer(e.getPlayer()));
     }
-
 
     private boolean isIrisWorld(World w) {
         return IrisToolbelt.isIrisWorld(w) && IrisToolbelt.access(w).isStudio();
@@ -153,11 +154,5 @@ public class CoreBoardManager implements BoardProvider, Listener {
         v.add("&7&m------------------");
 
         return v;
-    }
-
-
-    public void disable() {
-        manager.onDisable();
-        energyBar.removeAll();
     }
 }

@@ -21,7 +21,6 @@ package com.volmit.iris.util.decree.handlers;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
-import com.volmit.iris.util.math.RNG;
 
 /**
  * Abstraction can sometimes breed stupidity
@@ -48,8 +47,7 @@ public class StringHandler implements DecreeParameterHandler<String> {
     }
 
     @Override
-    public String getRandomDefault()
-    {
+    public String getRandomDefault() {
         return new KList<String>().qadd("text").qadd("string")
                 .qadd("blah").qadd("derp").qadd("yolo").getRandom();
     }

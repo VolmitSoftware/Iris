@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core;
+package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
@@ -35,6 +35,7 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -44,19 +45,23 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Sapling;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.Listener;
 import org.bukkit.event.world.StructureGrowEvent;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-public class TreeManager implements Listener {
-
+public class TreeSVC implements IrisService {
     private boolean block = false;
 
-    public TreeManager() {
-        Iris.instance.registerListener(this);
+    @Override
+    public void onEnable() {
+
+    }
+
+    @Override
+    public void onDisable() {
+
     }
 
     /**

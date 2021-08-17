@@ -19,6 +19,7 @@
 package com.volmit.iris.util.hunk.view;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.service.EditSVC;
 import com.volmit.iris.util.hunk.Hunk;
 import org.bukkit.Chunk;
 import org.bukkit.block.Biome;
@@ -52,11 +53,12 @@ public class ChunkBiomeHunkView implements Hunk<Biome> {
             return;
         }
 
-        Iris.edit.setBiome(chunk.getWorld(), x + (chunk.getX() * 16), y, z + (chunk.getZ() * 16), t);
+        Iris.service(EditSVC.class).setBiome(chunk.getWorld(), x + (chunk.getX() * 16), y, z + (chunk.getZ() * 16), t);
     }
 
     @Override
     public Biome getRaw(int x, int y, int z) {
-        return Iris.edit.getBiome(chunk.getWorld(), x + (chunk.getX() * 16), y, z + (chunk.getZ() * 16));
+        return Iris.service(EditSVC.class)
+                .getBiome(chunk.getWorld(), x + (chunk.getX() * 16), y, z + (chunk.getZ() * 16));
     }
 }

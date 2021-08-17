@@ -136,8 +136,7 @@ public class Mantle {
             throw new RuntimeException("The Mantle is closed");
         }
 
-        if(y < 0)
-        {
+        if (y < 0) {
             return;
         }
 
@@ -170,8 +169,7 @@ public class Mantle {
             throw new RuntimeException("The Mantle is closed");
         }
 
-        if(y < 0)
-        {
+        if (y < 0) {
             return null;
         }
 
@@ -179,6 +177,11 @@ public class Mantle {
                 .getOrCreate((x >> 4) & 31, (z >> 4) & 31)
                 .getOrCreate(y >> 4).slice(t)
                 .get(x & 15, y & 15, z & 15);
+    }
+
+    public boolean isClosed()
+    {
+        return closed.get();
     }
 
     /**
@@ -259,8 +262,7 @@ public class Mantle {
      */
     @RegionCoordinates
     private TectonicPlate get(int x, int z) {
-        if(io.get())
-        {
+        if (io.get()) {
             try {
                 return getSafe(x, z).get();
             } catch (InterruptedException e) {
@@ -272,8 +274,7 @@ public class Mantle {
 
         TectonicPlate p = loadedRegions.get(key(x, z));
 
-        if(p != null)
-        {
+        if (p != null) {
             return p;
         }
 

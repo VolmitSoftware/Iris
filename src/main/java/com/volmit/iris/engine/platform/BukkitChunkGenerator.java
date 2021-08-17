@@ -21,11 +21,13 @@ package com.volmit.iris.engine.platform;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.framework.WrongEngineBroException;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.io.ReactiveFolder;
 import com.volmit.iris.util.scheduling.ChronoLatch;
+import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Bukkit;
@@ -40,8 +42,10 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.Semaphore;
 
 public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChunkGenerator {
+    private static final int HOTLOAD_LOCKS = 1000000;
     private final EngineProvider provider;
     private final IrisWorld world;
     private final File dataLocation;
@@ -50,11 +54,13 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final KList<BlockPopulator> populators;
     private final ChronoLatch hotloadChecker;
     private final Looper hotloader;
+    private final Semaphore hotloadLock;
     private final boolean studio;
 
     public BukkitChunkGenerator(IrisWorld world, boolean studio, File dataLocation, String dimensionKey) {
         populators = new KList<>();
         this.world = world;
+        this.hotloadLock = new Semaphore(HOTLOAD_LOCKS);
         this.hotloadChecker = new ChronoLatch(1000, false);
         this.studio = studio;
         this.dataLocation = dataLocation;
@@ -78,8 +84,11 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         hotloader.setName(getTarget().getWorld().name() + " Hotloader");
     }
 
-    public Engine getEngine() {
-        return provider.getEngine();
+    public synchronized Engine getEngine() {
+        synchronized (provider)
+        {
+            return provider.getEngine();
+        }
     }
 
     @Override
@@ -89,8 +98,11 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void close() {
-        hotloader.interrupt();
-        provider.close();
+        synchronized (provider)
+        {
+            hotloader.interrupt();
+            provider.close();
+        }
     }
 
     @Override
@@ -100,19 +112,38 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void hotload() {
-        initialize();
+        J.aBukkit(this::hotloadBLOCKING);
+    }
+
+    public void hotloadBLOCKING() {
+        try {
+            hotloadLock.acquire(HOTLOAD_LOCKS);
+            initialize();
+            hotloadLock.release(HOTLOAD_LOCKS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     private void initialize() {
-        provider.provideEngine(world, dimensionKey, dataLocation, isStudio(), (e) -> {
-            populators.clear();
-            populators.add((BlockPopulator) e);
-            folder.checkIgnore();
-        });
+        synchronized (provider)
+        {
+            provider.provideEngine(world, dimensionKey, dataLocation, isStudio(), (e) -> {
+                populators.clear();
+                populators.add((BlockPopulator) e);
+                folder.checkIgnore();
+            });
+        }
     }
 
     @Override
     public @NotNull ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
+        try {
+            hotloadLock.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         try {
             Iris.debug("Generated " + x + " " + z);
             PrecisionStopwatch ps = PrecisionStopwatch.start();
@@ -121,8 +152,18 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
             this.world.bind(world);
             getEngine().generate(x * 16, z * 16, blocks, biomes, true);
+            hotloadLock.release();
             return tc.getRaw();
-        } catch (Throwable e) {
+        }
+
+        catch(WrongEngineBroException e)
+        {
+            hotloadLock.release();
+            hotloadBLOCKING();
+            return generateChunkData(world, ignored, x, z, biome);
+        }
+
+        catch (Throwable e) {
             Iris.error("======================================");
             e.printStackTrace();
             Iris.reportErrorChunk(x, z, e, "CHUNK");
@@ -136,8 +177,10 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 }
             }
 
+            hotloadLock.release();
             return d;
         }
+
     }
 
     @NotNull

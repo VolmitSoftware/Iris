@@ -20,7 +20,8 @@ package com.volmit.iris.core.command.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.WandManager;
+import com.volmit.iris.core.service.StudioSVC;
+import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.plugin.MortarCommand;
@@ -75,8 +76,8 @@ public class CommandIrisObjectSaveMatter extends MortarCommand {
 
             Player p = sender.player();
             ItemStack wand = p.getInventory().getItemInMainHand();
-            Matter o = WandManager.createMatterSchem(p, wand);
-            File file = Iris.proj.getWorkspaceFile(args[0], "objects", args[1] + ".iob");
+            Matter o = WandSVC.createMatterSchem(p, wand);
+            File file = Iris.service(StudioSVC.class).getWorkspaceFile(args[0], "objects", args[1] + ".iob");
 
             if (file.exists()) {
                 if (!overwrite) {

@@ -21,6 +21,7 @@ package com.volmit.iris.core.command.studio;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.VisionGUI;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
@@ -55,7 +56,7 @@ public class CommandIrisStudioMap extends MortarCommand {
         Engine fe;
 
         try {
-            Engine g = Iris.proj.getActiveProject().getActiveProvider().getEngine();
+            Engine g = Iris.service(StudioSVC.class).getActiveProject().getActiveProvider().getEngine();
             VisionGUI.launch(g, 0);
             sender.sendMessage("Opening Map!");
         } catch (Throwable e) {

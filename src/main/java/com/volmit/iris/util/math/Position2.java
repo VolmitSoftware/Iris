@@ -92,6 +92,6 @@ public class Position2 {
     }
 
     public IrisPosition toIris() {
-        return new IrisPosition(x, 0, z);
+        return new IrisPosition(x, 23, z);
     }
 }

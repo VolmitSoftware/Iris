@@ -360,11 +360,9 @@ public class VolmitSender implements CommandSender {
         return s.spigot();
     }
 
-    private String pickRandoms(int max, VirtualDecreeCommand i)
-    {
+    private String pickRandoms(int max, VirtualDecreeCommand i) {
         KList<String> m = new KList<>();
-        for(int ix = 0; ix < max; ix++)
-        {
+        for (int ix = 0; ix < max; ix++) {
             m.add((i.isNode()
                     ? (i.getNode().getParameters().isNotEmpty())
                     ? "<#aebef2>✦ <#5ef288>"
@@ -385,8 +383,7 @@ public class VolmitSender implements CommandSender {
     }
 
 
-    public void sendHeader(String name, int overrideLength)
-    {
+    public void sendHeader(String name, int overrideLength) {
         int len = overrideLength;
         int h = name.length() + 2;
         String s = Form.repeat(" ", len - h - 4);
@@ -395,37 +392,28 @@ public class VolmitSender implements CommandSender {
         String sf = "[";
         String se = "]";
 
-        if(name.trim().isEmpty())
-        {
-            sendMessageRaw("<font:minecraft:uniform><strikethrough><gradient:#34eb6b:#32bfad>" + sf + s + "<reset><font:minecraft:uniform><strikethrough><gradient:#32bfad:#34eb6b>"  + s + se);
-        }
-
-        else
-        {
+        if (name.trim().isEmpty()) {
+            sendMessageRaw("<font:minecraft:uniform><strikethrough><gradient:#34eb6b:#32bfad>" + sf + s + "<reset><font:minecraft:uniform><strikethrough><gradient:#32bfad:#34eb6b>" + s + se);
+        } else {
             sendMessageRaw("<font:minecraft:uniform><strikethrough><gradient:#34eb6b:#32bfad>" + sf + s + si + "<reset> <gradient:#3299bf:#323bbf>" + name + "<reset> <font:minecraft:uniform><strikethrough><gradient:#32bfad:#34eb6b>" + so + s + se);
         }
     }
 
-    public void sendHeader(String name)
-    {
-        sendHeader(name,46);
+    public void sendHeader(String name) {
+        sendHeader(name, 46);
     }
 
     public void sendDecreeHelp(VirtualDecreeCommand v) {
         int m = v.getNodes().size();
 
-        if(v.getNodes().isNotEmpty())
-        {
+        if (v.getNodes().isNotEmpty()) {
             sendHeader(Form.capitalize(v.getName()) + " Help");
-            if(isPlayer() && v.getParent() != null)
-            {
-                sendMessageRaw("<hover:show_text:'"+"<#b54b38>Click to go back to <#3299bf>" + Form.capitalize(v.getParent().getName()) + " Help" +"'><click:run_command:" + v.getParent().getPath() + "><font:minecraft:uniform><#f58571>〈 Back</click></hover>");
+            if (isPlayer() && v.getParent() != null) {
+                sendMessageRaw("<hover:show_text:'" + "<#b54b38>Click to go back to <#3299bf>" + Form.capitalize(v.getParent().getName()) + " Help" + "'><click:run_command:" + v.getParent().getPath() + "><font:minecraft:uniform><#f58571>〈 Back</click></hover>");
             }
 
-            for(VirtualDecreeCommand i : v.getNodes())
-            {
-                if(isPlayer())
-                {
+            for (VirtualDecreeCommand i : v.getNodes()) {
+                if (isPlayer()) {
                     //@builder
                     String s = (
                         "<hover:show_text:'"+
@@ -443,19 +431,19 @@ public class VolmitSender implements CommandSender {
                                     + " <#42ecf5>"
                                     + i.getName() + " "
                                     + i.getNode().getParameters().convert((f)
-                                        -> "<#d665f0>" + f.example())
-                                            .toString(" ") + "\n"
-                            : ""
-                        : "")
-                        + (i.isNode() ? "<font:minecraft:uniform>" + pickRandoms(Math.min(i.getNode().getParameters().size() + 1, 5), i) + "<reset>" : "")
-                        + "'><click:" + (i.isNode() ? "suggest_command" : "run_command") + ":" + i.getPath() + " >"
-                        + "<#46826a>⇀<gradient:#42ecf5:#428df5> " +i.getName() + "</click></hover>"
-                            + (i.isNode() ?
-                                " " + i.getNode().getParameters().convert((f)
-                                    -> "<hover:show_text:'"
-                                        + f.getNames().convert((ff) -> "<#d665f0>" + ff).toString(", ") + "\n"
+                                            -> "<#d665f0>" + f.example())
+                                    .toString(" ") + "\n"
+                                    : ""
+                                    : "")
+                                    + (i.isNode() ? "<font:minecraft:uniform>" + pickRandoms(Math.min(i.getNode().getParameters().size() + 1, 5), i) + "<reset>" : "")
+                                    + "'><click:" + (i.isNode() ? "suggest_command" : "run_command") + ":" + i.getPath() + " >"
+                                    + "<#46826a>⇀<gradient:#42ecf5:#428df5> " + i.getName() + "</click></hover>"
+                                    + (i.isNode() ?
+                                    " " + i.getNode().getParameters().convert((f)
+                                            -> "<hover:show_text:'"
+                                            + f.getNames().convert((ff) -> "<#d665f0>" + ff).toString(", ") + "\n"
                                             + "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + f.getDescription() + "<reset>\n"
-                                        + (f.isRequired()
+                                            + (f.isRequired()
                                             ? "<#db4321>⚠ <#faa796><font:minecraft:uniform>This parameter is required."
                                             : (f.hasDefault()
                                                 ? "<#2181db>✔ <#78dcf0><font:minecraft:uniform>Defaults to \""+f.getParam().defaultValue()+"\" if undefined."
@@ -473,17 +461,11 @@ public class VolmitSender implements CommandSender {
                     //@done
                     sendMessageRaw(s);
                     System.out.println(s);
-                }
-
-                else
-                {
+                } else {
                     sendMessage(i.getPath() + "()");
                 }
             }
-        }
-
-        else
-        {
+        } else {
             sendMessage(C.RED + "There are no subcommands in this group! Contact support, this is a command design issue!");
         }
     }

@@ -20,7 +20,7 @@ package com.volmit.iris.core.command.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.WandManager;
+import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -52,7 +52,7 @@ public class CommandIrisObjectWand extends MortarCommand {
             return true;
         }
 
-        sender.player().getInventory().addItem(WandManager.createWand());
+        sender.player().getInventory().addItem(WandSVC.createWand());
         sender.player().playSound(sender.player().getLocation(), Sound.ITEM_ARMOR_EQUIP_NETHERITE, 1f, 1.5f);
 
         return true;

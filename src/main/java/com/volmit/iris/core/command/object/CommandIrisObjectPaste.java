@@ -20,9 +20,9 @@ package com.volmit.iris.core.command.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.ProjectManager;
-import com.volmit.iris.core.WandManager;
 import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.service.StudioSVC;
+import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.objects.IrisObject;
@@ -91,7 +91,7 @@ public class CommandIrisObjectPaste extends MortarCommand {
 
         if (obj == null || obj.getLoadFile() == null) {
 
-            sender.sendMessage("Can't find " + args[0] + " in the " + ProjectManager.WORKSPACE_NAME + " folder");
+            sender.sendMessage("Can't find " + args[0] + " in the " + StudioSVC.WORKSPACE_NAME + " folder");
             return true;
         }
 
@@ -188,14 +188,14 @@ public class CommandIrisObjectPaste extends MortarCommand {
         CommandIrisObjectUndo.addChanges(sender.player(), futureChanges);
 
         if (intoWand) {
-            ItemStack newWand = WandManager.createWand(block.clone().subtract(obj.getCenter()).add(obj.getW() - 1,
+            ItemStack newWand = WandSVC.createWand(block.clone().subtract(obj.getCenter()).add(obj.getW() - 1,
                     obj.getH() + obj.getCenter().clone().getY() - 1, obj.getD() - 1), block.clone().subtract(obj.getCenter().clone().setY(0)));
-            if (WandManager.isWand(wand)) {
+            if (WandSVC.isWand(wand)) {
                 wand = newWand;
                 p.getInventory().setItemInMainHand(wand);
                 sender.sendMessage("Updated wand for " + "objects/" + args[0] + ".iob");
             } else {
-                int slot = WandManager.findWand(sender.player().getInventory());
+                int slot = WandSVC.findWand(sender.player().getInventory());
                 if (slot == -1) {
                     p.getInventory().addItem(newWand);
                     sender.sendMessage("Given new wand for " + "objects/" + args[0] + ".iob");

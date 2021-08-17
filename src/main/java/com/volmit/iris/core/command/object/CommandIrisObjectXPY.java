@@ -20,7 +20,7 @@ package com.volmit.iris.core.command.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.WandManager;
+import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.data.Cuboid.CuboidDirection;
@@ -59,11 +59,11 @@ public class CommandIrisObjectXPY extends MortarCommand {
 
         Player p = sender.player();
 
-        if (!WandManager.isHoldingWand(p)) {
+        if (!WandSVC.isHoldingWand(p)) {
             sender.sendMessage("Ready your Wand.");
             return true;
         }
-        Location[] b = WandManager.getCuboid(p.getInventory().getItemInMainHand());
+        Location[] b = WandSVC.getCuboid(p.getInventory().getItemInMainHand());
         b[0].add(new Vector(0, 1, 0));
         b[1].add(new Vector(0, 1, 0));
         Location a1 = b[0].clone();
@@ -87,7 +87,7 @@ public class CommandIrisObjectXPY extends MortarCommand {
         cursor = cursor.contract(CuboidDirection.West);
         b[0] = cursor.getLowerNE();
         b[1] = cursor.getUpperSW();
-        p.getInventory().setItemInMainHand(WandManager.createWand(b[0], b[1]));
+        p.getInventory().setItemInMainHand(WandSVC.createWand(b[0], b[1]));
         p.updateInventory();
         p.playSound(p.getLocation(), Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
 

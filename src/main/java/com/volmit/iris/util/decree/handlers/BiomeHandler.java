@@ -21,13 +21,11 @@ package com.volmit.iris.util.decree.handlers;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.object.biome.IrisBiome;
-import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
-import com.volmit.iris.util.math.RNG;
 
 import java.io.File;
 
@@ -37,12 +35,10 @@ public class BiomeHandler implements DecreeParameterHandler<IrisBiome> {
         KMap<String, IrisBiome> p = new KMap<>();
 
         //noinspection ConstantConditions
-        for(File i : Iris.instance.getDataFolder("packs").listFiles())
-        {
-            if(i.isDirectory()) {
+        for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
+            if (i.isDirectory()) {
                 IrisData data = new IrisData(i, true);
-                for (IrisBiome j : data.getBiomeLoader().loadAll(data.getBiomeLoader().getPossibleKeys()))
-                {
+                for (IrisBiome j : data.getBiomeLoader().loadAll(data.getBiomeLoader().getPossibleKeys())) {
                     p.putIfAbsent(j.getLoadKey(), j);
                 }
 
@@ -60,27 +56,19 @@ public class BiomeHandler implements DecreeParameterHandler<IrisBiome> {
 
     @Override
     public IrisBiome parse(String in) throws DecreeParsingException, DecreeWhichException {
-        try
-        {
+        try {
             KList<IrisBiome> options = getPossibilities(in);
 
-            if(options.isEmpty())
-            {
+            if (options.isEmpty()) {
                 throw new DecreeParsingException("Unable to find Biome \"" + in + "\"");
-            }
-
-            else if(options.size() > 1)
-            {
+            } else if (options.size() > 1) {
                 throw new DecreeWhichException();
             }
 
             return options.get(0);
-        }
-        catch(DecreeParsingException e){
+        } catch (DecreeParsingException e) {
             throw e;
-        }
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             throw new DecreeParsingException("Unable to find Biome \"" + in + "\" because of an uncaught exception: " + e);
         }
     }
@@ -91,8 +79,7 @@ public class BiomeHandler implements DecreeParameterHandler<IrisBiome> {
     }
 
     @Override
-    public String getRandomDefault()
-    {
+    public String getRandomDefault() {
         return "biome";
     }
 }

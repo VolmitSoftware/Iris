@@ -16,23 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.scripting;
+package com.volmit.iris.engine.framework;
 
-import com.volmit.iris.engine.framework.Engine;
-import org.apache.bsf.BSFManager;
-
-public interface EngineExecutionEnvironment {
-    Engine getEngine();
-
-    IrisScriptingAPI getAPI();
-
-    BSFManager getManager();
-
-    void execute(String script);
-
-    Object evaluate(String script);
-
-    default void close() {
-
-    }
+public class WrongEngineBroException extends Exception {
 }

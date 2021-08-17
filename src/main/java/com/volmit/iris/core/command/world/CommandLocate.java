@@ -51,6 +51,7 @@ public class CommandLocate extends MortarCommand implements Listener {
     public CommandLocate() {
         super("locate");
         requiresPermission(Iris.perm);
+        Iris.instance.registerListener(this);
     }
 
     @Override

@@ -139,7 +139,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     double modifyZ(double z);
 
     @BlockCoordinates
-    void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes, boolean multicore);
+    void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes, boolean multicore) throws WrongEngineBroException;
 
     EngineMetrics getMetrics();
 

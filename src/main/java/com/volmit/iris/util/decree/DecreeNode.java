@@ -25,7 +25,6 @@ import lombok.Data;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.Arrays;
 
 @Data
 public class DecreeNode {
@@ -37,20 +36,20 @@ public class DecreeNode {
         this.instance = instance;
         this.method = method;
         this.decree = method.getDeclaredAnnotation(Decree.class);
-        if (decree == null){
+        if (decree == null) {
             throw new RuntimeException("Cannot instantiate DecreeNode on method " + method.getName() + " in " + method.getDeclaringClass().getCanonicalName() + " not annotated by @Decree");
         }
     }
 
     /**
      * Get the parameters of this decree node
+     *
      * @return The list of parameters if ALL are annotated by @{@link Param}, else null
      */
     public KList<DecreeParameter> getParameters() {
         KList<DecreeParameter> p = new KList<>();
 
-        for(Parameter i : method.getParameters())
-        {
+        for (Parameter i : method.getParameters()) {
             p.add(new DecreeParameter(i));
         }
 
@@ -72,10 +71,8 @@ public class DecreeNode {
     public KList<String> getNames() {
         KList<String> d = new KList<>();
 
-        for(String i : decree.aliases())
-        {
-            if(i.isEmpty())
-            {
+        for (String i : decree.aliases()) {
+            if (i.isEmpty()) {
                 continue;
             }
 

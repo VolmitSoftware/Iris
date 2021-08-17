@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
@@ -62,7 +63,7 @@ public class CommandIrisStudioUpdate extends MortarCommand {
 
         for (String i : args) {
             if (i.equals("--rewrite-objects")) {
-                IrisData data = new IrisData(Iris.proj.getWorkspaceFolder(args[0]));
+                IrisData data = new IrisData(Iris.service(StudioSVC.class).getWorkspaceFolder(args[0]));
                 int t = data.getObjectLoader().getPossibleKeys().length;
                 ChronoLatch cl = new ChronoLatch(250, false);
                 MultiBurst bx = new MultiBurst("Object Rewriter", Thread.MIN_PRIORITY, Runtime.getRuntime().availableProcessors());
@@ -107,7 +108,7 @@ public class CommandIrisStudioUpdate extends MortarCommand {
             }
         }
 
-        if (new IrisProject(Iris.proj.getWorkspaceFolder(args[0])).updateWorkspace()) {
+        if (new IrisProject(Iris.service(StudioSVC.class).getWorkspaceFolder(args[0])).updateWorkspace()) {
             sender.sendMessage("Updated Code Workspace for " + args[0]);
         } else {
             sender.sendMessage("Invalid project: " + args[0] + ". Try deleting the code-workspace file and try again.");

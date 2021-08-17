@@ -20,6 +20,7 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.service.ConversionSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -44,7 +45,7 @@ public class CommandIrisStudioConvert extends MortarCommand {
             return true;
         }
 
-        Iris.convert.check(sender);
+        Iris.service(ConversionSVC.class).check(sender);
         return true;
     }
 

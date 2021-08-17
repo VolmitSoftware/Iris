@@ -180,7 +180,6 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
     @Override
     public void hotload() {
-        Iris.info("Hotload ENGINE");
         getData().dump();
         getData().clearLists();
         getTarget().setDimension(getData().getDimensionLoader().load(getDimension().getLoadKey()));

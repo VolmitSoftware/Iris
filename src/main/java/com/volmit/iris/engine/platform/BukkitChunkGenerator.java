@@ -31,6 +31,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.io.ReactiveFolder;
 import com.volmit.iris.util.scheduling.ChronoLatch;
+import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
@@ -99,8 +100,10 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void close() {
-        hotloader.interrupt();
-        getEngine().close();
+        withExclusiveControl(() -> {
+            hotloader.interrupt();
+            getEngine().close();
+        });
     }
 
     @Override
@@ -110,24 +113,40 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void hotload() {
-        getEngine().hotload();
-        Iris.info("Hotload BKG");
+        withExclusiveControl(() -> getEngine().hotload());
+    }
+
+    public void withExclusiveControl(Runnable r)
+    {
+        J.a(() -> {
+            try {
+                loadLock.acquire(LOAD_LOCKS);
+                r.run();
+                loadLock.release(LOAD_LOCKS);
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     @Override
     public @NotNull ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
         try {
-            Iris.debug("Generated " + x + " " + z);
+            loadLock.acquire();
             PrecisionStopwatch ps = PrecisionStopwatch.start();
             TerrainChunk tc = TerrainChunk.create(world, biome);
             Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
             Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
             this.world.bind(world);
             getEngine().generate(x * 16, z * 16, blocks, biomes, true);
-            return tc.getRaw();
+            ChunkData c = tc.getRaw();
+            Iris.debug("Generated " + x + " " + z);
+            loadLock.release();
+            return c;
         }
 
         catch (Throwable e) {
+            loadLock.release();
             Iris.error("======================================");
             e.printStackTrace();
             Iris.reportErrorChunk(x, z, e, "CHUNK");

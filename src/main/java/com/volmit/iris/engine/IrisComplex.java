@@ -505,18 +505,6 @@ public class IrisComplex implements DataProvider {
     }
 
     public void close() {
-        // I know this looks awful, but it helps gc not deal with the spaghetti reference soup going on here
-        for (Field i : getClass().getDeclaredFields())
-        {
-            if(i.getType().equals(ProceduralStream.class))
-            {
-                i.setAccessible(true);
-                try {
-                    i.set(this, null);
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+
     }
 }

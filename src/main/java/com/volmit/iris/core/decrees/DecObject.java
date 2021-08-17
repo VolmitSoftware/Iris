@@ -196,7 +196,7 @@ public class DecObject implements DecreeExecutor {
 
         IrisObjectPlacement placement = new IrisObjectPlacement();
         placement.setRotation(IrisObjectRotation.of(0, rotate, 0));
-        sender().player().getWorld().playSound(sender().player().getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
+        sender().playSound(Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
 
     }
 

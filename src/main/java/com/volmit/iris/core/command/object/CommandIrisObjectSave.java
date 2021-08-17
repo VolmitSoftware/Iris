@@ -88,7 +88,7 @@ public class CommandIrisObjectSave extends MortarCommand {
 
             o.write(file);
             sender.sendMessage("Saved " + args[1]);
-            p.getWorld().playSound(p.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
+            sender.playSound(Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
         } catch (Throwable e) {
             Iris.reportError(e);
             sender.sendMessage("Failed to save " + args[1] + ". Are you holding your wand?");

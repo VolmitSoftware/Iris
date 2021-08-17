@@ -101,7 +101,7 @@ public class CommandIrisObjectXAY extends MortarCommand {
         b[1] = cursor.getUpperSW();
         p.getInventory().setItemInMainHand(WandSVC.createWand(b[0], b[1]));
         p.updateInventory();
-        p.playSound(p.getLocation(), Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
+        sender.playSound(Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
 
         return true;
     }

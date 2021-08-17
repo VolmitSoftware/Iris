@@ -57,6 +57,7 @@ import java.util.stream.Stream;
 @Data
 public class IrisWorldManager extends EngineAssignedWorldManager {
     private final Looper looper;
+    private final int id;
     private final KMap<Long, Long> chunkCooldowns;
     private double energy = 25;
     private int entityCount = 0;
@@ -75,6 +76,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         cln = null;
         chunkCooldowns = null;
         looper = null;
+        id = -1;
     }
 
     public IrisWorldManager(Engine engine) {
@@ -83,11 +85,12 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         cl = new ChronoLatch(3000);
         ecl = new ChronoLatch(250);
         chunkCooldowns = new KMap<>();
+        id = engine.getCacheID();
         energy = 25;
         looper = new Looper() {
             @Override
             protected long loop() {
-                if (getEngine().isClosed()) {
+                if (getEngine().isClosed() || getEngine().getCacheID() != id) {
                     interrupt();
                 }
 

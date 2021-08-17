@@ -77,7 +77,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdater, Renderer {
+public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdater, Renderer, Hotloadable {
     IrisComplex getComplex();
 
     void printMetrics(CommandSender sender);

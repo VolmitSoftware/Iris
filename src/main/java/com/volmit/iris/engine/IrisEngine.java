@@ -22,6 +22,7 @@ import com.google.common.util.concurrent.AtomicDouble;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.engine.actuator.IrisBiomeActuator;
 import com.volmit.iris.engine.actuator.IrisDecorantActuator;
 import com.volmit.iris.engine.actuator.IrisTerrainIslandActuator;
@@ -81,11 +82,11 @@ public class IrisEngine extends BlockPopulator implements Engine {
     private final AtomicLong lastGPS;
     private final EngineTarget target;
     private final IrisContext context;
-    private final EngineEffects effects;
+    private EngineEffects effects;
     private final EngineMantle mantle;
     private final ChronoLatch perSecondLatch;
-    private final EngineExecutionEnvironment execution;
-    private final EngineWorldManager worldManager;
+    private EngineExecutionEnvironment execution;
+    private EngineWorldManager worldManager;
     private volatile int parallelism;
     private final EngineMetrics metrics;
     private volatile int minHeight;
@@ -98,58 +99,94 @@ public class IrisEngine extends BlockPopulator implements Engine {
     private double maxBiomeObjectDensity;
     private double maxBiomeLayerDensity;
     private double maxBiomeDecoratorDensity;
-    private final IrisComplex complex;
-    private final EngineActuator<BlockData> terrainNormalActuator;
-    private final EngineActuator<BlockData> terrainIslandActuator;
-    private final EngineActuator<BlockData> decorantActuator;
-    private final EngineActuator<Biome> biomeActuator;
-    private final EngineModifier<BlockData> depositModifier;
-    private final EngineModifier<BlockData> caveModifier;
-    private final EngineModifier<BlockData> ravineModifier;
-    private final EngineModifier<BlockData> postModifier;
+    private IrisComplex complex;
+    private EngineActuator<BlockData> terrainNormalActuator;
+    private EngineActuator<BlockData> terrainIslandActuator;
+    private EngineActuator<BlockData> decorantActuator;
+    private EngineActuator<Biome> biomeActuator;
+    private EngineModifier<BlockData> depositModifier;
+    private EngineModifier<BlockData> caveModifier;
+    private EngineModifier<BlockData> ravineModifier;
+    private EngineModifier<BlockData> postModifier;
     private final AtomicCache<IrisEngineData> engineData = new AtomicCache<>();
     private final AtomicBoolean cleaning;
     private final ChronoLatch cleanLatch;
 
     public IrisEngine(EngineTarget target, boolean studio) {
-        target.getData().dump();
         this.studio = studio;
+        this.target = target;
+        metrics = new EngineMetrics(32);
+        cleanLatch = new ChronoLatch(Math.max(10000, Math.min(IrisSettings.get().getParallax()
+                .getParallaxChunkEvictionMS(), IrisSettings.get().getParallax().getParallaxRegionEvictionMS())));
         generatedLast = new AtomicInteger(0);
         perSecond = new AtomicDouble(0);
         perSecondLatch = new ChronoLatch(1000, false);
         wallClock = new AtomicRollingSequence(32);
         lastGPS = new AtomicLong(M.ms());
         generated = new AtomicInteger(0);
-        execution = new IrisExecutionEnvironment(this);
-        // TODO: HEIGHT ------------------------------------------------------------------------------------------------------>
+        mantle = new IrisEngineMantle(this);
+        context = new IrisContext(this);
+        cleaning = new AtomicBoolean(false);
+        context.touch();
         Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + 256 + " height)");
-        metrics = new EngineMetrics(32);
-        this.target = target;
         getData().setEngine(this);
         getEngineData();
-        worldManager = new IrisWorldManager(this);
         minHeight = 0;
         failing = false;
         closed = false;
+        art = J.ar(this::tickRandomPlayer, 0);
+        setupEngine();
+    }
+
+    private void tickRandomPlayer() {
+        if(effects != null) {
+            effects.tickRandomPlayer();
+        }
+    }
+
+    private void prehotload()
+    {
+        worldManager.close();
+        complex.close();
+        execution.close();
+        terrainNormalActuator.close();
+        terrainIslandActuator.close();
+        decorantActuator.close();
+        biomeActuator.close();
+        depositModifier.close();
+        ravineModifier.close();
+        caveModifier.close();
+        postModifier.close();
+        effects.close();
+    }
+
+    private void setupEngine()
+    {
         cacheId = RNG.r.nextInt();
+        worldManager = new IrisWorldManager(this);
+        complex = new IrisComplex(this);
+        execution = new IrisExecutionEnvironment(this);
+        terrainNormalActuator = new IrisTerrainNormalActuator(this);
+        terrainIslandActuator = new IrisTerrainIslandActuator(this);
+        decorantActuator = new IrisDecorantActuator(this);
+        biomeActuator = new IrisBiomeActuator(this);
+        depositModifier = new IrisDepositModifier(this);
+        ravineModifier = new IrisRavineModifier(this);
+        caveModifier = new IrisCaveModifier(this);
+        postModifier = new IrisPostModifier(this);
         effects = new IrisEngineEffects(this);
-        art = J.ar(effects::tickRandomPlayer, 0);
         J.a(this::computeBiomeMaxes);
-        context = new IrisContext(this);
-        context.touch();
-        this.complex = new IrisComplex(this);
-        this.terrainNormalActuator = new IrisTerrainNormalActuator(this);
-        this.terrainIslandActuator = new IrisTerrainIslandActuator(this);
-        this.decorantActuator = new IrisDecorantActuator(this);
-        this.biomeActuator = new IrisBiomeActuator(this);
-        this.depositModifier = new IrisDepositModifier(this);
-        this.ravineModifier = new IrisRavineModifier(this);
-        this.caveModifier = new IrisCaveModifier(this);
-        this.postModifier = new IrisPostModifier(this);
-        cleaning = new AtomicBoolean(false);
-        cleanLatch = new ChronoLatch(Math.max(10000, Math.min(IrisSettings.get().getParallax()
-                .getParallaxChunkEvictionMS(), IrisSettings.get().getParallax().getParallaxRegionEvictionMS())));
-        mantle = new IrisEngineMantle(this);
+    }
+
+    @Override
+    public void hotload() {
+        Iris.info("Hotload ENGINE");
+        getData().dump();
+        getData().clearLists();
+        getTarget().setDimension(getData().getDimensionLoader().load(getDimension().getLoadKey()));
+        prehotload();
+        setupEngine();
+        Iris.callEvent(new IrisEngineHotloadEvent(this));
     }
 
     @Override

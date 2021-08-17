@@ -33,6 +33,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Server;
+import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.permissions.Permission;
@@ -471,6 +472,12 @@ public class VolmitSender implements CommandSender {
             System.out.println(s);
         } else {
             sendMessage(i.getPath() + "()");
+        }
+    }
+
+    public void playSound(Sound sound, float volume, float pitch) {
+        if (isPlayer()) {
+            player().playSound(player().getLocation(), sound, volume, pitch);
         }
     }
 }

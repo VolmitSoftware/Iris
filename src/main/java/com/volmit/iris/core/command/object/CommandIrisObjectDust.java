@@ -52,7 +52,7 @@ public class CommandIrisObjectDust extends MortarCommand {
         }
 
         sender.player().getInventory().addItem(WandSVC.createDust());
-        sender.player().playSound(sender.player().getLocation(), Sound.AMBIENT_SOUL_SAND_VALLEY_ADDITIONS, 1f, 1.5f);
+        sender.playSound(Sound.AMBIENT_SOUL_SAND_VALLEY_ADDITIONS, 1f, 1.5f);
 
         return true;
     }

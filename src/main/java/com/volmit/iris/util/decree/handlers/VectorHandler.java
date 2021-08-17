@@ -33,6 +33,15 @@ import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
 public class VectorHandler implements DecreeParameterHandler<Vector> {
+
+    private static final KList<String> randoms = new KList<>(
+            "here",
+            "0,0,0",
+            "0,0",
+            "look",
+            "player:<name>"
+    );
+
     @Override
     public KList<Vector> getPossibilities() {
         KList<Vector> vx = new KList<>();
@@ -107,6 +116,6 @@ public class VectorHandler implements DecreeParameterHandler<Vector> {
 
     @Override
     public String getRandomDefault() {
-        return M.r(0.5) ? "0,0" : "0,0,0";
+        return randoms.getRandom();
     }
 }

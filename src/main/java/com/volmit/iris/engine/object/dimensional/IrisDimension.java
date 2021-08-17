@@ -318,6 +318,9 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("If true, the spawner system has infinite energy. This is NOT recommended because it would allow for mobs to keep spawning over and over without a rate limit")
     private boolean infiniteEnergy = false;
 
+    @Desc("If defined, warp the terrain vertically by this style. This will cause overhangs & carving-like shapes")
+    private IrisShapedGeneratorStyle verticalDomain = new IrisShapedGeneratorStyle(NoiseStyle.FLAT, 1, 1);
+
     @MinNumber(0.0001)
     @MaxNumber(512)
     @Desc("The rock zoom mostly for zooming in on a wispy palette")

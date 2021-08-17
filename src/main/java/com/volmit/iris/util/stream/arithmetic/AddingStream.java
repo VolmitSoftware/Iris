@@ -58,5 +58,4 @@ public class AddingStream<T> extends BasicStream<T> {
     public T get(double x, double y, double z) {
         return fromDouble(add.apply(x, y, z) + getTypedSource().getDouble(x, y, z));
     }
-
 }

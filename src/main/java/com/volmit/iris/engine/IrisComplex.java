@@ -47,6 +47,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.UUID;
 
@@ -501,5 +502,21 @@ public class IrisComplex implements DataProvider {
         IrisBiome biome = childCell.fitRarity(chx, x, z);
         biome.setInferredType(b.getInferredType());
         return implode(biome, x, z, max - 1);
+    }
+
+    public void close() {
+        // I know this looks awful, but it helps gc not deal with the spaghetti reference soup going on here
+        for (Field i : getClass().getDeclaredFields())
+        {
+            if(i.getType().equals(ProceduralStream.class))
+            {
+                i.setAccessible(true);
+                try {
+                    i.set(this, null);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 }

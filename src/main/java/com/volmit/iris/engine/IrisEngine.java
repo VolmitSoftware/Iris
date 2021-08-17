@@ -303,6 +303,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         getCaveModifier().close();
         getPostModifier().close();
         getMantle().close();
+        getComplex().close();
         Iris.debug("Engine Fully Shutdown!");
     }
 

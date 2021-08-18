@@ -58,11 +58,7 @@ public class DecreeNode {
                 optional.add(p);
             }
         }
-
-        required.sort();
-
-        optional.sort();
-
+        
         required.addAll(optional);
 
         return required;

@@ -75,7 +75,6 @@ public class BurstExecutor {
                 CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
                 futures.clear();
             } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
                 Iris.reportError(e);
             }
         }

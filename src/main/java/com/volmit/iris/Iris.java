@@ -429,6 +429,7 @@ public class Iris extends VolmitPlugin implements Listener {
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
 
+        Iris.debug("THE WORLD NAME PASSED IN WAS " + worldName);
         IrisDimension dim;
         if (id == null || id.isEmpty()) {
             dim = IrisData.loadAnyDimension(IrisSettings.get().getGenerator().getDefaultWorldType());

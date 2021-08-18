@@ -94,6 +94,10 @@ public class Iris extends VolmitPlugin implements Listener {
     @com.volmit.iris.util.plugin.Command
     public CommandIrisStudio commandStudio;
 
+    public static VolmitSender getSender() {
+        return sender;
+    }
+
     private void preEnable() {
         instance = this;
         services = new KMap<>();
@@ -428,8 +432,6 @@ public class Iris extends VolmitPlugin implements Listener {
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
-
-        Iris.debug("THE WORLD NAME PASSED IN WAS " + worldName);
         IrisDimension dim;
         if (id == null || id.isEmpty()) {
             dim = IrisData.loadAnyDimension(IrisSettings.get().getGenerator().getDefaultWorldType());
@@ -464,7 +466,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
         Iris.debug("Generator Config: " + w.toString());
 
-        File ff = new File(w.worldFolder(), "iris");
+        File ff = new File(w.worldFolder(), "iris/pack");
         if(!ff.exists() || ff.listFiles().length == 0)
         {
             ff.mkdirs();

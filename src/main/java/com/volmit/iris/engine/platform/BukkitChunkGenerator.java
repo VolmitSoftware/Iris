@@ -20,6 +20,7 @@ package com.volmit.iris.engine.platform;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.framework.Engine;
@@ -45,6 +46,7 @@ import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
 import org.jetbrains.annotations.NotNull;
 
+import javax.management.RuntimeErrorException;
 import java.io.File;
 import java.util.List;
 import java.util.Random;
@@ -76,6 +78,41 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         this.folder = new ReactiveFolder(dataLocation, (_a, _b, _c) -> hotload());
         IrisData data = IrisData.get(dataLocation);
         IrisDimension dimension = data.getDimensionLoader().load(dimensionKey);
+
+        if(dimension == null)
+        {
+            Iris.error("Oh No! There's no pack in " + data.getDataFolder().getPath() + " or... there's no dimension for the key " + dimensionKey);
+            IrisDimension test = IrisData.loadAnyDimension(dimensionKey);
+
+            if(test != null)
+            {
+                Iris.warn("Looks like " + dimensionKey + " exists in " + test.getLoadFile().getPath());
+                Iris.service(StudioSVC.class).installIntoWorld(Iris.getSender(), dimensionKey, dataLocation.getParentFile().getParentFile());
+                Iris.warn("Attempted to install into " + data.getDataFolder().getPath());
+                data.dump();
+                data.clearLists();
+                test = data.getDimensionLoader().load(dimensionKey);
+
+                if(test != null)
+                {
+                    Iris.success("Woo! Patched the Engine to work with MVC bugs. Have a nice day!");
+                    dimension = test;
+                }
+
+                else
+                {
+                    Iris.error("Failed to patch dimension!");
+                    throw new RuntimeException("Missing Dimension: " + dimensionKey);
+                }
+            }
+
+            else
+            {
+                Iris.error("Nope, you don't have an installation containing " + dimensionKey + " try downloading it?");
+                throw new RuntimeException("Missing Dimension: " + dimensionKey);
+            }
+        }
+
         this.engine = new IrisEngine(new EngineTarget(world, dimension, data), studio);
         populators.add((BlockPopulator) engine);
         this.hotloader = new Looper() {

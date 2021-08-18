@@ -46,7 +46,7 @@ public class DecIris implements DecreeExecutor {
 
     private DecObject object;
 
-    @Decree(description = "Create a new world", aliases = "+")
+    @Decree(description = "Create a new world", aliases = {"+", "c"})
     public void create(
             @Param(aliases = "world-name", description = "The name of the world to create", defaultValue = "IrisWorld")
                     String name,
@@ -86,7 +86,7 @@ public class DecIris implements DecreeExecutor {
 
     @Decree(description = "Print version information")
     public void version() {
-        sender().sendMessage("Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");
+        sender().sendMessage(C.GREEN + "Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");
     }
 
     @Decree(description = "Set aura spins")
@@ -109,7 +109,7 @@ public class DecIris implements DecreeExecutor {
     public void bitwise(
             @Param(description = "The first value to run calculations on")
                     int value1,
-            @Param(description = "The operator: | & ^ >> << %")
+            @Param(description = "The operator: | & ^ ≺≺ ≻≻ ％")
                     String operator,
             @Param(description = "The second value to run calculations on")
                     int value2
@@ -127,7 +127,7 @@ public class DecIris implements DecreeExecutor {
             sender().sendMessage(C.RED + "The operator you entered: (" + operator + ") is invalid!");
             return;
         }
-        sender().sendMessage(C.GREEN + "" + value1 + " " + C.GREEN + operator.replaceAll("<", "≺").replaceAll(">", "≻") + " " + C.GREEN + value2 + C.GREEN + " returns " + C.GREEN + v);
+        sender().sendMessage(C.GREEN + "" + value1 + " " + C.GREEN + operator.replaceAll("<", "≺").replaceAll(">", "≻").replaceAll("%", "％") + " " + C.GREEN + value2 + C.GREEN + " returns " + C.GREEN + v);
     }
 
     @Decree(description = "Toggle debug")
@@ -138,7 +138,7 @@ public class DecIris implements DecreeExecutor {
         IrisSettings.get().getGeneral().setDebug(on);
     }
 
-    @Decree(description = "Download a project.")
+    @Decree(description = "Download a project.", aliases = "dl")
     public void download(
             @Param(name = "pack", description = "The pack to download", defaultValue = "overworld", aliases = "project")
                     String pack,

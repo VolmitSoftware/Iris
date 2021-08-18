@@ -39,6 +39,7 @@ import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructure;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructurePlacement;
 import com.volmit.iris.engine.object.loot.IrisLootReference;
 import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
+import com.volmit.iris.engine.object.noise.IrisInterpolator;
 import com.volmit.iris.engine.object.noise.IrisShapedGeneratorStyle;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
@@ -315,9 +316,6 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("If true, the spawner system has infinite energy. This is NOT recommended because it would allow for mobs to keep spawning over and over without a rate limit")
     private boolean infiniteEnergy = false;
 
-    @Desc("If defined, warp the terrain vertically by this style. This will cause overhangs & carving-like shapes")
-    private IrisShapedGeneratorStyle verticalDomain = new IrisShapedGeneratorStyle(NoiseStyle.FLAT, 1, 1);
-
     @MinNumber(0.0001)
     @MaxNumber(512)
     @Desc("The rock zoom mostly for zooming in on a wispy palette")
@@ -331,6 +329,9 @@ public class IrisDimension extends IrisRegistrant {
 
     @Desc("Cartographer map trade overrides")
     private IrisVillagerOverride patchCartographers = new IrisVillagerOverride().setDisableTrade(false);
+
+    @Desc("If defined, warp the terrain vertically by this style. This will cause overhangs & carving-like shapes")
+    private IrisShapedGeneratorStyle verticalDomain = new IrisShapedGeneratorStyle(NoiseStyle.FLAT, 1, 1);
 
     private final transient AtomicCache<Position2> parallaxSize = new AtomicCache<>();
     private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();

@@ -77,11 +77,13 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<Biome> trueBiomeDerivativeStream;
     private ProceduralStream<Double> heightStream;
     private ProceduralStream<Double> heightStreamNoFeatures;
+    private ProceduralStream<Double> heightDomainStreamNoFeatures;
     private ProceduralStream<Double> objectChanceStream;
     private ProceduralStream<Double> maxHeightStream;
     private ProceduralStream<Double> overlayStream;
     private ProceduralStream<Double> heightFluidStream;
     private ProceduralStream<Integer> trueHeightStream;
+    private ProceduralStream<Integer> trueHeightDomainStream;
     private ProceduralStream<Double> slopeStream;
     private ProceduralStream<Integer> islandTopStream;
     private ProceduralStream<Integer> islandBottomStream;
@@ -227,6 +229,25 @@ public class IrisComplex implements DataProvider {
             IrisBiome b = focus != null ? focus : baseBiomeStream.get(x, z);
             return getHeight(engine, b, x, z, engine.getWorld().seed(), false);
         }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D(cacheSize);
+        heightDomainStreamNoFeatures = engine.getDimension().getVerticalDomain().isFlat()
+                ? heightStreamNoFeatures
+                : ProceduralStream.of((x, z) -> {
+            double hh = 0;
+            double v, i;
+
+            for(i = 0; i < engine.getHeight(); i++)
+            {
+                double ox = engine.getDimension().getVerticalDomain().get(rng, getData(), i - 12345);
+                double oz = engine.getDimension().getVerticalDomain().get(rng, getData(), i + 54321);
+                v = heightStreamNoFeatures.get(x+ox, z+oz);
+                if(v > hh)
+                {
+                    hh = v;
+                }
+            }
+
+            return hh;
+        }, Interpolated.DOUBLE).cache2D(cacheSize);
         slopeStream = heightStream.slope(3).cache2D(cacheSize);
         objectChanceStream = ProceduralStream.ofDouble((x, z) -> {
             if (engine.getDimension().hasFeatures(engine)) {
@@ -324,6 +345,7 @@ public class IrisComplex implements DataProvider {
                 .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.SEA_SURFACE)).cache2D(cacheSize);
         seaFloorDecoration = trueBiomeStream
                 .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.SEA_FLOOR)).cache2D(cacheSize);
+
         trueHeightStream = ProceduralStream.of((x, z) -> {
             int rx = (int) Math.round(engine.modifyX(x));
             int rz = (int) Math.round(engine.modifyZ(z));
@@ -371,6 +393,26 @@ public class IrisComplex implements DataProvider {
                         .get(x, z) : 0);
         islandBottomStream = islandStream.convertAware2D((i, x, z) ->
                 i ? islandHeightStream.subtract(islandDepthStream).round().get(x, z) : 0);
+
+        trueHeightDomainStream = engine.getDimension().getVerticalDomain().isFlat()
+                ? trueHeightStream
+                : ProceduralStream.of((x, z) -> {
+            double hh = 0;
+            double v, i;
+
+            for(i = 0; i < engine.getHeight(); i++)
+            {
+                double ox = engine.getDimension().getVerticalDomain().get(rng, getData(), i - 12345);
+                double oz = engine.getDimension().getVerticalDomain().get(rng, getData(), i + 54321);
+                v = trueHeightStream.get(x+ox, z+oz);
+                if(v > hh)
+                {
+                    hh = v;
+                }
+            }
+
+            return (int)Math.round(hh);
+        }, Interpolated.INT).cache2D(cacheSize);
         //@done
     }
 

@@ -38,13 +38,13 @@ import lombok.experimental.Accessors;
 public class IrisInterpolator {
     @Required
     @Desc("The interpolation method when two biomes use different heights but this same generator")
-    private InterpolationMethod function = InterpolationMethod.BICUBIC;
+    private InterpolationMethod function = InterpolationMethod.BILINEAR_STARCAST_6;
 
     @Required
     @MinNumber(1)
     @MaxNumber(8192)
     @Desc("The range checked horizontally. Smaller ranges yeild more detail but are not as smooth.")
-    private double horizontalScale = 3;
+    private double horizontalScale = 7;
 
     public double interpolate(double x, double z, NoiseProvider provider) {
         return interpolate((int) Math.round(x), (int) Math.round(z), provider);

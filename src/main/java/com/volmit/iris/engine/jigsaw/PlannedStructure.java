@@ -158,27 +158,6 @@ public class PlannedStructure {
 
     public void place(World world) {
         for (PlannedPiece i : pieces) {
-            Iris.sq(() -> {
-                for (IrisJigsawPieceConnector j : i.getAvailableConnectors()) {
-                    if (j.getSpawnEntity() != null) {
-                        Engine a = IrisToolbelt.access(world).getEngine();
-                        if (a == null) {
-                            Iris.warn("Cannot spawn entities from jigsaw in non Iris world!");
-                            break;
-                        }
-                        IrisPosition p = i.getWorldPosition(j).add(new IrisPosition(j.getDirection().toVector().multiply(2)));
-                        IrisEntity e = getData().getEntityLoader().load(j.getSpawnEntity());
-
-                        if (a != null) {
-                            Entity entity = e.spawn(a, new Location(world, p.getX() + 0.5, p.getY(), p.getZ() + 0.5), rng);
-                            if (j.isKeepEntity()) {
-                                entity.setPersistent(true);
-                            }
-                        }
-                    }
-                }
-            });
-
             Iris.sq(() -> i.place(world));
         }
     }

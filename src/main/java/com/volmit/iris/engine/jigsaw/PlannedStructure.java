@@ -228,12 +228,15 @@ public class PlannedStructure {
 
     private boolean generateRotatedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, IrisJigsawPiece idea, IrisObjectRotation rotation) {
         if (!idea.getPlacementOptions().getRotation().isEnabled())
-            rotation = piece.getRotation(); //Inherit parent rotation
+        {
+            rotation = piece.getRotation();
+        }
 
         PlannedPiece test = new PlannedPiece(this, piece.getPosition(), idea, rotation);
 
         for (IrisJigsawPieceConnector j : test.getPiece().getConnectors().shuffleCopy(rng)) {
             if (generatePositionedPiece(piece, pieceConnector, test, j)) {
+                Iris.info("PLACED " + piece.getPiece().getLoadKey() + " -> " + test.getPiece().getLoadKey() + " on " + pieceConnector.getName() + "#" + pieceConnector.getTargetName());
                 return true;
             }
         }

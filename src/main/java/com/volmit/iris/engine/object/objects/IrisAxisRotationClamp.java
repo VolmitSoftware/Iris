@@ -33,6 +33,7 @@ import lombok.experimental.Accessors;
 public class IrisAxisRotationClamp {
     @Desc("Should this axis be rotated at all?")
     private boolean enabled = false;
+
     private transient boolean forceLock = false;
 
     @Required
@@ -72,7 +73,7 @@ public class IrisAxisRotationClamp {
 
     public double getRadians(int rng) {
         if (forceLock) {
-            return Math.toRadians(max);
+            return Math.toRadians(Math.ceil(Math.abs((max % 360D))));
         }
 
         if (isUnlimited()) {

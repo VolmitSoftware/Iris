@@ -21,6 +21,7 @@ package com.volmit.iris.engine.object.spawners;
 import com.volmit.iris.core.project.loader.IrisRegistrant;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.basic.IrisRange;
 import com.volmit.iris.engine.object.basic.IrisRate;
 import com.volmit.iris.engine.object.basic.IrisTimeBlock;
 import com.volmit.iris.engine.object.basic.IrisWeather;
@@ -32,6 +33,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 
 @EqualsAndHashCode(callSuper = true)
@@ -66,6 +68,9 @@ public class IrisSpawner extends IrisRegistrant {
 
     @Desc("The maximum rate this spawner can fire on a specific chunk")
     private IrisRate maximumRatePerChunk = new IrisRate();
+
+    @Desc("The light levels this spawn is allowed to run in (0-15 inclusive)")
+    private IrisRange allowedLightLevels = new IrisRange(0, 15);
 
     @Desc("Where should these spawns be placed")
     private IrisSpawnGroup group = IrisSpawnGroup.NORMAL;

@@ -236,7 +236,6 @@ public class PlannedStructure {
 
         for (IrisJigsawPieceConnector j : test.getPiece().getConnectors().shuffleCopy(rng)) {
             if (generatePositionedPiece(piece, pieceConnector, test, j)) {
-                Iris.info("PLACED " + piece.getPiece().getLoadKey() + " -> " + test.getPiece().getLoadKey() + " on " + pieceConnector.getName() + "#" + pieceConnector.getTargetName());
                 return true;
             }
         }

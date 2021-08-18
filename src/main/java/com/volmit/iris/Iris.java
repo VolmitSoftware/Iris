@@ -461,6 +461,8 @@ public class Iris extends VolmitPlugin implements Listener {
                 .maxHeight(256)
                 .build();
 
+        Iris.debug("Generator Config: " + w.toString());
+
         File ff = new File(w.worldFolder(), "iris");
         if(!ff.exists() || ff.listFiles().length == 0)
         {

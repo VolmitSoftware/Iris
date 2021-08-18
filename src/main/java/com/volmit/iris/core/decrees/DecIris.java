@@ -25,8 +25,11 @@ import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
+import com.volmit.iris.util.decree.DecreeSystem;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
+import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
+import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.M;
 
@@ -132,10 +135,23 @@ public class DecIris implements DecreeExecutor {
 
     @Decree(description = "Toggle debug")
     public void debug(
-            @Param(name = "on", description = "Whether or not debug should be on", defaultValue = "true")
-                    boolean on
+            @Param(name = "on", description = "Whether or not debug should be on", defaultValue = "toggle")
+                    String on
     ) {
-        IrisSettings.get().getGeneral().setDebug(on);
+        Boolean val;
+        try {
+            val = (Boolean) DecreeSystem.getHandler(boolean.class).parse(on);
+        } catch (Throwable e) {
+            if (on.equals("toggle")){
+                val = !IrisSettings.get().getGeneral().isDebug();
+            } else {
+                sender().sendMessage(C.RED + "Failed to convert input: " + on + " to a true or false value");
+                Iris.reportError(e);
+                return;
+            }
+        }
+        sender().sendMessage(C.GREEN + "Set debug to " + val);
+        IrisSettings.get().getGeneral().setDebug(val);
     }
 
     @Decree(description = "Download a project.", aliases = "dl")

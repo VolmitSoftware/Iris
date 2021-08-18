@@ -27,6 +27,7 @@ import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.link.OraxenLink;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.biome.IrisBiome;
@@ -448,6 +449,7 @@ public class Iris extends VolmitPlugin implements Listener {
                 Iris.info("Resolved missing dimension, proceeding with generation.");
             }
         }
+
         Iris.debug("Assuming IrisDimension: " + dim.getName());
 
         IrisWorld w = IrisWorld.builder()
@@ -458,7 +460,15 @@ public class Iris extends VolmitPlugin implements Listener {
                 .minHeight(0)
                 .maxHeight(256)
                 .build();
-        return new BukkitChunkGenerator(w, false, new File(w.worldFolder(), "iris"), dim.getLoadKey());
+
+        File ff = new File(w.worldFolder(), "iris");
+        if(!ff.exists() || ff.listFiles().length == 0)
+        {
+            ff.mkdirs();
+            service(StudioSVC.class).installIntoWorld(sender, dim.getLoadKey(), ff.getParentFile());
+        }
+
+        return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey());
     }
 
     public static void msg(String string) {

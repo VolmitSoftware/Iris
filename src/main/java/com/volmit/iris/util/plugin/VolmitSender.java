@@ -425,55 +425,99 @@ public class VolmitSender implements CommandSender {
 
     public void sendDecreeHelpNode(VirtualDecreeCommand i){
         if (isPlayer()) {
-            //@builder
-            String s = (
-                    "<hover:show_text:'"+
-                            i.getNames().copy().reverse().convert((f) -> "<#42ecf5>" + f).toString(", ") + "\n"
-                            + "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + i.getDescription() + "<reset>\n"
-                            + "<#bbe03f>✒ <#a8e0a2>" + (i.isNode()
-                            ? ((i.getNode().getParameters().isEmpty()
-                            ? "<font:minecraft:uniform>There are no parameters.<reset>"
-                            : "<font:minecraft:uniform>Hover over all of the parameters to learn more.<reset>" + "\n"))
-                            : "<font:minecraft:uniform>This is a command category. Click to run <reset><#98eda5>" + i.getPath())
-                            + (i.isNode()
-                            ? (i.getNode().getParameters().isNotEmpty())
-                            ? "<#aebef2>✦ <#5ef288><font:minecraft:uniform>"
-                            + i.getParentPath()
-                            + " <#42ecf5>"
-                            + i.getName() + " "
-                            + i.getNode().getParameters().convert((f)
-                                    -> "<#d665f0>" + f.example())
-                            .toString(" ") + "\n"
-                            : ""
-                            : "")
-                            + (i.isNode() ? "<font:minecraft:uniform>" + pickRandoms(Math.min(i.getNode().getParameters().size() + 1, 5), i) + "<reset>" : "")
-                            + "'><click:" + (i.isNode() && i.getNode().getParameters().isNotEmpty() ? "suggest_command" : "run_command") + ":" + i.getPath() + " >"
-                            + "<#46826a>⇀<gradient:#42ecf5:#428df5> " + i.getName() + "</click></hover>"
-                            + (i.isNode() ?
-                            " " + i.getNode().getParameters().convert((f)
-                                    -> "<hover:show_text:'"
-                                    + f.getNames().convert((ff) -> "<#d665f0>" + ff).toString(", ") + "\n"
-                                    + "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + f.getDescription() + "<reset>\n"
-                                    + (f.isRequired()
-                                    ? "<#db4321>⚠ <#faa796><font:minecraft:uniform>This parameter is required."
-                                    : (f.hasDefault()
-                                    ? "<#2181db>✔ <#78dcf0><font:minecraft:uniform>Defaults to \""+f.getParam().defaultValue()+"\" if undefined."
-                                    : "<#a73abd>✔ <#78dcf0><font:minecraft:uniform>This parameter is optional.")) + "<reset>\n"
-                                    + (f.isContextual() ? "<#ff9900>➱ <#ffcc00><font:minecraft:uniform>The value may be derived from environment context <reset>\n" : "")
-                                    + "<#cc00ff>✢ <#ff33cc><font:minecraft:uniform>This parameter is of type " + f.getType().getSimpleName()
-                                    + "'>"
-                                    + (f.isRequired() ? "<red>[" : "<#4f4f4f>⊰")
-                                    + "<gradient:#d665f0:#a37feb>" + f.getName()
-                                    + (f.isRequired() ? "<red>] " : "<#4f4f4f>⊱") + "<gray>"
-                                    + "</hover>").toString("")
-                            : "<gradient:#afe3d3:#a2dae0> - Category of Commands"
-                    )
-            );
-            //@done
-            sendMessageRaw(s);
-            System.out.println(s);
+
+            String newline = "<reset>\n";
+
+            /// Command
+            // Contains main command & aliases
+            String title = i.getPath() + " >" + "<#46826a>⇀<gradient:#42ecf5:#428df5> " + i.getName();
+            String hoverTitle = i.getNames().copy().reverse().convert((f) -> "<#42ecf5>" + f).toString(", ");
+            String description = "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + i.getDescription();
+            String usage = "<#bbe03f>✒ <#a8e0a2>";
+            String onClick = "<click:";
+            if (i.isNode()) {
+                if (i.getNode().getParameters().isEmpty()){
+                    usage += "<font:minecraft:uniform>There are no parameters. Click to run.";
+                    onClick += "run_command";
+                } else {
+                    usage += "<font:minecraft:uniform>Hover over all of the parameters to learn more.";
+                    onClick += "suggest_command";
+                }
+            } else {
+                usage += "<font:minecraft:uniform>This is a command category. Click to run.";
+                onClick += "run_command";
+            }
+            onClick += ":" + title + "</click>";
+
+            String suggestion = "";
+            String suggestions = "";
+            if (i.isNode() && i.getNode().getParameters().isNotEmpty()) {
+                suggestion += newline + "<#aebef2>✦ <#5ef288><font:minecraft:uniform>" + i.getParentPath() + " <#42ecf5>" + i.getName() + " "
+                        + i.getNode().getParameters().convert((f) -> "<#d665f0>" + f.example()).toString(" ");
+                suggestions += newline + "<font:minecraft:uniform>" + pickRandoms(Math.min(i.getNode().getParameters().size() + 1, 5), i);
+            }
+
+            /// Params
+            StringBuilder nodes = new StringBuilder();
+            if (i.isNode()){
+                for (DecreeParameter p : i.getNode().getParameters()) {
+
+                    String nTitle = "<gradient:#d665f0:#a37feb>" + p.getName();
+                    String nHoverTitle = p.getNames().convert((ff) -> "<#d665f0>" + ff).toString(", ");
+                    String nDescription = "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + p.getDescription();
+                    String nUsage;
+                    String context = "";
+                    if (p.isRequired()){
+                        nUsage = "<#db4321>⚠ <#faa796><font:minecraft:uniform>This parameter is required.";
+                    } else if (p.hasDefault()) {
+                        nUsage = "<#2181db>✔ <#78dcf0><font:minecraft:uniform>Defaults to \""+ p.getParam().defaultValue()+"\" if undefined.";
+                    } else {
+                        nUsage = "<#a73abd>✔ <#78dcf0><font:minecraft:uniform>This parameter is optional.";
+                    }
+                    if (p.isContextual()){
+                        context = "<#ff9900>➱ <#ffcc00><font:minecraft:uniform>The value may be derived from environment context" + newline;
+                    }
+                    String type = "<#cc00ff>✢ <#ff33cc><font:minecraft:uniform>This parameter is of type " + p.getType().getSimpleName();
+                    String fullTitle;
+                    if (p.isRequired()){
+                        fullTitle = "<red>[" + nTitle + "<red>] ";
+                    } else {
+                        fullTitle = "<#4f4f4f>⊰" + nTitle + "<#4f4f4f>⊱";
+                    }
+
+                    nodes
+                            .append("<hover:show_text:'")
+                            .append(nHoverTitle).append(newline)
+                            .append(nDescription).append(newline)
+                            .append(context)
+                            .append(nUsage).append(newline)
+                            .append(type)
+                            .append("'>")
+                            .append(fullTitle)
+                            .append("</hover>");
+                }
+            } else {
+                nodes = new StringBuilder("<gradient:#afe3d3:#a2dae0> - Category of Commands");
+            }
+
+            /// Wrapper
+            StringBuilder wrapper = new StringBuilder()
+                    .append("<hover:show_text:'")
+                    .append(hoverTitle).append(newline)
+                    .append(description).append(newline)
+                    .append(usage)
+                    .append(suggestion)
+                    .append(suggestions)
+                    .append("'>")
+                    .append(onClick)
+                    .append("</hover>")
+                    .append(" ")
+                    .append(nodes);
+
+            sendMessageRaw(wrapper.toString());
+            System.out.println(wrapper);
         } else {
-            sendMessage(i.getPath() + "()");
+            sendMessage(i.getPath());
         }
     }
 

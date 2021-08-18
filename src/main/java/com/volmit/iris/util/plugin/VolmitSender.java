@@ -21,6 +21,7 @@ package com.volmit.iris.util.plugin;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.decree.DecreeParameter;
 import com.volmit.iris.util.decree.virtual.VirtualDecreeCommand;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -42,6 +43,7 @@ import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.Plugin;
 
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -432,7 +434,7 @@ public class VolmitSender implements CommandSender {
                             ? ((i.getNode().getParameters().isEmpty()
                             ? "<font:minecraft:uniform>There are no parameters.<reset>"
                             : "<font:minecraft:uniform>Hover over all of the parameters to learn more.<reset>" + "\n"))
-                            : "<font:minecraft:uniform>This is a command category. Run <reset><#98eda5>" + i.getPath())
+                            : "<font:minecraft:uniform>This is a command category. Click to run <reset><#98eda5>" + i.getPath())
                             + (i.isNode()
                             ? (i.getNode().getParameters().isNotEmpty())
                             ? "<#aebef2>✦ <#5ef288><font:minecraft:uniform>"
@@ -445,10 +447,10 @@ public class VolmitSender implements CommandSender {
                             : ""
                             : "")
                             + (i.isNode() ? "<font:minecraft:uniform>" + pickRandoms(Math.min(i.getNode().getParameters().size() + 1, 5), i) + "<reset>" : "")
-                            + "'><click:" + (i.isNode() ? "suggest_command" : "run_command") + ":" + i.getPath() + " >"
+                            + "'><click:" + (i.isNode() && i.getNode().getParameters().isNotEmpty() ? "suggest_command" : "run_command") + ":" + i.getPath() + " >"
                             + "<#46826a>⇀<gradient:#42ecf5:#428df5> " + i.getName() + "</click></hover>"
                             + (i.isNode() ?
-                            " " + i.getNode().getParameters().convert((f)
+                            " " + i.getNode().getParameters().sort().convert((f)
                                     -> "<hover:show_text:'"
                                     + f.getNames().convert((ff) -> "<#d665f0>" + ff).toString(", ") + "\n"
                                     + "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + f.getDescription() + "<reset>\n"
@@ -460,10 +462,10 @@ public class VolmitSender implements CommandSender {
                                     + (f.isContextual() ? "<#ff9900>➱ <#ffcc00><font:minecraft:uniform>The value may be derived from environment context <reset>\n" : "")
                                     + "<#cc00ff>✢ <#ff33cc><font:minecraft:uniform>This parameter is of type " + f.getType().getSimpleName()
                                     + "'>"
-                                    + (f.isRequired() ? "<red>[" : "")
+                                    + (f.isRequired() ? "<red>[" : "<#4f4f4f>⊰")
                                     + "<gradient:#d665f0:#a37feb>" + f.getName()
-                                    + (f.isRequired() ? "<red>]<gray>" : "")
-                                    + "</hover>").toString(" ")
+                                    + (f.isRequired() ? "<red>] " : "<#4f4f4f>⊱") + "<gray>"
+                                    + "</hover>").toString("")
                             : "<gradient:#afe3d3:#a2dae0> - Category of Commands"
                     )
             );

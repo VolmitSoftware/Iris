@@ -76,6 +76,8 @@ public class PlannedStructure {
 
         generateTerminators();
 
+        Iris.debug("JPlace: ROOT @ relative " + position.toString());
+
         for (PlannedPiece i : pieces) {
             Iris.debug("Place: " + i.getObject().getLoadKey() + " at @ relative " + i.getPosition().toString());
         }

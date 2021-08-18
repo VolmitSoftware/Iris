@@ -114,7 +114,9 @@ public class PlannedStructure {
         int xx = i.getPosition().getX() + sx;
         int zz = i.getPosition().getZ() + sz;
         int offset = i.getPosition().getY() - startHeight;
-        int height = placer.getHighest(xx, zz, getData()) + offset + (v.getH() / 2);
+        int height = i.getStructure().getStructure().getLockY() != -1
+                ? i.getStructure().getStructure().getLockY()
+                : placer.getHighest(xx, zz, getData()) + offset + (v.getH() / 2);
 
         if (options.getMode().equals(ObjectPlaceMode.PAINT) || options.isVacuum()) {
             height = -1;
@@ -123,7 +125,6 @@ public class PlannedStructure {
         int id = rng.i(0, Integer.MAX_VALUE);
         int h = vo.place(xx, height, zz, placer, options, rng, (b)
                 -> e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id), null, getData());
-
 
         for (IrisJigsawPieceConnector j : i.getAvailableConnectors()) {
             if (j.getSpawnEntity() != null)// && h != -1)

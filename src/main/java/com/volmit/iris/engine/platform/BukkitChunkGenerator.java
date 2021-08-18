@@ -29,6 +29,7 @@ import com.volmit.iris.engine.framework.WrongEngineBroException;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.io.ReactiveFolder;
 import com.volmit.iris.util.scheduling.ChronoLatch;
@@ -161,7 +162,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 r.run();
                 loadLock.release(LOAD_LOCKS);
             } catch (Throwable e) {
-                e.printStackTrace();
+                Iris.reportError(e);
             }
         });
     }

@@ -207,7 +207,16 @@ public class Mantle {
             });
         }
 
-        b.complete();
+        try
+        {
+            b.complete();
+        }
+
+        catch(Throwable e)
+        {
+            Iris.reportError(e);
+        }
+
         ioBurst.shutdownNow();
         Iris.debug("The Mantle has Closed " + C.DARK_AQUA + dataFolder.getAbsolutePath());
     }

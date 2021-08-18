@@ -450,7 +450,7 @@ public class VolmitSender implements CommandSender {
                             + "'><click:" + (i.isNode() && i.getNode().getParameters().isNotEmpty() ? "suggest_command" : "run_command") + ":" + i.getPath() + " >"
                             + "<#46826a>⇀<gradient:#42ecf5:#428df5> " + i.getName() + "</click></hover>"
                             + (i.isNode() ?
-                            " " + i.getNode().getParameters().sort().convert((f)
+                            " " + i.getNode().getParameters().convert((f)
                                     -> "<hover:show_text:'"
                                     + f.getNames().convert((ff) -> "<#d665f0>" + ff).toString(", ") + "\n"
                                     + "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + f.getDescription() + "<reset>\n"

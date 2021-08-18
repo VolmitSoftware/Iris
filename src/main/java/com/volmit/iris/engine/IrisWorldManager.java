@@ -227,11 +227,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 .collect(Collectors.toList()))
                 .popRandom(RNG.r);
 
-        if(initial)
-        {
-            Iris.info("SPAWNER PICKED: " + v);
-        }
-
         if (v != null && v.getReferenceSpawner() != null) {
             int maxEntCount = v.getReferenceSpawner().getMaxEntitiesPerChunk();
 
@@ -293,7 +288,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             i.setReferenceSpawner(s);
         }
 
-        return s.getSpawns().stream();
+        return (initial ? s.getInitialSpawns() : s.getSpawns()).stream();
     }
 
     private KList<IrisEntitySpawn> spawnRandomly(List<IrisEntitySpawn> types) {

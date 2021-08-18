@@ -75,7 +75,6 @@ import java.util.Map;
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
     private KMap<Class<? extends IrisService>, IrisService> services;
-    public static KList<GroupedExecutor> executors = new KList<>();
     public static Iris instance;
     public static BukkitAudiences audiences;
     public static MultiverseCoreLink linkMultiverseCore;
@@ -85,6 +84,7 @@ public class Iris extends VolmitPlugin implements Listener {
     public static IrisCompat compat;
     public static FileWatcher configWatcher;
     private static VolmitSender sender;
+    private final KList<Runnable> postShutdown = new KList<>();
 
     @Permission
     public static PermissionIris perm;
@@ -126,6 +126,11 @@ public class Iris extends VolmitPlugin implements Listener {
         services.values().forEach(this::registerListener);
     }
 
+    public void postShutdown(Runnable r)
+    {
+        postShutdown.add(r);
+    }
+
     private void postEnable() {
         J.a(() -> PaperLib.suggestPaper(this));
         J.a(() -> IO.delete(getTemp()));
@@ -155,18 +160,10 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public void onDisable() {
-        for (GroupedExecutor i : executors) {
-            Iris.debug("Closing Executor " + i.toString());
-            i.closeNow();
-        }
-
-        executors.clear();
-
+        services.values().forEach(IrisService::onDisable);
         Bukkit.getScheduler().cancelTasks(this);
         HandlerList.unregisterAll((Plugin) this);
-        MultiBurst.burst.shutdown();
-
-        services.values().forEach(IrisService::onDisable);
+        postShutdown.forEach(Runnable::run);
         services.clear();
         super.onDisable();
     }

@@ -159,16 +159,30 @@ public class MultiBurst {
 
     public void shutdownLater() {
         if (service != null) {
-            service.submit(() -> {
-                J.sleep(3000);
+            try
+            {
+                service.submit(() -> {
+                    J.sleep(3000);
+                    Iris.debug("Shutting down MultiBurst Pool " + heartbeat.getName() + ".");
+
+                    if (service != null) {
+                        service.shutdown();
+                    }
+                });
+
+                heartbeat.interrupt();
+            }
+
+            catch(Throwable e)
+            {
                 Iris.debug("Shutting down MultiBurst Pool " + heartbeat.getName() + ".");
 
                 if (service != null) {
                     service.shutdown();
                 }
-            });
 
-            heartbeat.interrupt();
+                heartbeat.interrupt();
+            }
         }
     }
 

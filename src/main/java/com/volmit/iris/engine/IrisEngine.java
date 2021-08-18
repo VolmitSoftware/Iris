@@ -23,6 +23,7 @@ import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
+import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.engine.actuator.IrisBiomeActuator;
 import com.volmit.iris.engine.actuator.IrisDecorantActuator;
 import com.volmit.iris.engine.actuator.IrisTerrainIslandActuator;
@@ -66,8 +67,6 @@ import org.bukkit.generator.BlockPopulator;
 import java.io.File;
 import java.io.IOException;
 import java.util.Random;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -340,6 +339,9 @@ public class IrisEngine extends BlockPopulator implements Engine {
         getPostModifier().close();
         getMantle().close();
         getComplex().close();
+        getData().dump();
+        getData().clearLists();
+        Iris.service(PreservationSVC.class).dereference();
         Iris.debug("Engine Fully Shutdown!");
     }
 

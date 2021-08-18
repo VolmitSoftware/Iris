@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.context;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
@@ -30,7 +31,7 @@ import lombok.Data;
 @AllArgsConstructor
 public class IrisContext {
     private static ChronoLatch cl = new ChronoLatch(60000);
-    private static KMap<Thread, IrisContext> context = new KMap<>();
+    private static final KMap<Thread, IrisContext> context = new KMap<>();
     private final Engine engine;
 
     public static IrisContext get() {
@@ -42,10 +43,22 @@ public class IrisContext {
             context.put(Thread.currentThread(), c);
 
             if (cl.flip()) {
-                for (Thread i : context.k()) {
-                    if (!i.isAlive()) {
-                        context.remove(i);
+                dereference();
+            }
+        }
+    }
+
+    public static void dereference() {
+        synchronized (context)
+        {
+            for (Thread i : context.k()) {
+                if (!i.isAlive() || context.get(i).engine.isClosed()) {
+                    if(context.get(i).engine.isClosed())
+                    {
+                        Iris.debug("Dereferenced Context<Engine> " + i.getName() + " " + i.getId());
                     }
+
+                    context.remove(i);
                 }
             }
         }

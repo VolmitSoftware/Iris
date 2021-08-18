@@ -24,6 +24,7 @@ import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CellGenerator;

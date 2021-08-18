@@ -19,14 +19,12 @@
 package com.volmit.iris.util.scheduling;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.service.ExecutionSVC;
-
-import java.util.concurrent.ExecutorService;
+import com.volmit.iris.core.service.PreservationSVC;
 
 public abstract class Looper extends Thread {
     @SuppressWarnings("BusyWait")
     public void run() {
-        Iris.service(ExecutionSVC.class).register(this);
+        Iris.service(PreservationSVC.class).register(this);
         while (!interrupted()) {
             try {
                 long m = loop();

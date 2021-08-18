@@ -20,7 +20,7 @@ package com.volmit.iris.util.parallel;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.service.ExecutionSVC;
+import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.scheduling.J;
@@ -71,7 +71,7 @@ public class MultiBurst {
         };
         heartbeat.setName(name + " Monitor");
         heartbeat.start();
-        Iris.service(ExecutionSVC.class).register(this);
+        Iris.service(PreservationSVC.class).register(this);
     }
 
     private synchronized ExecutorService getService() {
@@ -90,7 +90,7 @@ public class MultiBurst {
 
                 return t;
             });
-            Iris.service(ExecutionSVC.class).register(service);
+            Iris.service(PreservationSVC.class).register(service);
             Iris.debug("Started MultiBurst Pool " + name + " with " + tc + " threads at " + priority + " priority.");
         }
 

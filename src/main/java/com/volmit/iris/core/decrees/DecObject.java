@@ -1,9 +1,12 @@
 package com.volmit.iris.core.decrees;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.command.object.CommandIrisObjectUndo;
 import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
+import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacementScaleInterpolator;
@@ -17,6 +20,8 @@ import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.Direction;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.Matter;
+import com.volmit.iris.util.matter.WorldMatter;
 import com.volmit.iris.util.scheduling.Queue;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -26,6 +31,8 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.io.File;
+import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -302,4 +309,44 @@ public class DecObject implements DecreeExecutor {
         };
     }
 
+    //@Decree(description = "Paste a matter object", aliases = "matterpaste")
+    public void mpaste(
+            @Param(description = "The matter object to paste")
+            Matter object
+    ){
+        WorldMatter.placeMatter(object, player().getLocation());
+    }
+
+    @Decree(description = "Save an object")
+    public void save(
+            @Param(description = "The dimension to store the object in", contextual = true)
+            IrisDimension dimension,
+            @Param(description = "The file to store it in, can use / for subfolders")
+            String fileName,
+            @Param(description = "Overwrite existing object files", defaultValue = "false")
+            boolean overwrite
+    ){
+        IrisObject o = WandSVC.createSchematic(player().getInventory().getItemInMainHand());
+
+        if (o == null) {
+            sender().sendMessage(C.YELLOW + "You need to hold your wand!");
+            return;
+        }
+
+        File file = Iris.service(StudioSVC.class).getWorkspaceFile(dimension.getLoadKey(), "objects", fileName + ".iob");
+
+        if (file.exists() && !overwrite) {
+            sender().sendMessage(C.RED + "File already exists. Set overwrite=true to overwrite it.");
+            return;
+        }
+        try {
+            o.write(file);
+        } catch (IOException e){
+            sender().sendMessage(C.RED + "Failed to save object because of an IOException: " + e.getMessage());
+            Iris.reportError(e);
+        }
+
+        sender().playSound(Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
+        sender().sendMessage(C.GREEN + "Successfully object to saved: " + dimension.getLoadKey() + "/objects/" + fileName);
+    }
 }

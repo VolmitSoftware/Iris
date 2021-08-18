@@ -227,6 +227,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 .collect(Collectors.toList()))
                 .popRandom(RNG.r);
 
+        if(initial)
+        {
+            Iris.info("SPAWNER PICKED: " + v);
+        }
+
         if (v != null && v.getReferenceSpawner() != null) {
             int maxEntCount = v.getReferenceSpawner().getMaxEntitiesPerChunk();
 

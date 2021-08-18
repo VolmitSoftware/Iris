@@ -45,7 +45,7 @@ public class BurstExecutor {
 
     public BurstExecutor queue(List<Runnable> r) {
         synchronized (futures) {
-            for (Runnable i : r) {
+            for (Runnable i : new KList<>(r)) {
                 CompletableFuture<Void> c = CompletableFuture.runAsync(i, executor);
                 futures.add(c);
             }

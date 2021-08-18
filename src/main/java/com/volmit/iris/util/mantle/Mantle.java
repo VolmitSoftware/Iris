@@ -192,7 +192,7 @@ public class Mantle {
     public synchronized void close() {
         Iris.debug("Closing The Mantle " + C.DARK_AQUA + dataFolder.getAbsolutePath());
         if (closed.get()) {
-            throw new RuntimeException("The Mantle is closed");
+            return;
         }
 
         closed.set(true);

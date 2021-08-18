@@ -82,6 +82,20 @@ public class IrisData {
         hotloaded();
     }
 
+    public static void dereference()
+    {
+        dataLoaders.v().forEach(IrisData::cleanupEngine);
+    }
+
+    public void cleanupEngine()
+    {
+        if(engine != null && engine.isClosed())
+        {
+            engine = null;
+            Iris.debug("Dereferenced Data<Engine> " + getId() + " " + getDataFolder());
+        }
+    }
+
     public static int cacheSize() {
         int m = 0;
         for(IrisData i : dataLoaders.values())

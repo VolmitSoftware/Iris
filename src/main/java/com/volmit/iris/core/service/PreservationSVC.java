@@ -19,17 +19,21 @@
 package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.IrisService;
+import com.volmit.iris.util.scheduling.Looper;
 
 import java.util.concurrent.ExecutorService;
 
-public class ExecutionSVC implements IrisService
+public class PreservationSVC implements IrisService
 {
     private KList<Thread> threads = new KList<>();
     private KList<MultiBurst> bursts = new KList<>();
     private KList<ExecutorService> services = new KList<>();
+    private Looper dereferencer;
 
     public void register(Thread t)
     {
@@ -46,13 +50,31 @@ public class ExecutionSVC implements IrisService
         services.add(service);
     }
 
+    public void dereference()
+    {
+        IrisContext.dereference();
+        IrisData.dereference();
+    }
+
     @Override
     public void onEnable() {
-
+        /*
+         * Dereferences copies of Engine instances that are closed to prevent memory from
+         * hanging around and keeping copies of complex, caches and other dead objects.
+         */
+        dereferencer = new Looper() {
+            @Override
+            protected long loop() {
+                dereference();
+                return 60000;
+            }
+        };
     }
 
     @Override
     public void onDisable() {
+        dereferencer.interrupt();
+
         for(Thread i : threads)
         {
             if(i.isAlive())
@@ -97,5 +119,7 @@ public class ExecutionSVC implements IrisService
 
             }
         }
+
+        dereference();
     }
 }

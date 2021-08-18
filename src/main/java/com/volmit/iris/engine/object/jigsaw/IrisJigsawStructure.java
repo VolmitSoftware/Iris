@@ -59,6 +59,9 @@ public class IrisJigsawStructure extends IrisRegistrant {
     @Desc("If set to true, iris will look for any pieces with only one connector in valid pools for edge connectors and attach them to 'terminate' the paths/piece connectors. Essentially it caps off ends. For example in a village, Iris would add houses to the ends of roads where possible. For terminators to be selected, they can only have one connector or they wont be chosen.")
     private boolean terminate = true;
 
+    @Desc("Set to lock the starting peice to a y coordinate, otherwise the surface will be used.")
+    private int lockY = -1;
+
     private transient AtomicCache<Integer> maxDimension = new AtomicCache<>();
 
     private void loadPool(String p, KList<String> pools, KList<String> pieces) {

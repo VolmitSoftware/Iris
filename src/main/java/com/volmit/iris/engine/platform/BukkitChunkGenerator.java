@@ -19,10 +19,15 @@
 package com.volmit.iris.engine.platform;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.service.StudioSVC;
+import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.framework.WrongEngineBroException;
 import com.volmit.iris.engine.object.common.IrisWorld;
+import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.io.ReactiveFolder;
@@ -30,6 +35,8 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -39,14 +46,18 @@ import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
 import org.jetbrains.annotations.NotNull;
 
+import javax.management.RuntimeErrorException;
 import java.io.File;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Semaphore;
 
+@EqualsAndHashCode(callSuper = true)
+@Data
 public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChunkGenerator {
-    private static final int HOTLOAD_LOCKS = 1000000;
-    private final EngineProvider provider;
+    private static final int LOAD_LOCKS = 1_000_000;
+    private final Semaphore loadLock;
+    private final Engine engine;
     private final IrisWorld world;
     private final File dataLocation;
     private final String dimensionKey;
@@ -54,21 +65,56 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final KList<BlockPopulator> populators;
     private final ChronoLatch hotloadChecker;
     private final Looper hotloader;
-    private final Semaphore hotloadLock;
     private final boolean studio;
 
     public BukkitChunkGenerator(IrisWorld world, boolean studio, File dataLocation, String dimensionKey) {
         populators = new KList<>();
+        loadLock = new Semaphore(LOAD_LOCKS);
         this.world = world;
-        this.hotloadLock = new Semaphore(HOTLOAD_LOCKS);
         this.hotloadChecker = new ChronoLatch(1000, false);
         this.studio = studio;
         this.dataLocation = dataLocation;
         this.dimensionKey = dimensionKey;
         this.folder = new ReactiveFolder(dataLocation, (_a, _b, _c) -> hotload());
-        this.provider = new EngineProvider();
-        initialize();
+        IrisData data = IrisData.get(dataLocation);
+        IrisDimension dimension = data.getDimensionLoader().load(dimensionKey);
 
+        if(dimension == null)
+        {
+            Iris.error("Oh No! There's no pack in " + data.getDataFolder().getPath() + " or... there's no dimension for the key " + dimensionKey);
+            IrisDimension test = IrisData.loadAnyDimension(dimensionKey);
+
+            if(test != null)
+            {
+                Iris.warn("Looks like " + dimensionKey + " exists in " + test.getLoadFile().getPath());
+                Iris.service(StudioSVC.class).installIntoWorld(Iris.getSender(), dimensionKey, dataLocation.getParentFile().getParentFile());
+                Iris.warn("Attempted to install into " + data.getDataFolder().getPath());
+                data.dump();
+                data.clearLists();
+                test = data.getDimensionLoader().load(dimensionKey);
+
+                if(test != null)
+                {
+                    Iris.success("Woo! Patched the Engine to work with MVC bugs. Have a nice day!");
+                    dimension = test;
+                }
+
+                else
+                {
+                    Iris.error("Failed to patch dimension!");
+                    throw new RuntimeException("Missing Dimension: " + dimensionKey);
+                }
+            }
+
+            else
+            {
+                Iris.error("Nope, you don't have an installation containing " + dimensionKey + " try downloading it?");
+                throw new RuntimeException("Missing Dimension: " + dimensionKey);
+            }
+        }
+
+        this.engine = new IrisEngine(new EngineTarget(world, dimension, data), studio);
+        populators.add((BlockPopulator) engine);
         this.hotloader = new Looper() {
             @Override
             protected long loop() {
@@ -84,13 +130,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         hotloader.setName(getTarget().getWorld().name() + " Hotloader");
     }
 
-    public synchronized Engine getEngine() {
-        synchronized (provider)
-        {
-            return provider.getEngine();
-        }
-    }
-
     @Override
     public boolean isHeadless() {
         return false;
@@ -98,11 +137,10 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void close() {
-        synchronized (provider)
-        {
+        withExclusiveControl(() -> {
             hotloader.interrupt();
-            provider.close();
-        }
+            getEngine().close();
+        });
     }
 
     @Override
@@ -112,58 +150,40 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void hotload() {
-        J.aBukkit(this::hotloadBLOCKING);
+        withExclusiveControl(() -> getEngine().hotload());
     }
 
-    public void hotloadBLOCKING() {
-        try {
-            hotloadLock.acquire(HOTLOAD_LOCKS);
-            initialize();
-            hotloadLock.release(HOTLOAD_LOCKS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void initialize() {
-        synchronized (provider)
-        {
-            provider.provideEngine(world, dimensionKey, dataLocation, isStudio(), (e) -> {
-                populators.clear();
-                populators.add((BlockPopulator) e);
-                folder.checkIgnore();
-            });
-        }
+    public void withExclusiveControl(Runnable r)
+    {
+        J.a(() -> {
+            try {
+                loadLock.acquire(LOAD_LOCKS);
+                r.run();
+                loadLock.release(LOAD_LOCKS);
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     @Override
     public @NotNull ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
         try {
-            hotloadLock.acquire();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        try {
-            Iris.debug("Generated " + x + " " + z);
+            loadLock.acquire();
             PrecisionStopwatch ps = PrecisionStopwatch.start();
             TerrainChunk tc = TerrainChunk.create(world, biome);
             Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
             Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
             this.world.bind(world);
             getEngine().generate(x * 16, z * 16, blocks, biomes, true);
-            hotloadLock.release();
-            return tc.getRaw();
-        }
-
-        catch(WrongEngineBroException e)
-        {
-            hotloadLock.release();
-            hotloadBLOCKING();
-            return generateChunkData(world, ignored, x, z, biome);
+            ChunkData c = tc.getRaw();
+            Iris.debug("Generated " + x + " " + z);
+            loadLock.release();
+            return c;
         }
 
         catch (Throwable e) {
+            loadLock.release();
             Iris.error("======================================");
             e.printStackTrace();
             Iris.reportErrorChunk(x, z, e, "CHUNK");
@@ -177,10 +197,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 }
             }
 
-            hotloadLock.release();
             return d;
         }
-
     }
 
     @NotNull

@@ -27,6 +27,7 @@ import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.link.OraxenLink;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.biome.IrisBiome;
@@ -92,6 +93,10 @@ public class Iris extends VolmitPlugin implements Listener {
 
     @com.volmit.iris.util.plugin.Command
     public CommandIrisStudio commandStudio;
+
+    public static VolmitSender getSender() {
+        return sender;
+    }
 
     private void preEnable() {
         instance = this;
@@ -427,7 +432,6 @@ public class Iris extends VolmitPlugin implements Listener {
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
-
         IrisDimension dim;
         if (id == null || id.isEmpty()) {
             dim = IrisData.loadAnyDimension(IrisSettings.get().getGenerator().getDefaultWorldType());
@@ -448,6 +452,7 @@ public class Iris extends VolmitPlugin implements Listener {
                 Iris.info("Resolved missing dimension, proceeding with generation.");
             }
         }
+
         Iris.debug("Assuming IrisDimension: " + dim.getName());
 
         IrisWorld w = IrisWorld.builder()
@@ -458,7 +463,17 @@ public class Iris extends VolmitPlugin implements Listener {
                 .minHeight(0)
                 .maxHeight(256)
                 .build();
-        return new BukkitChunkGenerator(w, false, new File(w.worldFolder(), "iris"), dim.getName());
+
+        Iris.debug("Generator Config: " + w.toString());
+
+        File ff = new File(w.worldFolder(), "iris/pack");
+        if(!ff.exists() || ff.listFiles().length == 0)
+        {
+            ff.mkdirs();
+            service(StudioSVC.class).installIntoWorld(sender, dim.getLoadKey(), ff.getParentFile());
+        }
+
+        return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey());
     }
 
     public static void msg(String string) {

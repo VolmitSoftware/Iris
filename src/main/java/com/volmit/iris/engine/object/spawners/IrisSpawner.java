@@ -45,6 +45,10 @@ public class IrisSpawner extends IrisRegistrant {
     @Desc("The entity spawns to add")
     private KList<IrisEntitySpawn> spawns = new KList<>();
 
+    @ArrayType(min = 1, type = IrisEntitySpawn.class)
+    @Desc("The entity spawns to add initially. EXECUTES PER CHUNK!")
+    private KList<IrisEntitySpawn> initialSpawns = new KList<>();
+
     @Desc("The energy multiplier when calculating spawn energy usage")
     private double energyMultiplier = 1;
 

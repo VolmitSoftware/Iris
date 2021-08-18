@@ -39,6 +39,7 @@ import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructure;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructurePlacement;
 import com.volmit.iris.engine.object.loot.IrisLootReference;
 import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
+import com.volmit.iris.engine.object.noise.IrisInterpolator;
 import com.volmit.iris.engine.object.noise.IrisShapedGeneratorStyle;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
@@ -105,9 +106,6 @@ public class IrisDimension extends IrisRegistrant {
 
     @Desc("Define iris cavern zones")
     private IrisCaverns caverns = new IrisCaverns();
-
-    @Desc("Instead of a flat bottom, applies a clamp (using this noise style) to the bottom instead of a flat bottom. Useful for carving out center-dimensions in a dimension composite world.")
-    private IrisShapedGeneratorStyle undercarriage = null;
 
     @Desc("Upon joining this world, Iris will send a resource pack request to the client. If they have previously selected yes, it will auto-switch depending on which dimension they go to.")
     private String resourcePack = "";
@@ -331,6 +329,9 @@ public class IrisDimension extends IrisRegistrant {
 
     @Desc("Cartographer map trade overrides")
     private IrisVillagerOverride patchCartographers = new IrisVillagerOverride().setDisableTrade(false);
+
+    @Desc("If defined, warp the terrain vertically by this style. This will cause overhangs & carving-like shapes")
+    private IrisShapedGeneratorStyle verticalDomain = new IrisShapedGeneratorStyle(NoiseStyle.FLAT, 1, 1);
 
     private final transient AtomicCache<Position2> parallaxSize = new AtomicCache<>();
     private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();

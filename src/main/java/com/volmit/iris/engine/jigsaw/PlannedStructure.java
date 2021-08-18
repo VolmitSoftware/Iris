@@ -76,6 +76,8 @@ public class PlannedStructure {
 
         generateTerminators();
 
+        Iris.debug("JPlace: ROOT @ relative " + position.toString());
+
         for (PlannedPiece i : pieces) {
             Iris.debug("Place: " + i.getObject().getLoadKey() + " at @ relative " + i.getPosition().toString());
         }
@@ -112,7 +114,9 @@ public class PlannedStructure {
         int xx = i.getPosition().getX() + sx;
         int zz = i.getPosition().getZ() + sz;
         int offset = i.getPosition().getY() - startHeight;
-        int height = placer.getHighest(xx, zz, getData()) + offset + (v.getH() / 2);
+        int height = (i.getStructure().getStructure().getLockY() != -1
+                ? i.getStructure().getStructure().getLockY()
+                : placer.getHighest(xx, zz, getData())) + offset + (v.getH() / 2);
 
         if (options.getMode().equals(ObjectPlaceMode.PAINT) || options.isVacuum()) {
             height = -1;
@@ -121,7 +125,6 @@ public class PlannedStructure {
         int id = rng.i(0, Integer.MAX_VALUE);
         int h = vo.place(xx, height, zz, placer, options, rng, (b)
                 -> e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id), null, getData());
-
 
         for (IrisJigsawPieceConnector j : i.getAvailableConnectors()) {
             if (j.getSpawnEntity() != null)// && h != -1)
@@ -155,27 +158,6 @@ public class PlannedStructure {
 
     public void place(World world) {
         for (PlannedPiece i : pieces) {
-            Iris.sq(() -> {
-                for (IrisJigsawPieceConnector j : i.getAvailableConnectors()) {
-                    if (j.getSpawnEntity() != null) {
-                        Engine a = IrisToolbelt.access(world).getEngine();
-                        if (a == null) {
-                            Iris.warn("Cannot spawn entities from jigsaw in non Iris world!");
-                            break;
-                        }
-                        IrisPosition p = i.getWorldPosition(j).add(new IrisPosition(j.getDirection().toVector().multiply(2)));
-                        IrisEntity e = getData().getEntityLoader().load(j.getSpawnEntity());
-
-                        if (a != null) {
-                            Entity entity = e.spawn(a, new Location(world, p.getX() + 0.5, p.getY(), p.getZ() + 0.5), rng);
-                            if (j.isKeepEntity()) {
-                                entity.setPersistent(true);
-                            }
-                        }
-                    }
-                }
-            });
-
             Iris.sq(() -> i.place(world));
         }
     }
@@ -246,7 +228,9 @@ public class PlannedStructure {
 
     private boolean generateRotatedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, IrisJigsawPiece idea, IrisObjectRotation rotation) {
         if (!idea.getPlacementOptions().getRotation().isEnabled())
-            rotation = piece.getRotation(); //Inherit parent rotation
+        {
+            rotation = piece.getRotation();
+        }
 
         PlannedPiece test = new PlannedPiece(this, piece.getPosition(), idea, rotation);
 

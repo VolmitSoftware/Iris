@@ -44,6 +44,7 @@ import org.bukkit.block.data.BlockData;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
@@ -189,8 +190,13 @@ public interface EngineMantle extends IObjectPlacer {
         }
 
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        List<Runnable> post = Collections.synchronizedList(new KList<>());
-        Consumer<Runnable> c = post::add;
+        KList<Runnable> post = new KList<>();
+        Consumer<Runnable> c = (i) -> {
+            synchronized (post)
+            {
+                post.add(i);
+            }
+        };
         int s = getRealRadius();
         BurstExecutor burst = burst().burst();
 
@@ -205,7 +211,13 @@ public interface EngineMantle extends IObjectPlacer {
         }
 
         burst.complete();
-        burst().burst(post);
+
+        while(!post.isEmpty())
+        {
+            KList<Runnable> px = post.copy();
+            post.clear();
+            burst().burst(px);
+        }
     }
 
     default void generateMantleComponent(int x, int z, MantleComponent c, Consumer<Runnable> post) {

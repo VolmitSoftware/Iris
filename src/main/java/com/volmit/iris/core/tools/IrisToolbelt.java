@@ -189,4 +189,12 @@ public class IrisToolbelt {
 
         return false;
     }
+
+    public static boolean isStudio(World i) {
+        return isIrisWorld(i) && access(i).isStudio();
+    }
+
+    public static boolean isHeadless(World i) {
+        return isIrisWorld(i) && access(i).isHeadless();
+    }
 }

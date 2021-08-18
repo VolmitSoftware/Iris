@@ -32,6 +32,7 @@ import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.M;
+import lombok.val;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -51,7 +52,7 @@ public class DecIris implements DecreeExecutor {
 
     @Decree(description = "Create a new world", aliases = {"+", "c"})
     public void create(
-            @Param(aliases = "world-name", description = "The name of the world to create", defaultValue = "IrisWorld")
+            @Param(aliases = "world-name", description = "The name of the world to create")
                     String name,
             @Param(aliases = "dimension", description = "The dimension type to create the world with", defaultValue = "overworld")
                     IrisDimension type,
@@ -139,18 +140,18 @@ public class DecIris implements DecreeExecutor {
                     String on
     ) {
         Boolean val;
-        try {
-            val = (Boolean) DecreeSystem.getHandler(boolean.class).parse(on);
-        } catch (Throwable e) {
-            if (on.equals("toggle")){
-                val = !IrisSettings.get().getGeneral().isDebug();
-            } else {
+        if (on.equals("toggle") || on.equals("t")) {
+            val = !IrisSettings.get().getGeneral().isDebug();
+        } else {
+            try {
+                val = (Boolean) DecreeSystem.getHandler(boolean.class).parse(on);
+            } catch (Throwable e){
                 sender().sendMessage(C.RED + "Failed to convert input: " + on + " to a true or false value");
                 Iris.reportError(e);
                 return;
             }
         }
-        sender().sendMessage(C.GREEN + "Set debug to " + val);
+        sender().sendMessage(C.GREEN + "Set debug to " +val);
         IrisSettings.get().getGeneral().setDebug(val);
     }
 

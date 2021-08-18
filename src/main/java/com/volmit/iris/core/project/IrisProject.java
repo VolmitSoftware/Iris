@@ -177,7 +177,9 @@ public class IrisProject {
 
     public void close() {
         Iris.debug("Closing Active Provider");
-        IrisToolbelt.evacuate(activeProvider.getTarget().getWorld().realWorld());
+        if (activeProvider.isStudio()){
+            IrisToolbelt.evacuate(activeProvider.getTarget().getWorld().realWorld());
+        }
         activeProvider.close();
         File folder = activeProvider.getTarget().getWorld().worldFolder();
         Iris.linkMultiverseCore.removeFromConfig(activeProvider.getTarget().getWorld().name());

@@ -95,7 +95,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
                 if(test != null)
                 {
-                    Iris.success("Woo! Patched the Engine to work with MVC bugs. Have a nice day!");
+                    Iris.success("Woo! Patched the Engine!");
                     dimension = test;
                 }
 

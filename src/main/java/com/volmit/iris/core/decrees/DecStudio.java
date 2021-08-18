@@ -288,6 +288,11 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Charges all spawners in the area", aliases = "zzt", origin = DecreeOrigin.PLAYER)
     public void charge() {
+        if (!IrisToolbelt.isIrisWorld(world())){
+            sender().sendMessage(C.RED + "You must be in an Iris world to charge spawners!");
+            return;
+        }
+        sender().sendMessage(C.GREEN + "Charging spawners!");
         engine().getWorldManager().chargeEnergy();
     }
 

@@ -24,29 +24,34 @@ import lombok.Data;
 
 @Builder
 @Data
-public class WormIterator2 {
-    private transient Worm2 worm;
+public class WormIterator3 {
+    private transient Worm3 worm;
     private int x;
+    private int y;
     private int z;
     private int maxDistance;
     private int maxIterations;
 
     public boolean hasNext()
     {
-        double dist = maxDistance - (Math.max(Math.abs(worm.getX().getVelocity()), Math.abs(worm.getZ().getVelocity())) + 1);
+        double dist = maxDistance - (Math.max(Math.max(Math.abs(worm.getX().getVelocity()),
+                Math.abs(worm.getZ().getVelocity())),
+                Math.abs(worm.getY().getVelocity())) + 1);
         return maxIterations > 0 &&
                 ((x * x) - (worm.getX().getPosition() * worm.getX().getPosition()))
+            + ((y * y) - (worm.getY().getPosition() * worm.getY().getPosition()))
             + ((z * z) - (worm.getZ().getPosition() * worm.getZ().getPosition())) < dist * dist;
     }
 
-    public Worm2 next(NoiseProvider p)
+    public Worm3 next(NoiseProvider p)
     {
         if(worm == null)
         {
-            worm = new Worm2(x, z, 0, 0);
+            worm = new Worm3(x, y, z, 0, 0, 0);
         }
 
         worm.getX().setVelocity(p.noise(worm.getX().getPosition(), 0));
+        worm.getY().setVelocity(p.noise(worm.getY().getPosition(), 0));
         worm.getZ().setVelocity(p.noise(worm.getZ().getPosition(), 0));
         worm.step();
 

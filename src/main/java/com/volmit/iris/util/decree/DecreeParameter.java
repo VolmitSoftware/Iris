@@ -18,10 +18,12 @@
 
 package com.volmit.iris.util.decree;
 
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
+import com.volmit.iris.util.decree.specialhandlers.DummyHandler;
 import lombok.Data;
 
 import java.lang.reflect.Parameter;
@@ -30,6 +32,7 @@ import java.lang.reflect.Parameter;
 public class DecreeParameter {
     private final Parameter parameter;
     private final Param param;
+    private transient final AtomicCache<DecreeParameterHandler<?>> handlerCache = new AtomicCache<>();
 
     public DecreeParameter(Parameter parameter) {
         this.parameter = parameter;
@@ -40,7 +43,24 @@ public class DecreeParameter {
     }
 
     public DecreeParameterHandler<?> getHandler() {
-        return DecreeSystem.getHandler(getType());
+        return handlerCache.aquire(() -> {
+            try
+            {
+                if(param.customHandler().equals(DummyHandler.class))
+                {
+                    return DecreeSystem.getHandler(getType());
+                }
+
+                return param.customHandler().getConstructor().newInstance();
+            }
+
+            catch(Throwable e)
+            {
+                e.printStackTrace();
+            }
+
+            return null;
+        });
     }
 
     public Class<?> getType() {

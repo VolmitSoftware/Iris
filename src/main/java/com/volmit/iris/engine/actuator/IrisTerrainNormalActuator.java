@@ -36,20 +36,18 @@ import org.bukkit.block.data.BlockData;
 public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData> {
     private static final BlockData AIR = Material.AIR.createBlockData();
     private static final BlockData BEDROCK = Material.BEDROCK.createBlockData();
+    private static final BlockData GLASS = Material.GLASS.createBlockData();
     private static final BlockData CAVE_AIR = Material.CAVE_AIR.createBlockData();
     @Getter
     private final RNG rng;
     private final boolean carving;
     @Getter
     private int lastBedrock = -1;
-    private IrisShapedGeneratorStyle domain;
 
     public IrisTerrainNormalActuator(Engine engine) {
         super(engine, "Terrain");
         rng = new RNG(engine.getWorld().seed());
         carving = getDimension().isCarving() && getDimension().getCarveLayers().isNotEmpty();
-        domain = getDimension().getVerticalDomain();
-        domain = domain.isFlat() ? null : domain;
     }
 
     @BlockCoordinates
@@ -148,64 +146,21 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
      */
     @BlockCoordinates
     public void terrainSliver(int x, int z, int xf, Hunk<BlockData> h) {
-        int i, j, k, realX, realZ, hf, he;
+        int i, realX, realZ, hf, he;
         IrisBiome biome;
 
         for (i = 0; i < h.getDepth(); i++) {
             realX = (int) modX(xf + x);
             realZ = (int) modZ(i + z);
+            biome = getComplex().getTrueBiomeStream().get(realX, realZ);
+            he = (int) Math.round(Math.min(h.getHeight(), getComplex().getHeightStream().get(realX, realZ)));
+            hf = Math.round(Math.max(Math.min(h.getHeight(), getDimension().getFluidHeight()), he));
 
-            if(domain != null)
-            {
-                int[] heights = new int[h.getHeight()];
-                IrisBiome[] biomes = new IrisBiome[h.getHeight()];
-                int maximum = 0;
-
-                for(j = 0; j < h.getHeight(); j++)
-                {
-                    double ox = domain.get(rng, getData(), j - 12345);
-                    double oz = domain.get(rng, getData(), j + 54321);
-                    biomes[j] = getComplex().getTrueBiomeStream().get(realX+ox, realZ+oz);
-                    heights[j] = (int) Math.round(Math.min(h.getHeight(), getComplex().getHeightStream().get(realX+ox, realZ+oz)));
-                    maximum = Math.max(maximum, heights[j]);
-                }
-
-                for(j = maximum; j >= 0; j--) {
-                    if(fluidOrHeight(heights[j]) < j)
-                    {
-                        continue;
-                    }
-
-                    int hi = j;
-                    int lo = 0;
-
-                    for(k = j; k >= 0; k--)
-                    {
-                        if(fluidOrHeight(heights[k]) < k)
-                        {
-                            break;
-                        }
-
-                        lo = k;
-                        j = k-1;
-                    }
-
-                    generateGround(realX, realZ, xf, i, h, hi, lo, heights[hi], fluidOrHeight(heights[hi]), biomes[hi]);
-                }
+            if (hf < 0) {
+                continue;
             }
 
-            else
-            {
-                biome = getComplex().getTrueBiomeStream().get(realX, realZ);
-                he = (int) Math.round(Math.min(h.getHeight(), getComplex().getHeightStream().get(realX, realZ)));
-                hf = Math.round(Math.max(Math.min(h.getHeight(), getDimension().getFluidHeight()), he));
-
-                if (hf < 0) {
-                    continue;
-                }
-
-                generateGround(realX, realZ, xf, i, h, hf, 0, he, hf, biome);
-            }
+            generateGround(realX, realZ, xf, i, h, hf, 0, he, hf, biome);
         }
     }
 }

@@ -3,6 +3,7 @@ package com.volmit.iris.core.decrees;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.command.object.CommandIrisObjectUndo;
 import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.service.ObjectSVC;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
@@ -221,7 +222,7 @@ public class DecObject implements DecreeExecutor {
         object = object.scaled(scale, interpolator);
         object.place(block.getBlockX(), block.getBlockY() + (int) object.getCenter().getY(), block.getBlockZ(), createPlacer(block.getWorld(), futureChanges), placement, new RNG(), null);
 
-        CommandIrisObjectUndo.addChanges(player(), futureChanges);
+        Iris.service(ObjectSVC.class).addChanges(futureChanges);
 
         if (edit) {
             ItemStack newWand = WandSVC.createWand(block.clone().subtract(object.getCenter()).add(object.getW() - 1,
@@ -366,5 +367,14 @@ public class DecObject implements DecreeExecutor {
         sender().playSound(Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
     }
 
-
+    @Decree(description = "Undo a number of pastes", aliases = "-")
+    public void undo(
+            @Param(description = "The amount of pastes to undo", defaultValue = "1")
+                    int amount
+    ){
+        ObjectSVC service = Iris.service(ObjectSVC.class);
+        int actualReverts = Math.min(service.getUndos().size(), amount);
+        service.revertChanges(actualReverts);
+        sender().sendMessage("Reverted " + actualReverts + " pastes!");
+    }
 }

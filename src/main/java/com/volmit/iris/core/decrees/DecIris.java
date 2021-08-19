@@ -136,23 +136,14 @@ public class DecIris implements DecreeExecutor {
 
     @Decree(description = "Toggle debug")
     public void debug(
-            @Param(name = "on", description = "Whether or not debug should be on", defaultValue = "toggle")
-                    String on
+            @Param(description = "Whether or not debug should be on", defaultValue = "toggle")
+                    Boolean on
     ) {
-        Boolean val;
-        if (on.equals("toggle") || on.equals("t")) {
-            val = !IrisSettings.get().getGeneral().isDebug();
-        } else {
-            try {
-                val = (Boolean) DecreeSystem.getHandler(boolean.class).parse(on);
-            } catch (Throwable e){
-                sender().sendMessage(C.RED + "Failed to convert input: " + on + " to a true or false value");
-                Iris.reportError(e);
-                return;
-            }
+        if (on == null){
+            on = !IrisSettings.get().getGeneral().isDebug();
         }
-        sender().sendMessage(C.GREEN + "Set debug to " +val);
-        IrisSettings.get().getGeneral().setDebug(val);
+        sender().sendMessage(C.GREEN + "Set debug to " + on);
+        IrisSettings.get().getGeneral().setDebug(on);
     }
 
     @Decree(description = "Download a project.", aliases = "dl")

@@ -309,21 +309,13 @@ public class DecObject implements DecreeExecutor {
         };
     }
 
-    //@Decree(description = "Paste a matter object", aliases = "matterpaste")
-    public void mpaste(
-            @Param(description = "The matter object to paste")
-            Matter object
-    ){
-        WorldMatter.placeMatter(object, player().getLocation());
-    }
-
     @Decree(description = "Save an object")
     public void save(
             @Param(description = "The dimension to store the object in", contextual = true)
             IrisDimension dimension,
             @Param(description = "The file to store it in, can use / for subfolders")
-            String fileName,
-            @Param(description = "Overwrite existing object files", defaultValue = "false")
+            String name,
+            @Param(description = "Overwrite existing object files", defaultValue = "false", aliases = "force")
             boolean overwrite
     ){
         IrisObject o = WandSVC.createSchematic(player().getInventory().getItemInMainHand());
@@ -333,7 +325,7 @@ public class DecObject implements DecreeExecutor {
             return;
         }
 
-        File file = Iris.service(StudioSVC.class).getWorkspaceFile(dimension.getLoadKey(), "objects", fileName + ".iob");
+        File file = Iris.service(StudioSVC.class).getWorkspaceFile(dimension.getLoadKey(), "objects", name + ".iob");
 
         if (file.exists() && !overwrite) {
             sender().sendMessage(C.RED + "File already exists. Set overwrite=true to overwrite it.");
@@ -347,6 +339,6 @@ public class DecObject implements DecreeExecutor {
         }
 
         sender().playSound(Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
-        sender().sendMessage(C.GREEN + "Successfully object to saved: " + dimension.getLoadKey() + "/objects/" + fileName);
+        sender().sendMessage(C.GREEN + "Successfully object to saved: " + dimension.getLoadKey() + "/objects/" + name);
     }
 }

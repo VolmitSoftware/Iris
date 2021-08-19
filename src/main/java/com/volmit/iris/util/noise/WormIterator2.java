@@ -45,5 +45,7 @@ public class WormIterator2 {
         {
             worm = new Worm2(x, z, 0, 0);
         }
+        
+        return worm;
     }
 }

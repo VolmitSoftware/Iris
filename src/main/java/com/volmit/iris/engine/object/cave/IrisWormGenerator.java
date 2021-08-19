@@ -18,6 +18,8 @@
 
 package com.volmit.iris.engine.object.cave;
 
+import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.Required;
@@ -27,7 +29,11 @@ import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
 import com.volmit.iris.engine.object.noise.IrisNoiseGenerator;
 import com.volmit.iris.engine.object.noise.IrisStyledRange;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
+import com.volmit.iris.util.function.NoiseProvider;
+import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.Worm;
+import com.volmit.iris.util.noise.WormIterator2;
+import com.volmit.iris.util.noise.WormIterator3;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -56,4 +62,34 @@ public class IrisWormGenerator implements IRare {
     @Desc("The thickness of the worm over distance")
     private IrisStyledRange girth = new IrisStyledRange().setMin(3).setMax(7)
             .setStyle(new IrisGeneratorStyle(NoiseStyle.SIMPLEX));
+
+    private transient final AtomicCache<NoiseProvider> angleProviderCache = new AtomicCache<>();
+
+    public void test()
+    {
+
+    }
+
+    public NoiseProvider getAngleProvider(RNG rng, IrisData data)
+    {
+        return angleProviderCache.aquire(() -> (xx, zz) -> angleStyle.create(rng, data).noise(xx, zz));
+    }
+
+    public WormIterator2 iterate2D(RNG rng, IrisData data, int x, int z)
+    {
+        return WormIterator2.builder()
+                .maxDistance(maxDistance)
+                .maxIterations(maxSegments == -1 ? maxDistance : maxSegments)
+                .noise(getAngleProvider(rng, data)).x(x).z(z)
+                .build();
+    }
+
+    public WormIterator3 iterate3D(RNG rng, IrisData data, int x, int y, int z)
+    {
+        return WormIterator3.builder()
+                .maxDistance(maxDistance)
+                .maxIterations(maxSegments == -1 ? maxDistance : maxSegments)
+                .noise(getAngleProvider(rng, data)).x(x).z(z).y(y)
+                .build();
+    }
 }

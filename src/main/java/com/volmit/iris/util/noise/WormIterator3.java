@@ -29,6 +29,7 @@ public class WormIterator3 {
     private int x;
     private int y;
     private int z;
+    private transient NoiseProvider noise;
     private int maxDistance;
     private int maxIterations;
 
@@ -43,16 +44,16 @@ public class WormIterator3 {
             + ((z * z) - (worm.getZ().getPosition() * worm.getZ().getPosition())) < dist * dist;
     }
 
-    public Worm3 next(NoiseProvider p)
+    public Worm3 next()
     {
         if(worm == null)
         {
             worm = new Worm3(x, y, z, 0, 0, 0);
         }
 
-        worm.getX().setVelocity(p.noise(worm.getX().getPosition(), 0));
-        worm.getY().setVelocity(p.noise(worm.getY().getPosition(), 0));
-        worm.getZ().setVelocity(p.noise(worm.getZ().getPosition(), 0));
+        worm.getX().setVelocity(noise.noise(worm.getX().getPosition(), 0));
+        worm.getY().setVelocity(noise.noise(worm.getY().getPosition(), 0));
+        worm.getZ().setVelocity(noise.noise(worm.getZ().getPosition(), 0));
         worm.step();
 
         return worm;

@@ -330,9 +330,6 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Cartographer map trade overrides")
     private IrisVillagerOverride patchCartographers = new IrisVillagerOverride().setDisableTrade(false);
 
-    @Desc("If defined, warp the terrain vertically by this style. This will cause overhangs & carving-like shapes")
-    private IrisShapedGeneratorStyle verticalDomain = new IrisShapedGeneratorStyle(NoiseStyle.FLAT, 1, 1);
-
     private final transient AtomicCache<Position2> parallaxSize = new AtomicCache<>();
     private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();
     private final transient AtomicCache<CNG> fluidLayerGenerator = new AtomicCache<>();

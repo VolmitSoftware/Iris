@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.object.noise;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.Desc;

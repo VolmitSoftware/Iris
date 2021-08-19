@@ -1,7 +1,6 @@
 package com.volmit.iris.core.decrees;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.command.object.CommandIrisObjectUndo;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.service.ObjectSVC;
 import com.volmit.iris.core.service.StudioSVC;
@@ -18,18 +17,16 @@ import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
+import com.volmit.iris.util.decree.specialhandlers.ObjectHandler;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.Direction;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.matter.Matter;
-import com.volmit.iris.util.matter.WorldMatter;
 import com.volmit.iris.util.scheduling.Queue;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
@@ -43,13 +40,14 @@ public class DecObject implements DecreeExecutor {
 
     @Decree(description = "Check the composition of an object")
     public void analyze(
-            @Param(description = "The object to analyze")
-            IrisObject object
+            @Param(description = "The object to analyze", customHandler = ObjectHandler.class)
+            String object
     ) {
-        sender().sendMessage("Object Size: " + object.getW() + " * " + object.getH() + " * " + object.getD() + "");
-        sender().sendMessage("Blocks Used: " + NumberFormat.getIntegerInstance().format(object.getBlocks().size()));
+        IrisObject o = IrisData.loadAnyObject(object);
+        sender().sendMessage("Object Size: " + o.getW() + " * " + o.getH() + " * " + o.getD() + "");
+        sender().sendMessage("Blocks Used: " + NumberFormat.getIntegerInstance().format(o.getBlocks().size()));
 
-        Queue<BlockData> queue = object.getBlocks().enqueueValues();
+        Queue<BlockData> queue = o.getBlocks().enqueueValues();
         Map<Material, Set<BlockData>> unsorted = new HashMap<>();
         Map<BlockData, Integer> amounts = new HashMap<>();
         Map<Material, Integer> materials = new HashMap<>();
@@ -192,19 +190,21 @@ public class DecObject implements DecreeExecutor {
             Material.POPPY, Material.DANDELION);
     @Decree(description = "Paste an object")
     public void paste(
-            @Param(description = "The object to paste")
-            IrisObject object,
+            @Param(description = "The object to paste", customHandler = ObjectHandler.class)
+            String object,
             @Param(description = "Whether or not to edit the object (need to hold wand)", defaultValue = "false")
             boolean edit,
             @Param(description = "The amount of degrees to rotate by", defaultValue = "0")
             int rotate,
             @Param(description = "The factor by which to scale the object placement", defaultValue = "1")
-            double scale,
-            @Param(description = "The scale interpolator to use", defaultValue = "none")
-            IrisObjectPlacementScaleInterpolator interpolator
+            double scale
+//            ,
+//            @Param(description = "The scale interpolator to use", defaultValue = "none")
+//            IrisObjectPlacementScaleInterpolator interpolator
     ){
-        double maxScale = Double.max(10 - object.getBlocks().size() / 10000d, 1);
-        if (scale < maxScale){
+        IrisObject o = IrisData.loadAnyObject(object);
+        double maxScale = Double.max(10 - o.getBlocks().size() / 10000d, 1);
+        if (scale > maxScale){
             sender().sendMessage(C.YELLOW + "Indicated scale exceeds maximum. Downscaled to maximum: " + maxScale);
             scale = maxScale;
         }
@@ -219,30 +219,30 @@ public class DecObject implements DecreeExecutor {
 
         Map<Block, BlockData> futureChanges = new HashMap<>();
 
-        object = object.scaled(scale, interpolator);
-        object.place(block.getBlockX(), block.getBlockY() + (int) object.getCenter().getY(), block.getBlockZ(), createPlacer(block.getWorld(), futureChanges), placement, new RNG(), null);
+        o = o.scaled(scale, IrisObjectPlacementScaleInterpolator.TRICUBIC);
+        o.place(block.getBlockX(), block.getBlockY() + (int) o.getCenter().getY(), block.getBlockZ(), createPlacer(block.getWorld(), futureChanges), placement, new RNG(), null);
 
         Iris.service(ObjectSVC.class).addChanges(futureChanges);
 
         if (edit) {
-            ItemStack newWand = WandSVC.createWand(block.clone().subtract(object.getCenter()).add(object.getW() - 1,
-                    object.getH() + object.getCenter().clone().getY() - 1, object.getD() - 1), block.clone().subtract(object.getCenter().clone().setY(0)));
+            ItemStack newWand = WandSVC.createWand(block.clone().subtract(o.getCenter()).add(o.getW() - 1,
+                    o.getH() + o.getCenter().clone().getY() - 1, o.getD() - 1), block.clone().subtract(o.getCenter().clone().setY(0)));
             if (WandSVC.isWand(wand)) {
                 wand = newWand;
                 player().getInventory().setItemInMainHand(wand);
-                sender().sendMessage("Updated wand for " + "objects/" + object.getLoadKey() + ".iob");
+                sender().sendMessage("Updated wand for " + "objects/" + o.getLoadKey() + ".iob ");
             } else {
                 int slot = WandSVC.findWand(player().getInventory());
                 if (slot == -1) {
                     player().getInventory().addItem(newWand);
-                    sender().sendMessage("Given new wand for " + "objects/" + object.getLoadKey() + ".iob");
+                    sender().sendMessage("Given new wand for " + "objects/" + o.getLoadKey() + ".iob ");
                 } else {
                     player().getInventory().setItem(slot, newWand);
-                    sender().sendMessage("Updated wand for " + "objects/" + object.getLoadKey() + ".iob");
+                    sender().sendMessage("Updated wand for " + "objects/" + o.getLoadKey() + ".iob ");
                 }
             }
         } else {
-            sender().sendMessage("Placed " + "objects/" + object.getLoadKey() + ".iob");
+            sender().sendMessage("Placed " + "objects/" + o.getLoadKey() + ".iob ");
         }
     }
 

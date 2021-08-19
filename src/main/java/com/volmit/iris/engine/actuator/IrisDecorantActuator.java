@@ -23,19 +23,19 @@ import com.volmit.iris.engine.decorator.*;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.framework.EngineDecorator;
-import com.volmit.iris.engine.object.biome.InferredType;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.carve.IrisCaveLayer;
-import com.volmit.iris.engine.object.decoration.IrisDecorationPart;
-import com.volmit.iris.engine.object.decoration.IrisDecorator;
 import com.volmit.iris.util.documentation.BlockCoordinates;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
@@ -90,76 +90,82 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
         }
 
         PrecisionStopwatch p = PrecisionStopwatch.start();
-
-        int j, realX, realZ, height;
-        IrisBiome biome, cave;
-
+        BurstExecutor burst = burst().burst();
+        burst.setMulticore(multicore);
 
         for (int i = 0; i < output.getWidth(); i++) {
-            for (j = 0; j < output.getDepth(); j++) {
-                boolean solid, liquid;
-                int emptyFor = 0;
-                int liquidFor = 0;
-                int lastSolid = 0;
-                realX = (int) Math.round(modX(x + i));
-                realZ = (int) Math.round(modZ(z + j));
-                height = (int) Math.round(getComplex().getHeightStream().get(realX, realZ));
-                biome = getComplex().getTrueBiomeStream().get(realX, realZ);
-                cave = shouldRay ? getComplex().getCaveBiomeStream().get(realX, realZ) : null;
+            int finalI = i;
+            burst.queue(() -> {
+                int height;
+                int realX = (int) Math.round(modX(x + finalI));
+                int realZ;
+                IrisBiome biome, cave;
+                for (int j=0; j < output.getDepth(); j++) {
+                    boolean solid, liquid;
+                    int emptyFor = 0;
+                    int liquidFor = 0;
+                    int lastSolid = 0;
+                    realZ = (int) Math.round(modZ(z + j));
+                    height = (int) Math.round(getComplex().getHeightStream().get(realX, realZ));
+                    biome = getComplex().getTrueBiomeStream().get(realX, realZ);
+                    cave = shouldRay ? getComplex().getCaveBiomeStream().get(realX, realZ) : null;
 
-                if (biome.getDecorators().isEmpty() && (cave == null || cave.getDecorators().isEmpty())) {
-                    continue;
-                }
+                    if (biome.getDecorators().isEmpty() && (cave == null || cave.getDecorators().isEmpty())) {
+                        continue;
+                    }
 
-                if(height < getDimension().getFluidHeight())
-                {
-                    getSeaSurfaceDecorator().decorate(i, j,
-                            realX, (int) Math.round(modX(x + i + 1)), (int) Math.round(modX(x + i - 1)),
-                            realZ, (int) Math.round(modZ(z + j + 1)), (int) Math.round(modZ(z + j - 1)),
-                            output, biome, getDimension().getFluidHeight(), getEngine().getHeight());
-                    getSeaFloorDecorator().decorate(i, j,
-                            realX, realZ, output, biome, height + 1,
-                            getDimension().getFluidHeight() + 1);
-                }
+                    if(height < getDimension().getFluidHeight())
+                    {
+                        getSeaSurfaceDecorator().decorate(finalI, j,
+                                realX, (int) Math.round(modX(x + finalI + 1)), (int) Math.round(modX(x + finalI - 1)),
+                                realZ, (int) Math.round(modZ(z + j + 1)), (int) Math.round(modZ(z + j - 1)),
+                                output, biome, getDimension().getFluidHeight(), getEngine().getHeight());
+                        getSeaFloorDecorator().decorate(finalI, j,
+                                realX, realZ, output, biome, height + 1,
+                                getDimension().getFluidHeight() + 1);
+                    }
 
-                if (height == getDimension().getFluidHeight()) {
-                    getShoreLineDecorator().decorate(i, j,
-                            realX, (int) Math.round(modX(x + i + 1)), (int) Math.round(modX(x + i - 1)),
-                            realZ, (int) Math.round(modZ(z + j + 1)), (int) Math.round(modZ(z + j - 1)),
-                            output, biome, height, getEngine().getHeight());
-                }
+                    if (height == getDimension().getFluidHeight()) {
+                        getShoreLineDecorator().decorate(finalI, j,
+                                realX, (int) Math.round(modX(x + finalI + 1)), (int) Math.round(modX(x + finalI - 1)),
+                                realZ, (int) Math.round(modZ(z + j + 1)), (int) Math.round(modZ(z + j - 1)),
+                                output, biome, height, getEngine().getHeight());
+                    }
 
-                getSurfaceDecorator().decorate(i, j, realX, realZ, output, biome, height, getEngine().getHeight() - height);
+                    getSurfaceDecorator().decorate(finalI, j, realX, realZ, output, biome, height, getEngine().getHeight() - height);
 
 
-                if (cave != null && cave.getDecorators().isNotEmpty()) {
-                    for (int k = height; k > 0; k--) {
-                        solid = PREDICATE_SOLID.test(output.get(i, k, j));
-                        liquid = PREDICATE_CAVELIQUID.test(output.get(i, k + 1, j), k + 1);
+                    if (cave != null && cave.getDecorators().isNotEmpty()) {
+                        for (int k = height; k > 0; k--) {
+                            solid = PREDICATE_SOLID.test(output.get(finalI, k, j));
+                            liquid = PREDICATE_CAVELIQUID.test(output.get(finalI, k + 1, j), k + 1);
 
-                        if (solid) {
-                            if (emptyFor > 0) {
-                                if (liquid) {
-                                    getSeaFloorDecorator().decorate(i, j, realX, realZ, output, cave, k + 1, liquidFor + lastSolid - emptyFor + 1);
-                                    getSeaSurfaceDecorator().decorate(i, j, realX, realZ, output, cave, k + liquidFor + 1, emptyFor - liquidFor + lastSolid);
-                                } else {
-                                    getSurfaceDecorator().decorate(i, j, realX, realZ, output, cave, k, lastSolid);
-                                    getCeilingDecorator().decorate(i, j, realX, realZ, output, cave, lastSolid - 1, emptyFor);
+                            if (solid) {
+                                if (emptyFor > 0) {
+                                    if (liquid) {
+                                        getSeaFloorDecorator().decorate(finalI, j, realX, realZ, output, cave, k + 1, liquidFor + lastSolid - emptyFor + 1);
+                                        getSeaSurfaceDecorator().decorate(finalI, j, realX, realZ, output, cave, k + liquidFor + 1, emptyFor - liquidFor + lastSolid);
+                                    } else {
+                                        getSurfaceDecorator().decorate(finalI, j, realX, realZ, output, cave, k, lastSolid);
+                                        getCeilingDecorator().decorate(finalI, j, realX, realZ, output, cave, lastSolid - 1, emptyFor);
+                                    }
+                                    emptyFor = 0;
+                                    liquidFor = 0;
                                 }
-                                emptyFor = 0;
-                                liquidFor = 0;
+                                lastSolid = k;
+                            } else {
+                                emptyFor++;
+                                if (liquid) liquidFor++;
                             }
-                            lastSolid = k;
-                        } else {
-                            emptyFor++;
-                            if (liquid) liquidFor++;
                         }
                     }
                 }
-            }
+            });
         }
 
+        burst.complete();
         getEngine().getMetrics().getDecoration().put(p.getMilliseconds());
+
     }
 
     private boolean shouldRayDecorate() {

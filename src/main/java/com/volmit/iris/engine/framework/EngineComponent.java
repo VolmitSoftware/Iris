@@ -23,6 +23,7 @@ import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.math.RollingSequence;
+import com.volmit.iris.util.parallel.MultiBurst;
 import org.bukkit.event.Listener;
 
 public interface EngineComponent {
@@ -31,6 +32,11 @@ public interface EngineComponent {
     RollingSequence getMetrics();
 
     String getName();
+
+    default MultiBurst burst()
+    {
+        return getEngine().burst();
+    }
 
     default void close() {
         try {

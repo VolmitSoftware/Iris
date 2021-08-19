@@ -19,14 +19,26 @@
 package com.volmit.iris.engine.modifier;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.common.CaveResult;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.function.*;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.hunk.storage.ArrayHunk;
+import com.volmit.iris.util.math.Average;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.math.RollingSequence;
+import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import com.volmit.iris.util.stream.ProceduralStream;
+import com.volmit.iris.util.stream.interpolation.Interpolated;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Levelled;
@@ -34,9 +46,11 @@ import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Slab;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
-    private static final BlockData AIR = B.get("CAVE_AIR");
+    private static final BlockData AIR = B.get("AIR");
     private static final BlockData WATER = B.get("WATER");
     private final RNG rng;
 
@@ -48,15 +62,22 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
     @Override
     public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        int i;
+        AtomicInteger i = new AtomicInteger();
         AtomicInteger j = new AtomicInteger();
-
-        for (i = 0; i < output.getWidth(); i++) {
-            for (j.set(0); j.get() < output.getDepth(); j.getAndIncrement()) {
-                post(i, j.get(), output, i + x, j.get() + z);
-            }
+        BurstExecutor burst = burst().burst();
+        burst.setMulticore(multicore);
+        Hunk<BlockData> sync = output.synchronize();
+        for (i.set(0); i.get() < output.getWidth(); i.getAndIncrement()) {
+            burst.queue(() -> {
+                for (j.set(0); j.get() < output.getDepth(); j.getAndIncrement()) {
+                    int ii = i.get();
+                    int jj = j.get();
+                    post(ii, jj, sync, ii + x, jj + z);
+                }
+            });
         }
 
+        burst.complete();
         getEngine().getMetrics().getPost().put(p.getMilliseconds());
     }
 

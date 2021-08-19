@@ -184,7 +184,7 @@ public interface EngineMantle extends IObjectPlacer {
 
 
     @ChunkCoordinates
-    default void generateMatter(int x, int z) {
+    default void generateMatter(int x, int z, boolean multicore) {
         if (!getEngine().getDimension().isUseMantle()) {
             return;
         }
@@ -199,6 +199,7 @@ public interface EngineMantle extends IObjectPlacer {
         };
         int s = getRealRadius();
         BurstExecutor burst = burst().burst();
+        burst.setMulticore(multicore);
 
         for (int i = -s; i <= s; i++) {
             int xx = i + x;
@@ -216,7 +217,16 @@ public interface EngineMantle extends IObjectPlacer {
         {
             KList<Runnable> px = post.copy();
             post.clear();
-            burst().burst(px);
+
+            if(multicore)
+            {
+                burst().burst(px);
+            }
+
+            else
+            {
+                burst().sync(px);
+            }
         }
     }
 
@@ -225,7 +235,7 @@ public interface EngineMantle extends IObjectPlacer {
     }
 
     @ChunkCoordinates
-    default <T> void insertMatter(int x, int z, Class<T> t, Hunk<T> blocks) {
+    default <T> void insertMatter(int x, int z, Class<T> t, Hunk<T> blocks, boolean multicore) {
         if (!getEngine().getDimension().isUseMantle()) {
             return;
         }

@@ -57,19 +57,14 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     public void onActuate(int x, int z, Hunk<BlockData> h, boolean multicore) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
 
-        if (multicore) {
-            BurstExecutor e = getEngine().burst().burst(h.getWidth());
-            for (int xf = 0; xf < h.getWidth(); xf++) {
-                int finalXf = xf;
-                e.queue(() -> terrainSliver(x, z, finalXf, h));
-            }
-
-            e.complete();
-        } else {
-            for (int xf = 0; xf < h.getWidth(); xf++) {
-                terrainSliver(x, z, xf, h);
-            }
+        BurstExecutor e = getEngine().burst().burst(h.getWidth());
+        e.setMulticore(multicore);
+        for (int xf = 0; xf < h.getWidth(); xf++) {
+            int finalXf = xf;
+            e.queue(() -> terrainSliver(x, z, finalXf, h));
         }
+
+        e.complete();
 
         getEngine().getMetrics().getTerrain().put(p.getMilliseconds());
     }

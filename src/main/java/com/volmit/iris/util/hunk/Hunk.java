@@ -1449,4 +1449,9 @@ public interface Hunk<T> {
     default boolean isEmpty() {
         return false;
     }
+
+    default boolean contains(int x, int y, int z)
+    {
+        return x < getWidth() && x >= 0 && y < getHeight() && y >= 0 && z < getDepth() && z >= 0;
+    }
 }

@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.decorator;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.biome.IrisBiome;

@@ -105,8 +105,24 @@ public class IrisEntitySpawn implements IRare {
                 };
 
                 if (l != null) {
-                    if (spawn100(gen, l) != null)
-                        s++;
+                    if(referenceSpawner.getAllowedLightLevels().getMin() > 0 || referenceSpawner.getAllowedLightLevels().getMax() < 15)
+                    {
+                        if(referenceSpawner.getAllowedLightLevels().contains(l.getBlock().getLightLevel()))
+                        {
+                            if (spawn100(gen, l) != null)
+                            {
+                                s++;
+                            }
+                        }
+                    }
+
+                    else
+                    {
+                        if (spawn100(gen, l) != null)
+                        {
+                            s++;
+                        }
+                    }
                 }
             }
         }

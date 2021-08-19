@@ -44,4 +44,8 @@ public class IrisRange {
 
         return rng.d(min, max);
     }
+
+    public boolean contains(int v) {
+        return v >= min && v <= max;
+    }
 }

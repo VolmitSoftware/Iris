@@ -74,52 +74,53 @@ public class PreservationSVC implements IrisService
     @Override
     public void onDisable() {
         dereferencer.interrupt();
+        dereference();
 
-        for(Thread i : threads)
-        {
-            if(i.isAlive())
+        postShutdown(() -> {
+            for(Thread i : threads)
+            {
+                if(i.isAlive())
+                {
+                    try
+                    {
+                        i.interrupt();
+                        Iris.info("Shutdown Thread " + i.getName());
+                    }
+
+                    catch(Throwable e)
+                    {
+                        Iris.reportError(e);
+                    }
+                }
+            }
+
+            for(MultiBurst i : bursts)
             {
                 try
                 {
-                    i.interrupt();
-                    Iris.info("Shutdown Thread " + i.getName());
+                    i.shutdownNow();
+                    Iris.info("Shutdown Multiburst " + i);
                 }
 
                 catch(Throwable e)
                 {
-
+                    Iris.reportError(e);
                 }
             }
-        }
 
-        for(MultiBurst i : bursts)
-        {
-            try
+            for(ExecutorService i : services)
             {
-                i.shutdownNow();
-                Iris.info("Shutdown Multiburst " + i);
+                try
+                {
+                    i.shutdownNow();
+                    Iris.info("Shutdown Executor Service " + i);
+                }
+
+                catch(Throwable e)
+                {
+                    Iris.reportError(e);
+                }
             }
-
-            catch(Throwable e)
-            {
-
-            }
-        }
-
-        for(ExecutorService i : services)
-        {
-            try
-            {
-                i.shutdownNow();
-                Iris.info("Shutdown Executor Service " + i);
-            }
-
-            catch(Throwable e)
-            {
-
-            }
-        }
-
-        dereference();
+        });
     }
 }

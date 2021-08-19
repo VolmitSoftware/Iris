@@ -112,6 +112,17 @@ public class Mantle {
     }
 
     @ChunkCoordinates
+    public <T> void iterateChunk(int x, int z, Class<T> type, Consumer4<Integer, Integer, Integer, T> iterator, BurstExecutor e, MantleFlag... requiredFlags) {
+        for (MantleFlag i : requiredFlags) {
+            if (!hasFlag(x, z, i)) {
+                return;
+            }
+        }
+
+        get(x >> 5, z >> 5).getOrCreate(x & 31, z & 31).iterate(type, iterator, e);
+    }
+
+    @ChunkCoordinates
     public boolean hasFlag(int x, int z, MantleFlag flag) {
         return get(x >> 5, z >> 5).getOrCreate(x & 31, z & 31).isFlagged(flag);
     }
@@ -207,7 +218,16 @@ public class Mantle {
             });
         }
 
-        b.complete();
+        try
+        {
+            b.complete();
+        }
+
+        catch(Throwable e)
+        {
+            Iris.reportError(e);
+        }
+
         ioBurst.shutdownNow();
         Iris.debug("The Mantle has Closed " + C.DARK_AQUA + dataFolder.getAbsolutePath());
     }

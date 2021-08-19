@@ -21,6 +21,7 @@ package com.volmit.iris.util.parallel;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.service.PreservationSVC;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.scheduling.J;
@@ -111,6 +112,12 @@ public class MultiBurst {
         }
     }
 
+    public void sync(KList<Runnable> r) {
+        for (Runnable i : r) {
+            i.run();
+        }
+    }
+
     public BurstExecutor burst(int estimate) {
         return new BurstExecutor(getService(), estimate);
     }
@@ -159,16 +166,30 @@ public class MultiBurst {
 
     public void shutdownLater() {
         if (service != null) {
-            service.submit(() -> {
-                J.sleep(3000);
+            try
+            {
+                service.submit(() -> {
+                    J.sleep(3000);
+                    Iris.debug("Shutting down MultiBurst Pool " + heartbeat.getName() + ".");
+
+                    if (service != null) {
+                        service.shutdown();
+                    }
+                });
+
+                heartbeat.interrupt();
+            }
+
+            catch(Throwable e)
+            {
                 Iris.debug("Shutting down MultiBurst Pool " + heartbeat.getName() + ".");
 
                 if (service != null) {
                     service.shutdown();
                 }
-            });
 
-            heartbeat.interrupt();
+                heartbeat.interrupt();
+            }
         }
     }
 

@@ -23,6 +23,8 @@ import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterSlice;
+import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.MultiBurst;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -182,6 +184,26 @@ public class MantleChunk {
                 }
             }
         }
+    }
+
+    public <T> void iterate(Class<T> type, Consumer4<Integer, Integer, Integer, T> iterator, BurstExecutor burst) {
+        for (int i = 0; i < sections.length(); i++) {
+            int finalI = i;
+            burst.queue(() -> {
+                int bs = (finalI << 4);
+                Matter matter = get(finalI);
+
+                if (matter != null) {
+                    MatterSlice<T> t = matter.getSlice(type);
+
+                    if (t != null) {
+                        t.iterateSync((a, b, c, f) -> iterator.accept(a, b + bs, c, f));
+                    }
+                }
+            });
+        }
+
+        burst.complete();
     }
 
     public <T> void iterate(Class<T> type, Consumer4<Integer, Integer, Integer, T> iterator) {

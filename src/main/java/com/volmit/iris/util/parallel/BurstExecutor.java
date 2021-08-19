@@ -20,6 +20,7 @@ package com.volmit.iris.util.parallel;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
+import lombok.Setter;
 
 import java.util.List;
 import java.util.concurrent.*;
@@ -28,6 +29,8 @@ import java.util.concurrent.*;
 public class BurstExecutor {
     private final ExecutorService executor;
     private final KList<CompletableFuture<Void>> futures;
+    @Setter
+    private boolean multicore = true;
 
     public BurstExecutor(ExecutorService executor, int burstSizeEstimate) {
         this.executor = executor;
@@ -36,6 +39,12 @@ public class BurstExecutor {
 
     @SuppressWarnings("UnusedReturnValue")
     public CompletableFuture<Void> queue(Runnable r) {
+        if(!multicore)
+        {
+            r.run();
+            return null;
+        }
+
         synchronized (futures) {
             CompletableFuture<Void> c = CompletableFuture.runAsync(r, executor);
             futures.add(c);
@@ -44,6 +53,16 @@ public class BurstExecutor {
     }
 
     public BurstExecutor queue(List<Runnable> r) {
+        if(!multicore)
+        {
+            for(Runnable i : r)
+            {
+                i.run();
+            }
+
+            return this;
+        }
+
         synchronized (futures) {
             for (Runnable i : new KList<>(r)) {
                 CompletableFuture<Void> c = CompletableFuture.runAsync(i, executor);
@@ -55,6 +74,16 @@ public class BurstExecutor {
     }
 
     public BurstExecutor queue(Runnable[] r) {
+        if(!multicore)
+        {
+            for(Runnable i : r)
+            {
+                i.run();
+            }
+
+            return this;
+        }
+
         synchronized (futures) {
             for (Runnable i : r) {
                 CompletableFuture<Void> c = CompletableFuture.runAsync(i, executor);
@@ -66,6 +95,11 @@ public class BurstExecutor {
     }
 
     public void complete() {
+        if(!multicore)
+        {
+            return;
+        }
+
         synchronized (futures) {
             if (futures.isEmpty()) {
                 return;
@@ -75,13 +109,17 @@ public class BurstExecutor {
                 CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
                 futures.clear();
             } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
                 Iris.reportError(e);
             }
         }
     }
 
     public boolean complete(long maxDur) {
+        if(!multicore)
+        {
+            return true;
+        }
+
         synchronized (futures) {
             if (futures.isEmpty()) {
                 return true;

@@ -412,14 +412,14 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
             switch (getDimension().getTerrainMode()) {
                 case NORMAL -> {
-                    getMantle().generateMatter(x >> 4, z >> 4);
+                    getMantle().generateMatter(x >> 4, z >> 4, multicore);
                     getTerrainActuator().actuate(x, z, vblocks, multicore);
                     getBiomeActuator().actuate(x, z, vbiomes, multicore);
                     getCaveModifier().modify(x, z, vblocks, multicore);
                     getRavineModifier().modify(x, z, vblocks, multicore);
                     getPostModifier().modify(x, z, vblocks, multicore);
                     getDecorantActuator().actuate(x, z, blocks, multicore);
-                    getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, blocks);
+                    getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, blocks, multicore);
                     getDepositModifier().modify(x, z, blocks, multicore);
                 }
                 case ISLANDS -> {

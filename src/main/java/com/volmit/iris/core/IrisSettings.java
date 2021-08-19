@@ -104,6 +104,7 @@ public class IrisSettings {
         public boolean verbose = false;
         public boolean ignoreWorldEdit = false;
         public boolean disableNMS = false;
+        public boolean keepProductionOnReload = false;
         public boolean pluginMetrics = true;
         public boolean splashLogoStartup = true;
         public String forceMainWorld = "";

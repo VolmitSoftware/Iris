@@ -73,14 +73,26 @@ public class StudioSVC implements IrisService {
 
     @Override
     public void onDisable() {
-        if (IrisSettings.get().isStudio()) {
-            Iris.debug("Studio Mode Active: Closing Projects");
+        Iris.debug("Studio Mode Active: Closing Projects");
 
-            for (World i : Bukkit.getWorlds()) {
-                if (IrisToolbelt.isIrisWorld(i)) {
+        for (World i : Bukkit.getWorlds()) {
+            if (IrisToolbelt.isIrisWorld(i)) {
+                if(IrisToolbelt.isStudio(i))
+                {
                     IrisToolbelt.evacuate(i);
-                    Iris.debug("Closing Platform Generator " + i.getName());
                     IrisToolbelt.access(i).close();
+                }
+
+                else
+                {
+                    if(!IrisSettings.get().getGeneral().isKeepProductionOnReload())
+                    {
+                        IrisToolbelt.evacuate(i);
+                        IrisToolbelt.access(i).close();
+                        Iris.error("You cannot reload Iris while production worlds are active!");
+                        Iris.error("To prevent corrupted chunks, Iris is shutting the server down now!");
+                        Bukkit.shutdown();
+                    }
                 }
             }
         }

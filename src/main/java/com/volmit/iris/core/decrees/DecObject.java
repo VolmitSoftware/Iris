@@ -38,7 +38,7 @@ import java.text.NumberFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Decree(name = "object", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris object manipulation")
+@Decree(name = "object", aliases = "o", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris object manipulation")
 public class DecObject implements DecreeExecutor {
 
     @Decree(description = "Check the composition of an object")

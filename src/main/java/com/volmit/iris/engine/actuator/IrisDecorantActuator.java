@@ -23,8 +23,11 @@ import com.volmit.iris.engine.decorator.*;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.framework.EngineDecorator;
+import com.volmit.iris.engine.object.biome.InferredType;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.carve.IrisCaveLayer;
+import com.volmit.iris.engine.object.decoration.IrisDecorationPart;
+import com.volmit.iris.engine.object.decoration.IrisDecorator;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
@@ -108,18 +111,22 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
                     continue;
                 }
 
+                if(height < getDimension().getFluidHeight())
+                {
+                    getSeaSurfaceDecorator().decorate(i, j,
+                            realX, (int) Math.round(modX(x + i + 1)), (int) Math.round(modX(x + i - 1)),
+                            realZ, (int) Math.round(modZ(z + j + 1)), (int) Math.round(modZ(z + j - 1)),
+                            output, biome, getDimension().getFluidHeight(), getEngine().getHeight());
+                    getSeaFloorDecorator().decorate(i, j,
+                            realX, realZ, output, biome, height + 1,
+                            getDimension().getFluidHeight() + 1);
+                }
+
                 if (height == getDimension().getFluidHeight()) {
                     getShoreLineDecorator().decorate(i, j,
                             realX, (int) Math.round(modX(x + i + 1)), (int) Math.round(modX(x + i - 1)),
                             realZ, (int) Math.round(modZ(z + j + 1)), (int) Math.round(modZ(z + j - 1)),
                             output, biome, height, getEngine().getHeight());
-                } else if (height == getDimension().getFluidHeight() + 1) {
-                    getSeaSurfaceDecorator().decorate(i, j,
-                            realX, (int) Math.round(modX(x + i + 1)), (int) Math.round(modX(x + i - 1)),
-                            realZ, (int) Math.round(modZ(z + j + 1)), (int) Math.round(modZ(z + j - 1)),
-                            output, biome, height, getEngine().getHeight());
-                } else if (height < getDimension().getFluidHeight()) {
-                    getSeaFloorDecorator().decorate(i, j, realX, realZ, output, biome, height + 1, getDimension().getFluidHeight() + 1);
                 }
 
                 getSurfaceDecorator().decorate(i, j, realX, realZ, output, biome, height, getEngine().getHeight() - height);

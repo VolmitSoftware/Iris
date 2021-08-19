@@ -505,8 +505,8 @@ public class VolmitSender implements CommandSender {
                         hoverTitle + newline +
                         description + newline +
                         usage +
-                        suggestion +
-                        suggestions +
+                        suggestion + //Newlines for suggestions are added when they're built, to prevent blanklines.
+                        suggestions + // ^
                     "'>" +
                     "<click:" +
                         onClick +

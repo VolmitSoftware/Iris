@@ -341,4 +341,30 @@ public class DecObject implements DecreeExecutor {
         sender().playSound(Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
         sender().sendMessage(C.GREEN + "Successfully object to saved: " + dimension.getLoadKey() + "/objects/" + name);
     }
+
+    @Decree(description = "Shift a selection in your looking direction", aliases = "-")
+    public void shift(
+            @Param(description = "The amount to shift by", defaultValue = "1")
+                    int amount
+    ){
+        if (!WandSVC.isHoldingWand(player())) {
+            sender().sendMessage("Hold your wand.");
+            return;
+        }
+
+        Location[] b = WandSVC.getCuboid(player().getInventory().getItemInMainHand());
+        Location a1 = b[0].clone();
+        Location a2 = b[1].clone();
+        Direction d = Direction.closest(player().getLocation().getDirection()).reverse();
+        a1.add(d.toVector().multiply(amount));
+        a2.add(d.toVector().multiply(amount));
+        Cuboid cursor = new Cuboid(a1, a2);
+        b[0] = cursor.getLowerNE();
+        b[1] = cursor.getUpperSW();
+        player().getInventory().setItemInMainHand(WandSVC.createWand(b[0], b[1]));
+        player().updateInventory();
+        sender().playSound(Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
+    }
+
+
 }

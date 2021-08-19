@@ -147,7 +147,7 @@ public class Mantle {
             throw new RuntimeException("The Mantle is closed");
         }
 
-        if (y < 0) {
+        if (y < 0 || y >= worldHeight) {
             return;
         }
 

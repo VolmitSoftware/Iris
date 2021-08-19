@@ -430,24 +430,23 @@ public class VolmitSender implements CommandSender {
 
             /// Command
             // Contains main command & aliases
-            String title = i.getPath() + " >" + "<#46826a>⇀<gradient:#42ecf5:#428df5> " + i.getName();
+            String realText = i.getPath() + " >" + "<#46826a>⇀<gradient:#42ecf5:#428df5> " + i.getName();
             String hoverTitle = i.getNames().copy().reverse().convert((f) -> "<#42ecf5>" + f).toString(", ");
             String description = "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + i.getDescription();
-            String usage = "<#bbe03f>✒ <#a8e0a2>";
-            String onClick = "<click:";
+            String usage = "<#bbe03f>✒ <#a8e0a2><font:minecraft:uniform>";
+            String onClick;
             if (i.isNode()) {
                 if (i.getNode().getParameters().isEmpty()){
-                    usage += "<font:minecraft:uniform>There are no parameters. Click to run.";
-                    onClick += "run_command";
+                    usage += "There are no parameters. Click to run.";
+                    onClick = "run_command";
                 } else {
-                    usage += "<font:minecraft:uniform>Hover over all of the parameters to learn more.";
-                    onClick += "suggest_command";
+                    usage += "Hover over all of the parameters to learn more.";
+                    onClick = "suggest_command";
                 }
             } else {
-                usage += "<font:minecraft:uniform>This is a command category. Click to run.";
-                onClick += "run_command";
+                usage += "This is a command category. Click to run.";
+                onClick = "run_command";
             }
-            onClick += ":" + title + "</click>";
 
             String suggestion = "";
             String suggestions = "";
@@ -501,21 +500,24 @@ public class VolmitSender implements CommandSender {
             }
 
             /// Wrapper
-            StringBuilder wrapper = new StringBuilder()
-                    .append("<hover:show_text:'")
-                    .append(hoverTitle).append(newline)
-                    .append(description).append(newline)
-                    .append(usage)
-                    .append(suggestion)
-                    .append(suggestions)
-                    .append("'>")
-                    .append(onClick)
-                    .append("</hover>")
-                    .append(" ")
-                    .append(nodes);
+            String wrapper =
+                    "<hover:show_text:'" +
+                        hoverTitle + newline +
+                        description + newline +
+                        usage +
+                        suggestion +
+                        suggestions +
+                    "'>" +
+                    "<click:" +
+                        onClick +
+                        ":" +
+                        realText +
+                    "</click>" +
+                    "</hover>" +
+                    " " +
+                    nodes;
 
-            sendMessageRaw(wrapper.toString());
-            System.out.println(wrapper);
+            sendMessageRaw(wrapper);
         } else {
             sendMessage(i.getPath());
         }

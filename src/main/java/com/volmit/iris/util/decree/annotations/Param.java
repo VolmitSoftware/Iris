@@ -18,6 +18,9 @@
 
 package com.volmit.iris.util.decree.annotations;
 
+import com.volmit.iris.util.decree.DecreeParameterHandler;
+import com.volmit.iris.util.decree.specialhandlers.DummyHandler;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -60,4 +63,6 @@ public @interface Param {
      * Attempts to dynamically pull context from the player, default data or something else for supported types
      */
     boolean contextual() default false;
+
+    Class<? extends DecreeParameterHandler<?>> customHandler() default DummyHandler.class;
 }

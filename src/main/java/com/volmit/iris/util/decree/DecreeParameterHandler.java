@@ -32,6 +32,11 @@ public interface DecreeParameterHandler<T> {
      */
     KList<T> getPossibilities();
 
+    default boolean isDummy()
+    {
+        return false;
+    }
+
     /**
      * Converting the type back to a string (inverse of the {@link #parse(String) parse} method)
      *

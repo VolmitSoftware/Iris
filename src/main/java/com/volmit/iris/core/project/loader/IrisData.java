@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.block.IrisBlockData;
+import com.volmit.iris.engine.object.cave.IrisCave;
 import com.volmit.iris.engine.object.common.IrisScript;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.entity.IrisEntity;
@@ -63,6 +64,7 @@ public class IrisData {
     private ResourceLoader<IrisExpression> expressionLoader;
     private ResourceLoader<IrisObject> objectLoader;
     private ResourceLoader<IrisScript> scriptLoader;
+    private ResourceLoader<IrisCave> caveLoader;
     private KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> loaders = new KMap<>();
     private boolean closed;
     private final File dataFolder;
@@ -199,6 +201,7 @@ public class IrisData {
         this.jigsawStructureLoader = registerLoader(IrisJigsawStructure.class);
         this.jigsawPieceLoader = registerLoader(IrisJigsawPiece.class);
         this.generatorLoader = registerLoader(IrisGenerator.class);
+        this.caveLoader = registerLoader(IrisCave.class);
         this.blockLoader = registerLoader(IrisBlockData.class);
         this.expressionLoader = registerLoader(IrisExpression.class);
         this.objectLoader = registerLoader(IrisObject.class);
@@ -271,6 +274,10 @@ public class IrisData {
 
     public static IrisRegion loadAnyRegion(String key) {
         return loadAny(key, (dm) -> dm.getRegionLoader().load(key, false));
+    }
+
+    public static IrisCave loadAnyCave(String key) {
+        return loadAny(key, (dm) -> dm.getCaveLoader().load(key, false));
     }
 
     public static IrisDimension loadAnyDimension(String key) {

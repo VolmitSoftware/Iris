@@ -66,7 +66,7 @@ public class IrisWorm {
 
     public NoiseProvider getAngleProvider(RNG rng, IrisData data)
     {
-        return angleProviderCache.aquire(() -> (xx, zz) -> angleStyle.create(rng, data).noise(xx, zz) * segmentDistance.get(rng, xx, zz, data));
+        return angleProviderCache.aquire(() -> (xx, zz) -> angleStyle.create(rng, data).fitDouble(-0.5, 0.5, xx, zz) * segmentDistance.get(rng, xx, zz, data));
     }
 
     public WormIterator2 iterate2D(RNG rng, IrisData data, int x, int z)

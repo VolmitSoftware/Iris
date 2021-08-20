@@ -25,6 +25,7 @@ import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.B;
@@ -32,11 +33,13 @@ import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.Worm3;
 import com.volmit.iris.util.noise.WormIterator3;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -56,6 +59,7 @@ public class IrisCavePlacer implements IRare {
 
     @MinNumber(1)
     @Required
+    @Desc("The cave to place")
     @RegistryListResource(IrisCave.class)
     private String cave;
 
@@ -85,14 +89,19 @@ public class IrisCavePlacer implements IRare {
 
         WormIterator3 w = cave.getWorm().iterate3D(rng, data, x, y, z);
         KList<Vector> points = new KList<>();
-
+        int itr = 0;
         while(w.hasNext())
         {
+            itr++;
             Worm3 wx = w.next();
             points.add(new Vector(wx.getX().getPosition(), wx.getY().getPosition(), wx.getZ().getPosition()));
         }
 
-        mantle.setSpline(points, cave.getWorm().getGirth().get(rng, x, z, data), true, CAVE_AIR);
+
+        Iris.info(x + " " + y + " " + z + " /." + " POS: " + points.convert((i) -> "[" + i.getBlockX() + "," + i.getBlockY() + "," + i.getBlockZ() + "]").toString(", "));
+
+        mantle.setLine(points.convert(IrisPosition::new), cave.getWorm().getGirth().get(rng, x, z, data), true, CAVE_AIR);
+
 
         // TODO decorate somehow
     }

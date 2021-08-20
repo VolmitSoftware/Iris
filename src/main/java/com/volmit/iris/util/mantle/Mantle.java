@@ -795,7 +795,6 @@ public class Mantle {
         }
     }
 
-
     public <T> void set(IrisPosition pos, T data)
     {
         set(pos.getX(), pos.getY(), pos.getZ(), data);

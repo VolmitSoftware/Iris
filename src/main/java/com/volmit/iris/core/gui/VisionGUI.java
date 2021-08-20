@@ -192,8 +192,8 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
             case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD -> colorFunction = (x, z) -> engine.getComplex().getTrueBiomeStreamNoFeatures().get(x, z).getColor(engine, currentType).getRGB();
             case BIOME_LAND -> colorFunction = (x, z) -> engine.getComplex().getLandBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
             case BIOME_SEA -> colorFunction = (x, z) -> engine.getComplex().getSeaBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
-            // TODO: CAVE
-            case REGION, CAVE_LAND -> colorFunction = (x, z) -> engine.getComplex().getRegionStream().get(x, z).getColor(engine.getComplex(), currentType).getRGB();
+            case REGION -> colorFunction = (x, z) -> engine.getComplex().getRegionStream().get(x, z).getColor(engine.getComplex(), currentType).getRGB();
+            case CAVE_LAND -> colorFunction = (x, z) -> engine.getComplex().getCaveBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
             case HEIGHT -> colorFunction = (x, z) -> Color.getHSBColor(engine.getComplex().getHeightStream().get(x, z).floatValue(), 100, 100).getRGB();
         }
 
@@ -696,8 +696,8 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
             case BIOME, LAYER_LOAD, DECORATOR_LOAD, OBJECT_LOAD, HEIGHT -> r = complex.getTrueBiomeStreamNoFeatures().get(getWorldX(hx), getWorldZ(hz)).openInVSCode();
             case BIOME_LAND -> r = complex.getLandBiomeStream().get(getWorldX(hx), getWorldZ(hz)).openInVSCode();
             case BIOME_SEA -> r = complex.getSeaBiomeStream().get(getWorldX(hx), getWorldZ(hz)).openInVSCode();
-            // TODO: CAVE
-            case REGION, CAVE_LAND -> r = complex.getRegionStream().get(getWorldX(hx), getWorldZ(hz)).openInVSCode();
+            case REGION -> r = complex.getRegionStream().get(getWorldX(hx), getWorldZ(hz)).openInVSCode();
+            case CAVE_LAND -> r = complex.getCaveBiomeStream().get(getWorldX(hx), getWorldZ(hz)).openInVSCode();
         }
 
         notify("Opening " + r.getPath() + " in VSCode");

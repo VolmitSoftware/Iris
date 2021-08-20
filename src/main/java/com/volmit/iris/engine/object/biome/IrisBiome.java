@@ -27,7 +27,6 @@ import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.block.IrisBlockDrops;
-import com.volmit.iris.engine.object.cave.IrisCavePlacer;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.engine.object.decoration.IrisDecorator;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
@@ -74,10 +73,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Required
     @Desc("This is the human readable name for this biome. This can and should be different than the file name. This is not used for loading biomes in other objects.")
     private String name = "A Biome";
-
-    @Desc("Register caves to generate")
-    @ArrayType(min = 1, type = IrisCavePlacer.class)
-    private KList<IrisCavePlacer> caves = new KList<>();
 
     @ArrayType(min = 1, type = IrisBiomeCustom.class)
     @Desc("If the biome type custom is defined, specify this")

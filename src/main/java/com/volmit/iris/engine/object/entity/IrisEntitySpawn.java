@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.modifier.IrisCaveModifier;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
@@ -82,8 +83,23 @@ public class IrisEntitySpawn implements IRare {
                 int h = gen.getHeight(x, z, true);
                 int hf = gen.getHeight(x, z, false);
                 Location l = switch (getReferenceSpawner().getGroup()) {
-                    case NORMAL, CAVE -> new Location(c.getWorld(), x, hf + 1, z);
-                    // TODO HANDLE CAVES
+                    case NORMAL -> new Location(c.getWorld(), x, hf + 1, z);
+                    case CAVE -> {
+                        IrisComplex comp = gen.getComplex();
+                        IrisBiome cave = comp.getCaveBiomeStream().get(x, z);
+                        KList<Location> r = new KList<>();
+                        if (cave != null) {
+                            for (CaveResult i : ((IrisCaveModifier) gen.getCaveModifier()).genCaves(x, z)) {
+                                if (i.getCeiling() >= gen.getHeight() || i.getFloor() < 0 || i.getCeiling() - 2 <= i.getFloor()) {
+                                    continue;
+                                }
+
+                                r.add(new Location(c.getWorld(), x, i.getFloor(), z));
+                            }
+                        }
+
+                        yield r.getRandom(rng);
+                    }
 
                     case UNDERWATER, BEACH -> new Location(c.getWorld(), x, rng.i(h + 1, hf), z);
                 };

@@ -24,8 +24,7 @@ public enum MantleFlag {
     OBJECT,
     UPDATE,
     JIGSAW,
-    FEATURE,
-    CAVE;
+    FEATURE;
 
     static StateList getStateList() {
         return new StateList(MantleFlag.values());

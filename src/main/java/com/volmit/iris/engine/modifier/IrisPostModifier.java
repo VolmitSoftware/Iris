@@ -159,54 +159,58 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         // Wall Patcher
         IrisBiome biome = getComplex().getTrueBiomeStream().get(x, z);
 
-        if (!biome.getWall().getPalette().isEmpty()) {
-            if (ha < h - 2 || hb < h - 2 || hc < h - 2 || hd < h - 2) {
-                boolean brokeGround = false;
-                int max = Math.abs(Math.max(h - ha, Math.max(h - hb, Math.max(h - hc, h - hd))));
+        if (getDimension().isPostProcessingWalls()) {
+            if (!biome.getWall().getPalette().isEmpty()) {
+                if (ha < h - 2 || hb < h - 2 || hc < h - 2 || hd < h - 2) {
+                    boolean brokeGround = false;
+                    int max = Math.abs(Math.max(h - ha, Math.max(h - hb, Math.max(h - hc, h - hd))));
 
-                for (int i = h; i > h - max; i--) {
-                    BlockData d = biome.getWall().get(rng, x + i, i + h, z + i, getData());
+                    for (int i = h; i > h - max; i--) {
+                        BlockData d = biome.getWall().get(rng, x + i, i + h, z + i, getData());
 
-                    if (d != null) {
-                        if (isAirOrWater(x, i, z, currentPostX, currentPostZ, currentData)) {
-                            if (brokeGround) {
-                                break;
+                        if (d != null) {
+                            if (isAirOrWater(x, i, z, currentPostX, currentPostZ, currentData)) {
+                                if (brokeGround) {
+                                    break;
+                                }
+
+                                continue;
                             }
 
-                            continue;
+                            setPostBlock(x, i, z, d, currentPostX, currentPostZ, currentData);
+                            brokeGround = true;
                         }
-
-                        setPostBlock(x, i, z, d, currentPostX, currentPostZ, currentData);
-                        brokeGround = true;
                     }
                 }
             }
         }
 
         // Slab
-        //@builder
-        if ((ha == h + 1 && isSolidNonSlab(x + 1, ha, z, currentPostX, currentPostZ, currentData))
-                || (hb == h + 1 && isSolidNonSlab(x, hb, z + 1, currentPostX, currentPostZ, currentData))
-                || (hc == h + 1 && isSolidNonSlab(x - 1, hc, z, currentPostX, currentPostZ, currentData))
-                || (hd == h + 1 && isSolidNonSlab(x, hd, z - 1, currentPostX, currentPostZ, currentData)))
-        //@done
-        {
-            BlockData d = biome.getSlab().get(rng, x, h, z, getData());
+        if (getDimension().isPostProcessingSlabs()) {
+            //@builder
+            if ((ha == h + 1 && isSolidNonSlab(x + 1, ha, z, currentPostX, currentPostZ, currentData))
+                    || (hb == h + 1 && isSolidNonSlab(x, hb, z + 1, currentPostX, currentPostZ, currentData))
+                    || (hc == h + 1 && isSolidNonSlab(x - 1, hc, z, currentPostX, currentPostZ, currentData))
+                    || (hd == h + 1 && isSolidNonSlab(x, hd, z - 1, currentPostX, currentPostZ, currentData)))
+            //@done
+            {
+                BlockData d = biome.getSlab().get(rng, x, h, z, getData());
 
-            if (d != null) {
-                boolean cancel = B.isAir(d);
+                if (d != null) {
+                    boolean cancel = B.isAir(d);
 
-                if (d.getMaterial().equals(Material.SNOW) && h + 1 <= getDimension().getFluidHeight()) {
-                    cancel = true;
-                }
+                    if (d.getMaterial().equals(Material.SNOW) && h + 1 <= getDimension().getFluidHeight()) {
+                        cancel = true;
+                    }
 
-                if (isSnowLayer(x, h, z, currentPostX, currentPostZ, currentData)) {
-                    cancel = true;
-                }
+                    if (isSnowLayer(x, h, z, currentPostX, currentPostZ, currentData)) {
+                        cancel = true;
+                    }
 
-                if (!cancel && isAirOrWater(x, h + 1, z, currentPostX, currentPostZ, currentData)) {
-                    setPostBlock(x, h + 1, z, d, currentPostX, currentPostZ, currentData);
-                    h++;
+                    if (!cancel && isAirOrWater(x, h + 1, z, currentPostX, currentPostZ, currentData)) {
+                        setPostBlock(x, h + 1, z, d, currentPostX, currentPostZ, currentData);
+                        h++;
+                    }
                 }
             }
         }
@@ -244,6 +248,141 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
 
             if (!B.canPlaceOnto(b.getMaterial(), onto)) {
                 setPostBlock(x, h + 1, z, AIR, currentPostX, currentPostZ, currentData);
+            }
+        }
+
+        if (getDimension().isPostProcessCaves()) {
+            IrisBiome cave = getComplex().getCaveBiomeStream().get(x, z);
+
+            if (cave != null) {
+                for (CaveResult i : ((IrisCaveModifier) getEngine().getCaveModifier()).genCaves(x, z, 0, 0, null)) {
+                    if (i.getCeiling() >= currentData.getMax2DParallelism() || i.getFloor() < 0) {
+                        continue;
+                    }
+
+                    int f = i.getFloor();
+                    int fa = nearestCaveFloor(f, x + 1, z, currentPostX, currentPostZ, currentData);
+                    int fb = nearestCaveFloor(f, x, z + 1, currentPostX, currentPostZ, currentData);
+                    int fc = nearestCaveFloor(f, x - 1, z, currentPostX, currentPostZ, currentData);
+                    int fd = nearestCaveFloor(f, x, z - 1, currentPostX, currentPostZ, currentData);
+                    int c = i.getCeiling();
+                    int ca = nearestCaveCeiling(c, x + 1, z, currentPostX, currentPostZ, currentData);
+                    int cb = nearestCaveCeiling(c, x, z + 1, currentPostX, currentPostZ, currentData);
+                    int cc = nearestCaveCeiling(c, x - 1, z, currentPostX, currentPostZ, currentData);
+                    int cd = nearestCaveCeiling(c, x, z - 1, currentPostX, currentPostZ, currentData);
+
+                    // Cave Nibs
+                    g = 0;
+                    g += fa == f - 1 ? 1 : 0;
+                    g += fb == f - 1 ? 1 : 0;
+                    g += fc == f - 1 ? 1 : 0;
+                    g += fd == f - 1 ? 1 : 0;
+
+                    if (g >= 4) {
+                        BlockData bc = getPostBlock(x, f, z, currentPostX, currentPostZ, currentData);
+                        b = getPostBlock(x, f + 1, z, currentPostX, currentPostZ, currentData);
+                        Material m = bc.getMaterial();
+
+                        if (m.isSolid()) {
+                            setPostBlock(x, f, z, b, currentPostX, currentPostZ, currentData);
+                            h--;
+                        }
+                    } else {
+                        // Cave Potholes
+                        g = 0;
+                        g += fa == f + 1 ? 1 : 0;
+                        g += fb == f + 1 ? 1 : 0;
+                        g += fc == f + 1 ? 1 : 0;
+                        g += fd == f + 1 ? 1 : 0;
+
+                        if (g >= 4) {
+                            BlockData ba = getPostBlock(x, fa, z, currentPostX, currentPostZ, currentData);
+                            BlockData bb = getPostBlock(x, fb, z, currentPostX, currentPostZ, currentData);
+                            BlockData bc = getPostBlock(x, fc, z, currentPostX, currentPostZ, currentData);
+                            BlockData bd = getPostBlock(x, fd, z, currentPostX, currentPostZ, currentData);
+                            g = 0;
+                            g = B.isSolid(ba) ? g + 1 : g;
+                            g = B.isSolid(bb) ? g + 1 : g;
+                            g = B.isSolid(bc) ? g + 1 : g;
+                            g = B.isSolid(bd) ? g + 1 : g;
+
+                            if (g >= 4) {
+                                setPostBlock(x, f + 1, z, getPostBlock(x, f, z, currentPostX, currentPostZ, currentData), currentPostX, currentPostZ, currentData);
+                                h++;
+                            }
+                        }
+                    }
+
+                    if (getDimension().isPostProcessingSlabs()) {
+                        //@builder
+                        if ((fa == f + 1 && isSolidNonSlab(x + 1, fa, z, currentPostX, currentPostZ, currentData))
+                                || (fb == f + 1 && isSolidNonSlab(x, fb, z + 1, currentPostX, currentPostZ, currentData))
+                                || (fc == f + 1 && isSolidNonSlab(x - 1, fc, z, currentPostX, currentPostZ, currentData))
+                                || (fd == f + 1 && isSolidNonSlab(x, fd, z - 1, currentPostX, currentPostZ, currentData)))
+                        //@done
+                        {
+                            BlockData d = cave.getSlab().get(rng, x, f, z, getData());
+
+                            if (d != null) {
+                                boolean cancel = B.isAir(d);
+
+                                if (d.getMaterial().equals(Material.SNOW) && f + 1 <= getDimension().getFluidHeight()) {
+                                    cancel = true;
+                                }
+
+                                if (isSnowLayer(x, f, z, currentPostX, currentPostZ, currentData)) {
+                                    cancel = true;
+                                }
+
+                                if (!cancel && isAirOrWater(x, f + 1, z, currentPostX, currentPostZ, currentData)) {
+                                    setPostBlock(x, f + 1, z, d, currentPostX, currentPostZ, currentData);
+                                }
+                            }
+                        }
+
+                        //@builder
+                        if ((ca == c - 1 && isSolidNonSlab(x + 1, ca, z, currentPostX, currentPostZ, currentData))
+                                || (cb == c - 1 && isSolidNonSlab(x, cb, z + 1, currentPostX, currentPostZ, currentData))
+                                || (cc == c - 1 && isSolidNonSlab(x - 1, cc, z, currentPostX, currentPostZ, currentData))
+                                || (cd == c - 1 && isSolidNonSlab(x, cd, z - 1, currentPostX, currentPostZ, currentData)))
+                        //@done
+                        {
+                            BlockData d = cave.getSlab().get(rng, x, c, z, getData());
+
+                            if (d != null) {
+                                boolean cancel = B.isAir(d);
+
+                                if (!(d instanceof Slab)) {
+                                    cancel = true;
+                                }
+
+                                if (isSnowLayer(x, c, z, currentPostX, currentPostZ, currentData)) {
+                                    cancel = true;
+                                }
+
+                                if (!cancel && isAirOrWater(x, c, z, currentPostX, currentPostZ, currentData)) {
+                                    try {
+                                        Slab slab = (Slab) d.clone();
+                                        slab.setType(Slab.Type.TOP);
+                                        setPostBlock(x, c, z, slab, currentPostX, currentPostZ, currentData);
+                                    } catch (Throwable e) {
+                                        Iris.reportError(e);
+                                        try {
+                                            Slab slab = (Slab) d.clone();
+
+                                            synchronized (slab) {
+                                                slab.setType(Slab.Type.TOP);
+                                                setPostBlock(x, c, z, slab, currentPostX, currentPostZ, currentData);
+                                            }
+                                        } catch (Throwable ee) {
+                                            Iris.reportError(ee);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

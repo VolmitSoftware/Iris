@@ -64,7 +64,6 @@ import org.bukkit.generator.BlockPopulator;
 import java.io.File;
 import java.io.IOException;
 import java.util.Random;
-import java.util.Stack;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -102,6 +101,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
     private EngineActuator<BlockData> decorantActuator;
     private EngineActuator<Biome> biomeActuator;
     private EngineModifier<BlockData> depositModifier;
+    private EngineModifier<BlockData> caveModifier;
     private EngineModifier<BlockData> ravineModifier;
     private EngineModifier<BlockData> postModifier;
     private final AtomicCache<IrisEngineData> engineData = new AtomicCache<>();
@@ -151,35 +151,27 @@ public class IrisEngine extends BlockPopulator implements Engine {
         biomeActuator.close();
         depositModifier.close();
         ravineModifier.close();
+        caveModifier.close();
         postModifier.close();
         effects.close();
     }
 
-    private void setupEngine() {
-        try {
-            cacheId = RNG.r.nextInt();
-            worldManager = new IrisWorldManager(this);
-            complex = new IrisComplex(this);
-            execution = new IrisExecutionEnvironment(this);
-            terrainNormalActuator = new IrisTerrainNormalActuator(this);
-            terrainIslandActuator = new IrisTerrainIslandActuator(this);
-            decorantActuator = new IrisDecorantActuator(this);
-            biomeActuator = new IrisBiomeActuator(this);
-            depositModifier = new IrisDepositModifier(this);
-            ravineModifier = new IrisRavineModifier(this);
-            postModifier = new IrisPostModifier(this);
-            effects = new IrisEngineEffects(this);
-            J.a(this::computeBiomeMaxes);
-        } catch (Throwable e)
-        {
-            Iris.error("FATAL: Engine load failure!");
-            e.printStackTrace();
-
-            if(isStudio())
-            {
-                System.exit(0);
-            }
-        }
+    private void setupEngine()
+    {
+        cacheId = RNG.r.nextInt();
+        worldManager = new IrisWorldManager(this);
+        complex = new IrisComplex(this);
+        execution = new IrisExecutionEnvironment(this);
+        terrainNormalActuator = new IrisTerrainNormalActuator(this);
+        terrainIslandActuator = new IrisTerrainIslandActuator(this);
+        decorantActuator = new IrisDecorantActuator(this);
+        biomeActuator = new IrisBiomeActuator(this);
+        depositModifier = new IrisDepositModifier(this);
+        ravineModifier = new IrisRavineModifier(this);
+        caveModifier = new IrisCaveModifier(this);
+        postModifier = new IrisPostModifier(this);
+        effects = new IrisEngineEffects(this);
+        J.a(this::computeBiomeMaxes);
     }
 
     @Override
@@ -340,6 +332,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         getBiomeActuator().close();
         getDepositModifier().close();
         getRavineModifier().close();
+        getCaveModifier().close();
         getPostModifier().close();
         getMantle().close();
         getComplex().close();
@@ -419,6 +412,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
                     getMantle().generateMatter(x >> 4, z >> 4, multicore);
                     getTerrainActuator().actuate(x, z, vblocks, multicore);
                     getBiomeActuator().actuate(x, z, vbiomes, multicore);
+                    getCaveModifier().modify(x, z, vblocks, multicore);
                     getRavineModifier().modify(x, z, vblocks, multicore);
                     getPostModifier().modify(x, z, vblocks, multicore);
                     getDecorantActuator().actuate(x, z, blocks, multicore);

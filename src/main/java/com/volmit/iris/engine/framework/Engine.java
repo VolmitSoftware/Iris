@@ -92,6 +92,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     EngineActuator<Biome> getBiomeActuator();
 
+    EngineModifier<BlockData> getCaveModifier();
+
     EngineModifier<BlockData> getRavineModifier();
 
     EngineModifier<BlockData> getDepositModifier();
@@ -192,7 +194,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     @BlockCoordinates
     default IrisBiome getCaveBiome(int x, int z) {
-        return getComplex().getLandBiomeStream().get(x, z); // TODO!!!!!!!!!!
+        return getComplex().getCaveBiomeStream().get(x, z);
     }
 
     @BlockCoordinates
@@ -354,11 +356,13 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         }
         IrisRegion region = getComplex().getRegionStream().get(rx, rz);
         IrisBiome biomeSurface = getComplex().getTrueBiomeStream().get(rx, rz);
+        IrisBiome biomeUnder = b.getY() < he ? getComplex().getCaveBiomeStream().get(rx, rz) : biomeSurface;
         KList<IrisLootTable> tables = new KList<>();
-        double multiplier = 1D * getDimension().getLoot().getMultiplier() * region.getLoot().getMultiplier() * biomeSurface.getLoot().getMultiplier();
+        double multiplier = 1D * getDimension().getLoot().getMultiplier() * region.getLoot().getMultiplier() * biomeSurface.getLoot().getMultiplier() * biomeUnder.getLoot().getMultiplier();
         injectTables(tables, getDimension().getLoot());
         injectTables(tables, region.getLoot());
         injectTables(tables, biomeSurface.getLoot());
+        injectTables(tables, biomeUnder.getLoot());
 
         if (tables.isNotEmpty()) {
             int target = (int) Math.round(tables.size() * multiplier);

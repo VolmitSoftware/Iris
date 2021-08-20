@@ -22,6 +22,9 @@ import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.project.loader.IrisRegistrant;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.noise.IrisWorm;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.Worm;
 import com.volmit.iris.util.noise.Worm3;
@@ -31,6 +34,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.util.Vector;
 
 @EqualsAndHashCode(callSuper = true)
 @Accessors(chain = true)
@@ -50,15 +55,5 @@ public class IrisCave extends IrisRegistrant {
     @Override
     public String getTypeName() {
         return "Cave";
-    }
-
-    public void generateCave(RNG rng, IrisData data, int x, int y, int z)
-    {
-        WormIterator3 w = worm.iterate3D(rng, data, x, y, z);
-
-        while(w.hasNext())
-        {
-            Worm3 wx = w.next();
-        }
     }
 }

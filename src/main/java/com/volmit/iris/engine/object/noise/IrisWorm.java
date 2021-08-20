@@ -44,12 +44,7 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @Desc("Generate worms")
 @Data
-public class IrisWorm implements IRare {
-    @Required
-    @Desc("Typically a 1 in RARITY on a per chunk basis")
-    @MinNumber(1)
-    private int rarity = 15;
-
+public class IrisWorm {
     @Desc("The style used to determine the curvature of this worm")
     private IrisGeneratorStyle angleStyle = new IrisGeneratorStyle(NoiseStyle.PERLIN);
 

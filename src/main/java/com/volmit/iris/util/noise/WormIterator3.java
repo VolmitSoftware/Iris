@@ -49,6 +49,7 @@ public class WormIterator3 {
         if(worm == null)
         {
             worm = new Worm3(x, y, z, 0, 0, 0);
+            return worm;
         }
 
         worm.getX().setVelocity(noise.noise(worm.getX().getPosition(), 0));

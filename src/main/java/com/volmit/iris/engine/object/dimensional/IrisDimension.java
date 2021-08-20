@@ -32,6 +32,8 @@ import com.volmit.iris.engine.object.carve.IrisCarveLayer;
 import com.volmit.iris.engine.object.carve.IrisCaveFluid;
 import com.volmit.iris.engine.object.carve.IrisCaveLayer;
 import com.volmit.iris.engine.object.carve.IrisCaverns;
+import com.volmit.iris.engine.object.cave.IrisCave;
+import com.volmit.iris.engine.object.cave.IrisCavePlacer;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
@@ -175,9 +177,6 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("The placement style of biomes")
     private IrisGeneratorStyle skylandBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
-    @Desc("Generate caves or not.")
-    private boolean caves = true;
-
     @Desc("Instead of filling objects with air, fills them with cobweb so you can see them")
     private boolean debugSmartBore = false;
 
@@ -209,9 +208,6 @@ public class IrisDimension extends IrisRegistrant {
 
     @Desc("Add painted walls in post processing")
     private boolean postProcessingWalls = true;
-
-    @Desc("Use post processing for caves or not")
-    private boolean postProcessCaves = true;
 
     @Desc("The world environment")
     private Environment environment = Environment.NORMAL;
@@ -305,10 +301,6 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Overlay additional noise on top of the interoplated terrain.")
     private KList<IrisShapedGeneratorStyle> overlayNoise = new KList<>();
 
-    @ArrayType(min = 1, type = IrisCaveLayer.class)
-    @Desc("Define cave layers")
-    private KList<IrisCaveLayer> caveLayers = new KList<>();
-
     @ArrayType(min = 1, type = IrisCarveLayer.class)
     @Desc("Define carve layers")
     private KList<IrisCarveLayer> carveLayers = new KList<>();
@@ -329,6 +321,10 @@ public class IrisDimension extends IrisRegistrant {
 
     @Desc("Cartographer map trade overrides")
     private IrisVillagerOverride patchCartographers = new IrisVillagerOverride().setDisableTrade(false);
+
+    @Desc("Register caves to generate")
+    @ArrayType(min = 1, type = IrisCavePlacer.class)
+    private KList<IrisCavePlacer> caves = new KList<>();
 
     private final transient AtomicCache<Position2> parallaxSize = new AtomicCache<>();
     private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();

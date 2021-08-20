@@ -22,10 +22,13 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.MantleComponent;
+import com.volmit.iris.engine.mantle.components.MantleCaveComponent;
 import com.volmit.iris.engine.mantle.components.MantleFeatureComponent;
 import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
 import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
 import com.volmit.iris.engine.object.biome.IrisBiome;
+import com.volmit.iris.engine.object.cave.IrisCave;
+import com.volmit.iris.engine.object.cave.IrisCavePlacer;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
 import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructurePlacement;
@@ -63,6 +66,7 @@ public class IrisEngineMantle implements EngineMantle {
         registerComponent(new MantleFeatureComponent(this));
         registerComponent(new MantleJigsawComponent(this));
         registerComponent(new MantleObjectComponent(this));
+        registerComponent(new MantleCaveComponent(this));
     }
 
     @Override
@@ -131,6 +135,7 @@ public class IrisEngineMantle implements EngineMantle {
         KMap<IrisObjectScale, KList<String>> scalars = new KMap<>();
         int x = xg.get();
         int z = zg.get();
+        int s = 0;
 
         if (getEngine().getDimension().isUseMantle()) {
             KList<IrisRegion> r = getAllRegions();
@@ -148,6 +153,11 @@ public class IrisEngineMantle implements EngineMantle {
                 for (IrisJigsawStructurePlacement j : i.getJigsawStructures()) {
                     jig = Math.max(jig, getData().getJigsawStructureLoader().load(j.getStructure()).getMaxDimension());
                 }
+
+                for(IrisCavePlacer j : i.getCaves())
+                {
+                    s = Math.max(s, j.getRealCave(getData()).getWorm().getMaxDistance());
+                }
             }
 
             for (IrisRegion i : r) {
@@ -162,6 +172,16 @@ public class IrisEngineMantle implements EngineMantle {
                 for (IrisJigsawStructurePlacement j : i.getJigsawStructures()) {
                     jig = Math.max(jig, getData().getJigsawStructureLoader().load(j.getStructure()).getMaxDimension());
                 }
+
+                for(IrisCavePlacer j : i.getCaves())
+                {
+                    s = Math.max(s, j.getRealCave(getData()).getWorm().getMaxDistance());
+                }
+            }
+
+            for(IrisCavePlacer j : getDimension().getCaves())
+            {
+                s = Math.max(s, j.getRealCave(getData()).getWorm().getMaxDistance());
             }
 
             for (IrisJigsawStructurePlacement j : getEngine().getDimension().getJigsawStructures()) {
@@ -265,6 +285,9 @@ public class IrisEngineMantle implements EngineMantle {
             x = xg.get();
             z = zg.get();
 
+            x = Math.max(s, x);
+            z = Math.max(s, z);
+
             for (IrisDepositGenerator i : getEngine().getDimension().getDeposits()) {
                 int max = i.getMaxDimension();
                 x = Math.max(max, x);
@@ -290,7 +313,7 @@ public class IrisEngineMantle implements EngineMantle {
             return 0;
         }
 
-        x = Math.max(z, x);
+        x = Math.max(x, z);
         int u = x;
         int v = computeFeatureRange();
         x = Math.max(jig, x);

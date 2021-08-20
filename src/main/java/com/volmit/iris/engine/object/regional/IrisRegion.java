@@ -27,6 +27,7 @@ import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.biome.InferredType;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.block.IrisBlockDrops;
+import com.volmit.iris.engine.object.cave.IrisCavePlacer;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
 import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
@@ -68,6 +69,10 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @Required
     @Desc("The name of the region")
     private String name = "A Region";
+
+    @Desc("Register caves to generate")
+    @ArrayType(min = 1, type = IrisCavePlacer.class)
+    private KList<IrisCavePlacer> caves = new KList<>();
 
     @ArrayType(min = 1, type = IrisJigsawStructurePlacement.class)
     @Desc("Jigsaw structures")

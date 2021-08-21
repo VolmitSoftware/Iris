@@ -80,7 +80,7 @@ public class Mantle {
         unload = new KSet<>();
         loadedRegions = new KMap<>();
         lastUse = new KMap<>();
-        ioBurst = new MultiBurst("Iris Mantle[" + dataFolder.hashCode() + "]", Thread.MIN_PRIORITY, Runtime.getRuntime().availableProcessors() / 2);
+        ioBurst = MultiBurst.burst;
         Iris.debug("Opened The Mantle " + C.DARK_AQUA + dataFolder.getAbsolutePath());
     }
 
@@ -127,6 +127,19 @@ public class Mantle {
     }
 
     /**
+     * Check very quickly if a tectonic plate exists via cached or the file system
+     * @param x the x region coordinate
+     * @param z the z region coordinate
+     * @return true if it exists
+     */
+    @RegionCoordinates
+    public boolean hasTectonicPlate(int x, int z)
+    {
+        Long k = key(x, z);
+        return loadedRegions.containsKey(k) || fileForRegion(dataFolder, k).exists();
+    }
+
+    /**
      * Iterate data in a chunk
      * @param x the chunk x
      * @param z the chunk z
@@ -137,6 +150,11 @@ public class Mantle {
      */
     @ChunkCoordinates
     public <T> void iterateChunk(int x, int z, Class<T> type, Consumer4<Integer, Integer, Integer, T> iterator, MantleFlag... requiredFlags) {
+        if(!hasTectonicPlate(x >> 5, z >> 5))
+        {
+            return;
+        }
+
         for (MantleFlag i : requiredFlags) {
             if (!hasFlag(x, z, i)) {
                 return;
@@ -155,6 +173,11 @@ public class Mantle {
      */
     @ChunkCoordinates
     public boolean hasFlag(int x, int z, MantleFlag flag) {
+        if(!hasTectonicPlate(x >> 5, z >> 5))
+        {
+            return false;
+        }
+
         return get(x >> 5, z >> 5).getOrCreate(x & 31, z & 31).isFlagged(flag);
     }
 
@@ -211,7 +234,12 @@ public class Mantle {
             throw new RuntimeException("The Mantle is closed");
         }
 
-        if (y < 0) {
+        if(!hasTectonicPlate(x >> 5, z >> 5))
+        {
+            return null;
+        }
+
+        if (y < 0 || y >= worldHeight) {
             return null;
         }
 
@@ -263,7 +291,6 @@ public class Mantle {
             Iris.reportError(e);
         }
 
-        ioBurst.shutdownNow();
         Iris.debug("The Mantle has Closed " + C.DARK_AQUA + dataFolder.getAbsolutePath());
     }
 

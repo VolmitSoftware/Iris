@@ -211,7 +211,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                                                 .shuffleCopy(RNG.r).stream()
                                                 .filter(this::canSpawn),
                                         getData().getSpawnerLoader().streamAll(getEngine().getMantle()
-                                                        .getFeaturesInChunk(c).stream()
+                                                        .forEachFeature(c).stream()
                                                         .flatMap((o) -> o.getFeature().getEntitySpawners().stream()))
                                                 .filter(this::canSpawn))
                                 .filter((i) -> i.isValid(biome))
@@ -294,6 +294,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     private KList<IrisEntitySpawn> spawnRandomly(List<IrisEntitySpawn> types) {
         KList<IrisEntitySpawn> rarityTypes = new KList<>();
         int totalRarity = 0;
+
         for (IrisEntitySpawn i : types) {
             totalRarity += IRare.get(i);
         }
@@ -344,7 +345,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     public void onChunkLoad(Chunk e, boolean generated) {
         if (generated) {
             energy += 1.2;
-            spawnIn(e, true);
+            J.a(() -> spawnIn(e, true), RNG.r.i(5, 50));
         } else {
             energy += 0.3;
         }

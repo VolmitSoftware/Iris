@@ -18,6 +18,8 @@
 
 package com.volmit.iris.engine.mantle.components;
 
+import com.google.gson.Gson;
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.jigsaw.PlannedStructure;
 import com.volmit.iris.engine.mantle.EngineMantle;
@@ -27,24 +29,29 @@ import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructure;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructurePlacement;
+import com.volmit.iris.engine.object.noise.NoiseStyle;
 import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.noise.CNG;
 
 import java.util.List;
 import java.util.function.Consumer;
 
 public class MantleJigsawComponent extends IrisMantleComponent {
+    private final CNG cng;
+
     public MantleJigsawComponent(EngineMantle engineMantle) {
         super(engineMantle, MantleFlag.JIGSAW);
+        cng = NoiseStyle.STATIC.create(new RNG());
     }
 
     @Override
     public void generateLayer(int x, int z, Consumer<Runnable> post) {
-        RNG rng = new RNG(Cache.key(x, z) + seed());
+        RNG rng = new RNG(cng.fit(-Integer.MAX_VALUE, Integer.MAX_VALUE, x, z));
         int xxx = 8 + (x << 4);
         int zzz = 8 + (z << 4);
         IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
@@ -109,7 +116,6 @@ public class MantleJigsawComponent extends IrisMantleComponent {
             if (structure.getFeature().getBlockRadius() == 32) {
                 structure.getFeature().setBlockRadius((double) structure.getMaxDimension() / 3);
             }
-
             getMantle().set(position.getX(), 0, position.getZ(),
                     new IrisFeaturePositional(position.getX(), position.getZ(), structure.getFeature()));
         }

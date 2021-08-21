@@ -19,9 +19,11 @@
 package com.volmit.iris.util.mantle;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.hunk.storage.ArrayHunk;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
 import java.io.*;
@@ -140,7 +142,7 @@ public class TectonicPlate {
 
     @ChunkCoordinates
     private int index(int x, int z) {
-        return (x & 0x1F) + (z & 0x1F) * 32;
+        return Cache.to1D(x, z, 0, 32, 32);
     }
 
     /**

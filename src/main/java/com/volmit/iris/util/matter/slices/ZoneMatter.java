@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.matter.slices;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.util.matter.Sliced;
 

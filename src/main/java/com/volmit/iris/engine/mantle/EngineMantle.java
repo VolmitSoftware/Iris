@@ -34,12 +34,14 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import org.bukkit.Chunk;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
+import java.util.List;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
 
@@ -51,7 +53,7 @@ public interface EngineMantle extends IObjectPlacer {
 
     Engine getEngine();
 
-    Integer getRadius();
+    int getRadius();
 
     KList<MantleComponent> getComponents();
 
@@ -166,15 +168,7 @@ public interface EngineMantle extends IObjectPlacer {
     }
 
     default int getRealRadius() {
-        try {
-            return (int) Math.ceil(getRadius().get() / 2D);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
-
-        return 0;
+        return (int) Math.ceil(getRadius() / 2D);
     }
 
 
@@ -195,8 +189,8 @@ public interface EngineMantle extends IObjectPlacer {
         BurstExecutor burst = burst().burst();
 
         for (int i = -s; i <= s; i++) {
-            int xx = i + x;
             for (int j = -s; j <= s; j++) {
+                int xx = i + x;
                 int zz = j + z;
                 burst.queue(() -> {
                     getComponents().forEach((f) -> generateMantleComponent(xx, zz, f, c));
@@ -229,20 +223,23 @@ public interface EngineMantle extends IObjectPlacer {
 
     @BlockCoordinates
     default void updateBlock(int x, int y, int z) {
-        getMantle().flag(x >> 4, z >> 4, MantleFlag.UPDATE, true);
         getMantle().set(x, y, z, true);
     }
 
     @ChunkCoordinates
-    default KList<IrisFeaturePositional> getFeaturesInChunk(Chunk c) {
+    default List<IrisFeaturePositional> getFeaturesInChunk(Chunk c) {
         return getFeaturesInChunk(c.getX(), c.getZ());
     }
 
     @ChunkCoordinates
-    default KList<IrisFeaturePositional> getFeaturesInChunk(int x, int z) {
-        KList<IrisFeaturePositional> pos = new KList<>();
-        getMantle().iterateChunk(x, z, IrisFeaturePositional.class, (a, b, c, f) -> pos.add(f), MantleFlag.FEATURE);
-        return pos;
+    default List<IrisFeaturePositional> getFeaturesInChunk(int x, int z) {
+        return getMantle().getChunk(x, z).getFeatures();
+    }
+
+
+    @ChunkCoordinates
+    default KList<IrisFeaturePositional> forEachFeature(Chunk c) {
+        return forEachFeature((c.getX() << 4) + 8, (c.getZ() << 4) + 8);
     }
 
     @BlockCoordinates
@@ -267,7 +264,7 @@ public interface EngineMantle extends IObjectPlacer {
         for (i = -s; i <= s; i++) {
             for (j = -s; j <= s; j++) {
                 try {
-                    for (IrisFeaturePositional k : getFeaturesInChunk(i + cx, j + cx)) {
+                    for (IrisFeaturePositional k : getFeaturesInChunk(i + cx, j + cz)) {
                         if (k.shouldFilter(x, z, getEngine().getComplex().getRng(), getData())) {
                             pos.add(k);
                         }

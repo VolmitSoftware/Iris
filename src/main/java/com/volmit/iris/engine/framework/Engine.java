@@ -243,7 +243,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     updateLighting(x, y, z, c);
                 }
             }
-        }, MantleFlag.UPDATE);
+        });
         getMetrics().getUpdates().put(p.getMilliseconds());
     }
 

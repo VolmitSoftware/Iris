@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.object.basic.IrisPosition;
+import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.documentation.BlockCoordinates;
@@ -115,6 +116,12 @@ public class Mantle {
         }
     }
 
+    @ChunkCoordinates
+    public MantleChunk getChunk(int x, int z)
+    {
+        return get(x>>5, z>>5).getOrCreate(x & 31, z & 31);
+    }
+
     /**
      * Flag or unflag a chunk
      * @param x the chunk x
@@ -146,20 +153,13 @@ public class Mantle {
      * @param z the chunk z
      * @param type the type of data to iterate
      * @param iterator the iterator (x,y,z,data) -> do stuff
-     * @param requiredFlags any required flags that must be met for this chunk to be iterated
      * @param <T> the type of data to iterate
      */
     @ChunkCoordinates
-    public <T> void iterateChunk(int x, int z, Class<T> type, Consumer4<Integer, Integer, Integer, T> iterator, MantleFlag... requiredFlags) {
+    public <T> void iterateChunk(int x, int z, Class<T> type, Consumer4<Integer, Integer, Integer, T> iterator) {
         if(!hasTectonicPlate(x >> 5, z >> 5))
         {
             return;
-        }
-
-        for (MantleFlag i : requiredFlags) {
-            if (!hasFlag(x, z, i)) {
-                return;
-            }
         }
 
         get(x >> 5, z >> 5).getOrCreate(x & 31, z & 31).iterate(type, iterator);
@@ -206,11 +206,20 @@ public class Mantle {
             return;
         }
 
-        Matter matter = get((x >> 4) >> 5, (z >> 4) >> 5)
-                .getOrCreate((x >> 4) & 31, (z >> 4) & 31)
-                .getOrCreate(y >> 4);
-        matter.slice(matter.getClass(t))
-                .set(x & 15, y & 15, z & 15, t);
+        if(t instanceof IrisFeaturePositional)
+        {
+            get((x >> 4) >> 5, (z >> 4) >> 5)
+                    .getOrCreate((x >> 4) & 31, (z >> 4) & 31).addFeature((IrisFeaturePositional) t);
+        }
+
+        else
+        {
+            Matter matter = get((x >> 4) >> 5, (z >> 4) >> 5)
+                    .getOrCreate((x >> 4) & 31, (z >> 4) & 31)
+                    .getOrCreate(y >> 4);
+            matter.slice(matter.getClass(t))
+                    .set(x & 15, y & 15, z & 15, t);
+        }
     }
 
     /**
@@ -235,7 +244,7 @@ public class Mantle {
             throw new RuntimeException("The Mantle is closed");
         }
 
-        if(!hasTectonicPlate(x >> 5, z >> 5))
+        if(!hasTectonicPlate((x >> 4) >> 5, (z >> 4) >> 5))
         {
             return null;
         }

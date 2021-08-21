@@ -51,7 +51,7 @@ public interface EngineMantle extends IObjectPlacer {
 
     Engine getEngine();
 
-    Future<Integer> getRadius();
+    Integer getRadius();
 
     KList<MantleComponent> getComponents();
 
@@ -224,7 +224,6 @@ public interface EngineMantle extends IObjectPlacer {
             return;
         }
 
-        Iris.debug("Engine Matter Insert " + x + " " + z);
         getMantle().iterateChunk(x, z, t, blocks::set);
     }
 

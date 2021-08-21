@@ -33,7 +33,6 @@ public abstract class EngineAssignedModifier<T> extends EngineAssignedComponent 
     @BlockCoordinates
     @Override
     public void modify(int x, int z, Hunk<T> output, boolean multicore) {
-        Iris.debug("Engine Modifier[" + getName() + "] " + x + " " + z);
         onModify(x, z, output, multicore);
     }
 }

@@ -20,6 +20,7 @@ package com.volmit.iris.engine;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.MantleComponent;
@@ -53,8 +54,6 @@ import org.bukkit.util.BlockVector;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Data
@@ -62,14 +61,15 @@ public class IrisEngineMantle implements EngineMantle {
     private final Engine engine;
     private final Mantle mantle;
     private final KList<MantleComponent> components;
-    private final Future<Integer> radius;
+    private final int radius;
+    private final AtomicCache<Integer> radCache = new AtomicCache<>();
     private ProceduralStream<KList<IrisFeaturePositional>> featureChunkStream;
     private ProceduralStream<KList<IrisFeaturePositional>> featureStream;
 
     public IrisEngineMantle(Engine engine) {
         this.engine = engine;
         this.mantle = new Mantle(new File(engine.getWorld().worldFolder(), "mantle"), engine.getTarget().getHeight());
-        radius = burst().completeValue(this::computeParallaxSize);
+        radius = radCache.aquire(this::computeParallaxSize);
         components = new KList<>();
         registerComponent(new MantleFeatureComponent(this));
         registerComponent(new MantleJigsawComponent(this));

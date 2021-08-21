@@ -78,6 +78,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 @Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
@@ -133,7 +134,7 @@ public class DecStudio implements DecreeExecutor {
         KList<Job> jobs = new KList<>();
         KList<File> files = new KList<File>();
         files(Iris.instance.getDataFolder("packs", project.getLoadKey()), files);
-        MultiBurst burst = new MultiBurst("Cleaner", Thread.MIN_PRIORITY, Runtime.getRuntime().availableProcessors() * 2);
+        MultiBurst burst = MultiBurst.burst;
 
         jobs.add(new SingleJob("Updating Workspace", () -> {
             if (!new IrisProject(Iris.service(StudioSVC.class).getWorkspaceFolder(project.getLoadKey())).updateWorkspace()) {
@@ -208,7 +209,7 @@ public class DecStudio implements DecreeExecutor {
 
             IrisData data = IrisData.get(Iris.service(StudioSVC.class).getWorkspaceFolder(project.getLoadKey()));
             for (String f : data.getObjectLoader().getPossibleKeys()) {
-                CompletableFuture<?> gg = burst.complete(() -> {
+                Future<?> gg = burst.complete(() -> {
                     File ff = data.getObjectLoader().findFile(f);
                     IrisObject oo = new IrisObject(0, 0, 0);
                     try {
@@ -236,8 +237,6 @@ public class DecStudio implements DecreeExecutor {
 
             jobs.add(q);
         }
-
-        jobs.add(new SingleJob("Finishing Up", burst::shutdownNow));
 
         new JobCollection("Cleaning", jobs).execute(sender());
     }

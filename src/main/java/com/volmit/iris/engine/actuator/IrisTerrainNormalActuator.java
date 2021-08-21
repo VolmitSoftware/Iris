@@ -56,7 +56,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
         PrecisionStopwatch p = PrecisionStopwatch.start();
 
         BurstExecutor e = getEngine().burst().burst(h.getWidth());
-        e.setMulticore(multicore);
         for (int xf = 0; xf < h.getWidth(); xf++) {
             int finalXf = xf;
             e.queue(() -> terrainSliver(x, z, finalXf, h));

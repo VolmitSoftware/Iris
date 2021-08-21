@@ -36,16 +36,11 @@ import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
-import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Chunk;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 // TODO: MOVE PLACER OUT OF MATTER INTO ITS OWN THING
@@ -56,7 +51,7 @@ public interface EngineMantle extends IObjectPlacer {
 
     Engine getEngine();
 
-    CompletableFuture<Integer> getRadius();
+    Future<Integer> getRadius();
 
     KList<MantleComponent> getComponents();
 
@@ -189,7 +184,6 @@ public interface EngineMantle extends IObjectPlacer {
             return;
         }
 
-        PrecisionStopwatch p = PrecisionStopwatch.start();
         KList<Runnable> post = new KList<>();
         Consumer<Runnable> c = (i) -> {
             synchronized (post)
@@ -199,7 +193,6 @@ public interface EngineMantle extends IObjectPlacer {
         };
         int s = getRealRadius();
         BurstExecutor burst = burst().burst();
-        burst.setMulticore(multicore);
 
         for (int i = -s; i <= s; i++) {
             int xx = i + x;
@@ -217,16 +210,7 @@ public interface EngineMantle extends IObjectPlacer {
         {
             KList<Runnable> px = post.copy();
             post.clear();
-
-            if(multicore)
-            {
-                burst().burst(px);
-            }
-
-            else
-            {
-                burst().sync(px);
-            }
+            burst().burst(px);
         }
     }
 
@@ -240,6 +224,7 @@ public interface EngineMantle extends IObjectPlacer {
             return;
         }
 
+        Iris.debug("Engine Matter Insert " + x + " " + z);
         getMantle().iterateChunk(x, z, t, blocks::set);
     }
 

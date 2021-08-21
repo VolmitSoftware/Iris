@@ -29,11 +29,12 @@ import org.bukkit.Chunk;
 import org.bukkit.World;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 public class AsyncPregenMethod implements PregeneratorMethod {
     private final World world;
     private final MultiBurst burst;
-    private final KList<CompletableFuture<?>> future;
+    private final KList<Future<?>> future;
 
     public AsyncPregenMethod(World world, int threads) {
         if (!PaperLib.isPaper()) {
@@ -41,7 +42,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
 
         this.world = world;
-        burst = new MultiBurst("Iris Async Pregenerator", IrisSettings.get().getConcurrency().getPregenThreadPriority(), threads);
+        burst = MultiBurst.burst;
         future = new KList<>(1024);
     }
 
@@ -69,7 +70,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     }
 
     private void waitForChunks() {
-        for (CompletableFuture<?> i : future.copy()) {
+        for (Future<?> i : future.copy()) {
             try {
                 i.get();
                 future.remove(i);
@@ -92,7 +93,6 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     @Override
     public void close() {
         waitForChunks();
-        burst.shutdownAndAwait();
         unloadAndSaveAllChunks();
     }
 

@@ -177,6 +177,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public @NotNull ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
+        Iris.debug("Generate Request " + world.getName() + " at: " + x + ", " + z);
         try {
             if(lastSeed != world.getSeed())
             {
@@ -187,12 +188,14 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 Iris.success("Updated Engine seed to " + lastSeed);
             }
 
+            Iris.debug("Generate Request [LOCKING] at: " + x + ", " + z);
             loadLock.acquire();
-            PrecisionStopwatch ps = PrecisionStopwatch.start();
+            Iris.debug("Generate Request [LOCKED] at: " + x + ", " + z);
             TerrainChunk tc = TerrainChunk.create(world, biome);
             Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
             Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
             this.world.bind(world);
+            Iris.debug("Generate Request [ENGINE] at: " + x + ", " + z);
             getEngine().generate(x * 16, z * 16, blocks, biomes, true);
             ChunkData c = tc.getRaw();
             Iris.debug("Generated " + x + " " + z);

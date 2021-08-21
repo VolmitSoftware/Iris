@@ -132,6 +132,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         closed = false;
         art = J.ar(this::tickRandomPlayer, 0);
         setupEngine();
+        Iris.debug("Engine Initialized " + getCacheID());
     }
 
     private void tickRandomPlayer() {
@@ -158,20 +159,32 @@ public class IrisEngine extends BlockPopulator implements Engine {
 
     private void setupEngine()
     {
-        cacheId = RNG.r.nextInt();
-        worldManager = new IrisWorldManager(this);
-        complex = new IrisComplex(this);
-        execution = new IrisExecutionEnvironment(this);
-        terrainNormalActuator = new IrisTerrainNormalActuator(this);
-        terrainIslandActuator = new IrisTerrainIslandActuator(this);
-        decorantActuator = new IrisDecorantActuator(this);
-        biomeActuator = new IrisBiomeActuator(this);
-        depositModifier = new IrisDepositModifier(this);
-        ravineModifier = new IrisRavineModifier(this);
-        caveModifier = new IrisCaveModifier(this);
-        postModifier = new IrisPostModifier(this);
-        effects = new IrisEngineEffects(this);
-        J.a(this::computeBiomeMaxes);
+        try
+        {
+            Iris.debug("Setup Engine " + getCacheID());
+            cacheId = RNG.r.nextInt();
+            worldManager = new IrisWorldManager(this);
+            complex = new IrisComplex(this);
+            execution = new IrisExecutionEnvironment(this);
+            terrainNormalActuator = new IrisTerrainNormalActuator(this);
+            terrainIslandActuator = new IrisTerrainIslandActuator(this);
+            decorantActuator = new IrisDecorantActuator(this);
+            biomeActuator = new IrisBiomeActuator(this);
+            depositModifier = new IrisDepositModifier(this);
+            ravineModifier = new IrisRavineModifier(this);
+            caveModifier = new IrisCaveModifier(this);
+            postModifier = new IrisPostModifier(this);
+            effects = new IrisEngineEffects(this);
+            J.a(this::computeBiomeMaxes);
+        }
+
+        catch(Throwable e)
+        {
+            Iris.error("FAILED TO SETUP ENGINE!");
+            e.printStackTrace();
+        }
+
+        Iris.debug("Engine Setup Complete " + getCacheID());
     }
 
     @Override

@@ -19,13 +19,10 @@
 package com.volmit.iris.util.parallel;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.math.M;
-import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.Looper;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.concurrent.*;
@@ -33,66 +30,39 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 public class MultiBurst {
-    public static final MultiBurst burst = new MultiBurst("Iris", IrisSettings.get().getConcurrency().getMiscThreadPriority(), IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getMiscThreadCount()));
+    public static final MultiBurst burst = new MultiBurst();
     private ExecutorService service;
-    private final Looper heartbeat;
     private final AtomicLong last;
-    private int tid;
     private final String name;
-    private final int tc;
     private final int priority;
-    private final int instance;
 
-    public MultiBurst(int tc) {
-        this("Iris", 6, tc);
+    public MultiBurst() {
+        this("Iris", Thread.MIN_PRIORITY);
     }
 
-    public MultiBurst(String name, int priority, int tc) {
+    public MultiBurst(String name, int priority) {
         this.name = name;
         this.priority = priority;
-        this.tc = tc;
-        instance = InstanceState.getInstanceId();
         last = new AtomicLong(M.ms());
-        heartbeat = new Looper() {
-            @Override
-            protected long loop() {
-                if (instance != InstanceState.getInstanceId()) {
-                    shutdownNow();
-                    return -1;
-                }
-
-                if (M.ms() - last.get() > TimeUnit.MINUTES.toMillis(1) && service != null) {
-                    service.shutdown();
-                    service = null;
-                    Iris.debug("Shutting down MultiBurst Pool " + getName() + " to conserve resources.");
-                }
-
-                return 30000;
-            }
-        };
-        heartbeat.setName(name + " Monitor");
-        heartbeat.start();
         Iris.service(PreservationSVC.class).register(this);
     }
 
     private synchronized ExecutorService getService() {
         last.set(M.ms());
         if (service == null || service.isShutdown()) {
-            service = Executors.newFixedThreadPool(Math.max(tc, 1), r -> {
-                tid++;
-                Thread t = new Thread(r);
-                t.setName(name + " " + tid);
-                t.setPriority(priority);
-                t.setUncaughtExceptionHandler((et, e) ->
-                {
-                    Iris.info("Exception encountered in " + et.getName());
-                    e.printStackTrace();
-                });
+            service = new ForkJoinPool(Runtime.getRuntime().availableProcessors(),
+                    new ForkJoinPool.ForkJoinWorkerThreadFactory() {
+                        int m = 0;
 
-                return t;
-            });
-            Iris.service(PreservationSVC.class).register(service);
-            Iris.debug("Started MultiBurst Pool " + name + " with " + tc + " threads at " + priority + " priority.");
+                        @Override
+                        public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
+                            final ForkJoinWorkerThread worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
+                            worker.setPriority(priority);
+                            worker.setName(name + " " + ++m);
+                            return worker;
+                        }
+                    },
+                    (t, e) -> e.printStackTrace(), true);
         }
 
         return service;
@@ -138,64 +108,15 @@ public class MultiBurst {
         return getService().submit(o);
     }
 
-    public CompletableFuture<?> complete(Runnable o) {
-        return CompletableFuture.runAsync(o, getService());
+    public Future<?> complete(Runnable o) {
+        return getService().submit(o);
     }
 
-    public <T> CompletableFuture<T> completeValue(Supplier<T> o) {
-        return CompletableFuture.supplyAsync(o, getService());
+    public <T> Future<T> completeValue(Callable<T> o) {
+        return getService().submit(o);
     }
 
-    public void shutdownNow() {
-        Iris.debug("Shutting down MultiBurst Pool " + heartbeat.getName() + ".");
-        heartbeat.interrupt();
-
-        if (service != null) {
-            service.shutdownNow().forEach(Runnable::run);
-        }
-    }
-
-    public void shutdown() {
-        Iris.debug("Shutting down MultiBurst Pool " + heartbeat.getName() + ".");
-        heartbeat.interrupt();
-
-        if (service != null) {
-            service.shutdown();
-        }
-    }
-
-    public void shutdownLater() {
-        if (service != null) {
-            try
-            {
-                service.submit(() -> {
-                    J.sleep(3000);
-                    Iris.debug("Shutting down MultiBurst Pool " + heartbeat.getName() + ".");
-
-                    if (service != null) {
-                        service.shutdown();
-                    }
-                });
-
-                heartbeat.interrupt();
-            }
-
-            catch(Throwable e)
-            {
-                Iris.debug("Shutting down MultiBurst Pool " + heartbeat.getName() + ".");
-
-                if (service != null) {
-                    service.shutdown();
-                }
-
-                heartbeat.interrupt();
-            }
-        }
-    }
-
-    public void shutdownAndAwait() {
-        Iris.debug("Shutting down MultiBurst Pool " + heartbeat.getName() + ".");
-        heartbeat.interrupt();
+    public void close() {
         if (service != null) {
             service.shutdown();
             try {

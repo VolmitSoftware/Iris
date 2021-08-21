@@ -27,7 +27,6 @@ import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.link.OraxenLink;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.biome.IrisBiome;
@@ -49,6 +48,7 @@ import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.io.JarScanner;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.*;
 import com.volmit.iris.util.reflect.ShadeFix;
@@ -165,6 +165,7 @@ public class Iris extends VolmitPlugin implements Listener {
         HandlerList.unregisterAll((Plugin) this);
         postShutdown.forEach(Runnable::run);
         services.clear();
+        MultiBurst.burst.close();
         super.onDisable();
     }
 
@@ -604,14 +605,7 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public static void verbose(String string) {
-        try {
-            if (IrisSettings.get().getGeneral().isVerbose()) {
-                msg(C.GRAY + string);
-            }
-        } catch (Throwable e) {
-            msg(C.GRAY + string);
-            Iris.reportError(e);
-        }
+        debug(string);
     }
 
     public static void success(String string) {

@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine;
 
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.EngineMantle;
@@ -27,6 +28,7 @@ import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
 import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
+import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructurePlacement;
 import com.volmit.iris.engine.object.objects.IrisObject;
@@ -36,9 +38,15 @@ import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.documentation.BlockCoordinates;
+import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.stream.ProceduralStream;
+import com.volmit.iris.util.stream.interpolation.Interpolated;
+import com.volmit.iris.util.stream.utility.CachedStream2D;
 import lombok.Data;
 import org.bukkit.util.BlockVector;
 
@@ -46,6 +54,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Data
@@ -53,7 +62,9 @@ public class IrisEngineMantle implements EngineMantle {
     private final Engine engine;
     private final Mantle mantle;
     private final KList<MantleComponent> components;
-    private final CompletableFuture<Integer> radius;
+    private final Future<Integer> radius;
+    private ProceduralStream<KList<IrisFeaturePositional>> featureChunkStream;
+    private ProceduralStream<KList<IrisFeaturePositional>> featureStream;
 
     public IrisEngineMantle(Engine engine) {
         this.engine = engine;
@@ -63,6 +74,21 @@ public class IrisEngineMantle implements EngineMantle {
         registerComponent(new MantleFeatureComponent(this));
         registerComponent(new MantleJigsawComponent(this));
         registerComponent(new MantleObjectComponent(this));
+        featureChunkStream = ProceduralStream.of((x, z)
+                -> EngineMantle.super.getFeaturesInChunk(x.intValue(), z.intValue()),
+                Interpolated.of((i) -> 0D, (i) -> new KList<IrisFeaturePositional>())).cache2D(2048);
+        featureStream = ProceduralStream.of(EngineMantle.super::forEachFeature,
+                Interpolated.of((i) -> 0D, (i) -> new KList<IrisFeaturePositional>())).cache2D(8192);
+    }
+
+    @ChunkCoordinates
+    public KList<IrisFeaturePositional> getFeaturesInChunk(int x, int z) {
+        return featureChunkStream.get(x, z);
+    }
+
+    @BlockCoordinates
+    public KList<IrisFeaturePositional> forEachFeature(double x, double z) {
+        return featureStream.get(x, z);
     }
 
     @Override

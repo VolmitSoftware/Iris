@@ -46,6 +46,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -386,7 +387,7 @@ public class Mantle {
      * @return the future of a tectonic plate.
      */
     @RegionCoordinates
-    private CompletableFuture<TectonicPlate> getSafe(int x, int z) {
+    private Future<TectonicPlate> getSafe(int x, int z) {
         Long k = key(x, z);
         TectonicPlate p = loadedRegions.get(k);
 
@@ -449,7 +450,10 @@ public class Mantle {
     public static File fileForRegion(File folder, Long key) {
         String id = UUID.nameUUIDFromBytes(("TectonicPlate:" + key).getBytes(StandardCharsets.UTF_8)).toString();
         File f = new File(folder, id.substring(0, 2) + "/" + id.split("\\Q-\\E")[3] + "/" + id + ".ttp");
-        f.getParentFile().mkdirs();
+        if(!f.getParentFile().exists())
+        {
+            f.getParentFile().mkdirs();
+        }
         return f;
     }
 

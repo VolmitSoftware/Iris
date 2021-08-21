@@ -36,9 +36,7 @@ public class EngineTarget {
         this.world = world;
         this.dimension = dimension;
         this.data = data;
-        this.burster = new MultiBurst("Iris Engine " + dimension.getName(),
-                IrisSettings.get().getConcurrency().getEngineThreadPriority(),
-                IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getEngineThreadCount()));
+        this.burster = MultiBurst.burst;
     }
 
     public int getHeight() {
@@ -46,6 +44,6 @@ public class EngineTarget {
     }
 
     public void close() {
-        burster.shutdownLater();
+
     }
 }

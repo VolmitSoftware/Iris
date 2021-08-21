@@ -133,7 +133,7 @@ public class DecStudio implements DecreeExecutor {
         KList<Job> jobs = new KList<>();
         KList<File> files = new KList<File>();
         files(Iris.instance.getDataFolder("packs", project.getLoadKey()), files);
-        MultiBurst burst = new MultiBurst("Cleaner", Thread.MIN_PRIORITY, Runtime.getRuntime().availableProcessors() * 2);
+        MultiBurst burst = MultiBurst.burst;
 
         jobs.add(new SingleJob("Updating Workspace", () -> {
             if (!new IrisProject(Iris.service(StudioSVC.class).getWorkspaceFolder(project.getLoadKey())).updateWorkspace()) {
@@ -236,8 +236,6 @@ public class DecStudio implements DecreeExecutor {
 
             jobs.add(q);
         }
-
-        jobs.add(new SingleJob("Finishing Up", burst::shutdownNow));
 
         new JobCollection("Cleaning", jobs).execute(sender());
     }

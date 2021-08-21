@@ -63,8 +63,6 @@ public class IrisEngineMantle implements EngineMantle {
     private final KList<MantleComponent> components;
     private final int radius;
     private final AtomicCache<Integer> radCache = new AtomicCache<>();
-    private ProceduralStream<KList<IrisFeaturePositional>> featureChunkStream;
-    private ProceduralStream<KList<IrisFeaturePositional>> featureStream;
 
     public IrisEngineMantle(Engine engine) {
         this.engine = engine;
@@ -74,21 +72,6 @@ public class IrisEngineMantle implements EngineMantle {
         registerComponent(new MantleFeatureComponent(this));
         registerComponent(new MantleJigsawComponent(this));
         registerComponent(new MantleObjectComponent(this));
-        featureChunkStream = ProceduralStream.of((x, z)
-                -> EngineMantle.super.getFeaturesInChunk(x.intValue(), z.intValue()),
-                Interpolated.of((i) -> 0D, (i) -> new KList<IrisFeaturePositional>())).cache2D(2048);
-        featureStream = ProceduralStream.of(EngineMantle.super::forEachFeature,
-                Interpolated.of((i) -> 0D, (i) -> new KList<IrisFeaturePositional>())).cache2D(8192);
-    }
-
-    @ChunkCoordinates
-    public KList<IrisFeaturePositional> getFeaturesInChunk(int x, int z) {
-        return featureChunkStream.get(x, z);
-    }
-
-    @BlockCoordinates
-    public KList<IrisFeaturePositional> forEachFeature(double x, double z) {
-        return featureStream.get(x, z);
     }
 
     @Override

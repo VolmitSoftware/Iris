@@ -27,6 +27,7 @@ import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.link.OraxenLink;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.biome.IrisBiome;
@@ -164,7 +165,6 @@ public class Iris extends VolmitPlugin implements Listener {
         HandlerList.unregisterAll((Plugin) this);
         postShutdown.forEach(Runnable::run);
         services.clear();
-        MultiBurst.burst.close();
         super.onDisable();
     }
 

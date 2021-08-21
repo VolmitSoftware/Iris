@@ -41,7 +41,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
 
         this.world = world;
-        burst = MultiBurst.burst;
+        burst = new MultiBurst("Iris Async Pregenerator", IrisSettings.get().getConcurrency().getPregenThreadPriority(), threads);
         future = new KList<>(1024);
     }
 
@@ -92,6 +92,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     @Override
     public void close() {
         waitForChunks();
+        burst.shutdownAndAwait();
         unloadAndSaveAllChunks();
     }
 

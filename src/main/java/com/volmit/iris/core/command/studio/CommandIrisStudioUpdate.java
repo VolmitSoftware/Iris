@@ -66,7 +66,7 @@ public class CommandIrisStudioUpdate extends MortarCommand {
                 IrisData data = IrisData.get(Iris.service(StudioSVC.class).getWorkspaceFolder(args[0]));
                 int t = data.getObjectLoader().getPossibleKeys().length;
                 ChronoLatch cl = new ChronoLatch(250, false);
-                MultiBurst bx = MultiBurst.burst;
+                MultiBurst bx = new MultiBurst("Object Rewriter", Thread.MIN_PRIORITY, Runtime.getRuntime().availableProcessors());
                 BurstExecutor b = bx.burst();
                 int g = 0;
                 for (String f : data.getObjectLoader().getPossibleKeys()) {
@@ -102,6 +102,7 @@ public class CommandIrisStudioUpdate extends MortarCommand {
                 int finalG = g;
                 J.a(() -> {
                     b.complete();
+                    bx.shutdownNow();
                     sender.sendMessage("Done! Rewrote " + Form.f(finalG) + " Objects!");
                 });
             }

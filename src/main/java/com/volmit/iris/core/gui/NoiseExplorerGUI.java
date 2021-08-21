@@ -59,7 +59,7 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener, List
     static double ascale = 10;
     CNG cng = NoiseStyle.STATIC.create(new RNG(RNG.r.nextLong()));
     @SuppressWarnings("CanBeFinal")
-    MultiBurst gx = MultiBurst.burst;
+    MultiBurst gx = new MultiBurst("Iris Noise Renderer", Thread.MAX_PRIORITY, Runtime.getRuntime().availableProcessors());
     ReentrantLock l = new ReentrantLock();
     BufferedImage img;
     int w = 0;
@@ -299,6 +299,7 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener, List
         frame.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                nv.gx.shutdownLater();
                 Iris.instance.unregisterListener(nv);
             }
         });

@@ -58,7 +58,7 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
 
     public HeadlessGenerator(HeadlessWorld world) {
         this.world = world;
-        burst = MultiBurst.burst;
+        burst = new MultiBurst("Iris Headless Generator", 9, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getPregenThreadCount()));
         writer = new NBTWorld(world.getWorld().worldFolder());
         engine = new IrisEngine(new EngineTarget(world.getWorld(), world.getDimension(), world.getDimension().getLoader()), isStudio());
     }
@@ -131,6 +131,7 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
     }
 
     public void close() {
+        burst.shutdownAndAwait();
         getEngine().close();
         writer.close();
     }

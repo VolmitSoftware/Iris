@@ -18,6 +18,7 @@
 
 package com.volmit.iris;
 
+import com.google.gson.Gson;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.command.CommandIris;
 import com.volmit.iris.core.command.PermissionIris;
@@ -677,7 +678,7 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public boolean isMCA() {
-        return !IrisSettings.get().getGenerator().isDisableMCA();
+        return IrisSettings.get().getGenerator().isHeadlessPregeneration();
     }
 
     public static void reportErrorChunk(int x, int z, Throwable e, String extra) {

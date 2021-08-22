@@ -281,7 +281,7 @@ public class IrisObject extends IrisRegistrant {
         this.h = din.readInt();
         this.d = din.readInt();
         if (!din.readUTF().equals("Iris V2 IOB;")) {
-            throw new IOException("Not V2 Format");
+            return;
         }
         center = new BlockVector(w / 2, h / 2, d / 2);
         int s = din.readShort();

@@ -29,6 +29,8 @@ import java.util.concurrent.*;
 public class BurstExecutor {
     private final ExecutorService executor;
     private final KList<Future<?>> futures;
+    @Setter
+    private boolean multicore = true;
 
     public BurstExecutor(ExecutorService executor, int burstSizeEstimate) {
         this.executor = executor;
@@ -46,6 +48,16 @@ public class BurstExecutor {
     }
 
     public BurstExecutor queue(List<Runnable> r) {
+        if(!multicore)
+        {
+            for(Runnable i : new KList<>(r))
+            {
+                i.run();
+            }
+
+            return this;
+        }
+
         synchronized (futures) {
             for (Runnable i : new KList<>(r)) {
                 queue(i);
@@ -56,6 +68,16 @@ public class BurstExecutor {
     }
 
     public BurstExecutor queue(Runnable[] r) {
+        if(!multicore)
+        {
+            for(Runnable i : new KList<>(r))
+            {
+                i.run();
+            }
+
+            return this;
+        }
+
         synchronized (futures) {
             for (Runnable i : r) {
                 queue(i);
@@ -66,6 +88,11 @@ public class BurstExecutor {
     }
 
     public void complete() {
+        if(!multicore)
+        {
+            return;
+        }
+
         synchronized (futures) {
             if (futures.isEmpty()) {
                 return;
@@ -85,6 +112,11 @@ public class BurstExecutor {
     }
 
     public boolean complete(long maxDur) {
+        if(!multicore)
+        {
+            return true;
+        }
+
         synchronized (futures) {
             if (futures.isEmpty()) {
                 return true;

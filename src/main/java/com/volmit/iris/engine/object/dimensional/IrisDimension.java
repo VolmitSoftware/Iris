@@ -81,13 +81,6 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("The human readable name of this dimension")
     private String name = "A Dimension";
 
-    @Desc("You can create mutliple dimensions on top of each other taking up less height of the same world. Such as the nether with a floor + ceiling.")
-    @ArrayType(min = 1, type = IrisDimensionIndex.class)
-    private KList<IrisDimensionIndex> dimensionalComposite = new KList<>();
-
-    @Desc("Create an inverted dimension in the sky (like the nether)")
-    private IrisDimension sky = null;
-
     @RegistryListResource(IrisJigsawStructure.class)
     @Desc("If defined, Iris will place the given jigsaw structure where minecraft should place the overworld stronghold.")
     private String stronghold;
@@ -285,12 +278,6 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Change the size of regions")
     private double regionZoom = 1;
 
-    @Desc("The terrain mode. NORMAL is normal... ISLANDS creates floating islands at varied heights")
-    private IrisTerrainMode terrainMode = IrisTerrainMode.NORMAL;
-
-    @Desc("The configuration for island mode dimensions")
-    private IrisTerrainIsland islandMode = new IrisTerrainIsland();
-
     @Desc("Disable this to stop placing objects, entities, features & updates")
     private boolean useMantle = true;
 
@@ -356,10 +343,6 @@ public class IrisDimension extends IrisRegistrant {
 
             return pos;
         });
-    }
-
-    public boolean hasSky() {
-        return getSky() != null;
     }
 
     public CNG getCoordFracture(RNG rng, int signature) {

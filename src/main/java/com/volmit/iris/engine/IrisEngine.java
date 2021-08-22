@@ -26,7 +26,6 @@ import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.engine.actuator.IrisBiomeActuator;
 import com.volmit.iris.engine.actuator.IrisDecorantActuator;
-import com.volmit.iris.engine.actuator.IrisTerrainIslandActuator;
 import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.*;
@@ -96,8 +95,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
     private double maxBiomeLayerDensity;
     private double maxBiomeDecoratorDensity;
     private IrisComplex complex;
-    private EngineActuator<BlockData> terrainNormalActuator;
-    private EngineActuator<BlockData> terrainIslandActuator;
+    private EngineActuator<BlockData> terrainActuator;
     private EngineActuator<BlockData> decorantActuator;
     private EngineActuator<Biome> biomeActuator;
     private EngineModifier<BlockData> depositModifier;
@@ -146,8 +144,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
         worldManager.close();
         complex.close();
         execution.close();
-        terrainNormalActuator.close();
-        terrainIslandActuator.close();
+        terrainActuator.close();
         decorantActuator.close();
         biomeActuator.close();
         depositModifier.close();
@@ -166,8 +163,7 @@ public class IrisEngine extends BlockPopulator implements Engine {
             worldManager = new IrisWorldManager(this);
             complex = new IrisComplex(this);
             execution = new IrisExecutionEnvironment(this);
-            terrainNormalActuator = new IrisTerrainNormalActuator(this);
-            terrainIslandActuator = new IrisTerrainIslandActuator(this);
+            terrainActuator = new IrisTerrainNormalActuator(this);
             decorantActuator = new IrisDecorantActuator(this);
             biomeActuator = new IrisBiomeActuator(this);
             depositModifier = new IrisDepositModifier(this);
@@ -387,13 +383,6 @@ public class IrisEngine extends BlockPopulator implements Engine {
         });
     }
 
-    public EngineActuator<BlockData> getTerrainActuator() {
-        return switch (getDimension().getTerrainMode()) {
-            case NORMAL -> getTerrainNormalActuator();
-            case ISLANDS -> getTerrainIslandActuator();
-        };
-    }
-
     @BlockCoordinates
     @Override
     public double modifyX(double x) {
@@ -420,29 +409,22 @@ public class IrisEngine extends BlockPopulator implements Engine {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             Hunk<BlockData> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y + getMinHeight(), z + zz, t));
 
-            switch (getDimension().getTerrainMode()) {
-                case NORMAL -> {
-                    getMantle().generateMatter(x >> 4, z >> 4, multicore);
-                    burst().burst(
-                            () ->getTerrainActuator().actuate(x, z, vblocks, multicore),
-                            () ->getBiomeActuator().actuate(x, z, vbiomes, multicore)
-                    );
-                    burst().burst(
-                            () ->getCaveModifier().modify(x, z, vblocks, multicore),
-                            ()->getDecorantActuator().actuate(x, z, blocks, multicore),
-                            ()->getRavineModifier().modify(x, z, vblocks, multicore),
-                            ()->getPostModifier().modify(x, z, vblocks, multicore)
-                    );
-                    burst().burst(
-                            ()->getDecorantActuator().actuate(x, z, blocks, multicore),
-                            ()->getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, blocks, multicore),
-                            ()->getDepositModifier().modify(x, z, blocks, multicore)
-                    );
-                }
-                case ISLANDS -> {
-                    getTerrainActuator().actuate(x, z, vblocks, multicore);
-                }
-            }
+            getMantle().generateMatter(x >> 4, z >> 4, multicore);
+            burst().burst(multicore,
+                    () -> getTerrainActuator().actuate(x, z, vblocks, multicore),
+                    () -> getBiomeActuator().actuate(x, z, vbiomes, multicore)
+            );
+            burst().burst(multicore,
+                    () -> getCaveModifier().modify(x, z, vblocks, multicore),
+                    () -> getDecorantActuator().actuate(x, z, blocks, multicore),
+                    () -> getRavineModifier().modify(x, z, vblocks, multicore),
+                    () -> getPostModifier().modify(x, z, vblocks, multicore)
+            );
+            burst().burst(multicore,
+                    () -> getDecorantActuator().actuate(x, z, blocks, multicore),
+                    () -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, blocks, multicore),
+                    () -> getDepositModifier().modify(x, z, blocks, multicore)
+            );
 
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();

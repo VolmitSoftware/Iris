@@ -699,7 +699,7 @@ public class Iris extends VolmitPlugin implements Listener {
         }
     }
 
-    public static synchronized void reportError(Throwable e) {
+    public static void reportError(Throwable e) {
         if (IrisSettings.get().getGeneral().isDebug()) {
             String n = e.getClass().getCanonicalName() + "-" + e.getStackTrace()[0].getClassName() + "-" + e.getStackTrace()[0].getLineNumber();
 

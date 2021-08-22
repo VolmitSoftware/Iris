@@ -186,7 +186,7 @@ public interface EngineMantle extends IObjectPlacer {
             }
         };
         int s = getRealRadius();
-        BurstExecutor burst = burst().burst();
+        BurstExecutor burst = burst().burst(multicore);
 
         for (int i = -s; i <= s; i++) {
             for (int j = -s; j <= s; j++) {
@@ -204,7 +204,7 @@ public interface EngineMantle extends IObjectPlacer {
         {
             KList<Runnable> px = post.copy();
             post.clear();
-            burst().burst(px);
+            burst().burst(multicore, px);
         }
     }
 

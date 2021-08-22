@@ -72,8 +72,38 @@ public class MultiBurst {
         burst(r.length).queue(r).complete();
     }
 
+    public void burst(boolean multicore, Runnable... r) {
+        if(multicore)
+        {
+            burst(r);
+        }
+
+        else
+        {
+            sync(r);
+        }
+    }
+
     public void burst(List<Runnable> r) {
         burst(r.size()).queue(r).complete();
+    }
+
+    public void burst(boolean multicore, List<Runnable> r) {
+        if(multicore)
+        {
+            burst(r);
+        }
+
+        else {
+            sync(r);
+        }
+    }
+
+    private void sync(List<Runnable> r) {
+        for(Runnable i : new KList<>(r))
+        {
+            i.run();
+        }
     }
 
     public void sync(Runnable... r) {
@@ -94,6 +124,12 @@ public class MultiBurst {
 
     public BurstExecutor burst() {
         return burst(16);
+    }
+
+    public BurstExecutor burst(boolean multicore) {
+        BurstExecutor b = burst();
+        b.setMulticore(multicore);
+        return b;
     }
 
     public <T> Future<T> lazySubmit(Callable<T> o) {

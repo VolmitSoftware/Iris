@@ -55,20 +55,13 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData> {
         }
 
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        if (multicore) {
-            BurstExecutor e = getEngine().burst().burst(a.getWidth());
-            for (int i = 0; i < a.getWidth(); i++) {
-                int finalI = i;
-                e.queue(() -> modifySliver(x, z, finalI, a));
-            }
-
-            e.complete();
-        } else {
-            for (int i = 0; i < a.getWidth(); i++) {
-                modifySliver(x, z, i, a);
-            }
+        BurstExecutor e = burst().burst(multicore);
+        for (int i = 0; i < a.getWidth(); i++) {
+            int finalI = i;
+            e.queue(() -> modifySliver(x, z, finalI, a));
         }
 
+        e.complete();
         getEngine().getMetrics().getCave().put(p.getMilliseconds());
     }
 

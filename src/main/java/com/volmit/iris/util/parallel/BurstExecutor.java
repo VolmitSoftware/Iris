@@ -110,31 +110,4 @@ public class BurstExecutor {
             }
         }
     }
-
-    public boolean complete(long maxDur) {
-        if(!multicore)
-        {
-            return true;
-        }
-
-        synchronized (futures) {
-            if (futures.isEmpty()) {
-                return true;
-            }
-
-            try {
-                try {
-                    CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get(maxDur, TimeUnit.MILLISECONDS);
-                } catch (TimeoutException e) {
-                    return false;
-                }
-                futures.clear();
-            } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
-                Iris.reportError(e);
-            }
-        }
-
-        return false;
-    }
 }

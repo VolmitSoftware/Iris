@@ -213,7 +213,7 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener, List
                 });
             }
 
-            e.complete(1000);
+            e.complete();
             gg.drawImage(img, 0, 0, getParent().getWidth() * accuracy, getParent().getHeight() * accuracy, (img, infoflags, x, y, width, height) -> true);
         }
 

@@ -26,8 +26,6 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.ints.IntSets;
-import it.unimi.dsi.fastutil.objects.ReferenceLinkedOpenHashSet;
-import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -64,8 +62,6 @@ public class B {
                 ALLIUM,
                 AZURE_BLUET,
                 BLUE_ORCHID,
-                POPPY,
-                DANDELION,
                 OXEYE_DAISY,
                 LILY_OF_THE_VALLEY,
                 WITHER_ROSE,
@@ -91,7 +87,6 @@ public class B {
     private static IntSet buildDecorantCache() {
         IntSet b = new IntOpenHashSet();
         Arrays.stream(new Material[]{
-
                 GRASS,
                 TALL_GRASS,
                 FERN,
@@ -147,6 +142,7 @@ public class B {
                 TORCH,
                 SOUL_TORCH
         }).forEach((i) -> b.add(i.ordinal()));
+        b.addAll(foliageCache);
 
         return IntSets.unmodifiable(b);
     }
@@ -168,6 +164,7 @@ public class B {
                 JACK_O_LANTERN,
                 REDSTONE_LAMP,
                 MAGMA_BLOCK,
+                LIGHT,
                 SHROOMLIGHT,
                 SEA_LANTERN,
                 SOUL_LANTERN,
@@ -184,7 +181,8 @@ public class B {
     private static IntSet buildStorageCache() {
         IntSet b = new IntOpenHashSet();
         Arrays.stream(new Material[]{
-                CHEST, SMOKER,
+                CHEST,
+                SMOKER,
                 TRAPPED_CHEST,
                 SHULKER_BOX,
                 WHITE_SHULKER_BOX,
@@ -230,7 +228,9 @@ public class B {
             }
         }
 
-        if (onto.equals(Material.AIR) || onto.equals(B.getMaterial("CAVE_AIR")) || onto.equals(B.getMaterial("VOID_AIR"))) {
+        if (onto.equals(Material.AIR) ||
+                onto.equals(B.getMaterial("CAVE_AIR"))
+                || onto.equals(B.getMaterial("VOID_AIR"))) {
             return false;
         }
 

@@ -114,9 +114,9 @@ public class PlannedStructure {
         int xx = i.getPosition().getX() + sx;
         int zz = i.getPosition().getZ() + sz;
         int offset = i.getPosition().getY() - startHeight;
-        int height = (i.getStructure().getStructure().getLockY() != -1
-                ? i.getStructure().getStructure().getLockY()
-                : placer.getHighest(xx, zz, getData())) + offset + (v.getH() / 2);
+        int height = (i.getStructure().getStructure().getLockY() == -1 ? i.getStructure().getStructure().getOverrideYRange() != null
+                ? (int)i.getStructure().getStructure().getOverrideYRange().get(rng, xx, zz, getData())
+                : i.getStructure().getStructure().getLockY() : placer.getHighest(xx, zz, getData())) + offset + (v.getH() / 2);
 
         if (options.getMode().equals(ObjectPlaceMode.PAINT) || options.isVacuum()) {
             height = -1;

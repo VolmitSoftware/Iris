@@ -39,6 +39,7 @@ import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -518,37 +519,21 @@ public class IrisProject {
             @Override
             public void execute(File f) {
                 try {
-                    JSONObject p = new JSONObject(IO.readAll(f));
-                    fixBlocks(p);
-                    scanForErrors(data, f, p, sender);
-                    IO.writeAll(f, p.toString(4));
-
-                } catch (Throwable e) {
-                    sender.sendMessage(C.RED + "JSON Error "+ f.getPath() + ": " + e.getMessage());
-                }
-            }
-
-            @Override
-            public String getName() {
-                return "JSON";
-            }
-        }.queue(files));
-
-        jobs.add(new ParallelQueueJob<File>() {
-            @Override
-            public void execute(File f) {
-                try {
                     IrisObject o = new IrisObject(0,0,0);
                     o.read(f);
 
                     if(o.getBlocks().isEmpty())
                     {
-                        sender.sendMessage(C.RED + "IOB " + f.getPath() + " has 0 blocks!");
+                        sender.sendMessageRaw("<hover:show_text:'Error:\n" +
+                                "<yellow>" + f.getPath() +
+                                "'><red>- IOB " + f.getName() + " has 0 blocks!");
                     }
 
                     if(o.getW() == 0 || o.getH() == 0 || o.getD() == 0)
                     {
-                        sender.sendMessage(C.RED + "IOB " + f.getPath() + " is not 3D!");
+                        sender.sendMessageRaw("<hover:show_text:'Error:\n" +
+                                "<yellow>" + f.getPath() + "\n<red>The width height or depth has a zero in it (bad format)" +
+                                "'><red>- IOB " + f.getName() + " is not 3D!");
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -560,6 +545,30 @@ public class IrisProject {
                 return "IOB";
             }
         }.queue(objects));
+
+        jobs.add(new ParallelQueueJob<File>() {
+            @Override
+            public void execute(File f) {
+                try {
+                    JSONObject p = new JSONObject(IO.readAll(f));
+                    fixBlocks(p);
+                    scanForErrors(data, f, p, sender);
+                    IO.writeAll(f, p.toString(4));
+
+                } catch (Throwable e) {
+                    sender.sendMessageRaw("<hover:show_text:'Error:\n" +
+                            "<yellow>" + f.getPath() +
+                            "\n<red>" +e.getMessage() +
+                            "'><red>- JSON Error " + f.getName());
+                }
+            }
+
+            @Override
+            public String getName() {
+                return "JSON";
+            }
+        }.queue(files));
+
         new JobCollection("Compile", jobs).execute(sender);
     }
 
@@ -569,12 +578,26 @@ public class IrisProject {
 
         if(loader == null)
         {
-            sender.sendMessage("Can't find loader for " + f.getPath());
+            sender.sendMessageBasic("Can't find loader for " + f.getPath());
             return;
         }
 
         IrisRegistrant load = loader.load(key);
+        compare(load.getClass(), p, sender, new KList<>());
         load.scanForErrors(p, sender);
+    }
+
+    public void compare(Class<?> c, JSONObject j, VolmitSender sender, KList<String> path)
+    {
+        try
+        {
+            Object o = c.getClass().getConstructor().newInstance();
+        }
+
+        catch(Throwable e)
+        {
+
+        }
     }
 
     public void files(File clean, KList<File> files) {

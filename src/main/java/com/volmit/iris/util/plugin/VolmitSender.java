@@ -309,6 +309,9 @@ public class VolmitSender implements CommandSender {
         }
     }
 
+    public void sendMessageBasic(String message) {
+        s.sendMessage(C.translateAlternateColorCodes('&', getTag() + message));
+    }
 
     public void sendMessageRaw(String message) {
         if (message.contains("<NOMINI>")) {

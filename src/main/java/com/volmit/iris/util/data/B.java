@@ -41,8 +41,8 @@ import static org.bukkit.Material.*;
 public class B {
     private static final Material AIR_MATERIAL = Material.AIR;
     private static final BlockData AIR = AIR_MATERIAL.createBlockData();
-    private static final IntSet decorantCache = buildDecorantCache();
     private static final IntSet foliageCache = buildFoliageCache();
+    private static final IntSet decorantCache = buildDecorantCache();
     private static final IntSet storageCache = buildStorageCache();
     private static final IntSet storageChestCache = buildStorageChestCache();
     private static final IntSet litCache = buildLitCache();

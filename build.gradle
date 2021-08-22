@@ -187,6 +187,7 @@ dependencies {
     implementation 'net.kyori:adventure-api:4.8.1'
 
     // Dynamically Loaded
+    implementation 'io.timeandspace:smoothie-map:2.0.2'
     implementation 'it.unimi.dsi:fastutil:8.5.4'
     implementation 'com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'
     implementation 'org.zeroturnaround:zt-zip:1.14'
@@ -195,4 +196,5 @@ dependencies {
     implementation 'com.google.guava:guava:30.1.1-jre'
     implementation 'bsf:bsf:2.4.0'
     implementation 'rhino:js:1.7R2'
+    implementation 'com.github.ben-manes.caffeine:caffeine:3.0.3'
 }

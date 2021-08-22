@@ -28,7 +28,9 @@ import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.stream.ProceduralStream;
 import com.volmit.iris.util.stream.interpolation.Interpolated;
 import lombok.AllArgsConstructor;
@@ -127,5 +129,10 @@ public class IrisExpression extends IrisRegistrant {
     @Override
     public String getTypeName() {
         return "Expression";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

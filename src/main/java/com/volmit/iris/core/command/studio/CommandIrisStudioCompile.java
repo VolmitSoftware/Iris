@@ -20,72 +20,20 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.project.IrisProject;
+import com.volmit.iris.core.service.ConversionSVC;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.plugin.Command;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.scheduling.jobs.Job;
+import com.volmit.iris.util.scheduling.jobs.JobCollection;
 
-public class CommandIrisStudio extends MortarCommand {
-    @Command
-    private CommandIrisStudioCreate create;
-
-    @Command
-    private CommandIrisStudioExecute execute;
-
-    @Command
-    private CommandIrisStudioCompile compile;
-
-    @Command
-    private CommandIrisStudioOpen open;
-
-    @Command
-    private CommandIrisStudioSummon summon;
-
-    @Command
-    private CommandIrisStudioClose close;
-
-    @Command
-    private CommandIrisStudioPackage pkg;
-
-    @Command
-    private CommandIrisStudioUpdate update;
-
-    @Command
-    private CommandIrisStudioGoto got0;
-
-    @Command
-    private CommandIrisStudioEditBiome ebiome;
-
-    @Command
-    private CommandIrisStudioHotload hotload;
-
-    @Command
-    private CommandIrisStudioExplorer exp;
-
-    @Command
-    private CommandIrisStudioBeautify beautify;
-
-    @Command
-    private CommandIrisStudioProfile profile;
-
-    @Command
-    private CommandIrisStudioExplorerGenerator generator;
-
-    @Command
-    private CommandIrisStudioLoot loot;
-
-    @Command
-    private CommandIrisStudioTPStudio tps;
-
-    @Command
-    private CommandIrisStudioConvert convert;
-
-    @Command
-    private CommandIrisStudioMap map;
-
-    public CommandIrisStudio() {
-        super("studio", "std", "s");
+public class CommandIrisStudioCompile extends MortarCommand {
+    public CommandIrisStudioCompile() {
+        super("compile");
         requiresPermission(Iris.perm.studio);
+        setDescription("Compiles a pack for speed");
         setCategory("Studio");
     }
 
@@ -101,13 +49,20 @@ public class CommandIrisStudio extends MortarCommand {
             return true;
         }
 
-        sender.sendMessage("Iris Studio Commands:");
-        printHelp(sender);
+        if(args.length == 0)
+        {
+            sender.sendMessage(getArgsUsage());
+            return true;
+        }
+
+        IrisProject project = new IrisProject(Iris.instance.getDataFolder(StudioSVC.WORKSPACE_NAME, args[0]));
+        project.compile(sender);
+
         return true;
     }
 
     @Override
     protected String getArgsUsage() {
-        return "[subcommand]";
+        return "[project]";
     }
 }

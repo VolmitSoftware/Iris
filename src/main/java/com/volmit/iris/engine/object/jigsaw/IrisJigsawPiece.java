@@ -30,6 +30,8 @@ import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.engine.object.objects.ObjectPlaceMode;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -135,5 +137,10 @@ public class IrisJigsawPiece extends IrisRegistrant {
     @Override
     public String getTypeName() {
         return "Jigsaw Piece";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

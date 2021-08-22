@@ -24,11 +24,13 @@ import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.noise.IrisWorm;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.Worm;
 import com.volmit.iris.util.noise.Worm3;
 import com.volmit.iris.util.noise.WormIterator3;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -55,5 +57,10 @@ public class IrisCave extends IrisRegistrant {
     @Override
     public String getTypeName() {
         return "Cave";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

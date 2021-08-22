@@ -19,6 +19,8 @@
 package com.volmit.iris.engine.object.common;
 
 import com.volmit.iris.core.project.loader.IrisRegistrant;
+import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -47,5 +49,10 @@ public class IrisScript extends IrisRegistrant {
 
     public String toString() {
         return source;
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

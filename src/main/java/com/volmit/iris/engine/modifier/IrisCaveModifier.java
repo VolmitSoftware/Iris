@@ -237,7 +237,7 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData> {
     }
 
     public boolean canAir(Material m, BlockData caveFluid) {
-        return (B.isSolid(m) ||
+        return (m.isSolid() ||
                 (B.isDecorant(m.createBlockData())) || m.equals(Material.AIR)
                 || m.equals(caveFluid.getMaterial()) ||
                 m.equals(B.getMaterial("CAVE_AIR")))
@@ -249,6 +249,6 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData> {
     }
 
     public boolean can(Material m) {
-        return B.isSolid(m) && !m.equals(Material.BEDROCK);
+        return m.isSolid() && !m.equals(Material.BEDROCK);
     }
 }

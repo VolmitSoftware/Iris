@@ -25,7 +25,9 @@ import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.engine.object.meta.InventorySlotType;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -95,5 +97,10 @@ public class IrisLootTable extends IrisRegistrant {
     @Override
     public String getTypeName() {
         return "Loot";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

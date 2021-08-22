@@ -24,6 +24,8 @@ import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.feature.IrisFeature;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -143,5 +145,10 @@ public class IrisJigsawStructure extends IrisRegistrant {
     @Override
     public String getTypeName() {
         return "Jigsaw Structure";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

@@ -32,7 +32,9 @@ import com.volmit.iris.engine.object.meta.IrisEffect;
 import com.volmit.iris.engine.object.spawners.IrisSurface;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.AllArgsConstructor;
@@ -379,5 +381,10 @@ public class IrisEntity extends IrisRegistrant {
     @Override
     public String getTypeName() {
         return "Entity";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

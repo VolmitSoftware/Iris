@@ -50,9 +50,11 @@ import com.volmit.iris.engine.object.villager.IrisVillagerOverride;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -542,5 +544,10 @@ public class IrisDimension extends IrisRegistrant {
     @Override
     public String getTypeName() {
         return "Dimension";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

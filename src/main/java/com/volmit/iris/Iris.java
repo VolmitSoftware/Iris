@@ -18,7 +18,6 @@
 
 package com.volmit.iris;
 
-import com.google.gson.Gson;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.command.CommandIris;
 import com.volmit.iris.core.command.PermissionIris;
@@ -32,6 +31,7 @@ import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
+import com.volmit.iris.engine.object.block.IrisBlockData;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.object.compat.IrisCompat;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
@@ -49,7 +49,6 @@ import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.io.JarScanner;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.*;
 import com.volmit.iris.util.reflect.ShadeFix;
@@ -117,12 +116,10 @@ public class Iris extends VolmitPlugin implements Listener {
         sender.setTag(getTag());
         instance = this;
         compat = IrisCompat.configured(getDataFile("compat.json"));
-
         linkMultiverseCore = new MultiverseCoreLink();
         linkOraxen = new OraxenLink();
         linkMythicMobs = new MythicMobsLink();
         configWatcher = new FileWatcher(getDataFile("settings.json"));
-
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
     }

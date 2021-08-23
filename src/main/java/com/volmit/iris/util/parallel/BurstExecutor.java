@@ -28,25 +28,20 @@ import java.util.concurrent.*;
 @SuppressWarnings("ALL")
 public class BurstExecutor {
     private final ExecutorService executor;
-    private final KList<CompletableFuture<Void>> futures;
+    private final KList<Future<?>> futures;
     @Setter
     private boolean multicore = true;
 
     public BurstExecutor(ExecutorService executor, int burstSizeEstimate) {
         this.executor = executor;
-        futures = new KList<CompletableFuture<Void>>(burstSizeEstimate);
+        futures = new KList<Future<?>>(burstSizeEstimate);
     }
 
     @SuppressWarnings("UnusedReturnValue")
-    public CompletableFuture<Void> queue(Runnable r) {
-        if(!multicore)
-        {
-            r.run();
-            return null;
-        }
-
+    public Future<?> queue(Runnable r) {
         synchronized (futures) {
-            CompletableFuture<Void> c = CompletableFuture.runAsync(r, executor);
+
+            Future<?> c = executor.submit(r);
             futures.add(c);
             return c;
         }
@@ -55,7 +50,7 @@ public class BurstExecutor {
     public BurstExecutor queue(List<Runnable> r) {
         if(!multicore)
         {
-            for(Runnable i : r)
+            for(Runnable i : new KList<>(r))
             {
                 i.run();
             }
@@ -65,8 +60,7 @@ public class BurstExecutor {
 
         synchronized (futures) {
             for (Runnable i : new KList<>(r)) {
-                CompletableFuture<Void> c = CompletableFuture.runAsync(i, executor);
-                futures.add(c);
+                queue(i);
             }
         }
 
@@ -76,7 +70,7 @@ public class BurstExecutor {
     public BurstExecutor queue(Runnable[] r) {
         if(!multicore)
         {
-            for(Runnable i : r)
+            for(Runnable i : new KList<>(r))
             {
                 i.run();
             }
@@ -86,8 +80,7 @@ public class BurstExecutor {
 
         synchronized (futures) {
             for (Runnable i : r) {
-                CompletableFuture<Void> c = CompletableFuture.runAsync(i, executor);
-                futures.add(c);
+                queue(i);
             }
         }
 
@@ -106,38 +99,15 @@ public class BurstExecutor {
             }
 
             try {
-                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
-                futures.clear();
-            } catch (InterruptedException | ExecutionException e) {
-                Iris.reportError(e);
-            }
-        }
-    }
-
-    public boolean complete(long maxDur) {
-        if(!multicore)
-        {
-            return true;
-        }
-
-        synchronized (futures) {
-            if (futures.isEmpty()) {
-                return true;
-            }
-
-            try {
-                try {
-                    CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get(maxDur, TimeUnit.MILLISECONDS);
-                } catch (TimeoutException e) {
-                    return false;
+                for(Future<?> i : futures)
+                {
+                    i.get();
                 }
+
                 futures.clear();
             } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
                 Iris.reportError(e);
             }
         }
-
-        return false;
     }
 }

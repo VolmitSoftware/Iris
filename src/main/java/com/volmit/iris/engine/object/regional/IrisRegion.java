@@ -44,8 +44,10 @@ import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.data.VanillaBiomeMap;
 import com.volmit.iris.util.inventorygui.RandomColor;
+import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -571,5 +573,10 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @Override
     public String getTypeName() {
         return "Region";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

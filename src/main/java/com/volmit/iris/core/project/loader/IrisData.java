@@ -19,9 +19,11 @@
 package com.volmit.iris.core.project.loader;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.block.IrisBlockData;
+import com.volmit.iris.engine.object.cave.IrisCave;
 import com.volmit.iris.engine.object.common.IrisScript;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.entity.IrisEntity;
@@ -42,8 +44,9 @@ import com.volmit.iris.util.math.RNG;
 import lombok.Data;
 
 import java.io.File;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Data
 public class IrisData {
@@ -63,6 +66,7 @@ public class IrisData {
     private ResourceLoader<IrisExpression> expressionLoader;
     private ResourceLoader<IrisObject> objectLoader;
     private ResourceLoader<IrisScript> scriptLoader;
+    private ResourceLoader<IrisCave> caveLoader;
     private KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> loaders = new KMap<>();
     private boolean closed;
     private final File dataFolder;
@@ -85,6 +89,23 @@ public class IrisData {
     public static void dereference()
     {
         dataLoaders.v().forEach(IrisData::cleanupEngine);
+    }
+
+    public ResourceLoader<?> getTypedLoaderFor(File f) {
+        String[] k = f.getPath().split("\\Q"+File.separator+"\\E");
+
+        for(String i : k)
+        {
+            for(ResourceLoader<?> j : loaders.values())
+            {
+                if(j.getFolderName().equals(i))
+                {
+                    return j;
+                }
+            }
+        }
+
+        return null;
     }
 
     public void cleanupEngine()
@@ -199,6 +220,7 @@ public class IrisData {
         this.jigsawStructureLoader = registerLoader(IrisJigsawStructure.class);
         this.jigsawPieceLoader = registerLoader(IrisJigsawPiece.class);
         this.generatorLoader = registerLoader(IrisGenerator.class);
+        this.caveLoader = registerLoader(IrisCave.class);
         this.blockLoader = registerLoader(IrisBlockData.class);
         this.expressionLoader = registerLoader(IrisExpression.class);
         this.objectLoader = registerLoader(IrisObject.class);
@@ -273,6 +295,10 @@ public class IrisData {
         return loadAny(key, (dm) -> dm.getRegionLoader().load(key, false));
     }
 
+    public static IrisCave loadAnyCave(String key) {
+        return loadAny(key, (dm) -> dm.getCaveLoader().load(key, false));
+    }
+
     public static IrisDimension loadAnyDimension(String key) {
         return loadAny(key, (dm) -> dm.getDimensionLoader().load(key, false));
     }
@@ -301,6 +327,41 @@ public class IrisData {
             Iris.reportError(e);
             e.printStackTrace();
         }
+
+        return null;
+    }
+
+    public String toLoadKey(File f) {
+        if(f.getPath().startsWith(getDataFolder().getPath()))
+        {
+            String[] full = f.getPath().split("\\Q" + File.separator + "\\E");
+            String[] df = getDataFolder().getPath().split("\\Q" + File.separator + "\\E");
+            String g = "";
+            boolean m = true;
+            for(int i = 0; i < full.length; i++)
+            {
+                if(i >= df.length)
+                {
+                    if(m)
+                    {
+                        m = false;
+                        continue;
+                    }
+
+                    g += "/" + full[i];
+                }
+            }
+
+            String ff = g.toString().substring(1).split("\\Q.\\E")[0];
+            return ff;
+        }
+
+        else
+        {
+            Iris.error("Forign file from loader " + f.getPath() + " (loader realm: " + getDataFolder().getPath() + ")");
+        }
+
+        Iris.error("Failed to load " + f.getPath() + " (loader realm: " + getDataFolder().getPath() + ")");
 
         return null;
     }

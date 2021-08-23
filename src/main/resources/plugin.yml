@@ -6,18 +6,18 @@ authors: [ cyberpwn, NextdoorPsycho ]
 website: volmit.com
 description: More than a Dimension!
 libraries:
-  - org.zeroturnaround:zt-zip:1.14
   - com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2
-  - org.ow2.asm:asm:9.2
-  - com.google.code.gson:gson:2.8.7
-  - it.unimi.dsi:fastutil:8.5.4
+  - com.github.ben-manes.caffeine:caffeine:3.0.3
+  - io.timeandspace:smoothie-map:2.0.2
   - com.google.guava:guava:30.1.1-jre
-  - bsf:bsf:2.4.0
+  - com.google.code.gson:gson:2.8.7
+  - org.zeroturnaround:zt-zip:1.14
+  - it.unimi.dsi:fastutil:8.5.4
+  - org.ow2.asm:asm:9.2
   - rhino:js:1.7R2
+  - bsf:bsf:2.4.0
 commands:
   iris:
     aliases: [ ir, irs ]
-  irisd:
-    aliases: [ ird, irsd ]
 api-version: ${apiversion}
 hotload-dependencies: false

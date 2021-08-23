@@ -16,39 +16,47 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.object.common;
+package com.volmit.iris.engine.object.cave;
 
+import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.project.loader.IrisRegistrant;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.noise.IrisWorm;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.noise.Worm;
+import com.volmit.iris.util.noise.Worm3;
+import com.volmit.iris.util.noise.WormIterator3;
 import com.volmit.iris.util.plugin.VolmitSender;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.util.Vector;
 
 @EqualsAndHashCode(callSuper = true)
+@Accessors(chain = true)
+@NoArgsConstructor
+@AllArgsConstructor
+@Desc("Translate objects")
 @Data
-public class IrisScript extends IrisRegistrant {
-    private final String source;
-
-    public IrisScript() {
-        this("");
-    }
-
-    public IrisScript(String source) {
-        this.source = source;
-    }
+public class IrisCave extends IrisRegistrant {
+    @Desc("Define the shape of this cave")
+    private IrisWorm worm;
 
     @Override
     public String getFolderName() {
-        return "scripts";
+        return "caves";
     }
 
     @Override
     public String getTypeName() {
-        return "Script";
-    }
-
-    public String toString() {
-        return source;
+        return "Cave";
     }
 
     @Override

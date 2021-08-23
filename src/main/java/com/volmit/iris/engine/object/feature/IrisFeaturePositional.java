@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.object.feature;
 
 import com.google.gson.Gson;
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.Desc;
@@ -63,7 +64,18 @@ public class IrisFeaturePositional {
     private static double BLOCK = 1D / 256D; // TODO: WARNING HEIGHT
 
     public static IrisFeaturePositional read(DataInputStream s) throws IOException {
-        return new Gson().fromJson(s.readUTF(), IrisFeaturePositional.class);
+        String sx = s.readUTF();
+        try
+        {
+            return new Gson().fromJson(sx, IrisFeaturePositional.class);
+        }
+
+        catch(Throwable e)
+        {
+            Iris.error(sx);
+            e.printStackTrace();
+            throw new IOException(e);
+        }
     }
 
     public void write(DataOutputStream s) throws IOException {

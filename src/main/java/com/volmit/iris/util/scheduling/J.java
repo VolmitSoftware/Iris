@@ -129,7 +129,6 @@ public class J {
         try {
             r.run();
         } catch (Throwable e) {
-            Iris.reportError(e);
             return e;
         }
 

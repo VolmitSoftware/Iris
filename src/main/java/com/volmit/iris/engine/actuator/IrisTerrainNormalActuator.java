@@ -55,8 +55,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     public void onActuate(int x, int z, Hunk<BlockData> h, boolean multicore) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
 
-        BurstExecutor e = getEngine().burst().burst(h.getWidth());
-        e.setMulticore(multicore);
+        BurstExecutor e = burst().burst(multicore);
         for (int xf = 0; xf < h.getWidth(); xf++) {
             int finalXf = xf;
             e.queue(() -> terrainSliver(x, z, finalXf, h));
@@ -65,70 +64,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
         e.complete();
 
         getEngine().getMetrics().getTerrain().put(p.getMilliseconds());
-    }
-
-    public void generateGround(int realX, int realZ, int xf, int zf, Hunk<BlockData> h, int surface, int bottom, int height, int fluidOrHeight, IrisBiome biome)
-    {
-        if(surface == bottom || surface-1 == bottom)
-        {
-            return;
-        }
-
-        KList<BlockData> blocks = null;
-        KList<BlockData> fblocks = null;
-        int depth,fdepth;
-
-        for (int i = surface; i >= bottom; i--) {
-            if (i >= h.getHeight()) {
-                continue;
-            }
-
-            if (i == 0) {
-                if (getDimension().isBedrock()) {
-                    h.set(xf, i, zf, BEDROCK);
-                    lastBedrock = i;
-                    continue;
-                }
-            }
-
-            if (carving && getDimension().isCarved(getData(), realX, i, realZ, rng, height)) {
-                continue;
-            }
-
-            if (getDimension().getCaverns() != null && getDimension().getCaverns().isCavern(rng, realX, i, realZ, height, getData())) {
-                continue;
-            }
-
-            if (i > height && i <= fluidOrHeight) {
-                fdepth = fluidOrHeight - i;
-
-                if (fblocks == null) {
-                    fblocks = biome.generateSeaLayers(realX, realZ, rng, fluidOrHeight - height, getData());
-                }
-
-                if (fblocks.hasIndex(fdepth)) {
-                    h.set(xf, i, zf, fblocks.get(fdepth));
-                    continue;
-                }
-
-                h.set(xf, i, zf, getComplex().getFluidStream().get(realX, +realZ));
-                continue;
-            }
-
-            if (i <= height) {
-                depth = surface - i;
-                if (blocks == null) {
-                    blocks = biome.generateLayers(realX, realZ, rng, surface - bottom, surface, getData(), getComplex());
-                }
-
-                if (blocks.hasIndex(depth)) {
-                    h.set(xf, i, zf, blocks.get(depth));
-                    continue;
-                }
-
-                h.set(xf, i, zf, getComplex().getRockStream().get(realX, realZ));
-            }
-        }
     }
 
     private int fluidOrHeight(int height)
@@ -146,12 +81,12 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
      */
     @BlockCoordinates
     public void terrainSliver(int x, int z, int xf, Hunk<BlockData> h) {
-        int i, realX, realZ, hf, he;
+        int zf, realX, realZ, hf, he;
         IrisBiome biome;
 
-        for (i = 0; i < h.getDepth(); i++) {
+        for (zf = 0; zf < h.getDepth(); zf++) {
             realX = (int) modX(xf + x);
-            realZ = (int) modZ(i + z);
+            realZ = (int) modZ(zf + z);
             biome = getComplex().getTrueBiomeStream().get(realX, realZ);
             he = (int) Math.round(Math.min(h.getHeight(), getComplex().getHeightStream().get(realX, realZ)));
             hf = Math.round(Math.max(Math.min(h.getHeight(), getDimension().getFluidHeight()), he));
@@ -160,7 +95,65 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                 continue;
             }
 
-            generateGround(realX, realZ, xf, i, h, hf, 0, he, hf, biome);
+            KList<BlockData> blocks = null;
+            KList<BlockData> fblocks = null;
+            int depth,fdepth;
+
+            for (int i = hf; i >= 0; i--) {
+                if (i >= h.getHeight()) {
+                    continue;
+                }
+
+                if (i == 0) {
+                    if (getDimension().isBedrock()) {
+                        h.set(xf, i, zf, BEDROCK);
+                        lastBedrock = i;
+                        continue;
+                    }
+                }
+
+                if (carving && getDimension().isCarved(getData(), realX, i, realZ, rng, he)) {
+                    continue;
+                }
+
+                if (getDimension().getCaverns() != null && getDimension().getCaverns().isCavern(rng, realX, i, realZ, he, getData())) {
+                    continue;
+                }
+
+                if (i > he && i <= hf) {
+                    fdepth = hf - i;
+
+                    if (fblocks == null) {
+                        fblocks = biome.generateSeaLayers(realX, realZ, rng, hf - he, getData());
+                    }
+
+                    if (fblocks.hasIndex(fdepth)) {
+                        h.set(xf, i, zf, fblocks.get(fdepth));
+                        continue;
+                    }
+
+                    h.set(xf, i, zf, getComplex().getFluidStream().get(realX, +realZ));
+                    continue;
+                }
+
+                if (i <= he) {
+                    depth = he - i;
+                    if (blocks == null) {
+                        blocks = biome.generateLayers(realX, realZ, rng,
+                                he,
+                                he,
+                                getData(),
+                                getComplex());
+                    }
+
+                    if (blocks.hasIndex(depth)) {
+                        h.set(xf, i, zf, blocks.get(depth));
+                        continue;
+                    }
+
+                    h.set(xf, i, zf, getComplex().getRockStream().get(realX, realZ));
+                }
+            }
         }
     }
 }

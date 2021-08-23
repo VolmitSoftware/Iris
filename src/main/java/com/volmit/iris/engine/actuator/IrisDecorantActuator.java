@@ -90,8 +90,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
         }
 
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        BurstExecutor burst = burst().burst();
-        burst.setMulticore(multicore);
+        BurstExecutor burst = burst().burst(multicore);
 
         for (int i = 0; i < output.getWidth(); i++) {
             int finalI = i;

@@ -27,6 +27,7 @@ import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.BlockPosition;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.craftbukkit.v1_17_R1.block.data.type.CraftLeaves;
 import org.bukkit.entity.Entity;
 
 import java.io.*;
@@ -189,7 +190,16 @@ public interface Matter {
             slice = (MatterSlice<T>) createSlice(c, this);
 
             if (slice == null) {
-                Iris.error("Unable to find a slice for class " + C.DARK_RED + c.getCanonicalName());
+                try
+                {
+                    throw new RuntimeException("Bad slice " + c.getCanonicalName());
+                }
+
+                catch(Throwable e)
+                {
+                    e.printStackTrace();
+                }
+
                 return null;
             }
 

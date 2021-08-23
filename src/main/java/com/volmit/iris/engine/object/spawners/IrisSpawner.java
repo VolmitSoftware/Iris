@@ -28,6 +28,8 @@ import com.volmit.iris.engine.object.basic.IrisWeather;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.entity.IrisEntitySpawn;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -105,5 +107,10 @@ public class IrisSpawner extends IrisRegistrant {
     @Override
     public String getTypeName() {
         return "Spawner";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

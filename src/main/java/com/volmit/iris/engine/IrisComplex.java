@@ -30,7 +30,6 @@ import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.common.CaveResult;
 import com.volmit.iris.engine.object.decoration.IrisDecorationPart;
 import com.volmit.iris.engine.object.decoration.IrisDecorator;
-import com.volmit.iris.engine.object.dimensional.IrisTerrainMode;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.engine.object.noise.IrisGenerator;
 import com.volmit.iris.engine.object.noise.IrisInterpolator;
@@ -65,9 +64,6 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<Double> regionStyleStream;
     private ProceduralStream<Double> regionIdentityStream;
     private ProceduralStream<UUID> regionIDStream;
-    private ProceduralStream<Boolean> islandStream;
-    private ProceduralStream<Double> islandHeightStream;
-    private ProceduralStream<Double> islandDepthStream;
     private ProceduralStream<InferredType> bridgeStream;
     private ProceduralStream<IrisBiome> landBiomeStream;
     private ProceduralStream<IrisBiome> caveBiomeStream;
@@ -86,8 +82,6 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<Double> heightFluidStream;
     private ProceduralStream<Integer> trueHeightStream;
     private ProceduralStream<Double> slopeStream;
-    private ProceduralStream<Integer> islandTopStream;
-    private ProceduralStream<Integer> islandBottomStream;
     private ProceduralStream<Integer> topSurfaceStream;
     private ProceduralStream<RNG> rngStream;
     private ProceduralStream<RNG> chunkRngStream;
@@ -167,11 +161,6 @@ public class IrisComplex implements DataProvider {
                 : regionStyleStream
                 .selectRarity(engine.getDimension().getRegions(), (i) -> data.getRegionLoader().load(i))
                 .convertCached((s) -> data.getRegionLoader().load(s)).cache2D(cacheSize);
-        islandStream = regionStyleStream
-                .seededChance(rng.nextParallelRNG(29349), 23968888888L,
-                        1D / engine.getDimension().getIslandMode().getIslandChance());
-        islandHeightStream = regionIdentityStream.style(rng.nextParallelRNG(330466), engine.getDimension().getIslandMode().getHeight(), data);
-        islandDepthStream = engine.getDimension().getIslandMode().getIslandDepth().stream(rng.nextParallelRNG(-39578888), data);
         regionIDStream = regionIdentityStream.convertCached((i) -> new UUID(Double.doubleToLongBits(i), String.valueOf(i * 38445).hashCode() * 3245556666L));
         caveBiomeStream = regionStream.convert((r)
                 -> engine.getDimension().getCaveBiomeStyle().create(rng.nextParallelRNG(InferredType.CAVE.ordinal()), getData()).stream()
@@ -334,13 +323,11 @@ public class IrisComplex implements DataProvider {
             int heightf = (int) Math.round(getHeightStream().get(rx, rz));
             int m = heightf;
 
-            if (engine.getDimension().isCarving() && engine.getDimension().getTerrainMode().equals(IrisTerrainMode.NORMAL)) {
-                if (engine.getDimension().isCarved(getData(), rx, m, rz, ((IrisTerrainNormalActuator) engine.getTerrainActuator()).getRng(), heightf)) {
-                    m--;
+            if (engine.getDimension().isCarved(getData(), rx, m, rz, ((IrisTerrainNormalActuator) engine.getTerrainActuator()).getRng(), heightf)) {
+                m--;
 
-                    while (engine.getDimension().isCarved(getData(), rx, m, rz, ((IrisTerrainNormalActuator) engine.getTerrainActuator()).getRng(), heightf)) {
-                        m--;
-                    }
+                while (engine.getDimension().isCarved(getData(), rx, m, rz, ((IrisTerrainNormalActuator) engine.getTerrainActuator()).getRng(), heightf)) {
+                    m--;
                 }
             }
 
@@ -367,25 +354,7 @@ public class IrisComplex implements DataProvider {
                             d.hashCode());
                 })
                 .cache2D(cacheSize);
-        islandTopStream = islandStream.convertAware2D((i, x, z) ->
-                i ? heightStream.round()
-                        .subtract(fluidHeight)
-                        .add((xx, zz) -> getIslandHeight(xx.intValue(), zz.intValue(), engine.getDimension()
-                                .getIslandMode().getIslandEdgeInterpolator()))
-                        .get(x, z) : 0);
-        islandBottomStream = islandStream.convertAware2D((i, x, z) ->
-                i ? islandHeightStream.subtract(islandDepthStream).round().get(x, z) : 0);
         //@done
-    }
-
-    private double getIslandHeight(int x, int z, IrisInterpolator interp) {
-        return interp.interpolate(x, z, (xx, zz) -> {
-            if (getIslandStream().get(xx, zz)) {
-                return getIslandHeightStream().get(xx, zz);
-            }
-
-            return 0;
-        });
     }
 
     private IrisRegion findRegion(IrisBiome focus, Engine engine) {

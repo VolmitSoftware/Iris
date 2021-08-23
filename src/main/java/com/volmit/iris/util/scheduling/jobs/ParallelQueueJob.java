@@ -16,14 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.object.dimensional;
+package com.volmit.iris.util.scheduling.jobs;
 
-import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.MultiBurst;
 
-@Desc("Terrain modes are used to decide the generator type currently used")
-public enum IrisTerrainMode {
-    @Desc("Normal terrain, similar to the vanilla overworld")
-    NORMAL,
-    @Desc("Island terrain, more similar to the end, but endless possibilities!")
-    ISLANDS
+public abstract class ParallelQueueJob<T> extends QueueJob<T> {
+    @Override
+    public void execute() {
+        while (queue.isNotEmpty()) {
+            BurstExecutor b = MultiBurst.burst.burst(queue.size());
+            KList<T> q = queue.copy();
+            queue.clear();
+            for(T i : q)
+            {
+                b.queue(() -> {
+                    execute(i);
+                    completeWork();
+                });
+            }
+            b.complete();
+        }
+    }
 }

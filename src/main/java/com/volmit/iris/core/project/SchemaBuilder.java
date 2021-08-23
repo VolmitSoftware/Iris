@@ -32,6 +32,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.potion.PotionEffectType;
 
 import java.awt.*;
+import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.List;
@@ -536,8 +537,8 @@ public class SchemaBuilder {
                     d.add("* Default Value is " + value);
                 }
             }
-        } catch (Throwable e) {
-            Iris.reportError(e);
+        } catch (Throwable ignored) {
+
         }
 
         description.forEach((g) -> d.add(g.trim()));

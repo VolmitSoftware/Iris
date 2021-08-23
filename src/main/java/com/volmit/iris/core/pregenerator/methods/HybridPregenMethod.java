@@ -42,7 +42,7 @@ public class HybridPregenMethod implements PregeneratorMethod {
     }
 
     private boolean supportsHeadless(World world) {
-        return IrisToolbelt.access(world) != null && !IrisSettings.get().getGenerator().isDisableMCA();
+        return IrisToolbelt.access(world) != null && IrisSettings.get().getGenerator().isHeadlessPregeneration();
     }
 
     @Override

@@ -243,7 +243,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     updateLighting(x, y, z, c);
                 }
             }
-        }, MantleFlag.UPDATE);
+        });
         getMetrics().getUpdates().put(p.getMilliseconds());
     }
 
@@ -433,13 +433,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
         IrisDimension dim = getDimension();
         dim.getAllBiomes(this).forEach((i) -> v.put(i.getLoadKey(), i));
-
-        try {
-            dim.getDimensionalComposite().forEach((m) -> getData().getDimensionLoader().load(m.getDimension()).getAllBiomes(this).forEach((i) -> v.put(i.getLoadKey(), i)));
-        } catch (Throwable ignored) {
-            Iris.reportError(ignored);
-
-        }
 
         return v.v();
     }

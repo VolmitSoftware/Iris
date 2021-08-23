@@ -27,11 +27,11 @@ import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.link.OraxenLink;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
+import com.volmit.iris.engine.object.block.IrisBlockData;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.object.compat.IrisCompat;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
@@ -116,12 +116,10 @@ public class Iris extends VolmitPlugin implements Listener {
         sender.setTag(getTag());
         instance = this;
         compat = IrisCompat.configured(getDataFile("compat.json"));
-
         linkMultiverseCore = new MultiverseCoreLink();
         linkOraxen = new OraxenLink();
         linkMythicMobs = new MythicMobsLink();
         configWatcher = new FileWatcher(getDataFile("settings.json"));
-
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
     }
@@ -165,6 +163,7 @@ public class Iris extends VolmitPlugin implements Listener {
         HandlerList.unregisterAll((Plugin) this);
         postShutdown.forEach(Runnable::run);
         services.clear();
+        MultiBurst.burst.close();
         super.onDisable();
     }
 
@@ -604,14 +603,7 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public static void verbose(String string) {
-        try {
-            if (IrisSettings.get().getGeneral().isVerbose()) {
-                msg(C.GRAY + string);
-            }
-        } catch (Throwable e) {
-            msg(C.GRAY + string);
-            Iris.reportError(e);
-        }
+        debug(string);
     }
 
     public static void success(String string) {
@@ -683,7 +675,7 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public boolean isMCA() {
-        return !IrisSettings.get().getGenerator().isDisableMCA();
+        return IrisSettings.get().getGenerator().isHeadlessPregeneration();
     }
 
     public static void reportErrorChunk(int x, int z, Throwable e, String extra) {
@@ -704,7 +696,7 @@ public class Iris extends VolmitPlugin implements Listener {
         }
     }
 
-    public static synchronized void reportError(Throwable e) {
+    public static void reportError(Throwable e) {
         if (IrisSettings.get().getGeneral().isDebug()) {
             String n = e.getClass().getCanonicalName() + "-" + e.getStackTrace()[0].getClassName() + "-" + e.getStackTrace()[0].getLineNumber();
 

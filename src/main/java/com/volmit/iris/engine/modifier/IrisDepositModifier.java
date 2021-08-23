@@ -54,8 +54,8 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
         RNG ro = rx.nextParallelRNG(x * x).nextParallelRNG(z * z);
         IrisRegion region = getComplex().getRegionStream().get((x * 16) + 7, (z * 16) + 7);
         IrisBiome biome = getComplex().getTrueBiomeStream().get((x * 16) + 7, (z * 16) + 7);
-        BurstExecutor burst = burst().burst();
-        burst.setMulticore(multicore);
+        BurstExecutor burst = burst().burst(multicore);
+
         for (IrisDepositGenerator k : getDimension().getDeposits()) {
             burst.queue(() -> generate(k, terrain, ro, x, z, false));
         }

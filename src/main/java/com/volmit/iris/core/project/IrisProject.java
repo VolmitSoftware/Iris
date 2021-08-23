@@ -22,6 +22,7 @@ import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.project.loader.IrisRegistrant;
 import com.volmit.iris.core.project.loader.ResourceLoader;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.biome.IrisBiome;
@@ -30,6 +31,7 @@ import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.entity.IrisEntity;
 import com.volmit.iris.engine.object.loot.IrisLootTable;
 import com.volmit.iris.engine.object.noise.IrisGenerator;
+import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.engine.object.spawners.IrisSpawner;
@@ -37,7 +39,9 @@ import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.exceptions.IrisException;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONArray;
@@ -48,6 +52,10 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import com.volmit.iris.util.scheduling.jobs.Job;
+import com.volmit.iris.util.scheduling.jobs.JobCollection;
+import com.volmit.iris.util.scheduling.jobs.ParallelQueueJob;
+import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import lombok.Data;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -443,7 +451,6 @@ public class IrisProject {
         return null;
     }
 
-
     public static int clean(VolmitSender s, File clean) {
         int c = 0;
         if (clean.isDirectory()) {
@@ -496,6 +503,155 @@ public class IrisProject {
                 fixBlocks((JSONObject) o, f);
             } else if (o instanceof JSONArray) {
                 fixBlocks((JSONArray) o, f);
+            }
+        }
+    }
+
+    public void compile(VolmitSender sender) {
+        IrisData data = IrisData.get(getPath());
+        KList<Job> jobs = new KList<Job>();
+        KList<File> files = new KList<File>();
+        KList<File> objects = new KList<File>();
+        files(getPath(), files);
+        filesObjects(getPath(), objects);
+
+        jobs.add(new ParallelQueueJob<File>() {
+            @Override
+            public void execute(File f) {
+                try {
+                    IrisObject o = new IrisObject(0,0,0);
+                    o.read(f);
+
+                    if(o.getBlocks().isEmpty())
+                    {
+                        sender.sendMessageRaw("<hover:show_text:'Error:\n" +
+                                "<yellow>" + f.getPath() +
+                                "'><red>- IOB " + f.getName() + " has 0 blocks!");
+                    }
+
+                    if(o.getW() == 0 || o.getH() == 0 || o.getD() == 0)
+                    {
+                        sender.sendMessageRaw("<hover:show_text:'Error:\n" +
+                                "<yellow>" + f.getPath() + "\n<red>The width height or depth has a zero in it (bad format)" +
+                                "'><red>- IOB " + f.getName() + " is not 3D!");
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public String getName() {
+                return "IOB";
+            }
+        }.queue(objects));
+
+        jobs.add(new ParallelQueueJob<File>() {
+            @Override
+            public void execute(File f) {
+                try {
+                    JSONObject p = new JSONObject(IO.readAll(f));
+                    fixBlocks(p);
+                    scanForErrors(data, f, p, sender);
+                    IO.writeAll(f, p.toString(4));
+
+                } catch (Throwable e) {
+                    sender.sendMessageRaw("<hover:show_text:'Error:\n" +
+                            "<yellow>" + f.getPath() +
+                            "\n<red>" +e.getMessage() +
+                            "'><red>- JSON Error " + f.getName());
+                }
+            }
+
+            @Override
+            public String getName() {
+                return "JSON";
+            }
+        }.queue(files));
+
+        new JobCollection("Compile", jobs).execute(sender);
+    }
+
+    private void scanForErrors(IrisData data, File f, JSONObject p, VolmitSender sender) {
+        String key = data.toLoadKey(f);
+        ResourceLoader<?> loader = data.getTypedLoaderFor(f);
+
+        if(loader == null)
+        {
+            sender.sendMessageBasic("Can't find loader for " + f.getPath());
+            return;
+        }
+
+        IrisRegistrant load = loader.load(key);
+        compare(load.getClass(), p, sender, new KList<>());
+        load.scanForErrors(p, sender);
+    }
+
+    public void compare(Class<?> c, JSONObject j, VolmitSender sender, KList<String> path)
+    {
+        try
+        {
+            Object o = c.getClass().getConstructor().newInstance();
+        }
+
+        catch(Throwable e)
+        {
+
+        }
+    }
+
+    public void files(File clean, KList<File> files) {
+        if (clean.isDirectory()) {
+            for (File i : clean.listFiles()) {
+                files(i, files);
+            }
+        } else if (clean.getName().endsWith(".json")) {
+            try {
+                files.add(clean);
+            } catch (Throwable e) {
+                Iris.reportError(e);
+            }
+        }
+    }
+
+    public void filesObjects(File clean, KList<File> files) {
+        if (clean.isDirectory()) {
+            for (File i : clean.listFiles()) {
+                filesObjects(i, files);
+            }
+        } else if (clean.getName().endsWith(".iob")) {
+            try {
+                files.add(clean);
+            } catch (Throwable e) {
+                Iris.reportError(e);
+            }
+        }
+    }
+
+    private void fixBlocks(JSONObject obj) {
+        for (String i : obj.keySet()) {
+            Object o = obj.get(i);
+
+            if (i.equals("block") && o instanceof String && !o.toString().trim().isEmpty() && !o.toString().contains(":")) {
+                obj.put(i, "minecraft:" + o);
+            }
+
+            if (o instanceof JSONObject) {
+                fixBlocks((JSONObject) o);
+            } else if (o instanceof JSONArray) {
+                fixBlocks((JSONArray) o);
+            }
+        }
+    }
+
+    private void fixBlocks(JSONArray obj) {
+        for (int i = 0; i < obj.length(); i++) {
+            Object o = obj.get(i);
+
+            if (o instanceof JSONObject) {
+                fixBlocks((JSONObject) o);
+            } else if (o instanceof JSONArray) {
+                fixBlocks((JSONArray) o);
             }
         }
     }

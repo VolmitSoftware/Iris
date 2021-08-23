@@ -48,8 +48,10 @@ import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.data.VanillaBiomeMap;
 import com.volmit.iris.util.inventorygui.RandomColor;
+import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -695,5 +697,10 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Override
     public String getTypeName() {
         return "Biome";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

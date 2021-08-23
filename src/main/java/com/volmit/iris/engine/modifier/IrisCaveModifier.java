@@ -55,20 +55,13 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData> {
         }
 
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        if (multicore) {
-            BurstExecutor e = getEngine().burst().burst(a.getWidth());
-            for (int i = 0; i < a.getWidth(); i++) {
-                int finalI = i;
-                e.queue(() -> modifySliver(x, z, finalI, a));
-            }
-
-            e.complete();
-        } else {
-            for (int i = 0; i < a.getWidth(); i++) {
-                modifySliver(x, z, i, a);
-            }
+        BurstExecutor e = burst().burst(multicore);
+        for (int i = 0; i < a.getWidth(); i++) {
+            int finalI = i;
+            e.queue(() -> modifySliver(x, z, finalI, a));
         }
 
+        e.complete();
         getEngine().getMetrics().getCave().put(p.getMilliseconds());
     }
 
@@ -244,7 +237,7 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData> {
     }
 
     public boolean canAir(Material m, BlockData caveFluid) {
-        return (B.isSolid(m) ||
+        return (m.isSolid() ||
                 (B.isDecorant(m.createBlockData())) || m.equals(Material.AIR)
                 || m.equals(caveFluid.getMaterial()) ||
                 m.equals(B.getMaterial("CAVE_AIR")))
@@ -256,6 +249,6 @@ public class IrisCaveModifier extends EngineAssignedModifier<BlockData> {
     }
 
     public boolean can(Material m) {
-        return B.isSolid(m) && !m.equals(Material.BEDROCK);
+        return m.isSolid() && !m.equals(Material.BEDROCK);
     }
 }

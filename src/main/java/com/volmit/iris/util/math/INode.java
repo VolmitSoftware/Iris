@@ -16,43 +16,32 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.object.common;
+package com.volmit.iris.util.math;
 
-import com.volmit.iris.core.project.loader.IrisRegistrant;
-import com.volmit.iris.util.json.JSONObject;
-import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
+import org.bukkit.util.Vector;
 
-@EqualsAndHashCode(callSuper = true)
 @Data
-public class IrisScript extends IrisRegistrant {
-    private final String source;
+public class INode {
 
-    public IrisScript() {
-        this("");
+    private Vector position;
+    private double tension;
+    private double bias;
+    private double continuity;
+
+    public INode() {
+        this(new Vector(0,0,0));
     }
 
-    public IrisScript(String source) {
-        this.source = source;
+    public INode(INode other) {
+        this.position = other.position;
+
+        this.tension = other.tension;
+        this.bias = other.bias;
+        this.continuity = other.continuity;
     }
 
-    @Override
-    public String getFolderName() {
-        return "scripts";
-    }
-
-    @Override
-    public String getTypeName() {
-        return "Script";
-    }
-
-    public String toString() {
-        return source;
-    }
-
-    @Override
-    public void scanForErrors(JSONObject p, VolmitSender sender) {
-
+    public INode(Vector position) {
+        this.position = position;
     }
 }

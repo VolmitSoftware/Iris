@@ -31,7 +31,6 @@ import java.util.concurrent.ExecutorService;
 public class PreservationSVC implements IrisService
 {
     private KList<Thread> threads = new KList<>();
-    private KList<MultiBurst> bursts = new KList<>();
     private KList<ExecutorService> services = new KList<>();
     private Looper dereferencer;
 
@@ -42,7 +41,7 @@ public class PreservationSVC implements IrisService
 
     public void register(MultiBurst burst)
     {
-        bursts.add(burst);
+
     }
 
     public void register(ExecutorService service)
@@ -91,20 +90,6 @@ public class PreservationSVC implements IrisService
                     {
                         Iris.reportError(e);
                     }
-                }
-            }
-
-            for(MultiBurst i : bursts)
-            {
-                try
-                {
-                    i.shutdownNow();
-                    Iris.info("Shutdown Multiburst " + i);
-                }
-
-                catch(Throwable e)
-                {
-                    Iris.reportError(e);
                 }
             }
 

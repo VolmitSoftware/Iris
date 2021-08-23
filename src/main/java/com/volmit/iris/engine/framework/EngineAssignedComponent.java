@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.framework;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.math.RollingSequence;
 import lombok.Data;
 
@@ -28,6 +29,7 @@ public class EngineAssignedComponent implements EngineComponent {
     private final String name;
 
     public EngineAssignedComponent(Engine engine, String name) {
+        Iris.debug("Engine: " + engine.getCacheID() + " Starting " + name);
         this.engine = engine;
         this.metrics = new RollingSequence(16);
         this.name = name;

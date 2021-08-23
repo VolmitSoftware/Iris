@@ -68,8 +68,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
     @Override
     public void onActuate(int x, int z, Hunk<Biome> h, boolean multicore) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        BurstExecutor burst = burst().burst();
-        burst.setMulticore(multicore);
+        BurstExecutor burst = burst().burst(multicore);
 
         for (int xf = 0; xf < h.getWidth(); xf++) {
             int finalXf = xf;

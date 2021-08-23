@@ -62,5 +62,5 @@ public interface MantleComponent {
     MantleFlag getFlag();
 
     @ChunkCoordinates
-    void generateLayer(int x, int z, Consumer<Runnable> post);
+    void generateLayer(MantleWriter writer, int x, int z, Consumer<Runnable> post);
 }

@@ -225,7 +225,7 @@ public class Chunk {
      * @param blockZ The z-coordinate of the block.
      * @return The biome id or -1 if the biomes are not correctly initialized.
      */
-    public int getBiomeAt(int blockX, int blockY, int blockZ) {
+    public synchronized int getBiomeAt(int blockX, int blockY, int blockZ) {
         if (dataVersion < 2202) {
             if (biomes == null || biomes.length != 256) {
                 return -1;
@@ -244,7 +244,7 @@ public class Chunk {
     }
 
     @Deprecated
-    public void setBiomeAt(int blockX, int blockZ, int biomeID) {
+    public synchronized void setBiomeAt(int blockX, int blockZ, int biomeID) {
         if (dataVersion < 2202) {
             if (biomes == null || biomes.length != 256) {
                 biomes = new int[256];
@@ -275,7 +275,7 @@ public class Chunk {
      * @param biomeID The biome id to be set.
      *                When set to a negative number, Minecraft will replace it with the block column's default biome.
      */
-    public void setBiomeAt(int blockX, int blockY, int blockZ, int biomeID) {
+    public synchronized void setBiomeAt(int blockX, int blockY, int blockZ, int biomeID) {
         if (dataVersion < 2202) {
             if (biomes == null || biomes.length != 256) {
                 biomes = new int[256];

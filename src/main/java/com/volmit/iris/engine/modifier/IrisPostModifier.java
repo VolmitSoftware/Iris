@@ -64,20 +64,15 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         AtomicInteger i = new AtomicInteger();
         AtomicInteger j = new AtomicInteger();
-        BurstExecutor burst = burst().burst();
-        burst.setMulticore(multicore);
         Hunk<BlockData> sync = output.synchronize();
         for (i.set(0); i.get() < output.getWidth(); i.getAndIncrement()) {
-            burst.queue(() -> {
-                for (j.set(0); j.get() < output.getDepth(); j.getAndIncrement()) {
-                    int ii = i.get();
-                    int jj = j.get();
-                    post(ii, jj, sync, ii + x, jj + z);
-                }
-            });
+            for (j.set(0); j.get() < output.getDepth(); j.getAndIncrement()) {
+                int ii = i.get();
+                int jj = j.get();
+                post(ii, jj, sync, ii + x, jj + z);
+            }
         }
 
-        burst.complete();
         getEngine().getMetrics().getPost().put(p.getMilliseconds());
     }
 

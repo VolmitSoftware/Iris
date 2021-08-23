@@ -29,7 +29,7 @@ import com.volmit.iris.util.plugin.IrisService;
 public class CommandSVC implements IrisService, DecreeSystem {
     @Override
     public void onEnable() {
-        Iris.instance.getCommand("irisd").setExecutor(this);
+        // TODO Iris.instance.getCommand("irisd").setExecutor(this);
     }
 
     @Override

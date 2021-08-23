@@ -82,18 +82,6 @@ public class StudioSVC implements IrisService {
                     IrisToolbelt.evacuate(i);
                     IrisToolbelt.access(i).close();
                 }
-
-                else
-                {
-                    if(!IrisSettings.get().getGeneral().isKeepProductionOnReload())
-                    {
-                        IrisToolbelt.evacuate(i);
-                        IrisToolbelt.access(i).close();
-                        Iris.error("You cannot reload Iris while production worlds are active!");
-                        Iris.error("To prevent corrupted chunks, Iris is shutting the server down now!");
-                        Bukkit.shutdown();
-                    }
-                }
             }
         }
     }

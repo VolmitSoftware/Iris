@@ -188,7 +188,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             }
 
             loadLock.acquire();
-            PrecisionStopwatch ps = PrecisionStopwatch.start();
             TerrainChunk tc = TerrainChunk.create(world, biome);
             Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
             Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);

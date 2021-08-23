@@ -18,38 +18,51 @@
 
 package com.volmit.iris.util.noise;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.function.NoiseProvider;
 import lombok.Builder;
 import lombok.Data;
 
 @Builder
 @Data
-public class WormIterator2 {
-    private transient Worm2 worm;
-    private transient NoiseProvider noise;
+public class WormIterator3 {
+    private transient Worm3 worm;
     private int x;
+    private int y;
     private int z;
+    private transient NoiseProvider noise;
     private int maxDistance;
     private int maxIterations;
 
     public boolean hasNext()
     {
-        double dist = maxDistance - (Math.max(Math.abs(worm.getX().getVelocity()), Math.abs(worm.getZ().getVelocity())) + 1);
+        if(worm == null)
+        {
+            return true;
+        }
+
+        double dist = maxDistance - (Math.max(Math.max(Math.abs(worm.getX().getVelocity()),
+                Math.abs(worm.getZ().getVelocity())),
+                Math.abs(worm.getY().getVelocity())) + 1);
+
         return maxIterations > 0 &&
                 ((x * x) - (worm.getX().getPosition() * worm.getX().getPosition()))
+            + ((y * y) - (worm.getY().getPosition() * worm.getY().getPosition()))
             + ((z * z) - (worm.getZ().getPosition() * worm.getZ().getPosition())) < dist * dist;
     }
 
-    public Worm2 next()
+    public Worm3 next()
     {
+        maxIterations--;
         if(worm == null)
         {
-            worm = new Worm2(x, z, 0, 0);
+            worm = new Worm3(x, y, z, 0, 0, 0);
             return worm;
         }
 
-        worm.getX().setVelocity(noise.noise(worm.getX().getPosition(), 0));
-        worm.getZ().setVelocity(noise.noise(worm.getZ().getPosition(), 0));
+        worm.getX().setVelocity(worm.getX().getVelocity() + noise.noise(worm.getX().getPosition() + 10000, 0));
+        worm.getY().setVelocity(worm.getY().getVelocity() + noise.noise(worm.getY().getPosition() + 1000, 0));
+        worm.getZ().setVelocity(worm.getZ().getVelocity() + noise.noise(worm.getZ().getPosition() - 10000, 0));
         worm.step();
 
         return worm;

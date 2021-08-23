@@ -54,6 +54,10 @@ public class IrisPosition {
     public IrisPosition(Vector v) {
         this(v.getBlockX(), v.getBlockY(), v.getBlockZ());
     }
+    public IrisPosition(double x, double y, double z) {
+        this((int)x,(int)y,(int)z);
+    }
+
 
     public IrisPosition add(IrisPosition relativePosition) {
         return new IrisPosition(relativePosition.x + x, relativePosition.y + y, relativePosition.z + z);

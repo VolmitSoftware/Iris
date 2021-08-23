@@ -19,6 +19,7 @@
 package com.volmit.iris.util.parallel;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.M;
@@ -50,7 +51,7 @@ public class MultiBurst {
     private synchronized ExecutorService getService() {
         last.set(M.ms());
         if (service == null || service.isShutdown()) {
-            service = new ForkJoinPool(Runtime.getRuntime().availableProcessors(),
+            service = new ForkJoinPool(IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism()),
                     new ForkJoinPool.ForkJoinWorkerThreadFactory() {
                         int m = 0;
 

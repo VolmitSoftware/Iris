@@ -34,6 +34,7 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.Position2;
+import com.volmit.iris.util.nbt.mca.MCAFile;
 import com.volmit.iris.util.nbt.mca.MCAUtil;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
@@ -64,12 +65,11 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
     }
 
     @ChunkCoordinates
-    public void generateChunk(int x, int z) {
+    public void generateChunk(MCAFile file, int x, int z) {
         try {
             int ox = x << 4;
             int oz = z << 4;
-            com.volmit.iris.util.nbt.mca.Chunk chunk = writer.getChunk(x, z);
-
+            com.volmit.iris.util.nbt.mca.Chunk chunk = writer.getChunk(file, x, z);
             TerrainChunk tc = MCATerrainChunk.builder()
                     .writer(writer).ox(ox).oz(oz).mcaChunk(chunk)
                     .minHeight(world.getWorld().minHeight()).maxHeight(world.getWorld().maxHeight())
@@ -102,11 +102,12 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
     @RegionCoordinates
     public void generateRegion(int x, int z, PregenListener listener) {
         BurstExecutor e = burst.burst(1024);
+        MCAFile f = writer.getMCA(x, x);
         PregenTask.iterateRegion(x, z, (ii, jj) -> e.queue(() -> {
             if (listener != null) {
                 listener.onChunkGenerating(ii, jj);
             }
-            generateChunk(ii, jj);
+            generateChunk(f, ii, jj);
             if (listener != null) {
                 listener.onChunkGenerated(ii, jj);
             }

@@ -37,6 +37,7 @@ import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Chunk;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
@@ -187,13 +188,13 @@ public interface EngineMantle extends IObjectPlacer {
         };
         int s = getRealRadius();
         BurstExecutor burst = burst().burst(multicore);
-
+        MantleWriter writer = getMantle().write(this, x, z, s * 2);
         for (int i = -s; i <= s; i++) {
             for (int j = -s; j <= s; j++) {
                 int xx = i + x;
                 int zz = j + z;
                 burst.queue(() -> {
-                    getComponents().forEach((f) -> generateMantleComponent(xx, zz, f, c));
+                    getComponents().forEach((f) -> generateMantleComponent(writer, xx, zz, f, c));
                 });
             }
         }
@@ -208,8 +209,8 @@ public interface EngineMantle extends IObjectPlacer {
         }
     }
 
-    default void generateMantleComponent(int x, int z, MantleComponent c, Consumer<Runnable> post) {
-        getMantle().raiseFlag(x, z, c.getFlag(), () -> c.generateLayer(x, z, post));
+    default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, Consumer<Runnable> post) {
+        getMantle().raiseFlag(x, z, c.getFlag(), () -> c.generateLayer(writer, x, z, post));
     }
 
     @ChunkCoordinates

@@ -24,6 +24,7 @@ import com.volmit.iris.util.nbt.tag.ByteArrayTag;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
 import com.volmit.iris.util.nbt.tag.LongArrayTag;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -170,7 +171,7 @@ public class Section {
      *                This option should only be used moderately to avoid unnecessary recalculation of the palette indices.
      *                Recalculating the Palette should only be executed once right before saving the Section to file.
      */
-    public void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
+    public synchronized void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
         int paletteSizeBefore = palette.size();
         int paletteIndex = addToPalette(state);
         //power of 2 --> bits must increase, but only if the palette size changed
@@ -223,7 +224,7 @@ public class Section {
      * @param paletteIndex The block state to be set (index of block data in the palette).
      * @param blockStates  The block states to be updated.
      */
-    public void setPaletteIndex(int blockIndex, int paletteIndex, AtomicLongArray blockStates) {
+    public synchronized void setPaletteIndex(int blockIndex, int paletteIndex, AtomicLongArray blockStates) {
         int bits = blockStates.length() >> 6;
 
         if (dataVersion < 2527) {
@@ -253,7 +254,7 @@ public class Section {
         return palette;
     }
 
-    int addToPalette(CompoundTag data) {
+    synchronized int addToPalette(CompoundTag data) {
         PaletteIndex index;
         if ((index = getValueIndexedPalette(data)) != null) {
             return index.index;
@@ -283,14 +284,14 @@ public class Section {
      * This should only be used moderately to avoid unnecessary recalculation of the palette indices.
      * Recalculating the Palette should only be executed once right before saving the Section to file.
      */
-    public void cleanupPaletteAndBlockStates() {
+    public synchronized void cleanupPaletteAndBlockStates() {
         Map<Integer, Integer> oldToNewMapping = cleanupPalette();
         adjustBlockStateBits(oldToNewMapping, blockStates);
     }
 
-    private Map<Integer, Integer> cleanupPalette() {
+    private synchronized Map<Integer, Integer> cleanupPalette() {
         //create index - palette mapping
-        Map<Integer, Integer> allIndices = new HashMap<>();
+        Map<Integer, Integer> allIndices = new Int2IntOpenHashMap();
         for (int i = 0; i < 4096; i++) {
             int paletteIndex = getPaletteIndex(i);
             allIndices.put(paletteIndex, paletteIndex);
@@ -314,7 +315,7 @@ public class Section {
         return allIndices;
     }
 
-    void adjustBlockStateBits(Map<Integer, Integer> oldToNewMapping, AtomicLongArray blockStates) {
+    synchronized void adjustBlockStateBits(Map<Integer, Integer> oldToNewMapping, AtomicLongArray blockStates) {
         //increases or decreases the amount of bits used per BlockState
         //based on the size of the palette. oldToNewMapping can be used to update indices
         //if the palette had been cleaned up before using MCAFile#cleanupPalette().
@@ -376,7 +377,7 @@ public class Section {
      * @throws NullPointerException     If <code>blockStates</code> is <code>null</code>
      * @throws IllegalArgumentException When <code>blockStates</code>' length is &lt; 256 or &gt; 4096 and is not a multiple of 64
      */
-    public void setBlockStates(AtomicLongArray blockStates) {
+    public synchronized void setBlockStates(AtomicLongArray blockStates) {
         if (blockStates == null) {
             throw new NullPointerException("BlockStates cannot be null");
         } else if (blockStates.length() % 64 != 0 || blockStates.length() < 256 || blockStates.length() > 4096) {

@@ -21,6 +21,7 @@ package com.volmit.iris.engine.mantle.components;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.IrisMantleComponent;
+import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
@@ -38,34 +39,34 @@ public class MantleFeatureComponent extends IrisMantleComponent {
     }
 
     @Override
-    public void generateLayer(int x, int z, Consumer<Runnable> post) {
+    public void generateLayer(MantleWriter writer, int x, int z, Consumer<Runnable> post) {
         RNG rng = new RNG(Cache.key(x, z) + seed());
         int xxx = 8 + (x << 4);
         int zzz = 8 + (z << 4);
         IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
         IrisBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xxx, zzz);
-        generateFeatures(rng, x, z, region, biome);
+        generateFeatures(writer, rng, x, z, region, biome);
     }
 
     @ChunkCoordinates
-    private void generateFeatures(RNG rng, int cx, int cz, IrisRegion region, IrisBiome biome) {
+    private void generateFeatures(MantleWriter writer, RNG rng, int cx, int cz, IrisRegion region, IrisBiome biome) {
         for (IrisFeaturePotential i : getFeatures()) {
-            placeZone(rng, cx, cz, i);
+            placeZone(writer, rng, cx, cz, i);
         }
 
         for (IrisFeaturePotential i : region.getFeatures()) {
-            placeZone(rng, cx, cz, i);
+            placeZone(writer, rng, cx, cz, i);
         }
 
         for (IrisFeaturePotential i : biome.getFeatures()) {
-            placeZone(rng, cx, cz, i);
+            placeZone(writer, rng, cx, cz, i);
         }
     }
 
-    private void placeZone(RNG rng, int cx, int cz, IrisFeaturePotential i) {
+    private void placeZone(MantleWriter writer, RNG rng, int cx, int cz, IrisFeaturePotential i) {
         int x = (cx << 4) + rng.nextInt(16);
         int z = (cz << 4) + rng.nextInt(16);
-        getMantle().set(x, 0, z, new IrisFeaturePositional(x, z, i.getZone()));
+        writer.setData(x, 0, z, new IrisFeaturePositional(x, z, i.getZone()));
     }
 
     private KList<IrisFeaturePotential> getFeatures() {

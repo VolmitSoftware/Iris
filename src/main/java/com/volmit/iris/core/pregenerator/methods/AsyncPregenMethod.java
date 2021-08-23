@@ -114,7 +114,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
-        if (future.size() > IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getPregenThreadCount())) {
+        if (future.size() > IrisSettings.getThreadCount((int) IrisSettings.get().getConcurrency().getParallelism())) { // TODO: FIX
             waitForChunks();
         }
 

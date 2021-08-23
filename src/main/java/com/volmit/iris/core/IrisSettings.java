@@ -20,6 +20,7 @@ package com.volmit.iris.core;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.object.basic.IrisRange;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONException;
@@ -56,6 +57,11 @@ public class IrisSettings {
         return getParallax().getParallaxRegionEvictionMS();
     }
 
+    public static int getPriority(int c)
+    {
+        return Math.max(Math.min(c, Thread.MAX_PRIORITY), Thread.MIN_PRIORITY);
+    }
+
     public static int getThreadCount(int c) {
         if (c < 2 && c >= 0) {
             return 2;
@@ -82,13 +88,7 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsConcurrency {
-        public int engineThreadCount = -1;
-        public int engineThreadPriority = 6;
-        public int pregenThreadCount = -1;
-        public int pregenThreadPriority = 8;
-        public int miscThreadCount = -4;
-        public int miscThreadPriority = 3;
-        public boolean unstableLockingHeuristics = false;
+        public int parallelism = -1;
     }
 
     @Data

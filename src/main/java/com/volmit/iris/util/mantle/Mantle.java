@@ -21,6 +21,8 @@ package com.volmit.iris.util.mantle;
 import com.google.common.collect.ImmutableList;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.engine.mantle.EngineMantle;
+import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.util.collection.KMap;
@@ -99,6 +101,20 @@ public class Mantle {
             flag(x, z, flag, true);
             r.run();
         }
+    }
+
+    /**
+     * Obtain a cached writer which only contains cached chunks.
+     * This avoids locking on regions when writing to lots of chunks
+     * @param x the x chunk
+     * @param z the z chunk
+     * @param radius the radius chunks
+     * @return the writer
+     */
+    @ChunkCoordinates
+    public MantleWriter write(EngineMantle engineMantle, int x, int z, int radius)
+    {
+        return new MantleWriter(engineMantle, this, x, z, radius);
     }
 
     /**
@@ -910,5 +926,9 @@ public class Mantle {
 
     private static double lengthSq(double x, double z) {
         return (x * x) + (z * z);
+    }
+
+    public int getWorldHeight() {
+        return worldHeight;
     }
 }

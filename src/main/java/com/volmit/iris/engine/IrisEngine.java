@@ -48,6 +48,7 @@ import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -408,8 +409,8 @@ public class IrisEngine extends BlockPopulator implements Engine {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             Hunk<BlockData> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y + getMinHeight(), z + zz, t));
-
             getMantle().generateMatter(x >> 4, z >> 4, multicore);
+
             burst().burst(multicore,
                     () -> getTerrainActuator().actuate(x, z, vblocks, multicore),
                     () -> getBiomeActuator().actuate(x, z, vbiomes, multicore)
@@ -420,12 +421,11 @@ public class IrisEngine extends BlockPopulator implements Engine {
                     () -> getRavineModifier().modify(x, z, vblocks, multicore)
             );
 
-            getDecorantActuator().actuate(x, z, blocks, multicore);
             getPostModifier().modify(x, z, vblocks, multicore);
 
             burst().burst(multicore,
                     () -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, blocks, multicore),
-                    () -> getDepositModifier().modify(x, z, blocks, multicore)
+                    () -> getDepositModifier().modify(x, z, vblocks, multicore)
             );
 
             getMetrics().getTotal().put(p.getMilliseconds());

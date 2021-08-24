@@ -128,7 +128,8 @@ public class IrisToolbelt {
             return pregenerate(task, new HeadlessPregenMethod(((HeadlessGenerator) gen).getWorld(), (HeadlessGenerator) gen));
         }
 
-        return pregenerate(task, new HybridPregenMethod(gen.getEngine().getWorld().realWorld(), IrisSettings.getThreadCount((int) IrisSettings.get().getConcurrency().getParallelism())));
+        return pregenerate(task, new HybridPregenMethod(gen.getEngine().getWorld().realWorld(),
+                IrisSettings.getThreadCount((int) IrisSettings.get().getConcurrency().getParallelism())));
     }
 
     /**

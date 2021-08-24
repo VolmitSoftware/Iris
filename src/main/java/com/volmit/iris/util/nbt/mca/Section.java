@@ -25,6 +25,7 @@ import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
 import com.volmit.iris.util.nbt.tag.LongArrayTag;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import net.minecraft.world.level.chunk.DataPaletteGlobal;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -148,7 +149,7 @@ public class Section {
      * @param blockZ The z-coordinate of the block in this Section
      * @return The block state data of this block.
      */
-    public CompoundTag getBlockStateAt(int blockX, int blockY, int blockZ) {
+    public synchronized CompoundTag getBlockStateAt(int blockX, int blockY, int blockZ) {
         try {
             int index = getBlockIndex(blockX, blockY, blockZ);
             int paletteIndex = getPaletteIndex(index);
@@ -172,7 +173,7 @@ public class Section {
      *                This option should only be used moderately to avoid unnecessary recalculation of the palette indices.
      *                Recalculating the Palette should only be executed once right before saving the Section to file.
      */
-    public void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
+    public synchronized void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
         int paletteIndex = addToPalette(state);
         int paletteSizeBefore = palette.size();
         //power of 2 --> bits must increase, but only if the palette size changed
@@ -184,7 +185,6 @@ public class Section {
         }
 
         setPaletteIndex(getBlockIndex(blockX, blockY, blockZ), paletteIndex, blockStates);
-
         if (cleanup) {
             cleanupPaletteAndBlockStates();
         }
@@ -196,7 +196,7 @@ public class Section {
      * @param blockStateIndex The index of the block in this section, ranging from 0-4095.
      * @return The index of the block data in the palette.
      */
-    public int getPaletteIndex(int blockStateIndex) {
+    public synchronized int getPaletteIndex(int blockStateIndex) {
         int bits = blockStates.length() >> 6;
 
         if (dataVersion < 2527) {
@@ -251,7 +251,7 @@ public class Section {
      *
      * @return The palette of this Section.
      */
-    public ListTag<CompoundTag> getPalette() {
+    public synchronized ListTag<CompoundTag> getPalette() {
         return palette;
     }
 
@@ -367,7 +367,7 @@ public class Section {
     /**
      * @return The indices of the block states of this Section.
      */
-    public AtomicLongArray getBlockStates() {
+    public synchronized AtomicLongArray getBlockStates() {
         return blockStates;
     }
 
@@ -431,7 +431,7 @@ public class Section {
      * @param y The Y-value of this Section
      * @return A reference to the raw CompoundTag this Section is based on
      */
-    public CompoundTag updateHandle(int y) {
+    public synchronized CompoundTag updateHandle(int y) {
         data.putByte("Y", (byte) y);
         if (palette != null) {
             data.put("Palette", palette);

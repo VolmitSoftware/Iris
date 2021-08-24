@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.engine.platform.HeadlessGenerator;
@@ -65,8 +66,24 @@ public class HeadlessWorld {
         }
     }
 
+    @SuppressWarnings("ConstantConditions")
     public HeadlessGenerator generate() {
-        return new HeadlessGenerator(this);
+        Engine e = null;
+
+        if(getWorld().tryGetRealWorld())
+        {
+            if(IrisToolbelt.isIrisWorld(getWorld().realWorld()))
+            {
+                e = IrisToolbelt.access(getWorld().realWorld()).getEngine();
+            }
+        }
+
+        if(e != null)
+        {
+            Iris.info("Using Existing Engine " + getWorld().name() + " for Headless Pregeneration.");
+        }
+
+        return e != null ? new HeadlessGenerator(this, e) : new HeadlessGenerator(this);
     }
 
     public World load() {
@@ -81,7 +98,8 @@ public class HeadlessWorld {
     }
 
     public static HeadlessWorld from(World world) {
-        return new HeadlessWorld(world.getName(), IrisToolbelt.access(world).getEngine().getTarget().getDimension(), world.getSeed());
+        return new HeadlessWorld(world.getName(), IrisToolbelt.access(world)
+                .getEngine().getTarget().getDimension(), world.getSeed());
     }
 
     public static HeadlessWorld from(String name, String dimension, long seed) {

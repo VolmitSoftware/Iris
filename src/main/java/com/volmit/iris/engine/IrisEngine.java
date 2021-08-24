@@ -54,7 +54,10 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import net.minecraft.world.level.block.state.IBlockData;
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -405,26 +408,42 @@ public class IrisEngine implements Engine {
         context.touch();
         getEngineData().getStatistics().generatedChunk();
         try {
+
             PrecisionStopwatch p = PrecisionStopwatch.start();
             Hunk<BlockData> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y + getMinHeight(), z + zz, t));
-            getMantle().generateMatter(x >> 4, z >> 4, multicore);
 
-            burst().burst(multicore,
-                    () -> getTerrainActuator().actuate(x, z, vblocks, multicore),
-                    () -> getBiomeActuator().actuate(x, z, vbiomes, multicore)
-            );
-            burst().burst(multicore,
-                    () -> getCaveModifier().modify(x, z, vblocks, multicore),
-                    () -> getDecorantActuator().actuate(x, z, blocks, multicore),
-                    () -> getRavineModifier().modify(x, z, vblocks, multicore)
-            );
+            if(multicore)
+            {
+                for (int i = 0; i < 16; i++) {
+                    for (int j = 0; j < 16; j++) {
+                        blocks.set(i, 0, j, Material.RED_GLAZED_TERRACOTTA.createBlockData());
+                    }
+                }
+            }
 
-            getPostModifier().modify(x, z, vblocks, multicore);
+            else
+            {
+                getMantle().generateMatter(x >> 4, z >> 4, multicore);
 
-            burst().burst(multicore,
-                    () -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, blocks, multicore),
-                    () -> getDepositModifier().modify(x, z, vblocks, multicore)
-            );
+                burst().burst(multicore,
+                        () -> getTerrainActuator().actuate(x, z, vblocks, multicore),
+                        () -> getBiomeActuator().actuate(x, z, vbiomes, multicore)
+                );
+                burst().burst(multicore,
+                        () -> getCaveModifier().modify(x, z, vblocks, multicore),
+                        () -> getDecorantActuator().actuate(x, z, blocks, multicore),
+                        () -> getRavineModifier().modify(x, z, vblocks, multicore)
+                );
+
+                getPostModifier().modify(x, z, vblocks, multicore);
+
+                burst().burst(multicore,
+                        () -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, blocks, multicore),
+                        () -> getDepositModifier().modify(x, z, vblocks, multicore)
+                );
+            }
+
+
 
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();

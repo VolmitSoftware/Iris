@@ -24,6 +24,7 @@ import com.volmit.iris.util.collection.KList;
 import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.Accessors;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -59,6 +60,24 @@ public class IrisWorld {
                 .maxHeight(world.getMaxHeight())
                 .realWorld(world)
                 .environment(world.getEnvironment());
+    }
+
+    public boolean tryGetRealWorld()
+    {
+        if(hasRealWorld())
+        {
+            return true;
+        }
+
+        World w = Bukkit.getWorld(name);
+
+        if(w != null)
+        {
+            realWorld = w;
+            return true;
+        }
+
+        return false;
     }
 
     public boolean hasRealWorld() {

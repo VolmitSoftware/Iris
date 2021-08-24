@@ -22,6 +22,7 @@ import com.volmit.iris.engine.data.io.MaxDepthIO;
 import com.volmit.iris.util.collection.KList;
 
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 /**
@@ -40,6 +41,12 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 
     private ListTag() {
         super(createEmptyValue(3));
+    }
+
+    public ListTag<T> makeAtomic()
+    {
+        setValue(new CopyOnWriteArrayList<>(getValue()));
+        return this;
     }
 
     @Override

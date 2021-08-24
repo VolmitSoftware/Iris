@@ -58,6 +58,7 @@ public class Section {
             putValueIndexedPalette(data, i);
         }
 
+        palette.makeAtomic();
         ByteArrayTag blockLight = sectionRoot.getByteArrayTag("BlockLight");
         LongArrayTag blockStates = sectionRoot.getLongArrayTag("BlockStates");
         ByteArrayTag skyLight = sectionRoot.getByteArrayTag("SkyLight");
@@ -171,9 +172,9 @@ public class Section {
      *                This option should only be used moderately to avoid unnecessary recalculation of the palette indices.
      *                Recalculating the Palette should only be executed once right before saving the Section to file.
      */
-    public synchronized void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
-        int paletteSizeBefore = palette.size();
+    public void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
         int paletteIndex = addToPalette(state);
+        int paletteSizeBefore = palette.size();
         //power of 2 --> bits must increase, but only if the palette size changed
         //otherwise we would attempt to update all blockstates and the entire palette
         //every time an existing blockstate was added while having 2^x blockstates in the palette
@@ -377,7 +378,7 @@ public class Section {
      * @throws NullPointerException     If <code>blockStates</code> is <code>null</code>
      * @throws IllegalArgumentException When <code>blockStates</code>' length is &lt; 256 or &gt; 4096 and is not a multiple of 64
      */
-    public synchronized void setBlockStates(AtomicLongArray blockStates) {
+    public void setBlockStates(AtomicLongArray blockStates) {
         if (blockStates == null) {
             throw new NullPointerException("BlockStates cannot be null");
         } else if (blockStates.length() % 64 != 0 || blockStates.length() < 256 || blockStates.length() > 4096) {

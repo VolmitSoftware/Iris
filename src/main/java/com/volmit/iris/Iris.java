@@ -107,6 +107,14 @@ public class Iris extends VolmitPlugin implements Listener {
         IO.delete(new File("iris"));
         installDataPacks();
         fixShading();
+        (new Looper() {
+            protected long loop() {
+                File ff = Iris.instance.getDataFolderNoCreate("dump");
+                if (ff.exists() && ff.isDirectory() && ff.listFiles().length == 0)
+                    Iris.dump();
+                return 10000L;
+            }
+        }).start();
     }
 
     @SuppressWarnings("unchecked")

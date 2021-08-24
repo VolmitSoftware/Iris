@@ -39,11 +39,13 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
+import io.papermc.lib.PaperLib;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.bukkit.Chunk;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.ItemStack;
@@ -64,6 +66,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     private final ChronoLatch cl;
     private final ChronoLatch ecl;
     private final ChronoLatch cln;
+    private final ChronoLatch chunkUpdater;
     private long charge = 0;
     private int actuallySpawned = 0;
     private int cooldown = 0;
@@ -76,11 +79,13 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         cln = null;
         chunkCooldowns = null;
         looper = null;
+        chunkUpdater = null;
         id = -1;
     }
 
     public IrisWorldManager(Engine engine) {
         super(engine);
+        chunkUpdater = new ChronoLatch(1000);
         cln = new ChronoLatch(60000);
         cl = new ChronoLatch(3000);
         ecl = new ChronoLatch(250);
@@ -94,41 +99,49 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                     interrupt();
                 }
 
-                if (getDimension().isInfiniteEnergy()) {
-                    energy += 1000;
-                    fixEnergy();
-                }
+                if(getEngine().getWorld().hasRealWorld())
+                {
+                    if(chunkUpdater.flip())
+                    {
+                        updateChunks();
+                    }
 
-                if (M.ms() < charge) {
-                    energy += 70;
-                    fixEnergy();
-                }
+                    if (getDimension().isInfiniteEnergy()) {
+                        energy += 1000;
+                        fixEnergy();
+                    }
 
-                if (cln.flip()) {
-                    engine.getEngineData().cleanup(getEngine());
-                }
+                    if (M.ms() < charge) {
+                        energy += 70;
+                        fixEnergy();
+                    }
 
-                if (precount != null) {
-                    entityCount = 0;
-                    for (Entity i : precount) {
-                        if (i instanceof LivingEntity) {
-                            if (!i.isDead()) {
-                                entityCount++;
+                    if (cln.flip()) {
+                        engine.getEngineData().cleanup(getEngine());
+                    }
+
+                    if (precount != null) {
+                        entityCount = 0;
+                        for (Entity i : precount) {
+                            if (i instanceof LivingEntity) {
+                                if (!i.isDead()) {
+                                    entityCount++;
+                                }
                             }
+                        }
+
+                        precount = null;
+                    }
+
+                    if (energy < 650) {
+                        if (ecl.flip()) {
+                            energy *= 1 + (0.02 * M.clip((1D - getEntitySaturation()), 0D, 1D));
+                            fixEnergy();
                         }
                     }
 
-                    precount = null;
+                    onAsyncTick();
                 }
-
-                if (energy < 650) {
-                    if (ecl.flip()) {
-                        energy *= 1 + (0.02 * M.clip((1D - getEntitySaturation()), 0D, 1D));
-                        fixEnergy();
-                    }
-                }
-
-                onAsyncTick();
 
                 return 50;
             }
@@ -136,6 +149,16 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         looper.setPriority(Thread.MIN_PRIORITY);
         looper.setName("Iris World Manager");
         looper.start();
+    }
+
+    private void updateChunks() {
+        for(Player i : getEngine().getWorld().realWorld().getPlayers())
+        {
+            J.s(() -> {
+                Chunk c = i.getLocation().getChunk();
+                J.a(() -> getEngine().updateChunk(c));
+            }, RNG.r.i(0, 5));
+        }
     }
 
     private boolean onAsyncTick() {

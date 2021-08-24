@@ -473,8 +473,7 @@ public class Mantle {
      * @return the file
      */
     public static File fileForRegion(File folder, Long key) {
-        String id = UUID.nameUUIDFromBytes(("TectonicPlate:" + key).getBytes(StandardCharsets.UTF_8)).toString();
-        File f = new File(folder, id.substring(0, 2) + "/" + id.split("\\Q-\\E")[3] + "/" + id + ".ttp");
+        File f = new File(folder, "p." + key + ".ttp");
         if(!f.getParentFile().exists())
         {
             f.getParentFile().mkdirs();

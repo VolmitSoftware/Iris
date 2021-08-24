@@ -136,7 +136,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
         engine = new IrisEngine(new EngineTarget(world, dimension, data), studio);
         populators.clear();
-        populators.add((BlockPopulator) engine);
     }
 
     @Override

@@ -59,7 +59,6 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
-import org.bukkit.generator.BlockPopulator;
 
 import java.io.File;
 import java.io.IOException;
@@ -68,9 +67,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-@EqualsAndHashCode(callSuper = true)
 @Data
-public class IrisEngine extends BlockPopulator implements Engine {
+public class IrisEngine implements Engine {
     // TODO: Remove block population, stop using bukkit
     private final AtomicInteger generated;
     private final AtomicInteger generatedLast;
@@ -458,22 +456,6 @@ public class IrisEngine extends BlockPopulator implements Engine {
         }
 
         return getData().getBiomeLoader().load(getDimension().getFocus());
-    }
-
-    // TODO: Remove block population
-    @ChunkCoordinates
-    @Override
-    public void populate(World world, Random random, Chunk c) {
-        try
-        {
-            updateChunk(c);
-            placeTiles(c);
-        }
-
-        catch(Throwable e)
-        {
-            Iris.reportError(e);
-        }
     }
 
     @Override

@@ -45,8 +45,10 @@ import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.M;
@@ -57,9 +59,8 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.stream.ProceduralStream;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import io.papermc.lib.PaperLib;
+import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
@@ -69,6 +70,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
 import java.awt.*;
+import java.awt.Color;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -232,19 +234,21 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     @ChunkCoordinates
     @Override
     default void updateChunk(Chunk c) {
-        PrecisionStopwatch p = PrecisionStopwatch.start();
-        getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), Boolean.class, (x, y, z, v) -> {
-            if (v != null && v) {
-                int vx = x & 15;
-                int vz = z & 15;
-                update(x, y, z, c, new RNG(Cache.key(c.getX(), c.getZ())));
+        getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.UPDATE, () -> J.s(() -> {
+            PrecisionStopwatch p = PrecisionStopwatch.start();
+            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), Boolean.class, (x, y, z, v) -> {
+                if (v != null && v) {
+                    int vx = x & 15;
+                    int vz = z & 15;
+                    update(x, y, z, c, new RNG(Cache.key(c.getX(), c.getZ())));
 
-                if (vx > 0 && vx < 15 && vz > 0 && vz < 15) {
-                    updateLighting(x, y, z, c);
+                    if (vx > 0 && vx < 15 && vz > 0 && vz < 15) {
+                        updateLighting(x, y, z, c);
+                    }
                 }
-            }
-        });
-        getMetrics().getUpdates().put(p.getMilliseconds());
+            });
+            getMetrics().getUpdates().put(p.getMilliseconds());
+        }));
     }
 
     @BlockCoordinates
@@ -389,11 +393,37 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             items.addAll(i.getLoot(debug, items.isEmpty(), rng, slot, x, y, z, b + b, mgf + b));
         }
 
-        for (ItemStack i : items) {
-            inv.addItem(i);
+        if(PaperLib.isPaper() && getWorld().hasRealWorld())
+        {
+            PaperLib.getChunkAtAsync(getWorld().realWorld(), x >> 4, z >> 4).thenAccept((c) -> {
+                Runnable r = () -> {
+                    for (ItemStack i : items) {
+                        inv.addItem(i);
+                    }
+
+                    scramble(inv, rng);
+                };
+
+                if(Bukkit.isPrimaryThread())
+                {
+                    r.run();
+                }
+
+                else
+                {
+                    J.s(r);
+                }
+            });
         }
 
-        scramble(inv, rng);
+        else
+        {
+            for (ItemStack i : items) {
+                inv.addItem(i);
+            }
+
+            scramble(inv, rng);
+        }
     }
 
     EngineEffects getEffects();

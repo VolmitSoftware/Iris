@@ -46,7 +46,6 @@ public class B {
     private static final IntSet storageCache = buildStorageCache();
     private static final IntSet storageChestCache = buildStorageChestCache();
     private static final IntSet litCache = buildLitCache();
-    private static final KMap<String, BlockData> blockDataCache = new KMap<>();
     private static final ChronoLatch clw = new ChronoLatch(1000);
 
     private static IntSet buildFoliageCache() {
@@ -346,12 +345,6 @@ public class B {
 
     private static BlockData parseBlockData(String ix) {
         try {
-            BlockData bb = blockDataCache.get(ix);
-
-            if (bb != null) {
-                return bb;
-            }
-
             BlockData bx = null;
 
             if (ix.startsWith("oraxen:") && Iris.linkOraxen.supported()) {
@@ -368,7 +361,6 @@ public class B {
                 ((Leaves) bx).setPersistent(false);
             }
 
-            blockDataCache.put(ix, bx);
             return bx;
         } catch (Throwable e) {
             if(clw.flip())
@@ -420,9 +412,7 @@ public class B {
             Iris.debug("Converting " + ix + " to " + newBlock);
 
             try {
-                BlockData bd = Bukkit.createBlockData(newBlock);
-                blockDataCache.put(ix, bd);
-                return bd;
+                return Bukkit.createBlockData(newBlock);
             } catch (Throwable e1) {
                 Iris.reportError(e1);
             }

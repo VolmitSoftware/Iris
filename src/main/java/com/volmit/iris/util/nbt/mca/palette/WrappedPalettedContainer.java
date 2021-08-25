@@ -29,23 +29,19 @@ public class WrappedPalettedContainer<T> implements PaletteAccess {
     private final Function<T, CompoundTag> reader;
     private final Function<CompoundTag, T> writer;
 
-    public void setBlock(int x, int y, int z, CompoundTag data)
-    {
-        container.set(x,y,z,writer.apply(data));
+    public void setBlock(int x, int y, int z, CompoundTag data) {
+        container.set(x, y, z, writer.apply(data));
     }
 
-    public CompoundTag getBlock(int x, int y, int z)
-    {
-        return reader.apply(container.get(x,y,z));
+    public CompoundTag getBlock(int x, int y, int z) {
+        return reader.apply(container.get(x, y, z));
     }
 
-    public void writeToSection(CompoundTag tag)
-    {
+    public void writeToSection(CompoundTag tag) {
         container.write(tag, "Palette", "BlockStates");
     }
 
-    public void readFromSection(CompoundTag tag)
-    {
+    public void readFromSection(CompoundTag tag) {
         container.read(tag.getListTag("Palette"), tag.getLongArrayTag("BlockStates").getValue());
     }
 }

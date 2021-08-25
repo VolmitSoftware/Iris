@@ -29,8 +29,8 @@ import com.volmit.iris.util.scheduling.Looper;
 import java.util.concurrent.ExecutorService;
 
 public class PreservationSVC implements IrisService {
-    private KList<Thread> threads = new KList<>();
-    private KList<ExecutorService> services = new KList<>();
+    private final KList<Thread> threads = new KList<>();
+    private final KList<ExecutorService> services = new KList<>();
     private Looper dereferencer;
 
     public void register(Thread t) {

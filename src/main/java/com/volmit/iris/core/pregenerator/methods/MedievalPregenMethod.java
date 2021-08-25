@@ -95,7 +95,7 @@ public class MedievalPregenMethod implements PregeneratorMethod {
 
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
-        if (futures.size() > IrisSettings.getThreadCount((int) IrisSettings.get().getConcurrency().getParallelism())) {
+        if (futures.size() > IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())) {
             waitForChunks();
         }
 

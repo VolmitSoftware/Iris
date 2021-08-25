@@ -127,13 +127,9 @@ public class J {
     }
 
     public static <T> T attemptResult(NastySupplier<T> r) {
-        try
-        {
+        try {
             return r.get();
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             return null;
         }
     }

@@ -48,40 +48,30 @@ import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.io.JarScanner;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.nbt.mca.*;
-import com.volmit.iris.util.nbt.mca.palette.BiomeContainer;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.*;
 import com.volmit.iris.util.reflect.ShadeFix;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.Looper;
 import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
 import io.papermc.lib.PaperLib;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
-import net.minecraft.world.level.chunk.storage.RegionFile;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
-import org.checkerframework.checker.units.qual.K;
 
 import java.io.*;
 import java.lang.annotation.Annotation;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.Map;
-import java.util.Set;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -118,14 +108,6 @@ public class Iris extends VolmitPlugin implements Listener {
         IO.delete(new File("iris"));
         installDataPacks();
         fixShading();
-        (new Looper() {
-            protected long loop() {
-                File ff = Iris.instance.getDataFolderNoCreate("dump");
-                if (ff.exists() && ff.isDirectory() && ff.listFiles().length == 0)
-                    Iris.dump();
-                return 10000L;
-            }
-        }).start();
     }
 
     private void enable() {

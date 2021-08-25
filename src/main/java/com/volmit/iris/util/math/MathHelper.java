@@ -26,7 +26,6 @@ import org.bukkit.craftbukkit.libs.org.apache.commons.lang3.math.NumberUtils;
 
 import java.util.Random;
 import java.util.UUID;
-import java.util.function.Consumer;
 import java.util.function.IntPredicate;
 
 public class MathHelper {
@@ -44,7 +43,7 @@ public class MathHelper {
     public static final float f = 1.0E-5F;
     public static final float g = c(2.0F);
     private static final float n = 10430.378F;
-    private static final float[] o = (float[]) SystemUtils.a(new float[65536], (var0x) -> {
+    private static final float[] o = SystemUtils.a(new float[65536], (var0x) -> {
         for (int var1 = 0; var1 < var0x.length; ++var1) {
             var0x[var1] = (float) Math.sin((double) var1 * 3.141592653589793D * 2.0D / 65536.0D);
         }
@@ -71,7 +70,7 @@ public class MathHelper {
     }
 
     public static float c(float var0) {
-        return (float) Math.sqrt((double) var0);
+        return (float) Math.sqrt(var0);
     }
 
     public static int d(float var0) {
@@ -607,7 +606,7 @@ public class MathHelper {
 
         int var2;
         for (var2 = 0; var2 < var0.length; ++var2) {
-            var0[var2] /= (double) var1;
+            var0[var2] /= var1;
         }
 
         for (var2 = 0; var2 < var0.length; ++var2) {
@@ -658,7 +657,7 @@ public class MathHelper {
         int var7 = 0;
 
         for (int var8 = var4; var8 <= var5; ++var8) {
-            var6[var7] = Math.max(var0 * StrictMath.log((double) var8) + var2, 0.0D);
+            var6[var7] = Math.max(var0 * StrictMath.log(var8) + var2, 0.0D);
             ++var7;
         }
 
@@ -773,7 +772,7 @@ public class MathHelper {
     }
 
     public static double n(double var0) {
-        return var0 + (2.0D * (new Random((long) floor(var0 * 3000.0D))).nextDouble() - 1.0D) * 1.0E-7D / 2.0D;
+        return var0 + (2.0D * (new Random(floor(var0 * 3000.0D))).nextDouble() - 1.0D) * 1.0E-7D / 2.0D;
     }
 
     public static int d(int var0, int var1) {

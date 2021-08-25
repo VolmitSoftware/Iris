@@ -73,24 +73,22 @@ public class Section {
      * @return The block state data of this block.
      */
     public synchronized CompoundTag getBlockStateAt(int blockX, int blockY, int blockZ) {
-        synchronized (palette)
-        {
-            return palette.getBlock(blockX&15, blockY&15, blockZ&15);
+        synchronized (palette) {
+            return palette.getBlock(blockX & 15, blockY & 15, blockZ & 15);
         }
     }
 
     /**
      * Attempts to add a block state for a specific block location in this Section.
      *
-     * @param blockX  The x-coordinate of the block in this Section
-     * @param blockY  The y-coordinate of the block in this Section
-     * @param blockZ  The z-coordinate of the block in this Section
-     * @param state   The block state to be set
+     * @param blockX The x-coordinate of the block in this Section
+     * @param blockY The y-coordinate of the block in this Section
+     * @param blockZ The z-coordinate of the block in this Section
+     * @param state  The block state to be set
      */
     public synchronized void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
-        synchronized (palette)
-        {
-            palette.setBlock(blockX&15, blockY&15, blockZ&15, state);
+        synchronized (palette) {
+            palette.setBlock(blockX & 15, blockY & 15, blockZ & 15, state);
         }
     }
 
@@ -167,8 +165,7 @@ public class Section {
         data.putByte("Y", (byte) y);
 
         if (palette != null) {
-            synchronized (palette)
-            {
+            synchronized (palette) {
                 palette.writeToSection(data);
             }
         }

@@ -44,7 +44,6 @@ import com.volmit.iris.engine.object.spawners.IrisSpawner;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.data.VanillaBiomeMap;
@@ -372,10 +371,8 @@ public class IrisBiome extends IrisRegistrant implements IRare {
                 break;
             }
 
-            if(dim.isExplodeBiomePalettes())
-            {
-                for(int j = 0; j < dim.getExplodeBiomePaletteSize(); j++)
-                {
+            if (dim.isExplodeBiomePalettes()) {
+                for (int j = 0; j < dim.getExplodeBiomePaletteSize(); j++) {
                     data.add(BARRIER);
 
                     if (data.size() >= maxDepth) {

@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.nbt.mca;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.nbt.tag.CompoundTag;

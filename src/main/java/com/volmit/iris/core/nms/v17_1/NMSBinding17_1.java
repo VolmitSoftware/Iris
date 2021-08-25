@@ -66,7 +66,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class NMSBinding17_1 implements INMSBinding{
+public class NMSBinding17_1 implements INMSBinding {
     private final BlockData AIR = Material.AIR.createBlockData();
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
     private final AtomicCache<IdMapper<IBlockData>> registryCache = new AtomicCache<>();
@@ -93,14 +93,14 @@ public class NMSBinding17_1 implements INMSBinding{
             List<IBlockData> d = (List<IBlockData>) df.get(blockData);
             return new IdMapper<>(c, d, b);
         });
-        Palette<IBlockData> global = globalCache.aquireNasty(() -> new GlobalPalette<>(registry, ((CraftBlockData)AIR).getState()));
+        Palette<IBlockData> global = globalCache.aquireNasty(() -> new GlobalPalette<>(registry, ((CraftBlockData) AIR).getState()));
         PalettedContainer<IBlockData> container = new PalettedContainer<>(global, registry,
-                i -> ((CraftBlockData)NBTWorld.getBlockData(i)).getState(),
+                i -> ((CraftBlockData) NBTWorld.getBlockData(i)).getState(),
                 i -> NBTWorld.getCompound(CraftBlockData.fromData(i)),
                 ((CraftBlockData) AIR).getState());
         return new WrappedPalettedContainer<>(container,
                 i -> NBTWorld.getCompound(CraftBlockData.fromData(i)),
-                i -> ((CraftBlockData)NBTWorld.getBlockData(i)).getState());
+                i -> ((CraftBlockData) NBTWorld.getBlockData(i)).getState());
     }
 
     private Object getBiomeStorage(ChunkGenerator.BiomeGrid g) {
@@ -386,8 +386,7 @@ public class NMSBinding17_1 implements INMSBinding{
         return biome.ordinal();
     }
 
-    private IdMap<BiomeBase> getBiomeMapping()
-    {
+    private IdMap<BiomeBase> getBiomeMapping() {
         return biomeMapCache.aquire(() -> new IdMap<>() {
             @NotNull
             @Override
@@ -434,7 +433,7 @@ public class NMSBinding17_1 implements INMSBinding{
 
             @Override
             public int getBiome(int x, int y, int z) {
-                return biomeMapping.getId(base.getBiome(x,y,z));
+                return biomeMapping.getId(base.getBiome(x, y, z));
             }
         };
     }

@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class QueueJob<T> implements Job {
     final KList<T> queue;
     protected int totalWork;
-    private AtomicInteger completed;
+    private final AtomicInteger completed;
 
     public QueueJob() {
         totalWork = 0;

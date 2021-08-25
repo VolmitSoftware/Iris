@@ -18,8 +18,7 @@
 
 package com.volmit.iris.util.nbt.mca.palette;
 
-public interface BiomeContainer
-{
+public interface BiomeContainer {
     int[] getData();
 
     void setBiome(int x, int y, int z, int id);

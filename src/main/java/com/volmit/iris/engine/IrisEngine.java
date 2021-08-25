@@ -400,17 +400,13 @@ public class IrisEngine implements Engine {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             Hunk<BlockData> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y + getMinHeight(), z + zz, t));
 
-            if(getDimension().isDebugChunkCrossSections() && ((x >> 4) % getDimension().getDebugCrossSectionsMod() == 0 ||  (z >> 4) % getDimension().getDebugCrossSectionsMod() == 0))
-            {
+            if (getDimension().isDebugChunkCrossSections() && ((x >> 4) % getDimension().getDebugCrossSectionsMod() == 0 || (z >> 4) % getDimension().getDebugCrossSectionsMod() == 0)) {
                 for (int i = 0; i < 16; i++) {
                     for (int j = 0; j < 16; j++) {
                         blocks.set(i, 0, j, Material.CRYING_OBSIDIAN.createBlockData());
                     }
                 }
-            }
-
-            else
-            {
+            } else {
                 getMantle().generateMatter(x >> 4, z >> 4, true);
                 burst().burst(multicore,
                         () -> getTerrainActuator().actuate(x, z, vblocks, multicore),

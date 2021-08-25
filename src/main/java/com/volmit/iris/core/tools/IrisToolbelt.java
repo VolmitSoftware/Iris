@@ -129,7 +129,7 @@ public class IrisToolbelt {
         }
 
         return pregenerate(task, new HybridPregenMethod(gen.getEngine().getWorld().realWorld(),
-                IrisSettings.getThreadCount((int) IrisSettings.get().getConcurrency().getParallelism())));
+                IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())));
     }
 
     /**
@@ -145,7 +145,7 @@ public class IrisToolbelt {
             return pregenerate(task, access(world));
         }
 
-        return pregenerate(task, new HybridPregenMethod(world, IrisSettings.getThreadCount((int) IrisSettings.get().getConcurrency().getParallelism())));
+        return pregenerate(task, new HybridPregenMethod(world, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())));
     }
 
     /**

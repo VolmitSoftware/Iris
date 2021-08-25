@@ -20,5 +20,5 @@ package com.volmit.iris.util.nbt.mca.palette;
 
 @FunctionalInterface
 public interface CountConsumer<T> {
-  void accept(T paramT, int paramInt);
+    void accept(T paramT, int paramInt);
 }

@@ -26,158 +26,157 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class PalettedContainer<T> implements PaletteResize<T> {
-  private static final int SIZE = 4096;
-  
-  public static final int GLOBAL_PALETTE_BITS = 9;
-  
-  public static final int MIN_PALETTE_SIZE = 4;
-  
-  private final Palette<T> globalPalette;
-  
-  private final PaletteResize<T> dummyPaletteResize = (var0, var1) -> 0;
-  
-  private final IdMapper<T> registry;
-  
-  private final Function<CompoundTag, T> reader;
-  
-  private final Function<T, CompoundTag> writer;
-  
-  private final T defaultValue;
-  
-  protected BitStorage storage;
-  
-  private Palette<T> palette;
-  
-  private int bits;
-  
-  public PalettedContainer(Palette<T> var0, IdMapper<T> var1, Function<CompoundTag, T> var2, Function<T, CompoundTag> var3, T var4) {
-    this.globalPalette = var0;
-    this.registry = var1;
-    this.reader = var2;
-    this.writer = var3;
-    this.defaultValue = var4;
-    setBits(4);
-  }
-  
-  private static int getIndex(int var0, int var1, int var2) {
-    return var1 << 8 | var2 << 4 | var0;
-  }
-  
-  private void setBits(int var0) {
-    if (var0 == this.bits)
-      return; 
-    this.bits = var0;
-    if (this.bits <= 4) {
-      this.bits = 4;
-      this.palette = new LinearPalette<>(this.registry, this.bits, this, this.reader);
-    } else if (this.bits < 9) {
-      this.palette = new HashMapPalette<>(this.registry, this.bits, this, this.reader, this.writer);
-    } else {
-      this.palette = this.globalPalette;
-      this.bits = Mth.ceillog2(this.registry.size());
-    } 
-    this.palette.idFor(this.defaultValue);
-    this.storage = new BitStorage(this.bits, 4096);
-  }
-  
-  public int onResize(int var0, T var1) {
-    BitStorage var2 = this.storage;
-    Palette<T> var3 = this.palette;
-    setBits(var0);
-    for (int var4 = 0; var4 < var2.getSize(); var4++) {
-      T var5 = var3.valueFor(var2.get(var4));
-      if (var5 != null)
-        set(var4, var5); 
-    } 
-    return this.palette.idFor(var1);
-  }
-  
-  public T getAndSet(int var0, int var1, int var2, T var3) {
-    return getAndSet(getIndex(var0, var1, var2), var3);
-  }
-  
-  public T getAndSetUnchecked(int var0, int var1, int var2, T var3) {
-    return getAndSet(getIndex(var0, var1, var2), var3);
-  }
-  
-  private T getAndSet(int var0, T var1) {
-    int var2 = this.palette.idFor(var1);
-    int var3 = this.storage.getAndSet(var0, var2);
-    T var4 = this.palette.valueFor(var3);
-    return (var4 == null) ? this.defaultValue : var4;
-  }
-  
-  public void set(int var0, int var1, int var2, T var3) {
-    set(getIndex(var0, var1, var2), var3);
-  }
-  
-  private void set(int var0, T var1) {
-    int var2 = this.palette.idFor(var1);
-    this.storage.set(var0, var2);
-  }
-  
-  public T get(int var0, int var1, int var2) {
-    return get(getIndex(var0, var1, var2));
-  }
-  
-  protected T get(int var0) {
-    T var1 = this.palette.valueFor(this.storage.get(var0));
-    return (var1 == null) ? this.defaultValue : var1;
-  }
-  
-  public void read(ListTag var0, long[] var1) {
-    int var2 = Math.max(4, Mth.ceillog2(var0.size()));
-    if (var2 != this.bits)
-      setBits(var2);
-    this.palette.read(var0);
-    int var3 = var1.length * 64 / 4096;
-    if (this.palette == this.globalPalette) {
-      Palette<T> var4 = new HashMapPalette<>(this.registry, var2, this.dummyPaletteResize, this.reader, this.writer);
-      var4.read(var0);
-      BitStorage var5 = new BitStorage(var2, 4096, var1);
-      for (int var6 = 0; var6 < 4096; var6++)
-        this.storage.set(var6, this.globalPalette.idFor(var4.valueFor(var5.get(var6))));
-    } else if (var3 == this.bits) {
-      System.arraycopy(var1, 0, this.storage.getRaw(), 0, var1.length);
-    } else {
-      BitStorage var4 = new BitStorage(var3, 4096, var1);
-      for (int var5 = 0; var5 < 4096; var5++)
-        this.storage.set(var5, var4.get(var5));
-    }
-  }
-  
-  public void write(CompoundTag var0, String var1, String var2) {
-    HashMapPalette<T> var3 = new HashMapPalette<>(this.registry, this.bits, this.dummyPaletteResize, this.reader, this.writer);
-    T var4 = this.defaultValue;
-    int var5 = var3.idFor(this.defaultValue);
-    int[] var6 = new int[4096];
-    for (int i = 0; i < 4096; i++) {
-      T t = get(i);
-      if (t != var4) {
-        var4 = t;
-        var5 = var3.idFor(t);
-      }
-      var6[i] = var5;
-    }
-    ListTag<CompoundTag> paletteList = (ListTag<CompoundTag>) ListTag.createUnchecked(CompoundTag.class);
-    var3.write(paletteList);
-    var0.put(var1, paletteList);
-    int var8 = Math.max(4, Mth.ceillog2(paletteList.size()));
-    BitStorage var9 = new BitStorage(var8, 4096);
-    for (int var10 = 0; var10 < var6.length; var10++)
-    {
-      var9.set(var10, var6[var10]);
-    }
-    var0.putLongArray(var2, var9.getRaw());
-  }
+    private static final int SIZE = 4096;
 
-  public boolean maybeHas(Predicate<T> var0) {
-    return this.palette.maybeHas(var0);
-  }
-  
-  public void count(CountConsumer<T> var0) {
-    Int2IntOpenHashMap int2IntOpenHashMap = new Int2IntOpenHashMap();
-    this.storage.getAll(var1 -> int2IntOpenHashMap.put(var1, int2IntOpenHashMap.get(var1) + 1));
-    int2IntOpenHashMap.int2IntEntrySet().forEach(var1 -> var0.accept(this.palette.valueFor(var1.getIntKey()), var1.getIntValue()));
-  }
+    public static final int GLOBAL_PALETTE_BITS = 9;
+
+    public static final int MIN_PALETTE_SIZE = 4;
+
+    private final Palette<T> globalPalette;
+
+    private final PaletteResize<T> dummyPaletteResize = (var0, var1) -> 0;
+
+    private final IdMapper<T> registry;
+
+    private final Function<CompoundTag, T> reader;
+
+    private final Function<T, CompoundTag> writer;
+
+    private final T defaultValue;
+
+    protected BitStorage storage;
+
+    private Palette<T> palette;
+
+    private int bits;
+
+    public PalettedContainer(Palette<T> var0, IdMapper<T> var1, Function<CompoundTag, T> var2, Function<T, CompoundTag> var3, T var4) {
+        this.globalPalette = var0;
+        this.registry = var1;
+        this.reader = var2;
+        this.writer = var3;
+        this.defaultValue = var4;
+        setBits(4);
+    }
+
+    private static int getIndex(int var0, int var1, int var2) {
+        return var1 << 8 | var2 << 4 | var0;
+    }
+
+    private void setBits(int var0) {
+        if (var0 == this.bits)
+            return;
+        this.bits = var0;
+        if (this.bits <= 4) {
+            this.bits = 4;
+            this.palette = new LinearPalette<>(this.registry, this.bits, this, this.reader);
+        } else if (this.bits < 9) {
+            this.palette = new HashMapPalette<>(this.registry, this.bits, this, this.reader, this.writer);
+        } else {
+            this.palette = this.globalPalette;
+            this.bits = Mth.ceillog2(this.registry.size());
+        }
+        this.palette.idFor(this.defaultValue);
+        this.storage = new BitStorage(this.bits, 4096);
+    }
+
+    public int onResize(int var0, T var1) {
+        BitStorage var2 = this.storage;
+        Palette<T> var3 = this.palette;
+        setBits(var0);
+        for (int var4 = 0; var4 < var2.getSize(); var4++) {
+            T var5 = var3.valueFor(var2.get(var4));
+            if (var5 != null)
+                set(var4, var5);
+        }
+        return this.palette.idFor(var1);
+    }
+
+    public T getAndSet(int var0, int var1, int var2, T var3) {
+        return getAndSet(getIndex(var0, var1, var2), var3);
+    }
+
+    public T getAndSetUnchecked(int var0, int var1, int var2, T var3) {
+        return getAndSet(getIndex(var0, var1, var2), var3);
+    }
+
+    private T getAndSet(int var0, T var1) {
+        int var2 = this.palette.idFor(var1);
+        int var3 = this.storage.getAndSet(var0, var2);
+        T var4 = this.palette.valueFor(var3);
+        return (var4 == null) ? this.defaultValue : var4;
+    }
+
+    public void set(int var0, int var1, int var2, T var3) {
+        set(getIndex(var0, var1, var2), var3);
+    }
+
+    private void set(int var0, T var1) {
+        int var2 = this.palette.idFor(var1);
+        this.storage.set(var0, var2);
+    }
+
+    public T get(int var0, int var1, int var2) {
+        return get(getIndex(var0, var1, var2));
+    }
+
+    protected T get(int var0) {
+        T var1 = this.palette.valueFor(this.storage.get(var0));
+        return (var1 == null) ? this.defaultValue : var1;
+    }
+
+    public void read(ListTag var0, long[] var1) {
+        int var2 = Math.max(4, Mth.ceillog2(var0.size()));
+        if (var2 != this.bits)
+            setBits(var2);
+        this.palette.read(var0);
+        int var3 = var1.length * 64 / 4096;
+        if (this.palette == this.globalPalette) {
+            Palette<T> var4 = new HashMapPalette<>(this.registry, var2, this.dummyPaletteResize, this.reader, this.writer);
+            var4.read(var0);
+            BitStorage var5 = new BitStorage(var2, 4096, var1);
+            for (int var6 = 0; var6 < 4096; var6++)
+                this.storage.set(var6, this.globalPalette.idFor(var4.valueFor(var5.get(var6))));
+        } else if (var3 == this.bits) {
+            System.arraycopy(var1, 0, this.storage.getRaw(), 0, var1.length);
+        } else {
+            BitStorage var4 = new BitStorage(var3, 4096, var1);
+            for (int var5 = 0; var5 < 4096; var5++)
+                this.storage.set(var5, var4.get(var5));
+        }
+    }
+
+    public void write(CompoundTag var0, String var1, String var2) {
+        HashMapPalette<T> var3 = new HashMapPalette<>(this.registry, this.bits, this.dummyPaletteResize, this.reader, this.writer);
+        T var4 = this.defaultValue;
+        int var5 = var3.idFor(this.defaultValue);
+        int[] var6 = new int[4096];
+        for (int i = 0; i < 4096; i++) {
+            T t = get(i);
+            if (t != var4) {
+                var4 = t;
+                var5 = var3.idFor(t);
+            }
+            var6[i] = var5;
+        }
+        ListTag<CompoundTag> paletteList = (ListTag<CompoundTag>) ListTag.createUnchecked(CompoundTag.class);
+        var3.write(paletteList);
+        var0.put(var1, paletteList);
+        int var8 = Math.max(4, Mth.ceillog2(paletteList.size()));
+        BitStorage var9 = new BitStorage(var8, 4096);
+        for (int var10 = 0; var10 < var6.length; var10++) {
+            var9.set(var10, var6[var10]);
+        }
+        var0.putLongArray(var2, var9.getRaw());
+    }
+
+    public boolean maybeHas(Predicate<T> var0) {
+        return this.palette.maybeHas(var0);
+    }
+
+    public void count(CountConsumer<T> var0) {
+        Int2IntOpenHashMap int2IntOpenHashMap = new Int2IntOpenHashMap();
+        this.storage.getAll(var1 -> int2IntOpenHashMap.put(var1, int2IntOpenHashMap.get(var1) + 1));
+        int2IntOpenHashMap.int2IntEntrySet().forEach(var1 -> var0.accept(this.palette.valueFor(var1.getIntKey()), var1.getIntValue()));
+    }
 }

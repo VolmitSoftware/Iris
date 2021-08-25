@@ -23,6 +23,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.function.NastyFunction;
 import com.volmit.iris.util.function.NastyFuture;
 import com.volmit.iris.util.function.NastyRunnable;
+import com.volmit.iris.util.function.NastySupplier;
 import com.volmit.iris.util.math.FinalInteger;
 import com.volmit.iris.util.parallel.MultiBurst;
 import org.bukkit.Bukkit;
@@ -123,6 +124,18 @@ public class J {
 
     public static boolean attempt(NastyRunnable r) {
         return attemptCatch(r) == null;
+    }
+
+    public static <T> T attemptResult(NastySupplier<T> r) {
+        try
+        {
+            return r.get();
+        }
+
+        catch(Throwable e)
+        {
+            return null;
+        }
     }
 
     public static Throwable attemptCatch(NastyRunnable r) {

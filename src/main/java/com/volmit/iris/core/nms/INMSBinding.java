@@ -76,5 +76,5 @@ public interface INMSBinding {
         return false;
     }
 
-    RegistryBlockID<CompoundTag> computeBlockIDRegistry() throws NoSuchFieldException, IllegalAccessException;
+    RegistryBlockID computeBlockIDRegistry() throws NoSuchFieldException, IllegalAccessException;
 }

@@ -146,7 +146,7 @@ public class NMSBinding1X implements INMSBinding {
     }
 
     @Override
-    public RegistryBlockID<CompoundTag> computeBlockIDRegistry() throws NoSuchFieldException, IllegalAccessException {
+    public RegistryBlockID computeBlockIDRegistry() throws NoSuchFieldException, IllegalAccessException {
         Iris.error("Cannot use the global data palette! Iris is incapable of using MCA generation on this version of minecraft!");
         return null;
     }

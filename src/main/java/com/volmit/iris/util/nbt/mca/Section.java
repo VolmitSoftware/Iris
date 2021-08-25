@@ -27,7 +27,7 @@ import com.volmit.iris.util.nbt.tag.LongArrayTag;
 
 public class Section {
     private CompoundTag data;
-    private DataPaletteBlock<CompoundTag> palette;
+    private DataPaletteBlock palette;
     private byte[] blockLight;
     private byte[] skyLight;
     private int dataVersion;
@@ -43,7 +43,7 @@ public class Section {
         if (rawPalette == null) {
             return;
         }
-        palette = new DataPaletteBlock<>();
+        palette = new DataPaletteBlock();
         LongArrayTag blockStates = sectionRoot.getLongArrayTag("BlockStates");
         palette.load((ListTag<CompoundTag>) rawPalette, blockStates.getValue());
         ByteArrayTag blockLight = sectionRoot.getByteArrayTag("BlockLight");
@@ -74,7 +74,10 @@ public class Section {
      * @return The block state data of this block.
      */
     public synchronized CompoundTag getBlockStateAt(int blockX, int blockY, int blockZ) {
-        return palette.getBlock(blockX&15, blockY&15, blockZ&15);
+        synchronized (palette)
+        {
+            return palette.getBlock(blockX&15, blockY&15, blockZ&15);
+        }
     }
 
     /**
@@ -86,7 +89,10 @@ public class Section {
      * @param state   The block state to be set
      */
     public synchronized void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
-        palette.setBlock(blockX&15, blockY&15, blockZ&15, state);
+        synchronized (palette)
+        {
+            palette.setBlock(blockX&15, blockY&15, blockZ&15, state);
+        }
     }
 
     /**
@@ -145,7 +151,7 @@ public class Section {
      */
     public static Section newSection() {
         Section s = new Section();
-        s.palette = new DataPaletteBlock<>();
+        s.palette = new DataPaletteBlock();
         s.data = new CompoundTag();
         return s;
     }
@@ -162,7 +168,10 @@ public class Section {
         data.putByte("Y", (byte) y);
 
         if (palette != null) {
-            palette.save(data, "Palette", "BlockStates");
+            synchronized (palette)
+            {
+                palette.save(data, "Palette", "BlockStates");
+            }
         }
         if (blockLight != null) {
             data.putByteArray("BlockLight", blockLight);

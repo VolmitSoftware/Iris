@@ -18,9 +18,11 @@
 
 package com.volmit.iris.util.nbt.mca.palettes;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
 import net.minecraft.network.PacketDataSerializer;
+import net.minecraft.world.level.chunk.ChunkSection;
 
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -42,7 +44,7 @@ public class DataPaletteHash<T> implements DataPalette<T> {
         this.b = new RegistryID<T>(1 << var1);
     }
 
-    public int a(T var0) {
+    public int getIndex(T var0) {
         int var1 = this.b.getId(var0);
         if (var1 == -1) {
             var1 = this.b.c(var0);
@@ -64,7 +66,7 @@ public class DataPaletteHash<T> implements DataPalette<T> {
         return false;
     }
 
-    public T a(int var0) {
+    public T getByIndex(int var0) {
         return this.b.fromId(var0);
     }
 
@@ -102,7 +104,7 @@ public class DataPaletteHash<T> implements DataPalette<T> {
         return this.b.b();
     }
 
-    public void a(ListTag<CompoundTag> var0) {
+    public void replace(ListTag<CompoundTag> var0) {
         this.b.a();
 
         for (int var1 = 0; var1 < var0.size(); ++var1) {
@@ -115,9 +117,9 @@ public class DataPaletteHash<T> implements DataPalette<T> {
         return null;
     }
 
-    public void b(ListTag<CompoundTag> var0) {
+    public void writePalette(ListTag<CompoundTag> var0) {
         for (int var1 = 0; var1 < this.b(); ++var1) {
-            var0.add(this.e.apply(this.b.fromId(var1)));
+            var0.add((CompoundTag) this.b.fromId(var1));
         }
 
     }

@@ -35,4 +35,6 @@ public interface DataPalette<T> {
     int b();
 
     void a(ListTag<CompoundTag> t);
+
+    ListTag<CompoundTag> getPalette();
 }

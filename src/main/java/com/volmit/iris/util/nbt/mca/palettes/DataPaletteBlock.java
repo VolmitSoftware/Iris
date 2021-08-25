@@ -19,16 +19,20 @@
 package com.volmit.iris.util.nbt.mca.palettes;
 
 import com.volmit.iris.util.math.MathHelper;
+import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import lombok.Getter;
 import net.minecraft.network.PacketDataSerializer;
+import org.bukkit.Material;
 
 import java.util.concurrent.Semaphore;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+@Getter
 public class DataPaletteBlock<T> implements DataPaletteExpandable<T> {
     private static final int d = 4096;
     public static final int a = 9;
@@ -41,16 +45,26 @@ public class DataPaletteBlock<T> implements DataPaletteExpandable<T> {
     private final Function<CompoundTag, T> h;
     private final Function<T, CompoundTag> i;
     private final T j;
+    private static final RegistryBlockID<CompoundTag> registry = new RegistryBlockID<>();
+    private static final CompoundTag air = NBTWorld.getCompound(Material.AIR.createBlockData());
     protected DataBits c;
     private DataPalette<T> k;
-    private int l;
+    private int bits;
     private final Semaphore m = new Semaphore(1);
 
     public void b() {
         this.m.release();
     }
 
-    public DataPaletteBlock(DataPalette<T> var0, RegistryBlockID<T> var1, Function<CompoundTag, T> var2, Function<T, CompoundTag> var3, T var4) {
+    public DataPaletteBlock() {
+        this(null, (RegistryBlockID<T>) registry, (i) -> (T) i, (i) -> (CompoundTag) i, (T) air);
+    }
+
+    public DataPaletteBlock(DataPalette<T> var0,
+                            RegistryBlockID<T> var1,
+                            Function<CompoundTag, T> var2,
+                            Function<T, CompoundTag> var3,
+                            T var4) {
         this.e = var0;
         this.g = var1;
         this.h = var2;
@@ -64,20 +78,20 @@ public class DataPaletteBlock<T> implements DataPaletteExpandable<T> {
     }
 
     private void b(int var0) {
-        if (var0 != this.l) {
-            this.l = var0;
-            if (this.l <= 4) {
-                this.l = 4;
-                this.k = new DataPaletteLinear<T>(this.g, this.l, this, this.h);
-            } else if (this.l < 9) {
-                this.k = new DataPaletteHash<T>(this.g, this.l, this, this.h, this.i);
+        if (var0 != this.bits) {
+            this.bits = var0;
+            if (this.bits <= 4) {
+                this.bits = 4;
+                this.k = new DataPaletteLinear<T>(this.g, this.bits, this, this.h);
+            } else if (this.bits < 9) {
+                this.k = new DataPaletteHash<T>(this.g, this.bits, this, this.h, this.i);
             } else {
                 this.k = this.e;
-                this.l = MathHelper.e(this.g.a());
+                this.bits = MathHelper.e(this.g.a());
             }
 
             this.k.a(this.j);
-            this.c = new DataBits(this.l, 4096);
+            this.c = new DataBits(this.bits, 4096);
         }
     }
 
@@ -140,27 +154,27 @@ public class DataPaletteBlock<T> implements DataPaletteExpandable<T> {
         return var1 == null ? this.j : var1;
     }
 
-    public void a(ListTag<CompoundTag> var0, long[] var1) {
+    public void a(ListTag<CompoundTag> palettedata, long[] databits) {
         try {
-            int var2 = Math.max(4, MathHelper.e(var0.size()));
-            if (var2 != this.l) {
+            int var2 = Math.max(4, MathHelper.e(palettedata.size()));
+            if (var2 != this.bits) {
                 this.b(var2);
             }
 
-            this.k.a(var0);
-            int var3 = var1.length * 64 / 4096;
+            this.k.a(palettedata);
+            int var3 = databits.length * 64 / 4096;
             if (this.k == this.e) {
-                DataPalette<T> var4 = new DataPaletteHash(this.g, var2, this.f, this.h, this.i);
-                var4.a(var0);
-                DataBits var5 = new DataBits(var2, 4096, var1);
+                DataPalette<T> var4 = new DataPaletteHash<T>(this.g, var2, this.f, this.h, this.i);
+                var4.a(palettedata);
+                DataBits var5 = new DataBits(var2, 4096, databits);
 
                 for (int var6 = 0; var6 < 4096; ++var6) {
                     this.c.b(var6, this.e.a(var4.a(var5.a(var6))));
                 }
-            } else if (var3 == this.l) {
-                System.arraycopy(var1, 0, this.c.a(), 0, var1.length);
+            } else if (var3 == this.bits) {
+                System.arraycopy(databits, 0, this.c.a(), 0, databits.length);
             } else {
-                DataBits var4 = new DataBits(var3, 4096, var1);
+                DataBits var4 = new DataBits(var3, 4096, databits);
 
                 for (int var5 = 0; var5 < 4096; ++var5) {
                     this.c.b(var5, var4.a(var5));
@@ -169,12 +183,11 @@ public class DataPaletteBlock<T> implements DataPaletteExpandable<T> {
         } finally {
             this.b();
         }
-
     }
 
     public void a(CompoundTag var0, String var1, String var2) {
         try {
-            DataPaletteHash<T> var3 = new DataPaletteHash(this.g, this.l, this.f, this.h, this.i);
+            DataPaletteHash<T> var3 = new DataPaletteHash(this.g, this.bits, this.f, this.h, this.i);
             T var4 = this.j;
             int var5 = var3.a(this.j);
             int[] var6 = new int[4096];
@@ -215,12 +228,8 @@ public class DataPaletteBlock<T> implements DataPaletteExpandable<T> {
 
     public void a(DataPaletteBlock.a<T> var0) {
         Int2IntMap var1 = new Int2IntOpenHashMap();
-        this.c.a((var1x) -> {
-            var1.put(var1x, var1.get(var1x) + 1);
-        });
-        var1.int2IntEntrySet().forEach((var1x) -> {
-            var0.accept(this.k.a(var1x.getIntKey()), var1x.getIntValue());
-        });
+        this.c.a((var1x) -> var1.put(var1x, var1.get(var1x) + 1));
+        var1.int2IntEntrySet().forEach((var1x) -> var0.accept(this.k.a(var1x.getIntKey()), var1x.getIntValue()));
     }
 
     @FunctionalInterface

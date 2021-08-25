@@ -112,4 +112,15 @@ public class DataPaletteLinear<T> implements DataPalette<T> {
 
         this.f = var0.size();
     }
+
+    @Override
+    public ListTag<CompoundTag> getPalette() {
+        ListTag<CompoundTag> c = (ListTag<CompoundTag>) ListTag.createUnchecked(CompoundTag.class);
+        for(T i : b)
+        {
+            c.add((CompoundTag) i);
+        }
+
+        return c;
+    }
 }

@@ -110,6 +110,11 @@ public class DataPaletteHash<T> implements DataPalette<T> {
         }
     }
 
+    @Override
+    public ListTag<CompoundTag> getPalette() {
+        return null;
+    }
+
     public void b(ListTag<CompoundTag> var0) {
         for (int var1 = 0; var1 < this.b(); ++var1) {
             var0.add(this.e.apply(this.b.fromId(var1)));

@@ -688,14 +688,4 @@ public class Chunk {
     public int sectionCount() {
         return sections.length();
     }
-
-    public void runLighting() {
-        for (int s = 15; s >= 0; s--) {
-            Section section = getSection(s);
-
-            if (section != null) {
-                section.runLighting();
-            }
-        }
-    }
 }

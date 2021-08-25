@@ -20,9 +20,11 @@ package com.volmit.iris.core.nms.v17_1;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
+import com.volmit.iris.util.nbt.mca.nmspalettes.*;
 import com.volmit.iris.util.nbt.mca.palettes.RegistryBlockID;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import net.minecraft.core.BlockPosition;
@@ -46,6 +48,7 @@ import net.minecraft.world.level.chunk.Chunk;
 import net.minecraft.world.level.chunk.ChunkSection;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -66,7 +69,10 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class NMSBinding17_1 implements INMSBinding {
+    private final BlockData AIR = Material.AIR.createBlockData();
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
+    private final AtomicCache<IdMapper<IBlockData>> registryCache = new AtomicCache<>();
+    private final AtomicCache<Palette<IBlockData>> globalCache = new AtomicCache<>();
     private Field biomeStorageCache = null;
 
     public boolean supportsDataPacks() {
@@ -74,21 +80,28 @@ public class NMSBinding17_1 implements INMSBinding {
     }
 
     @Override
-    public RegistryBlockID computeBlockIDRegistry() throws NoSuchFieldException, IllegalAccessException {
-        Field cf = net.minecraft.core.RegistryBlockID.class.getDeclaredField("c");
-        Field df = net.minecraft.core.RegistryBlockID.class.getDeclaredField("d");
-        cf.setAccessible(true);
-        df.setAccessible(true);
-        net.minecraft.core.RegistryBlockID<IBlockData> blockData = Block.p;
-        IdentityHashMap<IBlockData, Integer> c = (IdentityHashMap<IBlockData, Integer>) cf.get(blockData);
-        List<IBlockData> d = (List<IBlockData>) df.get(blockData);
-        List<CompoundTag> realTags = new ArrayList<>();
-        HashMap<CompoundTag, Integer> realMap = new HashMap<>(512);
-        d.forEach((i) -> realTags.add(NBTWorld.getCompound(CraftBlockData.fromData(i))));
-        c.forEach((k,v) -> realMap.put(NBTWorld.getCompound(CraftBlockData.fromData(k)), v));
-        RegistryBlockID registry = new RegistryBlockID(realMap, realTags);
-        Iris.info("INMS: Stole Global Palette: " + realTags.size() + " Tags, " + realMap.size() + " Mapped");
-        return registry;
+    public PaletteAccess createPalette() {
+        IdMapper<IBlockData> registry = registryCache.aquireNasty(() -> {
+            Field cf = net.minecraft.core.RegistryBlockID.class.getDeclaredField("c");
+            Field df = net.minecraft.core.RegistryBlockID.class.getDeclaredField("d");
+            Field bf = net.minecraft.core.RegistryBlockID.class.getDeclaredField("b");
+            cf.setAccessible(true);
+            df.setAccessible(true);
+            bf.setAccessible(true);
+            net.minecraft.core.RegistryBlockID<IBlockData> blockData = Block.p;
+            int b = bf.getInt(blockData);
+            IdentityHashMap<IBlockData, Integer> c = (IdentityHashMap<IBlockData, Integer>) cf.get(blockData);
+            List<IBlockData> d = (List<IBlockData>) df.get(blockData);
+            return new IdMapper<>(c, d, b);
+        });
+        Palette<IBlockData> global = globalCache.aquireNasty(() -> new GlobalPalette<>(registry, ((CraftBlockData)AIR).getState()));
+        PalettedContainer<IBlockData> container = new PalettedContainer<>(global, registry,
+                i -> ((CraftBlockData)NBTWorld.getBlockData(i)).getState(),
+                i -> NBTWorld.getCompound(CraftBlockData.fromData(i)),
+                ((CraftBlockData) AIR).getState());
+        return new WrappedPalettedContainer<>(container,
+                i -> NBTWorld.getCompound(CraftBlockData.fromData(i)),
+                i -> ((CraftBlockData)NBTWorld.getBlockData(i)).getState());
     }
 
     private Object getBiomeStorage(ChunkGenerator.BiomeGrid g) {

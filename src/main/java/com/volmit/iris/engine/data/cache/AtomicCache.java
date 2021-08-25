@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.data.cache;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.function.NastySupplier;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -48,6 +49,21 @@ public class AtomicCache<T> {
         if (nullSupport) {
             set.set(false);
         }
+    }
+
+    public T aquireNasty(NastySupplier<T> t)
+    {
+        return aquire(() -> {
+            try
+            {
+                return t.get();
+            }
+
+            catch(Throwable e)
+            {
+                return null;
+            }
+        });
     }
 
     public T aquire(Supplier<T> t) {

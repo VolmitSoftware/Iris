@@ -20,6 +20,7 @@ package com.volmit.iris.core.nms.v1X;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
+import com.volmit.iris.util.nbt.mca.nmspalettes.PaletteAccess;
 import com.volmit.iris.util.nbt.mca.palettes.RegistryBlockID;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import org.bukkit.Location;
@@ -146,7 +147,7 @@ public class NMSBinding1X implements INMSBinding {
     }
 
     @Override
-    public RegistryBlockID computeBlockIDRegistry() throws NoSuchFieldException, IllegalAccessException {
+    public PaletteAccess createPalette() {
         Iris.error("Cannot use the global data palette! Iris is incapable of using MCA generation on this version of minecraft!");
         return null;
     }

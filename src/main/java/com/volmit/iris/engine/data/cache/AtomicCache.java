@@ -80,6 +80,6 @@ public class AtomicCache<T> {
 
         lock.unlock();
 
-        return t.get();
+        return this.t.get();
     }
 }

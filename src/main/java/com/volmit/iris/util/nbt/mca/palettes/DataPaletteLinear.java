@@ -41,10 +41,10 @@ public class DataPaletteLinear<T> implements DataPalette<T> {
         this.d = var3;
     }
 
-    public int a(T var0) {
+    public int getIndex(T var0) {
         int var1;
         for (var1 = 0; var1 < this.f; ++var1) {
-            if (this.b[var1] == var0) {
+            if (this.b[var1].equals(var0)) {
                 return var1;
             }
         }
@@ -69,7 +69,7 @@ public class DataPaletteLinear<T> implements DataPalette<T> {
         return false;
     }
 
-    public T a(int var0) {
+    public T getByIndex(int var0) {
         return var0 >= 0 && var0 < this.f ? this.b[var0] : null;
     }
 
@@ -105,7 +105,7 @@ public class DataPaletteLinear<T> implements DataPalette<T> {
         return this.f;
     }
 
-    public void a(ListTag<CompoundTag> var0) {
+    public void replace(ListTag<CompoundTag> var0) {
         for (int var1 = 0; var1 < var0.size(); ++var1) {
             this.b[var1] = this.d.apply(var0.get(var1));
         }

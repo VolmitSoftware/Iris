@@ -86,6 +86,22 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("If defined, Iris will place the given jigsaw structure where minecraft should place the overworld stronghold.")
     private String stronghold;
 
+    @Desc("If set to true, Iris will remove chunks to allow visualizing cross sections of chunks easily")
+    private boolean debugChunkCrossSections = false;
+
+    @Desc("Vertically split up the biome palettes with 3 air blocks in between to visualize them")
+    private boolean explodeBiomePalettes = false;
+
+    @MinNumber(1)
+    @MaxNumber(16)
+    @Desc("Customize the palette height explosion")
+    private int explodeBiomePaletteSize = 3;
+
+    @MinNumber(2)
+    @MaxNumber(16)
+    @Desc("Every X/Z % debugCrossSectionsMod == 0 cuts the chunk")
+    private int debugCrossSectionsMod = 3;
+
     @Desc("The average distance between strongholds")
     private int strongholdJumpDistance = 1280;
 

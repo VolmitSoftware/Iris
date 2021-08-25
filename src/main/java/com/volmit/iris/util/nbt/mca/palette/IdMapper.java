@@ -27,62 +27,62 @@ import java.util.Iterator;
 import java.util.List;
 
 public class IdMapper<T> implements IdMap<T> {
-  public static final int DEFAULT = -1;
-  
-  private int nextId;
-  
-  private final IdentityHashMap<T, Integer> tToId;
-  
-  private final List<T> idToT;
+    public static final int DEFAULT = -1;
 
-  public IdMapper(IdentityHashMap<T, Integer> tToId, List<T> idToT, int nextId) {
-   this.tToId = tToId;
-   this.idToT = idToT;
-   this.nextId = nextId;
-  }
+    private int nextId;
 
-  public IdMapper() {
-    this(512);
-  }
-  
-  public IdMapper(int var0) {
-    this.idToT = Lists.newArrayListWithExpectedSize(var0);
-    this.tToId = new IdentityHashMap<>(var0);
-  }
-  
-  public void addMapping(T var0, int var1) {
-    this.tToId.put(var0, Integer.valueOf(var1));
-    while (this.idToT.size() <= var1)
-      this.idToT.add(null); 
-    this.idToT.set(var1, var0);
-    if (this.nextId <= var1)
-      this.nextId = var1 + 1; 
-  }
-  
-  public void add(T var0) {
-    addMapping(var0, this.nextId);
-  }
-  
-  public int getId(T var0) {
-    Integer var1 = this.tToId.get(var0);
-    return (var1 == null) ? -1 : var1.intValue();
-  }
+    private final IdentityHashMap<T, Integer> tToId;
 
-  public final T byId(int var0) {
-    if (var0 >= 0 && var0 < this.idToT.size())
-      return this.idToT.get(var0); 
-    return null;
-  }
-  
-  public Iterator<T> iterator() {
-    return (Iterator<T>) Iterators.filter(this.idToT.iterator(), Predicates.notNull());
-  }
-  
-  public boolean contains(int var0) {
-    return (byId(var0) != null);
-  }
-  
-  public int size() {
-    return this.tToId.size();
-  }
+    private final List<T> idToT;
+
+    public IdMapper(IdentityHashMap<T, Integer> tToId, List<T> idToT, int nextId) {
+        this.tToId = tToId;
+        this.idToT = idToT;
+        this.nextId = nextId;
+    }
+
+    public IdMapper() {
+        this(512);
+    }
+
+    public IdMapper(int var0) {
+        this.idToT = Lists.newArrayListWithExpectedSize(var0);
+        this.tToId = new IdentityHashMap<>(var0);
+    }
+
+    public void addMapping(T var0, int var1) {
+        this.tToId.put(var0, Integer.valueOf(var1));
+        while (this.idToT.size() <= var1)
+            this.idToT.add(null);
+        this.idToT.set(var1, var0);
+        if (this.nextId <= var1)
+            this.nextId = var1 + 1;
+    }
+
+    public void add(T var0) {
+        addMapping(var0, this.nextId);
+    }
+
+    public int getId(T var0) {
+        Integer var1 = this.tToId.get(var0);
+        return (var1 == null) ? -1 : var1.intValue();
+    }
+
+    public final T byId(int var0) {
+        if (var0 >= 0 && var0 < this.idToT.size())
+            return this.idToT.get(var0);
+        return null;
+    }
+
+    public Iterator<T> iterator() {
+        return Iterators.filter(this.idToT.iterator(), Predicates.notNull());
+    }
+
+    public boolean contains(int var0) {
+        return (byId(var0) != null);
+    }
+
+    public int size() {
+        return this.tToId.size();
+    }
 }

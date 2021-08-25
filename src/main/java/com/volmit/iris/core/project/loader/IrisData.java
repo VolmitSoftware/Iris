@@ -337,7 +337,7 @@ public class IrisData {
                 }
             }
 
-            String ff = g.toString().substring(1).split("\\Q.\\E")[0];
+            String ff = g.substring(1).split("\\Q.\\E")[0];
             return ff;
         } else {
             Iris.error("Forign file from loader " + f.getPath() + " (loader realm: " + getDataFolder().getPath() + ")");

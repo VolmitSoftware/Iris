@@ -48,38 +48,30 @@ import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.io.JarScanner;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.nbt.mca.*;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.*;
 import com.volmit.iris.util.reflect.ShadeFix;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.Looper;
 import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
 import io.papermc.lib.PaperLib;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
-import net.minecraft.world.level.chunk.storage.RegionFile;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
-import org.checkerframework.checker.units.qual.K;
 
 import java.io.*;
 import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.util.Date;
 import java.util.Map;
-import java.util.Set;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -116,139 +108,8 @@ public class Iris extends VolmitPlugin implements Listener {
         IO.delete(new File("iris"));
         installDataPacks();
         fixShading();
-        (new Looper() {
-            protected long loop() {
-                File ff = Iris.instance.getDataFolderNoCreate("dump");
-                if (ff.exists() && ff.isDirectory() && ff.listFiles().length == 0)
-                    Iris.dump();
-                return 10000L;
-            }
-        }).start();
     }
 
-    private void testmca() {
-        try
-        {
-            int forceBits = 5;
-            int possibilities = (int) (Math.pow(2, forceBits) - 1);
-            KList<BlockData> bp = new KList<>();
-            Set<BlockData> bf = new KSet<>();
-
-            while(bp.size() < possibilities)
-            {
-                BlockData b = null;
-
-                while(b == null)
-                {
-                    try
-                    {
-                        b = Material.values()[RNG.r.i(Material.values().length-1)].createBlockData();
-                    }
-
-                    catch(Throwable e)
-                    {
-
-                    }
-                }
-
-                bp.addIfMissing(b);
-            }
-
-            MCAFile file = new MCAFile(0, 0);
-            for(int cx = 0; cx < 32; cx++)
-            {
-                for(int cz = 0; cz < 32; cz++)
-                {
-                    Chunk c = Chunk.newChunk();
-
-                    for(int i = 0; i < 16; i++)
-                    {
-                        for(int j = 0; j < 16; j++)
-                        {
-                            for(int k = 0; k < 16; k++)
-                            {
-                                BlockData b = bp.getRandom();
-                                c.setBlockStateAt(i,j,k, NBTWorld.getCompound(b), false);
-                            }
-                        }
-                    }
-
-                    file.setChunk(cx, cz, c);
-                }
-            }
-
-            try {
-                File f = new File("r.0.0.mca");
-                Iris.info("Write " + MCAUtil.write(file, f) + " chunks");
-                file = MCAUtil.read(f);
-
-                for(int i = 0; i < 1024; i++) {
-                    Chunk c = file.getChunks().get(i);
-
-                    if (c == null) {
-                        Iris.error("Missing Chunk: " + i);
-                        continue;
-                    }
-
-                    Section s = c.getSection(0);
-
-                    if (s == null)
-                    {
-                        Iris.error("Missing section 0 in chunk: " + i);
-                        continue;
-                    }
-
-                    for(int a = 0; a < 16; a++)
-                    {
-                        for(int b = 0; b < 16; b++)
-                        {
-                            for(int ca = 0; ca < 16; ca++)
-                            {
-                                BlockData data = NBTWorld.getBlockData(s.getBlockStateAt(a, b, ca));
-                                bf.add(data);
-                            }
-                        }
-                    }
-                }
-
-                Iris.info("Read .. OK?");
-
-                Iris.info("Possibilities: " + bp.size());
-                Iris.info("Read Possibss: " + bf.size());
-                int match = 0;
-                for(BlockData i : bp)
-                {
-                    if(bf.contains(i))
-                    {
-                        match++;
-                    }
-
-                    else
-                    {
-                        Iris.warn("Couldn't find preset " + i.getAsString(true) + " in any section");
-                    }
-                }
-
-                for(BlockData i : bf)
-                {
-                    if(!bp.contains(i))
-                    {
-                        Iris.warn("Forign block data " + i.getAsString(true) + "! (ignore leaves, they are modded by us)");
-                    }
-                }
-                Iris.info("Matched: " + match);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        catch(Throwable ee)
-        {
-            ee.printStackTrace();
-        }
-    }
-
-    @SuppressWarnings("unchecked")
     private void enable() {
         audiences = BukkitAudiences.create(this);
         sender = new VolmitSender(Bukkit.getConsoleSender());
@@ -261,7 +122,6 @@ public class Iris extends VolmitPlugin implements Listener {
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
-        J.s(this::testmca, 20);
     }
 
     public void postShutdown(Runnable r) {

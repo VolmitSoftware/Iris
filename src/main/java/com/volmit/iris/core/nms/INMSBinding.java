@@ -18,6 +18,7 @@
 
 package com.volmit.iris.core.nms;
 
+import com.volmit.iris.util.nbt.mca.palette.BiomeContainer;
 import com.volmit.iris.util.nbt.mca.palette.PaletteAccess;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import org.bukkit.Location;
@@ -63,6 +64,10 @@ public interface INMSBinding {
     boolean isBukkit();
 
     int getBiomeId(Biome biome);
+
+    BiomeContainer newBiomeContainer(int min, int max, int[] data);
+
+    BiomeContainer newBiomeContainer(int min, int max);
 
     default World createWorld(WorldCreator c) {
         return c.createWorld();

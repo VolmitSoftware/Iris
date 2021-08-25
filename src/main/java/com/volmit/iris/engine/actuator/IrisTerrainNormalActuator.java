@@ -136,7 +136,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                 if (i <= he) {
                     depth = he - i;
                     if (blocks == null) {
-                        blocks = biome.generateLayers(realX, realZ, rng,
+                        blocks = biome.generateLayers(getDimension(), realX, realZ, rng,
                                 he,
                                 he,
                                 getData(),

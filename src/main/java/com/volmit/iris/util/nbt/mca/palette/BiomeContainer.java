@@ -18,8 +18,10 @@
 
 package com.volmit.iris.util.nbt.mca.palette;
 
-public interface IdMap<T> extends Iterable<T> {
-    int getId(T paramT);
+public interface BiomeContainer {
+    int[] getData();
 
-    T byId(int paramInt);
+    void setBiome(int x, int y, int z, int id);
+
+    int getBiome(int x, int y, int z);
 }

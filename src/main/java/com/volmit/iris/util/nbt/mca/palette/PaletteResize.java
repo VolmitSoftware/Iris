@@ -19,5 +19,5 @@
 package com.volmit.iris.util.nbt.mca.palette;
 
 interface PaletteResize<T> {
-  int onResize(int paramInt, T paramT);
+    int onResize(int paramInt, T paramT);
 }

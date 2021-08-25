@@ -121,7 +121,6 @@ public class DecIris implements DecreeExecutor {
             case ">>" -> v = value1 >> value2;
             case "<<" -> v = value1 << value2;
         }
-        ;
         if (v == null) {
             sender().sendMessage(C.RED + "The operator you entered: (" + operator + ") is invalid!");
             return;

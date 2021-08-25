@@ -21,11 +21,11 @@ package com.volmit.iris.util.nbt.mca.palette;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 
 public interface PaletteAccess {
-    public void setBlock(int x, int y, int z, CompoundTag data);
+    void setBlock(int x, int y, int z, CompoundTag data);
 
-    public CompoundTag getBlock(int x, int y, int z);
+    CompoundTag getBlock(int x, int y, int z);
 
-    public void writeToSection(CompoundTag tag);
+    void writeToSection(CompoundTag tag);
 
-    public void readFromSection(CompoundTag tag);
+    void readFromSection(CompoundTag tag);
 }

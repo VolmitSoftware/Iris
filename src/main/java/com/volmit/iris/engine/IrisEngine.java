@@ -397,19 +397,17 @@ public class IrisEngine implements Engine {
         context.touch();
         getEngineData().getStatistics().generatedChunk();
         try {
-
             PrecisionStopwatch p = PrecisionStopwatch.start();
             Hunk<BlockData> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y + getMinHeight(), z + zz, t));
 
-            if (multicore) {
+            if (getDimension().isDebugChunkCrossSections() && ((x >> 4) % getDimension().getDebugCrossSectionsMod() == 0 || (z >> 4) % getDimension().getDebugCrossSectionsMod() == 0)) {
                 for (int i = 0; i < 16; i++) {
                     for (int j = 0; j < 16; j++) {
-                        blocks.set(i, 0, j, Material.RED_GLAZED_TERRACOTTA.createBlockData());
+                        blocks.set(i, 0, j, Material.CRYING_OBSIDIAN.createBlockData());
                     }
                 }
             } else {
-                getMantle().generateMatter(x >> 4, z >> 4, multicore);
-
+                getMantle().generateMatter(x >> 4, z >> 4, true);
                 burst().burst(multicore,
                         () -> getTerrainActuator().actuate(x, z, vblocks, multicore),
                         () -> getBiomeActuator().actuate(x, z, vbiomes, multicore)
@@ -419,16 +417,12 @@ public class IrisEngine implements Engine {
                         () -> getDecorantActuator().actuate(x, z, blocks, multicore),
                         () -> getRavineModifier().modify(x, z, vblocks, multicore)
                 );
-
                 getPostModifier().modify(x, z, vblocks, multicore);
-
                 burst().burst(multicore,
-                        () -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, blocks, multicore),
+                        () -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, blocks, true),
                         () -> getDepositModifier().modify(x, z, vblocks, multicore)
                 );
             }
-
-
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();
             recycle();

@@ -23,13 +23,13 @@ import com.volmit.iris.util.nbt.tag.ListTag;
 import java.util.function.Predicate;
 
 public interface Palette<T> {
-  int idFor(T paramT);
-  
-  boolean maybeHas(Predicate<T> paramPredicate);
+    int idFor(T paramT);
 
-  T valueFor(int paramInt);
-  
-  int getSize();
-  
-  void read(ListTag paramListTag);
+    boolean maybeHas(Predicate<T> paramPredicate);
+
+    T valueFor(int paramInt);
+
+    int getSize();
+
+    void read(ListTag paramListTag);
 }

@@ -25,61 +25,61 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class HashMapPalette<T> implements Palette<T> {
-  private final IdMapper<T> registry;
-  
-  private final CrudeIncrementalIntIdentityHashBiMap<T> values;
-  
-  private final PaletteResize<T> resizeHandler;
-  
-  private final Function<CompoundTag, T> reader;
-  
-  private final Function<T, CompoundTag> writer;
-  
-  private final int bits;
-  
-  public HashMapPalette(IdMapper<T> var0, int var1, PaletteResize<T> var2, Function<CompoundTag, T> var3, Function<T, CompoundTag> var4) {
-    this.registry = var0;
-    this.bits = var1;
-    this.resizeHandler = var2;
-    this.reader = var3;
-    this.writer = var4;
-    this.values = new CrudeIncrementalIntIdentityHashBiMap(1 << var1);
-  }
-  
-  public int idFor(T var0) {
-    int var1 = this.values.getId(var0);
-    if (var1 == -1) {
-      var1 = this.values.add(var0);
-      if (var1 >= 1 << this.bits)
-        var1 = this.resizeHandler.onResize(this.bits + 1, var0); 
-    } 
-    return var1;
-  }
-  
-  public boolean maybeHas(Predicate<T> var0) {
-    for (int var1 = 0; var1 < getSize(); var1++) {
-      if (var0.test((T)this.values.byId(var1)))
-        return true; 
-    } 
-    return false;
-  }
+    private final IdMapper<T> registry;
 
-  public T valueFor(int var0) {
-    return (T)this.values.byId(var0);
-  }
+    private final CrudeIncrementalIntIdentityHashBiMap<T> values;
 
-  public int getSize() {
-    return this.values.size();
-  }
-  
-  public void read(ListTag var0) {
-    this.values.clear();
-    for (int var1 = 0; var1 < var0.size(); var1++)
-      this.values.add(this.reader.apply((CompoundTag) var0.get(var1)));
-  }
-  
-  public void write(ListTag var0) {
-    for (int var1 = 0; var1 < getSize(); var1++)
-      var0.add(this.writer.apply((T)this.values.byId(var1))); 
-  }
+    private final PaletteResize<T> resizeHandler;
+
+    private final Function<CompoundTag, T> reader;
+
+    private final Function<T, CompoundTag> writer;
+
+    private final int bits;
+
+    public HashMapPalette(IdMapper<T> var0, int var1, PaletteResize<T> var2, Function<CompoundTag, T> var3, Function<T, CompoundTag> var4) {
+        this.registry = var0;
+        this.bits = var1;
+        this.resizeHandler = var2;
+        this.reader = var3;
+        this.writer = var4;
+        this.values = new CrudeIncrementalIntIdentityHashBiMap(1 << var1);
+    }
+
+    public int idFor(T var0) {
+        int var1 = this.values.getId(var0);
+        if (var1 == -1) {
+            var1 = this.values.add(var0);
+            if (var1 >= 1 << this.bits)
+                var1 = this.resizeHandler.onResize(this.bits + 1, var0);
+        }
+        return var1;
+    }
+
+    public boolean maybeHas(Predicate<T> var0) {
+        for (int var1 = 0; var1 < getSize(); var1++) {
+            if (var0.test(this.values.byId(var1)))
+                return true;
+        }
+        return false;
+    }
+
+    public T valueFor(int var0) {
+        return this.values.byId(var0);
+    }
+
+    public int getSize() {
+        return this.values.size();
+    }
+
+    public void read(ListTag var0) {
+        this.values.clear();
+        for (int var1 = 0; var1 < var0.size(); var1++)
+            this.values.add(this.reader.apply((CompoundTag) var0.get(var1)));
+    }
+
+    public void write(ListTag var0) {
+        for (int var1 = 0; var1 < getSize(); var1++)
+            var0.add(this.writer.apply(this.values.byId(var1)));
+    }
 }

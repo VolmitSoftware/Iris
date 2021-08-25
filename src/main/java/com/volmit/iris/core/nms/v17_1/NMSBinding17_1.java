@@ -56,11 +56,13 @@ import org.bukkit.craftbukkit.v1_17_R1.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_17_R1.entity.CraftEntity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.generator.ChunkGenerator;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -69,6 +71,7 @@ public class NMSBinding17_1 implements INMSBinding {
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
     private final AtomicCache<IdMapper<IBlockData>> registryCache = new AtomicCache<>();
     private final AtomicCache<Palette<IBlockData>> globalCache = new AtomicCache<>();
+    private final AtomicCache<IdMap<BiomeBase>> biomeMapCache = new AtomicCache<>();
     private Field biomeStorageCache = null;
 
     public boolean supportsDataPacks() {
@@ -90,14 +93,14 @@ public class NMSBinding17_1 implements INMSBinding {
             List<IBlockData> d = (List<IBlockData>) df.get(blockData);
             return new IdMapper<>(c, d, b);
         });
-        Palette<IBlockData> global = globalCache.aquireNasty(() -> new GlobalPalette<>(registry, ((CraftBlockData)AIR).getState()));
+        Palette<IBlockData> global = globalCache.aquireNasty(() -> new GlobalPalette<>(registry, ((CraftBlockData) AIR).getState()));
         PalettedContainer<IBlockData> container = new PalettedContainer<>(global, registry,
-                i -> ((CraftBlockData)NBTWorld.getBlockData(i)).getState(),
+                i -> ((CraftBlockData) NBTWorld.getBlockData(i)).getState(),
                 i -> NBTWorld.getCompound(CraftBlockData.fromData(i)),
                 ((CraftBlockData) AIR).getState());
         return new WrappedPalettedContainer<>(container,
                 i -> NBTWorld.getCompound(CraftBlockData.fromData(i)),
-                i -> ((CraftBlockData)NBTWorld.getBlockData(i)).getState());
+                i -> ((CraftBlockData) NBTWorld.getBlockData(i)).getState());
     }
 
     private Object getBiomeStorage(ChunkGenerator.BiomeGrid g) {
@@ -381,6 +384,58 @@ public class NMSBinding17_1 implements INMSBinding {
         }
 
         return biome.ordinal();
+    }
+
+    private IdMap<BiomeBase> getBiomeMapping() {
+        return biomeMapCache.aquire(() -> new IdMap<>() {
+            @NotNull
+            @Override
+            public Iterator<BiomeBase> iterator() {
+                return getCustomBiomeRegistry().iterator();
+            }
+
+            @Override
+            public int getId(BiomeBase paramT) {
+                return getCustomBiomeRegistry().getId(paramT);
+            }
+
+            @Override
+            public BiomeBase byId(int paramInt) {
+                return getCustomBiomeRegistry().fromId(paramInt);
+            }
+        });
+    }
+
+    @Override
+    public BiomeContainer newBiomeContainer(int min, int max) {
+        ChunkBiomeContainer<BiomeBase> base = new ChunkBiomeContainer<>(getBiomeMapping(), min, max);
+        return getBiomeContainerInterface(getBiomeMapping(), base);
+    }
+
+    @Override
+    public BiomeContainer newBiomeContainer(int min, int max, int[] data) {
+        ChunkBiomeContainer<BiomeBase> base = new ChunkBiomeContainer<>(getBiomeMapping(), min, max, data);
+        return getBiomeContainerInterface(getBiomeMapping(), base);
+    }
+
+    @NotNull
+    private BiomeContainer getBiomeContainerInterface(IdMap<BiomeBase> biomeMapping, ChunkBiomeContainer<BiomeBase> base) {
+        return new BiomeContainer() {
+            @Override
+            public int[] getData() {
+                return base.writeBiomes();
+            }
+
+            @Override
+            public void setBiome(int x, int y, int z, int id) {
+                base.setBiome(x, y, z, biomeMapping.byId(id));
+            }
+
+            @Override
+            public int getBiome(int x, int y, int z) {
+                return biomeMapping.getId(base.getBiome(x, y, z));
+            }
+        };
     }
 
     @Override

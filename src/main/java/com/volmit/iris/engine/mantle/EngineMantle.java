@@ -33,17 +33,13 @@ import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
-import com.volmit.iris.util.mantle.MantleFlag;
-import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
-import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Chunk;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
 import java.util.List;
-import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 // TODO: MOVE PLACER OUT OF MATTER INTO ITS OWN THING
@@ -181,8 +177,7 @@ public interface EngineMantle extends IObjectPlacer {
 
         KList<Runnable> post = new KList<>();
         Consumer<Runnable> c = (i) -> {
-            synchronized (post)
-            {
+            synchronized (post) {
                 post.add(i);
             }
         };
@@ -201,8 +196,7 @@ public interface EngineMantle extends IObjectPlacer {
 
         burst.complete();
 
-        while(!post.isEmpty())
-        {
+        while (!post.isEmpty()) {
             KList<Runnable> px = post.copy();
             post.clear();
             burst().burst(multicore, px);

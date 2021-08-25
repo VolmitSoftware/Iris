@@ -8,6 +8,7 @@ description: More than a Dimension!
 libraries:
   - com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2
   - com.github.ben-manes.caffeine:caffeine:3.0.3
+  - org.apache.commons:commons-lang3:3.12.0
   - io.timeandspace:smoothie-map:2.0.2
   - com.google.guava:guava:30.1.1-jre
   - com.google.code.gson:gson:2.8.7

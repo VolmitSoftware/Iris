@@ -19,7 +19,6 @@
 package com.volmit.iris.engine.platform;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregenTask;
@@ -34,6 +33,7 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.Position2;
+import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.nbt.mca.MCAFile;
 import com.volmit.iris.util.nbt.mca.MCAUtil;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
@@ -56,12 +56,17 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
     private final NBTWorld writer;
     private final MultiBurst burst;
     private final Engine engine;
+    private final long rkey = RNG.r.lmax();
 
     public HeadlessGenerator(HeadlessWorld world) {
+        this(world, new IrisEngine(new EngineTarget(world.getWorld(), world.getDimension(), world.getDimension().getLoader()), world.isStudio()));
+    }
+
+    public HeadlessGenerator(HeadlessWorld world, Engine engine) {
+        this.engine = engine;
         this.world = world;
         burst = MultiBurst.burst;
         writer = new NBTWorld(world.getWorld().worldFolder());
-        engine = new IrisEngine(new EngineTarget(world.getWorld(), world.getDimension(), world.getDimension().getLoader()), isStudio());
     }
 
     @ChunkCoordinates
@@ -79,6 +84,7 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
             getEngine().generate(x * 16, z * 16,
                     Hunk.view((ChunkGenerator.ChunkData) tc), Hunk.view((ChunkGenerator.BiomeGrid) tc),
                     false);
+            chunk.cleanupPalettesAndBlockStates();
         } catch (Throwable e) {
             Iris.error("======================================");
             e.printStackTrace();
@@ -102,7 +108,7 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
     @RegionCoordinates
     public void generateRegion(int x, int z, PregenListener listener) {
         BurstExecutor e = burst.burst(1024);
-        MCAFile f = writer.getMCA(x, x);
+        MCAFile f = writer.getMCA(x, z);
         PregenTask.iterateRegion(x, z, (ii, jj) -> e.queue(() -> {
             if (listener != null) {
                 listener.onChunkGenerating(ii, jj);
@@ -132,7 +138,6 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
     }
 
     public void close() {
-        getEngine().close();
         writer.close();
     }
 

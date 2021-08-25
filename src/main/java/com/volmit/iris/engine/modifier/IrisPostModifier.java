@@ -19,26 +19,14 @@
 package com.volmit.iris.engine.modifier;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.common.CaveResult;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
-import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.function.*;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.hunk.storage.ArrayHunk;
-import com.volmit.iris.util.math.Average;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.math.RollingSequence;
-import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import com.volmit.iris.util.stream.ProceduralStream;
-import com.volmit.iris.util.stream.interpolation.Interpolated;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Levelled;
@@ -46,8 +34,6 @@ import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Slab;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
     private static final BlockData AIR = B.get("AIR");

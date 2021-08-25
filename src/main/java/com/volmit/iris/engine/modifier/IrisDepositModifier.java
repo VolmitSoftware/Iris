@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine.modifier;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
 import com.volmit.iris.engine.object.biome.IrisBiome;
@@ -26,11 +25,9 @@ import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
 import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.util.data.HeightMap;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
-import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;

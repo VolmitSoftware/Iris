@@ -26,8 +26,7 @@ public interface IrisService extends Listener {
 
     void onDisable();
 
-    default void postShutdown(Runnable r)
-    {
+    default void postShutdown(Runnable r) {
         Iris.instance.postShutdown(r);
     }
 }

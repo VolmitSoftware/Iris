@@ -115,8 +115,8 @@ public class DecObject implements DecreeExecutor {
     @Decree(description = "Contract a selection based on your looking direction", aliases = "-")
     public void contract(
             @Param(description = "The amount to inset by", defaultValue = "1")
-            int amount
-    ){
+                    int amount
+    ) {
         if (!WandSVC.isHoldingWand(player())) {
             sender().sendMessage("Hold your wand.");
             return;
@@ -140,8 +140,8 @@ public class DecObject implements DecreeExecutor {
     @Decree(description = "Set point 1 to look", aliases = "p1")
     public void position1(
             @Param(description = "Whether to use your current position, or where you look", defaultValue = "true")
-            boolean here
-    ){
+                    boolean here
+    ) {
         if (!WandSVC.isHoldingWand(player())) {
             sender().sendMessage("Ready your Wand.");
             return;
@@ -166,7 +166,7 @@ public class DecObject implements DecreeExecutor {
     public void position2(
             @Param(description = "Whether to use your current position, or where you look", defaultValue = "true")
                     boolean here
-    ){
+    ) {
         if (!WandSVC.isHoldingWand(player())) {
             sender().sendMessage("Ready your Wand.");
             return;
@@ -186,16 +186,18 @@ public class DecObject implements DecreeExecutor {
             player().setItemInHand(WandSVC.createWand(g[0], g[1]));
         }
     }
+
     private static final Set<Material> skipBlocks = Set.of(Material.GRASS, Material.SNOW, Material.VINE, Material.TORCH, Material.DEAD_BUSH,
             Material.POPPY, Material.DANDELION);
+
     @Decree(description = "Paste an object")
     public void paste(
             @Param(description = "The object to paste", customHandler = ObjectHandler.class)
             String object,
             @Param(description = "Whether or not to edit the object (need to hold wand)", defaultValue = "false")
-            boolean edit,
+                    boolean edit,
             @Param(description = "The amount of degrees to rotate by", defaultValue = "0")
-            int rotate,
+                    int rotate,
             @Param(description = "The factor by which to scale the object placement", defaultValue = "1")
             double scale
 //            ,

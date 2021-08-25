@@ -22,6 +22,8 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.nbt.io.NBTUtil;
+import com.volmit.iris.util.nbt.mca.NBTWorld;
+import com.volmit.iris.util.nbt.mca.palettes.RegistryBlockID;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import net.minecraft.core.BlockPosition;
 import net.minecraft.core.IRegistry;
@@ -35,6 +37,8 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.WorldServer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.biome.BiomeBase;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.TileEntity;
 import net.minecraft.world.level.block.state.IBlockData;
 import net.minecraft.world.level.chunk.BiomeStorage;
@@ -44,8 +48,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_17_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
+import org.bukkit.craftbukkit.v1_17_R1.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_17_R1.entity.CraftEntity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.generator.ChunkGenerator;
@@ -53,6 +59,10 @@ import org.bukkit.generator.ChunkGenerator;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class NMSBinding17_1 implements INMSBinding {
@@ -61,6 +71,24 @@ public class NMSBinding17_1 implements INMSBinding {
 
     public boolean supportsDataPacks() {
         return true;
+    }
+
+    @Override
+    public RegistryBlockID computeBlockIDRegistry() throws NoSuchFieldException, IllegalAccessException {
+        Field cf = net.minecraft.core.RegistryBlockID.class.getDeclaredField("c");
+        Field df = net.minecraft.core.RegistryBlockID.class.getDeclaredField("d");
+        cf.setAccessible(true);
+        df.setAccessible(true);
+        net.minecraft.core.RegistryBlockID<IBlockData> blockData = Block.p;
+        IdentityHashMap<IBlockData, Integer> c = (IdentityHashMap<IBlockData, Integer>) cf.get(blockData);
+        List<IBlockData> d = (List<IBlockData>) df.get(blockData);
+        List<CompoundTag> realTags = new ArrayList<>();
+        HashMap<CompoundTag, Integer> realMap = new HashMap<>(512);
+        d.forEach((i) -> realTags.add(NBTWorld.getCompound(CraftBlockData.fromData(i))));
+        c.forEach((k,v) -> realMap.put(NBTWorld.getCompound(CraftBlockData.fromData(k)), v));
+        RegistryBlockID registry = new RegistryBlockID(realMap, realTags);
+        Iris.info("INMS: Stole Global Palette: " + realTags.size() + " Tags, " + realMap.size() + " Mapped");
+        return registry;
     }
 
     private Object getBiomeStorage(ChunkGenerator.BiomeGrid g) {

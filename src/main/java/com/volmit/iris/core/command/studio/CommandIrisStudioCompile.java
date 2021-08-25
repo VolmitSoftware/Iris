@@ -21,13 +21,10 @@ package com.volmit.iris.core.command.studio;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.IrisProject;
-import com.volmit.iris.core.service.ConversionSVC;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
-import com.volmit.iris.util.scheduling.jobs.Job;
-import com.volmit.iris.util.scheduling.jobs.JobCollection;
 
 public class CommandIrisStudioCompile extends MortarCommand {
     public CommandIrisStudioCompile() {
@@ -49,8 +46,7 @@ public class CommandIrisStudioCompile extends MortarCommand {
             return true;
         }
 
-        if(args.length == 0)
-        {
+        if (args.length == 0) {
             sender.sendMessage(getArgsUsage());
             return true;
         }

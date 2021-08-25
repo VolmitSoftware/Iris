@@ -21,17 +21,8 @@ package com.volmit.iris.engine.object.noise;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.Required;
-import com.volmit.iris.engine.object.basic.IrisRange;
-import com.volmit.iris.engine.object.common.IRare;
-import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
-import com.volmit.iris.engine.object.noise.IrisNoiseGenerator;
-import com.volmit.iris.engine.object.noise.IrisStyledRange;
-import com.volmit.iris.engine.object.noise.NoiseStyle;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.noise.Worm;
 import com.volmit.iris.util.noise.WormIterator2;
 import com.volmit.iris.util.noise.WormIterator3;
 import lombok.AllArgsConstructor;
@@ -64,13 +55,11 @@ public class IrisWorm {
 
     private transient final AtomicCache<NoiseProvider> angleProviderCache = new AtomicCache<>();
 
-    public NoiseProvider getAngleProvider(RNG rng, IrisData data)
-    {
+    public NoiseProvider getAngleProvider(RNG rng, IrisData data) {
         return angleProviderCache.aquire(() -> (xx, zz) -> angleStyle.create(rng, data).fitDouble(-0.5, 0.5, xx, zz) * segmentDistance.get(rng, xx, zz, data));
     }
 
-    public WormIterator2 iterate2D(RNG rng, IrisData data, int x, int z)
-    {
+    public WormIterator2 iterate2D(RNG rng, IrisData data, int x, int z) {
         return WormIterator2.builder()
                 .maxDistance(maxDistance)
                 .maxIterations(maxSegments == -1 ? maxDistance : maxSegments)
@@ -78,8 +67,7 @@ public class IrisWorm {
                 .build();
     }
 
-    public WormIterator3 iterate3D(RNG rng, IrisData data, int x, int y, int z)
-    {
+    public WormIterator3 iterate3D(RNG rng, IrisData data, int x, int y, int z) {
         return WormIterator3.builder()
                 .maxDistance(maxDistance)
                 .maxIterations(maxSegments == -1 ? maxDistance : maxSegments)

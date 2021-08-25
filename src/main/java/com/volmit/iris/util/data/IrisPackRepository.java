@@ -20,11 +20,9 @@ package com.volmit.iris.util.data;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.service.StudioSVC;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.jobs.DownloadJob;
-import com.volmit.iris.util.scheduling.jobs.Job;
 import com.volmit.iris.util.scheduling.jobs.JobCollection;
 import com.volmit.iris.util.scheduling.jobs.SingleJob;
 import lombok.Builder;
@@ -111,8 +109,7 @@ public class IrisPackRepository {
     public void install(VolmitSender sender) throws MalformedURLException {
         File pack = Iris.instance.getDataFolder(StudioSVC.WORKSPACE_NAME, getRepo());
 
-        if(!pack.exists())
-        {
+        if (!pack.exists()) {
             File dl = new File(Iris.getTemp(), "dltk-" + UUID.randomUUID() + ".zip");
             File work = new File(Iris.getTemp(), "extk-" + UUID.randomUUID());
             new JobCollection(Form.capitalize(getRepo()),

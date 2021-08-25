@@ -35,7 +35,6 @@ import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructurePlacement;
 import com.volmit.iris.engine.object.loot.IrisLootReference;
 import com.volmit.iris.engine.object.meta.IrisEffect;
 import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
-import com.volmit.iris.engine.object.noise.IrisShapedGeneratorStyle;
 import com.volmit.iris.engine.object.noise.IrisSlopeClip;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
 import com.volmit.iris.engine.object.objects.IrisObject;
@@ -198,8 +197,8 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private final transient AtomicCache<KMap<String, IrisBiomeGeneratorLink>> genCache = new AtomicCache<>();
     private final transient AtomicCache<KMap<String, Integer>> genCacheMax = new AtomicCache<>();
     private final transient AtomicCache<KMap<String, Integer>> genCacheMin = new AtomicCache<>();
-    private final transient AtomicCache<KList<IrisObjectPlacement>> surfaceObjectsCache = new AtomicCache<>(false);
-    private final transient AtomicCache<KList<IrisObjectPlacement>> carveObjectsCache = new AtomicCache<>(false);
+    private final transient AtomicCache<KList<IrisObjectPlacement>> surfaceObjectsCache = new AtomicCache<>();
+    private final transient AtomicCache<KList<IrisObjectPlacement>> carveObjectsCache = new AtomicCache<>();
     private final transient AtomicCache<Color> cacheColor = new AtomicCache<>();
     private final transient AtomicCache<Color> cacheColorObjectDensity = new AtomicCache<>();
     private final transient AtomicCache<Color> cacheColorDecoratorLoad = new AtomicCache<>();

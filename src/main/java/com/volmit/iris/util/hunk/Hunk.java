@@ -21,14 +21,12 @@ package com.volmit.iris.util.hunk;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.function.*;
-import com.volmit.iris.util.hunk.io.HunkIOAdapter;
 import com.volmit.iris.util.hunk.storage.*;
 import com.volmit.iris.util.hunk.view.*;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.interpolation.InterpolationMethod3D;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.math.BlockPosition;
-import com.volmit.iris.util.oldnbt.ByteArrayTag;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.stream.interpolation.Interpolated;
@@ -38,9 +36,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -227,18 +223,6 @@ public interface Hunk<T> {
         iterate((x, y, z, v) -> count.getAndAdd(1));
 
         return count.get();
-    }
-
-    default void write(OutputStream s, HunkIOAdapter<T> h) throws IOException {
-        h.write(this, s);
-    }
-
-    default ByteArrayTag writeByteArrayTag(HunkIOAdapter<T> h, String name) throws IOException {
-        return h.writeByteArrayTag(this, name);
-    }
-
-    default void write(File s, HunkIOAdapter<T> h) throws IOException {
-        h.write(this, s);
     }
 
     default boolean isAtomic() {
@@ -1450,8 +1434,7 @@ public interface Hunk<T> {
         return false;
     }
 
-    default boolean contains(int x, int y, int z)
-    {
+    default boolean contains(int x, int y, int z) {
         return x < getWidth() && x >= 0 && y < getHeight() && y >= 0 && z < getDepth() && z >= 0;
     }
 }

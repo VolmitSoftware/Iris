@@ -23,12 +23,10 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.M;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
 
 public class MultiBurst {
     public static final MultiBurst burst = new MultiBurst();
@@ -74,13 +72,9 @@ public class MultiBurst {
     }
 
     public void burst(boolean multicore, Runnable... r) {
-        if(multicore)
-        {
+        if (multicore) {
             burst(r);
-        }
-
-        else
-        {
+        } else {
             sync(r);
         }
     }
@@ -90,19 +84,15 @@ public class MultiBurst {
     }
 
     public void burst(boolean multicore, List<Runnable> r) {
-        if(multicore)
-        {
+        if (multicore) {
             burst(r);
-        }
-
-        else {
+        } else {
             sync(r);
         }
     }
 
     private void sync(List<Runnable> r) {
-        for(Runnable i : new KList<>(r))
-        {
+        for (Runnable i : new KList<>(r)) {
             i.run();
         }
     }

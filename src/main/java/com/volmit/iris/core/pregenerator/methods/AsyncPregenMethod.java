@@ -28,7 +28,6 @@ import io.papermc.lib.PaperLib;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 public class AsyncPregenMethod implements PregeneratorMethod {

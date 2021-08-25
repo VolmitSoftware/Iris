@@ -45,10 +45,8 @@ import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.M;
@@ -60,7 +58,10 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.stream.ProceduralStream;
 import io.papermc.lib.PaperLib;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
@@ -70,7 +71,6 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
 import java.awt.*;
-import java.awt.Color;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -393,8 +393,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             items.addAll(i.getLoot(debug, items.isEmpty(), rng, slot, x, y, z, b + b, mgf + b));
         }
 
-        if(PaperLib.isPaper() && getWorld().hasRealWorld())
-        {
+        if (PaperLib.isPaper() && getWorld().hasRealWorld()) {
             PaperLib.getChunkAtAsync(getWorld().realWorld(), x >> 4, z >> 4).thenAccept((c) -> {
                 Runnable r = () -> {
                     for (ItemStack i : items) {
@@ -404,20 +403,13 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     scramble(inv, rng);
                 };
 
-                if(Bukkit.isPrimaryThread())
-                {
+                if (Bukkit.isPrimaryThread()) {
                     r.run();
-                }
-
-                else
-                {
+                } else {
                     J.s(r);
                 }
             });
-        }
-
-        else
-        {
+        } else {
             for (ItemStack i : items) {
                 inv.addItem(i);
             }

@@ -22,7 +22,6 @@ import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.block.IrisBlockData;
-import com.volmit.iris.engine.object.noise.IrisGenerator;
 import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;

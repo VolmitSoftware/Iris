@@ -16,44 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.oldnbt;
+package com.volmit.iris.util.nbt.mca.palettes;
 
-/**
- * The <code>TAG_Int</code> tag.
- *
- * @author Graham Edgecombe
- */
-public final class IntTag extends Tag {
+import com.volmit.iris.util.nbt.tag.CompoundTag;
 
-    /**
-     * The value.
-     */
-    private final int value;
+public interface Registry extends Iterable<CompoundTag> {
+    int getId(CompoundTag block);
 
-    /**
-     * Creates the tag.
-     *
-     * @param name  The name.
-     * @param value The value.
-     */
-    public IntTag(String name, int value) {
-        super(name);
-        this.value = value;
-    }
-
-    @Override
-    public Integer getValue() {
-        return value;
-    }
-
-    @Override
-    public String toString() {
-        String name = getName();
-        String append = "";
-        if (name != null && !name.equals("")) {
-            append = "(\"" + this.getName() + "\")";
-        }
-        return "TAG_Int" + append + ": " + value;
-    }
-
+    CompoundTag fromId(int id);
 }

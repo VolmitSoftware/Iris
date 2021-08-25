@@ -19,7 +19,6 @@
 package com.volmit.iris.core.project.loader;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.block.IrisBlockData;
@@ -44,9 +43,8 @@ import com.volmit.iris.util.math.RNG;
 import lombok.Data;
 
 import java.io.File;
-import java.util.*;
+import java.util.Objects;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Data
 public class IrisData {
@@ -73,9 +71,8 @@ public class IrisData {
     private Engine engine;
     private final int id;
 
-    public static IrisData get(File dataFolder)
-    {
-        return dataLoaders.compute(dataFolder, (k,v) -> v == null ? new IrisData(dataFolder) : v);
+    public static IrisData get(File dataFolder) {
+        return dataLoaders.compute(dataFolder, (k, v) -> v == null ? new IrisData(dataFolder) : v);
     }
 
     private IrisData(File dataFolder) {
@@ -86,20 +83,16 @@ public class IrisData {
         hotloaded();
     }
 
-    public static void dereference()
-    {
+    public static void dereference() {
         dataLoaders.v().forEach(IrisData::cleanupEngine);
     }
 
     public ResourceLoader<?> getTypedLoaderFor(File f) {
-        String[] k = f.getPath().split("\\Q"+File.separator+"\\E");
+        String[] k = f.getPath().split("\\Q" + File.separator + "\\E");
 
-        for(String i : k)
-        {
-            for(ResourceLoader<?> j : loaders.values())
-            {
-                if(j.getFolderName().equals(i))
-                {
+        for (String i : k) {
+            for (ResourceLoader<?> j : loaders.values()) {
+                if (j.getFolderName().equals(i)) {
                     return j;
                 }
             }
@@ -108,10 +101,8 @@ public class IrisData {
         return null;
     }
 
-    public void cleanupEngine()
-    {
-        if(engine != null && engine.isClosed())
-        {
+    public void cleanupEngine() {
+        if (engine != null && engine.isClosed()) {
             engine = null;
             Iris.debug("Dereferenced Data<Engine> " + getId() + " " + getDataFolder());
         }
@@ -119,11 +110,9 @@ public class IrisData {
 
     public static int cacheSize() {
         int m = 0;
-        for(IrisData i : dataLoaders.values())
-        {
-            for(ResourceLoader<?> j : i.getLoaders().values())
-            {
-                m+=j.getLoadCache().size();
+        for (IrisData i : dataLoaders.values()) {
+            for (ResourceLoader<?> j : i.getLoaders().values()) {
+                m += j.getLoadCache().size();
             }
         }
 
@@ -332,18 +321,14 @@ public class IrisData {
     }
 
     public String toLoadKey(File f) {
-        if(f.getPath().startsWith(getDataFolder().getPath()))
-        {
+        if (f.getPath().startsWith(getDataFolder().getPath())) {
             String[] full = f.getPath().split("\\Q" + File.separator + "\\E");
             String[] df = getDataFolder().getPath().split("\\Q" + File.separator + "\\E");
             String g = "";
             boolean m = true;
-            for(int i = 0; i < full.length; i++)
-            {
-                if(i >= df.length)
-                {
-                    if(m)
-                    {
+            for (int i = 0; i < full.length; i++) {
+                if (i >= df.length) {
+                    if (m) {
                         m = false;
                         continue;
                     }
@@ -354,10 +339,7 @@ public class IrisData {
 
             String ff = g.toString().substring(1).split("\\Q.\\E")[0];
             return ff;
-        }
-
-        else
-        {
+        } else {
             Iris.error("Forign file from loader " + f.getPath() + " (loader realm: " + getDataFolder().getPath() + ")");
         }
 

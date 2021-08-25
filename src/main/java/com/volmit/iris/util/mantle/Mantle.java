@@ -45,7 +45,6 @@ import org.bukkit.util.Vector;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -90,10 +89,11 @@ public class Mantle {
 
     /**
      * Raise a flag if it is lowered currently, If the flag was raised, execute the runnable
-     * @param x the chunk x
-     * @param z the chunk z
+     *
+     * @param x    the chunk x
+     * @param z    the chunk z
      * @param flag the flag to raise
-     * @param r the runnable to fire if the flag is now raised (and was previously lowered)
+     * @param r    the runnable to fire if the flag is now raised (and was previously lowered)
      */
     @ChunkCoordinates
     public void raiseFlag(int x, int z, MantleFlag flag, Runnable r) {
@@ -106,23 +106,24 @@ public class Mantle {
     /**
      * Obtain a cached writer which only contains cached chunks.
      * This avoids locking on regions when writing to lots of chunks
-     * @param x the x chunk
-     * @param z the z chunk
+     *
+     * @param x      the x chunk
+     * @param z      the z chunk
      * @param radius the radius chunks
      * @return the writer
      */
     @ChunkCoordinates
-    public MantleWriter write(EngineMantle engineMantle, int x, int z, int radius)
-    {
+    public MantleWriter write(EngineMantle engineMantle, int x, int z, int radius) {
         return new MantleWriter(engineMantle, this, x, z, radius);
     }
 
     /**
      * Lower a flag if it is raised. If the flag was lowered (meaning it was previously raised), execute the runnable
-     * @param x the chunk x
-     * @param z the chunk z
+     *
+     * @param x    the chunk x
+     * @param z    the chunk z
      * @param flag the flag to lower
-     * @param r the runnable that is fired if the flag was raised but is now lowered
+     * @param r    the runnable that is fired if the flag was raised but is now lowered
      */
     @ChunkCoordinates
     public void lowerFlag(int x, int z, MantleFlag flag, Runnable r) {
@@ -133,16 +134,16 @@ public class Mantle {
     }
 
     @ChunkCoordinates
-    public MantleChunk getChunk(int x, int z)
-    {
-        return get(x>>5, z>>5).getOrCreate(x & 31, z & 31);
+    public MantleChunk getChunk(int x, int z) {
+        return get(x >> 5, z >> 5).getOrCreate(x & 31, z & 31);
     }
 
     /**
      * Flag or unflag a chunk
-     * @param x the chunk x
-     * @param z the chunk z
-     * @param flag the flag
+     *
+     * @param x       the chunk x
+     * @param z       the chunk z
+     * @param flag    the flag
      * @param flagged should it be set to flagged or not
      */
     @ChunkCoordinates
@@ -152,29 +153,29 @@ public class Mantle {
 
     /**
      * Check very quickly if a tectonic plate exists via cached or the file system
+     *
      * @param x the x region coordinate
      * @param z the z region coordinate
      * @return true if it exists
      */
     @RegionCoordinates
-    public boolean hasTectonicPlate(int x, int z)
-    {
+    public boolean hasTectonicPlate(int x, int z) {
         Long k = key(x, z);
         return loadedRegions.containsKey(k) || fileForRegion(dataFolder, k).exists();
     }
 
     /**
      * Iterate data in a chunk
-     * @param x the chunk x
-     * @param z the chunk z
-     * @param type the type of data to iterate
+     *
+     * @param x        the chunk x
+     * @param z        the chunk z
+     * @param type     the type of data to iterate
      * @param iterator the iterator (x,y,z,data) -> do stuff
-     * @param <T> the type of data to iterate
+     * @param <T>      the type of data to iterate
      */
     @ChunkCoordinates
     public <T> void iterateChunk(int x, int z, Class<T> type, Consumer4<Integer, Integer, Integer, T> iterator) {
-        if(!hasTectonicPlate(x >> 5, z >> 5))
-        {
+        if (!hasTectonicPlate(x >> 5, z >> 5)) {
             return;
         }
 
@@ -183,15 +184,15 @@ public class Mantle {
 
     /**
      * Does this chunk have a flag on it?
-     * @param x the x
-     * @param z the z
+     *
+     * @param x    the x
+     * @param z    the z
      * @param flag the flag to test
      * @return true if it's flagged
      */
     @ChunkCoordinates
     public boolean hasFlag(int x, int z, MantleFlag flag) {
-        if(!hasTectonicPlate(x >> 5, z >> 5))
-        {
+        if (!hasTectonicPlate(x >> 5, z >> 5)) {
             return false;
         }
 
@@ -222,14 +223,10 @@ public class Mantle {
             return;
         }
 
-        if(t instanceof IrisFeaturePositional)
-        {
+        if (t instanceof IrisFeaturePositional) {
             get((x >> 4) >> 5, (z >> 4) >> 5)
                     .getOrCreate((x >> 4) & 31, (z >> 4) & 31).addFeature((IrisFeaturePositional) t);
-        }
-
-        else
-        {
+        } else {
             Matter matter = get((x >> 4) >> 5, (z >> 4) >> 5)
                     .getOrCreate((x >> 4) & 31, (z >> 4) & 31)
                     .getOrCreate(y >> 4);
@@ -260,8 +257,7 @@ public class Mantle {
             throw new RuntimeException("The Mantle is closed");
         }
 
-        if(!hasTectonicPlate((x >> 4) >> 5, (z >> 4) >> 5))
-        {
+        if (!hasTectonicPlate((x >> 4) >> 5, (z >> 4) >> 5)) {
             return null;
         }
 
@@ -277,10 +273,10 @@ public class Mantle {
 
     /**
      * Is this mantle closed
+     *
      * @return true if it is
      */
-    public boolean isClosed()
-    {
+    public boolean isClosed() {
         return closed.get();
     }
 
@@ -307,13 +303,9 @@ public class Mantle {
             });
         }
 
-        try
-        {
+        try {
             b.complete();
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             Iris.reportError(e);
         }
 
@@ -457,9 +449,10 @@ public class Mantle {
 
     /**
      * Get the file for a region
+     *
      * @param folder the folder
-     * @param x the x coord
-     * @param z the z coord
+     * @param x      the x coord
+     * @param z      the z coord
      * @return the file
      */
     public static File fileForRegion(File folder, int x, int z) {
@@ -468,14 +461,14 @@ public class Mantle {
 
     /**
      * Get the file for the given region
+     *
      * @param folder the data folder
-     * @param key the region key
+     * @param key    the region key
      * @return the file
      */
     public static File fileForRegion(File folder, Long key) {
         File f = new File(folder, "p." + key + ".ttp");
-        if(!f.getParentFile().exists())
-        {
+        if (!f.getParentFile().exists()) {
             f.getParentFile().mkdirs();
         }
         return f;
@@ -483,6 +476,7 @@ public class Mantle {
 
     /**
      * Get the long value representing a chunk or region coordinate
+     *
      * @param x the x
      * @param z the z
      * @return the value
@@ -497,33 +491,33 @@ public class Mantle {
 
     /**
      * Set a sphere into the mantle
-     * @param cx the center x
-     * @param cy the center y
-     * @param cz the center z
+     *
+     * @param cx     the center x
+     * @param cy     the center y
+     * @param cz     the center z
      * @param radius the radius of this sphere
-     * @param fill should it be filled? or just the outer shell?
-     * @param data the data to set
-     * @param <T> the type of data to apply to the mantle
+     * @param fill   should it be filled? or just the outer shell?
+     * @param data   the data to set
+     * @param <T>    the type of data to apply to the mantle
      */
-    public <T> void setSphere(int cx, int cy, int cz, double radius, boolean fill, T data)
-    {
+    public <T> void setSphere(int cx, int cy, int cz, double radius, boolean fill, T data) {
         setElipsoid(cx, cy, cz, radius, radius, radius, fill, data);
     }
 
     /**
      * Set an elipsoid into the mantle
-     * @param cx the center x
-     * @param cy the center y
-     * @param cz the center z
-     * @param rx the x radius
-     * @param ry the y radius
-     * @param rz the z radius
+     *
+     * @param cx   the center x
+     * @param cy   the center y
+     * @param cz   the center z
+     * @param rx   the x radius
+     * @param ry   the y radius
+     * @param rz   the z radius
      * @param fill should it be filled or just the outer shell?
      * @param data the data to set
-     * @param <T> the type of data to apply to the mantle
+     * @param <T>  the type of data to apply to the mantle
      */
-    public <T> void setElipsoid(int cx, int cy, int cz, double rx, double ry, double rz, boolean fill, T data)
-    {
+    public <T> void setElipsoid(int cx, int cy, int cz, double rx, double ry, double rz, boolean fill, T data) {
         rx += 0.5;
         ry += 0.5;
         rz += 0.5;
@@ -535,11 +529,13 @@ public class Mantle {
         final int ceilRadiusZ = (int) Math.ceil(rz);
         double nextXn = 0;
 
-        forX: for (int x = 0; x <= ceilRadiusX; ++x) {
+        forX:
+        for (int x = 0; x <= ceilRadiusX; ++x) {
             final double xn = nextXn;
             nextXn = (x + 1) * invRadiusX;
             double nextYn = 0;
-            forY: for (int y = 0; y <= ceilRadiusY; ++y) {
+            forY:
+            for (int y = 0; y <= ceilRadiusY; ++y) {
                 final double yn = nextYn;
                 nextYn = (y + 1) * invRadiusY;
                 double nextZn = 0;
@@ -564,15 +560,15 @@ public class Mantle {
                         }
                     }
 
-                    set(x + cx,y + cy,z + cz, data);
-                    set(-x + cx,y + cy,z + cz, data);
-                    set(x + cx,-y + cy,z + cz, data);
-                    set(x + cx,y + cy,-z + cz, data);
-                    set(-x + cx,y + cy,-z + cz, data);
-                    set(-x + cx,-y + cy,z + cz, data);
-                    set(x + cx,-y + cy,-z + cz, data);
-                    set(-x + cx,y + cy,-z + cz, data);
-                    set(-x + cx,-y + cy,-z + cz, data);
+                    set(x + cx, y + cy, z + cz, data);
+                    set(-x + cx, y + cy, z + cz, data);
+                    set(x + cx, -y + cy, z + cz, data);
+                    set(x + cx, y + cy, -z + cz, data);
+                    set(-x + cx, y + cy, -z + cz, data);
+                    set(-x + cx, -y + cy, z + cz, data);
+                    set(x + cx, -y + cy, -z + cz, data);
+                    set(-x + cx, y + cy, -z + cz, data);
+                    set(-x + cx, -y + cy, -z + cz, data);
                 }
             }
         }
@@ -580,26 +576,23 @@ public class Mantle {
 
     /**
      * Set a cuboid of data in the mantle
-     * @param x1 the min x
-     * @param y1 the min y
-     * @param z1 the min z
-     * @param x2 the max x
-     * @param y2 the max y
-     * @param z2 the max z
+     *
+     * @param x1   the min x
+     * @param y1   the min y
+     * @param z1   the min z
+     * @param x2   the max x
+     * @param y2   the max y
+     * @param z2   the max z
      * @param data the data to set
-     * @param <T> the type of data to apply to the mantle
+     * @param <T>  the type of data to apply to the mantle
      */
-    public <T> void setCuboid(int x1, int y1, int z1, int x2, int y2, int z2, T data)
-    {
-        int j,k;
+    public <T> void setCuboid(int x1, int y1, int z1, int x2, int y2, int z2, T data) {
+        int j, k;
 
-        for(int i = x1; i <= x2; i++)
-        {
-            for(j = x1; j <= x2; j++)
-            {
-                for(k = x1; k <= x2; k++)
-                {
-                    set(i,j,k,data);
+        for (int i = x1; i <= x2; i++) {
+            for (j = x1; j <= x2; j++) {
+                for (k = x1; k <= x2; k++) {
+                    set(i, j, k, data);
                 }
             }
         }
@@ -607,13 +600,14 @@ public class Mantle {
 
     /**
      * Set a pyramid of data in the mantle
-     * @param cx the center x
-     * @param cy the base y
-     * @param cz the center z
-     * @param data the data to set
-     * @param size the size of the pyramid (width of base & height)
+     *
+     * @param cx     the center x
+     * @param cy     the base y
+     * @param cz     the center z
+     * @param data   the data to set
+     * @param size   the size of the pyramid (width of base & height)
      * @param filled should it be filled or hollow
-     * @param <T> the type of data to apply to the mantle
+     * @param <T>    the type of data to apply to the mantle
      */
     @SuppressWarnings("ConstantConditions")
     public <T> void setPyramid(int cx, int cy, int cz, T data, int size, boolean filled) {
@@ -636,10 +630,11 @@ public class Mantle {
 
     /**
      * Set a 3d tube spline interpolated with Kochanek Bartels
+     *
      * @param nodevectors the vector points
-     * @param radius the radius
-     * @param filled if it should be filled or hollow
-     * @param data the data to set
+     * @param radius      the radius
+     * @param filled      if it should be filled or hollow
+     * @param data        the data to set
      */
     public <T> void setSpline(List<Vector> nodevectors, double radius, boolean filled, T data) {
         setSpline(nodevectors, 0, 0, 0, 10, radius, filled, data);
@@ -647,15 +642,16 @@ public class Mantle {
 
     /**
      * Set a 3d tube spline interpolated with Kochanek Bartels
+     *
      * @param nodevectors the spline points
-     * @param tension the tension 0
-     * @param bias the bias 0
-     * @param continuity the continuity 0
-     * @param quality the quality 10
-     * @param radius the radius
-     * @param filled filled or hollow
-     * @param data the data to set
-     * @param <T> the type of data to apply to the mantle
+     * @param tension     the tension 0
+     * @param bias        the bias 0
+     * @param continuity  the continuity 0
+     * @param quality     the quality 10
+     * @param radius      the radius
+     * @param filled      filled or hollow
+     * @param data        the data to set
+     * @param <T>         the type of data to apply to the mantle
      */
     public <T> void setSpline(List<Vector> nodevectors, double tension, double bias, double continuity, double quality, double radius, boolean filled, T data) {
         Set<IrisPosition> vset = new KSet<>();
@@ -687,25 +683,26 @@ public class Mantle {
 
     /**
      * Set a 3d line
-     * @param a the first point
-     * @param b the second point
+     *
+     * @param a      the first point
+     * @param b      the second point
      * @param radius the radius
      * @param filled hollow or filled?
-     * @param data the data
-     * @param <T> the type of data to apply to the mantle
+     * @param data   the data
+     * @param <T>    the type of data to apply to the mantle
      */
-    public <T> void setLine(IrisPosition a, IrisPosition b, double radius, boolean filled, T data)
-    {
+    public <T> void setLine(IrisPosition a, IrisPosition b, double radius, boolean filled, T data) {
         setLine(ImmutableList.of(a, b), radius, filled, data);
     }
 
     /**
      * Set lines for points
+     *
      * @param vectors the points
-     * @param radius the radius
-     * @param filled hollow or filled?
-     * @param data the data to set
-     * @param <T> the type of data to apply to the mantle
+     * @param radius  the radius
+     * @param filled  hollow or filled?
+     * @param data    the data to set
+     * @param <T>     the type of data to apply to the mantle
      */
     public <T> void setLine(List<IrisPosition> vectors, double radius, boolean filled, T data) {
         Set<IrisPosition> vset = new KSet<>();
@@ -770,28 +767,30 @@ public class Mantle {
 
     /**
      * Set a cylinder in the mantle
-     * @param cx the center x
-     * @param cy the base y
-     * @param cz the center z
-     * @param data the data to set
+     *
+     * @param cx     the center x
+     * @param cy     the base y
+     * @param cz     the center z
+     * @param data   the data to set
      * @param radius the radius
      * @param height the height of the cyl
      * @param filled filled or not
      */
-    public <T> void setCylinder(int cx, int cy, int cz, T data, double radius, int height, boolean filled){
+    public <T> void setCylinder(int cx, int cy, int cz, T data, double radius, int height, boolean filled) {
         setCylinder(cx, cy, cz, data, radius, radius, height, filled);
     }
 
     /**
      * Set a cylinder in the mantle
-     * @param cx the center x
-     * @param cy the base y
-     * @param cz the center z
-     * @param data the data to set
+     *
+     * @param cx      the center x
+     * @param cy      the base y
+     * @param cz      the center z
+     * @param data    the data to set
      * @param radiusX the x radius
      * @param radiusZ the z radius
-     * @param height the height of this cyl
-     * @param filled filled or hollow?
+     * @param height  the height of this cyl
+     * @param filled  filled or hollow?
      */
     public <T> void setCylinder(int cx, int cy, int cz, T data, double radiusX, double radiusZ, int height, boolean filled) {
         int affected = 0;
@@ -817,7 +816,8 @@ public class Mantle {
         final int ceilRadiusZ = (int) Math.ceil(radiusZ);
         double nextXn = 0;
 
-        forX: for (int x = 0; x <= ceilRadiusX; ++x) {
+        forX:
+        for (int x = 0; x <= ceilRadiusX; ++x) {
             final double xn = nextXn;
             nextXn = (x + 1) * invRadiusX;
             double nextZn = 0;
@@ -850,23 +850,18 @@ public class Mantle {
         }
     }
 
-    public <T> void set(IrisPosition pos, T data)
-    {
+    public <T> void set(IrisPosition pos, T data) {
         set(pos.getX(), pos.getY(), pos.getZ(), data);
     }
 
-    public <T> void set(List<IrisPosition> positions, T data)
-    {
-        for(IrisPosition i : positions)
-        {
+    public <T> void set(List<IrisPosition> positions, T data) {
+        for (IrisPosition i : positions) {
             set(i, data);
         }
     }
 
-    public <T> void set(Set<IrisPosition> positions, T data)
-    {
-        for(IrisPosition i : positions)
-        {
+    public <T> void set(Set<IrisPosition> positions, T data) {
+        for (IrisPosition i : positions) {
             set(i, data);
         }
     }

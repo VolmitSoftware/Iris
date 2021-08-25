@@ -21,11 +21,8 @@ package com.volmit.iris.engine.jigsaw;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
-import com.volmit.iris.engine.object.entity.IrisEntity;
 import com.volmit.iris.engine.object.feature.IrisFeature;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawPiece;
@@ -38,9 +35,7 @@ import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.RNG;
 import lombok.Data;
 import org.bukkit.Axis;
-import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.entity.Entity;
 
 import java.util.function.Consumer;
 
@@ -116,20 +111,13 @@ public class PlannedStructure {
         int offset = i.getPosition().getY() - startHeight;
         int height = 0;
 
-        if(i.getStructure().getStructure().getLockY() == -1)
-        {
-            if(i.getStructure().getStructure().getOverrideYRange() != null)
-            {
-                height = (int)i.getStructure().getStructure().getOverrideYRange().get(rng, xx, zz, getData());
-            }
-
-            else
-            {
+        if (i.getStructure().getStructure().getLockY() == -1) {
+            if (i.getStructure().getStructure().getOverrideYRange() != null) {
+                height = (int) i.getStructure().getStructure().getOverrideYRange().get(rng, xx, zz, getData());
+            } else {
                 height = placer.getHighest(xx, zz, getData());
             }
-        }
-
-        else{
+        } else {
             height = i.getStructure().getStructure().getLockY();
         }
 
@@ -244,8 +232,7 @@ public class PlannedStructure {
     }
 
     private boolean generateRotatedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, IrisJigsawPiece idea, IrisObjectRotation rotation) {
-        if (!idea.getPlacementOptions().getRotation().isEnabled())
-        {
+        if (!idea.getPlacementOptions().getRotation().isEnabled()) {
             rotation = piece.getRotation();
         }
 

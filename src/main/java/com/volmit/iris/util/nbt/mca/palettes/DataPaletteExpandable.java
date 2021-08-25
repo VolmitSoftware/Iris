@@ -16,30 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.oldnbt;
+package com.volmit.iris.util.nbt.mca.palettes;
 
-/**
- * The <code>TAG_End</code> tag.
- *
- * @author Graham Edgecombe
- */
-public final class EndTag extends Tag {
+import com.volmit.iris.util.nbt.tag.CompoundTag;
 
-    /**
-     * Creates the tag.
-     */
-    public EndTag() {
-        super("");
-    }
-
-    @Override
-    public Object getValue() {
-        return null;
-    }
-
-    @Override
-    public String toString() {
-        return "TAG_End";
-    }
-
+interface DataPaletteExpandable {
+    int onResize(int newBits, CompoundTag newData);
 }

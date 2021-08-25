@@ -21,22 +21,12 @@ package com.volmit.iris.core.command.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.Queue;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
-
-import java.text.NumberFormat;
-import java.util.*;
-import java.util.stream.Collectors;
 
 public class CommandIrisObjectAnalyze extends MortarCommand {
 

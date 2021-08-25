@@ -91,10 +91,10 @@ file(jar.archiveFile.get().getAsFile().getParentFile().getParentFile().getParent
 processResources {
     filesMatching('**/plugin.yml') {
         expand(
-            'name': name.toString(),
-            'version': version.toString(),
-            'main': main.toString(),
-            'apiversion': apiVersion.toString()
+                'name': name.toString(),
+                'version': version.toString(),
+                'main': main.toString(),
+                'apiversion': apiVersion.toString()
         )
     }
 }
@@ -158,17 +158,17 @@ compileJava {
 }
 
 shadowJar
-{
-    minimize()
-    append("plugin.yml")
-    relocate 'com.dfsek.paralithic', 'com.volmit.iris.util.paralithic'
-    relocate 'io.papermc.lib', 'com.volmit.iris.util.paper'
-    dependencies {
-        include(dependency('io.papermc:paperlib'))
-        include(dependency('com.dfsek:Paralithic'))
-        include(dependency('net.kyori:'))
-    }
-}
+        {
+            minimize()
+            append("plugin.yml")
+            relocate 'com.dfsek.paralithic', 'com.volmit.iris.util.paralithic'
+            relocate 'io.papermc.lib', 'com.volmit.iris.util.paper'
+            dependencies {
+                include(dependency('io.papermc:paperlib'))
+                include(dependency('com.dfsek:Paralithic'))
+                include(dependency('net.kyori:'))
+            }
+        }
 
 dependencies {
     // Provided or Classpath
@@ -197,4 +197,5 @@ dependencies {
     implementation 'bsf:bsf:2.4.0'
     implementation 'rhino:js:1.7R2'
     implementation 'com.github.ben-manes.caffeine:caffeine:3.0.3'
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
 }

@@ -65,13 +65,9 @@ public class IrisFeaturePositional {
 
     public static IrisFeaturePositional read(DataInputStream s) throws IOException {
         String sx = s.readUTF();
-        try
-        {
+        try {
             return new Gson().fromJson(sx, IrisFeaturePositional.class);
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             Iris.error(sx);
             e.printStackTrace();
             throw new IOException(e);

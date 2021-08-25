@@ -23,7 +23,9 @@ import com.volmit.iris.util.collection.KList;
 import lombok.Setter;
 
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 @SuppressWarnings("ALL")
 public class BurstExecutor {
@@ -48,10 +50,8 @@ public class BurstExecutor {
     }
 
     public BurstExecutor queue(List<Runnable> r) {
-        if(!multicore)
-        {
-            for(Runnable i : new KList<>(r))
-            {
+        if (!multicore) {
+            for (Runnable i : new KList<>(r)) {
                 i.run();
             }
 
@@ -68,10 +68,8 @@ public class BurstExecutor {
     }
 
     public BurstExecutor queue(Runnable[] r) {
-        if(!multicore)
-        {
-            for(Runnable i : new KList<>(r))
-            {
+        if (!multicore) {
+            for (Runnable i : new KList<>(r)) {
                 i.run();
             }
 
@@ -88,8 +86,7 @@ public class BurstExecutor {
     }
 
     public void complete() {
-        if(!multicore)
-        {
+        if (!multicore) {
             return;
         }
 
@@ -99,8 +96,7 @@ public class BurstExecutor {
             }
 
             try {
-                for(Future<?> i : futures)
-                {
+                for (Future<?> i : futures) {
                     i.get();
                 }
 

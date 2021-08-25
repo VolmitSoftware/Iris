@@ -16,44 +16,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.oldnbt;
+package com.volmit.iris.util.nbt.mca.palettes;
 
-/**
- * The <code>TAG_Float</code> tag.
- *
- * @author Graham Edgecombe
- */
-public final class FloatTag extends Tag {
+import com.volmit.iris.util.nbt.tag.CompoundTag;
+import com.volmit.iris.util.nbt.tag.ListTag;
 
-    /**
-     * The value.
-     */
-    private final float value;
+import java.util.function.Predicate;
 
-    /**
-     * Creates the tag.
-     *
-     * @param name  The name.
-     * @param value The value.
-     */
-    public FloatTag(String name, float value) {
-        super(name);
-        this.value = value;
-    }
+public interface DataPalette {
+    int getIndex(CompoundTag block);
 
-    @Override
-    public Float getValue() {
-        return value;
-    }
+    boolean contains(Predicate<CompoundTag> predicate);
 
-    @Override
-    public String toString() {
-        String name = getName();
-        String append = "";
-        if (name != null && !name.equals("")) {
-            append = "(\"" + this.getName() + "\")";
-        }
-        return "TAG_Float" + append + ": " + value;
-    }
+    CompoundTag getByIndex(int index);
 
+    int size();
+
+    void replace(ListTag<CompoundTag> palette);
 }

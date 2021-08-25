@@ -21,7 +21,6 @@ package com.volmit.iris.core.service;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -77,8 +76,7 @@ public class StudioSVC implements IrisService {
 
         for (World i : Bukkit.getWorlds()) {
             if (IrisToolbelt.isIrisWorld(i)) {
-                if(IrisToolbelt.isStudio(i))
-                {
+                if (IrisToolbelt.isStudio(i)) {
                     IrisToolbelt.evacuate(i);
                     IrisToolbelt.access(i).close();
                 }
@@ -165,8 +163,7 @@ public class StudioSVC implements IrisService {
         try {
             url = getListing(false).get(key);
 
-            if(url == null)
-            {
+            if (url == null) {
                 Iris.warn("ITS ULL for " + key);
             }
 

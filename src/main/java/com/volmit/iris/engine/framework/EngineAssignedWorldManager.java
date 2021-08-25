@@ -80,8 +80,7 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
 
                 Iris.debug("Ps: " + p.size());
 
-                for(Position2 i : p)
-                {
+                for (Position2 i : p) {
                     Iris.debug("- " + i.getX() + " " + i.getZ());
                 }
 

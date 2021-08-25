@@ -16,24 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.hunk.io;
+package com.volmit.iris.util.function;
 
-import com.volmit.iris.util.data.B;
-import org.bukkit.block.data.BlockData;
-
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-
-public class BlockDataHunkIOAdapter extends PaletteHunkIOAdapter<BlockData> {
-
-    @Override
-    public void write(BlockData blockData, DataOutputStream dos) throws IOException {
-        dos.writeUTF(blockData.getAsString(true));
-    }
-
-    @Override
-    public BlockData read(DataInputStream din) throws IOException {
-        return B.get(din.readUTF());
-    }
+public interface NastySupplier<T> {
+    T get() throws Throwable;
 }

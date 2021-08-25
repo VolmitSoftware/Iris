@@ -28,7 +28,6 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.StringTag;
 import com.volmit.iris.util.parallel.HyperLock;
-import com.volmit.iris.util.scheduling.IrisLock;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -39,10 +38,38 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 public class NBTWorld {
     private static final BlockData AIR = B.get("AIR");
-    private static final Map<String, CompoundTag> blockDataCache = new KMap<>();
+    private static final Map<BlockData, CompoundTag> blockDataCache = new KMap<>();
+    private static final Function<BlockData, CompoundTag> BLOCK_DATA_COMPUTE = (blockData) -> {
+        CompoundTag s = new CompoundTag();
+        String data = blockData.getAsString(true);
+        NamespacedKey key = blockData.getMaterial().getKey();
+        s.putString("Name", key.getNamespace() + ":" + key.getKey());
+
+        if (data.contains("[")) {
+            String raw = data.split("\\Q[\\E")[1].replaceAll("\\Q]\\E", "");
+            CompoundTag props = new CompoundTag();
+            if (raw.contains(",")) {
+                for (String i : raw.split("\\Q,\\E")) {
+                    String[] m = i.split("\\Q=\\E");
+                    String k = m[0];
+                    String v = m[1];
+                    props.put(k, new StringTag(v));
+                }
+            } else {
+                String[] m = raw.split("\\Q=\\E");
+                String k = m[0];
+                String v = m[1];
+                props.put(k, new StringTag(v));
+            }
+            s.put("Properties", props);
+        }
+
+        return s;
+    };
     private static final Map<Biome, Integer> biomeIds = computeBiomeIDs();
     private final KMap<Long, MCAFile> loadedRegions;
     private final HyperLock hyperLock = new HyperLock();
@@ -184,38 +211,8 @@ public class NBTWorld {
         return b;
     }
 
-    public static CompoundTag getCompound(BlockData blockData) {
-        String data = blockData.getAsString(true);
-
-        if (blockDataCache.containsKey(data)) {
-            return blockDataCache.get(data).clone();
-        }
-
-        CompoundTag s = new CompoundTag();
-        NamespacedKey key = blockData.getMaterial().getKey();
-        s.putString("Name", key.getNamespace() + ":" + key.getKey());
-
-        if (data.contains("[")) {
-            String raw = data.split("\\Q[\\E")[1].replaceAll("\\Q]\\E", "");
-            CompoundTag props = new CompoundTag();
-            if (raw.contains(",")) {
-                for (String i : raw.split("\\Q,\\E")) {
-                    String[] m = i.split("\\Q=\\E");
-                    String k = m[0];
-                    String v = m[1];
-                    props.put(k, new StringTag(v));
-                }
-            } else {
-                String[] m = raw.split("\\Q=\\E");
-                String k = m[0];
-                String v = m[1];
-                props.put(k, new StringTag(v));
-            }
-            s.put("Properties", props);
-        }
-
-        blockDataCache.put(data, s.clone());
-        return s;
+    public static CompoundTag getCompound(BlockData bd) {
+        return blockDataCache.computeIfAbsent(bd, BLOCK_DATA_COMPUTE).clone();
     }
 
     public BlockData getBlockData(int x, int y, int z) {
@@ -238,8 +235,7 @@ public class NBTWorld {
         getChunkSection(x >> 4, y >> 4, z >> 4).setBlockStateAt(x & 15, y & 15, z & 15, getCompound(data), false);
     }
 
-    public int getBiomeId(Biome b)
-    {
+    public int getBiomeId(Biome b) {
         return biomeIds.get(b);
     }
 
@@ -259,8 +255,7 @@ public class NBTWorld {
         return s;
     }
 
-    public Chunk getChunk(int x, int z)
-    {
+    public Chunk getChunk(int x, int z) {
         return getChunk(getMCA(x >> 5, z >> 5), x, z);
     }
 
@@ -275,11 +270,18 @@ public class NBTWorld {
         return c;
     }
 
+    public Chunk getNewChunk(MCAFile mca, int x, int z) {
+        Chunk c = Chunk.newChunk();
+        mca.setChunk(x & 31, z & 31, c);
+
+        return c;
+    }
+
     public long getIdleDuration(int x, int z) {
-       return hyperLock.withResult(x, z, () -> {
-           Long l = lastUse.get(Cache.key(x, z));
-           return l == null ? 0 : (M.ms() - l);
-       });
+        return hyperLock.withResult(x, z, () -> {
+            Long l = lastUse.get(Cache.key(x, z));
+            return l == null ? 0 : (M.ms() - l);
+        });
     }
 
     public MCAFile getMCA(int x, int z) {

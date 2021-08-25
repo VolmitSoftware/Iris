@@ -30,7 +30,10 @@ import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.engine.mantle.EngineMantle;
-import com.volmit.iris.engine.modifier.*;
+import com.volmit.iris.engine.modifier.IrisCaveModifier;
+import com.volmit.iris.engine.modifier.IrisDepositModifier;
+import com.volmit.iris.engine.modifier.IrisPostModifier;
+import com.volmit.iris.engine.modifier.IrisRavineModifier;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.decoration.IrisDecorator;
@@ -41,20 +44,17 @@ import com.volmit.iris.util.atomics.AtomicRollingSequence;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
-import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
-import org.bukkit.Chunk;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -62,7 +62,6 @@ import org.bukkit.command.CommandSender;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -133,13 +132,12 @@ public class IrisEngine implements Engine {
     }
 
     private void tickRandomPlayer() {
-        if(effects != null) {
+        if (effects != null) {
             effects.tickRandomPlayer();
         }
     }
 
-    private void prehotload()
-    {
+    private void prehotload() {
         worldManager.close();
         complex.close();
         execution.close();
@@ -153,10 +151,8 @@ public class IrisEngine implements Engine {
         effects.close();
     }
 
-    private void setupEngine()
-    {
-        try
-        {
+    private void setupEngine() {
+        try {
             Iris.debug("Setup Engine " + getCacheID());
             cacheId = RNG.r.nextInt();
             worldManager = new IrisWorldManager(this);
@@ -171,10 +167,7 @@ public class IrisEngine implements Engine {
             postModifier = new IrisPostModifier(this);
             effects = new IrisEngineEffects(this);
             J.a(this::computeBiomeMaxes);
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             Iris.error("FAILED TO SETUP ENGINE!");
             e.printStackTrace();
         }
@@ -397,34 +390,44 @@ public class IrisEngine implements Engine {
     @BlockCoordinates
     @Override
     public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes, boolean multicore) throws WrongEngineBroException {
-        if(closed)
-        {
+        if (closed) {
             throw new WrongEngineBroException();
         }
 
         context.touch();
         getEngineData().getStatistics().generatedChunk();
         try {
+
             PrecisionStopwatch p = PrecisionStopwatch.start();
             Hunk<BlockData> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y + getMinHeight(), z + zz, t));
-            getMantle().generateMatter(x >> 4, z >> 4, multicore);
 
-            burst().burst(multicore,
-                    () -> getTerrainActuator().actuate(x, z, vblocks, multicore),
-                    () -> getBiomeActuator().actuate(x, z, vbiomes, multicore)
-            );
-            burst().burst(multicore,
-                    () -> getCaveModifier().modify(x, z, vblocks, multicore),
-                    () -> getDecorantActuator().actuate(x, z, blocks, multicore),
-                    () -> getRavineModifier().modify(x, z, vblocks, multicore)
-            );
+            if (multicore) {
+                for (int i = 0; i < 16; i++) {
+                    for (int j = 0; j < 16; j++) {
+                        blocks.set(i, 0, j, Material.RED_GLAZED_TERRACOTTA.createBlockData());
+                    }
+                }
+            } else {
+                getMantle().generateMatter(x >> 4, z >> 4, multicore);
 
-            getPostModifier().modify(x, z, vblocks, multicore);
+                burst().burst(multicore,
+                        () -> getTerrainActuator().actuate(x, z, vblocks, multicore),
+                        () -> getBiomeActuator().actuate(x, z, vbiomes, multicore)
+                );
+                burst().burst(multicore,
+                        () -> getCaveModifier().modify(x, z, vblocks, multicore),
+                        () -> getDecorantActuator().actuate(x, z, blocks, multicore),
+                        () -> getRavineModifier().modify(x, z, vblocks, multicore)
+                );
 
-            burst().burst(multicore,
-                    () -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, blocks, multicore),
-                    () -> getDepositModifier().modify(x, z, vblocks, multicore)
-            );
+                getPostModifier().modify(x, z, vblocks, multicore);
+
+                burst().burst(multicore,
+                        () -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, blocks, multicore),
+                        () -> getDepositModifier().modify(x, z, vblocks, multicore)
+                );
+            }
+
 
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();

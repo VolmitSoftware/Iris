@@ -21,7 +21,6 @@ package com.volmit.iris.util.data;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
@@ -284,8 +283,7 @@ public class B {
             return Material.valueOf(bdx.trim().toUpperCase());
         } catch (Throwable e) {
             Iris.reportError(e);
-            if(clw.flip())
-            {
+            if (clw.flip()) {
                 Iris.warn("Unknown Material: " + bdx);
             }
             return null;
@@ -295,8 +293,7 @@ public class B {
     public static Material getMaterial(String bdx) {
         Material m = getMaterialOrNull(bdx);
 
-        if(m == null)
-        {
+        if (m == null) {
             return AIR_MATERIAL;
         }
 
@@ -313,8 +310,7 @@ public class B {
             BlockData bdx = parseBlockData(bd);
 
             if (bdx == null) {
-                if(clw.flip())
-                {
+                if (clw.flip()) {
                     Iris.warn("Unknown Block Data '" + bd + "'");
                 }
                 return AIR;
@@ -324,8 +320,7 @@ public class B {
         } catch (Throwable e) {
             Iris.reportError(e);
 
-            if(clw.flip())
-            {
+            if (clw.flip()) {
                 Iris.warn("Unknown Block Data '" + bdxf + "'");
             }
         }
@@ -363,8 +358,7 @@ public class B {
 
             return bx;
         } catch (Throwable e) {
-            if(clw.flip())
-            {
+            if (clw.flip()) {
                 Iris.warn("Unknown Block Data: " + ix);
             }
 

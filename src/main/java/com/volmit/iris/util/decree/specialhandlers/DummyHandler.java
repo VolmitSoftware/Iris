@@ -29,8 +29,7 @@ public class DummyHandler implements DecreeParameterHandler<Object> {
         return null;
     }
 
-    public boolean isDummy()
-    {
+    public boolean isDummy() {
         return true;
     }
 

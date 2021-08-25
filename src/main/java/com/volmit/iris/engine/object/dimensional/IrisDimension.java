@@ -39,7 +39,6 @@ import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructure;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructurePlacement;
 import com.volmit.iris.engine.object.loot.IrisLootReference;
 import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
-import com.volmit.iris.engine.object.noise.IrisInterpolator;
 import com.volmit.iris.engine.object.noise.IrisShapedGeneratorStyle;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;

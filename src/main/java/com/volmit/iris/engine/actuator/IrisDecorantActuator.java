@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine.actuator;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.engine.decorator.*;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
@@ -26,7 +25,6 @@ import com.volmit.iris.engine.framework.EngineDecorator;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.carve.IrisCaveLayer;
 import com.volmit.iris.util.documentation.BlockCoordinates;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
@@ -35,7 +33,6 @@ import lombok.Getter;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
@@ -99,7 +96,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
                 int realX = (int) Math.round(modX(x + finalI));
                 int realZ;
                 IrisBiome biome, cave;
-                for (int j=0; j < output.getDepth(); j++) {
+                for (int j = 0; j < output.getDepth(); j++) {
                     boolean solid, liquid;
                     int emptyFor = 0;
                     int liquidFor = 0;
@@ -113,8 +110,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
                         continue;
                     }
 
-                    if(height < getDimension().getFluidHeight())
-                    {
+                    if (height < getDimension().getFluidHeight()) {
                         getSeaSurfaceDecorator().decorate(finalI, j,
                                 realX, (int) Math.round(modX(x + finalI + 1)), (int) Math.round(modX(x + finalI - 1)),
                                 realZ, (int) Math.round(modZ(z + j + 1)), (int) Math.round(modZ(z + j - 1)),

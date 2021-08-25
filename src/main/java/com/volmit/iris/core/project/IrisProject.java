@@ -39,9 +39,7 @@ import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.exceptions.IrisException;
-import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONArray;
@@ -55,7 +53,6 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.scheduling.jobs.Job;
 import com.volmit.iris.util.scheduling.jobs.JobCollection;
 import com.volmit.iris.util.scheduling.jobs.ParallelQueueJob;
-import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import lombok.Data;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -519,18 +516,16 @@ public class IrisProject {
             @Override
             public void execute(File f) {
                 try {
-                    IrisObject o = new IrisObject(0,0,0);
+                    IrisObject o = new IrisObject(0, 0, 0);
                     o.read(f);
 
-                    if(o.getBlocks().isEmpty())
-                    {
+                    if (o.getBlocks().isEmpty()) {
                         sender.sendMessageRaw("<hover:show_text:'Error:\n" +
                                 "<yellow>" + f.getPath() +
                                 "'><red>- IOB " + f.getName() + " has 0 blocks!");
                     }
 
-                    if(o.getW() == 0 || o.getH() == 0 || o.getD() == 0)
-                    {
+                    if (o.getW() == 0 || o.getH() == 0 || o.getD() == 0) {
                         sender.sendMessageRaw("<hover:show_text:'Error:\n" +
                                 "<yellow>" + f.getPath() + "\n<red>The width height or depth has a zero in it (bad format)" +
                                 "'><red>- IOB " + f.getName() + " is not 3D!");
@@ -558,7 +553,7 @@ public class IrisProject {
                 } catch (Throwable e) {
                     sender.sendMessageRaw("<hover:show_text:'Error:\n" +
                             "<yellow>" + f.getPath() +
-                            "\n<red>" +e.getMessage() +
+                            "\n<red>" + e.getMessage() +
                             "'><red>- JSON Error " + f.getName());
                 }
             }
@@ -576,8 +571,7 @@ public class IrisProject {
         String key = data.toLoadKey(f);
         ResourceLoader<?> loader = data.getTypedLoaderFor(f);
 
-        if(loader == null)
-        {
+        if (loader == null) {
             sender.sendMessageBasic("Can't find loader for " + f.getPath());
             return;
         }
@@ -587,15 +581,10 @@ public class IrisProject {
         load.scanForErrors(p, sender);
     }
 
-    public void compare(Class<?> c, JSONObject j, VolmitSender sender, KList<String> path)
-    {
-        try
-        {
+    public void compare(Class<?> c, JSONObject j, VolmitSender sender, KList<String> path) {
+        try {
             Object o = c.getClass().getConstructor().newInstance();
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
 
         }
     }

@@ -39,7 +39,6 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
-import io.papermc.lib.PaperLib;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.bukkit.Chunk;
@@ -99,10 +98,8 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                     interrupt();
                 }
 
-                if(getEngine().getWorld().hasRealWorld())
-                {
-                    if(chunkUpdater.flip())
-                    {
+                if (getEngine().getWorld().hasRealWorld()) {
+                    if (chunkUpdater.flip()) {
                         updateChunks();
                     }
 
@@ -152,8 +149,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     }
 
     private void updateChunks() {
-        for(Player i : getEngine().getWorld().realWorld().getPlayers())
-        {
+        for (Player i : getEngine().getWorld().realWorld().getPlayers()) {
             J.s(() -> {
                 Chunk c = i.getLocation().getChunk();
                 J.a(() -> getEngine().updateChunk(c));

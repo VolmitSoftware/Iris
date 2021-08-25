@@ -29,8 +29,7 @@ public abstract class ParallelQueueJob<T> extends QueueJob<T> {
             BurstExecutor b = MultiBurst.burst.burst(queue.size());
             KList<T> q = queue.copy();
             queue.clear();
-            for(T i : q)
-            {
+            for (T i : q) {
                 b.queue(() -> {
                     execute(i);
                     completeWork();

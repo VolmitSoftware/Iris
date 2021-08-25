@@ -32,18 +32,15 @@ public class WormIterator2 {
     private int maxDistance;
     private int maxIterations;
 
-    public boolean hasNext()
-    {
+    public boolean hasNext() {
         double dist = maxDistance - (Math.max(Math.abs(worm.getX().getVelocity()), Math.abs(worm.getZ().getVelocity())) + 1);
         return maxIterations > 0 &&
                 ((x * x) - (worm.getX().getPosition() * worm.getX().getPosition()))
-            + ((z * z) - (worm.getZ().getPosition() * worm.getZ().getPosition())) < dist * dist;
+                        + ((z * z) - (worm.getZ().getPosition() * worm.getZ().getPosition())) < dist * dist;
     }
 
-    public Worm2 next()
-    {
-        if(worm == null)
-        {
+    public Worm2 next() {
+        if (worm == null) {
             worm = new Worm2(x, z, 0, 0);
             return worm;
         }

@@ -31,14 +31,8 @@ import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.math.M;
-import lombok.val;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.PrintWriter;
-import java.sql.Date;
-import java.util.Map;
 
 @Decree(name = "irisd", aliases = {"ird"}, description = "Basic Command")
 public class DecIris implements DecreeExecutor {
@@ -126,7 +120,8 @@ public class DecIris implements DecreeExecutor {
             case "%" -> v = value1 % value2;
             case ">>" -> v = value1 >> value2;
             case "<<" -> v = value1 << value2;
-        };
+        }
+        ;
         if (v == null) {
             sender().sendMessage(C.RED + "The operator you entered: (" + operator + ") is invalid!");
             return;

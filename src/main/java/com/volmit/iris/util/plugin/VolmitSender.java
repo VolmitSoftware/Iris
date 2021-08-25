@@ -426,7 +426,7 @@ public class VolmitSender implements CommandSender {
         }
     }
 
-    public void sendDecreeHelpNode(VirtualDecreeCommand i){
+    public void sendDecreeHelpNode(VirtualDecreeCommand i) {
         if (isPlayer()) {
 
             String newline = "<reset>\n";

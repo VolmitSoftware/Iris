@@ -18,107 +18,68 @@
 
 package com.volmit.iris.engine.data.cache;
 
-import com.volmit.iris.util.math.M;
-import com.volmit.iris.util.scheduling.IrisLock;
+import com.volmit.iris.Iris;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
 public class AtomicCache<T> {
-    private transient volatile T t;
-    private transient volatile long a;
-    private transient volatile int validations;
-    private final IrisLock check;
-    private final IrisLock time;
-    private final IrisLock write;
-    private final boolean nullSupport;
+    private transient final AtomicReference<T> t;
+    private transient final AtomicBoolean set;
+    private transient final ReentrantLock lock;
+    private transient final boolean nullSupport;
 
     public AtomicCache() {
         this(false);
     }
 
     public AtomicCache(boolean nullSupport) {
+        set = nullSupport ? new AtomicBoolean() : null;
+        t = new AtomicReference<>();
+        lock = new ReentrantLock();
         this.nullSupport = nullSupport;
-        check = new IrisLock("Check");
-        write = new IrisLock("Write");
-        time = new IrisLock("Time");
-        validations = 0;
-        a = -1;
-        t = null;
     }
 
     public void reset() {
-        check.lock();
-        write.lock();
-        time.lock();
-        a = -1;
-        t = null;
-        time.unlock();
-        write.unlock();
-        check.unlock();
+        t.set(null);
+
+        if (nullSupport) {
+            set.set(false);
+        }
     }
 
     public T aquire(Supplier<T> t) {
-        if (nullSupport) {
-            return aquireNull(t);
+        if (this.t.get() != null) {
+            return this.t.get();
+        } else if (nullSupport && set.get()) {
+            return null;
         }
 
-        if (this.t != null && validations > 1000) {
-            return this.t;
+        lock.lock();
+
+        if (this.t.get() != null) {
+            lock.unlock();
+            return this.t.get();
+        } else if (nullSupport && set.get()) {
+            lock.unlock();
+            return null;
         }
 
-        if (this.t != null && M.ms() - a > 1000) {
-            if (this.t != null) {
-                //noinspection NonAtomicOperationOnVolatileField
-                validations++;
+        try {
+            this.t.set(t.get());
+
+            if (nullSupport) {
+                set.set(true);
             }
-
-            return this.t;
+        } catch (Throwable e) {
+            Iris.error("Atomic cache failure!");
+            e.printStackTrace();
         }
 
-        check.lock();
+        lock.unlock();
 
-        if (this.t == null) {
-            write.lock();
-            this.t = t.get();
-
-            time.lock();
-
-            if (a == -1) {
-                a = M.ms();
-            }
-
-            time.unlock();
-            write.unlock();
-        }
-
-        check.unlock();
-        return this.t;
-    }
-
-    public T aquireNull(Supplier<T> t) {
-        if (validations > 1000) {
-            return this.t;
-        }
-
-        if (M.ms() - a > 1000) {
-            //noinspection NonAtomicOperationOnVolatileField
-            validations++;
-            return this.t;
-        }
-
-        check.lock();
-        write.lock();
-        this.t = t.get();
-
-        time.lock();
-
-        if (a == -1) {
-            a = M.ms();
-        }
-
-        time.unlock();
-        write.unlock();
-        check.unlock();
-        return this.t;
+        return this.t.get();
     }
 }

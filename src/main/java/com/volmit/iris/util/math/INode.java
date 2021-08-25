@@ -30,7 +30,7 @@ public class INode {
     private double continuity;
 
     public INode() {
-        this(new Vector(0,0,0));
+        this(new Vector(0, 0, 0));
     }
 
     public INode(INode other) {

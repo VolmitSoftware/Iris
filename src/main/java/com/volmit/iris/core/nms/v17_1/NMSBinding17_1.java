@@ -77,10 +77,8 @@ public class NMSBinding17_1 implements INMSBinding {
     public RegistryBlockID computeBlockIDRegistry() throws NoSuchFieldException, IllegalAccessException {
         Field cf = net.minecraft.core.RegistryBlockID.class.getDeclaredField("c");
         Field df = net.minecraft.core.RegistryBlockID.class.getDeclaredField("d");
-        Field bf = net.minecraft.core.RegistryBlockID.class.getDeclaredField("b");
         cf.setAccessible(true);
         df.setAccessible(true);
-        bf.setAccessible(true);
         net.minecraft.core.RegistryBlockID<IBlockData> blockData = Block.p;
         IdentityHashMap<IBlockData, Integer> c = (IdentityHashMap<IBlockData, Integer>) cf.get(blockData);
         List<IBlockData> d = (List<IBlockData>) df.get(blockData);
@@ -88,7 +86,7 @@ public class NMSBinding17_1 implements INMSBinding {
         HashMap<CompoundTag, Integer> realMap = new HashMap<>(512);
         d.forEach((i) -> realTags.add(NBTWorld.getCompound(CraftBlockData.fromData(i))));
         c.forEach((k,v) -> realMap.put(NBTWorld.getCompound(CraftBlockData.fromData(k)), v));
-        RegistryBlockID registry = new RegistryBlockID(realMap, realTags, bf.getInt(blockData));
+        RegistryBlockID registry = new RegistryBlockID(realMap, realTags);
         Iris.info("INMS: Stole Global Palette: " + realTags.size() + " Tags, " + realMap.size() + " Mapped");
         return registry;
     }

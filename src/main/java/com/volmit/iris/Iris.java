@@ -129,7 +129,7 @@ public class Iris extends VolmitPlugin implements Listener {
     private void testmca() {
         try
         {
-            int forceBits = 9;
+            int forceBits = 6;
             int possibilities = (int) (Math.pow(2, forceBits) - 1);
             KList<BlockData> bp = new KList<>();
             Set<BlockData> bf = new KSet<>();

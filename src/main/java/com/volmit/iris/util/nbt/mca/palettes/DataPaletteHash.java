@@ -18,47 +18,41 @@
 
 package com.volmit.iris.util.nbt.mca.palettes;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
 import net.minecraft.network.PacketDataSerializer;
-import net.minecraft.world.level.chunk.ChunkSection;
 
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class DataPaletteHash<T> implements DataPalette<T> {
-    private final RegistryBlockID<T> a;
-    private final RegistryID<T> b;
-    private final DataPaletteExpandable<T> c;
-    private final Function<CompoundTag, T> d;
-    private final Function<T, CompoundTag> e;
-    private final int f;
+public class DataPaletteHash implements DataPalette {
+    private final RegistryBlockID registryBlock;
+    private final RegistryID registryId;
+    private final DataPaletteExpandable expander;
+    private final int bits;
 
-    public DataPaletteHash(RegistryBlockID<T> var0, int var1, DataPaletteExpandable<T> var2, Function<CompoundTag, T> var3, Function<T, CompoundTag> var4) {
-        this.a = var0;
-        this.f = var1;
-        this.c = var2;
-        this.d = var3;
-        this.e = var4;
-        this.b = new RegistryID<T>(1 << var1);
+    public DataPaletteHash(RegistryBlockID var0, int bits, DataPaletteExpandable expander) {
+        this.registryBlock = var0;
+        this.bits = bits;
+        this.expander = expander;
+        this.registryId = new RegistryID(1 << bits);
     }
 
-    public int getIndex(T var0) {
-        int var1 = this.b.getId(var0);
+    public int getIndex(CompoundTag var0) {
+        int var1 = this.registryId.getId(var0);
         if (var1 == -1) {
-            var1 = this.b.c(var0);
-            if (var1 >= 1 << this.f) {
-                var1 = this.c.onResize(this.f + 1, var0);
+            var1 = this.registryId.c(var0);
+            if (var1 >= 1 << this.bits) {
+                var1 = this.expander.onResize(this.bits + 1, var0);
             }
         }
 
         return var1;
     }
 
-    public boolean a(Predicate<T> var0) {
+    public boolean a(Predicate<CompoundTag> var0) {
         for (int var1 = 0; var1 < this.b(); ++var1) {
-            if (var0.test(this.b.fromId(var1))) {
+            if (var0.test(this.registryId.fromId(var1))) {
                 return true;
             }
         }
@@ -66,16 +60,16 @@ public class DataPaletteHash<T> implements DataPalette<T> {
         return false;
     }
 
-    public T getByIndex(int var0) {
-        return this.b.fromId(var0);
+    public CompoundTag getByIndex(int var0) {
+        return this.registryId.fromId(var0);
     }
 
     public void a(PacketDataSerializer var0) {
-        this.b.a();
+        this.registryId.a();
         int var1 = var0.j();
 
         for (int var2 = 0; var2 < var1; ++var2) {
-            this.b.c(this.a.fromId(var0.j()));
+            this.registryId.c(this.registryBlock.fromId(var0.j()));
         }
 
     }
@@ -85,7 +79,7 @@ public class DataPaletteHash<T> implements DataPalette<T> {
         var0.d(var1);
 
         for (int var2 = 0; var2 < var1; ++var2) {
-            var0.d(this.a.getId(this.b.fromId(var2)));
+            var0.d(this.registryBlock.getId(this.registryId.fromId(var2)));
         }
 
     }
@@ -94,21 +88,21 @@ public class DataPaletteHash<T> implements DataPalette<T> {
         int var0 = PacketDataSerializer.a(this.b());
 
         for (int var1 = 0; var1 < this.b(); ++var1) {
-            var0 += PacketDataSerializer.a(this.a.getId(this.b.fromId(var1)));
+            var0 += PacketDataSerializer.a(this.registryBlock.getId(this.registryId.fromId(var1)));
         }
 
         return var0;
     }
 
     public int b() {
-        return this.b.b();
+        return this.registryId.b();
     }
 
     public void replace(ListTag<CompoundTag> var0) {
-        this.b.a();
+        this.registryId.a();
 
         for (int var1 = 0; var1 < var0.size(); ++var1) {
-            this.b.c(this.d.apply(var0.get(var1)));
+            this.registryId.c(var0.get(var1));
         }
     }
 
@@ -119,7 +113,7 @@ public class DataPaletteHash<T> implements DataPalette<T> {
 
     public void writePalette(ListTag<CompoundTag> var0) {
         for (int var1 = 0; var1 < this.b(); ++var1) {
-            var0.add((CompoundTag) this.b.fromId(var1));
+            var0.add((CompoundTag) this.registryId.fromId(var1));
         }
 
     }

@@ -18,8 +18,10 @@
 
 package com.volmit.iris.util.nbt.mca.palettes;
 
-public interface Registry<T> extends Iterable<T> {
-    int getId(T var1);
+import com.volmit.iris.util.nbt.tag.CompoundTag;
 
-    T fromId(int var1);
+public interface Registry extends Iterable<CompoundTag> {
+    int getId(CompoundTag var1);
+
+    CompoundTag fromId(int var1);
 }

@@ -20,30 +20,29 @@ package com.volmit.iris.util.nbt.mca.palettes;
 
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 import java.util.function.Predicate;
 
-public class DataPaletteGlobal<T> implements DataPalette<T> {
-    private final RegistryBlockID<T> a;
-    private final T b;
+@RequiredArgsConstructor
+public class DataPaletteGlobal implements DataPalette {
+    @Getter
+    private final RegistryBlockID registry;
+    private final CompoundTag air;
 
-    public DataPaletteGlobal(RegistryBlockID<T> var0, T var1) {
-        this.a = var0;
-        this.b = var1;
-    }
-
-    public int getIndex(T var0) {
-        int var1 = this.a.getId(var0);
+    public int getIndex(CompoundTag var0) {
+        int var1 = this.registry.getId(var0);
         return var1 == -1 ? 0 : var1;
     }
 
-    public boolean a(Predicate<T> var0) {
+    public boolean a(Predicate<CompoundTag> var0) {
         return true;
     }
 
-    public T getByIndex(int var0) {
-        T var1 = this.a.fromId(var0);
-        return var1 == null ? this.b : var1;
+    public CompoundTag getByIndex(int var0) {
+        CompoundTag var1 = this.registry.fromId(var0);
+        return var1 == null ? this.air : var1;
     }
 
     public static int aa(int i) {
@@ -61,7 +60,7 @@ public class DataPaletteGlobal<T> implements DataPalette<T> {
     }
 
     public int b() {
-        return this.a.size();
+        return this.registry.size();
     }
 
     @Override

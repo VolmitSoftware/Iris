@@ -25,23 +25,21 @@ import net.minecraft.network.PacketDataSerializer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class DataPaletteLinear<T> implements DataPalette<T> {
-    private final RegistryBlockID<T> a;
-    private final T[] b;
-    private final DataPaletteExpandable<T> c;
-    private final Function<CompoundTag, T> d;
+public class DataPaletteLinear implements DataPalette {
+    private final RegistryBlockID a;
+    private final CompoundTag[] b;
+    private final DataPaletteExpandable c;
     private final int e;
     private int f;
 
-    public DataPaletteLinear(RegistryBlockID<T> var0, int var1, DataPaletteExpandable<T> var2, Function<CompoundTag, T> var3) {
+    public DataPaletteLinear(RegistryBlockID var0, int var1, DataPaletteExpandable var2) {
         this.a = var0;
-        this.b = (T[]) new Object[1 << var1];
+        this.b = (CompoundTag[]) new Object[1 << var1];
         this.e = var1;
         this.c = var2;
-        this.d = var3;
     }
 
-    public int getIndex(T var0) {
+    public int getIndex(CompoundTag var0) {
         int var1;
         for (var1 = 0; var1 < this.f; ++var1) {
             if (this.b[var1].equals(var0)) {
@@ -59,7 +57,7 @@ public class DataPaletteLinear<T> implements DataPalette<T> {
         }
     }
 
-    public boolean a(Predicate<T> var0) {
+    public boolean a(Predicate<CompoundTag> var0) {
         for (int var1 = 0; var1 < this.f; ++var1) {
             if (var0.test(this.b[var1])) {
                 return true;
@@ -69,7 +67,7 @@ public class DataPaletteLinear<T> implements DataPalette<T> {
         return false;
     }
 
-    public T getByIndex(int var0) {
+    public CompoundTag getByIndex(int var0) {
         return var0 >= 0 && var0 < this.f ? this.b[var0] : null;
     }
 
@@ -107,7 +105,7 @@ public class DataPaletteLinear<T> implements DataPalette<T> {
 
     public void replace(ListTag<CompoundTag> var0) {
         for (int var1 = 0; var1 < var0.size(); ++var1) {
-            this.b[var1] = this.d.apply(var0.get(var1));
+            this.b[var1] = var0.get(var1);
         }
 
         this.f = var0.size();
@@ -116,9 +114,9 @@ public class DataPaletteLinear<T> implements DataPalette<T> {
     @Override
     public ListTag<CompoundTag> getPalette() {
         ListTag<CompoundTag> c = (ListTag<CompoundTag>) ListTag.createUnchecked(CompoundTag.class);
-        for(T i : b)
+        for(CompoundTag i : b)
         {
-            c.add((CompoundTag) i);
+            c.add(i);
         }
 
         return c;

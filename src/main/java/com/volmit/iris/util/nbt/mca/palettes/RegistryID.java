@@ -21,32 +21,33 @@ package com.volmit.iris.util.nbt.mca.palettes;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import com.volmit.iris.util.math.MathHelper;
+import com.volmit.iris.util.nbt.tag.CompoundTag;
 
 import java.util.Arrays;
 import java.util.Iterator;
 
-public class RegistryID<K> implements Registry<K> {
+public class RegistryID implements Registry {
     public static final int a = -1;
     private static final Object b = null;
     private static final float c = 0.8F;
-    private K[] d;
+    private CompoundTag[] d;
     private int[] e;
-    private K[] f;
+    private CompoundTag[] f;
     private int g;
     private int h;
 
     public RegistryID(int var0) {
         var0 = (int) ((float) var0 / 0.8F);
-        this.d = (K[]) new Object[var0];
+        this.d = (CompoundTag[]) new Object[var0];
         this.e = new int[var0];
-        this.f = (K[]) new Object[var0];
+        this.f = (CompoundTag[]) new Object[var0];
     }
 
-    public int getId(K var0) {
+    public int getId(CompoundTag var0) {
         return this.c(this.b(var0, this.d(var0)));
     }
 
-    public K fromId(int var0) {
+    public CompoundTag fromId(int var0) {
         return var0 >= 0 && var0 < this.f.length ? this.f[var0] : null;
     }
 
@@ -54,7 +55,7 @@ public class RegistryID<K> implements Registry<K> {
         return var0 == -1 ? -1 : this.e[var0];
     }
 
-    public boolean b(K var0) {
+    public boolean b(CompoundTag var0) {
         return this.getId(var0) != -1;
     }
 
@@ -62,7 +63,7 @@ public class RegistryID<K> implements Registry<K> {
         return this.fromId(var0) != null;
     }
 
-    public int c(K var0) {
+    public int c(CompoundTag var0) {
         int var1 = this.c();
         this.a(var0, var1);
         return var1;
@@ -77,11 +78,11 @@ public class RegistryID<K> implements Registry<K> {
     }
 
     private void d(int var0) {
-        K[] var1 = this.d;
+        CompoundTag[] var1 = this.d;
         int[] var2 = this.e;
-        this.d = (K[]) new Object[var0];
+        this.d = (CompoundTag[]) new Object[var0];
         this.e = new int[var0];
-        this.f = (K[]) new Object[var0];
+        this.f = (CompoundTag[]) new Object[var0];
         this.g = 0;
         this.h = 0;
 
@@ -93,7 +94,7 @@ public class RegistryID<K> implements Registry<K> {
 
     }
 
-    public void a(K var0, int var1) {
+    public void a(CompoundTag var0, int var1) {
         int var2 = Math.max(var1, this.h + 1);
         int var3;
         if ((float) var2 >= (float) this.d.length * 0.8F) {
@@ -114,11 +115,11 @@ public class RegistryID<K> implements Registry<K> {
 
     }
 
-    private int d(K var0) {
+    private int d(CompoundTag var0) {
         return (MathHelper.g(System.identityHashCode(var0)) & 2147483647) % this.d.length;
     }
 
-    private int b(K var0, int var1) {
+    private int b(CompoundTag var0, int var1) {
         int var2;
         for (var2 = var1; var2 < this.d.length; ++var2) {
             if (this.d[var2] == var0) {
@@ -160,7 +161,7 @@ public class RegistryID<K> implements Registry<K> {
         throw new RuntimeException("Overflowed :(");
     }
 
-    public Iterator<K> iterator() {
+    public Iterator<CompoundTag> iterator() {
         return Iterators.filter(Iterators.forArray(this.f), Predicates.notNull());
     }
 

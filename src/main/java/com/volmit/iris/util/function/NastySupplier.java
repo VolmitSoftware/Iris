@@ -16,25 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.nbt.mca.palettes;
+package com.volmit.iris.util.function;
 
-import com.volmit.iris.util.nbt.tag.CompoundTag;
-import com.volmit.iris.util.nbt.tag.ListTag;
-
-import java.util.function.Predicate;
-
-public interface DataPalette {
-    int getIndex(CompoundTag var1);
-
-    boolean a(Predicate<CompoundTag> var1);
-
-    CompoundTag getByIndex(int var1);
-
-    int a();
-
-    int b();
-
-    void replace(ListTag<CompoundTag> t);
-
-    ListTag<CompoundTag> getPalette();
+public interface NastySupplier<T> {
+    T get() throws Throwable;
 }

@@ -18,6 +18,8 @@
 
 package com.volmit.iris.util.nbt.mca.palettes;
 
-interface DataPaletteExpandable<T> {
-    int onResize(int var1, T var2);
+import com.volmit.iris.util.nbt.tag.CompoundTag;
+
+interface DataPaletteExpandable {
+    int onResize(int newBits, CompoundTag newData);
 }

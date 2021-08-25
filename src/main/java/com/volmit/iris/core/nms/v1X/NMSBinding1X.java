@@ -18,7 +18,9 @@
 
 package com.volmit.iris.core.nms.v1X;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
+import com.volmit.iris.util.nbt.mca.palettes.RegistryBlockID;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -141,5 +143,11 @@ public class NMSBinding1X implements INMSBinding {
     @Override
     public void forceBiomeInto(int x, int y, int z, Object somethingVeryDirty, ChunkGenerator.BiomeGrid chunk) {
 
+    }
+
+    @Override
+    public RegistryBlockID<CompoundTag> computeBlockIDRegistry() throws NoSuchFieldException, IllegalAccessException {
+        Iris.error("Cannot use the global data palette! Iris is incapable of using MCA generation on this version of minecraft!");
+        return null;
     }
 }

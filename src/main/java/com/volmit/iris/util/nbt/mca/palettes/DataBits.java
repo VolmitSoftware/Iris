@@ -86,7 +86,7 @@ public class DataBits {
         this.b[var2] = var3 & ~(this.d << var5) | ((long) var1 & this.d) << var5;
     }
 
-    public int a(int var0) {
+    public int getIndexFromPos(int var0) {
         Validate.inclusiveBetween(0L, (long) (this.e - 1), (long) var0);
         int var1 = this.b(var0);
         long var2 = this.b[var1];
@@ -94,7 +94,7 @@ public class DataBits {
         return (int) (var2 >> var4 & this.d);
     }
 
-    public long[] a() {
+    public long[] getData() {
         return this.b;
     }
 

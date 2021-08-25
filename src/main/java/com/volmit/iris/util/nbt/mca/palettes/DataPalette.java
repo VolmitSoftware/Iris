@@ -24,17 +24,17 @@ import com.volmit.iris.util.nbt.tag.ListTag;
 import java.util.function.Predicate;
 
 public interface DataPalette<T> {
-    int a(T var1);
+    int getIndex(T var1);
 
     boolean a(Predicate<T> var1);
 
-    T a(int var1);
+    T getByIndex(int var1);
 
     int a();
 
     int b();
 
-    void a(ListTag<CompoundTag> t);
+    void replace(ListTag<CompoundTag> t);
 
     ListTag<CompoundTag> getPalette();
 }

@@ -43,14 +43,19 @@ public class ChunkBiomeContainer<T> {
   private final int quartMinY;
   
   private final int quartHeight;
-  
+
   protected ChunkBiomeContainer(IdMap<T> registry, int minHeight, int maxHeight, T[] abiomebase) {
     this.biomeRegistry = registry;
     this.biomes = abiomebase;
     this.quartMinY = QuartPos.fromBlock(minHeight);
     this.quartHeight = QuartPos.fromBlock(maxHeight) - 1;
   }
-  
+
+  public ChunkBiomeContainer(IdMap<T> registry, int min, int max)
+  {
+    this(registry, min, max, new int[(1 << WIDTH_BITS + WIDTH_BITS) * ceilDiv(max - min, 4)]);
+  }
+
   public ChunkBiomeContainer(IdMap<T> registry, int minHeight, int maxHeight, int[] aint) {
     this(registry, minHeight, maxHeight, (T[])new Object[aint.length]);
     int i = -1;

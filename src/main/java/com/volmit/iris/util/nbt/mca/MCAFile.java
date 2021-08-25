@@ -275,29 +275,8 @@ public class MCAFile {
         return chunk;
     }
 
-    /**
-     * @deprecated Use {@link #setBiomeAt(int, int, int, int)} instead
-     */
-    @Deprecated
-    public void setBiomeAt(int blockX, int blockZ, int biomeID) {
-        createChunkIfMissing(blockX, blockZ).setBiomeAt(blockX, blockZ, biomeID);
-    }
-
     public void setBiomeAt(int blockX, int blockY, int blockZ, int biomeID) {
         createChunkIfMissing(blockX, blockZ).setBiomeAt(blockX, blockY, blockZ, biomeID);
-    }
-
-    /**
-     * @deprecated Use {@link #getBiomeAt(int, int, int)} instead
-     */
-    @Deprecated
-    public int getBiomeAt(int blockX, int blockZ) {
-        int chunkX = MCAUtil.blockToChunk(blockX), chunkZ = MCAUtil.blockToChunk(blockZ);
-        Chunk chunk = getChunk(getChunkIndex(chunkX, chunkZ));
-        if (chunk == null) {
-            return -1;
-        }
-        return chunk.getBiomeAt(blockX, blockZ);
     }
 
     /**

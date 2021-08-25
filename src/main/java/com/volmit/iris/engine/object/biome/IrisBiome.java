@@ -30,6 +30,7 @@ import com.volmit.iris.engine.object.block.IrisBlockDrops;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.engine.object.decoration.IrisDecorator;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
+import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructurePlacement;
 import com.volmit.iris.engine.object.loot.IrisLootReference;
@@ -43,6 +44,7 @@ import com.volmit.iris.engine.object.spawners.IrisSpawner;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.data.VanillaBiomeMap;
@@ -56,6 +58,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
@@ -65,7 +68,6 @@ import java.awt.*;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-
 @Desc("Represents a biome in iris. Biomes are placed inside of regions and hold objects.\nA biome consists of layers (block palletes), decorations, objects & generators.")
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -87,7 +89,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Desc("Add random chances for terrain features")
     @ArrayType(min = 1, type = IrisFeaturePotential.class)
     private KList<IrisFeaturePotential> features = new KList<>();
-
 
     @ArrayType(min = 1, type = IrisEffect.class)
     @Desc("Effects are ambient effects such as potion effects, random sounds, or even particles around each player. All of these effects are played via packets so two players won't see/hear each others effects.\nDue to performance reasons, effects will play around the player even if where the effect was played is no longer in the biome the player is in.")
@@ -194,6 +195,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     private transient InferredType inferredType;
 
+    private static final BlockData BARRIER = Material.BARRIER.createBlockData();
     private final transient AtomicCache<KMap<String, IrisBiomeGeneratorLink>> genCache = new AtomicCache<>();
     private final transient AtomicCache<KMap<String, Integer>> genCacheMax = new AtomicCache<>();
     private final transient AtomicCache<KMap<String, Integer>> genCacheMin = new AtomicCache<>();
@@ -326,7 +328,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return childrenCell.aquire(() -> getChildStyle().create(random.nextParallelRNG(sig * 2137), getLoader()).bake().scale(scale).bake());
     }
 
-    public KList<BlockData> generateLayers(double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
+    public KList<BlockData> generateLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
         if (isLockLayers()) {
             return generateLockedLayers(wx, wz, random, maxDepth, height, rdata, complex);
         }
@@ -368,6 +370,18 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
             if (data.size() >= maxDepth) {
                 break;
+            }
+
+            if(dim.isExplodeBiomePalettes())
+            {
+                for(int j = 0; j < dim.getExplodeBiomePaletteSize(); j++)
+                {
+                    data.add(BARRIER);
+
+                    if (data.size() >= maxDepth) {
+                        break;
+                    }
+                }
             }
         }
 

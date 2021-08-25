@@ -19,8 +19,10 @@
 package com.volmit.iris.util.nbt.mca.palettes;
 
 import com.google.common.collect.Iterators;
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.math.MathHelper;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
+import net.minecraft.world.level.chunk.DataPaletteBlock;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -69,6 +71,7 @@ public class RegistryID implements Registry {
         return var1;
     }
 
+    
     private int c() {
         while (this.g < this.f.length && this.f[this.g] != null) {
             ++this.g;
@@ -121,6 +124,7 @@ public class RegistryID implements Registry {
         int var2;
         for (var2 = var1; var2 < this.d.length; ++var2) {
             if (this.d[var2] == null) {
+                Iris.error("-1 because null!");
                 return -1;
             }
 
@@ -131,6 +135,7 @@ public class RegistryID implements Registry {
 
         for (var2 = 0; var2 < var1; ++var2) {
             if (this.d[var2] == null) {
+                Iris.error("-1 because null!");
                 return -1;
             }
 

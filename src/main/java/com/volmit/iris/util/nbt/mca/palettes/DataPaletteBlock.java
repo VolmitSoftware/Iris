@@ -33,6 +33,7 @@ import lombok.Getter;
 import net.minecraft.world.level.chunk.ChunkSection;
 import org.bukkit.Material;
 
+import javax.management.RuntimeErrorException;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Map;
@@ -90,8 +91,10 @@ public class DataPaletteBlock implements DataPaletteExpandable {
                 currentPalette = new DataPaletteLinear(bits, this);
             } else if (bits < HASH_BITS) {
                 currentPalette = new DataPaletteHash(bits, this);
+                Iris.info("Upgraded to hash bits");
             } else {
                 currentPalette = globalPalette;
+                Iris.info("Upgraded to global bits because " + bits + " >= " +  HASH_BITS);
                 bits = MathHelper.e(stolenRegistry.size());
             }
 
@@ -103,6 +106,7 @@ public class DataPaletteBlock implements DataPaletteExpandable {
     public int onResize(int newBits, CompoundTag newData) {
         DataBits oldBits = dataBits;
         DataPalette oldPalette = currentPalette;
+
         changeBitsTo(newBits);
 
         for (int i = 0; i < oldBits.b(); ++i) {

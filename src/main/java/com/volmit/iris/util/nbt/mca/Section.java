@@ -18,6 +18,8 @@
 
 package com.volmit.iris.util.nbt.mca;
 
+import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.util.nbt.mca.nmspalettes.PaletteAccess;
 import com.volmit.iris.util.nbt.mca.palettes.DataPaletteBlock;
 import com.volmit.iris.util.nbt.tag.ByteArrayTag;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
@@ -27,7 +29,7 @@ import com.volmit.iris.util.nbt.tag.LongArrayTag;
 
 public class Section {
     private CompoundTag data;
-    private DataPaletteBlock palette;
+    private PaletteAccess palette;
     private byte[] blockLight;
     private byte[] skyLight;
     private int dataVersion;
@@ -43,9 +45,8 @@ public class Section {
         if (rawPalette == null) {
             return;
         }
-        palette = new DataPaletteBlock();
-        LongArrayTag blockStates = sectionRoot.getLongArrayTag("BlockStates");
-        palette.load((ListTag<CompoundTag>) rawPalette, blockStates.getValue());
+        palette = INMS.get().createPalette();
+        palette.readFromSection(sectionRoot);
         ByteArrayTag blockLight = sectionRoot.getByteArrayTag("BlockLight");
         ByteArrayTag skyLight = sectionRoot.getByteArrayTag("SkyLight");
         this.blockLight = blockLight != null ? blockLight.getValue() : null;
@@ -151,8 +152,8 @@ public class Section {
      */
     public static Section newSection() {
         Section s = new Section();
-        s.palette = new DataPaletteBlock();
         s.data = new CompoundTag();
+        s.palette = INMS.get().createPalette();
         return s;
     }
 
@@ -170,7 +171,7 @@ public class Section {
         if (palette != null) {
             synchronized (palette)
             {
-                palette.save(data, "Palette", "BlockStates");
+                palette.writeToSection(data);
             }
         }
         if (blockLight != null) {

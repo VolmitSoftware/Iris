@@ -60,6 +60,7 @@ import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -73,7 +74,7 @@ public class NMSBinding17_1 implements INMSBinding {
     }
 
     @Override
-    public RegistryBlockID<CompoundTag> computeBlockIDRegistry() throws NoSuchFieldException, IllegalAccessException {
+    public RegistryBlockID computeBlockIDRegistry() throws NoSuchFieldException, IllegalAccessException {
         Field cf = net.minecraft.core.RegistryBlockID.class.getDeclaredField("c");
         Field df = net.minecraft.core.RegistryBlockID.class.getDeclaredField("d");
         Field bf = net.minecraft.core.RegistryBlockID.class.getDeclaredField("b");
@@ -84,13 +85,11 @@ public class NMSBinding17_1 implements INMSBinding {
         IdentityHashMap<IBlockData, Integer> c = (IdentityHashMap<IBlockData, Integer>) cf.get(blockData);
         List<IBlockData> d = (List<IBlockData>) df.get(blockData);
         List<CompoundTag> realTags = new ArrayList<>();
-        IdentityHashMap<CompoundTag, Integer> realMap = new IdentityHashMap<>(512);
+        HashMap<CompoundTag, Integer> realMap = new HashMap<>(512);
         d.forEach((i) -> realTags.add(NBTWorld.getCompound(CraftBlockData.fromData(i))));
         c.forEach((k,v) -> realMap.put(NBTWorld.getCompound(CraftBlockData.fromData(k)), v));
-        RegistryBlockID<CompoundTag> registry = new RegistryBlockID<CompoundTag>(realMap, realTags, bf.getInt(blockData));
-
+        RegistryBlockID registry = new RegistryBlockID(realMap, realTags, bf.getInt(blockData));
         Iris.info("INMS: Stole Global Palette: " + realTags.size() + " Tags, " + realMap.size() + " Mapped");
-
         return registry;
     }
 

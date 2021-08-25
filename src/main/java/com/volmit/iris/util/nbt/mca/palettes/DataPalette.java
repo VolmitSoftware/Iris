@@ -16,21 +16,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.hunk.io;
+package com.volmit.iris.util.nbt.mca.palettes;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import com.volmit.iris.util.nbt.tag.CompoundTag;
+import com.volmit.iris.util.nbt.tag.ListTag;
 
-public class BooleanHunkIOAdapter extends PaletteHunkIOAdapter<Boolean> {
+import java.util.function.Predicate;
 
-    @Override
-    public void write(Boolean data, DataOutputStream dos) throws IOException {
-        dos.writeBoolean(data);
-    }
+public interface DataPalette<T> {
+    int a(T var1);
 
-    @Override
-    public Boolean read(DataInputStream din) throws IOException {
-        return din.readBoolean();
-    }
+    boolean a(Predicate<T> var1);
+
+    T a(int var1);
+
+    int a();
+
+    int b();
+
+    void a(ListTag<CompoundTag> t);
 }

@@ -16,21 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.hunk.io;
+package com.volmit.iris.util.nbt.mca.palettes;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-
-public class StringHunkIOAdapter extends PaletteHunkIOAdapter<String> {
-
-    @Override
-    public void write(String data, DataOutputStream dos) throws IOException {
-        dos.writeUTF(data);
-    }
-
-    @Override
-    public String read(DataInputStream din) throws IOException {
-        return din.readUTF();
-    }
+interface DataPaletteExpandable<T> {
+    int onResize(int var1, T var2);
 }

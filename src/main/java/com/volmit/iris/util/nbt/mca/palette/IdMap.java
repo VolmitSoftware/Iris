@@ -16,10 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.nbt.mca.palettes;
+package com.volmit.iris.util.nbt.mca.palette;
 
-import com.volmit.iris.util.nbt.tag.CompoundTag;
+public interface IdMap<T> extends Iterable<T> {
+  int getId(T paramT);
 
-interface DataPaletteExpandable {
-    int onResize(int newBits, CompoundTag newData);
+  T byId(int paramInt);
 }

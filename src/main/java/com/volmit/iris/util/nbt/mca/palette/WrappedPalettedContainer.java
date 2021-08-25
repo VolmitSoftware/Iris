@@ -16,41 +16,36 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.nbt.mca.palettes;
+package com.volmit.iris.util.nbt.mca.palette;
 
 import com.volmit.iris.util.nbt.tag.CompoundTag;
-import com.volmit.iris.util.nbt.tag.ListTag;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-import java.util.function.Predicate;
+import java.util.function.Function;
 
 @RequiredArgsConstructor
-public class DataPaletteGlobal implements DataPalette {
-    @Getter
-    private final RegistryBlockID registry;
-    private final CompoundTag air;
+public class WrappedPalettedContainer<T> implements PaletteAccess {
+    private final PalettedContainer<T> container;
+    private final Function<T, CompoundTag> reader;
+    private final Function<CompoundTag, T> writer;
 
-    public int getIndex(CompoundTag block) {
-        int id = this.registry.getId(block);
-        return id == -1 ? 0 : id;
+    public void setBlock(int x, int y, int z, CompoundTag data)
+    {
+        container.set(x,y,z,writer.apply(data));
     }
 
-    public boolean contains(Predicate<CompoundTag> predicate) {
-        return true;
+    public CompoundTag getBlock(int x, int y, int z)
+    {
+        return reader.apply(container.get(x,y,z));
     }
 
-    public CompoundTag getByIndex(int index) {
-        CompoundTag block = registry.fromId(index);
-        return block == null ? air : block;
+    public void writeToSection(CompoundTag tag)
+    {
+        container.write(tag, "Palette", "BlockStates");
     }
 
-    public int size() {
-        return registry.size();
-    }
-
-    @Override
-    public void replace(ListTag<CompoundTag> palette) {
-        throw new UnsupportedOperationException("Cannot replace the global palette!");
+    public void readFromSection(CompoundTag tag)
+    {
+        container.read(tag.getListTag("Palette"), tag.getLongArrayTag("BlockStates").getValue());
     }
 }

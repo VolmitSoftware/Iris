@@ -16,21 +16,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.nbt.mca.palettes;
+package com.volmit.iris.util.nbt.mca.palette;
 
-import com.volmit.iris.util.nbt.tag.CompoundTag;
-import com.volmit.iris.util.nbt.tag.ListTag;
-
-import java.util.function.Predicate;
-
-public interface DataPalette {
-    int getIndex(CompoundTag block);
-
-    boolean contains(Predicate<CompoundTag> predicate);
-
-    CompoundTag getByIndex(int index);
-
-    int size();
-
-    void replace(ListTag<CompoundTag> palette);
+public final class QuartPos {
+  public static final int BITS = 2;
+  
+  public static final int SIZE = 4;
+  
+  private static final int SECTION_TO_QUARTS_BITS = 2;
+  
+  public static int fromBlock(int var0) {
+    return var0 >> 2;
+  }
+  
+  public static int toBlock(int var0) {
+    return var0 << 2;
+  }
+  
+  public static int fromSection(int var0) {
+    return var0 << 2;
+  }
+  
+  public static int toSection(int var0) {
+    return var0 >> 2;
+  }
 }

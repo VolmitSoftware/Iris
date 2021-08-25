@@ -16,12 +16,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.nbt.mca.palettes;
+package com.volmit.iris.util.nbt.mca.palette;
 
-import com.volmit.iris.util.nbt.tag.CompoundTag;
+import com.volmit.iris.util.nbt.tag.ListTag;
 
-public interface Registry extends Iterable<CompoundTag> {
-    int getId(CompoundTag block);
+import java.util.function.Predicate;
 
-    CompoundTag fromId(int id);
+public interface Palette<T> {
+  int idFor(T paramT);
+  
+  boolean maybeHas(Predicate<T> paramPredicate);
+
+  T valueFor(int paramInt);
+  
+  int getSize();
+  
+  void read(ListTag paramListTag);
 }

@@ -16,20 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.nbt.mca.nmspalettes;
+package com.volmit.iris.util.nbt.mca.palette;
 
-import com.volmit.iris.util.nbt.tag.ListTag;
+public interface IdMap<T> extends Iterable<T> {
+  int getId(T paramT);
 
-import java.util.function.Predicate;
-
-public interface Palette<T> {
-  int idFor(T paramT);
-  
-  boolean maybeHas(Predicate<T> paramPredicate);
-
-  T valueFor(int paramInt);
-  
-  int getSize();
-  
-  void read(ListTag paramListTag);
+  T byId(int paramInt);
 }

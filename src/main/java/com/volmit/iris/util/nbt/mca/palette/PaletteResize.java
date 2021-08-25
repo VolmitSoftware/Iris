@@ -16,10 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.nbt.mca.nmspalettes;
+package com.volmit.iris.util.nbt.mca.palette;
 
-public interface IdMap<T> extends Iterable<T> {
-  int getId(T paramT);
-
-  T byId(int paramInt);
+interface PaletteResize<T> {
+  int onResize(int paramInt, T paramT);
 }

@@ -16,13 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.nbt.mca.nmspalettes;
+package com.volmit.iris.util.nbt.mca.palette;
 
-import com.volmit.iris.util.nbt.mca.MCAUtil;
-import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import lombok.RequiredArgsConstructor;
-import org.bukkit.block.data.BlockData;
 
 import java.util.function.Function;
 

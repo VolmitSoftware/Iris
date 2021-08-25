@@ -16,16 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.nbt.mca.nmspalettes;
+package com.volmit.iris.util.nbt.mca.palette;
 
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
-import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
-import net.minecraft.util.DebugBuffer;
-import net.minecraft.util.ThreadingDetector;
 
-import java.util.concurrent.Semaphore;
 import java.util.function.Function;
 import java.util.function.Predicate;
 

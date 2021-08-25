@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.nbt.mca.nmspalettes;
+package com.volmit.iris.util.nbt.mca.palette;
 
 import java.util.Random;
 import java.util.UUID;

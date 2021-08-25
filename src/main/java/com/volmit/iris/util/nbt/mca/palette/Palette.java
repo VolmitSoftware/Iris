@@ -16,39 +16,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.nbt.mca.nmspalettes;
+package com.volmit.iris.util.nbt.mca.palette;
 
 import com.volmit.iris.util.nbt.tag.ListTag;
 
 import java.util.function.Predicate;
 
-public class GlobalPalette<T> implements Palette<T> {
-  private final IdMapper<T> registry;
+public interface Palette<T> {
+  int idFor(T paramT);
   
-  private final T defaultValue;
+  boolean maybeHas(Predicate<T> paramPredicate);
+
+  T valueFor(int paramInt);
   
-  public GlobalPalette(IdMapper<T> var0, T var1) {
-    this.registry = var0;
-    this.defaultValue = var1;
-  }
+  int getSize();
   
-  public int idFor(T var0) {
-    int var1 = this.registry.getId(var0);
-    return (var1 == -1) ? 0 : var1;
-  }
-  
-  public boolean maybeHas(Predicate<T> var0) {
-    return true;
-  }
-  
-  public T valueFor(int var0) {
-    T var1 = (T)this.registry.byId(var0);
-    return (var1 == null) ? this.defaultValue : var1;
-  }
-  
-  public int getSize() {
-    return this.registry.size();
-  }
-  
-  public void read(ListTag var0) {}
+  void read(ListTag paramListTag);
 }

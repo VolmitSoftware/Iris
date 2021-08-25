@@ -18,6 +18,8 @@
 
 package com.volmit.iris.util.nbt.mca;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.nbt.io.NBTDeserializer;
 import com.volmit.iris.util.nbt.io.NBTSerializer;
 import com.volmit.iris.util.nbt.io.NamedTag;
@@ -658,11 +660,7 @@ public class Chunk {
         level.putInt("zPos", zPos);
         level.putLong("LastUpdate", lastUpdate);
         level.putLong("InhabitedTime", inhabitedTime);
-        if (dataVersion < 2202) {
-            if (biomes != null && biomes.length == 256) level.putIntArray("Biomes", biomes);
-        } else {
-            if (biomes != null && biomes.length == 1024) level.putIntArray("Biomes", biomes);
-        }
+        if (biomes != null && biomes.length == 1024) level.putIntArray("Biomes", biomes);
         if (heightMaps != null) level.put("Heightmaps", heightMaps);
         if (carvingMasks != null) level.put("CarvingMasks", carvingMasks);
         if (entities != null) level.put("Entities", entities);

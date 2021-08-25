@@ -18,21 +18,12 @@
 
 package com.volmit.iris.util.nbt.mca;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.nbt.mca.palettes.DataPaletteBlock;
 import com.volmit.iris.util.nbt.tag.ByteArrayTag;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
 import com.volmit.iris.util.nbt.tag.LongArrayTag;
-import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
-import net.minecraft.world.level.chunk.Chunk;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLongArray;
 
 public class Section {
     private CompoundTag data;
@@ -54,7 +45,7 @@ public class Section {
         }
         palette = new DataPaletteBlock<>();
         LongArrayTag blockStates = sectionRoot.getLongArrayTag("BlockStates");
-        palette.a((ListTag<CompoundTag>) rawPalette, blockStates.getValue());
+        palette.load((ListTag<CompoundTag>) rawPalette, blockStates.getValue());
         ByteArrayTag blockLight = sectionRoot.getByteArrayTag("BlockLight");
         ByteArrayTag skyLight = sectionRoot.getByteArrayTag("SkyLight");
         this.blockLight = blockLight != null ? blockLight.getValue() : null;
@@ -62,18 +53,6 @@ public class Section {
     }
 
     Section() {
-    }
-
-    @SuppressWarnings("ClassCanBeRecord")
-    private static class PaletteIndex {
-
-        final CompoundTag data;
-        final int index;
-
-        PaletteIndex(CompoundTag data, int index) {
-            this.data = data;
-            this.index = index;
-        }
     }
 
     /**
@@ -95,7 +74,7 @@ public class Section {
      * @return The block state data of this block.
      */
     public synchronized CompoundTag getBlockStateAt(int blockX, int blockY, int blockZ) {
-        return palette.a(blockX, blockY, blockZ);
+        return palette.getBlock(blockX&15, blockY&15, blockZ&15);
     }
 
     /**
@@ -107,59 +86,7 @@ public class Section {
      * @param state   The block state to be set
      */
     public synchronized void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
-
-        if(cleanup)
-        {
-            palette.setBlock(blockX, blockY, blockZ, state);
-        }
-
-        else
-        {
-            palette.b(blockX, blockY, blockZ, state);
-        }
-    }
-
-    /**
-     * Sets the index of the block data in the BlockStates. Does not adjust the size of the BlockStates array.
-     *
-     * @param blockIndex   The index of the block in this section, ranging from 0-4095.
-     * @param paletteIndex The block state to be set (index of block data in the palette).
-     * @param blockStates  The block states to be updated.
-     */
-    public synchronized void setPaletteIndex(int blockIndex, int paletteIndex, AtomicLongArray blockStates) {
-        int bits = blockStates.length() >> 6;
-
-        if (dataVersion < 2527) {
-            double blockStatesIndex = blockIndex / (4096D / blockStates.length());
-            int longIndex = (int) blockStatesIndex;
-            int startBit = (int) ((blockStatesIndex - Math.floor(longIndex)) * 64D);
-            if (startBit + bits > 64) {
-                blockStates.set(longIndex, updateBits(blockStates.get(longIndex), paletteIndex, startBit, 64));
-                blockStates.set(longIndex + 1, updateBits(blockStates.get(longIndex + 1), paletteIndex, startBit - 64, startBit + bits - 64));
-            } else {
-                blockStates.set(longIndex, updateBits(blockStates.get(longIndex), paletteIndex, startBit, startBit + bits));
-            }
-        } else {
-            int indicesPerLong = (int) (64D / bits);
-            int blockStatesIndex = blockIndex / indicesPerLong;
-            int startBit = (blockIndex % indicesPerLong) * bits;
-            blockStates.set(blockStatesIndex, updateBits(blockStates.get(blockStatesIndex), paletteIndex, startBit, startBit + bits));
-        }
-    }
-
-    int getBlockIndex(int blockX, int blockY, int blockZ) {
-        return (blockY & 0xF) * 256 + (blockZ & 0xF) * 16 + (blockX & 0xF);
-    }
-
-    static long updateBits(long n, long m, int i, int j) {
-        //replace i to j in n with j - i bits of m
-        long mShifted = i > 0 ? (m & ((1L << j - i) - 1)) << i : (m & ((1L << j - i) - 1)) >>> -i;
-        return ((n & ((j > 63 ? 0 : (~0L << j)) | (i < 0 ? 0 : ((1L << i) - 1L)))) | mShifted);
-    }
-
-    static long bitRange(long value, int from, int to) {
-        int waste = 64 - to;
-        return (value << waste) >>> (waste + from);
+        palette.setBlock(blockX&15, blockY&15, blockZ&15, state);
     }
 
     /**
@@ -174,7 +101,7 @@ public class Section {
     /**
      * @return The block light array of this Section
      */
-    public byte[] getBlockLight() {
+    public synchronized byte[] getBlockLight() {
         return blockLight;
     }
 
@@ -184,7 +111,7 @@ public class Section {
      * @param blockLight The block light array
      * @throws IllegalArgumentException When the length of the array is not 2048
      */
-    public void setBlockLight(byte[] blockLight) {
+    public synchronized void setBlockLight(byte[] blockLight) {
         if (blockLight != null && blockLight.length != 2048) {
             throw new IllegalArgumentException("BlockLight array must have a length of 2048");
         }
@@ -194,7 +121,7 @@ public class Section {
     /**
      * @return The sky light values of this Section
      */
-    public byte[] getSkyLight() {
+    public synchronized byte[] getSkyLight() {
         return skyLight;
     }
 
@@ -204,7 +131,7 @@ public class Section {
      * @param skyLight The custom sky light values
      * @throws IllegalArgumentException If the length of the array is not 2048
      */
-    public void setSkyLight(byte[] skyLight) {
+    public synchronized void setSkyLight(byte[] skyLight) {
         if (skyLight != null && skyLight.length != 2048) {
             throw new IllegalArgumentException("SkyLight array must have a length of 2048");
         }
@@ -233,9 +160,9 @@ public class Section {
      */
     public synchronized CompoundTag updateHandle(int y) {
         data.putByte("Y", (byte) y);
+
         if (palette != null) {
-            data.put("Palette", palette.getK().getPalette());
-            data.putLongArray("BlockStates", palette.getC().a());
+            palette.save(data, "Palette", "BlockStates");
         }
         if (blockLight != null) {
             data.putByteArray("BlockLight", blockLight);

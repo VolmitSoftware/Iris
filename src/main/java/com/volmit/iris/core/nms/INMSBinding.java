@@ -19,7 +19,6 @@
 package com.volmit.iris.core.nms;
 
 import com.volmit.iris.util.nbt.mca.nmspalettes.PaletteAccess;
-import com.volmit.iris.util.nbt.mca.palettes.RegistryBlockID;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import org.bukkit.Location;
 import org.bukkit.World;

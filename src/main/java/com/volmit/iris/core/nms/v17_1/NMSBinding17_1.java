@@ -25,7 +25,6 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.mca.nmspalettes.*;
-import com.volmit.iris.util.nbt.mca.palettes.RegistryBlockID;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import net.minecraft.core.BlockPosition;
 import net.minecraft.core.IRegistry;

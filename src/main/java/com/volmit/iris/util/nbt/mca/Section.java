@@ -20,11 +20,9 @@ package com.volmit.iris.util.nbt.mca;
 
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.util.nbt.mca.nmspalettes.PaletteAccess;
-import com.volmit.iris.util.nbt.mca.palettes.DataPaletteBlock;
 import com.volmit.iris.util.nbt.tag.ByteArrayTag;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
-import com.volmit.iris.util.nbt.tag.LongArrayTag;
 
 
 public class Section {

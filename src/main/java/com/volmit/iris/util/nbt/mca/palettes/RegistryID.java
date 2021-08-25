@@ -18,37 +18,37 @@
 
 package com.volmit.iris.util.nbt.mca.palettes;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import com.volmit.iris.util.math.MathHelper;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Objects;
 
 public class RegistryID implements Registry {
     public static final int a = -1;
-    private static final Object b = null;
+    private static final CompoundTag b = null;
     private static final float c = 0.8F;
     private CompoundTag[] d;
     private int[] e;
     private CompoundTag[] f;
     private int g;
-    private int h;
+    private int size;
 
     public RegistryID(int var0) {
         var0 = (int) ((float) var0 / 0.8F);
-        this.d = (CompoundTag[]) new Object[var0];
+        this.d = new CompoundTag[var0];
+        this.f = new CompoundTag[var0];
         this.e = new int[var0];
-        this.f = (CompoundTag[]) new Object[var0];
     }
 
-    public int getId(CompoundTag var0) {
-        return this.c(this.b(var0, this.d(var0)));
+    public int getId(CompoundTag block) {
+        return this.c(this.b(block, this.d(block)));
     }
 
-    public CompoundTag fromId(int var0) {
-        return var0 >= 0 && var0 < this.f.length ? this.f[var0] : null;
+    public CompoundTag fromId(int id) {
+        return id >= 0 && id < this.f.length ? this.f[id] : null;
     }
 
     private int c(int var0) {
@@ -80,22 +80,21 @@ public class RegistryID implements Registry {
     private void d(int var0) {
         CompoundTag[] var1 = this.d;
         int[] var2 = this.e;
-        this.d = (CompoundTag[]) new Object[var0];
+        this.d = new CompoundTag[var0];
         this.e = new int[var0];
-        this.f = (CompoundTag[]) new Object[var0];
+        this.f = new CompoundTag[var0];
         this.g = 0;
-        this.h = 0;
+        this.size = 0;
 
         for (int var3 = 0; var3 < var1.length; ++var3) {
             if (var1[var3] != null) {
                 this.a(var1[var3], var2[var3]);
             }
         }
-
     }
 
     public void a(CompoundTag var0, int var1) {
-        int var2 = Math.max(var1, this.h + 1);
+        int var2 = Math.max(var1, this.size + 1);
         int var3;
         if ((float) var2 >= (float) this.d.length * 0.8F) {
             for (var3 = this.d.length << 1; var3 < var1; var3 <<= 1) {
@@ -108,36 +107,35 @@ public class RegistryID implements Registry {
         this.d[var3] = var0;
         this.e[var3] = var1;
         this.f[var1] = var0;
-        ++this.h;
+        ++this.size;
         if (var1 == this.g) {
             ++this.g;
         }
-
     }
 
-    private int d(CompoundTag var0) {
-        return (MathHelper.g(System.identityHashCode(var0)) & 2147483647) % this.d.length;
+    private int d(CompoundTag block) {
+        return (MathHelper.g(System.identityHashCode(block)) & 2147483647) % this.d.length;
     }
 
-    private int b(CompoundTag var0, int var1) {
+    private int b(CompoundTag block, int var1) {
         int var2;
         for (var2 = var1; var2 < this.d.length; ++var2) {
-            if (this.d[var2] == var0) {
-                return var2;
+            if (this.d[var2] == null) {
+                return -1;
             }
 
-            if (this.d[var2] == b) {
-                return -1;
+            if (this.d[var2].equals(block)) {
+                return var2;
             }
         }
 
         for (var2 = 0; var2 < var1; ++var2) {
-            if (this.d[var2] == var0) {
-                return var2;
+            if (this.d[var2] == null) {
+                return -1;
             }
 
-            if (this.d[var2] == b) {
-                return -1;
+            if (this.d[var2].equals(block)) {
+                return var2;
             }
         }
 
@@ -147,13 +145,13 @@ public class RegistryID implements Registry {
     private int e(int var0) {
         int var1;
         for (var1 = var0; var1 < this.d.length; ++var1) {
-            if (this.d[var1] == b) {
+            if (this.d[var1] == null) {
                 return var1;
             }
         }
 
         for (var1 = 0; var1 < var0; ++var1) {
-            if (this.d[var1] == b) {
+            if (this.d[var1] == null) {
                 return var1;
             }
         }
@@ -162,17 +160,17 @@ public class RegistryID implements Registry {
     }
 
     public Iterator<CompoundTag> iterator() {
-        return Iterators.filter(Iterators.forArray(this.f), Predicates.notNull());
+        return Iterators.filter(Iterators.forArray(this.f), Objects::nonNull);
     }
 
-    public void a() {
-        Arrays.fill(this.d, (Object) null);
-        Arrays.fill(this.f, (Object) null);
+    public void clear() {
+        Arrays.fill(this.d, null);
+        Arrays.fill(this.f, null);
         this.g = 0;
-        this.h = 0;
+        this.size = 0;
     }
 
-    public int b() {
-        return this.h;
+    public int size() {
+        return this.size;
     }
 }

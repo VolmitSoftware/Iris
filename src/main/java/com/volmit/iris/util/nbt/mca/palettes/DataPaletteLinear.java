@@ -20,46 +20,43 @@ package com.volmit.iris.util.nbt.mca.palettes;
 
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
-import net.minecraft.network.PacketDataSerializer;
 
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class DataPaletteLinear implements DataPalette {
-    private final RegistryBlockID a;
-    private final CompoundTag[] b;
-    private final DataPaletteExpandable c;
+    private final CompoundTag[] palette;
+    private final DataPaletteExpandable expander;
     private final int e;
-    private int f;
+    private int size;
 
-    public DataPaletteLinear(RegistryBlockID var0, int var1, DataPaletteExpandable var2) {
-        this.a = var0;
-        this.b = (CompoundTag[]) new Object[1 << var1];
-        this.e = var1;
-        this.c = var2;
+    public DataPaletteLinear(int bits, DataPaletteExpandable expander) {
+        this.palette = new CompoundTag[1 << bits];
+        this.e = bits;
+        this.expander = expander;
+        this.size = 0;
     }
 
-    public int getIndex(CompoundTag var0) {
-        int var1;
-        for (var1 = 0; var1 < this.f; ++var1) {
-            if (this.b[var1].equals(var0)) {
-                return var1;
+    public int getIndex(CompoundTag block) {
+        int i;
+        for (i = 0; i < size; ++i) {
+            if (palette[i].equals(block)) {
+                return i;
             }
         }
 
-        var1 = this.f;
-        if (var1 < this.b.length) {
-            this.b[var1] = var0;
-            ++this.f;
-            return var1;
+        i = size;
+        if (i < palette.length) {
+            palette[i] = block;
+            ++size;
+            return i;
         } else {
-            return this.c.onResize(this.e + 1, var0);
+            return expander.onResize(e + 1, block);
         }
     }
 
-    public boolean a(Predicate<CompoundTag> var0) {
-        for (int var1 = 0; var1 < this.f; ++var1) {
-            if (var0.test(this.b[var1])) {
+    public boolean contains(Predicate<CompoundTag> predicate) {
+        for (int i = 0; i < this.size; ++i) {
+            if (predicate.test(palette[i])) {
                 return true;
             }
         }
@@ -67,58 +64,19 @@ public class DataPaletteLinear implements DataPalette {
         return false;
     }
 
-    public CompoundTag getByIndex(int var0) {
-        return var0 >= 0 && var0 < this.f ? this.b[var0] : null;
+    public CompoundTag getByIndex(int index) {
+        return index >= 0 && index < size ? palette[index] : null;
     }
 
-    public void a(PacketDataSerializer var0) {
-        this.f = var0.j();
+    public int size() {
+        return size;
+    }
 
-        for (int var1 = 0; var1 < this.f; ++var1) {
-            this.b[var1] = this.a.fromId(var0.j());
+    public void replace(ListTag<CompoundTag> palette) {
+        for (int i = 0; i < palette.size(); ++i) {
+            this.palette[i] = palette.get(i);
         }
 
-    }
-
-    public void b(PacketDataSerializer var0) {
-        var0.d(this.f);
-
-        for (int var1 = 0; var1 < this.f; ++var1) {
-            var0.d(this.a.getId(this.b[var1]));
-        }
-
-    }
-
-    public int a() {
-        int var0 = PacketDataSerializer.a(this.b());
-
-        for (int var1 = 0; var1 < this.b(); ++var1) {
-            var0 += PacketDataSerializer.a(this.a.getId(this.b[var1]));
-        }
-
-        return var0;
-    }
-
-    public int b() {
-        return this.f;
-    }
-
-    public void replace(ListTag<CompoundTag> var0) {
-        for (int var1 = 0; var1 < var0.size(); ++var1) {
-            this.b[var1] = var0.get(var1);
-        }
-
-        this.f = var0.size();
-    }
-
-    @Override
-    public ListTag<CompoundTag> getPalette() {
-        ListTag<CompoundTag> c = (ListTag<CompoundTag>) ListTag.createUnchecked(CompoundTag.class);
-        for(CompoundTag i : b)
-        {
-            c.add(i);
-        }
-
-        return c;
+        this.size = palette.size();
     }
 }

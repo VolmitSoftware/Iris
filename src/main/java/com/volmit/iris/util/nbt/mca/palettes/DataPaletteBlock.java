@@ -18,9 +18,11 @@
 
 package com.volmit.iris.util.nbt.mca.palettes;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.math.MathHelper;
+import com.volmit.iris.util.nbt.io.SNBTSerializer;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
@@ -28,10 +30,14 @@ import com.volmit.iris.util.scheduling.J;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import lombok.Getter;
-import net.minecraft.network.PacketDataSerializer;
+import net.minecraft.world.level.chunk.ChunkSection;
 import org.bukkit.Material;
 
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 @Getter
 public class DataPaletteBlock implements DataPaletteExpandable {
@@ -52,16 +58,7 @@ public class DataPaletteBlock implements DataPaletteExpandable {
     public DataPaletteBlock() {
         this(global(), registry(), air);
     }
-
-    private static <T> RegistryBlockID registry()
-    {
-        return ((DataPaletteGlobal) global()).getRegistry();
-    }
-
-    private static <T> DataPalette global() {
-        return (DataPalette) global.aquire(() -> new DataPaletteGlobal(J.attemptResult(() -> INMS.get().computeBlockIDRegistry()), air));
-    }
-
+    
     public DataPaletteBlock(DataPalette var0,
                             RegistryBlockID var1,
                             CompoundTag airType) {
@@ -71,146 +68,154 @@ public class DataPaletteBlock implements DataPaletteExpandable {
         this.changeBitsTo(4);
     }
 
-    private static int blockIndex(int var0, int var1, int var2) {
-        return var1 << 8 | var2 << 4 | var0;
+    private static RegistryBlockID registry()
+    {
+        return ((DataPaletteGlobal) global()).getRegistry();
+    }
+
+    private static DataPalette global() {
+        return global.aquire(() -> new DataPaletteGlobal(J.attemptResult(() -> INMS.get().computeBlockIDRegistry()), air));
+    }
+
+
+    private static int blockIndex(int x, int y, int z) {
+        return y << 8 | z << 4 | x;
     }
 
     private void changeBitsTo(int newbits) {
-        if (newbits != this.bits) {
-            this.bits = newbits;
-            if (this.bits <= LINEAR_BITS) {
-                this.bits = LINEAR_BITS;
-                this.currentPalette = new DataPaletteLinear(this.stolenRegistry, this.bits, this);
-            } else if (this.bits < HASH_BITS) {
-                this.currentPalette = new DataPaletteHash(this.stolenRegistry, this.bits, this);
+        if (newbits != bits) {
+            bits = newbits;
+            if (bits <= LINEAR_BITS) {
+                bits = LINEAR_BITS;
+                currentPalette = new DataPaletteLinear(bits, this);
+            } else if (bits < HASH_BITS) {
+                currentPalette = new DataPaletteHash(bits, this);
             } else {
-                this.currentPalette = this.globalPalette;
-                this.bits = MathHelper.e(this.stolenRegistry.size());
+                currentPalette = globalPalette;
+                bits = MathHelper.e(stolenRegistry.size());
             }
 
-            this.currentPalette.getIndex(this.defAir);
-            this.dataBits = new DataBits(this.bits, 4096);
+            currentPalette.getIndex(defAir);
+            dataBits = new DataBits(bits, 4096);
         }
     }
 
     public int onResize(int newBits, CompoundTag newData) {
-        DataBits var2 = this.dataBits;
-        DataPalette var3 = this.currentPalette;
-        this.changeBitsTo(newBits);
+        DataBits oldBits = dataBits;
+        DataPalette oldPalette = currentPalette;
+        changeBitsTo(newBits);
 
-        for (int var4 = 0; var4 < var2.b(); ++var4) {
-            CompoundTag var5 = var3.getByIndex(var2.getIndexFromPos(var4));
-            if (var5 != null) {
-                this.setBlockIndex(var4, var5);
+        for (int i = 0; i < oldBits.b(); ++i) {
+            CompoundTag block = oldPalette.getByIndex(oldBits.getIndexFromPos(i));
+            if (block != null) {
+                setBlockIndex(i, block);
             }
         }
 
-        return this.currentPalette.getIndex(newData);
+        return currentPalette.getIndex(newData);
     }
 
-    public CompoundTag setBlock(int var0, int var1, int var2, CompoundTag var3) {
-        return this.a(blockIndex(var0, var1, var2), var3);
+    @Deprecated
+    public CompoundTag setBlockAndReturn(int x, int y, int z, CompoundTag block) {
+        return setBlockIndexAndReturn(blockIndex(x, y, z), block);
     }
 
-    private CompoundTag a(int var0,  CompoundTag var1) {
-        int var2 = this.currentPalette.getIndex(var1);
-        int var3 = this.dataBits.a(var0, var2);
-        CompoundTag var4 = this.currentPalette.getByIndex(var3);
-        return var4 == null ? this.defAir : var4;
+    @Deprecated
+    private CompoundTag setBlockIndexAndReturn(int index, CompoundTag block) {
+        int paletteIndex = currentPalette.getIndex(block);
+        int res = dataBits.setBlockResulting(index, paletteIndex);
+        CompoundTag testBlock = currentPalette.getByIndex(res);
+        return testBlock == null ? defAir : testBlock;
     }
 
-    public void c(int var0, int var1, int var2, CompoundTag var3) {
-        this.setBlockIndex(blockIndex(var0, var1, var2), var3);
+    public void setBlock(int x, int y, int z, CompoundTag block) {
+        setBlockIndex(blockIndex(x, y, z), block);
     }
 
-    private void setBlockIndex(int var0, CompoundTag var1) {
-        int var2 = this.currentPalette.getIndex(var1);
-        this.dataBits.b(var0, var2);
+    private void setBlockIndex(int blockIndex, CompoundTag block) {
+        int paletteIndex = currentPalette.getIndex(block);
+        dataBits.setBlock(blockIndex, paletteIndex);
     }
 
-    public CompoundTag getBlock(int var0, int var1, int var2) {
-        return this.getByIndex(blockIndex(var0, var1, var2));
+    public CompoundTag getBlock(int x, int y, int z) {
+        return getByIndex(blockIndex(x, y, z));
     }
 
-    protected CompoundTag getByIndex(int var0) {
-        if(this.currentPalette == null)
+    protected CompoundTag getByIndex(int index) {
+        if(currentPalette == null)
         {
             return null;
         }
 
-        CompoundTag data = this.currentPalette.getByIndex(this.dataBits.getIndexFromPos(var0));
-        return data == null ? this.defAir : data;
+        CompoundTag data = currentPalette.getByIndex(dataBits.getIndexFromPos(index));
+        return data == null ? defAir : data;
     }
 
     public void load(ListTag<CompoundTag> palettedata, long[] databits) {
         int readBits = Math.max(4, MathHelper.e(palettedata.size()));
-        if (readBits != this.bits) {
-            this.changeBitsTo(readBits);
+        if (readBits != bits) {
+            changeBitsTo(readBits);
         }
 
-        this.currentPalette.replace(palettedata);
+        currentPalette.replace(palettedata);
         int dblen = databits.length * 64 / 4096;
-        if (this.currentPalette == this.globalPalette) {
-            DataPalette hashPalette = new DataPaletteHash(this.stolenRegistry, readBits, this.f);
+        if (currentPalette == globalPalette) {
+            DataPalette hashPalette = new DataPaletteHash(readBits, f);
             hashPalette.replace(palettedata);
             DataBits var5 = new DataBits(readBits, 4096, databits);
 
-            for (int var6 = 0; var6 < 4096; ++var6) {
-                this.dataBits.b(var6, this.globalPalette.getIndex(hashPalette.getByIndex(var5.getIndexFromPos(var6))));
+            for (int i = 0; i < 4096; ++i) {
+                dataBits.setBlock(i, globalPalette.getIndex(hashPalette.getByIndex(var5.getIndexFromPos(i))));
             }
-        } else if (dblen == this.bits) {
-            System.arraycopy(databits, 0, this.dataBits.getData(), 0, databits.length);
+        } else if (dblen == bits) {
+            System.arraycopy(databits, 0, dataBits.getData(), 0, databits.length);
         } else {
             DataBits var4 = new DataBits(dblen, 4096, databits);
 
-            for (int var5 = 0; var5 < 4096; ++var5) {
-                this.dataBits.b(var5, var4.getIndexFromPos(var5));
+            for (int i = 0; i < 4096; ++i) {
+                dataBits.setBlock(i, var4.getIndexFromPos(i));
             }
         }
     }
 
     public void save(CompoundTag to, String paletteName, String blockStatesName) {
-        DataPaletteHash hashpal = new DataPaletteHash(this.stolenRegistry, bits, this.f);
-        CompoundTag cursor = this.defAir;
-        int palIndex = hashpal.getIndex(this.defAir);
-        int[] var6 = new int[4096];
-
-        for (int var7 = 0; var7 < 4096; ++var7) {
-            CompoundTag entry = this.getByIndex(var7);
+        DataPaletteHash hashpal = new DataPaletteHash(bits, f);
+        CompoundTag cursor = defAir;
+        int palIndex = hashpal.getIndex(defAir);
+        int[] paletteIndex = new int[4096];
+        int i;
+        for (i = 0; i < 4096; ++i) {
+            CompoundTag entry = getByIndex(i);
             if (!entry.equals(cursor)) {
                 cursor = entry;
                 palIndex = hashpal.getIndex(entry);
             }
 
-            var6[var7] = palIndex;
+            paletteIndex[i] = palIndex;
         }
 
         ListTag<CompoundTag> npalette = (ListTag<CompoundTag>) ListTag.createUnchecked(CompoundTag.class);
         hashpal.writePalette(npalette);
         to.put(paletteName, npalette);
-        int var8 = Math.max(4, MathHelper.e(npalette.size()));
-        DataBits writeBits = new DataBits(var8, 4096);
+        int bits = Math.max(4, MathHelper.e(npalette.size()));
+        DataBits writeBits = new DataBits(bits, 4096);
 
-        for (int var10 = 0; var10 < var6.length; ++var10) {
-            writeBits.b(var10, var6[var10]);
+        for (i = 0; i < paletteIndex.length; ++i) {
+            writeBits.setBlock(i, paletteIndex[i]);
         }
 
         to.putLongArray(blockStatesName, writeBits.getData());
-        to.putString("DEBUG_PALETTE_MODE", this.currentPalette.getClass().getSimpleName());
-    }
-
-    public int c() {
-        return 1 + this.currentPalette.a() + PacketDataSerializer.a(this.dataBits.b()) + this.dataBits.getData().length * 8;
+        to.putString("DEBUG_PALETTE_MODE", currentPalette.getClass().getSimpleName());
     }
 
     public boolean contains(Predicate<CompoundTag> var0) {
-        return this.currentPalette.a(var0);
+        return currentPalette.contains(var0);
     }
 
     public void a(PaletteConsumer<CompoundTag> var0) {
         Int2IntMap var1 = new Int2IntOpenHashMap();
-        this.dataBits.a((var1x) -> var1.put(var1x, var1.get(var1x) + 1));
-        var1.int2IntEntrySet().forEach((var1x) -> var0.accept(this.currentPalette.getByIndex(var1x.getIntKey()), var1x.getIntValue()));
+        dataBits.a((var1x) -> var1.put(var1x, var1.get(var1x) + 1));
+        var1.int2IntEntrySet().forEach((var1x) -> var0.accept(currentPalette.getByIndex(var1x.getIntKey()), var1x.getIntValue()));
     }
 
     @FunctionalInterface

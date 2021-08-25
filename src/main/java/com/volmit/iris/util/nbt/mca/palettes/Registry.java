@@ -21,7 +21,7 @@ package com.volmit.iris.util.nbt.mca.palettes;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 
 public interface Registry extends Iterable<CompoundTag> {
-    int getId(CompoundTag var1);
+    int getId(CompoundTag block);
 
-    CompoundTag fromId(int var1);
+    CompoundTag fromId(int id);
 }

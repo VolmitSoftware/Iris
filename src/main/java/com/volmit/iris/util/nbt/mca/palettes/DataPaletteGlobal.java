@@ -31,45 +31,26 @@ public class DataPaletteGlobal implements DataPalette {
     private final RegistryBlockID registry;
     private final CompoundTag air;
 
-    public int getIndex(CompoundTag var0) {
-        int var1 = this.registry.getId(var0);
-        return var1 == -1 ? 0 : var1;
+    public int getIndex(CompoundTag block) {
+        int id = this.registry.getId(block);
+        return id == -1 ? 0 : id;
     }
 
-    public boolean a(Predicate<CompoundTag> var0) {
+    public boolean contains(Predicate<CompoundTag> predicate) {
         return true;
     }
 
-    public CompoundTag getByIndex(int var0) {
-        CompoundTag var1 = this.registry.fromId(var0);
-        return var1 == null ? this.air : var1;
+    public CompoundTag getByIndex(int index) {
+        CompoundTag block = registry.fromId(index);
+        return block == null ? air : block;
     }
 
-    public static int aa(int i) {
-        for(int j = 1; j < 5; ++j) {
-            if ((i & -1 << j * 7) == 0) {
-                return j;
-            }
-        }
-
-        return 5;
-    }
-
-    public int a() {
-        return aa(0);
-    }
-
-    public int b() {
-        return this.registry.size();
+    public int size() {
+        return registry.size();
     }
 
     @Override
-    public void replace(ListTag<CompoundTag> t) {
-
-    }
-
-    @Override
-    public ListTag<CompoundTag> getPalette() {
-        return null;
+    public void replace(ListTag<CompoundTag> palette) {
+        throw new UnsupportedOperationException("Cannot replace the global palette!");
     }
 }

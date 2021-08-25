@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.nbt.mca.palettes;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
@@ -26,15 +25,12 @@ import com.volmit.iris.util.nbt.tag.CompoundTag;
 import java.util.*;
 
 public class RegistryBlockID implements Registry {
-    public static final int a = -1;
-    private int b;
     private final Map<CompoundTag, Integer> indexMap;
     private final List<CompoundTag> indexes;
 
-    public RegistryBlockID(Map<CompoundTag, Integer> c, List<CompoundTag> d, int b) {
+    public RegistryBlockID(Map<CompoundTag, Integer> c, List<CompoundTag> d) {
         this.indexMap = c;
         this.indexes = d;
-        this.b = b;
     }
 
     public RegistryBlockID() {
@@ -46,17 +42,17 @@ public class RegistryBlockID implements Registry {
         this.indexMap = new HashMap<>(var0);
     }
 
-    public int getId(CompoundTag var0) {
-        Integer var1 = this.indexMap.get(var0);
+    public int getId(CompoundTag block) {
+        Integer var1 = this.indexMap.get(block);
         return var1 == null ? -1 : var1;
     }
 
-    public final CompoundTag fromId(int var0) {
-        return var0 >= 0 && var0 < this.indexes.size() ? this.indexes.get(var0) : null;
+    public final CompoundTag fromId(int id) {
+        return id >= 0 && id < this.indexes.size() ? this.indexes.get(id) : null;
     }
 
     public Iterator<CompoundTag> iterator() {
-        return Iterators.filter(this.indexes.iterator(), Predicates.notNull());
+        return Iterators.filter(this.indexes.iterator(), Objects::nonNull);
     }
 
     public boolean hasIndex(int var0) {

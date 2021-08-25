@@ -70,16 +70,13 @@ public class HeadlessWorld {
     public HeadlessGenerator generate() {
         Engine e = null;
 
-        if(getWorld().tryGetRealWorld())
-        {
-            if(IrisToolbelt.isIrisWorld(getWorld().realWorld()))
-            {
+        if (getWorld().tryGetRealWorld()) {
+            if (IrisToolbelt.isIrisWorld(getWorld().realWorld())) {
                 e = IrisToolbelt.access(getWorld().realWorld()).getEngine();
             }
         }
 
-        if(e != null)
-        {
+        if (e != null) {
             Iris.info("Using Existing Engine " + getWorld().name() + " for Headless Pregeneration.");
         }
 

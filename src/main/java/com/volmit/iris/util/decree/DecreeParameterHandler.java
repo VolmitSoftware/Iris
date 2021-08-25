@@ -32,8 +32,7 @@ public interface DecreeParameterHandler<T> {
      */
     KList<T> getPossibilities();
 
-    default boolean isDummy()
-    {
+    default boolean isDummy() {
         return false;
     }
 

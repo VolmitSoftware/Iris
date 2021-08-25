@@ -49,12 +49,10 @@ public class IrisContext {
     }
 
     public static void dereference() {
-        synchronized (context)
-        {
+        synchronized (context) {
             for (Thread i : context.k()) {
                 if (!i.isAlive() || context.get(i).engine.isClosed()) {
-                    if(context.get(i).engine.isClosed())
-                    {
+                    if (context.get(i).engine.isClosed()) {
                         Iris.debug("Dereferenced Context<Engine> " + i.getName() + " " + i.getId());
                     }
 

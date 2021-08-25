@@ -32,13 +32,11 @@ import java.net.MalformedURLException;
 public class IrisPack {
     private final File folder;
 
-    public IrisPack(File folder)
-    {
+    public IrisPack(File folder) {
         this.folder = folder;
     }
 
-    public void delete()
-    {
+    public void delete() {
         IO.delete(folder);
         folder.delete();
     }

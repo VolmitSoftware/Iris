@@ -45,49 +45,35 @@ public class AtomicCache<T> {
     public void reset() {
         t.set(null);
 
-        if(nullSupport)
-        {
+        if (nullSupport) {
             set.set(false);
         }
     }
 
     public T aquire(Supplier<T> t) {
-        if(this.t.get() != null)
-        {
+        if (this.t.get() != null) {
             return this.t.get();
-        }
-
-        else if(nullSupport && set.get())
-        {
+        } else if (nullSupport && set.get()) {
             return null;
         }
 
         lock.lock();
 
-        if(this.t.get() != null)
-        {
+        if (this.t.get() != null) {
             lock.unlock();
             return this.t.get();
-        }
-
-        else if(nullSupport && set.get())
-        {
+        } else if (nullSupport && set.get()) {
             lock.unlock();
             return null;
         }
 
-        try
-        {
+        try {
             this.t.set(t.get());
 
-            if(nullSupport)
-            {
+            if (nullSupport) {
                 set.set(true);
             }
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             Iris.error("Atomic cache failure!");
             e.printStackTrace();
         }

@@ -33,8 +33,7 @@ public interface EngineComponent {
 
     String getName();
 
-    default MultiBurst burst()
-    {
+    default MultiBurst burst() {
         return getEngine().burst();
     }
 

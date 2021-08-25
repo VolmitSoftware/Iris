@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.noise;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.util.function.NoiseProvider;
 import lombok.Builder;
 import lombok.Data;
@@ -34,28 +33,24 @@ public class WormIterator3 {
     private int maxDistance;
     private int maxIterations;
 
-    public boolean hasNext()
-    {
-        if(worm == null)
-        {
+    public boolean hasNext() {
+        if (worm == null) {
             return true;
         }
 
         double dist = maxDistance - (Math.max(Math.max(Math.abs(worm.getX().getVelocity()),
-                Math.abs(worm.getZ().getVelocity())),
+                        Math.abs(worm.getZ().getVelocity())),
                 Math.abs(worm.getY().getVelocity())) + 1);
 
         return maxIterations > 0 &&
                 ((x * x) - (worm.getX().getPosition() * worm.getX().getPosition()))
-            + ((y * y) - (worm.getY().getPosition() * worm.getY().getPosition()))
-            + ((z * z) - (worm.getZ().getPosition() * worm.getZ().getPosition())) < dist * dist;
+                        + ((y * y) - (worm.getY().getPosition() * worm.getY().getPosition()))
+                        + ((z * z) - (worm.getZ().getPosition() * worm.getZ().getPosition())) < dist * dist;
     }
 
-    public Worm3 next()
-    {
+    public Worm3 next() {
         maxIterations--;
-        if(worm == null)
-        {
+        if (worm == null) {
             worm = new Worm3(x, y, z, 0, 0, 0);
             return worm;
         }

@@ -62,17 +62,14 @@ public class IrisWorld {
                 .environment(world.getEnvironment());
     }
 
-    public boolean tryGetRealWorld()
-    {
-        if(hasRealWorld())
-        {
+    public boolean tryGetRealWorld() {
+        if (hasRealWorld()) {
             return true;
         }
 
         World w = Bukkit.getWorld(name);
 
-        if(w != null)
-        {
+        if (w != null) {
             realWorld = w;
             return true;
         }

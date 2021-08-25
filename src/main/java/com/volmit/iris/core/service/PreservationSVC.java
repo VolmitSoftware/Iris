@@ -28,29 +28,24 @@ import com.volmit.iris.util.scheduling.Looper;
 
 import java.util.concurrent.ExecutorService;
 
-public class PreservationSVC implements IrisService
-{
+public class PreservationSVC implements IrisService {
     private KList<Thread> threads = new KList<>();
     private KList<ExecutorService> services = new KList<>();
     private Looper dereferencer;
 
-    public void register(Thread t)
-    {
+    public void register(Thread t) {
         threads.add(t);
     }
 
-    public void register(MultiBurst burst)
-    {
+    public void register(MultiBurst burst) {
 
     }
 
-    public void register(ExecutorService service)
-    {
+    public void register(ExecutorService service) {
         services.add(service);
     }
 
-    public void dereference()
-    {
+    public void dereference() {
         IrisContext.dereference();
         IrisData.dereference();
     }
@@ -76,33 +71,22 @@ public class PreservationSVC implements IrisService
         dereference();
 
         postShutdown(() -> {
-            for(Thread i : threads)
-            {
-                if(i.isAlive())
-                {
-                    try
-                    {
+            for (Thread i : threads) {
+                if (i.isAlive()) {
+                    try {
                         i.interrupt();
                         Iris.info("Shutdown Thread " + i.getName());
-                    }
-
-                    catch(Throwable e)
-                    {
+                    } catch (Throwable e) {
                         Iris.reportError(e);
                     }
                 }
             }
 
-            for(ExecutorService i : services)
-            {
-                try
-                {
+            for (ExecutorService i : services) {
+                try {
                     i.shutdownNow();
                     Iris.info("Shutdown Executor Service " + i);
-                }
-
-                catch(Throwable e)
-                {
+                } catch (Throwable e) {
                     Iris.reportError(e);
                 }
             }

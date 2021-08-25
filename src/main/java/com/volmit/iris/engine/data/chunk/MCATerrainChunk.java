@@ -92,8 +92,7 @@ public class MCATerrainChunk implements TerrainChunk {
             return;
         }
 
-        if(blockData == null)
-        {
+        if (blockData == null) {
             Iris.error("NULL BD");
         }
 

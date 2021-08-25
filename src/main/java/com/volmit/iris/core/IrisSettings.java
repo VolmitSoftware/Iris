@@ -20,12 +20,9 @@ package com.volmit.iris.core;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.object.basic.IrisRange;
-import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.json.JSONObject;
-import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
 
 import java.io.File;
@@ -57,8 +54,7 @@ public class IrisSettings {
         return getParallax().getParallaxRegionEvictionMS();
     }
 
-    public static int getPriority(int c)
-    {
+    public static int getPriority(int c) {
         return Math.max(Math.min(c, Thread.MAX_PRIORITY), Thread.MIN_PRIORITY);
     }
 

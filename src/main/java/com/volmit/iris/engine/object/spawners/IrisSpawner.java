@@ -35,7 +35,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.bukkit.Bukkit;
 import org.bukkit.World;
 
 @EqualsAndHashCode(callSuper = true)

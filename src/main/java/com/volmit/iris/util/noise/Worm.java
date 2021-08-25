@@ -25,19 +25,16 @@ public class Worm {
     private double position;
     private double velocity;
 
-    public Worm(double startPosition, double startVelocity)
-    {
+    public Worm(double startPosition, double startVelocity) {
         this.position = startPosition;
         this.velocity = startVelocity;
     }
 
-    public void unstep()
-    {
+    public void unstep() {
         position -= velocity;
     }
 
-    public void step()
-    {
+    public void step() {
         position += velocity;
     }
 }

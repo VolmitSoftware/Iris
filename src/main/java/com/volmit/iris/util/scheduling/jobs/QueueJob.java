@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.scheduling.jobs;
 
-import com.sun.jna.platform.unix.X11;
 import com.volmit.iris.util.collection.KList;
 
 import java.util.concurrent.atomic.AtomicInteger;

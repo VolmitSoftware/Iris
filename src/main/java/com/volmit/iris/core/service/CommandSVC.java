@@ -18,7 +18,6 @@
 
 package com.volmit.iris.core.service;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.decrees.DecIris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.collection.KList;

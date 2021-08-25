@@ -44,18 +44,13 @@ public class DecreeParameter {
 
     public DecreeParameterHandler<?> getHandler() {
         return handlerCache.aquire(() -> {
-            try
-            {
-                if(param.customHandler().equals(DummyHandler.class))
-                {
+            try {
+                if (param.customHandler().equals(DummyHandler.class)) {
                     return DecreeSystem.getHandler(getType());
                 }
 
                 return param.customHandler().getConstructor().newInstance();
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
                 e.printStackTrace();
             }
 

@@ -424,11 +424,11 @@ public class VolmitSender implements CommandSender {
         }
     }
 
-    public void sendDecreeHelpNode(VirtualDecreeCommand i){
+    public void sendDecreeHelpNode(VirtualDecreeCommand i) {
         if (isPlayer()) {
             //@builder
             String s = (
-                    "<hover:show_text:'"+
+                    "<hover:show_text:'" +
                             i.getNames().copy().reverse().convert((f) -> "<#42ecf5>" + f).toString(", ") + "\n"
                             + "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + i.getDescription() + "<reset>\n"
                             + "<#bbe03f>✒ <#a8e0a2>" + (i.isNode()
@@ -458,7 +458,7 @@ public class VolmitSender implements CommandSender {
                                     + (f.isRequired()
                                     ? "<#db4321>⚠ <#faa796><font:minecraft:uniform>This parameter is required."
                                     : (f.hasDefault()
-                                    ? "<#2181db>✔ <#78dcf0><font:minecraft:uniform>Defaults to \""+f.getParam().defaultValue()+"\" if undefined."
+                                    ? "<#2181db>✔ <#78dcf0><font:minecraft:uniform>Defaults to \"" + f.getParam().defaultValue() + "\" if undefined."
                                     : "<#a73abd>✔ <#78dcf0><font:minecraft:uniform>This parameter is optional.")) + "<reset>\n"
                                     + (f.isContextual() ? "<#ff9900>➱ <#ffcc00><font:minecraft:uniform>The value may be derived from environment context <reset>\n" : "")
                                     + "<#cc00ff>✢ <#ff33cc><font:minecraft:uniform>This parameter is of type " + f.getType().getSimpleName()

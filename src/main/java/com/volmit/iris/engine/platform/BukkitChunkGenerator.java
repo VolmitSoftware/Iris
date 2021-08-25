@@ -29,13 +29,11 @@ import com.volmit.iris.engine.framework.WrongEngineBroException;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.io.ReactiveFolder;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
-import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.bukkit.Bukkit;
@@ -47,8 +45,6 @@ import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
 import org.jetbrains.annotations.NotNull;
 
-import javax.management.RuntimeErrorException;
-import javax.swing.text.TableView;
 import java.io.File;
 import java.util.List;
 import java.util.Random;
@@ -100,13 +96,11 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         IrisData data = IrisData.get(dataLocation);
         IrisDimension dimension = data.getDimensionLoader().load(dimensionKey);
 
-        if(dimension == null)
-        {
+        if (dimension == null) {
             Iris.error("Oh No! There's no pack in " + data.getDataFolder().getPath() + " or... there's no dimension for the key " + dimensionKey);
             IrisDimension test = IrisData.loadAnyDimension(dimensionKey);
 
-            if(test != null)
-            {
+            if (test != null) {
                 Iris.warn("Looks like " + dimensionKey + " exists in " + test.getLoadFile().getPath());
                 Iris.service(StudioSVC.class).installIntoWorld(Iris.getSender(), dimensionKey, dataLocation.getParentFile().getParentFile());
                 Iris.warn("Attempted to install into " + data.getDataFolder().getPath());
@@ -114,21 +108,14 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 data.clearLists();
                 test = data.getDimensionLoader().load(dimensionKey);
 
-                if(test != null)
-                {
+                if (test != null) {
                     Iris.success("Woo! Patched the Engine!");
                     dimension = test;
-                }
-
-                else
-                {
+                } else {
                     Iris.error("Failed to patch dimension!");
                     throw new RuntimeException("Missing Dimension: " + dimensionKey);
                 }
-            }
-
-            else
-            {
+            } else {
                 Iris.error("Nope, you don't have an installation containing " + dimensionKey + " try downloading it?");
                 throw new RuntimeException("Missing Dimension: " + dimensionKey);
             }
@@ -161,8 +148,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         withExclusiveControl(() -> getEngine().hotload());
     }
 
-    public void withExclusiveControl(Runnable r)
-    {
+    public void withExclusiveControl(Runnable r) {
         J.a(() -> {
             try {
                 loadLock.acquire(LOAD_LOCKS);
@@ -179,8 +165,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
 
         try {
-            if(lastSeed != world.getSeed())
-            {
+            if (lastSeed != world.getSeed()) {
                 Iris.warn("Seed for engine " + lastSeed + " does not match world seed if " + world.getSeed());
                 lastSeed = world.getSeed();
                 engine.getTarget().getWorld().seed(lastSeed);
@@ -198,29 +183,20 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             Iris.debug("Generated " + x + " " + z);
             loadLock.release();
             return c;
-        }
-
-        catch (WrongEngineBroException e)
-        {
+        } catch (WrongEngineBroException e) {
             Iris.warn("Trying to generate with a shut-down engine! Did you reload? Attempting to resolve this...");
 
-            try
-            {
+            try {
                 setupEngine();
                 Iris.success("Resolved! Should generate now!");
-            }
-
-            catch(Throwable fe)
-            {
+            } catch (Throwable fe) {
                 Iris.error("FATAL! Iris cannot generate in this world since it was reloaded! This will cause a crash, with missing chunks, so we're crashing right now!");
                 Bukkit.shutdown();
                 throw new RuntimeException();
             }
 
             return generateChunkData(world, ignored, x, z, biome);
-        }
-
-        catch (Throwable e) {
+        } catch (Throwable e) {
             loadLock.release();
             Iris.error("======================================");
             e.printStackTrace();

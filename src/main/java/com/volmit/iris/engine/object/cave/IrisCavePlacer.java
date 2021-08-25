@@ -33,13 +33,11 @@ import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.Worm3;
 import com.volmit.iris.util.noise.WormIterator3;
-import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -66,22 +64,18 @@ public class IrisCavePlacer implements IRare {
     private transient final AtomicCache<IrisCave> caveCache = new AtomicCache<>();
     private transient final AtomicBoolean fail = new AtomicBoolean(false);
 
-    public IrisCave getRealCave(IrisData data)
-    {
+    public IrisCave getRealCave(IrisData data) {
         return caveCache.aquire(() -> data.getCaveLoader().load(getCave()));
     }
 
-    public void generateCave(Mantle mantle, RNG rng, IrisData data, int x, int y, int z)
-    {
-        if(fail.get())
-        {
+    public void generateCave(Mantle mantle, RNG rng, IrisData data, int x, int y, int z) {
+        if (fail.get()) {
             return;
         }
 
         IrisCave cave = getRealCave(data);
 
-        if(cave == null)
-        {
+        if (cave == null) {
             Iris.warn("Unable to locate cave for generation!");
             fail.set(true);
             return;
@@ -90,8 +84,7 @@ public class IrisCavePlacer implements IRare {
         WormIterator3 w = cave.getWorm().iterate3D(rng, data, x, y, z);
         KList<Vector> points = new KList<>();
         int itr = 0;
-        while(w.hasNext())
-        {
+        while (w.hasNext()) {
             itr++;
             Worm3 wx = w.next();
             points.add(new Vector(wx.getX().getPosition(), wx.getY().getPosition(), wx.getZ().getPosition()));

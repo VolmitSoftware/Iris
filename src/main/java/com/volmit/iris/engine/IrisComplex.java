@@ -19,7 +19,6 @@
 package com.volmit.iris.engine;
 
 import com.google.common.util.concurrent.AtomicDouble;
-import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
@@ -32,13 +31,10 @@ import com.volmit.iris.engine.object.decoration.IrisDecorationPart;
 import com.volmit.iris.engine.object.decoration.IrisDecorator;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.engine.object.noise.IrisGenerator;
-import com.volmit.iris.engine.object.noise.IrisInterpolator;
-import com.volmit.iris.engine.object.noise.IrisShapedGeneratorStyle;
 import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.DataProvider;
-import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
@@ -49,7 +45,6 @@ import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.UUID;
 

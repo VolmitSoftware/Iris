@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine;
 
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
@@ -29,7 +28,6 @@ import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
 import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
-import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructurePlacement;
 import com.volmit.iris.engine.object.objects.IrisObject;
@@ -39,21 +37,14 @@ import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.documentation.BlockCoordinates;
-import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.mantle.Mantle;
-import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.parallel.BurstExecutor;
-import com.volmit.iris.util.stream.ProceduralStream;
-import com.volmit.iris.util.stream.interpolation.Interpolated;
-import com.volmit.iris.util.stream.utility.CachedStream2D;
 import lombok.Data;
 import org.bukkit.util.BlockVector;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 

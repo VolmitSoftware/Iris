@@ -27,7 +27,6 @@ import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.interpolation.InterpolationMethod3D;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.math.BlockPosition;
-import com.volmit.iris.util.nbt.tag.ByteArrayTag;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.stream.interpolation.Interpolated;
@@ -37,9 +36,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -1437,8 +1434,7 @@ public interface Hunk<T> {
         return false;
     }
 
-    default boolean contains(int x, int y, int z)
-    {
+    default boolean contains(int x, int y, int z) {
         return x < getWidth() && x >= 0 && y < getHeight() && y >= 0 && z < getDepth() && z >= 0;
     }
 }

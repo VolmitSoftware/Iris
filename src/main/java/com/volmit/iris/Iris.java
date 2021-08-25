@@ -31,7 +31,6 @@ import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
-import com.volmit.iris.engine.object.block.IrisBlockData;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.object.compat.IrisCompat;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
@@ -52,7 +51,10 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.*;
 import com.volmit.iris.util.reflect.ShadeFix;
-import com.volmit.iris.util.scheduling.*;
+import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.Looper;
+import com.volmit.iris.util.scheduling.Queue;
+import com.volmit.iris.util.scheduling.ShurikenQueue;
 import io.papermc.lib.PaperLib;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
@@ -132,8 +134,7 @@ public class Iris extends VolmitPlugin implements Listener {
         services.values().forEach(this::registerListener);
     }
 
-    public void postShutdown(Runnable r)
-    {
+    public void postShutdown(Runnable r) {
         postShutdown.add(r);
     }
 
@@ -437,18 +438,12 @@ public class Iris extends VolmitPlugin implements Listener {
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
-        if(worldName.equals("test"))
-        {
-            try
-            {
+        if (worldName.equals("test")) {
+            try {
                 throw new RuntimeException();
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
                 Iris.info(e.getStackTrace()[1].getClassName());
-                if(e.getStackTrace()[1].getClassName().contains("com.onarandombox.MultiverseCore"))
-                {
+                if (e.getStackTrace()[1].getClassName().contains("com.onarandombox.MultiverseCore")) {
                     Iris.debug("MVC Test detected, Quick! Send them the dummy!");
                     return new DummyChunkGenerator();
                 }
@@ -490,8 +485,7 @@ public class Iris extends VolmitPlugin implements Listener {
         Iris.debug("Generator Config: " + w.toString());
 
         File ff = new File(w.worldFolder(), "iris/pack");
-        if(!ff.exists() || ff.listFiles().length == 0)
-        {
+        if (!ff.exists() || ff.listFiles().length == 0) {
             ff.mkdirs();
             service(StudioSVC.class).installIntoWorld(sender, dim.getLoadKey(), ff.getParentFile());
         }
@@ -736,21 +730,17 @@ public class Iris extends VolmitPlugin implements Listener {
         }
     }
 
-    public static void dump()
-    {
-        try
-        {
+    public static void dump() {
+        try {
             File fi = Iris.instance.getDataFile("dump", "td-" + new java.sql.Date(M.ms()) + ".txt");
-            FileOutputStream fos = new FileOutputStream(fi );
+            FileOutputStream fos = new FileOutputStream(fi);
             Map<Thread, StackTraceElement[]> f = Thread.getAllStackTraces();
             PrintWriter pw = new PrintWriter(fos);
-            for(Thread i : f.keySet())
-            {
+            for (Thread i : f.keySet()) {
                 pw.println("========================================");
                 pw.println("Thread: '" + i.getName() + "' ID: " + i.getId() + " STATUS: " + i.getState().name());
 
-                for(StackTraceElement j : f.get(i))
-                {
+                for (StackTraceElement j : f.get(i)) {
                     pw.println("    @ " + j.toString());
                 }
 
@@ -761,10 +751,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
             pw.close();
             System.out.println("DUMPED! See " + fi.getAbsolutePath());
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
     }

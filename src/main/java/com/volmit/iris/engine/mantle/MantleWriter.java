@@ -20,7 +20,6 @@ package com.volmit.iris.engine.mantle;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.engine.IrisEngineMantle;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
@@ -34,8 +33,7 @@ import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
 @Data
-public class MantleWriter implements IObjectPlacer
-{
+public class MantleWriter implements IObjectPlacer {
     private final EngineMantle engineMantle;
     private final Mantle mantle;
     private final KMap<Long, MantleChunk> cachedChunks;
@@ -43,8 +41,7 @@ public class MantleWriter implements IObjectPlacer
     private final int x;
     private final int z;
 
-    public MantleWriter(EngineMantle engineMantle, Mantle mantle, int x, int z, int radius)
-    {
+    public MantleWriter(EngineMantle engineMantle, Mantle mantle, int x, int z, int radius) {
         this.engineMantle = engineMantle;
         this.mantle = mantle;
         this.cachedChunks = new KMap<>();
@@ -59,8 +56,7 @@ public class MantleWriter implements IObjectPlacer
         }
     }
 
-    public <T> void setData(int x, int y, int z, T t)
-    {
+    public <T> void setData(int x, int y, int z, T t) {
         int cx = x >> 4;
         int cz = z >> 4;
 
@@ -68,31 +64,22 @@ public class MantleWriter implements IObjectPlacer
             return;
         }
 
-        if(cx >= this.x - radius && cx <= this.x + radius
-        && cz >= this.z - radius && cz <= this.z + radius)
-        {
+        if (cx >= this.x - radius && cx <= this.x + radius
+                && cz >= this.z - radius && cz <= this.z + radius) {
             MantleChunk chunk = cachedChunks.get(Cache.key(cx, cz));
 
-            if(chunk == null)
-            {
+            if (chunk == null) {
                 Iris.error("Mantle Writer Accessed " + cx + "," + cz + " and came up null (and yet within bounds!)");
                 return;
             }
 
-            if(t instanceof IrisFeaturePositional)
-            {
+            if (t instanceof IrisFeaturePositional) {
                 chunk.addFeature((IrisFeaturePositional) t);
-            }
-
-            else
-            {
+            } else {
                 Matter matter = chunk.getOrCreate(y >> 4);
                 matter.slice(matter.getClass(t)).set(x & 15, y & 15, z & 15, t);
             }
-        }
-
-        else
-        {
+        } else {
             Iris.error("Mantle Writer[" + this.x + "," + this.z + ",R" + this.radius + "] Tried to access " + x + "," + y + "," + z + " (Chunk " + cx + "," + cz + ") which is OUT OF BOUNDS!");
         }
     }
@@ -144,6 +131,6 @@ public class MantleWriter implements IObjectPlacer
 
     @Override
     public void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile) {
-        getEngineMantle().setTile(xx,yy,zz,tile);
+        getEngineMantle().setTile(xx, yy, zz, tile);
     }
 }

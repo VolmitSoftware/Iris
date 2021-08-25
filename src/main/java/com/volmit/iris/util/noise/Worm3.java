@@ -21,33 +21,28 @@ package com.volmit.iris.util.noise;
 import lombok.Data;
 
 @Data
-public class Worm3
-{
+public class Worm3 {
     private final Worm x;
     private final Worm y;
     private final Worm z;
 
-    public Worm3(Worm x,Worm y, Worm z)
-    {
+    public Worm3(Worm x, Worm y, Worm z) {
         this.x = x;
         this.y = y;
         this.z = z;
     }
 
-    public Worm3(int x, int y, int z, int vx, int vy, int vz)
-    {
+    public Worm3(int x, int y, int z, int vx, int vy, int vz) {
         this(new Worm(x, vx), new Worm(y, vy), new Worm(z, vz));
     }
 
-    public void step()
-    {
+    public void step() {
         x.step();
         y.step();
         z.step();
     }
 
-    public void unstep()
-    {
+    public void unstep() {
         x.unstep();
         y.unstep();
         z.unstep();

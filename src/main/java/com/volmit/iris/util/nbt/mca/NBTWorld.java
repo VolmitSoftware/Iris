@@ -32,7 +32,6 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
-import javax.management.RuntimeErrorException;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
@@ -236,8 +235,7 @@ public class NBTWorld {
         getChunkSection(x >> 4, y >> 4, z >> 4).setBlockStateAt(x & 15, y & 15, z & 15, getCompound(data), false);
     }
 
-    public int getBiomeId(Biome b)
-    {
+    public int getBiomeId(Biome b) {
         return biomeIds.get(b);
     }
 
@@ -257,8 +255,7 @@ public class NBTWorld {
         return s;
     }
 
-    public Chunk getChunk(int x, int z)
-    {
+    public Chunk getChunk(int x, int z) {
         return getChunk(getMCA(x >> 5, z >> 5), x, z);
     }
 
@@ -281,10 +278,10 @@ public class NBTWorld {
     }
 
     public long getIdleDuration(int x, int z) {
-       return hyperLock.withResult(x, z, () -> {
-           Long l = lastUse.get(Cache.key(x, z));
-           return l == null ? 0 : (M.ms() - l);
-       });
+        return hyperLock.withResult(x, z, () -> {
+            Long l = lastUse.get(Cache.key(x, z));
+            return l == null ? 0 : (M.ms() - l);
+        });
     }
 
     public MCAFile getMCA(int x, int z) {

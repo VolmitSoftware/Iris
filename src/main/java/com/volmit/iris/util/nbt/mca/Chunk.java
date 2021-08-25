@@ -25,6 +25,7 @@ import com.volmit.iris.util.nbt.io.NBTSerializer;
 import com.volmit.iris.util.nbt.io.NamedTag;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
+import com.volmit.iris.util.nbt.tag.Tag;
 
 import java.io.*;
 import java.util.Arrays;
@@ -33,15 +34,10 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 import static com.volmit.iris.util.nbt.mca.LoadFlags.*;
 
 public class Chunk {
-
-    public static final int DEFAULT_DATA_VERSION = 1628;
-
+    public static final int DEFAULT_DATA_VERSION = 2730;
     private boolean partial;
-
     private int lastMCAUpdate;
-
     private CompoundTag data;
-
     private int dataVersion;
     private long lastUpdate;
     private long inhabitedTime;
@@ -72,6 +68,7 @@ public class Chunk {
     public Chunk(CompoundTag data) {
         this.data = data;
         initReferences(ALL_DATA);
+        setStatus("full");
     }
 
     private void initReferences(long loadFlags) {
@@ -163,6 +160,7 @@ public class Chunk {
         try (BufferedOutputStream nbtOut = new BufferedOutputStream(CompressionType.ZLIB.compress(baos))) {
             new NBTSerializer(false).toStream(new NamedTag(null, updateHandle(xPos, zPos)), nbtOut);
         }
+
         byte[] rawData = baos.toByteArray();
         raf.writeInt(rawData.length + 1); // including the byte to store the compression type
         raf.writeByte(CompressionType.ZLIB.getID());
@@ -648,9 +646,16 @@ public class Chunk {
         Chunk c = new Chunk(0);
         c.dataVersion = DEFAULT_DATA_VERSION;
         c.data = new CompoundTag();
-        c.data.put("Level", new CompoundTag());
-        c.status = "mobs_spawned";
+        c.data.put("Level", defaultLevel());
+        c.status = "full";
         return c;
+    }
+
+    private static CompoundTag defaultLevel() {
+        CompoundTag level = new CompoundTag();
+        level.putString("Status", "full");
+        level.putString("Generator", "Iris Headless " + Iris.instance.getDescription().getVersion());
+        return level;
     }
 
     public CompoundTag updateHandle(int xPos, int zPos) {

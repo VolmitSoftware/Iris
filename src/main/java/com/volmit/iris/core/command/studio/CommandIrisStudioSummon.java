@@ -81,7 +81,8 @@ public class CommandIrisStudioSummon extends MortarCommand {
                     return true;
                 }
 
-                Location vl = sender.player().getLocation().clone().add(0, 3, 0);
+
+                Location vl = sender.player().getTargetBlockExact(256).getLocation().clone().add(0, 1, 0);
                 e.spawn(g, vl);
             }
         } else {

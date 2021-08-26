@@ -20,6 +20,7 @@ package com.volmit.iris.engine.object.entity;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisRegistrant;
+import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.common.IrisScript;
@@ -33,6 +34,7 @@ import com.volmit.iris.engine.object.spawners.IrisSurface;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
@@ -42,20 +44,22 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.NamespacedKey;
+import org.bukkit.*;
 import org.bukkit.attribute.Attributable;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.*;
 import org.bukkit.entity.Panda.Gene;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.loot.LootContext;
 import org.bukkit.loot.LootTable;
 import org.bukkit.loot.Lootable;
+import org.bukkit.util.Vector;
 
 import java.util.Collection;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings("ALL")
@@ -136,6 +140,9 @@ public class IrisEntity extends IrisRegistrant {
     @Desc("If specified, this entity will spawn with an effect")
     private IrisEffect spawnEffect = null;
 
+    @Desc("Simply moves the entity from below the surface slowly out of the ground as a spawn-in effect")
+    private boolean spawnEffectRiseOutOfGround = false;
+
     @Desc("The main gene for a panda if the entity type is a panda")
     private Gene pandaMainGene = Gene.NORMAL;
 
@@ -169,6 +176,13 @@ public class IrisEntity extends IrisRegistrant {
     }
 
     public Entity spawn(Engine gen, Location at, RNG rng) {
+        if(isSpawnEffectRiseOutOfGround()) {
+            Location b = at.clone();
+            double sy = b.getY() - 5;
+            Location start = new Location(b.getWorld(), b.getX(), sy, b.getZ());
+            at = start;
+        }
+
         Entity ee = doSpawn(at);
 
         if (!spawnerScript.isEmpty() && ee == null) {
@@ -216,6 +230,7 @@ public class IrisEntity extends IrisRegistrant {
             Lootable l = (Lootable) e;
 
             if (getLoot().getTables().isNotEmpty()) {
+                Location finalAt = at;
                 l.setLootTable(new LootTable() {
                     @Override
                     public NamespacedKey getKey() {
@@ -228,7 +243,7 @@ public class IrisEntity extends IrisRegistrant {
 
                         for (String fi : getLoot().getTables()) {
                             IrisLootTable i = gen.getData().getLootLoader().load(fi);
-                            items.addAll(i.getLoot(gen.isStudio(), false, rng.nextParallelRNG(345911), InventorySlotType.STORAGE, at.getBlockX(), at.getBlockY(), at.getBlockZ(), 8, 4));
+                            items.addAll(i.getLoot(gen.isStudio(), false, rng.nextParallelRNG(345911), InventorySlotType.STORAGE, finalAt.getBlockX(), finalAt.getBlockY(), finalAt.getBlockZ(), 8, 4));
                         }
 
                         return items;
@@ -319,7 +334,57 @@ public class IrisEntity extends IrisRegistrant {
             }
         }
 
+        if(isSpawnEffectRiseOutOfGround() && e instanceof LivingEntity)
+        {
+            Location start = at.clone();
+            e.setInvulnerable(true);
+            ((LivingEntity) e).setAI(false);
+            ((LivingEntity) e).setCollidable(false);
+            ((LivingEntity) e).setNoDamageTicks(100000);
+
+            AtomicInteger v = new AtomicInteger(0);
+            v.set(J.sr(() -> {
+                if(e.getLocation().getBlock().getType().isSolid() || ((LivingEntity) e).getEyeLocation().getBlock().getType().isSolid())
+                {
+                    e.teleport(start.add(new Vector(0, 0.1, 0)));
+                    ItemStack itemCrackData = new ItemStack(((LivingEntity) e).getEyeLocation().clone().subtract(0, 2, 0).getBlock().getBlockData().getMaterial());
+                    e.getWorld().spawnParticle(Particle.ITEM_CRACK, ((LivingEntity) e).getEyeLocation(), 6, 0.2, 0.4, 0.2, 0.06f, itemCrackData);
+                    if(M.r(0.2))
+                    {
+                        e.getWorld().playSound(e.getLocation(), Sound.BLOCK_CHORUS_FLOWER_GROW, 0.8f, 0.1f);
+                    }
+                }
+
+                else
+                {
+                    J.csr(v.get());
+                    ((LivingEntity) e).setNoDamageTicks(0);
+                    ((LivingEntity) e).setCollidable(true);
+                    ((LivingEntity) e).setAI(true);
+                    e.setInvulnerable(false);
+                }
+            }, 0));
+        }
+
         return e;
+    }
+
+    private int surfaceY(Location l)
+    {
+        int m = l.getBlockY();
+
+        while(m-- > 0)
+        {
+            Location ll = l.clone();
+            ll.setY(m);
+
+            if(ll.getBlock().getType().isSolid())
+            {
+                return m;
+            }
+        }
+
+        return 0;
     }
 
     private Entity doSpawn(Location at) {

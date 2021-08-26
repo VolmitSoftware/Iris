@@ -23,6 +23,9 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.framework.Hotloadable;
 import com.volmit.iris.util.data.DataProvider;
+import org.bukkit.World;
+
+import java.util.function.Consumer;
 
 public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
     Engine getEngine();
@@ -37,6 +40,8 @@ public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
     default EngineTarget getTarget() {
         return getEngine().getTarget();
     }
+
+    void injectChunkReplacement(World world, int x, int z, Consumer<Runnable> jobs);
 
     void close();
 

@@ -41,6 +41,7 @@ import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.HyperLock;
 import com.volmit.iris.util.parallel.MultiBurst;
+import org.bukkit.Chunk;
 import org.bukkit.util.Vector;
 
 import java.io.File;
@@ -149,6 +150,10 @@ public class Mantle {
     @ChunkCoordinates
     public void flag(int x, int z, MantleFlag flag, boolean flagged) {
         get(x >> 5, z >> 5).getOrCreate(x & 31, z & 31).flag(flag, flagged);
+    }
+
+    public void deleteChunk(int x, int z) {
+        get(x >> 5, z >> 5).delete(x & 31, z & 31);
     }
 
     /**
@@ -426,13 +431,19 @@ public class Mantle {
             if (file.exists()) {
                 try {
                     region = TectonicPlate.read(worldHeight, file);
+
+                    if(region.getX() != x || region.getZ() != z)
+                    {
+                        Iris.warn("Loaded Tectonic Plate " + x + "," + z + " but read it as " + region.getX() + "," + region.getZ() + "... Assuming " + x + "," + z);
+                    }
+
                     loadedRegions.put(k, region);
                     Iris.debug("Loaded Tectonic Plate " + C.DARK_GREEN + x + " " + z + C.DARK_AQUA + " " + file.getName());
                 } catch (Throwable e) {
                     Iris.error("Failed to read Tectonic Plate " + file.getAbsolutePath() + " creating a new chunk instead.");
                     Iris.reportError(e);
                     e.printStackTrace();
-                    region = new TectonicPlate(worldHeight);
+                    region = new TectonicPlate(worldHeight, x, z);
                     loadedRegions.put(k, region);
                     Iris.debug("Created new Tectonic Plate (Due to Load Failure) " + C.DARK_GREEN + x + " " + z);
                 }
@@ -440,7 +451,7 @@ public class Mantle {
                 return region;
             }
 
-            region = new TectonicPlate(worldHeight);
+            region = new TectonicPlate(worldHeight, x, z);
             loadedRegions.put(k, region);
             Iris.debug("Created new Tectonic Plate " + C.DARK_GREEN + x + " " + z);
             return region;
@@ -924,5 +935,9 @@ public class Mantle {
 
     public int getWorldHeight() {
         return worldHeight;
+    }
+
+    public MantleChunk getChunk(Chunk e) {
+        return getChunk(e.getX(), e.getZ());
     }
 }

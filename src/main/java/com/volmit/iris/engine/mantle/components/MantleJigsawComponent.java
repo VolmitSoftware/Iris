@@ -44,7 +44,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
 
     public MantleJigsawComponent(EngineMantle engineMantle) {
         super(engineMantle, MantleFlag.JIGSAW);
-        cng = NoiseStyle.STATIC.create(new RNG());
+        cng = NoiseStyle.STATIC.create(new RNG(engineMantle.getEngine().getWorld().seed() + 24398848585L));
     }
 
     @Override

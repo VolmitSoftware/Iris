@@ -34,6 +34,8 @@ import com.volmit.iris.engine.object.spawners.IrisSpawner;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.ChronoLatch;
@@ -221,6 +223,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     }
 
     private void spawnIn(Chunk c, boolean initial) {
+        if(initial)
+        {
+            energy += 1.2;
+        }
+
         IrisBiome biome = getEngine().getSurfaceBiome(c);
         IrisRegion region = getEngine().getRegion(c);
         //@builder
@@ -362,14 +369,15 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     @Override
     public void onChunkLoad(Chunk e, boolean generated) {
-        if (generated) {
-            energy += 1.2;
-            J.a(() -> spawnIn(e, true), RNG.r.i(5, 50));
-        } else {
-            energy += 0.3;
-        }
-
+        J.a(() -> getMantle().raiseFlag(e.getX(), e.getZ(), MantleFlag.INITIAL_SPAWNED,
+            () -> J.a(() -> spawnIn(e, true), RNG.r.i(5, 200))));
+        energy += 0.3;
         fixEnergy();
+    }
+
+    public Mantle getMantle()
+    {
+        return getEngine().getMantle().getMantle();
     }
 
     @Override

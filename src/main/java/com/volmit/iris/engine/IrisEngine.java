@@ -407,7 +407,7 @@ public class IrisEngine implements Engine {
                     }
                 }
             } else {
-                getMantle().generateMatter(x >> 4, z >> 4, true);
+                getMantle().generateMatter(x >> 4, z >> 4, multicore);
                 burst().burst(multicore,
                         () -> getTerrainActuator().actuate(x, z, vblocks, multicore),
                         () -> getBiomeActuator().actuate(x, z, vbiomes, multicore)
@@ -419,7 +419,7 @@ public class IrisEngine implements Engine {
                 );
                 getPostModifier().modify(x, z, vblocks, multicore);
                 burst().burst(multicore,
-                        () -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, blocks, true),
+                        () -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, blocks, multicore),
                         () -> getDepositModifier().modify(x, z, vblocks, multicore)
                 );
             }

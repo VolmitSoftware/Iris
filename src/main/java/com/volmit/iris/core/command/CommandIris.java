@@ -25,8 +25,8 @@ import com.volmit.iris.core.command.pregen.CommandIrisPregen;
 import com.volmit.iris.core.command.studio.CommandIrisStudio;
 import com.volmit.iris.core.command.what.CommandIrisWhat;
 import com.volmit.iris.core.command.world.CommandIrisCreate;
+import com.volmit.iris.core.command.world.CommandIrisRegen;
 import com.volmit.iris.core.command.world.CommandIrisUpdateWorld;
-import com.volmit.iris.core.command.world.CommandIrisVerify;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.Command;
 import com.volmit.iris.util.plugin.MortarCommand;
@@ -37,7 +37,7 @@ public class CommandIris extends MortarCommand {
     private CommandIrisCreate create;
 
     @Command
-    private CommandIrisVerify verify;
+    private CommandIrisRegen regen;
 
     @Command
     private CommandIrisDebug debug;

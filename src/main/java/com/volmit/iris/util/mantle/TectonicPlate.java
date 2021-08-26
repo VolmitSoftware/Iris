@@ -24,6 +24,7 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import lombok.Getter;
 
 import java.io.*;
 import java.util.concurrent.atomic.AtomicReferenceArray;
@@ -38,14 +39,22 @@ public class TectonicPlate {
     private final int sectionHeight;
     private final AtomicReferenceArray<MantleChunk> chunks;
 
+    @Getter
+    private final int x;
+
+    @Getter
+    private final int z;
+
     /**
      * Create a new tectonic plate
      *
      * @param worldHeight the height of the world
      */
-    public TectonicPlate(int worldHeight) {
+    public TectonicPlate(int worldHeight, int x, int z) {
         this.sectionHeight = worldHeight >> 4;
         this.chunks = new AtomicReferenceArray<>(1024);
+        this.x = x;
+        this.z = z;
     }
 
     /**
@@ -57,8 +66,7 @@ public class TectonicPlate {
      * @throws ClassNotFoundException real shit bro
      */
     public TectonicPlate(int worldHeight, DataInputStream din) throws IOException, ClassNotFoundException {
-        this(worldHeight);
-
+        this(worldHeight, din.readInt(), din.readInt());
         for (int i = 0; i < chunks.length(); i++) {
             if (din.readBoolean()) {
                 chunks.set(i, new MantleChunk(sectionHeight, din));
@@ -132,7 +140,7 @@ public class TectonicPlate {
         MantleChunk chunk = get(x, z);
 
         if (chunk == null) {
-            chunk = new MantleChunk(sectionHeight);
+            chunk = new MantleChunk(sectionHeight, x&31, z&31);
             chunks.set(index(x, z), chunk);
         }
 
@@ -167,6 +175,9 @@ public class TectonicPlate {
      * @throws IOException shit happens
      */
     public void write(DataOutputStream dos) throws IOException {
+        dos.writeInt(x);
+        dos.writeInt(z);
+
         for (int i = 0; i < chunks.length(); i++) {
             MantleChunk chunk = chunks.get(i);
 

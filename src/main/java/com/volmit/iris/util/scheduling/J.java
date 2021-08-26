@@ -231,6 +231,15 @@ public class J {
         return f;
     }
 
+    public static CompletableFuture sfut(Runnable r, int delay) {
+        CompletableFuture f = new CompletableFuture();
+        Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
+            r.run();
+            f.complete(null);
+        }, delay);
+        return f;
+    }
+
     public static CompletableFuture afut(Runnable r) {
         CompletableFuture f = new CompletableFuture();
         J.a(() -> {

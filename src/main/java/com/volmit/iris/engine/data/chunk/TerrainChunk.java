@@ -34,6 +34,12 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
         return new LinkedTerrainChunk(world, grid);
     }
 
+    static TerrainChunk createUnsafe(World world, BiomeGrid grid) {
+        LinkedTerrainChunk ltc = new LinkedTerrainChunk(world, grid);
+        ltc.setUnsafe(true);
+        return ltc;
+    }
+
     static TerrainChunk create(ChunkData raw, BiomeGrid grid) {
         return new LinkedTerrainChunk(grid, raw);
     }

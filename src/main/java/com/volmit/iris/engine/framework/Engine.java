@@ -24,6 +24,7 @@ import com.volmit.iris.core.gui.components.Renderer;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.object.basic.IrisColor;
 import com.volmit.iris.engine.object.basic.IrisPosition;
@@ -66,6 +67,7 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
+import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -85,6 +87,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     void printMetrics(CommandSender sender);
 
     EngineMantle getMantle();
+
+    void hotloadSilently();
+
+    void hotloadComplex();
 
     void recycle();
 
@@ -139,6 +145,12 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     @BlockCoordinates
     double modifyZ(double z);
+
+    @BlockCoordinates
+    default void generate(int x, int z, TerrainChunk tc, boolean multicore) throws WrongEngineBroException
+    {
+        generate(x, z, Hunk.view((ChunkGenerator.ChunkData) tc), Hunk.view((ChunkGenerator.BiomeGrid) tc), multicore);
+    }
 
     @BlockCoordinates
     void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes, boolean multicore) throws WrongEngineBroException;

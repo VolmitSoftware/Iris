@@ -28,6 +28,8 @@ import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.framework.WrongEngineBroException;
 import com.volmit.iris.engine.object.common.IrisWorld;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
+import com.volmit.iris.engine.object.dimensional.StudioMode;
+import com.volmit.iris.engine.platform.studio.StudioGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.IrisBiomeStorage;
 import com.volmit.iris.util.hunk.Hunk;
@@ -38,6 +40,7 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
@@ -72,10 +75,15 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final KList<BlockPopulator> populators;
     private final ChronoLatch hotloadChecker;
     private final Looper hotloader;
+    private StudioMode lastMode;
+
+    @Setter
+    private StudioGenerator studioGenerator;
     private final boolean studio;
     private long lastSeed;
 
     public BukkitChunkGenerator(IrisWorld world, boolean studio, File dataLocation, String dimensionKey) {
+        studioGenerator = null;
         populators = new KList<>();
         lastSeed = world.seed();
         loadLock = new Semaphore(LOAD_LOCKS);
@@ -130,6 +138,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             }
         }
 
+        lastMode = StudioMode.NORMAL;
         engine = new IrisEngine(new EngineTarget(world, dimension, data), studio);
         populators.clear();
     }
@@ -156,7 +165,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
             Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
             this.world.bind(world);
-            getEngine().generate(x * 16, z * 16, blocks, biomes, true);
+            getEngine().generate(x << 4, z << 4, blocks, biomes, true);
             Iris.debug("Regenerated " + x + " " + z);
             int t = 0;
             for(int i = getEngine().getHeight() >> 4; i >= 0; i--)
@@ -271,11 +280,22 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             }
 
             loadLock.acquire();
+            computeStudioGenerator();
             TerrainChunk tc = TerrainChunk.create(world, biome);
-            Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
-            Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
             this.world.bind(world);
-            getEngine().generate(x * 16, z * 16, blocks, biomes, true);
+
+            if(studioGenerator != null)
+            {
+                studioGenerator.generateChunk(getEngine(), tc, x, z);
+            }
+
+            else
+            {
+                Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
+                Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
+                getEngine().generate(x << 4, z << 4, blocks, biomes, true);
+            }
+
             ChunkData c = tc.getRaw();
             Iris.debug("Generated " + x + " " + z);
             loadLock.release();
@@ -309,6 +329,14 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             }
 
             return d;
+        }
+    }
+
+    private void computeStudioGenerator() {
+        if(!getEngine().getDimension().getStudioMode().equals(lastMode))
+        {
+            lastMode = getEngine().getDimension().getStudioMode();
+            getEngine().getDimension().getStudioMode().inject(this);
         }
     }
 

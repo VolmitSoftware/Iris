@@ -92,6 +92,9 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Vertically split up the biome palettes with 3 air blocks in between to visualize them")
     private boolean explodeBiomePalettes = false;
 
+    @Desc("Studio Mode for testing different parts of the world")
+    private StudioMode studioMode = StudioMode.NORMAL;
+
     @MinNumber(1)
     @MaxNumber(16)
     @Desc("Customize the palette height explosion")

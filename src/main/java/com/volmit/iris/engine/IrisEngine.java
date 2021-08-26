@@ -177,12 +177,21 @@ public class IrisEngine implements Engine {
 
     @Override
     public void hotload() {
+        hotloadSilently();
+        Iris.callEvent(new IrisEngineHotloadEvent(this));
+    }
+
+    public void hotloadComplex() {
+        complex.close();
+        complex = new IrisComplex(this);
+    }
+
+    public void hotloadSilently() {
         getData().dump();
         getData().clearLists();
         getTarget().setDimension(getData().getDimensionLoader().load(getDimension().getLoadKey()));
         prehotload();
         setupEngine();
-        Iris.callEvent(new IrisEngineHotloadEvent(this));
     }
 
     @Override

@@ -140,7 +140,7 @@ public class TectonicPlate {
         MantleChunk chunk = get(x, z);
 
         if (chunk == null) {
-            chunk = new MantleChunk(sectionHeight, x&31, z&31);
+            chunk = new MantleChunk(sectionHeight, x & 31, z & 31);
             chunks.set(index(x, z), chunk);
         }
 

@@ -58,7 +58,17 @@ import java.util.function.BiFunction;
 
 public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener, MouseMotionListener, MouseInputListener {
     private static final long serialVersionUID = 2094606939770332040L;
-
+    private final KList<LivingEntity> lastEntities = new KList<>();
+    private final KMap<String, Long> notifications = new KMap<>();
+    private final ChronoLatch centities = new ChronoLatch(1000);
+    private final RollingSequence rs = new RollingSequence(512);
+    private final O<Integer> m = new O<>();
+    private final KMap<BlockPosition, BufferedImage> positions = new KMap<>();
+    private final KMap<BlockPosition, BufferedImage> fastpositions = new KMap<>();
+    private final KSet<BlockPosition> working = new KSet<>();
+    private final KSet<BlockPosition> workingfast = new KSet<>();
+    double tfps = 240D;
+    int ltc = 3;
     private RenderType currentType = RenderType.BIOME;
     private boolean help = true;
     private boolean helpIgnored = false;
@@ -82,7 +92,6 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
     private int h = 0;
     private double lx = 0;
     private double lz = 0;
-    private final KList<LivingEntity> lastEntities = new KList<>();
     private double ox = 0;
     private double oz = 0;
     private double hx = 0;
@@ -90,17 +99,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
     private double oxp = 0;
     private double ozp = 0;
     private Engine engine;
-    private final KMap<String, Long> notifications = new KMap<>();
-    double tfps = 240D;
-    int ltc = 3;
-    private final ChronoLatch centities = new ChronoLatch(1000);
-    private final RollingSequence rs = new RollingSequence(512);
-    private final O<Integer> m = new O<>();
     private int tid = 0;
-    private final KMap<BlockPosition, BufferedImage> positions = new KMap<>();
-    private final KMap<BlockPosition, BufferedImage> fastpositions = new KMap<>();
-    private final KSet<BlockPosition> working = new KSet<>();
-    private final KSet<BlockPosition> workingfast = new KSet<>();
     private final ExecutorService e = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(), r -> {
         tid++;
         Thread t = new Thread(r);
@@ -151,6 +150,33 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
                 eh.shutdown();
             }
         });
+    }
+
+    private static void createAndShowGUI(Engine r, int s, IrisWorld world) {
+        JFrame frame = new JFrame("Vision");
+        VisionGUI nv = new VisionGUI(frame);
+        nv.world = world;
+        nv.engine = r;
+        nv.renderer = new IrisRenderer(r);
+        frame.add(nv);
+        frame.setSize(1440, 820);
+        frame.setVisible(true);
+        File file = Iris.getCached("Iris Icon", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/icon.png");
+
+        if (file != null) {
+            try {
+                nv.texture = ImageIO.read(file);
+                frame.setIconImage(ImageIO.read(file));
+            } catch (IOException e) {
+                Iris.reportError(e);
+
+            }
+        }
+    }
+
+    public static void launch(Engine g, int i) {
+        J.a(() ->
+                createAndShowGUI(g, i, g.getWorld()));
     }
 
     public boolean updateEngine() {
@@ -753,33 +779,6 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
         for (String i : text) {
             g.drawString(i, x + 14 - cw, y + 14 - ch + (++m * g.getFontMetrics().getHeight()));
         }
-    }
-
-    private static void createAndShowGUI(Engine r, int s, IrisWorld world) {
-        JFrame frame = new JFrame("Vision");
-        VisionGUI nv = new VisionGUI(frame);
-        nv.world = world;
-        nv.engine = r;
-        nv.renderer = new IrisRenderer(r);
-        frame.add(nv);
-        frame.setSize(1440, 820);
-        frame.setVisible(true);
-        File file = Iris.getCached("Iris Icon", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/icon.png");
-
-        if (file != null) {
-            try {
-                nv.texture = ImageIO.read(file);
-                frame.setIconImage(ImageIO.read(file));
-            } catch (IOException e) {
-                Iris.reportError(e);
-
-            }
-        }
-    }
-
-    public static void launch(Engine g, int i) {
-        J.a(() ->
-                createAndShowGUI(g, i, g.getWorld()));
     }
 
     public void mouseWheelMoved(MouseWheelEvent e) {

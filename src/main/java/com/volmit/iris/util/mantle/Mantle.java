@@ -432,8 +432,7 @@ public class Mantle {
                 try {
                     region = TectonicPlate.read(worldHeight, file);
 
-                    if(region.getX() != x || region.getZ() != z)
-                    {
+                    if (region.getX() != x || region.getZ() != z) {
                         Iris.warn("Loaded Tectonic Plate " + x + "," + z + " but read it as " + region.getX() + "," + region.getZ() + "... Assuming " + x + "," + z);
                     }
 

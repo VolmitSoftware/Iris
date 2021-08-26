@@ -49,8 +49,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private void unloadAndSaveAllChunks() {
         try {
             J.sfut(() -> {
-                if(world == null)
-                {
+                if (world == null) {
                     Iris.warn("World was null somehow...");
                     return;
                 }

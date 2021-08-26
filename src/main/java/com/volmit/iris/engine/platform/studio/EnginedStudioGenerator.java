@@ -24,7 +24,7 @@ import com.volmit.iris.engine.framework.WrongEngineBroException;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public abstract class EnginedStudioGenerator implements StudioGenerator{
+public abstract class EnginedStudioGenerator implements StudioGenerator {
     private final Engine engine;
 
     @Override

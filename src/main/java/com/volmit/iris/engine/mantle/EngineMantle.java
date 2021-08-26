@@ -34,7 +34,6 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
-import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import org.bukkit.Chunk;
@@ -193,8 +192,7 @@ public interface EngineMantle extends IObjectPlacer {
                 burst.queue(() -> {
                     MantleChunk mc = getMantle().getChunk(xx, zz);
 
-                    for(MantleComponent k : getComponents())
-                    {
+                    for (MantleComponent k : getComponents()) {
                         generateMantleComponent(writer, xx, zz, k, c, mc);
                     }
                 });
@@ -282,13 +280,11 @@ public interface EngineMantle extends IObjectPlacer {
         return pos;
     }
 
-    default boolean queueRegenerate(int x, int z)
-    {
-       return false; // TODO:
+    default boolean queueRegenerate(int x, int z) {
+        return false; // TODO:
     }
 
-    default boolean dequeueRegenerate(int x, int z)
-    {
+    default boolean dequeueRegenerate(int x, int z) {
         return false;// TODO:
     }
 }

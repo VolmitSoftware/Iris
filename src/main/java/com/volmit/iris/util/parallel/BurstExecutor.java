@@ -42,8 +42,7 @@ public class BurstExecutor {
 
     @SuppressWarnings("UnusedReturnValue")
     public Future<?> queue(Runnable r) {
-        if(!multicore)
-        {
+        if (!multicore) {
             r.run();
             return CompletableFuture.completedFuture(null);
         }

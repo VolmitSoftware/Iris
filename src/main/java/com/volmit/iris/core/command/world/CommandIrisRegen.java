@@ -24,14 +24,11 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.jobs.Job;
-import com.volmit.iris.util.scheduling.jobs.JobCollection;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import org.bukkit.Chunk;
 
@@ -53,18 +50,15 @@ public class CommandIrisRegen extends MortarCommand {
 
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
-        if (!sender.isPlayer())
-        {
+        if (!sender.isPlayer()) {
             sender.sendMessage("Must be in an iris world.");
         }
 
-        if(IrisToolbelt.isIrisWorld(sender.player().getWorld()))
-        {
+        if (IrisToolbelt.isIrisWorld(sender.player().getWorld())) {
             J.a(() -> {
                 PlatformChunkGenerator plat = IrisToolbelt.access(sender.player().getWorld());
                 Engine engine = plat.getEngine();
-                try
-                {
+                try {
                     int vd = Integer.parseInt(args[0]);
                     int rg = 0;
                     Chunk cx = sender.player().getLocation().getChunk();
@@ -72,21 +66,18 @@ public class CommandIrisRegen extends MortarCommand {
                     BurstExecutor b = MultiBurst.burst.burst();
                     b.setMulticore(false);
                     int rad = engine.getMantle().getRealRadius();
-                    for(int i = -(vd+rad); i <= vd+rad; i++) {
-                        for (int j = -(vd+rad); j <= vd+rad; j++) {
+                    for (int i = -(vd + rad); i <= vd + rad; i++) {
+                        for (int j = -(vd + rad); j <= vd + rad; j++) {
                             engine.getMantle().getMantle().deleteChunk(i + cx.getX(), j + cx.getZ());
                         }
                     }
 
-                    for(int i = -vd; i <= vd; i++)
-                    {
-                        for(int j = -vd; j <= vd; j++)
-                        {
+                    for (int i = -vd; i <= vd; i++) {
+                        for (int j = -vd; j <= vd; j++) {
                             int finalJ = j;
                             int finalI = i;
                             b.queue(() -> plat.injectChunkReplacement(sender.player().getWorld(), finalI + cx.getX(), finalJ + cx.getZ(), (f) -> {
-                                synchronized (js)
-                                {
+                                synchronized (js) {
                                     js.add(f);
                                 }
                             }));
@@ -102,10 +93,8 @@ public class CommandIrisRegen extends MortarCommand {
                         public void execute(Runnable runnable) {
                             futures.add(J.sfut(runnable));
 
-                            if(futures.size() > 64)
-                            {
-                                while(futures.isNotEmpty())
-                                {
+                            if (futures.size() > 64) {
+                                while (futures.isNotEmpty()) {
                                     try {
                                         futures.remove(0).get();
                                     } catch (InterruptedException e) {
@@ -124,10 +113,7 @@ public class CommandIrisRegen extends MortarCommand {
                     };
                     r.queue(js);
                     r.execute(sender);
-                }
-
-                catch(Throwable e)
-                {
+                } catch (Throwable e) {
                     sender.sendMessage("Unable to parse view-distance");
                 }
             });

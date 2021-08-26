@@ -56,9 +56,9 @@ public class LinkedTerrainChunk implements TerrainChunk {
     @Override
     public BiomeBaseInjector getBiomeBaseInjector() {
 
-        if(unsafe)
-        {
-            return (a,b,c,d) -> {};
+        if (unsafe) {
+            return (a, b, c, d) -> {
+            };
         }
 
         return (x, y, z, bb) -> INMS.get().forceBiomeInto(x, y, z, bb, storage);

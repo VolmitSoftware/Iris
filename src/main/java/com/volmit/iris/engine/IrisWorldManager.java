@@ -223,8 +223,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     }
 
     private void spawnIn(Chunk c, boolean initial) {
-        if(initial)
-        {
+        if (initial) {
             energy += 1.2;
         }
 
@@ -370,13 +369,12 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     @Override
     public void onChunkLoad(Chunk e, boolean generated) {
         J.a(() -> getMantle().raiseFlag(e.getX(), e.getZ(), MantleFlag.INITIAL_SPAWNED,
-            () -> J.a(() -> spawnIn(e, true), RNG.r.i(5, 200))));
+                () -> J.a(() -> spawnIn(e, true), RNG.r.i(5, 200))));
         energy += 0.3;
         fixEnergy();
     }
 
-    public Mantle getMantle()
-    {
+    public Mantle getMantle() {
         return getEngine().getMantle().getMantle();
     }
 
@@ -392,36 +390,14 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             Runnable drop = () -> J.s(() -> d.forEach((i) -> e.getBlock().getWorld().dropItemNaturally(e.getBlock().getLocation().clone().add(0.5, 0.5, 0.5), i)));
             IrisBiome b = getEngine().getBiome(e.getBlock().getLocation());
 
-            for (IrisBlockDrops i : b.getBlockDrops()) {
-                if (i.shouldDropFor(e.getBlock().getBlockData(), getData())) {
-                    if (i.isReplaceVanillaDrops()) {
-                        e.setDropItems(false);
-                    }
-
-                    i.fillDrops(false, d);
-
-                    if (i.isSkipParents()) {
-                        drop.run();
-                        return;
-                    }
-                }
+            if (dropItems(e, d, drop, b.getBlockDrops(), b)) {
+                return;
             }
 
             IrisRegion r = getEngine().getRegion(e.getBlock().getLocation());
 
-            for (IrisBlockDrops i : r.getBlockDrops()) {
-                if (i.shouldDropFor(e.getBlock().getBlockData(), getData())) {
-                    if (i.isReplaceVanillaDrops()) {
-                        e.setDropItems(false);
-                    }
-
-                    i.fillDrops(false, d);
-
-                    if (i.isSkipParents()) {
-                        drop.run();
-                        return;
-                    }
-                }
+            if (dropItems(e, d, drop, r.getBlockDrops(), b)) {
+                return;
             }
 
             for (IrisBlockDrops i : getEngine().getDimension().getBlockDrops()) {
@@ -439,6 +415,24 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 }
             }
         }
+    }
+
+    private boolean dropItems(BlockBreakEvent e, KList<ItemStack> d, Runnable drop, KList<IrisBlockDrops> blockDrops, IrisBiome b) {
+        for (IrisBlockDrops i : blockDrops) {
+            if (i.shouldDropFor(e.getBlock().getBlockData(), getData())) {
+                if (i.isReplaceVanillaDrops()) {
+                    e.setDropItems(false);
+                }
+
+                i.fillDrops(false, d);
+
+                if (i.isSkipParents()) {
+                    drop.run();
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Override

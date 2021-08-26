@@ -40,13 +40,11 @@ public enum StudioMode {
 
     private final Consumer<BukkitChunkGenerator> injector;
 
-    StudioMode(Consumer<BukkitChunkGenerator> injector)
-    {
+    StudioMode(Consumer<BukkitChunkGenerator> injector) {
         this.injector = injector;
     }
 
-    public void inject(BukkitChunkGenerator c)
-    {
+    public void inject(BukkitChunkGenerator c) {
         injector.accept(c);
     }
 }

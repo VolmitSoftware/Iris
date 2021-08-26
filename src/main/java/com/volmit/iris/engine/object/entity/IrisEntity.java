@@ -20,7 +20,6 @@ package com.volmit.iris.engine.object.entity;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.loader.IrisRegistrant;
-import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.common.IrisScript;
@@ -46,10 +45,8 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.*;
 import org.bukkit.attribute.Attributable;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.*;
 import org.bukkit.entity.Panda.Gene;
-import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.loot.LootContext;
@@ -176,7 +173,7 @@ public class IrisEntity extends IrisRegistrant {
     }
 
     public Entity spawn(Engine gen, Location at, RNG rng) {
-        if(isSpawnEffectRiseOutOfGround()) {
+        if (isSpawnEffectRiseOutOfGround()) {
             Location b = at.clone();
             double sy = b.getY() - 5;
             Location start = new Location(b.getWorld(), b.getX(), sy, b.getZ());
@@ -334,8 +331,7 @@ public class IrisEntity extends IrisRegistrant {
             }
         }
 
-        if(isSpawnEffectRiseOutOfGround() && e instanceof LivingEntity)
-        {
+        if (isSpawnEffectRiseOutOfGround() && e instanceof LivingEntity) {
             Location start = at.clone();
             e.setInvulnerable(true);
             ((LivingEntity) e).setAI(false);
@@ -344,19 +340,14 @@ public class IrisEntity extends IrisRegistrant {
 
             AtomicInteger v = new AtomicInteger(0);
             v.set(J.sr(() -> {
-                if(e.getLocation().getBlock().getType().isSolid() || ((LivingEntity) e).getEyeLocation().getBlock().getType().isSolid())
-                {
+                if (e.getLocation().getBlock().getType().isSolid() || ((LivingEntity) e).getEyeLocation().getBlock().getType().isSolid()) {
                     e.teleport(start.add(new Vector(0, 0.1, 0)));
                     ItemStack itemCrackData = new ItemStack(((LivingEntity) e).getEyeLocation().clone().subtract(0, 2, 0).getBlock().getBlockData().getMaterial());
                     e.getWorld().spawnParticle(Particle.ITEM_CRACK, ((LivingEntity) e).getEyeLocation(), 6, 0.2, 0.4, 0.2, 0.06f, itemCrackData);
-                    if(M.r(0.2))
-                    {
+                    if (M.r(0.2)) {
                         e.getWorld().playSound(e.getLocation(), Sound.BLOCK_CHORUS_FLOWER_GROW, 0.8f, 0.1f);
                     }
-                }
-
-                else
-                {
+                } else {
                     J.csr(v.get());
                     ((LivingEntity) e).setNoDamageTicks(0);
                     ((LivingEntity) e).setCollidable(true);
@@ -369,17 +360,14 @@ public class IrisEntity extends IrisRegistrant {
         return e;
     }
 
-    private int surfaceY(Location l)
-    {
+    private int surfaceY(Location l) {
         int m = l.getBlockY();
 
-        while(m-- > 0)
-        {
+        while (m-- > 0) {
             Location ll = l.clone();
             ll.setY(m);
 
-            if(ll.getBlock().getType().isSolid())
-            {
+            if (ll.getBlock().getType().isSolid()) {
                 return m;
             }
         }

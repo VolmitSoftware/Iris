@@ -23,7 +23,7 @@ import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.jetbrains.annotations.NotNull;
 
-public class IrisBiomeStorage implements BiomeGrid{
+public class IrisBiomeStorage implements BiomeGrid {
     private static final int e;
     private static final int f;
     public static final int a;

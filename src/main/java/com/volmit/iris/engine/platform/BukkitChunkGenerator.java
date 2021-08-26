@@ -34,7 +34,6 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.IrisBiomeStorage;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.io.ReactiveFolder;
-import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
@@ -168,18 +167,14 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             getEngine().generate(x << 4, z << 4, blocks, biomes, true);
             Iris.debug("Regenerated " + x + " " + z);
             int t = 0;
-            for(int i = getEngine().getHeight() >> 4; i >= 0; i--)
-            {
-                if(!world.isChunkLoaded(x, z))
-                {
+            for (int i = getEngine().getHeight() >> 4; i >= 0; i--) {
+                if (!world.isChunkLoaded(x, z)) {
                     continue;
                 }
 
                 Chunk c = world.getChunkAt(x, z);
-                for(Entity ee : c.getEntities())
-                {
-                    if(ee instanceof Player)
-                    {
+                for (Entity ee : c.getEntities()) {
+                    if (ee instanceof Player) {
                         continue;
                     }
 
@@ -191,18 +186,14 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 int finalI = i;
                 jobs.accept(() -> {
 
-                    for(int xx = 0; xx < 16; xx++)
-                    {
-                        for(int yy = 0; yy < 16; yy++)
-                        {
-                            for(int zz = 0; zz < 16; zz++)
-                            {
-                                if(yy + (finalI << 4) >= engine.getHeight() || yy + (finalI << 4) < 0)
-                                {
+                    for (int xx = 0; xx < 16; xx++) {
+                        for (int yy = 0; yy < 16; yy++) {
+                            for (int zz = 0; zz < 16; zz++) {
+                                if (yy + (finalI << 4) >= engine.getHeight() || yy + (finalI << 4) < 0) {
                                     continue;
                                 }
 
-                                c.getBlock(xx,yy + (finalI << 4),zz).setBlockData(tc.getBlockData(xx,yy + (finalI << 4),zz), false);
+                                c.getBlock(xx, yy + (finalI << 4), zz).setBlockData(tc.getBlockData(xx, yy + (finalI << 4), zz), false);
                             }
                         }
                     }
@@ -284,13 +275,9 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             TerrainChunk tc = TerrainChunk.create(world, biome);
             this.world.bind(world);
 
-            if(studioGenerator != null)
-            {
+            if (studioGenerator != null) {
                 studioGenerator.generateChunk(getEngine(), tc, x, z);
-            }
-
-            else
-            {
+            } else {
                 Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
                 Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
                 getEngine().generate(x << 4, z << 4, blocks, biomes, true);
@@ -333,8 +320,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     private void computeStudioGenerator() {
-        if(!getEngine().getDimension().getStudioMode().equals(lastMode))
-        {
+        if (!getEngine().getDimension().getStudioMode().equals(lastMode)) {
             lastMode = getEngine().getDimension().getStudioMode();
             getEngine().getDimension().getStudioMode().inject(this);
         }

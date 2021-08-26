@@ -18,6 +18,7 @@
 
 package com.volmit.iris.core.pregenerator.methods;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
@@ -48,6 +49,12 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private void unloadAndSaveAllChunks() {
         try {
             J.sfut(() -> {
+                if(world == null)
+                {
+                    Iris.warn("World was null somehow...");
+                    return;
+                }
+
                 for (Chunk i : world.getLoadedChunks()) {
                     i.unload(true);
                 }

@@ -256,7 +256,15 @@ public class J {
      * @param delay the delay to wait in ticks before running
      */
     public static void s(Runnable r, int delay) {
-        Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, r, delay);
+        try
+        {
+            Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, r, delay);
+        }
+
+        catch(Throwable e)
+        {
+            Iris.reportError(e);
+        }
     }
 
     /**

@@ -125,12 +125,10 @@ public class PregeneratorJob implements PregenListener {
     }
 
     public void drawRegion(int x, int z, Color color) {
-        J.a(() -> {
-            PregenTask.iterateRegion(x, z, (xx, zz) -> {
-                draw(xx, zz, color);
-                J.sleep(3);
-            });
-        });
+        J.a(() -> PregenTask.iterateRegion(x, z, (xx, zz) -> {
+            draw(xx, zz, color);
+            J.sleep(3);
+        }));
     }
 
     public void draw(int x, int z, Color color) {

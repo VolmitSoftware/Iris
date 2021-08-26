@@ -124,8 +124,8 @@ public class IrisData {
             IrisContext ctx = IrisContext.get();
             Engine engine = this.engine;
 
-            if (engine == null && ctx != null && ctx.getEngine() != null) {
-                engine = ctx.getEngine();
+            if (engine == null && ctx != null && ctx.engine() != null) {
+                engine = ctx.engine();
             }
 
             if (engine == null && t.getPreprocessors().isNotEmpty()) {
@@ -196,8 +196,7 @@ public class IrisData {
         }
 
         loaders.clear();
-        File packs = dataFolder;
-        packs.mkdirs();
+        dataFolder.mkdirs();
         this.lootLoader = registerLoader(IrisLootTable.class);
         this.spawnerLoader = registerLoader(IrisSpawner.class);
         this.entityLoader = registerLoader(IrisEntity.class);
@@ -324,7 +323,7 @@ public class IrisData {
         if (f.getPath().startsWith(getDataFolder().getPath())) {
             String[] full = f.getPath().split("\\Q" + File.separator + "\\E");
             String[] df = getDataFolder().getPath().split("\\Q" + File.separator + "\\E");
-            String g = "";
+            StringBuilder g = new StringBuilder();
             boolean m = true;
             for (int i = 0; i < full.length; i++) {
                 if (i >= df.length) {
@@ -333,12 +332,11 @@ public class IrisData {
                         continue;
                     }
 
-                    g += "/" + full[i];
+                    g.append("/").append(full[i]);
                 }
             }
 
-            String ff = g.substring(1).split("\\Q.\\E")[0];
-            return ff;
+            return g.substring(1).split("\\Q.\\E")[0];
         } else {
             Iris.error("Forign file from loader " + f.getPath() + " (loader realm: " + getDataFolder().getPath() + ")");
         }

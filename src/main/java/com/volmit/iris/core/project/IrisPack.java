@@ -23,18 +23,11 @@ import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.util.data.IrisPackRepository;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.plugin.VolmitSender;
-import lombok.Data;
 
 import java.io.File;
 import java.net.MalformedURLException;
 
-@Data
-public class IrisPack {
-    private final File folder;
-
-    public IrisPack(File folder) {
-        this.folder = folder;
-    }
+public record IrisPack(File folder) {
 
     public void delete() {
         IO.delete(folder);

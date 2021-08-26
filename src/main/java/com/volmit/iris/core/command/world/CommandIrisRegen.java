@@ -60,75 +60,77 @@ public class CommandIrisRegen extends MortarCommand {
 
         if(IrisToolbelt.isIrisWorld(sender.player().getWorld()))
         {
-            PlatformChunkGenerator plat = IrisToolbelt.access(sender.player().getWorld());
-            Engine engine = plat.getEngine();
-            try
-            {
-                int vd = Integer.parseInt(args[0]);
-                int rg = 0;
-                Chunk cx = sender.player().getLocation().getChunk();
-                KList<Runnable> js = new KList<>();
-                BurstExecutor b = MultiBurst.burst.burst();
-                b.setMulticore(false);
-                int rad = engine.getMantle().getRealRadius();
-                for(int i = -(vd+rad); i <= vd+rad; i++) {
-                    for (int j = -(vd+rad); j <= vd+rad; j++) {
-                        engine.getMantle().getMantle().deleteChunk(i + cx.getX(), j + cx.getZ());
-                    }
-                }
-
-                for(int i = -vd; i <= vd; i++)
+            J.a(() -> {
+                PlatformChunkGenerator plat = IrisToolbelt.access(sender.player().getWorld());
+                Engine engine = plat.getEngine();
+                try
                 {
-                    for(int j = -vd; j <= vd; j++)
-                    {
-                        int finalJ = j;
-                        int finalI = i;
-                        b.queue(() -> plat.injectChunkReplacement(sender.player().getWorld(), finalI + cx.getX(), finalJ + cx.getZ(), (f) -> {
-                            synchronized (js)
-                            {
-                                js.add(f);
-                            }
-                        }));
-                    }
-                }
-
-                b.complete();
-                sender.sendMessage("Regenerating " + Form.f(js.size()) + " Sections");
-                QueueJob<Runnable> r = new QueueJob<>() {
-                    final KList<Future<?>> futures = new KList<>();
-
-                    @Override
-                    public void execute(Runnable runnable) {
-                        futures.add(J.sfut(runnable));
-
-                        if(futures.size() > 64)
-                        {
-                            while(futures.isNotEmpty())
-                            {
-                                try {
-                                    futures.remove(0).get();
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                } catch (ExecutionException e) {
-                                    e.printStackTrace();
-                                }
-                            }
+                    int vd = Integer.parseInt(args[0]);
+                    int rg = 0;
+                    Chunk cx = sender.player().getLocation().getChunk();
+                    KList<Runnable> js = new KList<>();
+                    BurstExecutor b = MultiBurst.burst.burst();
+                    b.setMulticore(false);
+                    int rad = engine.getMantle().getRealRadius();
+                    for(int i = -(vd+rad); i <= vd+rad; i++) {
+                        for (int j = -(vd+rad); j <= vd+rad; j++) {
+                            engine.getMantle().getMantle().deleteChunk(i + cx.getX(), j + cx.getZ());
                         }
                     }
 
-                    @Override
-                    public String getName() {
-                        return "Regenerating";
+                    for(int i = -vd; i <= vd; i++)
+                    {
+                        for(int j = -vd; j <= vd; j++)
+                        {
+                            int finalJ = j;
+                            int finalI = i;
+                            b.queue(() -> plat.injectChunkReplacement(sender.player().getWorld(), finalI + cx.getX(), finalJ + cx.getZ(), (f) -> {
+                                synchronized (js)
+                                {
+                                    js.add(f);
+                                }
+                            }));
+                        }
                     }
-                };
-                r.queue(js);
-                r.execute(sender);
-            }
 
-            catch(Throwable e)
-            {
-                sender.sendMessage("Unable to parse view-distance");
-            }
+                    b.complete();
+                    sender.sendMessage("Regenerating " + Form.f(js.size()) + " Sections");
+                    QueueJob<Runnable> r = new QueueJob<>() {
+                        final KList<Future<?>> futures = new KList<>();
+
+                        @Override
+                        public void execute(Runnable runnable) {
+                            futures.add(J.sfut(runnable));
+
+                            if(futures.size() > 64)
+                            {
+                                while(futures.isNotEmpty())
+                                {
+                                    try {
+                                        futures.remove(0).get();
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    } catch (ExecutionException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }
+                        }
+
+                        @Override
+                        public String getName() {
+                            return "Regenerating";
+                        }
+                    };
+                    r.queue(js);
+                    r.execute(sender);
+                }
+
+                catch(Throwable e)
+                {
+                    sender.sendMessage("Unable to parse view-distance");
+                }
+            });
         }
 
         return true;

@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.matter.slices;
 
+import com.volmit.iris.util.matter.MatterUpdate;
 import com.volmit.iris.util.matter.Sliced;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -27,7 +28,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 @Sliced
-public class UpdateMatter extends RawMatter<UpdateMatter.MatterUpdate> {
+public class UpdateMatter extends RawMatter<MatterUpdate> {
     public static final MatterUpdate ON = new MatterUpdate(true);
     public static final MatterUpdate OFF = new MatterUpdate(false);
 
@@ -41,17 +42,11 @@ public class UpdateMatter extends RawMatter<UpdateMatter.MatterUpdate> {
 
     @Override
     public void writeNode(MatterUpdate b, DataOutputStream dos) throws IOException {
-        dos.writeBoolean(b.update);
+        dos.writeBoolean(b.isUpdate());
     }
 
     @Override
     public MatterUpdate readNode(DataInputStream din) throws IOException {
         return din.readBoolean() ? ON : OFF;
-    }
-
-    @Data
-    @AllArgsConstructor
-    public static class MatterUpdate {
-        private final boolean update;
     }
 }

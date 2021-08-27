@@ -52,6 +52,7 @@ import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.MatterUpdate;
 import com.volmit.iris.util.matter.slices.UpdateMatter;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -94,16 +95,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     void hotloadComplex();
 
     void recycle();
-
-    EngineActuator<BlockData> getTerrainActuator();
-
-    EngineActuator<BlockData> getDecorantActuator();
-
-    EngineActuator<Biome> getBiomeActuator();
-
-    EngineModifier<BlockData> getDepositModifier();
-
-    EngineModifier<BlockData> getPostModifier();
 
     void close();
 
@@ -244,7 +235,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     default void updateChunk(Chunk c) {
         getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.UPDATE, () -> J.s(() -> {
             PrecisionStopwatch p = PrecisionStopwatch.start();
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), UpdateMatter.MatterUpdate.class, (x, y, z, v) -> {
+            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterUpdate.class, (x, y, z, v) -> {
                 if (v != null && v.isUpdate()) {
                     int vx = x & 15;
                     int vz = z & 15;
@@ -298,6 +289,12 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     Iris.reportError(e);
                 }
             }
+        }
+
+        else
+        {
+            block.setType(Material.AIR, false);
+            block.setBlockData(data, true);
         }
     }
 

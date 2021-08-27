@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.matter.slices;
 
+import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.matter.Sliced;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -27,7 +28,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 @Sliced
-public class CavernMatter extends RawMatter<CavernMatter.MatterCavern> {
+public class CavernMatter extends RawMatter<MatterCavern> {
     public static final MatterCavern ON = new MatterCavern(true);
     public static final MatterCavern OFF = new MatterCavern(false);
 
@@ -41,18 +42,11 @@ public class CavernMatter extends RawMatter<CavernMatter.MatterCavern> {
 
     @Override
     public void writeNode(MatterCavern b, DataOutputStream dos) throws IOException {
-        dos.writeBoolean(b.cavern);
+        dos.writeBoolean(b.isCavern());
     }
 
     @Override
     public MatterCavern readNode(DataInputStream din) throws IOException {
         return din.readBoolean() ? ON : OFF;
     }
-
-    @Data
-    @AllArgsConstructor
-    public static class MatterCavern {
-        private final boolean cavern;
-    }
-
 }

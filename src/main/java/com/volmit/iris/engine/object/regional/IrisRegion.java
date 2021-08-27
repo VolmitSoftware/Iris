@@ -164,14 +164,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
     private KList<String> caveBiomes = new KList<>();
 
-    @ArrayType(min = 1, type = IrisRegionRidge.class)
-    @Desc("Ridge biomes create a vein-like network like rivers through this region")
-    private KList<IrisRegionRidge> ridgeBiomes = new KList<>();
-
-    @ArrayType(min = 1, type = IrisRegionSpot.class)
-    @Desc("Spot biomes splotch themselves across this region like lakes")
-    private KList<IrisRegionSpot> spotBiomes = new KList<>();
-
     @ArrayType(min = 1, type = IrisDepositGenerator.class)
     @Desc("Define regional deposit generators that add onto the global deposit generators")
     private KList<IrisDepositGenerator> deposits = new KList<>();
@@ -273,26 +265,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
 
         return 1;
     }
-
-    public KList<String> getRidgeBiomeKeys() {
-        return cacheRidge.aquire(() ->
-        {
-            KList<String> cacheRidge = new KList<>();
-            ridgeBiomes.forEach((i) -> cacheRidge.add(i.getBiome()));
-
-            return cacheRidge;
-        });
-    }
-
-    public KList<String> getSpotBiomeKeys() {
-        return cacheSpot.aquire(() ->
-        {
-            KList<String> cacheSpot = new KList<>();
-            spotBiomes.forEach((i) -> cacheSpot.add(i.getBiome()));
-            return cacheSpot;
-        });
-    }
-
+    
     public CNG getShoreHeightGenerator() {
         return shoreHeightGenerator.aquire(() ->
                 CNG.signature(new RNG((long) (getName().length() + getLandBiomeZoom() + getLandBiomes().size() + 3458612))));
@@ -308,8 +281,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         names.addAll(caveBiomes);
         names.addAll(seaBiomes);
         names.addAll(shoreBiomes);
-        spotBiomes.forEach((i) -> names.add(i.getBiome()));
-        ridgeBiomes.forEach((i) -> names.add(i.getBiome()));
 
         return names;
     }
@@ -414,8 +385,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         names.addAll(caveBiomes);
         names.addAll(seaBiomes);
         names.addAll(shoreBiomes);
-        spotBiomes.forEach((i) -> names.add(i.getBiome()));
-        ridgeBiomes.forEach((i) -> names.add(i.getBiome()));
 
         while (!names.isEmpty()) {
             for (String i : new KList<>(names)) {

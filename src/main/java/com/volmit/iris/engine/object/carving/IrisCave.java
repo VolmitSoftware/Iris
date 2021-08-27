@@ -18,16 +18,28 @@
 
 package com.volmit.iris.engine.object.carving;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.noise.IrisWorm;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.noise.Worm3;
+import com.volmit.iris.util.noise.WormIterator3;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.util.Vector;
 
 @EqualsAndHashCode(callSuper = true)
 @Accessors(chain = true)
@@ -36,6 +48,7 @@ import lombok.experimental.Accessors;
 @Desc("Translate objects")
 @Data
 public class IrisCave extends IrisRegistrant {
+    private static final BlockData CAVE_AIR = B.get("CAVE_AIR");
     @Desc("Define the shape of this cave")
     private IrisWorm worm;
 
@@ -47,6 +60,27 @@ public class IrisCave extends IrisRegistrant {
     @Override
     public String getTypeName() {
         return "Cave";
+    }
+
+    public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
+
+        IrisData data = engine.getData();
+        WormIterator3 w = getWorm().iterate3D(rng, data, x, y, z);
+        KList<Vector> points = new KList<>();
+        int itr = 0;
+        while (w.hasNext()) {
+            itr++;
+            Worm3 wx = w.next();
+            points.add(new Vector(wx.getX().getPosition(), wx.getY().getPosition(), wx.getZ().getPosition()));
+        }
+
+
+        Iris.info(x + " " + y + " " + z + " /." + " POS: " + points.convert((i) -> "[" + i.getBlockX() + "," + i.getBlockY() + "," + i.getBlockZ() + "]").toString(", "));
+
+        writer.setLine(points.convert(IrisPosition::new), getWorm().getGirth().get(rng, x, z, data), true, CAVE_AIR);
+
+
+        // TODO decorate somehow
     }
 
     @Override

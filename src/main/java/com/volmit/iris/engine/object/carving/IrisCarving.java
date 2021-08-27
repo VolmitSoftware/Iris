@@ -18,7 +18,10 @@
 
 package com.volmit.iris.engine.object.carving;
 
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.MantleWriter;
+import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.documentation.BlockCoordinates;
@@ -34,17 +37,29 @@ import lombok.experimental.Accessors;
 @Desc("Represents a carving configuration")
 @Data
 public class IrisCarving {
+    @ArrayType(type = IrisCavePlacer.class, min = 1)
     @Desc("Define cave placers")
     private KList<IrisCavePlacer> caves = new KList<>();
 
     @BlockCoordinates
-    public void doCarving(MantleWriter writer, RNG rng, int x, int z) {
+    public void doCarving(MantleWriter writer, RNG rng, Engine engine, int x, int z) {
         if(caves.isNotEmpty())
         {
             for(IrisCavePlacer i : caves)
             {
-                i.generateCave();
+                i.generateCave(writer, rng, engine, x, z);
             }
         }
+    }
+
+    public int getMaxRange(IrisData data) {
+        int max = 0;
+
+        for(IrisCavePlacer i : caves)
+        {
+            max = Math.max(max, i.getSize(data));
+        }
+
+        return max;
     }
 }

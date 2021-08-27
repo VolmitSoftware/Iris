@@ -50,6 +50,15 @@ public class IrisPack {
 
     /**
      * Create an iris pack backed by a data folder
+     * the data folder is assumed to be in the Iris/packs/NAME folder
+     * @param name the name
+     */
+    public IrisPack(String name) {
+        this(packsPack(name));
+    }
+
+    /**
+     * Create an iris pack backed by a data folder
      * @param folder the folder of the pack. Must be a directory
      */
     public IrisPack(File folder) {
@@ -149,9 +158,9 @@ public class IrisPack {
     /**
      * Install this pack into a world
      * @param world the world to install into (world/iris/pack)
-     * @return the main dimension object loaded from the fresh installed directory, NOT this pack's directory
+     * @return the installed pack
      */
-    public IrisDimension install(World world)
+    public IrisPack install(World world) throws IrisException
     {
         return install(new File(world.getWorldFolder(), "iris/pack"));
     }
@@ -159,9 +168,9 @@ public class IrisPack {
     /**
      * Install this pack into a world
      * @param world the world to install into (world/iris/pack)
-     * @return the main dimension object loaded from the fresh installed directory, NOT this pack's directory
+     * @return the installed pack
      */
-    public IrisDimension install(IrisWorld world)
+    public IrisPack install(IrisWorld world) throws IrisException
     {
         return install(new File(world.worldFolder(), "iris/pack"));
     }
@@ -169,11 +178,15 @@ public class IrisPack {
     /**
      * Install this pack into a world
      * @param folder the folder to install this pack into
-     * @return the main dimension object loaded from the fresh installed directory, NOT this pack's directory
+     * @return the installed pack
      */
-    public IrisDimension install(File folder)
+    public IrisPack install(File folder) throws IrisException
     {
-        IrisDimension dim = getDimension();
+        if(folder.exists())
+        {
+            throw new IrisException("Cannot install new pack because the folder " + folder.getName() + " already exists!");
+        }
+
         folder.mkdirs();
 
         try {
@@ -182,7 +195,46 @@ public class IrisPack {
             Iris.reportError(e);
         }
 
-        return IrisData.get(folder).getDimensionLoader().load(dim.getLoadKey());
+        return new IrisPack(folder);
+    }
+
+    /**
+     * Create a new pack using this pack as a template. The new pack will be renamed & have a renamed dimension
+     * to match it.
+     * @param newName the new pack name
+     * @return the new IrisPack
+     */
+    public IrisPack install(String newName) throws IrisException
+    {
+        File newPack = packsPack(newName);
+
+        if(newPack.exists())
+        {
+            throw new IrisException("Cannot install new pack because the folder " + newName + " already exists!");
+        }
+
+        try {
+            FileUtils.copyDirectory(getFolder(), newPack);
+        } catch (IOException e) {
+            Iris.reportError(e);
+        }
+
+        IrisData data = IrisData.get(newPack);
+        IrisDimension dim = data.getDimensionLoader().load(getDimensionKey());
+        data.dump();
+        File from = dim.getLoadFile();
+        File to = new File(from.getParentFile(), newName + ".json");
+        try {
+            FileUtils.moveFile(from, to);
+            new File(newPack, getWorkspaceFile().getName()).delete();
+        } catch (Throwable e) {
+            throw new IrisException(e);
+        }
+
+        IrisPack pack = new IrisPack(newPack);
+        pack.updateWorkspace();
+
+        return pack;
     }
 
     /**
@@ -266,9 +318,41 @@ public class IrisPack {
      */
     public static IrisPack from(VolmitSender sender, IrisPackRepository repo) throws MalformedURLException {
         repo.install(sender);
-        return new IrisPack(Iris.instance.getDataFolder(StudioSVC.WORKSPACE_NAME, repo.getRepo()));
+        return new IrisPack(repo.getRepo());
     }
-    
+
+    /**
+     * Create a blank pack with a given name
+     * @param name the name of the pack
+     * @return the pack
+     * @throws IrisException if the pack already exists or another error
+     */
+    public static IrisPack blank(String name) throws IrisException {
+        File f = packsPack(name);
+
+        if(f.exists())
+        {
+            throw new IrisException("Already exists");
+        }
+
+        File fd = new File(f, "dimensions/" + name + ".json");
+        fd.getParentFile().mkdirs();
+        try {
+            IO.writeAll(fd, "{}");
+        } catch (IOException e) {
+            throw new IrisException(e.getMessage(), e);
+        }
+
+        IrisPack pack = new IrisPack(f);
+        pack.updateWorkspace();
+        return pack;
+    }
+
+    public static File packsPack(String name)
+    {
+        return Iris.instance.getDataFolder(StudioSVC.WORKSPACE_NAME, name);
+    }
+
     private static KList<File> collectFiles(File f, String fileExtension) {
         KList<File> l = new KList<>();
 

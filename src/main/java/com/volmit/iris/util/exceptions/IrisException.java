@@ -26,4 +26,12 @@ public class IrisException extends Exception {
     public IrisException(String message) {
         super(message);
     }
+
+    public IrisException(Throwable message) {
+        super(message);
+    }
+
+    public IrisException(String message, Throwable e) {
+        super(message, e);
+    }
 }

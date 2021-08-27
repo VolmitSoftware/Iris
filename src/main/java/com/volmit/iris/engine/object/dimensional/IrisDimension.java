@@ -28,6 +28,7 @@ import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
 import com.volmit.iris.engine.object.block.IrisBlockDrops;
 import com.volmit.iris.engine.object.block.IrisMaterialPalette;
+import com.volmit.iris.engine.object.carving.IrisCarving;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
@@ -37,7 +38,6 @@ import com.volmit.iris.engine.object.loot.IrisLootReference;
 import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
 import com.volmit.iris.engine.object.noise.IrisShapedGeneratorStyle;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
-import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.engine.object.spawners.IrisSpawner;
 import com.volmit.iris.engine.object.trees.IrisTreeSettings;
@@ -180,6 +180,9 @@ public class IrisDimension extends IrisRegistrant {
 
     @Desc("Add painted walls in post processing")
     private boolean postProcessingWalls = true;
+
+    @Desc("Carving configuration for the dimension")
+    private IrisCarving carving = new IrisCarving();
 
     @Desc("The world environment")
     private Environment environment = Environment.NORMAL;

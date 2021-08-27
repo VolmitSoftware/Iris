@@ -27,6 +27,7 @@ import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.biome.InferredType;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.block.IrisBlockDrops;
+import com.volmit.iris.engine.object.carving.IrisCarving;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
 import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
@@ -140,6 +141,9 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @MaxNumber(1)
     @Desc("The biome implosion ratio, how much to implode biomes into children (chance)")
     private double biomeImplosionRatio = 0.4;
+
+    @Desc("Carving configuration for the dimension")
+    private IrisCarving carving = new IrisCarving();
 
     @RegistryListResource(IrisBiome.class)
     @Required

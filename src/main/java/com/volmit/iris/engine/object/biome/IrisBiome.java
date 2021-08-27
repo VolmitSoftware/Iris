@@ -27,6 +27,7 @@ import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.block.IrisBlockDrops;
+import com.volmit.iris.engine.object.carving.IrisCarving;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.engine.object.decoration.IrisDecorator;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
@@ -114,6 +115,9 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     @Desc("The max layers to iterate below the surface for locked layer biomes (mesa).")
     private int lockLayersMax = 7;
+
+    @Desc("Carving configuration for the dimension")
+    private IrisCarving carving = new IrisCarving();
 
     @MinNumber(1)
     @MaxNumber(512)

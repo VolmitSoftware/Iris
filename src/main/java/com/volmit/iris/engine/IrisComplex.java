@@ -23,7 +23,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.modifier.IrisCaveModifier;
 import com.volmit.iris.engine.object.biome.InferredType;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.common.CaveResult;
@@ -310,33 +309,8 @@ public class IrisComplex implements DataProvider {
         trueHeightStream = ProceduralStream.of((x, z) -> {
             int rx = (int) Math.round(engine.modifyX(x));
             int rz = (int) Math.round(engine.modifyZ(z));
-            int heightf = (int) Math.round(getHeightStream().get(rx, rz));
-            int m = heightf;
-
-            if (engine.getDimension().isCarved(getData(), rx, m, rz, ((IrisTerrainNormalActuator) engine.getTerrainActuator()).getRng(), heightf)) {
-                m--;
-
-                while (engine.getDimension().isCarved(getData(), rx, m, rz, ((IrisTerrainNormalActuator) engine.getTerrainActuator()).getRng(), heightf)) {
-                    m--;
-                }
-            }
-
-            if (engine.getDimension().isCaves()) {
-                KList<CaveResult> caves = ((IrisCaveModifier) engine.getCaveModifier()).genCaves(rx, rz, 0, 0, null);
-                boolean again = true;
-
-                while (again) {
-                    again = false;
-                    for (CaveResult i : caves) {
-                        if (i.getCeiling() > m && i.getFloor() < m) {
-                            m = i.getFloor();
-                            again = true;
-                        }
-                    }
-                }
-            }
-
-            return m;
+// TODO CAVE STUFF
+            return (int) Math.round(getHeightStream().get(rx, rz));
         }, Interpolated.INT).cache2D(cacheSize);
 
         trueHeightStreamNoFeatures = ProceduralStream.of((x, z) -> {
@@ -344,30 +318,7 @@ public class IrisComplex implements DataProvider {
             int rz = (int) Math.round(engine.modifyZ(z));
             int heightf = (int) Math.round(getHeightStreamNoFeatures().get(rx, rz));
             int m = heightf;
-
-            if (engine.getDimension().isCarved(getData(), rx, m, rz, ((IrisTerrainNormalActuator) engine.getTerrainActuator()).getRng(), heightf)) {
-                m--;
-
-                while (engine.getDimension().isCarved(getData(), rx, m, rz, ((IrisTerrainNormalActuator) engine.getTerrainActuator()).getRng(), heightf)) {
-                    m--;
-                }
-            }
-
-            if (engine.getDimension().isCaves()) {
-                KList<CaveResult> caves = ((IrisCaveModifier) engine.getCaveModifier()).genCaves(rx, rz, 0, 0, null);
-                boolean again = true;
-
-                while (again) {
-                    again = false;
-                    for (CaveResult i : caves) {
-                        if (i.getCeiling() > m && i.getFloor() < m) {
-                            m = i.getFloor();
-                            again = true;
-                        }
-                    }
-                }
-            }
-
+// TODO CAVE STUFF
             return m;
         }, Interpolated.INT).cache2D(cacheSize);
         baseBiomeIDStream = trueBiomeStream.convertAware2D((b, x, z) -> {

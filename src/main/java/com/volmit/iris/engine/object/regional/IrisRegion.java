@@ -265,7 +265,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
 
         return 1;
     }
-    
+
     public CNG getShoreHeightGenerator() {
         return shoreHeightGenerator.aquire(() ->
                 CNG.signature(new RNG((long) (getName().length() + getLandBiomeZoom() + getLandBiomes().size() + 3458612))));

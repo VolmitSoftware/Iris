@@ -100,10 +100,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     EngineActuator<Biome> getBiomeActuator();
 
-    EngineModifier<BlockData> getCaveModifier();
-
-    EngineModifier<BlockData> getRavineModifier();
-
     EngineModifier<BlockData> getDepositModifier();
 
     EngineModifier<BlockData> getPostModifier();

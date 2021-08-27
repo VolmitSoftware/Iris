@@ -28,10 +28,6 @@ import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
 import com.volmit.iris.engine.object.block.IrisBlockDrops;
 import com.volmit.iris.engine.object.block.IrisMaterialPalette;
-import com.volmit.iris.engine.object.carve.IrisCarveLayer;
-import com.volmit.iris.engine.object.carve.IrisCaveFluid;
-import com.volmit.iris.engine.object.carve.IrisCaveLayer;
-import com.volmit.iris.engine.object.carve.IrisCaverns;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
@@ -117,9 +113,6 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Tree growth override settings")
     private IrisTreeSettings treeSettings = new IrisTreeSettings();
 
-    @Desc("Define iris cavern zones")
-    private IrisCaverns caverns = new IrisCaverns();
-
     @Desc("Upon joining this world, Iris will send a resource pack request to the client. If they have previously selected yes, it will auto-switch depending on which dimension they go to.")
     private String resourcePack = "";
 
@@ -181,9 +174,6 @@ public class IrisDimension extends IrisRegistrant {
 
     @Desc("Carve terrain or not")
     private boolean carving = true;
-
-    @Desc("If defined, If air is defined below the area, this fluid will always place")
-    private IrisCaveFluid forceFluid = new IrisCaveFluid();
 
     @Desc("Generate decorations or not")
     private boolean decorate = true;
@@ -297,14 +287,6 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Overlay additional noise on top of the interoplated terrain.")
     private KList<IrisShapedGeneratorStyle> overlayNoise = new KList<>();
 
-    @ArrayType(min = 1, type = IrisCaveLayer.class)
-    @Desc("Define cave layers")
-    private KList<IrisCaveLayer> caveLayers = new KList<>();
-
-    @ArrayType(min = 1, type = IrisCarveLayer.class)
-    @Desc("Define carve layers")
-    private KList<IrisCarveLayer> carveLayers = new KList<>();
-
     @Desc("If true, the spawner system has infinite energy. This is NOT recommended because it would allow for mobs to keep spawning over and over without a rate limit")
     private boolean infiniteEnergy = false;
 
@@ -361,18 +343,6 @@ public class IrisDimension extends IrisRegistrant {
 
     public double getDimensionAngle() {
         return rad.aquire(() -> Math.toRadians(dimensionAngleDeg));
-    }
-
-    public boolean isCarved(IrisData data, int x, int y, int z, RNG rng, int terrainHeight) {
-        if (isCarving() && terrainHeight > getFluidHeight() || y < terrainHeight) {
-            for (IrisCarveLayer j : getCarveLayers()) {
-                if (j.isCarved(rng, data, x, y, z)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     public Environment getEnvironment() {

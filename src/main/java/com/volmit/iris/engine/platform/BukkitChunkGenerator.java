@@ -151,11 +151,11 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     public void injectChunkReplacement(World world, int x, int z, Consumer<Runnable> jobs) {
         try {
             if (lastSeed != world.getSeed()) {
-                Iris.warn("Seed for engine " + lastSeed + " does not match world seed if " + world.getSeed());
+                Iris.debug("Seed for engine " + lastSeed + " does not match world seed if " + world.getSeed());
                 lastSeed = world.getSeed();
                 engine.getTarget().getWorld().seed(lastSeed);
                 engine.hotload();
-                Iris.success("Updated Engine seed to " + lastSeed);
+                Iris.debug("Updated Engine seed to " + lastSeed);
             }
 
             loadLock.acquire();
@@ -263,11 +263,11 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     public @NotNull ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
         try {
             if (lastSeed != world.getSeed()) {
-                Iris.warn("Seed for engine " + lastSeed + " does not match world seed if " + world.getSeed());
+                Iris.debug("Seed for engine " + lastSeed + " does not match world seed if " + world.getSeed());
                 lastSeed = world.getSeed();
                 engine.getTarget().getWorld().seed(lastSeed);
                 engine.hotload();
-                Iris.success("Updated Engine seed to " + lastSeed);
+                Iris.debug("Updated Engine seed to " + lastSeed);
             }
 
             loadLock.acquire();

@@ -137,6 +137,6 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
     }
 
     private boolean shouldRayDecorate() {
-        return getEngine().getDimension().isCarving() || getEngine().getDimension().isCaves() || getEngine().getDimension().isRavines();
+        return false; // TODO CAVES
     }
 }

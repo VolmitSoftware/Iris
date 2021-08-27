@@ -166,28 +166,11 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("The placement style of biomes")
     private IrisGeneratorStyle caveBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
-    @Desc("Generate caves or not.")
-    private boolean caves = true;
-
     @Desc("Instead of filling objects with air, fills them with cobweb so you can see them")
     private boolean debugSmartBore = false;
 
-    @Desc("Carve terrain or not")
-    private boolean carving = true;
-
     @Desc("Generate decorations or not")
     private boolean decorate = true;
-
-    @Desc("Generate ravines or not")
-    private boolean ravines = false;
-
-    @MinNumber(1)
-    @Desc("The rarity of a ravine layer having a lib (or rib) that sticks in or out by one block. Minecraft's default is 3.")
-    private int ravineRibRarity = 2;
-
-    @MinNumber(1)
-    @Desc("The rarity of ravines. Each chunk has a 1 in X chance")
-    private int ravineRarity = 50;
 
     @Desc("Use post processing or not")
     private boolean postProcessing = true;
@@ -197,9 +180,6 @@ public class IrisDimension extends IrisRegistrant {
 
     @Desc("Add painted walls in post processing")
     private boolean postProcessingWalls = true;
-
-    @Desc("Use post processing for caves or not")
-    private boolean postProcessCaves = true;
 
     @Desc("The world environment")
     private Environment environment = Environment.NORMAL;

@@ -52,6 +52,7 @@ import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.slices.UpdateMatter;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.ChronoLatch;
@@ -243,8 +244,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     default void updateChunk(Chunk c) {
         getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.UPDATE, () -> J.s(() -> {
             PrecisionStopwatch p = PrecisionStopwatch.start();
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), Boolean.class, (x, y, z, v) -> {
-                if (v != null && v) {
+            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), UpdateMatter.MatterUpdate.class, (x, y, z, v) -> {
+                if (v != null && v.isUpdate()) {
                     int vx = x & 15;
                     int vz = z & 15;
                     update(x, y, z, c, new RNG(Cache.key(c.getX(), c.getZ())));

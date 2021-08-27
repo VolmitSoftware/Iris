@@ -30,6 +30,7 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
@@ -39,6 +40,8 @@ import org.zeroturnaround.zip.commons.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 /**
  * Represents an Iris pack that exists
@@ -93,7 +96,7 @@ public class IrisPack {
      * @return the iris pack
      * @throws IrisException fails
      */
-    public static IrisPack from(VolmitSender sender, String url) throws IrisException {
+    public static Future<IrisPack> from(VolmitSender sender, String url) throws IrisException {
         IrisPackRepository repo = IrisPackRepository.from(url);
         if(repo == null)
         {
@@ -316,9 +319,12 @@ public class IrisPack {
      * @return the pack
      * @throws MalformedURLException shit happens
      */
-    public static IrisPack from(VolmitSender sender, IrisPackRepository repo) throws MalformedURLException {
-        repo.install(sender);
-        return new IrisPack(repo.getRepo());
+    public static Future<IrisPack> from(VolmitSender sender, IrisPackRepository repo) throws MalformedURLException {
+        CompletableFuture<IrisPack> pack = new CompletableFuture<>();
+        repo.install(sender, () -> {
+            pack.complete(new IrisPack(repo.getRepo()));
+        });
+        return pack;
     }
 
     /**
@@ -338,7 +344,10 @@ public class IrisPack {
         File fd = new File(f, "dimensions/" + name + ".json");
         fd.getParentFile().mkdirs();
         try {
-            IO.writeAll(fd, "{}");
+            IO.writeAll(fd, "{\n" +
+                    "    \"name\": \""+Form.capitalize(name)+"\",\n" +
+                    "    \"version\": 1\n" +
+                    "}\n");
         } catch (IOException e) {
             throw new IrisException(e.getMessage(), e);
         }
@@ -348,9 +357,14 @@ public class IrisPack {
         return pack;
     }
 
+    /**
+     * Get a packs pack folder for a name. Such that overworld would resolve as Iris/packs/overworld
+     * @param name the name
+     * @return the file path
+     */
     public static File packsPack(String name)
     {
-        return Iris.instance.getDataFolder(StudioSVC.WORKSPACE_NAME, name);
+        return Iris.instance.getDataFolderNoCreate(StudioSVC.WORKSPACE_NAME, name);
     }
 
     private static KList<File> collectFiles(File f, String fileExtension) {

@@ -111,8 +111,8 @@ public class IrisPackRepository {
         return "https://codeload.github.com/" + user + "/" + repo + "/zip/refs/heads/" + branch;
     }
 
-    public void install(VolmitSender sender) throws MalformedURLException {
-        File pack = Iris.instance.getDataFolder(StudioSVC.WORKSPACE_NAME, getRepo());
+    public void install(VolmitSender sender, Runnable whenComplete) throws MalformedURLException {
+        File pack = Iris.instance.getDataFolderNoCreate(StudioSVC.WORKSPACE_NAME, getRepo());
 
         if (!pack.exists()) {
             File dl = new File(Iris.getTemp(), "dltk-" + UUID.randomUUID() + ".zip");
@@ -126,7 +126,7 @@ public class IrisPackRepository {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                    })).execute(sender);
+                    })).execute(sender, whenComplete);
         }
 
         else

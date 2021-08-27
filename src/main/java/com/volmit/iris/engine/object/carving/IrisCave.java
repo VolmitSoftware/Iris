@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.object.cave;
+package com.volmit.iris.engine.object.carving;
 
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.object.annotations.Desc;

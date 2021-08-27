@@ -16,11 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.object.cave;
+package com.volmit.iris.engine.object.carving;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
@@ -68,7 +69,7 @@ public class IrisCavePlacer implements IRare {
         return caveCache.aquire(() -> data.getCaveLoader().load(getCave()));
     }
 
-    public void generateCave(Mantle mantle, RNG rng, IrisData data, int x, int y, int z) {
+    public void generateCave(MantleWriter mantle, RNG rng, IrisData data, int x, int y, int z) {
         if (fail.get()) {
             return;
         }

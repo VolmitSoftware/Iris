@@ -22,7 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.block.IrisBlockData;
-import com.volmit.iris.engine.object.cave.IrisCave;
+import com.volmit.iris.engine.object.carving.IrisCave;
 import com.volmit.iris.engine.object.common.IrisScript;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.entity.IrisEntity;

@@ -196,7 +196,8 @@ public class RandomColor {
         int saturation = pickSaturation(color, null, null);
         int brightness = pickBrightness(color, saturation, null);
 
-        return getColor(hue, saturation, brightness);
+        int colorValue = getColor(hue, saturation, brightness);
+        return colorValue;
     }
 
     public int[] random(Color color, int count) {
@@ -261,13 +262,18 @@ public class RandomColor {
 
     private int pickSaturation(ColorInfo colorInfo, SaturationType saturationType, Luminosity luminosity) {
         if (saturationType != null) {
-            return switch (saturationType) {
-                case RANDOM -> randomWithin(new Range(0, 100));
-                case MONOCHROME -> 0;
-                case HIGH -> randomWithin(new Range(75, 100));
-                case MEDIUM -> randomWithin(new Range(55, 75));
-                case LOW -> randomWithin(new Range(35, 55));
-            };
+            switch (saturationType) {
+                case RANDOM:
+                    return randomWithin(new Range(0, 100));
+                case MONOCHROME:
+                    return 0;
+                case HIGH:
+                    return randomWithin(new Range(75, 100));
+                case MEDIUM:
+                    return randomWithin(new Range(55, 75));
+                case LOW:
+                    return randomWithin(new Range(35, 55));
+            }
         }
 
         if (colorInfo == null) {
@@ -281,9 +287,15 @@ public class RandomColor {
 
         if (luminosity != null) {
             switch (luminosity) {
-                case LIGHT -> min = 55;
-                case BRIGHT -> min = max - 10;
-                case DARK -> max = 55;
+                case LIGHT:
+                    min = 55;
+                    break;
+                case BRIGHT:
+                    min = max - 10;
+                    break;
+                case DARK:
+                    max = 55;
+                    break;
             }
         }
 
@@ -308,12 +320,19 @@ public class RandomColor {
 
         if (luminosity != null) {
             switch (luminosity) {
-                case DARK -> max = min + 20;
-                case LIGHT -> min = (max + min) / 2;
-                case RANDOM -> {
+
+                case DARK:
+                    max = min + 20;
+                    break;
+
+                case LIGHT:
+                    min = (max + min) / 2;
+                    break;
+
+                case RANDOM:
                     min = 0;
                     max = 100;
-                }
+                    break;
             }
         }
 

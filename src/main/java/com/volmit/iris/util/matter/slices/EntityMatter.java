@@ -50,8 +50,8 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
         super(width, height, depth, MatterEntityGroup.class);
         registerWriter(World.class, ((w, d, x, y, z) -> {
             for (MatterEntity i : d.getEntities()) {
-                Location realPosition = new Location(w, x + i.xOff(), y + i.yOff(), z + i.zOff());
-                INMS.get().deserializeEntity(i.entityData(), realPosition);
+                Location realPosition = new Location(w, x + i.getXOff(), y + i.getYOff(), z + i.getZOff());
+                INMS.get().deserializeEntity(i.getEntityData(), realPosition);
             }
         }));
         registerReader(World.class, (w, x, y, z) -> {
@@ -124,10 +124,10 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
     public void writeNode(MatterEntityGroup b, DataOutputStream dos) throws IOException {
         Varint.writeUnsignedVarInt(b.getEntities().size(), dos);
         for (MatterEntity i : b.getEntities()) {
-            dos.writeByte((int) (i.xOff() * 255) + Byte.MIN_VALUE);
-            dos.writeByte((int) (i.yOff() * 255) + Byte.MIN_VALUE);
-            dos.writeByte((int) (i.zOff() * 255) + Byte.MIN_VALUE);
-            NBTUtil.write(i.entityData(), dos, false);
+            dos.writeByte((int) (i.getXOff() * 255) + Byte.MIN_VALUE);
+            dos.writeByte((int) (i.getYOff() * 255) + Byte.MIN_VALUE);
+            dos.writeByte((int) (i.getZOff() * 255) + Byte.MIN_VALUE);
+            NBTUtil.write(i.getEntityData(), dos, false);
         }
     }
 

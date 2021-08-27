@@ -70,10 +70,8 @@ public class IrisDecorator {
     private int stackMax = 1;
 
     @DependsOn({"stackMin", "stackMax"})
-    @Desc("""
-            Changes stackMin and stackMin from being absolute block heights and instead uses them as a percentage to scale the stack based on the cave height
-
-            Within a cave, setting them stackMin/max to 50 would make the stack 50% of the cave height""")
+    @Desc("Changes stackMin and stackMin from being absolute block heights and instead uses them as a percentage to scale the stack based on the cave height" +
+            "\n\nWithin a cave, setting them stackMin/max to 50 would make the stack 50% of the cave height")
     private boolean scaleStack = false;
 
     @Required

@@ -380,12 +380,13 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
      * @return a new Cuboid outset by the given direction and amount
      */
     public Cuboid outset(CuboidDirection dir, int amount) {
-        return switch (dir) {
+        Cuboid c = switch (dir) {
             case Horizontal -> expand(CuboidDirection.North, amount).expand(CuboidDirection.South, amount).expand(CuboidDirection.East, amount).expand(CuboidDirection.West, amount);
             case Vertical -> expand(CuboidDirection.Down, amount).expand(CuboidDirection.Up, amount);
             case Both -> outset(CuboidDirection.Horizontal, amount).outset(CuboidDirection.Vertical, amount);
             default -> throw new IllegalArgumentException("invalid direction " + dir);
         };
+        return c;
     }
 
     /**

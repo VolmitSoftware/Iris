@@ -25,23 +25,22 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.Arrays;
 
 public abstract class DL {
-    protected final File d;
-    protected final URL u;
-    protected final ChronoLatch latch;
-    protected final KSet<DownloadFlag> flags;
+    protected File d;
+    protected URL u;
+    protected ChronoLatch latch;
+    protected KSet<DownloadFlag> flags;
     protected MeteredOutputStream o;
     protected DownloadState state;
-    protected final int timeout;
+    protected int timeout;
     protected long size;
     protected long start;
     protected long downloaded;
     protected long currentChunk;
     protected long lastChunk;
     protected long bps;
-    protected final int bufferSize;
+    protected int bufferSize;
     protected long lastPull;
     protected DownloadMonitor m;
 
@@ -61,7 +60,9 @@ public abstract class DL {
         flags = new KSet<>();
         latch = new ChronoLatch(500);
 
-        flags.addAll(Arrays.asList(downloadFlags));
+        for (DownloadFlag i : downloadFlags) {
+            flags.add(i);
+        }
     }
 
     public void monitor(DownloadMonitor m) {

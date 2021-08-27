@@ -206,16 +206,17 @@ public class VolmitSender implements CommandSender {
     }
 
     public void sendProgress(double percent, String thing) {
-        int l = 44;
-        int g;
         if (percent < 0) {
-            g = (int) (1D * l);
+            int l = 44;
+            int g = (int) (1D * l);
             sendTitle(C.IRIS + thing + " ", 0, 500, 250);
+            sendActionNoProcessing("" + "" + pulse("#00ff80", "#00373d", 1D) + "<underlined> " + Form.repeat(" ", g) + "<reset>" + Form.repeat(" ", l - g));
         } else {
-            g = (int) (percent * l);
+            int l = 44;
+            int g = (int) (percent * l);
             sendTitle(C.IRIS + thing + " " + C.BLUE + "<font:minecraft:uniform>" + Form.pc(percent, 0), 0, 500, 250);
+            sendActionNoProcessing("" + "" + pulse("#00ff80", "#00373d", 1D) + "<underlined> " + Form.repeat(" ", g) + "<reset>" + Form.repeat(" ", l - g));
         }
-        sendActionNoProcessing("" + "" + pulse("#00ff80", "#00373d", 1D) + "<underlined> " + Form.repeat(" ", g) + "<reset>" + Form.repeat(" ", l - g));
     }
 
     public static String pulse(String colorA, String colorB, double speed) {
@@ -387,8 +388,9 @@ public class VolmitSender implements CommandSender {
 
 
     public void sendHeader(String name, int overrideLength) {
+        int len = overrideLength;
         int h = name.length() + 2;
-        String s = Form.repeat(" ", overrideLength - h - 4);
+        String s = Form.repeat(" ", len - h - 4);
         String si = Form.repeat("(", 3);
         String so = Form.repeat(")", 3);
         String sf = "[";

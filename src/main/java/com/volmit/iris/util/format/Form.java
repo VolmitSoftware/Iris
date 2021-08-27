@@ -277,8 +277,10 @@ public class Form {
                                 if (phantom > div) {
                                     phantom /= div;
                                     suffix = "Year";
+                                    return Form.fd(phantom, 0) + " " + suffix + ((int) phantom == 1 ? "" : "s");
+                                } else {
+                                    return Form.fd(phantom, 0) + " " + suffix + ((int) phantom == 1 ? "" : "s");
                                 }
-                                return Form.fd(phantom, 0) + " " + suffix + ((int) phantom == 1 ? "" : "s");
                             } else {
                                 return Form.fd(phantom, 0) + " " + suffix + ((int) phantom == 1 ? "" : "s");
                             }

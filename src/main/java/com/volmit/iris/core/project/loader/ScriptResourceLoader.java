@@ -123,7 +123,8 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
         String key = name + "-" + objectClass.getCanonicalName();
 
         if (loadCache.containsKey(key)) {
-            return loadCache.get(key);
+            IrisScript t = loadCache.get(key);
+            return t;
         }
 
         lock.lock();

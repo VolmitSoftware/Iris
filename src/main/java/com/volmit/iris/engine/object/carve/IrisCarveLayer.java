@@ -84,7 +84,9 @@ public class IrisCarveLayer {
     }
 
     public ProceduralStream<Double> rawStream(RNG rng, IrisData data) {
-        return rawStreamCache.aquire(() -> ProceduralStream.of((x, y, z) -> getCng(rng, data).fitDouble(0D, 1D, x, y, z) * Math.pow(IrisInterpolation.sinCenter(M.lerpInverse(getMinHeight(), getMaxHeight(), y)), 4), Interpolated.DOUBLE));
+        return rawStreamCache.aquire(() -> ProceduralStream.of((x, y, z) -> {
+            return getCng(rng, data).fitDouble(0D, 1D, x, y, z) * Math.pow(IrisInterpolation.sinCenter(M.lerpInverse(getMinHeight(), getMaxHeight(), y)), 4);
+        }, Interpolated.DOUBLE));
     }
 
     public CNG getCng(RNG rng, IrisData data) {

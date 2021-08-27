@@ -518,7 +518,9 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
             return super.getDataFolder();
         }
 
-        return new File(getDataFolder(), new KList<>(strings).toString(File.separator));
+        File f = new File(getDataFolder(), new KList<>(strings).toString(File.separator));
+
+        return f;
     }
 
     public File getDataFolderList(String pre, String[] strings) {

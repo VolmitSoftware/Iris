@@ -36,7 +36,7 @@ public class INMS {
         return binding;
     }
 
-    public static String getNMSTag() {
+    public static final String getNMSTag() {
         if (IrisSettings.get().getGeneral().isDisableNMS()) {
             return "BUKKIT";
         }
@@ -52,7 +52,7 @@ public class INMS {
         return "BUKKIT";
     }
 
-    private static INMSBinding bind() {
+    private static final INMSBinding bind() {
         String code = getNMSTag();
         Iris.info("Locating NMS Binding for " + code);
 

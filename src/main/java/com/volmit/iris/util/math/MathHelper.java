@@ -200,10 +200,11 @@ public class MathHelper {
 
     public static double a(long[] var0) {
         long var1 = 0L;
+        long[] var3 = var0;
         int var4 = var0.length;
 
         for (int var5 = 0; var5 < var4; ++var5) {
-            long var6 = var0[var5];
+            long var6 = var3[var5];
             var1 += var6;
         }
 
@@ -451,7 +452,7 @@ public class MathHelper {
     public static double d(double var0, double var2) {
         double var4 = var2 * var2 + var0 * var0;
         if (Double.isNaN(var4)) {
-            return Double.NaN;
+            return 0.0D / 0.0;
         } else {
             boolean var6 = var0 < 0.0D;
             if (var6) {
@@ -535,37 +536,38 @@ public class MathHelper {
         float var9;
         float var10;
         switch (var3) {
-            case 0 -> {
+            case 0:
                 var8 = var2;
                 var9 = var7;
                 var10 = var5;
-            }
-            case 1 -> {
+                break;
+            case 1:
                 var8 = var6;
                 var9 = var2;
                 var10 = var5;
-            }
-            case 2 -> {
+                break;
+            case 2:
                 var8 = var5;
                 var9 = var2;
                 var10 = var7;
-            }
-            case 3 -> {
+                break;
+            case 3:
                 var8 = var5;
                 var9 = var6;
                 var10 = var2;
-            }
-            case 4 -> {
+                break;
+            case 4:
                 var8 = var7;
                 var9 = var5;
                 var10 = var2;
-            }
-            case 5 -> {
+                break;
+            case 5:
                 var8 = var2;
                 var9 = var5;
                 var10 = var6;
-            }
-            default -> throw new RuntimeException("Something went wrong when converting from HSV to RGB. Input was " + var0 + ", " + var1 + ", " + var2);
+                break;
+            default:
+                throw new RuntimeException("Something went wrong when converting from HSV to RGB. Input was " + var0 + ", " + var1 + ", " + var2);
         }
 
         int var11 = clamp((int) (var8 * 255.0F), 0, 255);
@@ -594,10 +596,11 @@ public class MathHelper {
 
     public static double[] a(double... var0) {
         float var1 = 0.0F;
+        double[] var2f = var0;
         int var3 = var0.length;
 
         for (int var4 = 0; var4 < var3; ++var4) {
-            double var5 = var0[var4];
+            double var5 = var2f[var4];
             var1 = (float) ((double) var1 + var5);
         }
 

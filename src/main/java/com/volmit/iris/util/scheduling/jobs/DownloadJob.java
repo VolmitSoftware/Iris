@@ -19,6 +19,7 @@
 package com.volmit.iris.util.scheduling.jobs;
 
 import com.volmit.iris.util.network.DL;
+import com.volmit.iris.util.network.DownloadMonitor;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,12 +35,15 @@ public class DownloadJob implements Job {
         tw = 1;
         cw = 0;
         download = new DL.Download(new URL(url), destination, DL.DownloadFlag.CALCULATE_SIZE);
-        download.monitor((state, progress, elapsed, estimated, bps, iobps, size, downloaded, buffer, bufferuse) -> {
-            if (size == -1) {
-                tw = 1;
-            } else {
-                tw = (int) (size / 100);
-                cw = (int) (downloaded / 100);
+        download.monitor(new DownloadMonitor() {
+            @Override
+            public void onUpdate(DL.DownloadState state, double progress, long elapsed, long estimated, long bps, long iobps, long size, long downloaded, long buffer, double bufferuse) {
+                if (size == -1) {
+                    tw = 1;
+                } else {
+                    tw = (int) (size / 100);
+                    cw = (int) (downloaded / 100);
+                }
             }
         });
     }

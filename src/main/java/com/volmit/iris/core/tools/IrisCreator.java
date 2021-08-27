@@ -135,7 +135,9 @@ public class IrisCreator {
 
 
         try {
-            J.sfut(() -> world.set(wc.createWorld())).get();
+            J.sfut(() -> {
+                world.set(wc.createWorld());
+            }).get();
         } catch (Throwable e) {
             e.printStackTrace();
         }
@@ -147,7 +149,9 @@ public class IrisCreator {
         done.set(true);
 
         if (sender.isPlayer()) {
-            J.s(() -> sender.player().teleport(new Location(world.get(), 0, world.get().getHighestBlockYAt(0, 0), 0)));
+            J.s(() -> {
+                sender.player().teleport(new Location(world.get(), 0, world.get().getHighestBlockYAt(0, 0), 0));
+            });
         }
 
         if (studio) {

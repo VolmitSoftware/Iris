@@ -24,10 +24,15 @@ import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.scheduling.ChronoLatch;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
-public record IrisContext(Engine engine) {
-    private static final ChronoLatch cl = new ChronoLatch(60000);
+@Data
+@AllArgsConstructor
+public class IrisContext {
+    private static ChronoLatch cl = new ChronoLatch(60000);
     private static final KMap<Thread, IrisContext> context = new KMap<>();
+    private final Engine engine;
 
     public static IrisContext get() {
         return context.get(Thread.currentThread());

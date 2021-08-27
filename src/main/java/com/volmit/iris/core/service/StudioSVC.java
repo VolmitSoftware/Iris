@@ -21,6 +21,7 @@ package com.volmit.iris.core.service;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.project.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -55,17 +56,12 @@ public class StudioSVC implements IrisService {
     public void onEnable() {
         J.a(() ->
         {
-            File ignore = getWorkspaceFile(".gitignore");
+            File project = Iris.instance.getDataFolder(WORKSPACE_NAME, IrisSettings.get().getGenerator().getDefaultWorldType());
 
-            if (!ignore.exists()) {
-                File m = Iris.getCached("Pack Ignore (.gitignore)", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/packignore.ignore");
-                if (m != null) {
-                    try {
-                        IO.copyFile(m, ignore);
-                    } catch (IOException e) {
-                        Iris.reportError(e);
-                    }
-                }
+            if(!project.exists())
+            {
+                Iris.info("Attempting to download default pack " + IrisSettings.get().getGenerator().getDefaultWorldType());
+                downloadSearch(Iris.getSender(), IrisSettings.get().getGenerator().getDefaultWorldType(), false, false);
             }
         });
     }

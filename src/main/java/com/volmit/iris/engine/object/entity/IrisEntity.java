@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.object.entity;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.project.loader.IrisRegistrant;
+import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.common.IrisScript;

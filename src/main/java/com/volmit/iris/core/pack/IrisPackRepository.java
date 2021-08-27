@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.data;
+package com.volmit.iris.core.pack;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.service.StudioSVC;
@@ -50,6 +50,11 @@ public class IrisPackRepository {
     @Builder.Default
     private String tag = "";
 
+    /**
+     *
+     * @param g
+     * @return
+     */
     public static IrisPackRepository from(String g) {
         // https://github.com/IrisDimensions/overworld
         if (g.startsWith("https://github.com/")) {
@@ -122,6 +127,11 @@ public class IrisPackRepository {
                             e.printStackTrace();
                         }
                     })).execute(sender);
+        }
+
+        else
+        {
+            sender.sendMessage("Pack already exists!");
         }
     }
 }

@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object.cave;
 
-import com.volmit.iris.core.project.loader.IrisRegistrant;
+import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.noise.IrisWorm;
 import com.volmit.iris.util.json.JSONObject;

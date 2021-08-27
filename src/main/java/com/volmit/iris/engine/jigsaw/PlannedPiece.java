@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.jigsaw;
 
-import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.basic.IrisPosition;

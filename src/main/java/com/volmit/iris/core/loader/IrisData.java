@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.project.loader;
+package com.volmit.iris.core.loader;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.Engine;

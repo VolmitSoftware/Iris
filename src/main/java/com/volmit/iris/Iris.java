@@ -372,6 +372,8 @@ public class Iris extends VolmitPlugin implements Listener {
                     sender.sendMessage("You need to restart your server to use these packs.");
                 }
             }
+
+            J.sleep(3000);
         }
     }
 

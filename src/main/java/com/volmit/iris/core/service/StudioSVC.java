@@ -21,6 +21,8 @@ package com.volmit.iris.core.service;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.pack.IrisPack;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -34,6 +36,7 @@ import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.scheduling.J;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.zeroturnaround.zip.ZipUtil;
@@ -52,7 +55,16 @@ public class StudioSVC implements IrisService {
 
     @Override
     public void onEnable() {
+        J.a(() -> {
+            String pack = IrisSettings.get().getGenerator().getDefaultWorldType();
+            File f = IrisPack.packsPack(pack);
 
+            if(!f.exists())
+            {
+                Iris.info("Downloading Default Pack " + pack);
+                downloadSearch(Iris.getSender(), pack, false);
+            }
+        });
     }
 
     @Override

@@ -29,6 +29,7 @@ import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
 import com.volmit.iris.engine.object.noise.IrisStyledRange;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.slices.CavernMatter;
 import lombok.Data;
 
 @Desc("Represents an procedural eliptical shape")
@@ -40,15 +41,12 @@ public class IrisPyramid implements IRare
     @MinNumber(1)
     private int rarity = 1;
 
-    @Desc("Change the air block to fill elipsoids with as caves")
-    private IrisBlockData fill = new IrisBlockData("cave_air");
-
     @Desc("The styled random radius for x")
     private IrisStyledRange baseWidth = new IrisStyledRange(1, 5, new IrisGeneratorStyle(NoiseStyle.STATIC));
 
     public void generate(RNG rng, Engine engine, MantleWriter writer, int x, int y, int z)
     {
-        writer.setPyramid(x, y, z, fill.getBlockData(engine.getData()),
+        writer.setPyramid(x, y, z, CavernMatter.ON,
                 (int)baseWidth.get(rng, z, y, engine.getData()), true);
     }
 

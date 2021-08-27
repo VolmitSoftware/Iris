@@ -33,6 +33,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.slices.CavernMatter;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -56,9 +57,6 @@ public class IrisCave extends IrisRegistrant {
     @Desc("Define potential forking features")
     private IrisCarving fork = new IrisCarving();
 
-    @Desc("Change the air block to fill worms with as caves")
-    private IrisBlockData fill = new IrisBlockData("cave_air");
-
     @Desc("Limit the worm from ever getting higher or lower than this range")
     private IrisRange verticalRange = new IrisRange(3, 255);
 
@@ -77,7 +75,7 @@ public class IrisCave extends IrisRegistrant {
         writer.setLine(getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z,
             (at) -> fork.doCarving(writer, rng, engine, at.getX(), at.getY(), at.getZ())),
             getWorm().getGirth().get(rng, x, z, engine.getData()), true,
-            fill.getBlockData(engine.getData()));
+            CavernMatter.ON);
     }
 
     @Override

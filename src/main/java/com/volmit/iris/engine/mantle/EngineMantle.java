@@ -35,6 +35,8 @@ import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
 import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.matter.slices.CavernMatter;
+import com.volmit.iris.util.matter.slices.UpdateMatter;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import org.bukkit.Chunk;
@@ -226,7 +228,12 @@ public interface EngineMantle extends IObjectPlacer {
 
     @BlockCoordinates
     default void updateBlock(int x, int y, int z) {
-        getMantle().set(x, y, z, true);
+        getMantle().set(x, y, z, UpdateMatter.ON);
+    }
+
+    @BlockCoordinates
+    default void cavernBlock(int x, int y, int z) {
+        getMantle().set(x, y, z, CavernMatter.ON);
     }
 
     @ChunkCoordinates

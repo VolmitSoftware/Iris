@@ -64,9 +64,12 @@ public class MantleFeatureComponent extends IrisMantleComponent {
     }
 
     private void placeZone(MantleWriter writer, RNG rng, int cx, int cz, IrisFeaturePotential i) {
-        int x = (cx << 4) + rng.nextInt(16);
-        int z = (cz << 4) + rng.nextInt(16);
-        writer.setData(x, 0, z, new IrisFeaturePositional(x, z, i.getZone()));
+        if(i.hasZone(rng, cx, cz))
+        {
+            int x = (cx << 4) + rng.nextInt(16);
+            int z = (cz << 4) + rng.nextInt(16);
+            writer.setData(x, 0, z, new IrisFeaturePositional(x, z, i.getZone()));
+        }
     }
 
     private KList<IrisFeaturePotential> getFeatures() {

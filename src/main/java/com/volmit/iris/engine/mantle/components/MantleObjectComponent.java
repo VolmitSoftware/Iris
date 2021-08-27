@@ -90,40 +90,31 @@ public class MantleObjectComponent extends IrisMantleComponent {
             if (v == null) {
                 return;
             }
-            int xx = rng.i(x, x + 16);
-            int zz = rng.i(z, z + 16);
+            int xx = rng.i(x, x + 15);
+            int zz = rng.i(z, z + 15);
             int id = rng.i(0, Integer.MAX_VALUE);
 
-            Runnable r = () -> {
-                int h = v.place(xx, -1, zz, writer, objectPlacement, rng,
-                        (b) -> writer.setData(b.getX(), b.getY(), b.getZ(),
-                                v.getLoadKey() + "@" + id), null, getData());
 
-                if (objectPlacement.usesFeatures()) {
-                    if (objectPlacement.isVacuum()) {
+            int h = v.place(xx, -1, zz, writer, objectPlacement, rng,
+                    (b) -> writer.setData(b.getX(), b.getY(), b.getZ(),
+                            v.getLoadKey() + "@" + id), null, getData());
+            if (objectPlacement.usesFeatures() && h >= 0) {
+                if (objectPlacement.isVacuum()) {
+                    double a = Math.max(v.getW(), v.getD());
+                    IrisFeature f = new IrisFeature();
+                    f.setConvergeToHeight(h);
+                    f.setBlockRadius(a);
+                    f.setInterpolationRadius(objectPlacement.getVacuumInterpolationRadius());
+                    f.setInterpolator(objectPlacement.getVacuumInterpolationMethod());
+                    f.setStrength(1D);
+                    writer.setData(xx, 0, zz, new IrisFeaturePositional(xx, zz, f));
+                }
 
-                        double a = Math.max(v.getW(), v.getD());
-                        IrisFeature f = new IrisFeature();
-                        f.setConvergeToHeight(h - (v.getH() >> 1));
-                        f.setBlockRadius(a);
-                        f.setInterpolationRadius(objectPlacement.getVacuumInterpolationRadius());
-                        f.setInterpolator(objectPlacement.getVacuumInterpolationMethod());
-                        f.setStrength(1D);
-                        writer.setData(xx, 0, zz, new IrisFeaturePositional(xx, zz, f));
-                    }
-
-                    for (IrisFeaturePotential j : objectPlacement.getAddFeatures()) {
-                        if (j.hasZone(rng, xx >> 4, zz >> 4)) {
-                            writer.setData(xx, 0, zz, new IrisFeaturePositional(xx, zz, j.getZone()));
-                        }
+                for (IrisFeaturePotential j : objectPlacement.getAddFeatures()) {
+                    if (j.hasZone(rng, xx >> 4, zz >> 4)) {
+                        writer.setData(xx, 0, zz, new IrisFeaturePositional(xx, zz, j.getZone()));
                     }
                 }
-            };
-
-            if (objectPlacement.usesFeatures()) {
-                r.run();
-            } else {
-                post.accept(r);
             }
         }
     }

@@ -118,6 +118,6 @@ public class MantleJigsawComponent extends IrisMantleComponent {
                     new IrisFeaturePositional(position.getX(), position.getZ(), structure.getFeature()));
         }
 
-        post.accept(() -> new PlannedStructure(structure, position, rng).place(writer, getMantle(), post));
+        new PlannedStructure(structure, position, rng).place(writer, getMantle(), post);
     }
 }

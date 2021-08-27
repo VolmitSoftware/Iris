@@ -34,6 +34,7 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
+import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import org.bukkit.Chunk;
@@ -206,6 +207,8 @@ public interface EngineMantle extends IObjectPlacer {
             post.clear();
             burst().burst(multicore, px);
         }
+
+        getMantle().flag(x, z, MantleFlag.REAL, true);
     }
 
     default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, Consumer<Runnable> post, MantleChunk mc) {
@@ -245,10 +248,6 @@ public interface EngineMantle extends IObjectPlacer {
     @BlockCoordinates
     default KList<IrisFeaturePositional> forEachFeature(double x, double z) {
         KList<IrisFeaturePositional> pos = new KList<>();
-
-        if (!getEngine().getDimension().hasFeatures(getEngine())) {
-            return pos;
-        }
 
         for (IrisFeaturePositional i : getEngine().getDimension().getSpecificFeatures()) {
             if (i.shouldFilter(x, z, getEngine().getComplex().getRng(), getData())) {

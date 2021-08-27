@@ -27,23 +27,15 @@ import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
-import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
 import com.volmit.iris.engine.object.noise.IrisStyledRange;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.data.B;
-import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.noise.Worm3;
-import com.volmit.iris.util.noise.WormIterator3;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.util.Vector;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -54,7 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Data
 public class IrisCavePlacer implements IRare {
     @Required
-    @Desc("Typically a 1 in RARITY on a per chunk basis")
+    @Desc("Typically a 1 in RARITY on a per chunk/fork basis")
     @MinNumber(1)
     private int rarity = 15;
 
@@ -77,8 +69,13 @@ public class IrisCavePlacer implements IRare {
         return caveCache.aquire(() -> data.getCaveLoader().load(getCave()));
     }
 
-    public void generateCave(MantleWriter mantle, RNG rng, Engine engine, int x, int z) {
+    public void generateCave(MantleWriter mantle, RNG rng, Engine engine, int x, int y, int z) {
         if (fail.get()) {
+            return;
+        }
+
+        if(rng.nextInt(rarity) != 0)
+        {
             return;
         }
 
@@ -91,12 +88,26 @@ public class IrisCavePlacer implements IRare {
             return;
         }
 
-        int h = (int) caveStartHeight.get(rng,x, z,data);
-        int ma = (int) (engine.getComplex().getHeightStream().get(x, z) - 9);
-        cave.generate(mantle, rng, engine, x, Math.min(h, ma), z);
+        if(y == -1)
+        {
+            int h = (int) caveStartHeight.get(rng,x, z,data);
+            int ma = breakSurface ? h :  (int) (engine.getComplex().getHeightStream().get(x, z) - 9);
+            y = Math.min(h, ma);
+        }
+
+        try
+        {
+            cave.generate(mantle, rng, engine, x + rng.nextInt(15), y, z + rng.nextInt(15));
+        }
+
+        catch(Throwable e)
+        {
+            e.printStackTrace();
+            fail.set(true);
+        }
     }
 
     public int getSize(IrisData data) {
-        return getRealCave(data).getWorm().getMaxDistance();
+        return getRealCave(data).getMaxSize(data);
     }
 }

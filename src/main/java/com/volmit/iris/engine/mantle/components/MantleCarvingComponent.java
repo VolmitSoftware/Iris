@@ -58,6 +58,6 @@ public class MantleCarvingComponent extends IrisMantleComponent {
 
     @ChunkCoordinates
     private void carve(IrisCarving carving, MantleWriter writer, RNG rng, int cx, int cz) {
-        carving.doCarving(writer, rng, getEngineMantle().getEngine(), cx << 4, cz << 4);
+        carving.doCarving(writer, rng, getEngineMantle().getEngine(), cx << 4, -1, cz << 4);
     }
 }

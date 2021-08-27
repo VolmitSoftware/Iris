@@ -23,6 +23,7 @@ import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.MantleComponent;
+import com.volmit.iris.engine.mantle.components.MantleCarvingComponent;
 import com.volmit.iris.engine.mantle.components.MantleFeatureComponent;
 import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
 import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
@@ -62,6 +63,7 @@ public class IrisEngineMantle implements EngineMantle {
         this.mantle = new Mantle(new File(engine.getWorld().worldFolder(), "mantle"), engine.getTarget().getHeight());
         radius = radCache.aquire(this::computeParallaxSize);
         components = new KList<>();
+        registerComponent(new MantleCarvingComponent(this));
         registerComponent(new MantleFeatureComponent(this));
         registerComponent(new MantleJigsawComponent(this));
         registerComponent(new MantleObjectComponent(this));
@@ -175,7 +177,6 @@ public class IrisEngineMantle implements EngineMantle {
                     jig = Math.max(jig, getData().getJigsawStructureLoader().load(getEngine().getDimension().getStronghold()).getMaxDimension());
                 } catch (Throwable e) {
                     Iris.reportError(e);
-                    Iris.error("THIS IS THE ONE");
                     e.printStackTrace();
                 }
             }

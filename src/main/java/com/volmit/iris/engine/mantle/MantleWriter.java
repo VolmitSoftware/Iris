@@ -26,12 +26,14 @@ import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.engine.object.tile.TileData;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
 import com.volmit.iris.util.math.INode;
 import com.volmit.iris.util.math.KochanekBartelsInterpolation;
+import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.PathInterpolation;
 import com.volmit.iris.util.matter.Matter;
 import lombok.Data;
@@ -91,8 +93,6 @@ public class MantleWriter implements IObjectPlacer {
                 Matter matter = chunk.getOrCreate(y >> 4);
                 matter.slice(matter.getClass(t)).set(x & 15, y & 15, z & 15, t);
             }
-        } else {
-            Iris.error("Mantle Writer[" + this.x + "," + this.z + ",R" + this.radius + "] Tried to access " + x + "," + y + "," + z + " (Chunk " + cx + "," + cz + ") which is OUT OF BOUNDS!");
         }
     }
 
@@ -282,59 +282,6 @@ public class MantleWriter implements IObjectPlacer {
                 }
             }
         }
-    }
-
-    /**
-     * Set a 3d tube spline interpolated with Kochanek Bartels
-     *
-     * @param nodevectors the vector points
-     * @param radius      the radius
-     * @param filled      if it should be filled or hollow
-     * @param data        the data to set
-     */
-    public <T> void setSpline(List<Vector> nodevectors, double radius, boolean filled, T data) {
-        setSpline(nodevectors, 0, 0, 0, 10, radius, filled, data);
-    }
-
-    /**
-     * Set a 3d tube spline interpolated with Kochanek Bartels
-     *
-     * @param nodevectors the spline points
-     * @param tension     the tension 0
-     * @param bias        the bias 0
-     * @param continuity  the continuity 0
-     * @param quality     the quality 10
-     * @param radius      the radius
-     * @param filled      filled or hollow
-     * @param data        the data to set
-     * @param <T>         the type of data to apply to the mantle
-     */
-    public <T> void setSpline(List<Vector> nodevectors, double tension, double bias, double continuity, double quality, double radius, boolean filled, T data) {
-        Set<IrisPosition> vset = new KSet<>();
-        List<INode> nodes = new ArrayList<>(nodevectors.size());
-        PathInterpolation interpol = new KochanekBartelsInterpolation();
-
-        for (Vector nodevector : nodevectors) {
-            INode n = new INode(nodevector);
-            n.setTension(tension);
-            n.setBias(bias);
-            n.setContinuity(continuity);
-            nodes.add(n);
-        }
-
-        interpol.setNodes(nodes);
-        double splinelength = interpol.arcLength(0, 1);
-        for (double loop = 0; loop <= 1; loop += 1D / splinelength / quality) {
-            Vector tipv = interpol.getPosition(loop);
-            vset.add(new IrisPosition(tipv.toBlockVector()));
-        }
-
-        vset = getBallooned(vset, radius);
-        if (!filled) {
-            vset = getHollowed(vset);
-        }
-
-        set(vset, data);
     }
 
     /**
@@ -576,5 +523,26 @@ public class MantleWriter implements IObjectPlacer {
 
     private static double lengthSq(double x, double z) {
         return (x * x) + (z * z);
+    }
+
+    public boolean isWithin(Vector pos) {
+        return isWithin(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ());
+    }
+
+    public boolean isWithin(int x, int y, int z)
+    {
+        int cx = x >> 4;
+        int cz = z >> 4;
+
+        if (y < 0 || y >= mantle.getWorldHeight()) {
+            return false;
+        }
+
+        if (cx >= this.x - radius && cx <= this.x + radius
+                && cz >= this.z - radius && cz <= this.z + radius) {
+            return true;
+        }
+
+        return false;
     }
 }

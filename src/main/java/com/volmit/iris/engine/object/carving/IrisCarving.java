@@ -41,13 +41,60 @@ public class IrisCarving {
     @Desc("Define cave placers")
     private KList<IrisCavePlacer> caves = new KList<>();
 
+    @ArrayType(type = IrisElipsoid.class, min = 1)
+    @Desc("Define elipsoids")
+    private KList<IrisElipsoid> elipsoids = new KList<>();
+
+    @ArrayType(type = IrisSphere.class, min = 1)
+    @Desc("Define spheres")
+    private KList<IrisSphere> spheres = new KList<>();
+
+    @ArrayType(type = IrisPyramid.class, min = 1)
+    @Desc("Define pyramids")
+    private KList<IrisPyramid> pyramids = new KList<>();
+
+
+
     @BlockCoordinates
-    public void doCarving(MantleWriter writer, RNG rng, Engine engine, int x, int z) {
+    public void doCarving(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
         if(caves.isNotEmpty())
         {
             for(IrisCavePlacer i : caves)
             {
-                i.generateCave(writer, rng, engine, x, z);
+                i.generateCave(writer, rng, engine, x, y, z);
+            }
+        }
+
+        if(spheres.isNotEmpty())
+        {
+            for(IrisSphere i : spheres)
+            {
+                if(rng.nextInt(i.getRarity()) == 0)
+                {
+                    i.generate(rng, engine, writer, x, y, z);
+                }
+            }
+        }
+
+        if(elipsoids.isNotEmpty())
+        {
+            for(IrisElipsoid i : elipsoids)
+            {
+                if(rng.nextInt(i.getRarity()) == 0)
+                {
+                    i.generate(rng, engine, writer, x, y, z);
+                }
+            }
+        }
+
+        if(pyramids.isNotEmpty())
+        {
+            for(IrisPyramid i : pyramids)
+            {
+                if(rng.nextInt(i.getRarity()) == 0)
+                {
+                    i.generate(rng, engine, writer, x, y, z);
+                }
             }
         }
     }
@@ -58,6 +105,21 @@ public class IrisCarving {
         for(IrisCavePlacer i : caves)
         {
             max = Math.max(max, i.getSize(data));
+        }
+
+        if(elipsoids.isNotEmpty())
+        {
+            max = (int) Math.max(elipsoids.stream().mapToDouble(IrisElipsoid::maxSize).max().getAsDouble(), max);
+        }
+
+        if(spheres.isNotEmpty())
+        {
+            max = (int) Math.max(spheres.stream().mapToDouble(IrisSphere::maxSize).max().getAsDouble(), max);
+        }
+
+        if(pyramids.isNotEmpty())
+        {
+            max = (int) Math.max(pyramids.stream().mapToDouble(IrisPyramid::maxSize).max().getAsDouble(), max);
         }
 
         return max;

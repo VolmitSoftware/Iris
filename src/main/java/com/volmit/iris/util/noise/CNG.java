@@ -388,6 +388,11 @@ public class CNG {
         return noise(dim);
     }
 
+    public double noiseSym(double... dim)
+    {
+        return (noise(dim) * 2) - 1;
+    }
+
     public double noise(double... dim) {
         double n = getNoise(dim);
         n = power != 1D ? (n < 0 ? -Math.pow(Math.abs(n), power) : Math.pow(n, power)) : n;

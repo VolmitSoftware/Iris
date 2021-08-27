@@ -25,13 +25,14 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.basic.IrisPosition;
+import com.volmit.iris.engine.object.basic.IrisRange;
+import com.volmit.iris.engine.object.block.IrisBlockData;
 import com.volmit.iris.engine.object.noise.IrisWorm;
+import com.volmit.iris.engine.object.objects.IrisObjectLimit;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.noise.Worm3;
-import com.volmit.iris.util.noise.WormIterator3;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -39,7 +40,8 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.util.Vector;
+
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @Accessors(chain = true)
@@ -48,9 +50,17 @@ import org.bukkit.util.Vector;
 @Desc("Translate objects")
 @Data
 public class IrisCave extends IrisRegistrant {
-    private static final BlockData CAVE_AIR = B.get("CAVE_AIR");
     @Desc("Define the shape of this cave")
     private IrisWorm worm;
+
+    @Desc("Define potential forking features")
+    private IrisCarving fork = new IrisCarving();
+
+    @Desc("Change the air block to fill worms with as caves")
+    private IrisBlockData fill = new IrisBlockData("cave_air");
+
+    @Desc("Limit the worm from ever getting higher or lower than this range")
+    private IrisRange verticalRange = new IrisRange(3, 255);
 
     @Override
     public String getFolderName() {
@@ -64,27 +74,18 @@ public class IrisCave extends IrisRegistrant {
 
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
 
-        IrisData data = engine.getData();
-        WormIterator3 w = getWorm().iterate3D(rng, data, x, y, z);
-        KList<Vector> points = new KList<>();
-        int itr = 0;
-        while (w.hasNext()) {
-            itr++;
-            Worm3 wx = w.next();
-            points.add(new Vector(wx.getX().getPosition(), wx.getY().getPosition(), wx.getZ().getPosition()));
-        }
-
-
-        Iris.info(x + " " + y + " " + z + " /." + " POS: " + points.convert((i) -> "[" + i.getBlockX() + "," + i.getBlockY() + "," + i.getBlockZ() + "]").toString(", "));
-
-        writer.setLine(points.convert(IrisPosition::new), getWorm().getGirth().get(rng, x, z, data), true, CAVE_AIR);
-
-
-        // TODO decorate somehow
+        writer.setLine(getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z,
+            (at) -> fork.doCarving(writer, rng, engine, at.getX(), at.getY(), at.getZ())),
+            getWorm().getGirth().get(rng, x, z, engine.getData()), true,
+            fill.getBlockData(engine.getData()));
     }
 
     @Override
     public void scanForErrors(JSONObject p, VolmitSender sender) {
 
+    }
+
+    public int getMaxSize(IrisData data) {
+        return getWorm().getMaxDistance() + fork.getMaxRange(data);
     }
 }

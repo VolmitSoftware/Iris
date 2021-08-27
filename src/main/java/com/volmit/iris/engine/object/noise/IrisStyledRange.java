@@ -59,4 +59,8 @@ public class IrisStyledRange {
     public ProceduralStream<Double> stream(RNG rng, IrisData data) {
         return ProceduralStream.of((x, z) -> get(rng, x, z, data), Interpolated.DOUBLE);
     }
+
+    public boolean isFlat() {
+        return getMax() == getMin() || style.isFlat();
+    }
 }

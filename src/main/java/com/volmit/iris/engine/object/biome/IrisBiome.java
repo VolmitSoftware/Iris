@@ -548,22 +548,8 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return inferredType.equals(InferredType.SEA);
     }
 
-    public boolean isLake() {
-        if (inferredType == null) {
-            return false;
-        }
-        return inferredType.equals(InferredType.LAKE);
-    }
-
-    public boolean isRiver() {
-        if (inferredType == null) {
-            return false;
-        }
-        return inferredType.equals(InferredType.RIVER);
-    }
-
     public boolean isAquatic() {
-        return isSea() || isLake() || isRiver();
+        return isSea();
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")

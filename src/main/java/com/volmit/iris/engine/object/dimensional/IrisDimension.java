@@ -173,21 +173,6 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("The placement style of biomes")
     private IrisGeneratorStyle caveBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
-    @Desc("The placement style of biomes")
-    private IrisGeneratorStyle riverBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-
-    @Desc("The placement style of biomes")
-    private IrisGeneratorStyle lakeBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-
-    @Desc("The placement style of biomes")
-    private IrisGeneratorStyle islandBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-
-    @Desc("The placement style of biomes")
-    private IrisGeneratorStyle islandBiomeChanceStyle = NoiseStyle.CELLULAR_HEIGHT_IRIS_DOUBLE.style();
-
-    @Desc("The placement style of biomes")
-    private IrisGeneratorStyle skylandBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-
     @Desc("Generate caves or not.")
     private boolean caves = true;
 
@@ -452,10 +437,6 @@ public class IrisDimension extends IrisRegistrant {
         switch (type) {
             case CAVE:
                 return caveBiomeStyle;
-            case LAKE:
-                return lakeBiomeStyle;
-            case RIVER:
-                return riverBiomeStyle;
             case LAND:
                 return landBiomeStyle;
             case SEA:

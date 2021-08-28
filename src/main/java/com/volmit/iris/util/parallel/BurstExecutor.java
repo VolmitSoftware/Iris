@@ -23,6 +23,7 @@ import com.volmit.iris.util.collection.KList;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -41,6 +42,11 @@ public class BurstExecutor {
 
     @SuppressWarnings("UnusedReturnValue")
     public Future<?> queue(Runnable r) {
+        if (!multicore) {
+            r.run();
+            return CompletableFuture.completedFuture(null);
+        }
+
         synchronized (futures) {
 
             Future<?> c = executor.submit(r);

@@ -21,8 +21,10 @@ package com.volmit.iris.core.service;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.pack.IrisPack;
 import com.volmit.iris.core.project.IrisProject;
-import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
@@ -43,6 +45,7 @@ import org.zeroturnaround.zip.commons.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 public class StudioSVC implements IrisService {
     public static final String LISTING = "https://raw.githubusercontent.com/IrisDimensions/_listing/main/listing-v2.json";
@@ -53,19 +56,14 @@ public class StudioSVC implements IrisService {
 
     @Override
     public void onEnable() {
-        J.a(() ->
-        {
-            File ignore = getWorkspaceFile(".gitignore");
+        J.a(() -> {
+            String pack = IrisSettings.get().getGenerator().getDefaultWorldType();
+            File f = IrisPack.packsPack(pack);
 
-            if (!ignore.exists()) {
-                File m = Iris.getCached("Pack Ignore (.gitignore)", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/packignore.ignore");
-                if (m != null) {
-                    try {
-                        IO.copyFile(m, ignore);
-                    } catch (IOException e) {
-                        Iris.reportError(e);
-                    }
-                }
+            if(!f.exists())
+            {
+                Iris.info("Downloading Default Pack " + pack);
+                downloadSearch(Iris.getSender(), pack, false);
             }
         });
     }
@@ -325,7 +323,7 @@ public class StudioSVC implements IrisService {
 
     public void open(VolmitSender sender, long seed, String dimm) {
         try {
-            open(sender, seed, dimm, () -> {
+            open(sender, seed, dimm, (w) -> {
             });
         } catch (Exception e) {
             Iris.reportError(e);
@@ -334,7 +332,7 @@ public class StudioSVC implements IrisService {
         }
     }
 
-    public void open(VolmitSender sender, long seed, String dimm, Runnable onDone) throws IrisException {
+    public void open(VolmitSender sender, long seed, String dimm, Consumer<World> onDone) throws IrisException {
         if (isProjectOpen()) {
             close();
         }

@@ -20,7 +20,7 @@ package com.volmit.iris.engine.object.feature;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;

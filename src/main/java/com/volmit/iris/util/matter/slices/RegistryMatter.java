@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util.matter.slices;
 
-import com.volmit.iris.core.project.loader.IrisRegistrant;
+import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.util.context.IrisContext;
 
 import java.io.DataInputStream;

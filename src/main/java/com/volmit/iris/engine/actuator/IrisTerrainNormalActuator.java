@@ -38,14 +38,12 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     private static final BlockData CAVE_AIR = Material.CAVE_AIR.createBlockData();
     @Getter
     private final RNG rng;
-    private final boolean carving;
     @Getter
     private int lastBedrock = -1;
 
     public IrisTerrainNormalActuator(Engine engine) {
         super(engine, "Terrain");
         rng = new RNG(engine.getWorld().seed());
-        carving = getDimension().isCarving() && getDimension().getCarveLayers().isNotEmpty();
     }
 
     @BlockCoordinates
@@ -107,14 +105,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                         lastBedrock = i;
                         continue;
                     }
-                }
-
-                if (carving && getDimension().isCarved(getData(), realX, i, realZ, rng, he)) {
-                    continue;
-                }
-
-                if (getDimension().getCaverns() != null && getDimension().getCaverns().isCavern(rng, realX, i, realZ, he, getData())) {
-                    continue;
                 }
 
                 if (i > he && i <= hf) {

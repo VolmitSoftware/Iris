@@ -19,9 +19,13 @@
 package com.volmit.iris.core.command;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.pack.IrisPack;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
+
+import java.util.concurrent.ExecutionException;
 
 public class CommandIrisBitwise extends MortarCommand {
     public CommandIrisBitwise() {

@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.mantle;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
@@ -33,6 +33,12 @@ import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.mantle.MantleChunk;
+import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.matter.Matter;
+import com.volmit.iris.util.matter.MatterCavern;
+import com.volmit.iris.util.matter.slices.CavernMatter;
+import com.volmit.iris.util.matter.slices.UpdateMatter;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import org.bukkit.Chunk;
@@ -189,7 +195,11 @@ public interface EngineMantle extends IObjectPlacer {
                 int xx = i + x;
                 int zz = j + z;
                 burst.queue(() -> {
-                    getComponents().forEach((f) -> generateMantleComponent(writer, xx, zz, f, c));
+                    MantleChunk mc = getMantle().getChunk(xx, zz);
+
+                    for (MantleComponent k : getComponents()) {
+                        generateMantleComponent(writer, xx, zz, k, c, mc);
+                    }
                 });
             }
         }
@@ -201,10 +211,12 @@ public interface EngineMantle extends IObjectPlacer {
             post.clear();
             burst().burst(multicore, px);
         }
+
+        getMantle().flag(x, z, MantleFlag.REAL, true);
     }
 
-    default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, Consumer<Runnable> post) {
-        getMantle().raiseFlag(x, z, c.getFlag(), () -> c.generateLayer(writer, x, z, post));
+    default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, Consumer<Runnable> post, MantleChunk mc) {
+        mc.raiseFlag(c.getFlag(), () -> c.generateLayer(writer, x, z, post));
     }
 
     @ChunkCoordinates
@@ -218,7 +230,22 @@ public interface EngineMantle extends IObjectPlacer {
 
     @BlockCoordinates
     default void updateBlock(int x, int y, int z) {
-        getMantle().set(x, y, z, true);
+        getMantle().set(x, y, z, UpdateMatter.ON);
+    }
+
+    @BlockCoordinates
+    default void cavernBlock(int x, int y, int z) {
+        getMantle().set(x, y, z, CavernMatter.ON);
+    }
+
+    @BlockCoordinates
+    default void dropCavernBlock(int x, int y, int z) {
+        Matter matter = getMantle().getChunk(x & 15, z & 15).get(y & 15);
+
+        if(matter != null)
+        {
+            matter.slice(MatterCavern.class).set(x & 15, y & 15, z & 15, null);
+        }
     }
 
     @ChunkCoordinates
@@ -240,10 +267,6 @@ public interface EngineMantle extends IObjectPlacer {
     @BlockCoordinates
     default KList<IrisFeaturePositional> forEachFeature(double x, double z) {
         KList<IrisFeaturePositional> pos = new KList<>();
-
-        if (!getEngine().getDimension().hasFeatures(getEngine())) {
-            return pos;
-        }
 
         for (IrisFeaturePositional i : getEngine().getDimension().getSpecificFeatures()) {
             if (i.shouldFilter(x, z, getEngine().getComplex().getRng(), getData())) {
@@ -273,5 +296,13 @@ public interface EngineMantle extends IObjectPlacer {
         }
 
         return pos;
+    }
+
+    default boolean queueRegenerate(int x, int z) {
+        return false; // TODO:
+    }
+
+    default boolean dequeueRegenerate(int x, int z) {
+        return false;// TODO:
     }
 }

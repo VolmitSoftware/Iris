@@ -19,8 +19,8 @@
 package com.volmit.iris.engine.object.dimensional;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.core.project.loader.IrisRegistrant;
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.biome.InferredType;
@@ -28,10 +28,7 @@ import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
 import com.volmit.iris.engine.object.block.IrisBlockDrops;
 import com.volmit.iris.engine.object.block.IrisMaterialPalette;
-import com.volmit.iris.engine.object.carve.IrisCarveLayer;
-import com.volmit.iris.engine.object.carve.IrisCaveFluid;
-import com.volmit.iris.engine.object.carve.IrisCaveLayer;
-import com.volmit.iris.engine.object.carve.IrisCaverns;
+import com.volmit.iris.engine.object.carving.IrisCarving;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
@@ -41,7 +38,6 @@ import com.volmit.iris.engine.object.loot.IrisLootReference;
 import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
 import com.volmit.iris.engine.object.noise.IrisShapedGeneratorStyle;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
-import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.engine.object.spawners.IrisSpawner;
 import com.volmit.iris.engine.object.trees.IrisTreeSettings;
@@ -92,6 +88,9 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Vertically split up the biome palettes with 3 air blocks in between to visualize them")
     private boolean explodeBiomePalettes = false;
 
+    @Desc("Studio Mode for testing different parts of the world")
+    private StudioMode studioMode = StudioMode.NORMAL;
+
     @MinNumber(1)
     @MaxNumber(16)
     @Desc("Customize the palette height explosion")
@@ -113,9 +112,6 @@ public class IrisDimension extends IrisRegistrant {
 
     @Desc("Tree growth override settings")
     private IrisTreeSettings treeSettings = new IrisTreeSettings();
-
-    @Desc("Define iris cavern zones")
-    private IrisCaverns caverns = new IrisCaverns();
 
     @Desc("Upon joining this world, Iris will send a resource pack request to the client. If they have previously selected yes, it will auto-switch depending on which dimension they go to.")
     private String resourcePack = "";
@@ -170,46 +166,11 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("The placement style of biomes")
     private IrisGeneratorStyle caveBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
 
-    @Desc("The placement style of biomes")
-    private IrisGeneratorStyle riverBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-
-    @Desc("The placement style of biomes")
-    private IrisGeneratorStyle lakeBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-
-    @Desc("The placement style of biomes")
-    private IrisGeneratorStyle islandBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-
-    @Desc("The placement style of biomes")
-    private IrisGeneratorStyle islandBiomeChanceStyle = NoiseStyle.CELLULAR_HEIGHT_IRIS_DOUBLE.style();
-
-    @Desc("The placement style of biomes")
-    private IrisGeneratorStyle skylandBiomeStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-
-    @Desc("Generate caves or not.")
-    private boolean caves = true;
-
     @Desc("Instead of filling objects with air, fills them with cobweb so you can see them")
     private boolean debugSmartBore = false;
 
-    @Desc("Carve terrain or not")
-    private boolean carving = true;
-
-    @Desc("If defined, If air is defined below the area, this fluid will always place")
-    private IrisCaveFluid forceFluid = new IrisCaveFluid();
-
     @Desc("Generate decorations or not")
     private boolean decorate = true;
-
-    @Desc("Generate ravines or not")
-    private boolean ravines = false;
-
-    @MinNumber(1)
-    @Desc("The rarity of a ravine layer having a lib (or rib) that sticks in or out by one block. Minecraft's default is 3.")
-    private int ravineRibRarity = 2;
-
-    @MinNumber(1)
-    @Desc("The rarity of ravines. Each chunk has a 1 in X chance")
-    private int ravineRarity = 50;
 
     @Desc("Use post processing or not")
     private boolean postProcessing = true;
@@ -220,8 +181,8 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Add painted walls in post processing")
     private boolean postProcessingWalls = true;
 
-    @Desc("Use post processing for caves or not")
-    private boolean postProcessCaves = true;
+    @Desc("Carving configuration for the dimension")
+    private IrisCarving carving = new IrisCarving();
 
     @Desc("The world environment")
     private Environment environment = Environment.NORMAL;
@@ -309,14 +270,6 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Overlay additional noise on top of the interoplated terrain.")
     private KList<IrisShapedGeneratorStyle> overlayNoise = new KList<>();
 
-    @ArrayType(min = 1, type = IrisCaveLayer.class)
-    @Desc("Define cave layers")
-    private KList<IrisCaveLayer> caveLayers = new KList<>();
-
-    @ArrayType(min = 1, type = IrisCarveLayer.class)
-    @Desc("Define carve layers")
-    private KList<IrisCarveLayer> carveLayers = new KList<>();
-
     @Desc("If true, the spawner system has infinite energy. This is NOT recommended because it would allow for mobs to keep spawning over and over without a rate limit")
     private boolean infiniteEnergy = false;
 
@@ -373,18 +326,6 @@ public class IrisDimension extends IrisRegistrant {
 
     public double getDimensionAngle() {
         return rad.aquire(() -> Math.toRadians(dimensionAngleDeg));
-    }
-
-    public boolean isCarved(IrisData data, int x, int y, int z, RNG rng, int terrainHeight) {
-        if (isCarving() && terrainHeight > getFluidHeight() || y < terrainHeight) {
-            for (IrisCarveLayer j : getCarveLayers()) {
-                if (j.isCarved(rng, data, x, y, z)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     public Environment getEnvironment() {
@@ -449,10 +390,6 @@ public class IrisDimension extends IrisRegistrant {
         switch (type) {
             case CAVE:
                 return caveBiomeStyle;
-            case LAKE:
-                return lakeBiomeStyle;
-            case RIVER:
-                return riverBiomeStyle;
             case LAND:
                 return landBiomeStyle;
             case SEA:
@@ -514,41 +451,6 @@ public class IrisDimension extends IrisRegistrant {
         }
 
         return changed;
-    }
-
-    public boolean hasFeatures(DataProvider data) {
-        return featuresUsed.aquire(() -> {
-            if (getFeatures().isNotEmpty() || getSpecificFeatures().isNotEmpty()) {
-                return true;
-            }
-
-            for (IrisRegion i : getAllRegions(data)) {
-                if (i.getFeatures().isNotEmpty()) {
-                    return true;
-                }
-
-                for (IrisObjectPlacement j : i.getObjects()) {
-                    if (j.isVacuum()) {
-                        return true;
-                    }
-                }
-
-                for (IrisBiome j : i.getAllBiomes(data)) {
-                    if (j.getFeatures().isNotEmpty()) {
-                        return true;
-                    }
-
-                    for (IrisObjectPlacement k : i.getObjects()) {
-                        if (k.isVacuum()) {
-                            return true;
-                        }
-                    }
-                }
-            }
-
-            Iris.verbose("Not using parallax noise features (they arent used in this dimension)");
-            return false;
-        });
     }
 
     @Override

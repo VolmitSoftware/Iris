@@ -20,13 +20,14 @@ package com.volmit.iris.engine.object.regional;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.components.RenderType;
-import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.core.project.loader.IrisRegistrant;
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.biome.InferredType;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.block.IrisBlockDrops;
+import com.volmit.iris.engine.object.carving.IrisCarving;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
 import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
@@ -129,14 +130,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     private double shoreBiomeZoom = 1;
 
     @MinNumber(0.0001)
-    @Desc("How large lake biomes are in this region")
-    private double lakeBiomeZoom = 1;
-
-    @MinNumber(0.0001)
-    @Desc("How large river biomes are in this region")
-    private double riverBiomeZoom = 1;
-
-    @MinNumber(0.0001)
     @Desc("How large sea biomes are in this region")
     private double seaBiomeZoom = 1;
 
@@ -148,6 +141,9 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @MaxNumber(1)
     @Desc("The biome implosion ratio, how much to implode biomes into children (chance)")
     private double biomeImplosionRatio = 0.4;
+
+    @Desc("Carving configuration for the dimension")
+    private IrisCarving carving = new IrisCarving();
 
     @RegistryListResource(IrisBiome.class)
     @Required
@@ -170,25 +166,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @RegistryListResource(IrisBiome.class)
     @ArrayType(min = 1, type = String.class)
     @Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
-    private KList<String> riverBiomes = new KList<>();
-
-    @RegistryListResource(IrisBiome.class)
-    @ArrayType(min = 1, type = String.class)
-    @Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
-    private KList<String> lakeBiomes = new KList<>();
-
-    @RegistryListResource(IrisBiome.class)
-    @ArrayType(min = 1, type = String.class)
-    @Desc("A list of root-level biomes in this region. Don't specify child biomes of other biomes here. Just the root parents.")
     private KList<String> caveBiomes = new KList<>();
-
-    @ArrayType(min = 1, type = IrisRegionRidge.class)
-    @Desc("Ridge biomes create a vein-like network like rivers through this region")
-    private KList<IrisRegionRidge> ridgeBiomes = new KList<>();
-
-    @ArrayType(min = 1, type = IrisRegionSpot.class)
-    @Desc("Spot biomes splotch themselves across this region like lakes")
-    private KList<IrisRegionSpot> spotBiomes = new KList<>();
 
     @ArrayType(min = 1, type = IrisDepositGenerator.class)
     @Desc("Define regional deposit generators that add onto the global deposit generators")
@@ -275,42 +253,10 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         });
     }
 
-    public boolean isRiver(RNG rng, double x, double z) {
-        if (!isRivers()) {
-            return false;
-        }
-
-        if (getRiverBiomes().isEmpty()) {
-            return false;
-        }
-
-        if (getRiverChanceGen().aquire(() -> getRiverChanceStyle().create(rng, getLoader())).fit(1, getRiverRarity(), x, z) != 1) {
-            return false;
-        }
-
-        return getRiverGen().aquire(() -> getRiverStyle().create(rng, getLoader())).fitDouble(0, 1, x, z) < getRiverThickness();
-    }
-
-    public boolean isLake(RNG rng, double x, double z) {
-        if (!isLakes()) {
-            return false;
-        }
-
-        if (getLakeBiomes().isEmpty()) {
-            return false;
-        }
-
-        return getLakeGen().aquire(() -> getLakeStyle().create(rng, getLoader())).fit(1, getLakeRarity(), x, z) == 1;
-    }
-
     public double getBiomeZoom(InferredType t) {
         switch (t) {
             case CAVE:
                 return caveBiomeZoom;
-            case LAKE:
-                return lakeBiomeZoom;
-            case RIVER:
-                return riverBiomeZoom;
             case LAND:
                 return landBiomeZoom;
             case SEA:
@@ -322,25 +268,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         }
 
         return 1;
-    }
-
-    public KList<String> getRidgeBiomeKeys() {
-        return cacheRidge.aquire(() ->
-        {
-            KList<String> cacheRidge = new KList<>();
-            ridgeBiomes.forEach((i) -> cacheRidge.add(i.getBiome()));
-
-            return cacheRidge;
-        });
-    }
-
-    public KList<String> getSpotBiomeKeys() {
-        return cacheSpot.aquire(() ->
-        {
-            KList<String> cacheSpot = new KList<>();
-            spotBiomes.forEach((i) -> cacheSpot.add(i.getBiome()));
-            return cacheSpot;
-        });
     }
 
     public CNG getShoreHeightGenerator() {
@@ -358,10 +285,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         names.addAll(caveBiomes);
         names.addAll(seaBiomes);
         names.addAll(shoreBiomes);
-        names.addAll(riverBiomes);
-        names.addAll(lakeBiomes);
-        spotBiomes.forEach((i) -> names.add(i.getBiome()));
-        ridgeBiomes.forEach((i) -> names.add(i.getBiome()));
 
         return names;
     }
@@ -402,10 +325,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
             return getRealShoreBiomes(g);
         } else if (type.equals(InferredType.CAVE)) {
             return getRealCaveBiomes(g);
-        } else if (type.equals(InferredType.LAKE)) {
-            return getRealLakeBiomes(g);
-        } else if (type.equals(InferredType.RIVER)) {
-            return getRealRiverBiomes(g);
         }
 
         return new KList<>();
@@ -421,32 +340,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
             }
 
             return realCaveBiomes;
-        });
-    }
-
-    public KList<IrisBiome> getRealLakeBiomes(DataProvider g) {
-        return realLakeBiomes.aquire(() ->
-        {
-            KList<IrisBiome> realLakeBiomes = new KList<>();
-
-            for (String i : getLakeBiomes()) {
-                realLakeBiomes.add(g.getData().getBiomeLoader().load(i));
-            }
-
-            return realLakeBiomes;
-        });
-    }
-
-    public KList<IrisBiome> getRealRiverBiomes(DataProvider g) {
-        return realRiverBiomes.aquire(() ->
-        {
-            KList<IrisBiome> realRiverBiomes = new KList<>();
-
-            for (String i : getRiverBiomes()) {
-                realRiverBiomes.add(g.getData().getBiomeLoader().load(i));
-            }
-
-            return realRiverBiomes;
         });
     }
 
@@ -496,10 +389,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         names.addAll(caveBiomes);
         names.addAll(seaBiomes);
         names.addAll(shoreBiomes);
-        names.addAll(riverBiomes);
-        names.addAll(lakeBiomes);
-        spotBiomes.forEach((i) -> names.add(i.getBiome()));
-        ridgeBiomes.forEach((i) -> names.add(i.getBiome()));
 
         while (!names.isEmpty()) {
             for (String i : new KList<>(names)) {

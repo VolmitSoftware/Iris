@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object.noise;
 
-import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
@@ -58,5 +58,9 @@ public class IrisStyledRange {
 
     public ProceduralStream<Double> stream(RNG rng, IrisData data) {
         return ProceduralStream.of((x, z) -> get(rng, x, z, data), Interpolated.DOUBLE);
+    }
+
+    public boolean isFlat() {
+        return getMax() == getMin() || style.isFlat();
     }
 }

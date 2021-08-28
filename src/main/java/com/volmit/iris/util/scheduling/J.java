@@ -231,6 +231,15 @@ public class J {
         return f;
     }
 
+    public static CompletableFuture sfut(Runnable r, int delay) {
+        CompletableFuture f = new CompletableFuture();
+        Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
+            r.run();
+            f.complete(null);
+        }, delay);
+        return f;
+    }
+
     public static CompletableFuture afut(Runnable r) {
         CompletableFuture f = new CompletableFuture();
         J.a(() -> {
@@ -247,7 +256,11 @@ public class J {
      * @param delay the delay to wait in ticks before running
      */
     public static void s(Runnable r, int delay) {
-        Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, r, delay);
+        try {
+            Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, r, delay);
+        } catch (Throwable e) {
+            Iris.reportError(e);
+        }
     }
 
     /**

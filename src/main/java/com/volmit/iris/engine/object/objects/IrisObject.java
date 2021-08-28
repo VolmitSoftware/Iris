@@ -19,8 +19,8 @@
 package com.volmit.iris.engine.object.objects;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.core.project.loader.IrisRegistrant;
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.placer.HeightmapObjectPlacer;
 import com.volmit.iris.engine.object.basic.IrisPosition;

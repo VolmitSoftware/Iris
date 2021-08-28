@@ -20,10 +20,9 @@ package com.volmit.iris.engine;
 
 import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.modifier.IrisCaveModifier;
 import com.volmit.iris.engine.object.biome.InferredType;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.common.CaveResult;
@@ -76,6 +75,7 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<Double> overlayStream;
     private ProceduralStream<Double> heightFluidStream;
     private ProceduralStream<Integer> trueHeightStream;
+    private ProceduralStream<Integer> trueHeightStreamNoFeatures;
     private ProceduralStream<Double> slopeStream;
     private ProceduralStream<Integer> topSurfaceStream;
     private ProceduralStream<RNG> rngStream;
@@ -102,8 +102,6 @@ public class IrisComplex implements DataProvider {
             case SHORE:
                 return shoreBiomeStream;
             case DEFER:
-            case LAKE:
-            case RIVER:
             default:
                 break;
         }
@@ -217,16 +215,12 @@ public class IrisComplex implements DataProvider {
         }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D(cacheSize);
         slopeStream = heightStream.slope(3).cache2D(cacheSize);
         objectChanceStream = ProceduralStream.ofDouble((x, z) -> {
-            if (engine.getDimension().hasFeatures(engine)) {
-                AtomicDouble str = new AtomicDouble(1D);
-                for (IrisFeaturePositional i : engine.getMantle().forEachFeature(x, z)) {
-                    str.set(Math.min(str.get(), i.getObjectChanceModifier(x, z, rng, getData())));
-                }
-
-                return str.get();
+            AtomicDouble str = new AtomicDouble(1D);
+            for (IrisFeaturePositional i : engine.getMantle().forEachFeature(x, z)) {
+                str.set(Math.min(str.get(), i.getObjectChanceModifier(x, z, rng, getData())));
             }
 
-            return 1D;
+            return str.get();
         });
         trueBiomeStream = focus != null ? ProceduralStream.of((x, y) -> focus, Interpolated.of(a -> 0D,
                         b -> focus)).convertAware2D((b, x, z) -> {
@@ -315,32 +309,16 @@ public class IrisComplex implements DataProvider {
         trueHeightStream = ProceduralStream.of((x, z) -> {
             int rx = (int) Math.round(engine.modifyX(x));
             int rz = (int) Math.round(engine.modifyZ(z));
-            int heightf = (int) Math.round(getHeightStream().get(rx, rz));
+// TODO CAVE STUFF
+            return (int) Math.round(getHeightStream().get(rx, rz));
+        }, Interpolated.INT).cache2D(cacheSize);
+
+        trueHeightStreamNoFeatures = ProceduralStream.of((x, z) -> {
+            int rx = (int) Math.round(engine.modifyX(x));
+            int rz = (int) Math.round(engine.modifyZ(z));
+            int heightf = (int) Math.round(getHeightStreamNoFeatures().get(rx, rz));
             int m = heightf;
-
-            if (engine.getDimension().isCarved(getData(), rx, m, rz, ((IrisTerrainNormalActuator) engine.getTerrainActuator()).getRng(), heightf)) {
-                m--;
-
-                while (engine.getDimension().isCarved(getData(), rx, m, rz, ((IrisTerrainNormalActuator) engine.getTerrainActuator()).getRng(), heightf)) {
-                    m--;
-                }
-            }
-
-            if (engine.getDimension().isCaves()) {
-                KList<CaveResult> caves = ((IrisCaveModifier) engine.getCaveModifier()).genCaves(rx, rz, 0, 0, null);
-                boolean again = true;
-
-                while (again) {
-                    again = false;
-                    for (CaveResult i : caves) {
-                        if (i.getCeiling() > m && i.getFloor() < m) {
-                            m = i.getFloor();
-                            again = true;
-                        }
-                    }
-                }
-            }
-
+// TODO CAVE STUFF
             return m;
         }, Interpolated.INT).cache2D(cacheSize);
         baseBiomeIDStream = trueBiomeStream.convertAware2D((b, x, z) -> {
@@ -427,9 +405,7 @@ public class IrisComplex implements DataProvider {
         AtomicDouble noise = new AtomicDouble(h + fluidHeight + overlayStream.get(x, z));
 
         if (features) {
-            List<IrisFeaturePositional> p = engine.getMantle().forEachFeature(x, z);
-
-            for (IrisFeaturePositional i : p) {
+            for (IrisFeaturePositional i : engine.getMantle().forEachFeature(x, z)) {
                 noise.set(i.filter(x, z, noise.get(), rng, getData()));
             }
         }

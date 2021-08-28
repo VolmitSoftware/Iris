@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.modifier.IrisCaveModifier;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
@@ -88,15 +87,7 @@ public class IrisEntitySpawn implements IRare {
                         IrisComplex comp = gen.getComplex();
                         IrisBiome cave = comp.getCaveBiomeStream().get(x, z);
                         KList<Location> r = new KList<>();
-                        if (cave != null) {
-                            for (CaveResult i : ((IrisCaveModifier) gen.getCaveModifier()).genCaves(x, z)) {
-                                if (i.getCeiling() >= gen.getHeight() || i.getFloor() < 0 || i.getCeiling() - 2 <= i.getFloor()) {
-                                    continue;
-                                }
-
-                                r.add(new Location(c.getWorld(), x, i.getFloor(), z));
-                            }
-                        }
+                        r.add( new Location(c.getWorld(), x, hf + 1, z)); // TODO CAVE HEIGHT
 
                         yield r.getRandom(rng);
                     }

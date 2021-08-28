@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object.noise;
 
-import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
@@ -75,34 +75,36 @@ public class IrisGeneratorStyle {
         return this;
     }
 
-    public CNG create(RNG rng, IrisData data) {
-        return cng.aquire(() ->
-        {
-            if (getExpression() != null) {
-                IrisExpression e = data.getExpressionLoader().load(getExpression());
+    public CNG createNoCache(RNG rng, IrisData data)
+    {
+        if (getExpression() != null) {
+            IrisExpression e = data.getExpressionLoader().load(getExpression());
 
-                if (e != null) {
-                    CNG cng = new CNG(rng, new ExpressionNoise(rng, e), 1D, 1)
-                            .bake().scale(1D / zoom).pow(exponent).bake();
-                    cng.setTrueFracturing(axialFracturing);
+            if (e != null) {
+                CNG cng = new CNG(rng, new ExpressionNoise(rng, e), 1D, 1)
+                        .bake().scale(1D / zoom).pow(exponent).bake();
+                cng.setTrueFracturing(axialFracturing);
 
-                    if (fracture != null) {
-                        cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
-                    }
-
-                    return cng;
+                if (fracture != null) {
+                    cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
                 }
+
+                return cng;
             }
+        }
 
-            CNG cng = style.create(rng).bake().scale(1D / zoom).pow(exponent).bake();
-            cng.setTrueFracturing(axialFracturing);
+        CNG cng = style.create(rng).bake().scale(1D / zoom).pow(exponent).bake();
+        cng.setTrueFracturing(axialFracturing);
 
-            if (fracture != null) {
-                cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
-            }
+        if (fracture != null) {
+            cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
+        }
 
-            return cng;
-        });
+        return cng;
+    }
+
+    public CNG create(RNG rng, IrisData data) {
+        return cng.aquire(() -> createNoCache(rng, data));
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")

@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object.common;
 
-import com.volmit.iris.core.project.loader.IrisRegistrant;
+import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.Data;

@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object.jigsaw;
 
-import com.volmit.iris.core.project.loader.IrisRegistrant;
+import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;

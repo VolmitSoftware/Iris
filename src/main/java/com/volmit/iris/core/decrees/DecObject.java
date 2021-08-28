@@ -1,9 +1,7 @@
 package com.volmit.iris.core.decrees;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.core.service.ObjectSVC;
-import com.volmit.iris.core.service.StudioSVC;
+import com.volmit.iris.core.command.object.CommandIrisObjectUndo;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;

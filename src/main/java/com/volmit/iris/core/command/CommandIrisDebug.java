@@ -28,6 +28,8 @@ import com.volmit.iris.util.plugin.VolmitSender;
 public class CommandIrisDebug extends MortarCommand {
     @Command
     private CommandIrisDebugSpawnerBoost boost;
+    @Command
+    private CommandIrisDebugReupdate reupdate;
 
     public CommandIrisDebug() {
         super("debug", "dbg");

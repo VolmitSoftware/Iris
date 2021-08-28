@@ -19,7 +19,7 @@
 package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
@@ -149,7 +149,7 @@ public class BoardSVC implements IrisService, BoardProvider {
 
         if (Iris.jobCount() > 0) {
             v.add("&7&m------------------");
-            v.add(C.LIGHT_PURPLE + "Tasks" + C.GRAY + ": " + Iris.jobCount());
+            v.add(C.LIGHT_PURPLE + "Tasks" + C.GRAY + ": " + Form.f(Iris.jobCount()));
         }
 
         v.add("&7&m------------------");

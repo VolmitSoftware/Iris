@@ -21,9 +21,10 @@ package com.volmit.iris.engine.framework;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.core.gui.components.Renderer;
-import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.object.basic.IrisColor;
 import com.volmit.iris.engine.object.basic.IrisPosition;
@@ -45,12 +46,16 @@ import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.MatterCavern;
+import com.volmit.iris.util.matter.MatterUpdate;
+import com.volmit.iris.util.matter.slices.UpdateMatter;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.ChronoLatch;
@@ -58,19 +63,20 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.stream.ProceduralStream;
 import io.papermc.lib.PaperLib;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
+import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
+import org.bukkit.craftbukkit.v1_17_R1.block.CraftBlock;
+import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
 import java.awt.*;
+import java.awt.Color;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -86,21 +92,11 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     EngineMantle getMantle();
 
+    void hotloadSilently();
+
+    void hotloadComplex();
+
     void recycle();
-
-    EngineActuator<BlockData> getTerrainActuator();
-
-    EngineActuator<BlockData> getDecorantActuator();
-
-    EngineActuator<Biome> getBiomeActuator();
-
-    EngineModifier<BlockData> getCaveModifier();
-
-    EngineModifier<BlockData> getRavineModifier();
-
-    EngineModifier<BlockData> getDepositModifier();
-
-    EngineModifier<BlockData> getPostModifier();
 
     void close();
 
@@ -139,6 +135,11 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     @BlockCoordinates
     double modifyZ(double z);
+
+    @BlockCoordinates
+    default void generate(int x, int z, TerrainChunk tc, boolean multicore) throws WrongEngineBroException {
+        generate(x, z, Hunk.view((ChunkGenerator.ChunkData) tc), Hunk.view((ChunkGenerator.BiomeGrid) tc), multicore);
+    }
 
     @BlockCoordinates
     void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes, boolean multicore) throws WrongEngineBroException;
@@ -234,21 +235,39 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     @ChunkCoordinates
     @Override
     default void updateChunk(Chunk c) {
-        getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.UPDATE, () -> J.s(() -> {
-            PrecisionStopwatch p = PrecisionStopwatch.start();
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), Boolean.class, (x, y, z, v) -> {
-                if (v != null && v) {
-                    int vx = x & 15;
-                    int vz = z & 15;
-                    update(x, y, z, c, new RNG(Cache.key(c.getX(), c.getZ())));
+        if(c.getWorld().isChunkLoaded(c.getX() + 1, c.getZ() + 1)
+                && c.getWorld().isChunkLoaded(c.getX(), c.getZ() + 1)
+                && c.getWorld().isChunkLoaded(c.getX() + 1, c.getZ())
+                && c.getWorld().isChunkLoaded(c.getX() - 1, c.getZ() - 1)
+                && c.getWorld().isChunkLoaded(c.getX(), c.getZ() - 1)
+                && c.getWorld().isChunkLoaded(c.getX() - 1, c.getZ())
+                && c.getWorld().isChunkLoaded(c.getX() + 1, c.getZ() - 1)
+                && c.getWorld().isChunkLoaded(c.getX() - 1, c.getZ() + 1))
+        {
+            getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.UPDATE, () -> J.s(() -> {
+                PrecisionStopwatch p = PrecisionStopwatch.start();
 
-                    if (vx > 0 && vx < 15 && vz > 0 && vz < 15) {
-                        updateLighting(x, y, z, c);
+                getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, y, z, v) -> {
+                    update(x, y, z, c, new RNG(Cache.key(c.getX(), c.getZ())));
+                });
+
+                getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterUpdate.class, (x, y, z, v) -> {
+                    if (v != null && v.isUpdate()) {
+                        int vx = x & 15;
+                        int vz = z & 15;
+                        update(x, y, z, c, new RNG(Cache.key(c.getX(), c.getZ())));
+                        if (vx > 0 && vx < 15 && vz > 0 && vz < 15) {
+                            updateLighting(x, y, z, c);
+                        }
                     }
-                }
-            });
-            getMetrics().getUpdates().put(p.getMilliseconds());
-        }));
+                });
+
+
+                getMantle().getMantle().deleteChunkSlice(c.getX(), c.getZ(), MatterCavern.class);
+                getMantle().getMantle().deleteChunkSlice(c.getX(), c.getZ(), MatterUpdate.class);
+                getMetrics().getUpdates().put(p.getMilliseconds());
+            }, RNG.r.i(0, 20)));
+        }
     }
 
     @BlockCoordinates
@@ -290,6 +309,12 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     Iris.reportError(e);
                 }
             }
+        }
+
+        else
+        {
+            block.setType(Material.AIR, false);
+            block.setBlockData(data, true);
         }
     }
 

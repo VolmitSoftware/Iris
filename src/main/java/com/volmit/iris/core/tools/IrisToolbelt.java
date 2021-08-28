@@ -25,7 +25,7 @@ import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.pregenerator.methods.HeadlessPregenMethod;
 import com.volmit.iris.core.pregenerator.methods.HybridPregenMethod;
-import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.platform.HeadlessGenerator;

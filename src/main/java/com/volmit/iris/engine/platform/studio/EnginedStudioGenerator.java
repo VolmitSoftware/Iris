@@ -16,25 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.noise;
+package com.volmit.iris.engine.platform.studio;
 
-import lombok.Data;
+import com.volmit.iris.engine.data.chunk.TerrainChunk;
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.framework.WrongEngineBroException;
+import lombok.RequiredArgsConstructor;
 
-@Data
-public class Worm {
-    private double position;
-    private double velocity;
+@RequiredArgsConstructor
+public abstract class EnginedStudioGenerator implements StudioGenerator {
+    private final Engine engine;
 
-    public Worm(double startPosition, double startVelocity) {
-        this.position = startPosition;
-        this.velocity = startVelocity;
-    }
-
-    public void unstep() {
-        position -= velocity;
-    }
-
-    public void step() {
-        position += velocity;
-    }
+    @Override
+    public abstract void generateChunk(Engine engine, TerrainChunk tc, int x, int z) throws WrongEngineBroException;
 }

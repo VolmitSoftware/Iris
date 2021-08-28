@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.object.annotations;
 
-import com.volmit.iris.core.project.loader.IrisRegistrant;
+import com.volmit.iris.core.loader.IrisRegistrant;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;

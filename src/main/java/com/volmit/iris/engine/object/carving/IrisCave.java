@@ -16,18 +16,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.object.cave;
+package com.volmit.iris.engine.object.carving;
 
-import com.volmit.iris.core.project.loader.IrisRegistrant;
+import com.volmit.iris.Iris;
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.basic.IrisPosition;
+import com.volmit.iris.engine.object.basic.IrisRange;
+import com.volmit.iris.engine.object.block.IrisBlockData;
 import com.volmit.iris.engine.object.noise.IrisWorm;
+import com.volmit.iris.engine.object.objects.IrisObjectLimit;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.slices.CavernMatter;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.block.data.BlockData;
+
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @Accessors(chain = true)
@@ -39,6 +54,12 @@ public class IrisCave extends IrisRegistrant {
     @Desc("Define the shape of this cave")
     private IrisWorm worm;
 
+    @Desc("Define potential forking features")
+    private IrisCarving fork = new IrisCarving();
+
+    @Desc("Limit the worm from ever getting higher or lower than this range")
+    private IrisRange verticalRange = new IrisRange(3, 255);
+
     @Override
     public String getFolderName() {
         return "caves";
@@ -49,8 +70,20 @@ public class IrisCave extends IrisRegistrant {
         return "Cave";
     }
 
+    public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
+
+        writer.setLine(getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z,
+            (at) -> fork.doCarving(writer, rng, engine, at.getX(), at.getY(), at.getZ())),
+            getWorm().getGirth().get(rng, x, z, engine.getData()), true,
+            CavernMatter.ON);
+    }
+
     @Override
     public void scanForErrors(JSONObject p, VolmitSender sender) {
 
+    }
+
+    public int getMaxSize(IrisData data) {
+        return getWorm().getMaxDistance() + fork.getMaxRange(data);
     }
 }

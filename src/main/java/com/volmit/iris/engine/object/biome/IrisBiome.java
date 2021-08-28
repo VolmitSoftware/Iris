@@ -20,13 +20,14 @@ package com.volmit.iris.engine.object.biome;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.components.RenderType;
-import com.volmit.iris.core.project.loader.IrisData;
-import com.volmit.iris.core.project.loader.IrisRegistrant;
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.engine.object.block.IrisBlockDrops;
+import com.volmit.iris.engine.object.carving.IrisCarving;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.engine.object.decoration.IrisDecorator;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
@@ -114,6 +115,9 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     @Desc("The max layers to iterate below the surface for locked layer biomes (mesa).")
     private int lockLayersMax = 7;
+
+    @Desc("Carving configuration for the dimension")
+    private IrisCarving carving = new IrisCarving();
 
     @MinNumber(1)
     @MaxNumber(512)
@@ -548,22 +552,8 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return inferredType.equals(InferredType.SEA);
     }
 
-    public boolean isLake() {
-        if (inferredType == null) {
-            return false;
-        }
-        return inferredType.equals(InferredType.LAKE);
-    }
-
-    public boolean isRiver() {
-        if (inferredType == null) {
-            return false;
-        }
-        return inferredType.equals(InferredType.RIVER);
-    }
-
     public boolean isAquatic() {
-        return isSea() || isLake() || isRiver();
+        return isSea();
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")

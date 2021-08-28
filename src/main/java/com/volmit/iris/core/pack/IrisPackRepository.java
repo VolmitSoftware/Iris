@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.data;
+package com.volmit.iris.core.pack;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.service.StudioSVC;
@@ -50,6 +50,11 @@ public class IrisPackRepository {
     @Builder.Default
     private String tag = "";
 
+    /**
+     *
+     * @param g
+     * @return
+     */
     public static IrisPackRepository from(String g) {
         // https://github.com/IrisDimensions/overworld
         if (g.startsWith("https://github.com/")) {
@@ -106,8 +111,8 @@ public class IrisPackRepository {
         return "https://codeload.github.com/" + user + "/" + repo + "/zip/refs/heads/" + branch;
     }
 
-    public void install(VolmitSender sender) throws MalformedURLException {
-        File pack = Iris.instance.getDataFolder(StudioSVC.WORKSPACE_NAME, getRepo());
+    public void install(VolmitSender sender, Runnable whenComplete) throws MalformedURLException {
+        File pack = Iris.instance.getDataFolderNoCreate(StudioSVC.WORKSPACE_NAME, getRepo());
 
         if (!pack.exists()) {
             File dl = new File(Iris.getTemp(), "dltk-" + UUID.randomUUID() + ".zip");
@@ -121,7 +126,12 @@ public class IrisPackRepository {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                    })).execute(sender);
+                    })).execute(sender, whenComplete);
+        }
+
+        else
+        {
+            sender.sendMessage("Pack already exists!");
         }
     }
 }

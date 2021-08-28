@@ -42,11 +42,13 @@ import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import lombok.Data;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.function.Consumer;
 
 @Data
 public class HeadlessGenerator implements PlatformChunkGenerator {
@@ -98,6 +100,11 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
                 }
             }
         }
+    }
+
+    @Override
+    public void injectChunkReplacement(World world, int x, int z, Consumer<Runnable> jobs) {
+
     }
 
     @RegionCoordinates

@@ -27,7 +27,7 @@ import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.link.OraxenLink;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
@@ -39,6 +39,7 @@ import com.volmit.iris.engine.platform.DummyChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.NastyRunnable;
@@ -58,6 +59,8 @@ import io.papermc.lib.PaperLib;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -137,6 +140,23 @@ public class Iris extends VolmitPlugin implements Listener {
         J.s(this::setupPapi);
         J.a(this::verifyDataPacksPost, 20);
         splash();
+
+        if(IrisSettings.get().getGeneral().isAutoStartDefaultStudio())
+        {
+            Iris.info("Starting up auto Studio!");
+            try {
+                Player r = new KList<>(getServer().getOnlinePlayers()).getRandom();
+                Iris.service(StudioSVC.class).open(r != null ? new VolmitSender(r) : sender, 1337, IrisSettings.get().getGenerator().getDefaultWorldType(), (w) -> {
+                    J.s(() -> {for(Player i : getServer().getOnlinePlayers())
+                    {
+                        i.setGameMode(GameMode.SPECTATOR);
+                        i.teleport(new Location(w, 0, 200, 0));
+                    }});
+                });
+            } catch (IrisException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -372,6 +392,8 @@ public class Iris extends VolmitPlugin implements Listener {
                     sender.sendMessage("You need to restart your server to use these packs.");
                 }
             }
+
+            J.sleep(3000);
         }
     }
 

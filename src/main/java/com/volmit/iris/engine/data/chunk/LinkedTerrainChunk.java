@@ -21,6 +21,7 @@ package com.volmit.iris.engine.data.chunk;
 import com.volmit.iris.core.nms.BiomeBaseInjector;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.util.data.IrisBiomeStorage;
+import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -35,6 +36,8 @@ public class LinkedTerrainChunk implements TerrainChunk {
     private final IrisBiomeStorage biome3D;
     private ChunkData rawChunkData;
     private final BiomeGrid storage;
+    @Setter
+    private boolean unsafe = false;
 
     public LinkedTerrainChunk(World world) {
         this(null, Bukkit.createChunkData(world));
@@ -52,6 +55,12 @@ public class LinkedTerrainChunk implements TerrainChunk {
 
     @Override
     public BiomeBaseInjector getBiomeBaseInjector() {
+
+        if (unsafe) {
+            return (a, b, c, d) -> {
+            };
+        }
+
         return (x, y, z, bb) -> INMS.get().forceBiomeInto(x, y, z, bb, storage);
     }
 

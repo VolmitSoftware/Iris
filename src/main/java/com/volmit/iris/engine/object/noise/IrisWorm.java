@@ -18,17 +18,24 @@
 
 package com.volmit.iris.engine.object.noise;
 
-import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.Iris;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.basic.IrisPosition;
+import com.volmit.iris.engine.object.basic.IrisRange;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.noise.WormIterator2;
-import com.volmit.iris.util.noise.WormIterator3;
+import com.volmit.iris.util.noise.CNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+
+import java.util.function.Consumer;
 
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -36,42 +43,82 @@ import lombok.experimental.Accessors;
 @Desc("Generate worms")
 @Data
 public class IrisWorm {
-    @Desc("The style used to determine the curvature of this worm")
-    private IrisGeneratorStyle angleStyle = new IrisGeneratorStyle(NoiseStyle.PERLIN);
+    @Desc("The style used to determine the curvature of this worm's x")
+    private IrisShapedGeneratorStyle xStyle = new IrisShapedGeneratorStyle(NoiseStyle.PERLIN, -2, 2);
+
+    @Desc("The style used to determine the curvature of this worm's y")
+    private IrisShapedGeneratorStyle yStyle = new IrisShapedGeneratorStyle(NoiseStyle.PERLIN, -2, 2);
+
+    @Desc("The style used to determine the curvature of this worm's z")
+    private IrisShapedGeneratorStyle zStyle = new IrisShapedGeneratorStyle(NoiseStyle.PERLIN, -2, 2);
 
     @Desc("The max block distance this worm can travel from its start. This can have performance implications at ranges over 1,000 blocks but it's not too serious, test.")
     private int maxDistance = 128;
 
-    @Desc("The max segments, or iterations this worm can execute on. Setting this to -1 will allow it to run up to the maxDistance's value of iterations (default)")
-    private int maxSegments = -1;
+    @Desc("The iterations this worm can make")
+    private int maxIterations = 512;
 
-    @Desc("The distance between segments")
-    private IrisStyledRange segmentDistance = new IrisStyledRange().setMin(4).setMax(7)
-            .setStyle(new IrisGeneratorStyle(NoiseStyle.PERLIN));
+    @Desc("By default if a worm loops back into itself, it stops at that point and does not continue. This is an optimization, to prevent this turn this option on.")
+    private boolean allowLoops = false;
 
     @Desc("The thickness of the worms. Each individual worm has the same thickness while traveling however, each spawned worm will vary in thickness.")
     private IrisStyledRange girth = new IrisStyledRange().setMin(3).setMax(5)
             .setStyle(new IrisGeneratorStyle(NoiseStyle.PERLIN));
 
-    private transient final AtomicCache<NoiseProvider> angleProviderCache = new AtomicCache<>();
+    public KList<IrisPosition> generate(RNG rng, IrisData data, MantleWriter writer, IrisRange verticalRange, int x, int y, int z, Consumer<IrisPosition> fork)
+    {
+        int itr = maxIterations;
+        double jx, jy, jz;
+        double cx = x;
+        double cy = y;
+        double cz = z;
+        IrisPosition start = new IrisPosition(x, y, z);
+        KList<IrisPosition> pos = new KList<>();
+        KSet<IrisPosition> check = allowLoops ? null : new KSet<>();
+        CNG gx = xStyle.getGenerator().createNoCache(new RNG(rng.lmax()), data);
+        CNG gy = xStyle.getGenerator().createNoCache(new RNG(rng.lmax()), data);
+        CNG gz = xStyle.getGenerator().createNoCache(new RNG(rng.lmax()), data);
 
-    public NoiseProvider getAngleProvider(RNG rng, IrisData data) {
-        return angleProviderCache.aquire(() -> (xx, zz) -> angleStyle.create(rng, data).fitDouble(-0.5, 0.5, xx, zz) * segmentDistance.get(rng, xx, zz, data));
-    }
+        while(itr-- > 0)
+        {
+            IrisPosition current = new IrisPosition(Math.round(cx), Math.round(cy), Math.round(cz));
+            fork.accept(current);
+            pos.add(current);
 
-    public WormIterator2 iterate2D(RNG rng, IrisData data, int x, int z) {
-        return WormIterator2.builder()
-                .maxDistance(maxDistance)
-                .maxIterations(maxSegments == -1 ? maxDistance : maxSegments)
-                .noise(getAngleProvider(rng, data)).x(x).z(z)
-                .build();
-    }
+            if(check != null)
+            {
+                check.add(current);
+            }
 
-    public WormIterator3 iterate3D(RNG rng, IrisData data, int x, int y, int z) {
-        return WormIterator3.builder()
-                .maxDistance(maxDistance)
-                .maxIterations(maxSegments == -1 ? maxDistance : maxSegments)
-                .noise(getAngleProvider(rng, data)).x(x).z(z).y(y)
-                .build();
+            jx = gx.fitDouble(xStyle.getMin(), xStyle.getMax(), cx, cy, cz);
+            jy = gy.fitDouble(yStyle.getMin(), yStyle.getMax(), cx, cy, cz);
+            jz = gz.fitDouble(zStyle.getMin(), zStyle.getMax(), cx, cy, cz);
+            cx += jx;
+            cy += jy;
+            cz += jz;
+            IrisPosition next = new IrisPosition(Math.round(cx), Math.round(cy), Math.round(cz));
+
+            if(!verticalRange.contains(next.getY()))
+            {
+                break;
+            }
+
+            if(!writer.isWithin((int)Math.round(cx), (int)Math.round(cy), (int)Math.round(cz)))
+            {
+                break;
+            }
+
+            if(next.isLongerThan(start, maxDistance))
+            {
+                break;
+            }
+
+            if(check != null && check.contains(next))
+            {
+                break;
+            }
+        }
+
+        return pos;
     }
 }

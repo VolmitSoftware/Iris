@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.object.common;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;

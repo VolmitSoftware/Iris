@@ -30,10 +30,9 @@ import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.engine.mantle.EngineMantle;
-import com.volmit.iris.engine.modifier.IrisCaveModifier;
+import com.volmit.iris.engine.modifier.IrisCarveModifier;
 import com.volmit.iris.engine.modifier.IrisDepositModifier;
 import com.volmit.iris.engine.modifier.IrisPostModifier;
-import com.volmit.iris.engine.modifier.IrisRavineModifier;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.decoration.IrisDecorator;
@@ -68,7 +67,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @Data
 public class IrisEngine implements Engine {
-    // TODO: Remove block population, stop using bukkit
     private final AtomicInteger generated;
     private final AtomicInteger generatedLast;
     private final AtomicDouble perSecond;
@@ -98,7 +96,6 @@ public class IrisEngine implements Engine {
     private EngineActuator<Biome> biomeActuator;
     private EngineModifier<BlockData> depositModifier;
     private EngineModifier<BlockData> caveModifier;
-    private EngineModifier<BlockData> ravineModifier;
     private EngineModifier<BlockData> postModifier;
     private final AtomicCache<IrisEngineData> engineData = new AtomicCache<>();
     private final AtomicBoolean cleaning;
@@ -145,7 +142,6 @@ public class IrisEngine implements Engine {
         decorantActuator.close();
         biomeActuator.close();
         depositModifier.close();
-        ravineModifier.close();
         caveModifier.close();
         postModifier.close();
         effects.close();
@@ -162,9 +158,8 @@ public class IrisEngine implements Engine {
             decorantActuator = new IrisDecorantActuator(this);
             biomeActuator = new IrisBiomeActuator(this);
             depositModifier = new IrisDepositModifier(this);
-            ravineModifier = new IrisRavineModifier(this);
-            caveModifier = new IrisCaveModifier(this);
             postModifier = new IrisPostModifier(this);
+            caveModifier = new IrisCarveModifier(this);
             effects = new IrisEngineEffects(this);
             J.a(this::computeBiomeMaxes);
         } catch (Throwable e) {
@@ -177,12 +172,21 @@ public class IrisEngine implements Engine {
 
     @Override
     public void hotload() {
+        hotloadSilently();
+        Iris.callEvent(new IrisEngineHotloadEvent(this));
+    }
+
+    public void hotloadComplex() {
+        complex.close();
+        complex = new IrisComplex(this);
+    }
+
+    public void hotloadSilently() {
         getData().dump();
         getData().clearLists();
         getTarget().setDimension(getData().getDimensionLoader().load(getDimension().getLoadKey()));
         prehotload();
         setupEngine();
-        Iris.callEvent(new IrisEngineHotloadEvent(this));
     }
 
     @Override
@@ -332,9 +336,8 @@ public class IrisEngine implements Engine {
         getDecorantActuator().close();
         getBiomeActuator().close();
         getDepositModifier().close();
-        getRavineModifier().close();
-        getCaveModifier().close();
         getPostModifier().close();
+        getCaveModifier().close();
         getMantle().close();
         getComplex().close();
         getData().dump();
@@ -407,21 +410,14 @@ public class IrisEngine implements Engine {
                     }
                 }
             } else {
-                getMantle().generateMatter(x >> 4, z >> 4, true);
-                burst().burst(multicore,
-                        () -> getTerrainActuator().actuate(x, z, vblocks, multicore),
-                        () -> getBiomeActuator().actuate(x, z, vbiomes, multicore)
-                );
-                burst().burst(multicore,
-                        () -> getCaveModifier().modify(x, z, vblocks, multicore),
-                        () -> getDecorantActuator().actuate(x, z, blocks, multicore),
-                        () -> getRavineModifier().modify(x, z, vblocks, multicore)
-                );
-                getPostModifier().modify(x, z, vblocks, multicore);
-                burst().burst(multicore,
-                        () -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, blocks, true),
-                        () -> getDepositModifier().modify(x, z, vblocks, multicore)
-                );
+                getMantle().generateMatter(x >> 4, z >> 4, multicore);
+                getTerrainActuator().actuate(x, z, blocks, multicore);
+                getBiomeActuator().actuate(x, z, vbiomes, multicore);
+                getDecorantActuator().actuate(x, z, blocks, multicore);
+                getPostModifier().modify(x, z, blocks, multicore);
+                getDepositModifier().modify(x, z, blocks, multicore);
+                getCaveModifier().modify(x >> 4,z >> 4, blocks, multicore);
+                getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, blocks, multicore);
             }
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();

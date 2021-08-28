@@ -16,35 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.noise;
+package com.volmit.iris.util.matter;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
-public class Worm3 {
-    private final Worm x;
-    private final Worm y;
-    private final Worm z;
-
-    public Worm3(Worm x, Worm y, Worm z) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-    }
-
-    public Worm3(int x, int y, int z, int vx, int vy, int vz) {
-        this(new Worm(x, vx), new Worm(y, vy), new Worm(z, vz));
-    }
-
-    public void step() {
-        x.step();
-        y.step();
-        z.step();
-    }
-
-    public void unstep() {
-        x.unstep();
-        y.unstep();
-        z.unstep();
-    }
+@AllArgsConstructor
+public class MatterCavern {
+    private final boolean cavern;
 }

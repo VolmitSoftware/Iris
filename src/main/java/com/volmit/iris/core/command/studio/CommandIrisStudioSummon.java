@@ -20,7 +20,7 @@ package com.volmit.iris.core.command.studio;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.entity.IrisEntity;
@@ -81,7 +81,8 @@ public class CommandIrisStudioSummon extends MortarCommand {
                     return true;
                 }
 
-                Location vl = sender.player().getLocation().clone().add(0, 3, 0);
+
+                Location vl = sender.player().getTargetBlockExact(256).getLocation().clone().add(0, 1, 0);
                 e.spawn(g, vl);
             }
         } else {

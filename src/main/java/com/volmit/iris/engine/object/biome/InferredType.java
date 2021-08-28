@@ -34,12 +34,6 @@ public enum InferredType {
     @Desc("Represents any cave biome type")
     CAVE,
 
-    @Desc("Represents any river biome type")
-    RIVER,
-
-    @Desc("Represents any lake biome type")
-    LAKE,
-
     @Desc("Defers the type to whatever another biome type that already exists is.")
     DEFER
 }

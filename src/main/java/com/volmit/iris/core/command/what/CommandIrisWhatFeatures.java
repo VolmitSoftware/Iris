@@ -52,7 +52,7 @@ public class CommandIrisWhatFeatures extends MortarCommand {
 
             if (IrisToolbelt.isIrisWorld(c.getWorld())) {
                 int m = 1;
-                for (IrisFeaturePositional i : IrisToolbelt.access(c.getWorld()).getEngine().getMantle().getFeaturesInChunk(c)) {
+                for (IrisFeaturePositional i : IrisToolbelt.access(c.getWorld()).getEngine().getMantle().forEachFeature(c)) {
                     sender.sendMessage("#" + m++ + " " + new JSONObject(new Gson().toJson(i)).toString(4));
                 }
             } else {

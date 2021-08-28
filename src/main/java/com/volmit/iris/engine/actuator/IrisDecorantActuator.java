@@ -23,7 +23,6 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.framework.EngineDecorator;
 import com.volmit.iris.engine.object.biome.IrisBiome;
-import com.volmit.iris.engine.object.carve.IrisCaveLayer;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
@@ -38,7 +37,6 @@ import java.util.function.Predicate;
 
 public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
     private static final Predicate<BlockData> PREDICATE_SOLID = (b) -> b != null && !b.getMaterial().isAir() && !b.getMaterial().equals(Material.WATER) && !b.getMaterial().equals(Material.LAVA);
-    private final BiPredicate<BlockData, Integer> PREDICATE_CAVELIQUID;
     private final RNG rng;
     @Getter
     private final EngineDecorator surfaceDecorator;
@@ -61,22 +59,6 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
         seaSurfaceDecorator = new IrisSeaSurfaceDecorator(getEngine());
         shoreLineDecorator = new IrisShoreLineDecorator(getEngine());
         seaFloorDecorator = new IrisSeaFloorDecorator(getEngine());
-
-        PREDICATE_CAVELIQUID = (b, y) -> {
-            for (IrisCaveLayer layer : getEngine().getDimension().getCaveLayers()) {
-                if (!layer.getFluid().hasFluid(getData())) {
-                    continue;
-                }
-
-                if (layer.getFluid().isInverseHeight() && y >= layer.getFluid().getFluidHeight()) {
-                    if (b.matches(layer.getFluid().getFluid(getData()))) return true;
-                } else if (!layer.getFluid().isInverseHeight() && y <= layer.getFluid().getFluidHeight()) {
-                    if (b.matches(layer.getFluid().getFluid(getData()))) return true;
-                }
-            }
-            return false;
-        };
-
     }
 
     @BlockCoordinates
@@ -97,9 +79,8 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
                 int realZ;
                 IrisBiome biome, cave;
                 for (int j = 0; j < output.getDepth(); j++) {
-                    boolean solid, liquid;
+                    boolean solid;
                     int emptyFor = 0;
-                    int liquidFor = 0;
                     int lastSolid = 0;
                     realZ = (int) Math.round(modZ(z + j));
                     height = (int) Math.round(getComplex().getHeightStream().get(realX, realZ));
@@ -133,24 +114,16 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
                     if (cave != null && cave.getDecorators().isNotEmpty()) {
                         for (int k = height; k > 0; k--) {
                             solid = PREDICATE_SOLID.test(output.get(finalI, k, j));
-                            liquid = PREDICATE_CAVELIQUID.test(output.get(finalI, k + 1, j), k + 1);
 
                             if (solid) {
                                 if (emptyFor > 0) {
-                                    if (liquid) {
-                                        getSeaFloorDecorator().decorate(finalI, j, realX, realZ, output, cave, k + 1, liquidFor + lastSolid - emptyFor + 1);
-                                        getSeaSurfaceDecorator().decorate(finalI, j, realX, realZ, output, cave, k + liquidFor + 1, emptyFor - liquidFor + lastSolid);
-                                    } else {
-                                        getSurfaceDecorator().decorate(finalI, j, realX, realZ, output, cave, k, lastSolid);
-                                        getCeilingDecorator().decorate(finalI, j, realX, realZ, output, cave, lastSolid - 1, emptyFor);
-                                    }
+                                    getSurfaceDecorator().decorate(finalI, j, realX, realZ, output, cave, k, lastSolid);
+                                    getCeilingDecorator().decorate(finalI, j, realX, realZ, output, cave, lastSolid - 1, emptyFor);
                                     emptyFor = 0;
-                                    liquidFor = 0;
                                 }
                                 lastSolid = k;
                             } else {
                                 emptyFor++;
-                                if (liquid) liquidFor++;
                             }
                         }
                     }
@@ -164,6 +137,6 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
     }
 
     private boolean shouldRayDecorate() {
-        return getEngine().getDimension().isCarving() || getEngine().getDimension().isCaves() || getEngine().getDimension().isRavines();
+        return false; // TODO CAVES
     }
 }

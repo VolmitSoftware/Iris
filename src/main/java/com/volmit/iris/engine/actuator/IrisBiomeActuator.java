@@ -55,8 +55,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
                 return true;
             }
         } catch (Throwable e) {
-            e.printStackTrace();
-            Iris.reportError(e);
+
         }
 
         return false;

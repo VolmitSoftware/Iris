@@ -48,7 +48,12 @@ public interface Job {
         return (double) getWorkCompleted() / (double) getTotalWork();
     }
 
+
     default void execute(VolmitSender sender) {
+        execute(sender, () -> {});
+    }
+
+    default void execute(VolmitSender sender, Runnable whenComplete) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         CompletableFuture<?> f = J.afut(this::execute);
         int c = J.ar(() -> {
@@ -61,6 +66,7 @@ public interface Job {
         f.whenComplete((fs, ff) -> {
             J.car(c);
             sender.sendMessage("Completed " + getName() + " in " + Form.duration(p.getMilliseconds(), 1));
+            whenComplete.run();
         });
     }
 }

@@ -23,7 +23,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.core.gui.VisionGUI;
 import com.volmit.iris.core.project.IrisProject;
-import com.volmit.iris.core.project.loader.IrisData;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.service.ConversionSVC;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;

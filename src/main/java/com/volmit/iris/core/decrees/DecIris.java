@@ -25,15 +25,11 @@ import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
-import com.volmit.iris.util.decree.DecreeSystem;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
-import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
-import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 import com.volmit.iris.util.format.C;
 
 import java.io.File;
-import java.util.Objects;
 
 @Decree(name = "irisd", aliases = {"ird"}, description = "Basic Command")
 public class DecIris implements DecreeExecutor {
@@ -47,7 +43,7 @@ public class DecIris implements DecreeExecutor {
 
     @Decree(description = "Create a new world", aliases = "+")
     public void create(
-            @Param(aliases = "world-name", description = "The name of the world to create")
+            @Param(aliases = "world-name", description = "The name of the world to create", defaultValue = "IrisWorld")
                     String name,
             @Param(aliases = "dimension", description = "The dimension type to create the world with", defaultValue = "overworld")
                     IrisDimension type,
@@ -85,7 +81,7 @@ public class DecIris implements DecreeExecutor {
 
     @Decree(description = "Print version information")
     public void version() {
-        sender().sendMessage(C.GREEN + "Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");
+        sender().sendMessage("Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");
     }
 
     @Decree(description = "Set aura spins")
@@ -108,7 +104,7 @@ public class DecIris implements DecreeExecutor {
     public void bitwise(
             @Param(description = "The first value to run calculations on")
                     int value1,
-            @Param(description = "The operator: | & ^ ≺≺ ≻≻ ％")
+            @Param(description = "The operator: | & ^ >> << %")
                     String operator,
             @Param(description = "The second value to run calculations on")
                     int value2
@@ -126,20 +122,18 @@ public class DecIris implements DecreeExecutor {
             sender().sendMessage(C.RED + "The operator you entered: (" + operator + ") is invalid!");
             return;
         }
-        sender().sendMessage(C.GREEN + "" + value1 + " " + C.GREEN + operator.replaceAll("<", "≺").replaceAll(">", "≻").replaceAll("%", "％") + " " + C.GREEN + value2 + C.GREEN + " returns " + C.GREEN + v);
+        sender().sendMessage(C.GREEN + "" + value1 + " " + C.GREEN + operator.replaceAll("<", "≺").replaceAll(">", "≻") + " " + C.GREEN + value2 + C.GREEN + " returns " + C.GREEN + v);
     }
 
     @Decree(description = "Toggle debug")
     public void debug(
-            @Param(name = "on", description = "Whether or not debug should be on", defaultValue = "other")
-                    Boolean on
+            @Param(name = "on", description = "Whether or not debug should be on", defaultValue = "true")
+                    boolean on
     ) {
-        boolean to = on == null ? !IrisSettings.get().getGeneral().isDebug() : on;
-        IrisSettings.get().getGeneral().setDebug(to);
-        sender().sendMessage(C.GREEN + "Set debug to: " + to);
+        IrisSettings.get().getGeneral().setDebug(on);
     }
 
-    @Decree(description = "Download a project.", aliases = "dl")
+    @Decree(description = "Download a project.")
     public void download(
             @Param(name = "pack", description = "The pack to download", defaultValue = "overworld", aliases = "project")
                     String pack,

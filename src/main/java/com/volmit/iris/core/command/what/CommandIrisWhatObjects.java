@@ -61,6 +61,7 @@ public class CommandIrisWhatObjects extends MortarCommand {
 
     }
 
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
         if (sender.isPlayer()) {
@@ -80,9 +81,11 @@ public class CommandIrisWhatObjects extends MortarCommand {
             try {
                 Location l = p.getTargetBlockExact(48, FluidCollisionMode.NEVER).getLocation();
 
-                int cx = l.getChunk().getX();
-                int cz = l.getChunk().getZ();
-                new Spiraler(3, 3, (x, z) -> chunks.addIfMissing(world.getChunkAt(x + cx, z + cz))).drain();
+                if (l != null) {
+                    int cx = l.getChunk().getX();
+                    int cz = l.getChunk().getZ();
+                    new Spiraler(3, 3, (x, z) -> chunks.addIfMissing(world.getChunkAt(x + cx, z + cz))).drain();
+                }
             } catch (Throwable e) {
                 Iris.reportError(e);
             }

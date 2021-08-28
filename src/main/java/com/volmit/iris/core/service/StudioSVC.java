@@ -323,7 +323,8 @@ public class StudioSVC implements IrisService {
 
     public void open(VolmitSender sender, long seed, String dimm) {
         try {
-            open(sender, seed, dimm, (w) -> {});
+            open(sender, seed, dimm, (w) -> {
+            });
         } catch (Exception e) {
             Iris.reportError(e);
             sender.sendMessage("Error when creating studio world:");
@@ -339,10 +340,6 @@ public class StudioSVC implements IrisService {
         IrisProject project = new IrisProject(new File(getWorkspaceFolder(), dimm));
         activeProject = project;
         project.open(sender, seed, onDone);
-    }
-
-    public void openVSCode(VolmitSender sender, String dim) {
-        new IrisProject(new File(getWorkspaceFolder(), dim)).openVSCode(sender);
     }
 
     public File getWorkspaceFolder(String... sub) {

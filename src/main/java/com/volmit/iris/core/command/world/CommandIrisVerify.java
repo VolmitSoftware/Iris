@@ -60,8 +60,8 @@ public class CommandIrisVerify extends MortarCommand {
                     MCAFile file = null;
                     try {
                         file = MCAUtil.read(i);
-                        int rx = Integer.parseInt(i.getName().split("\\Q.\\E")[1]);
-                        int rz = Integer.parseInt(i.getName().split("\\Q.\\E")[2]);
+                        int rx = Integer.valueOf(i.getName().split("\\Q.\\E")[1]);
+                        int rz = Integer.valueOf(i.getName().split("\\Q.\\E")[2]);
                         for (int j = 0; j < 32; j++) {
                             for (int k = 0; k < 32; k++) {
                                 f.incrementAndGet();

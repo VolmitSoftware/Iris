@@ -18,7 +18,6 @@
 
 package com.volmit.iris.core.service;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.decrees.DecIris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.collection.KList;
@@ -29,7 +28,7 @@ import com.volmit.iris.util.plugin.IrisService;
 public class CommandSVC implements IrisService, DecreeSystem {
     @Override
     public void onEnable() {
-         Iris.instance.getCommand("irisd").setExecutor(this);
+        // TODO Iris.instance.getCommand("irisd").setExecutor(this);
     }
 
     @Override

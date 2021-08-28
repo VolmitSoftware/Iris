@@ -28,13 +28,7 @@ import org.bukkit.World;
 public class WorldHandler implements DecreeParameterHandler<World> {
     @Override
     public KList<World> getPossibilities() {
-        KList<World> options = new KList<>();
-        for (World world : Bukkit.getWorlds()) {
-            if (!world.getName().toLowerCase().startsWith("iris/")){
-                options.add(world);
-            }
-        }
-        return options;
+        return new KList<>(Bukkit.getWorlds());
     }
 
     @Override

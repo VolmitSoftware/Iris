@@ -35,7 +35,7 @@ import com.volmit.iris.util.format.C;
 import java.io.File;
 import java.util.Objects;
 
-@Decree(name = "irisd", aliases = {"ird"}, description = "Basic Command")
+@Decree(name = "iris", aliases = {"ir", "irs"}, description = "Basic Command")
 public class DecIris implements DecreeExecutor {
     private DecStudio studio;
 

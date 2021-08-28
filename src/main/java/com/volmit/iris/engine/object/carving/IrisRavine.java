@@ -21,19 +21,23 @@ package com.volmit.iris.engine.object.carving;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.basic.IrisRange;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.noise.IrisShapedGeneratorStyle;
 import com.volmit.iris.engine.object.noise.IrisWorm;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.matter.slices.CavernMatter;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -53,8 +57,11 @@ public class IrisRavine extends IrisRegistrant {
     @Desc("Define the shape of this ravine (2d, ignores Y)")
     private IrisWorm worm;
 
-    @Desc("Define potential forking features")
+    @RegistryListResource(IrisBiome.class)
+    @Desc("Force this cave to only generate the specified custom biome")
+    private String customBiome = "";
 
+    @Desc("Define potential forking features")
     private IrisCarving fork = new IrisCarving();
 
     @Desc("The style used to determine the curvature of this worm's y")
@@ -81,6 +88,7 @@ public class IrisRavine extends IrisRegistrant {
     @Desc("The thickness of the ravine ribs")
     private double ribThickness = 3;
 
+    private transient final AtomicCache<MatterCavern> matterNodeCache = new AtomicCache<>();
     @Override
     public String getFolderName() {
         return "ravines";
@@ -109,7 +117,7 @@ public class IrisRavine extends IrisRegistrant {
             int width = (int) Math.round(bw.fitDouble(baseWidthStyle.getMin(), baseWidthStyle.getMax(), p.getX(), p.getZ()));
             int surface = (int) Math.round(rsurface - depth * 0.45);
 
-            fork.doCarving(writer, rng, engine, p.getX(), rng.r.i(surface-depth, surface), p.getZ());
+            fork.doCarving(writer, rng, engine, p.getX(), rng.i(surface-depth, surface), p.getZ());
 
             for(int i = surface + depth; i >= surface; i--)
             {
@@ -126,7 +134,7 @@ public class IrisRavine extends IrisRegistrant {
                         break;
                     }
 
-                    writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, CavernMatter.ON);
+                    writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, matterNodeCache.aquire(() -> CavernMatter.get(getCustomBiome())));
                 }
             }
 
@@ -145,7 +153,7 @@ public class IrisRavine extends IrisRegistrant {
                         break;
                     }
 
-                    writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, CavernMatter.ON);
+                    writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, matterNodeCache.aquire(() -> CavernMatter.get(getCustomBiome())));
                 }
             }
         }

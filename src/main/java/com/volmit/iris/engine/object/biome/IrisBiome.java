@@ -175,6 +175,11 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
     private KList<IrisBiomePaletteLayer> layers = new KList<IrisBiomePaletteLayer>().qadd(new IrisBiomePaletteLayer());
 
+    @Required
+    @ArrayType(min = 1, type = IrisBiomePaletteLayer.class)
+    @Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
+    private KList<IrisBiomePaletteLayer> caveCeilingLayers = new KList<IrisBiomePaletteLayer>().qadd(new IrisBiomePaletteLayer());
+
     @ArrayType(min = 1, type = IrisBiomePaletteLayer.class)
     @Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
     private KList<IrisBiomePaletteLayer> seaLayers = new KList<>();
@@ -365,6 +370,52 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
                 try {
                     data.add(getLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getZoom(), j, (wz - j) / layers.get(i).getZoom(), rdata));
+                } catch (Throwable e) {
+                    Iris.reportError(e);
+                    e.printStackTrace();
+                }
+            }
+
+            if (data.size() >= maxDepth) {
+                break;
+            }
+
+            if (dim.isExplodeBiomePalettes()) {
+                for (int j = 0; j < dim.getExplodeBiomePaletteSize(); j++) {
+                    data.add(BARRIER);
+
+                    if (data.size() >= maxDepth) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        return data;
+    }
+
+    public KList<BlockData> generateCeilingLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
+        KList<BlockData> data = new KList<>();
+
+        if (maxDepth <= 0) {
+            return data;
+        }
+
+        for (int i = 0; i < layers.size(); i++) {
+            CNG hgen = getLayerHeightGenerators(random, rdata).get(i);
+            double d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getZoom(), wz / layers.get(i).getZoom());
+
+            if (d <= 0) {
+                continue;
+            }
+
+            for (int j = 0; j < d; j++) {
+                if (data.size() >= maxDepth) {
+                    break;
+                }
+
+                try {
+                    data.add(getCaveCeilingLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getZoom(), j, (wz - j) / layers.get(i).getZoom(), rdata));
                 } catch (Throwable e) {
                     Iris.reportError(e);
                     e.printStackTrace();

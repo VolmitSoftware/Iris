@@ -25,4 +25,5 @@ import lombok.Data;
 @AllArgsConstructor
 public class MatterCavern {
     private final boolean cavern;
+    private final String customBiome;
 }

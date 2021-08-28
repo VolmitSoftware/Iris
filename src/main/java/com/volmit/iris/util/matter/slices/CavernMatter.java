@@ -29,8 +29,18 @@ import java.io.IOException;
 
 @Sliced
 public class CavernMatter extends RawMatter<MatterCavern> {
-    public static final MatterCavern ON = new MatterCavern(true);
-    public static final MatterCavern OFF = new MatterCavern(false);
+    public static final MatterCavern ON = new MatterCavern(true, "");
+    public static final MatterCavern OFF = new MatterCavern(false, "");
+
+    public static MatterCavern get(String customBiome)
+    {
+        if(customBiome.isEmpty())
+        {
+            return ON;
+        }
+
+        return new MatterCavern(true, customBiome);
+    }
 
     public CavernMatter() {
         this(1, 1, 1);
@@ -43,10 +53,14 @@ public class CavernMatter extends RawMatter<MatterCavern> {
     @Override
     public void writeNode(MatterCavern b, DataOutputStream dos) throws IOException {
         dos.writeBoolean(b.isCavern());
+        dos.writeUTF(b.getCustomBiome());
     }
 
     @Override
     public MatterCavern readNode(DataInputStream din) throws IOException {
-        return din.readBoolean() ? ON : OFF;
+        boolean b = din.readBoolean();
+        String v = din.readUTF();
+
+        return v.isEmpty() ? b ? ON : OFF : new MatterCavern(b, v);
     }
 }

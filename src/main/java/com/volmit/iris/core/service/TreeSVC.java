@@ -147,6 +147,11 @@ public class TreeSVC implements IrisService {
             }
 
             @Override
+            public boolean isCarved(int x, int y, int z) {
+                return false;
+            }
+
+            @Override
             public boolean isSolid(int x, int y, int z) {
                 return get(x, y, z).getMaterial().isSolid();
             }

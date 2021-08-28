@@ -34,6 +34,8 @@ public interface IObjectPlacer {
 
     boolean isPreventingDecay();
 
+    boolean isCarved(int x, int y, int z);
+
     boolean isSolid(int x, int y, int z);
 
     boolean isUnderwater(int x, int z);

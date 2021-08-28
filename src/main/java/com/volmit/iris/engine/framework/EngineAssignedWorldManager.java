@@ -56,7 +56,7 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
     @EventHandler
     public void on(IrisEngineHotloadEvent e) {
         for (Player i : e.getEngine().getWorld().getPlayers()) {
-            i.playSound(i.getLocation(), Sound.ITEM_TRIDENT_RETURN, 1f, 1.6f);
+            i.playSound(i.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_BREAK, 1f, 1.8f);
             VolmitSender s = new VolmitSender(i);
             s.sendTitle(C.IRIS + "Engine " + C.AQUA + "<font:minecraft:uniform>Hotloaded", 70, 60, 410);
         }

@@ -246,11 +246,25 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         {
             getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.UPDATE, () -> J.s(() -> {
                 PrecisionStopwatch p = PrecisionStopwatch.start();
-
+                KMap<Long, Integer> updates = new KMap<>();
+                RNG r = new RNG(Cache.key(c.getX(), c.getZ()));
                 getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, y, z, v) -> {
-                    update(x, y, z, c, new RNG(Cache.key(c.getX(), c.getZ())));
+                    if(B.isAir(c.getBlock(x & 15, y, z & 15).getBlockData()))
+                    {
+                        return;
+                    }
+
+                    updates.compute(Cache.key(x & 15, z & 15), (k,vv) -> {
+                        if(vv != null)
+                        {
+                            return Math.max(vv, y);
+                        }
+
+                        return y;
+                    });
                 });
 
+                updates.forEach((k,v) -> update(Cache.keyX(k), v, Cache.keyZ(k), c, r));
                 getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterUpdate.class, (x, y, z, v) -> {
                     if (v != null && v.isUpdate()) {
                         int vx = x & 15;
@@ -261,7 +275,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                         }
                     }
                 });
-
 
                 getMantle().getMantle().deleteChunkSlice(c.getX(), c.getZ(), MatterCavern.class);
                 getMantle().getMantle().deleteChunkSlice(c.getX(), c.getZ(), MatterUpdate.class);

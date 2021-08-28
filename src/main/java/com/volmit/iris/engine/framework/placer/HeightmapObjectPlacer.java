@@ -57,6 +57,11 @@ public class HeightmapObjectPlacer implements IObjectPlacer {
         return oplacer.isPreventingDecay();
     }
 
+    @Override
+    public boolean isCarved(int x, int y, int z) {
+        return false;
+    }
+
     public boolean isSolid(int param1Int1, int param1Int2, int param1Int3) {
         return oplacer.isSolid(param1Int1, param1Int2, param1Int3);
     }

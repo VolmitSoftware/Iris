@@ -122,6 +122,11 @@ public class MantleWriter implements IObjectPlacer {
     }
 
     @Override
+    public boolean isCarved(int x, int y, int z) {
+        return getEngineMantle().isCarved(x, y, z);
+    }
+
+    @Override
     public boolean isSolid(int x, int y, int z) {
         return getEngineMantle().isSolid(x, y, z);
     }

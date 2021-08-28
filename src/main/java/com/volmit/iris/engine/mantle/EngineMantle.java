@@ -84,6 +84,11 @@ public interface EngineMantle extends IObjectPlacer {
         return getComplex().getTrueHeightStream().get(x, z);
     }
 
+    default boolean isCarved(int x, int h, int z)
+    {
+        return getMantle().get(x, h, z, MatterCavern.class) != null;
+    }
+
     @Override
     default void set(int x, int y, int z, BlockData d) {
         getMantle().set(x, y, z, d == null ? AIR : d);

@@ -94,7 +94,6 @@ public class MantleObjectComponent extends IrisMantleComponent {
             int zz = rng.i(z, z + 15);
             int id = rng.i(0, Integer.MAX_VALUE);
 
-
             int h = v.place(xx, -1, zz, writer, objectPlacement, rng,
                     (b) -> writer.setData(b.getX(), b.getY(), b.getZ(),
                             v.getLoadKey() + "@" + id), null, getData());

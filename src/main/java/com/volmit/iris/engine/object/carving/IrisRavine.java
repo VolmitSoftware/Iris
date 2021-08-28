@@ -104,10 +104,12 @@ public class IrisRavine extends IrisRegistrant {
 
         for(IrisPosition p : pos)
         {
-            int rsurface = y == -1 ? engine.getHeight(p.getX(), p.getZ(), true) : y;
+            int rsurface = y == -1 ? engine.getComplex().getHeightStream().get(x, z).intValue() : y;
             int depth = (int) Math.round(dg.fitDouble(depthStyle.getMin(), depthStyle.getMax(), p.getX(), p.getZ()));
             int width = (int) Math.round(bw.fitDouble(baseWidthStyle.getMin(), baseWidthStyle.getMax(), p.getX(), p.getZ()));
             int surface = (int) Math.round(rsurface - depth * 0.45);
+
+            fork.doCarving(writer, rng, engine, p.getX(), rng.r.i(surface-depth, surface), p.getZ());
 
             for(int i = surface + depth; i >= surface; i--)
             {
@@ -115,6 +117,11 @@ public class IrisRavine extends IrisRegistrant {
                     double v = width + ((((surface + depth) - i) * (angle / 360D)));
 
                     if(v <= 0.25)
+                    {
+                        break;
+                    }
+
+                    if(i <= ribThickness+2)
                     {
                         break;
                     }
@@ -129,6 +136,11 @@ public class IrisRavine extends IrisRegistrant {
                     double v = width - ((((surface - depth) - i) * (angle / 360D)));
 
                     if(v <= 0.25)
+                    {
+                        break;
+                    }
+
+                    if(i <= ribThickness+2)
                     {
                         break;
                     }

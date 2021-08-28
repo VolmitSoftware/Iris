@@ -149,7 +149,7 @@ public class BoardSVC implements IrisService, BoardProvider {
 
         if (Iris.jobCount() > 0) {
             v.add("&7&m------------------");
-            v.add(C.LIGHT_PURPLE + "Tasks" + C.GRAY + ": " + Iris.jobCount());
+            v.add(C.LIGHT_PURPLE + "Tasks" + C.GRAY + ": " + Form.f(Iris.jobCount()));
         }
 
         v.add("&7&m------------------");

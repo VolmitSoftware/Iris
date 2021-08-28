@@ -62,6 +62,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     private final Looper looper;
     private final int id;
     private final KMap<Long, Long> chunkCooldowns;
+    private final KList<Runnable> updateQueue = new KList<>();
     private double energy = 25;
     private int entityCount = 0;
     private final ChronoLatch cl;
@@ -142,7 +143,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                     onAsyncTick();
                 }
 
-                return 50;
+                return 250;
             }
         };
         looper.setPriority(Thread.MIN_PRIORITY);
@@ -152,10 +153,18 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     private void updateChunks() {
         for (Player i : getEngine().getWorld().realWorld().getPlayers()) {
-            J.s(() -> {
-                Chunk c = i.getLocation().getChunk();
-                J.a(() -> getEngine().updateChunk(c));
-            }, RNG.r.i(0, 5));
+            int r = 2;
+            Chunk c = i.getLocation().getChunk();
+            for(int x = -r; x <= r; x++)
+            {
+                for(int z = -r; z <= r; z++)
+                {
+                    if(c.getWorld().isChunkLoaded(c.getX() + x, c.getZ() + z))
+                    {
+                        getEngine().updateChunk(c.getWorld().getChunkAt(c.getX() + x, c.getZ() + z));
+                    }
+                }
+            }
         }
     }
 
@@ -372,6 +381,10 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 () -> J.a(() -> spawnIn(e, true), RNG.r.i(5, 200))));
         energy += 0.3;
         fixEnergy();
+        if(!getMantle().hasFlag(e.getX(), e.getZ(), MantleFlag.UPDATE))
+        {
+            J.a(() -> getEngine().updateChunk(e),20);
+        }
     }
 
     public Mantle getMantle() {

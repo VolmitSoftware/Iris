@@ -28,6 +28,7 @@ import it.unimi.dsi.fastutil.ints.IntSets;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
 
 import java.util.Arrays;
@@ -509,5 +510,9 @@ public class B {
         }
 
         return bt.toArray(new String[0]);
+    }
+
+    public static boolean isWaterLogged(BlockData b) {
+        return (b instanceof Waterlogged) && ((Waterlogged)b).isWaterlogged();
     }
 }

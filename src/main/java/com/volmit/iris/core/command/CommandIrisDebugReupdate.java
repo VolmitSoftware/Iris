@@ -19,22 +19,19 @@
 package com.volmit.iris.core.command;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.plugin.Command;
+import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
+import org.bukkit.Chunk;
 
-public class CommandIrisDebug extends MortarCommand {
-    @Command
-    private CommandIrisDebugSpawnerBoost boost;
-    @Command
-    private CommandIrisDebugReupdate reupdate;
-
-    public CommandIrisDebug() {
-        super("debug", "dbg");
+public class CommandIrisDebugReupdate extends MortarCommand {
+    public CommandIrisDebugReupdate() {
+        super("reupdate", "rupt");
         requiresPermission(Iris.perm.studio);
-        setDescription("Toggle debug mode");
+        setDescription("Force update a chunk again");
         setCategory("Studio");
     }
 
@@ -46,10 +43,11 @@ public class CommandIrisDebug extends MortarCommand {
 
     @Override
     public boolean handle(VolmitSender sender, String[] args) {
-        IrisSettings.get().getGeneral().setDebug(!IrisSettings.get().getGeneral().isDebug());
-        IrisSettings.get().forceSave();
-        sender.sendMessage("Debug Mode: " + (IrisSettings.get().getGeneral().isDebug() ? "Enabled" : "Disabled"));
 
+        Chunk c = sender.player().getLocation().getChunk();
+        Engine e =  IrisToolbelt.access(sender.player().getWorld()).getEngine();
+        e.getMantle().getMantle().flag(c.getX(), c.getZ(), MantleFlag.UPDATE, false);
+        e.updateChunk(c);
         return true;
     }
 

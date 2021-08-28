@@ -45,6 +45,7 @@ import org.zeroturnaround.zip.commons.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 public class StudioSVC implements IrisService {
     public static final String LISTING = "https://raw.githubusercontent.com/IrisDimensions/_listing/main/listing-v2.json";
@@ -322,7 +323,7 @@ public class StudioSVC implements IrisService {
 
     public void open(VolmitSender sender, long seed, String dimm) {
         try {
-            open(sender, seed, dimm, () -> {
+            open(sender, seed, dimm, (w) -> {
             });
         } catch (Exception e) {
             Iris.reportError(e);
@@ -331,7 +332,7 @@ public class StudioSVC implements IrisService {
         }
     }
 
-    public void open(VolmitSender sender, long seed, String dimm, Runnable onDone) throws IrisException {
+    public void open(VolmitSender sender, long seed, String dimm, Consumer<World> onDone) throws IrisException {
         if (isProjectOpen()) {
             close();
         }

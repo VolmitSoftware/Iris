@@ -38,6 +38,7 @@ import com.volmit.iris.util.math.KochanekBartelsInterpolation;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.PathInterpolation;
 import com.volmit.iris.util.matter.Matter;
+import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.HyperLock;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -505,5 +506,9 @@ public class Mantle {
 
     public MantleChunk getChunk(Chunk e) {
         return getChunk(e.getX(), e.getZ());
+    }
+
+    public void deleteChunkSlice(int x, int z, Class<?> c) {
+        getChunk(x, z).deleteSlices(c);
     }
 }

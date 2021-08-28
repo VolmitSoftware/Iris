@@ -21,6 +21,7 @@ package com.volmit.iris.engine.modifier;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
+import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
 import com.volmit.iris.engine.object.objects.IrisObject;
@@ -39,6 +40,8 @@ import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 
+import java.util.Set;
+
 public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     private final RNG rng;
     private final BlockData AIR = Material.CAVE_AIR.createBlockData();
@@ -53,11 +56,10 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         Mantle mantle = getEngine().getMantle().getMantle();
         MantleChunk mc = getEngine().getMantle().getMantle().getChunk(x, z);
+
         mc.iterate(MatterCavern.class, (xx, yy, zz, c) -> {
             int rx = xx & 15;
             int rz = zz & 15;
-            boolean caveAbove = mantle.get(xx, yy+1, zz, MatterCavern.class) != null;
-            BlockData currentAbove = output.get(rx, yy+1, rz);
             BlockData current = output.get(rx, yy, rz);
 
             if(current.getMaterial().isAir())
@@ -65,21 +67,9 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 return;
             }
 
-            if(B.isFluid(currentAbove) && !caveAbove)
-            {
-                getEngine().getMantle().updateBlock(xx, yy+1, zz);
-            }
-
             if(B.isFluid(current))
             {
-                getEngine().getMantle().updateBlock(xx, yy, zz);
                 return;
-            }
-
-            if(B.isFoliage(currentAbove) && !caveAbove)
-            {
-                output.set(rx, yy+1, rz, AIR);
-                getEngine().getMantle().updateBlock(xx, yy+2, zz);
             }
 
             output.set(rx, yy, rz, AIR);

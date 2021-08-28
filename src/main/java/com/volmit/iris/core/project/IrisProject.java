@@ -56,6 +56,7 @@ import com.volmit.iris.util.scheduling.jobs.ParallelQueueJob;
 import lombok.Data;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.World;
 import org.zeroturnaround.zip.ZipUtil;
 
 import java.awt.*;
@@ -63,6 +64,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 @SuppressWarnings("ALL")
 @Data
@@ -99,12 +101,12 @@ public class IrisProject {
     }
 
     public void open(VolmitSender sender) throws IrisException {
-        open(sender, 1337, () ->
+        open(sender, 1337, (w) ->
         {
         });
     }
 
-    public void open(VolmitSender sender, long seed, Runnable onDone) throws IrisException {
+    public void open(VolmitSender sender, long seed, Consumer<World> onDone) throws IrisException {
         if (isOpen()) {
             close();
         }
@@ -171,13 +173,20 @@ public class IrisProject {
         });
 
 
-        J.a(() -> activeProvider = (PlatformChunkGenerator) IrisToolbelt.createWorld()
-                .seed(seed)
-                .sender(sender)
-                .studio(true)
-                .name("iris/" + UUID.randomUUID())
-                .dimension(d.getLoadKey())
-                .create().getGenerator());
+        J.a(() -> {
+            try {
+                activeProvider = (PlatformChunkGenerator) IrisToolbelt.createWorld()
+                        .seed(seed)
+                        .sender(sender)
+                        .studio(true)
+                        .name("iris/" + UUID.randomUUID())
+                        .dimension(d.getLoadKey())
+                        .create().getGenerator();
+                onDone.accept(activeProvider.getTarget().getWorld().realWorld());
+            } catch (IrisException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     public void close() {

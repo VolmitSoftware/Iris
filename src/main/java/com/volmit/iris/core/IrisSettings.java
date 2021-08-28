@@ -102,6 +102,7 @@ public class IrisSettings {
         public boolean keepProductionOnReload = false;
         public boolean pluginMetrics = true;
         public boolean splashLogoStartup = true;
+        public boolean autoStartDefaultStudio = false;
         public String forceMainWorld = "";
         public int spinh = -20;
         public int spins = 7;

@@ -245,7 +245,7 @@ public class DecObject implements DecreeExecutor {
                 }
             }
         } else {
-            sender().sendMessage("Placed " + object);
+            sender().sendMessage("Placed " + "objects/" + o.getLoadKey() + ".iob ");
         }
     }
 

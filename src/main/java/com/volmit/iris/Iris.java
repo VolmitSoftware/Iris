@@ -93,12 +93,6 @@ public class Iris extends VolmitPlugin implements Listener {
     @Permission
     public static PermissionIris perm;
 
-    @com.volmit.iris.util.plugin.Command
-    public CommandIris commandIris;
-
-    @com.volmit.iris.util.plugin.Command
-    public CommandIrisStudio commandStudio;
-
     public static VolmitSender getSender() {
         return sender;
     }

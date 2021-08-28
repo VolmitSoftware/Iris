@@ -92,7 +92,16 @@ public class DecStudio implements DecreeExecutor {
         Iris.service(StudioSVC.class).open(sender(), seed, dimension.getLoadKey());
     }
 
-    @Decree(description = "Close an open studio project", aliases = "x", sync = true)
+    @Decree(description = "Open VSCode for a dimension", aliases = {"vsc", "edit"})
+    public void vscode(
+            @Param(defaultValue = "overworld", description = "The dimension to open VSCode for", aliases = "dim")
+                    IrisDimension dimension
+    ) {
+        sender().sendMessage(C.GREEN + "Opening VSCode for the \"" + dimension.getName() + "\" pack");
+        Iris.service(StudioSVC.class).openVSCode(sender(), dimension.getLoadKey());
+    }
+
+    @Decree(description = "Close an open studio project", aliases = {"x", "c"}, sync = true)
     public void close() {
         if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender().sendMessage(C.RED + "No open studio projects.");
@@ -317,9 +326,9 @@ public class DecStudio implements DecreeExecutor {
 
     @Decree(description = "Find any biome or region", aliases = {"goto", "g"}, origin = DecreeOrigin.PLAYER)
     public void find(
-            @Param(description = "The biome to find", contextual = true)
+            @Param(description = "The biome or region to find", defaultValue = "null")
                     IrisBiome biome,
-            @Param(description = "The region to find", contextual = true)
+            @Param(description = "The region to find", defaultValue = "null")
                     IrisRegion region
     ) {
         if (!IrisToolbelt.isIrisWorld(world())) {
@@ -328,35 +337,45 @@ public class DecStudio implements DecreeExecutor {
         }
 
         if (biome == null && region == null) {
-            sender().sendMessage(C.RED + "You must specify a biome or region!");
+            sender().sendMessage(C.RED + "You must specify a biome= or region=!");
             return;
         }
 
-        IrisPosition l = null;
+        IrisPosition regionPosition = null;
         if (region != null) {
-            l = engine().lookForRegion(region, 10000, (v) -> sender().sendMessage("Looking for the " + C.BOLD + C.WHITE + region.getName() + C.RESET + C.GRAY + " region: Checked " + Form.f(v) + " Places"));
-            if (l == null) {
+            regionPosition = engine().lookForRegion(region, 10000, (v) -> sender().sendMessage("Looking for the " + C.BOLD + C.WHITE + region.getName() + C.RESET + C.GRAY + " region: Checked " + Form.f(v) + " Places"));
+            if (regionPosition == null) {
                 sender().sendMessage(C.YELLOW + "Couldn't find the " + region.getName() + " region.");
             } else {
                 sender().sendMessage(C.GREEN + "Found the " + region.getName() + " region!.");
             }
         }
 
-        if (l == null && biome != null) {
-            l = engine().lookForBiome(biome, 10000, (v) -> sender().sendMessage("Looking for the " + C.BOLD + C.WHITE + biome.getName() + C.RESET + C.GRAY + " biome: Checked " + Form.f(v) + " Places"));
-            if (l == null) {
+        IrisPosition biomePosition = null;
+        if (biome != null) {
+            biomePosition = engine().lookForBiome(biome, 10000, (v) -> sender().sendMessage("Looking for the " + C.BOLD + C.WHITE + biome.getName() + C.RESET + C.GRAY + " biome: Checked " + Form.f(v) + " Places"));
+            if (biomePosition == null) {
                 sender().sendMessage(C.YELLOW + "Couldn't find the " + biome.getName() + " biome.");
             } else {
                 sender().sendMessage(C.GREEN + "Found the " + biome.getName() + " biome!.");
             }
         }
 
-        if (l == null) {
-            sender().sendMessage(C.RED + "Could not find the region and / or biome you specified.");
-            return;
+        if (regionPosition == null && region != null) {
+            sender().sendMessage(C.RED + "Could not find the region you specified.");
+        } else if (regionPosition != null){
+            sender().sendMessage(C.GREEN + "Found the region at: " + regionPosition.toString());
+        }
+        if (biomePosition == null && biome != null) {
+            sender().sendMessage(C.RED + "Could not find the biome you specified.");
+        } else if (biomePosition != null){
+            sender().sendMessage(C.GREEN + "Found the biome at: " + biomePosition.toString());
         }
 
-        final IrisPosition finalL = l;
+        final IrisPosition finalL = regionPosition == null ? biomePosition : regionPosition;
+        if (finalL == null) {
+            return;
+        }
         J.s(() -> player().teleport(finalL.toLocation(world())));
     }
 
@@ -365,6 +384,7 @@ public class DecStudio implements DecreeExecutor {
         if (noStudio()) return;
 
         access().hotload();
+        sender().sendMessage(C.GREEN + "Hotloaded");
     }
 
     @Decree(description = "Show loot if a chest were right here", origin = DecreeOrigin.PLAYER, sync = true)
@@ -681,8 +701,17 @@ public class DecStudio implements DecreeExecutor {
             @Param(description = "Whether or not to show information about the block you are holding", defaultValue = "true")
                     boolean hand
     ) {
+        if (engine() == null) {
+            sender().sendMessage(C.RED + "You must be in an Iris world!");
+            return;
+        }
         // Data
-        BlockData handHeld = player().getInventory().getItemInMainHand().getType().createBlockData();
+        BlockData handHeld = null;
+        try {
+            handHeld = player().getInventory().getItemInMainHand().getType().createBlockData();
+        } catch (Throwable e) {
+            sender().sendMessage("Could not get data for hand-held item");
+        }
         Block targetBlock = player().getTargetBlockExact(128, FluidCollisionMode.NEVER);
         BlockData targetBlockData;
         if (targetBlock == null) {
@@ -744,6 +773,9 @@ public class DecStudio implements DecreeExecutor {
         }
 
         // Hand-held
+        if (handHeld == null){
+            return;
+        }
         if (!handHeld.getMaterial().equals(Material.AIR)) {
             sender().sendMessage(C.YELLOW + "No block held");
         } else if (hand) {

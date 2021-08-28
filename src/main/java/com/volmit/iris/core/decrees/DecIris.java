@@ -136,8 +136,9 @@ public class DecIris implements DecreeExecutor {
             @Param(name = "on", description = "Whether or not debug should be on", defaultValue = "other")
                     Boolean on
     ) {
-        IrisSettings.get().getGeneral().setDebug(Objects.requireNonNullElseGet(on, () -> !IrisSettings.get().getGeneral().isDebug()));
-        sender().sendMessage();
+        boolean to = on == null ? !IrisSettings.get().getGeneral().isDebug() : on;
+        IrisSettings.get().getGeneral().setDebug(to);
+        sender().sendMessage(C.GREEN + "Set debug to: " + to);
     }
 
     @Decree(description = "Download a project.", aliases = "dl")

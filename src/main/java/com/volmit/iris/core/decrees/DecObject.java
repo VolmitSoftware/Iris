@@ -1,7 +1,9 @@
 package com.volmit.iris.core.decrees;
 
-import com.volmit.iris.core.command.object.CommandIrisObjectUndo;
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.service.ObjectSVC;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
@@ -26,6 +28,7 @@ import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 
 import java.io.File;
 import java.io.IOException;
@@ -188,7 +191,7 @@ public class DecObject implements DecreeExecutor {
     private static final Set<Material> skipBlocks = Set.of(Material.GRASS, Material.SNOW, Material.VINE, Material.TORCH, Material.DEAD_BUSH,
             Material.POPPY, Material.DANDELION);
 
-    @Decree(description = "Paste an object")
+    @Decree(description = "Paste an object", sync = true)
     public void paste(
             @Param(description = "The object to paste", customHandler = ObjectHandler.class)
             String object,
@@ -381,5 +384,96 @@ public class DecObject implements DecreeExecutor {
         int actualReverts = Math.min(service.getUndos().size(), amount);
         service.revertChanges(actualReverts);
         sender().sendMessage("Reverted " + actualReverts + " pastes!");
+    }
+
+    @Decree(description = "Get an object wand", sync = true)
+    public void wand() {
+        player().getInventory().addItem(WandSVC.createWand());
+        sender().playSound(Sound.ITEM_ARMOR_EQUIP_NETHERITE, 1f, 1.5f);
+        sender().sendMessage(C.GREEN + "Poof! Good luck building!");
+    }
+
+    @Decree(name = "x&y", description = "Autoselect up, down & out", sync = true)
+    public void xay(){
+        if (!WandSVC.isHoldingWand(player())){
+            sender().sendMessage(C.YELLOW + "Hold your wand!");
+            return;
+        }
+
+        Location[] b = WandSVC.getCuboid(player().getInventory().getItemInMainHand());
+        Location a1 = b[0].clone();
+        Location a2 = b[1].clone();
+        Location a1x = b[0].clone();
+        Location a2x = b[1].clone();
+        Cuboid cursor = new Cuboid(a1, a2);
+        Cuboid cursorx = new Cuboid(a1, a2);
+
+        while (!cursor.containsOnly(Material.AIR)) {
+            a1.add(new org.bukkit.util.Vector(0, 1, 0));
+            a2.add(new org.bukkit.util.Vector(0, 1, 0));
+            cursor = new Cuboid(a1, a2);
+        }
+
+        a1.add(new org.bukkit.util.Vector(0, -1, 0));
+        a2.add(new org.bukkit.util.Vector(0, -1, 0));
+
+        while (!cursorx.containsOnly(Material.AIR)) {
+            a1x.add(new org.bukkit.util.Vector(0, -1, 0));
+            a2x.add(new org.bukkit.util.Vector(0, -1, 0));
+            cursorx = new Cuboid(a1x, a2x);
+        }
+
+        a1x.add(new org.bukkit.util.Vector(0, 1, 0));
+        a2x.add(new Vector(0, 1, 0));
+        b[0] = a1;
+        b[1] = a2x;
+        cursor = new Cuboid(b[0], b[1]);
+        cursor = cursor.contract(Cuboid.CuboidDirection.North);
+        cursor = cursor.contract(Cuboid.CuboidDirection.South);
+        cursor = cursor.contract(Cuboid.CuboidDirection.East);
+        cursor = cursor.contract(Cuboid.CuboidDirection.West);
+        b[0] = cursor.getLowerNE();
+        b[1] = cursor.getUpperSW();
+        player().getInventory().setItemInMainHand(WandSVC.createWand(b[0], b[1]));
+        player().updateInventory();
+        sender().playSound(Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
+        sender().sendMessage(C.GREEN + "Auto-select complete!");
+    }
+
+    @Decree(name = "x+y", description = "Autoselect up & out", sync = true)
+    public void xpy() {
+        if (!WandSVC.isHoldingWand(player())) {
+            sender().sendMessage(C.YELLOW + "Hold your wand!");
+            return;
+        }
+
+        Location[] b = WandSVC.getCuboid(player().getInventory().getItemInMainHand());
+        b[0].add(new Vector(0, 1, 0));
+        b[1].add(new Vector(0, 1, 0));
+        Location a1 = b[0].clone();
+        Location a2 = b[1].clone();
+        Cuboid cursor = new Cuboid(a1, a2);
+
+        while (!cursor.containsOnly(Material.AIR)) {
+            a1.add(new Vector(0, 1, 0));
+            a2.add(new Vector(0, 1, 0));
+            cursor = new Cuboid(a1, a2);
+        }
+
+        a1.add(new Vector(0, -1, 0));
+        a2.add(new Vector(0, -1, 0));
+        b[0] = a1;
+        a2 = b[1];
+        cursor = new Cuboid(a1, a2);
+        cursor = cursor.contract(Cuboid.CuboidDirection.North);
+        cursor = cursor.contract(Cuboid.CuboidDirection.South);
+        cursor = cursor.contract(Cuboid.CuboidDirection.East);
+        cursor = cursor.contract(Cuboid.CuboidDirection.West);
+        b[0] = cursor.getLowerNE();
+        b[1] = cursor.getUpperSW();
+        player().getInventory().setItemInMainHand(WandSVC.createWand(b[0], b[1]));
+        player().updateInventory();
+        sender().playSound(Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
+        sender().sendMessage(C.GREEN + "Auto-select complete!");
     }
 }

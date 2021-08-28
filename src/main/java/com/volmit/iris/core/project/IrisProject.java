@@ -106,25 +106,9 @@ public class IrisProject {
         });
     }
 
-    public void open(VolmitSender sender, long seed, Consumer<World> onDone) throws IrisException {
-        if (isOpen()) {
-            close();
-        }
-
-        boolean hasError = false;
-
-        if (hasError) {
-            return;
-        }
+    public void openVSCode(VolmitSender sender) {
 
         IrisDimension d = IrisData.loadAnyDimension(getName());
-        if (d == null) {
-            sender.sendMessage("Can't find dimension: " + getName());
-            return;
-        } else if (sender.isPlayer()) {
-            sender.player().setGameMode(GameMode.SPECTATOR);
-        }
-
         J.attemptAsync(() ->
         {
             try {
@@ -171,6 +155,28 @@ public class IrisProject {
                 e.printStackTrace();
             }
         });
+    }
+
+    public void open(VolmitSender sender, long seed, Consumer<World> onDone) throws IrisException {
+        if (isOpen()) {
+            close();
+        }
+
+        boolean hasError = false;
+
+        if (hasError) {
+            return;
+        }
+
+        IrisDimension d = IrisData.loadAnyDimension(getName());
+        if (d == null) {
+            sender.sendMessage("Can't find dimension: " + getName());
+            return;
+        } else if (sender.isPlayer()) {
+            sender.player().setGameMode(GameMode.SPECTATOR);
+        }
+
+        openVSCode(sender);
 
 
         J.a(() -> {

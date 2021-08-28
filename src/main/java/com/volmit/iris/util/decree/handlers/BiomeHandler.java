@@ -56,6 +56,9 @@ public class BiomeHandler implements DecreeParameterHandler<IrisBiome> {
 
     @Override
     public IrisBiome parse(String in) throws DecreeParsingException, DecreeWhichException {
+        if (in.equals("null")) {
+            return null;
+        }
         try {
             KList<IrisBiome> options = getPossibilities(in);
 

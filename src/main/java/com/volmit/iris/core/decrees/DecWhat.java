@@ -16,6 +16,7 @@ import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
+import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.json.JSONObject;
@@ -44,66 +45,6 @@ import java.util.Objects;
 @Decree(name = "what", aliases = "?", description = "Find information on the world around you", origin = DecreeOrigin.PLAYER)
 public class DecWhat implements DecreeExecutor {
 
-    @Decree(description = "Get information about the biome your are currently in")
-    public void biome() {
-        if (IrisToolbelt.isIrisWorld(player().getWorld())) {
-            IrisBiome b = engine().getBiome(player().getLocation());
-            sender().sendMessage(C.GREEN + "IrisBiome: " + b.getLoadKey() + " (" + b.getDerivative().name() + ")");
-        } else {
-            sender().sendMessage(C.YELLOW + "Non-Iris Biome: " + player().getLocation().getBlock().getBiome().name());
-            if (player().getLocation().getBlock().getBiome().equals(Biome.CUSTOM)) {
-                try {
-                    sender().sendMessage(C.YELLOW + "Data Pack Biome: " + INMS.get().getTrueBiomeBaseKey(player().getLocation()) + " (ID: " + INMS.get().getTrueBiomeBaseId(INMS.get().getTrueBiomeBase(player().getLocation())) + ")");
-                } catch (Throwable ee) {
-                    Iris.reportError(ee);
-                }
-            }
-        }
-    }
-
-    @Decree(description = "Get information about the block you are looking at")
-    public void block() {
-        Block target = player().getTargetBlockExact(128, FluidCollisionMode.NEVER);
-        if (target == null) {
-            sender().sendMessage(C.YELLOW + "Please look at a block, not at the sky");
-            return;
-        }
-
-        BlockData bd = target.getBlockData();
-
-
-        sender().sendMessage("Material: " + C.GREEN + bd.getMaterial().name());
-        sender().sendMessage("Full: " + C.WHITE + bd.getAsString(true));
-
-        if (B.isStorage(bd)) {
-            sender().sendMessage(C.YELLOW + "* Storage Block (Loot Capable)");
-        }
-
-        if (B.isLit(bd)) {
-            sender().sendMessage(C.YELLOW + "* Lit Block (Light Capable)");
-        }
-
-        if (B.isFoliage(bd)) {
-            sender().sendMessage(C.YELLOW + "* Foliage Block");
-        }
-
-        if (B.isDecorant(bd)) {
-            sender().sendMessage(C.YELLOW + "* Decorant Block");
-        }
-
-        if (B.isFluid(bd)) {
-            sender().sendMessage(C.YELLOW + "* Fluid Block");
-        }
-
-        if (B.isFoliagePlantable(bd)) {
-            sender().sendMessage(C.YELLOW + "* Plantable Foliage Block");
-        }
-
-        if (B.isSolid(bd)) {
-            sender().sendMessage(C.YELLOW + "* Solid Block");
-        }
-    }
-
     @Decree(aliases = "nf", description = "Get the noise feature data in your chunk")
     public void features() {
 
@@ -119,18 +60,20 @@ public class DecWhat implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Get information about the item you are holding", sync = true)
-    public void hand() {
-        BlockData bd = player().getInventory().getItemInMainHand().getType().createBlockData();
-
-        if (bd.getMaterial().equals(Material.AIR)){
-            sender().sendMessage(C.YELLOW + "Please hold a block/item");
-            return;
-        }
-
-        sender().sendMessage("Material: " + C.GREEN + bd.getMaterial().name());
-        sender().sendMessage("Full: " + C.WHITE + bd.getAsString(true));
-
+    @Decree(description = "Get information about the world around you", aliases = "location", studio = true)
+    public void me(
+            @Param(description = "Whether or not to show dimension information", defaultValue = "true")
+                    boolean dimension,
+            @Param(description = "Whether or not to show region information", defaultValue = "true")
+                    boolean region,
+            @Param(description = "Whether or not to show biome information", defaultValue = "true")
+                    boolean biome,
+            @Param(description = "Whether or not to show information about the block you are looking at", defaultValue = "true")
+                    boolean look,
+            @Param(description = "Whether or not to show information about the block you are holding", defaultValue = "true")
+                    boolean hand
+    ) {
+        new DecStudio().what(dimension, region, biome, look, hand);
     }
 
     @Decree(aliases = "capture", description = "Get information about nearby structures")

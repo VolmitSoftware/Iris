@@ -56,6 +56,9 @@ public class RegionHandler implements DecreeParameterHandler<IrisRegion> {
 
     @Override
     public IrisRegion parse(String in) throws DecreeParsingException, DecreeWhichException {
+        if (in.equals("null")) {
+            return null;
+        }
         try {
             KList<IrisRegion> options = getPossibilities(in);
 

@@ -30,6 +30,7 @@ import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
+import org.bukkit.block.data.type.PointedDripstone;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -437,7 +438,10 @@ public class B {
     }
 
     public static boolean isUpdatable(BlockData mat) {
-        return isLit(mat) || isStorage(mat);
+        return isLit(mat)
+                || isStorage(mat)
+                || (mat instanceof PointedDripstone
+                    && ((PointedDripstone)mat).getThickness().equals(PointedDripstone.Thickness.TIP));
     }
 
     public static boolean isFoliage(Material d) {

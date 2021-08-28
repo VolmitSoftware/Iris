@@ -20,6 +20,7 @@ package com.volmit.iris.core.command.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.service.ObjectSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.MortarCommand;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -34,7 +35,6 @@ import java.util.*;
 
 public class CommandIrisObjectUndo extends MortarCommand {
 
-    private static final Map<UUID, Deque<Map<Block, BlockData>>> undos = new HashMap<>();
 
     public CommandIrisObjectUndo() {
         super("undo", "u", "revert");
@@ -101,14 +101,14 @@ public class CommandIrisObjectUndo extends MortarCommand {
             sender.sendMessage("Please specify an amount greater than 0!");
             return true;
         }
-
-        if (!undos.containsKey(player) || undos.get(player).size() == 0) {
+        ObjectSVC service = Iris.service(ObjectSVC.class);
+        if (service.getUndos().size() == 0) {
             sender.sendMessage("No pastes to undo");
             return true;
         }
 
-        int actualReverts = Math.min(undos.get(player).size(), amount);
-        revertChanges(player, amount);
+        int actualReverts = Math.min(service.getUndos().size(), amount);
+        service.revertChanges(actualReverts);
         sender.sendMessage("Reverted " + actualReverts + " pastes!");
 
         return true;
@@ -117,49 +117,5 @@ public class CommandIrisObjectUndo extends MortarCommand {
     @Override
     protected String getArgsUsage() {
         return "[-number [num]] [-user [username]]";
-    }
-
-    public static void addChanges(Player player, Map<Block, BlockData> oldBlocks) {
-        if (!undos.containsKey(player.getUniqueId())) {
-            undos.put(player.getUniqueId(), new ArrayDeque<>());
-        }
-
-        undos.get(player.getUniqueId()).add(oldBlocks);
-    }
-
-    public static void revertChanges(UUID player, int amount) {
-        loopChange(player, amount);
-    }
-
-    private static void loopChange(UUID uuid, int amount) {
-        Deque<Map<Block, BlockData>> queue = undos.get(uuid);
-        if (queue != null && queue.size() > 0) {
-            revert(queue.pollLast());
-            if (amount > 1) {
-                J.s(() -> loopChange(uuid, amount - 1), 2);
-            }
-        }
-    }
-
-    /**
-     * Reverts all the block changes provided, 200 blocks per tick
-     *
-     * @param blocks The blocks to remove
-     */
-    private static void revert(Map<Block, BlockData> blocks) {
-        int amount = 0;
-        Iterator<Map.Entry<Block, BlockData>> it = blocks.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Block, BlockData> entry = it.next();
-            BlockData data = entry.getValue();
-            entry.getKey().setBlockData(data, false);
-            it.remove();
-
-            amount++;
-
-            if (amount > 200) {
-                J.s(() -> revert(blocks), 1);
-            }
-        }
     }
 }

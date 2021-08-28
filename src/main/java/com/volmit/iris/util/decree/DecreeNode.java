@@ -47,13 +47,21 @@ public class DecreeNode {
      * @return The list of parameters if ALL are annotated by @{@link Param}, else null
      */
     public KList<DecreeParameter> getParameters() {
-        KList<DecreeParameter> p = new KList<>();
+        KList<DecreeParameter> required = new KList<>();
+        KList<DecreeParameter> optional = new KList<>();
 
         for (Parameter i : method.getParameters()) {
-            p.add(new DecreeParameter(i));
+            DecreeParameter p = new DecreeParameter(i);
+            if (p.isRequired()){
+                required.add(p);
+            } else {
+                optional.add(p);
+            }
         }
+        
+        required.addAll(optional);
 
-        return p;
+        return required;
     }
 
     public String getName() {

@@ -150,6 +150,10 @@ public class B {
         IntSet b = new IntOpenHashSet();
         Arrays.stream(new Material[]{
                 GLOWSTONE,
+                AMETHYST_CLUSTER,
+                SMALL_AMETHYST_BUD,
+                MEDIUM_AMETHYST_BUD,
+                LARGE_AMETHYST_BUD,
                 END_ROD,
                 SOUL_SAND,
                 TORCH,
@@ -209,6 +213,10 @@ public class B {
         }).forEach((i) -> b.add(i.ordinal()));
 
         return IntSets.unmodifiable(b);
+    }
+
+    public static boolean isOre(BlockData blockData) {
+        return blockData.getMaterial().name().endsWith("_ORE");
     }
 
     private static IntSet buildStorageChestCache() {

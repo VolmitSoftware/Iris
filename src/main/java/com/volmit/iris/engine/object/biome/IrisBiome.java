@@ -401,9 +401,9 @@ public class IrisBiome extends IrisRegistrant implements IRare {
             return data;
         }
 
-        for (int i = 0; i < layers.size(); i++) {
+        for (int i = 0; i < caveCeilingLayers.size(); i++) {
             CNG hgen = getLayerHeightGenerators(random, rdata).get(i);
-            double d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getZoom(), wz / layers.get(i).getZoom());
+            double d = hgen.fit(caveCeilingLayers.get(i).getMinHeight(), caveCeilingLayers.get(i).getMaxHeight(), wx / caveCeilingLayers.get(i).getZoom(), wz / caveCeilingLayers.get(i).getZoom());
 
             if (d <= 0) {
                 continue;
@@ -415,7 +415,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
                 }
 
                 try {
-                    data.add(getCaveCeilingLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getZoom(), j, (wz - j) / layers.get(i).getZoom(), rdata));
+                    data.add(getCaveCeilingLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / caveCeilingLayers.get(i).getZoom(), j, (wz - j) / caveCeilingLayers.get(i).getZoom(), rdata));
                 } catch (Throwable e) {
                     Iris.reportError(e);
                     e.printStackTrace();

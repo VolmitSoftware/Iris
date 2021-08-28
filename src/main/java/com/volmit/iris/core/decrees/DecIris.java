@@ -33,6 +33,7 @@ import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 import com.volmit.iris.util.format.C;
 
 import java.io.File;
+import java.util.Objects;
 
 @Decree(name = "irisd", aliases = {"ird"}, description = "Basic Command")
 public class DecIris implements DecreeExecutor {
@@ -44,7 +45,9 @@ public class DecIris implements DecreeExecutor {
 
     private DecObject object;
 
-    @Decree(description = "Create a new world", aliases = {"+", "c"})
+    private DecWhat what;
+
+    @Decree(description = "Create a new world", aliases = "+")
     public void create(
             @Param(aliases = "world-name", description = "The name of the world to create")
                     String name,
@@ -130,14 +133,11 @@ public class DecIris implements DecreeExecutor {
 
     @Decree(description = "Toggle debug")
     public void debug(
-            @Param(description = "Whether or not debug should be on", defaultValue = "toggle")
+            @Param(name = "on", description = "Whether or not debug should be on", defaultValue = "other")
                     Boolean on
     ) {
-        if (on == null){
-            on = !IrisSettings.get().getGeneral().isDebug();
-        }
-        sender().sendMessage(C.GREEN + "Set debug to " + on);
-        IrisSettings.get().getGeneral().setDebug(on);
+        IrisSettings.get().getGeneral().setDebug(Objects.requireNonNullElseGet(on, () -> !IrisSettings.get().getGeneral().isDebug()));
+        sender().sendMessage();
     }
 
     @Decree(description = "Download a project.", aliases = "dl")

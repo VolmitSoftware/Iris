@@ -23,6 +23,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.block.IrisBlockData;
 import com.volmit.iris.engine.object.carving.IrisCave;
+import com.volmit.iris.engine.object.carving.IrisRavine;
 import com.volmit.iris.engine.object.common.IrisScript;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.entity.IrisEntity;
@@ -65,6 +66,7 @@ public class IrisData {
     private ResourceLoader<IrisObject> objectLoader;
     private ResourceLoader<IrisScript> scriptLoader;
     private ResourceLoader<IrisCave> caveLoader;
+    private ResourceLoader<IrisRavine> ravineLoader;
     private KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> loaders = new KMap<>();
     private boolean closed;
     private final File dataFolder;
@@ -210,6 +212,7 @@ public class IrisData {
         this.jigsawPieceLoader = registerLoader(IrisJigsawPiece.class);
         this.generatorLoader = registerLoader(IrisGenerator.class);
         this.caveLoader = registerLoader(IrisCave.class);
+        this.ravineLoader = registerLoader(IrisRavine.class);
         this.blockLoader = registerLoader(IrisBlockData.class);
         this.expressionLoader = registerLoader(IrisExpression.class);
         this.objectLoader = registerLoader(IrisObject.class);
@@ -278,6 +281,10 @@ public class IrisData {
 
     public static IrisScript loadAnyScript(String key) {
         return loadAny(key, (dm) -> dm.getScriptLoader().load(key, false));
+    }
+
+    public static IrisRavine loadAnyRavine(String key) {
+        return loadAny(key, (dm) -> dm.getRavineLoader().load(key, false));
     }
 
     public static IrisRegion loadAnyRegion(String key) {

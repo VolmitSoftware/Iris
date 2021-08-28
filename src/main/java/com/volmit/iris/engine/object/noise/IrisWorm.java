@@ -98,12 +98,12 @@ public class IrisWorm {
             cz += jz;
             IrisPosition next = new IrisPosition(Math.round(cx), Math.round(cy), Math.round(cz));
 
-            if(!verticalRange.contains(next.getY()))
+            if(verticalRange != null && !verticalRange.contains(next.getY()))
             {
                 break;
             }
 
-            if(!writer.isWithin((int)Math.round(cx), (int)Math.round(cy), (int)Math.round(cz)))
+            if(!writer.isWithin((int)Math.round(cx), verticalRange != null ? (int)Math.round(cy) : 5, (int)Math.round(cz)))
             {
                 break;
             }

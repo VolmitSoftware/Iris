@@ -226,6 +226,7 @@ public interface EngineMantle extends IObjectPlacer {
         }
 
         getMantle().iterateChunk(x, z, t, blocks::set);
+        getMantle().deleteChunkSlice(x, z, BlockData.class);
     }
 
     @BlockCoordinates

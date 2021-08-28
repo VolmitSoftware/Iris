@@ -41,6 +41,10 @@ public class IrisCarving {
     @Desc("Define cave placers")
     private KList<IrisCavePlacer> caves = new KList<>();
 
+    @ArrayType(type = IrisRavinePlacer.class, min = 1)
+    @Desc("Define ravine placers")
+    private KList<IrisRavinePlacer> ravines = new KList<>();
+
     @ArrayType(type = IrisElipsoid.class, min = 1)
     @Desc("Define elipsoids")
     private KList<IrisElipsoid> elipsoids = new KList<>();
@@ -53,8 +57,6 @@ public class IrisCarving {
     @Desc("Define pyramids")
     private KList<IrisPyramid> pyramids = new KList<>();
 
-
-
     @BlockCoordinates
     public void doCarving(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
         if(caves.isNotEmpty())
@@ -62,6 +64,14 @@ public class IrisCarving {
             for(IrisCavePlacer i : caves)
             {
                 i.generateCave(writer, rng, engine, x, y, z);
+            }
+        }
+
+        if(ravines.isNotEmpty())
+        {
+            for(IrisRavinePlacer i : ravines)
+            {
+                i.generateRavine(writer, rng, engine, x, y, z);
             }
         }
 

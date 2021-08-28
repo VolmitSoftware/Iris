@@ -1,9 +1,12 @@
 package com.volmit.iris.core.decrees;
 
-import com.volmit.iris.core.command.object.CommandIrisObjectUndo;
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.service.ObjectSVC;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
+import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.objects.IrisObject;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
 import com.volmit.iris.engine.object.objects.IrisObjectPlacementScaleInterpolator;
@@ -14,6 +17,7 @@ import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
+import com.volmit.iris.util.decree.specialhandlers.ObjectHandler;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.Direction;
 import com.volmit.iris.util.math.RNG;
@@ -24,23 +28,27 @@ import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 
+import java.io.File;
+import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Decree(name = "object", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris object manipulation")
+@Decree(name = "object", aliases = "o", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris object manipulation")
 public class DecObject implements DecreeExecutor {
 
     @Decree(description = "Check the composition of an object")
     public void analyze(
-            @Param(description = "The object to analyze")
-                    IrisObject object
+            @Param(description = "The object to analyze", customHandler = ObjectHandler.class)
+            String object
     ) {
-        sender().sendMessage("Object Size: " + object.getW() + " * " + object.getH() + " * " + object.getD() + "");
-        sender().sendMessage("Blocks Used: " + NumberFormat.getIntegerInstance().format(object.getBlocks().size()));
+        IrisObject o = IrisData.loadAnyObject(object);
+        sender().sendMessage("Object Size: " + o.getW() + " * " + o.getH() + " * " + o.getD() + "");
+        sender().sendMessage("Blocks Used: " + NumberFormat.getIntegerInstance().format(o.getBlocks().size()));
 
-        Queue<BlockData> queue = object.getBlocks().enqueueValues();
+        Queue<BlockData> queue = o.getBlocks().enqueueValues();
         Map<Material, Set<BlockData>> unsorted = new HashMap<>();
         Map<BlockData, Integer> amounts = new HashMap<>();
         Map<Material, Integer> materials = new HashMap<>();
@@ -183,21 +191,23 @@ public class DecObject implements DecreeExecutor {
     private static final Set<Material> skipBlocks = Set.of(Material.GRASS, Material.SNOW, Material.VINE, Material.TORCH, Material.DEAD_BUSH,
             Material.POPPY, Material.DANDELION);
 
-    @Decree(description = "Paste an object")
+    @Decree(description = "Paste an object", sync = true)
     public void paste(
-            @Param(description = "The object to paste")
-                    IrisObject object,
+            @Param(description = "The object to paste", customHandler = ObjectHandler.class)
+            String object,
             @Param(description = "Whether or not to edit the object (need to hold wand)", defaultValue = "false")
                     boolean edit,
             @Param(description = "The amount of degrees to rotate by", defaultValue = "0")
                     int rotate,
             @Param(description = "The factor by which to scale the object placement", defaultValue = "1")
-                    double scale,
-            @Param(description = "The scale interpolator to use", defaultValue = "none")
-                    IrisObjectPlacementScaleInterpolator interpolator
-    ) {
-        double maxScale = Double.max(10 - object.getBlocks().size() / 10000d, 1);
-        if (scale < maxScale) {
+            double scale
+//            ,
+//            @Param(description = "The scale interpolator to use", defaultValue = "none")
+//            IrisObjectPlacementScaleInterpolator interpolator
+    ){
+        IrisObject o = IrisData.loadAnyObject(object);
+        double maxScale = Double.max(10 - o.getBlocks().size() / 10000d, 1);
+        if (scale > maxScale){
             sender().sendMessage(C.YELLOW + "Indicated scale exceeds maximum. Downscaled to maximum: " + maxScale);
             scale = maxScale;
         }
@@ -212,30 +222,30 @@ public class DecObject implements DecreeExecutor {
 
         Map<Block, BlockData> futureChanges = new HashMap<>();
 
-        object = object.scaled(scale, interpolator);
-        object.place(block.getBlockX(), block.getBlockY() + (int) object.getCenter().getY(), block.getBlockZ(), createPlacer(block.getWorld(), futureChanges), placement, new RNG(), null);
+        o = o.scaled(scale, IrisObjectPlacementScaleInterpolator.TRICUBIC);
+        o.place(block.getBlockX(), block.getBlockY() + (int) o.getCenter().getY(), block.getBlockZ(), createPlacer(block.getWorld(), futureChanges), placement, new RNG(), null);
 
-        CommandIrisObjectUndo.addChanges(player(), futureChanges);
+        Iris.service(ObjectSVC.class).addChanges(futureChanges);
 
         if (edit) {
-            ItemStack newWand = WandSVC.createWand(block.clone().subtract(object.getCenter()).add(object.getW() - 1,
-                    object.getH() + object.getCenter().clone().getY() - 1, object.getD() - 1), block.clone().subtract(object.getCenter().clone().setY(0)));
+            ItemStack newWand = WandSVC.createWand(block.clone().subtract(o.getCenter()).add(o.getW() - 1,
+                    o.getH() + o.getCenter().clone().getY() - 1, o.getD() - 1), block.clone().subtract(o.getCenter().clone().setY(0)));
             if (WandSVC.isWand(wand)) {
                 wand = newWand;
                 player().getInventory().setItemInMainHand(wand);
-                sender().sendMessage("Updated wand for " + "objects/" + object.getLoadKey() + ".iob");
+                sender().sendMessage("Updated wand for " + "objects/" + o.getLoadKey() + ".iob ");
             } else {
                 int slot = WandSVC.findWand(player().getInventory());
                 if (slot == -1) {
                     player().getInventory().addItem(newWand);
-                    sender().sendMessage("Given new wand for " + "objects/" + object.getLoadKey() + ".iob");
+                    sender().sendMessage("Given new wand for " + "objects/" + o.getLoadKey() + ".iob ");
                 } else {
                     player().getInventory().setItem(slot, newWand);
-                    sender().sendMessage("Updated wand for " + "objects/" + object.getLoadKey() + ".iob");
+                    sender().sendMessage("Updated wand for " + "objects/" + o.getLoadKey() + ".iob ");
                 }
             }
         } else {
-            sender().sendMessage("Placed " + "objects/" + object.getLoadKey() + ".iob");
+            sender().sendMessage("Placed " + "objects/" + o.getLoadKey() + ".iob ");
         }
     }
 
@@ -308,4 +318,162 @@ public class DecObject implements DecreeExecutor {
         };
     }
 
+    @Decree(description = "Save an object")
+    public void save(
+            @Param(description = "The dimension to store the object in", contextual = true)
+            IrisDimension dimension,
+            @Param(description = "The file to store it in, can use / for subfolders")
+            String name,
+            @Param(description = "Overwrite existing object files", defaultValue = "false", aliases = "force")
+            boolean overwrite
+    ){
+        IrisObject o = WandSVC.createSchematic(player().getInventory().getItemInMainHand());
+
+        if (o == null) {
+            sender().sendMessage(C.YELLOW + "You need to hold your wand!");
+            return;
+        }
+
+        File file = Iris.service(StudioSVC.class).getWorkspaceFile(dimension.getLoadKey(), "objects", name + ".iob");
+
+        if (file.exists() && !overwrite) {
+            sender().sendMessage(C.RED + "File already exists. Set overwrite=true to overwrite it.");
+            return;
+        }
+        try {
+            o.write(file);
+        } catch (IOException e){
+            sender().sendMessage(C.RED + "Failed to save object because of an IOException: " + e.getMessage());
+            Iris.reportError(e);
+        }
+
+        sender().playSound(Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
+        sender().sendMessage(C.GREEN + "Successfully object to saved: " + dimension.getLoadKey() + "/objects/" + name);
+    }
+
+    @Decree(description = "Shift a selection in your looking direction", aliases = "-")
+    public void shift(
+            @Param(description = "The amount to shift by", defaultValue = "1")
+                    int amount
+    ){
+        if (!WandSVC.isHoldingWand(player())) {
+            sender().sendMessage("Hold your wand.");
+            return;
+        }
+
+        Location[] b = WandSVC.getCuboid(player().getInventory().getItemInMainHand());
+        Location a1 = b[0].clone();
+        Location a2 = b[1].clone();
+        Direction d = Direction.closest(player().getLocation().getDirection()).reverse();
+        a1.add(d.toVector().multiply(amount));
+        a2.add(d.toVector().multiply(amount));
+        Cuboid cursor = new Cuboid(a1, a2);
+        b[0] = cursor.getLowerNE();
+        b[1] = cursor.getUpperSW();
+        player().getInventory().setItemInMainHand(WandSVC.createWand(b[0], b[1]));
+        player().updateInventory();
+        sender().playSound(Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
+    }
+
+    @Decree(description = "Undo a number of pastes", aliases = "-")
+    public void undo(
+            @Param(description = "The amount of pastes to undo", defaultValue = "1")
+                    int amount
+    ){
+        ObjectSVC service = Iris.service(ObjectSVC.class);
+        int actualReverts = Math.min(service.getUndos().size(), amount);
+        service.revertChanges(actualReverts);
+        sender().sendMessage("Reverted " + actualReverts + " pastes!");
+    }
+
+    @Decree(description = "Get an object wand", sync = true)
+    public void wand() {
+        player().getInventory().addItem(WandSVC.createWand());
+        sender().playSound(Sound.ITEM_ARMOR_EQUIP_NETHERITE, 1f, 1.5f);
+        sender().sendMessage(C.GREEN + "Poof! Good luck building!");
+    }
+
+    @Decree(name = "x&y", description = "Autoselect up, down & out", sync = true)
+    public void xay(){
+        if (!WandSVC.isHoldingWand(player())){
+            sender().sendMessage(C.YELLOW + "Hold your wand!");
+            return;
+        }
+
+        Location[] b = WandSVC.getCuboid(player().getInventory().getItemInMainHand());
+        Location a1 = b[0].clone();
+        Location a2 = b[1].clone();
+        Location a1x = b[0].clone();
+        Location a2x = b[1].clone();
+        Cuboid cursor = new Cuboid(a1, a2);
+        Cuboid cursorx = new Cuboid(a1, a2);
+
+        while (!cursor.containsOnly(Material.AIR)) {
+            a1.add(new org.bukkit.util.Vector(0, 1, 0));
+            a2.add(new org.bukkit.util.Vector(0, 1, 0));
+            cursor = new Cuboid(a1, a2);
+        }
+
+        a1.add(new org.bukkit.util.Vector(0, -1, 0));
+        a2.add(new org.bukkit.util.Vector(0, -1, 0));
+
+        while (!cursorx.containsOnly(Material.AIR)) {
+            a1x.add(new org.bukkit.util.Vector(0, -1, 0));
+            a2x.add(new org.bukkit.util.Vector(0, -1, 0));
+            cursorx = new Cuboid(a1x, a2x);
+        }
+
+        a1x.add(new org.bukkit.util.Vector(0, 1, 0));
+        a2x.add(new Vector(0, 1, 0));
+        b[0] = a1;
+        b[1] = a2x;
+        cursor = new Cuboid(b[0], b[1]);
+        cursor = cursor.contract(Cuboid.CuboidDirection.North);
+        cursor = cursor.contract(Cuboid.CuboidDirection.South);
+        cursor = cursor.contract(Cuboid.CuboidDirection.East);
+        cursor = cursor.contract(Cuboid.CuboidDirection.West);
+        b[0] = cursor.getLowerNE();
+        b[1] = cursor.getUpperSW();
+        player().getInventory().setItemInMainHand(WandSVC.createWand(b[0], b[1]));
+        player().updateInventory();
+        sender().playSound(Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
+        sender().sendMessage(C.GREEN + "Auto-select complete!");
+    }
+
+    @Decree(name = "x+y", description = "Autoselect up & out", sync = true)
+    public void xpy() {
+        if (!WandSVC.isHoldingWand(player())) {
+            sender().sendMessage(C.YELLOW + "Hold your wand!");
+            return;
+        }
+
+        Location[] b = WandSVC.getCuboid(player().getInventory().getItemInMainHand());
+        b[0].add(new Vector(0, 1, 0));
+        b[1].add(new Vector(0, 1, 0));
+        Location a1 = b[0].clone();
+        Location a2 = b[1].clone();
+        Cuboid cursor = new Cuboid(a1, a2);
+
+        while (!cursor.containsOnly(Material.AIR)) {
+            a1.add(new Vector(0, 1, 0));
+            a2.add(new Vector(0, 1, 0));
+            cursor = new Cuboid(a1, a2);
+        }
+
+        a1.add(new Vector(0, -1, 0));
+        a2.add(new Vector(0, -1, 0));
+        b[0] = a1;
+        a2 = b[1];
+        cursor = new Cuboid(a1, a2);
+        cursor = cursor.contract(Cuboid.CuboidDirection.North);
+        cursor = cursor.contract(Cuboid.CuboidDirection.South);
+        cursor = cursor.contract(Cuboid.CuboidDirection.East);
+        cursor = cursor.contract(Cuboid.CuboidDirection.West);
+        b[0] = cursor.getLowerNE();
+        b[1] = cursor.getUpperSW();
+        player().getInventory().setItemInMainHand(WandSVC.createWand(b[0], b[1]));
+        player().updateInventory();
+        sender().playSound(Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
+        sender().sendMessage(C.GREEN + "Auto-select complete!");
+    }
 }

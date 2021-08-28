@@ -43,14 +43,7 @@ public class VectorHandler implements DecreeParameterHandler<Vector> {
 
     @Override
     public KList<Vector> getPossibilities() {
-        KList<Vector> vx = new KList<>();
-        VolmitSender s = DecreeContext.get();
-
-        if (s.isPlayer()) {
-            vx.add(s.player().getLocation().toVector());
-        }
-
-        return vx;
+        return null;
     }
 
     @Override

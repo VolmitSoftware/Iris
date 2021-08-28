@@ -21,6 +21,7 @@ package com.volmit.iris.core.command.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.service.ObjectSVC;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -185,7 +186,7 @@ public class CommandIrisObjectPaste extends MortarCommand {
 
         Map<Block, BlockData> futureChanges = new HashMap<>();
         obj.place(block.getBlockX(), block.getBlockY() + (int) obj.getCenter().getY(), block.getBlockZ(), createPlacer(sender.player(), block.getWorld(), futureChanges), placement, new RNG(), null);
-        CommandIrisObjectUndo.addChanges(sender.player(), futureChanges);
+        Iris.service(ObjectSVC.class).addChanges(futureChanges);
 
         if (intoWand) {
             ItemStack newWand = WandSVC.createWand(block.clone().subtract(obj.getCenter()).add(obj.getW() - 1,

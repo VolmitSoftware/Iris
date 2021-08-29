@@ -88,7 +88,8 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
             {
                 if(sender instanceof Player)
                 {
-                    ((Player)sender).playSound(((Player)sender).getLocation(), Sound.BLOCK_AMETHYST_BLOCK_PLACE, 1f, 1f);
+                    ((Player)sender).playSound(((Player)sender).getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.77f, 1.65f);
+                    ((Player)sender).playSound(((Player)sender).getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 0.125f, 2.99f);
                 }
             }
         });

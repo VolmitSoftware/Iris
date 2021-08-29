@@ -665,7 +665,7 @@ public class CommandStudio implements DecreeExecutor {
             sender().sendMessage(C.RED + "Players only (this is a config error. Ask support to add DecreeOrigin.PLAYER to the command you tried to run)");
             return;
         }
-        
+
         sender().sendMessage(C.GREEN + "Spawning entity");
         entity.spawn(engine(), new Location(world(), location.getX(), location.getY(), location.getZ()));
     }

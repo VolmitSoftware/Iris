@@ -97,28 +97,40 @@ public class IrisRavine extends IrisRegistrant {
     public String getTypeName() {
         return "Ravine";
     }
-
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
+        generate(writer, rng, engine, x, y, z, -1);
+    }
+
+    public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int waterHint) {
 
         KList<IrisPosition> pos = getWorm().generate(rng, engine.getData(), writer, null, x, y, z, (at) -> {});
         CNG dg = depthStyle.getGenerator().createNoCache(rng, engine.getData());
         CNG bw = baseWidthStyle.getGenerator().createNoCache(rng, engine.getData());
-
+        int highestWater = Math.max(waterHint, -1);
         boolean water = false;
-        for(IrisPosition i : pos)
-        {
-            int rsurface = y == -1 ? engine.getComplex().getHeightStream().get(x, z).intValue() : y;
-            int depth = (int) Math.round(dg.fitDouble(depthStyle.getMin(), depthStyle.getMax(), i.getX(), i.getZ()));
-            int width = (int) Math.round(bw.fitDouble(baseWidthStyle.getMin(), baseWidthStyle.getMax(), i.getX(), i.getZ()));
-            int surface = (int) Math.round(rsurface - depth * 0.45);
-            int yy = surface + depth;
-            int th = engine.getHeight(x, z, true);
 
-            if(yy > th && th < engine.getDimension().getFluidHeight())
+        if(highestWater == -1)
+        {
+            for(IrisPosition i : pos)
             {
-                water = true;
-                break;
+                int rsurface = y == -1 ? engine.getComplex().getHeightStream().get(x, z).intValue() : y;
+                int depth = (int) Math.round(dg.fitDouble(depthStyle.getMin(), depthStyle.getMax(), i.getX(), i.getZ()));
+                int surface = (int) Math.round(rsurface - depth * 0.45);
+                int yy = surface + depth;
+                int th = engine.getHeight(x, z, true);
+
+                if(yy > th && th < engine.getDimension().getFluidHeight())
+                {
+                    highestWater = Math.max(highestWater, yy);
+                    water = true;
+                    break;
+                }
             }
+        }
+
+        else
+        {
+            water = true;
         }
 
         MatterCavern c = new MatterCavern(true, customBiome, water);
@@ -135,7 +147,7 @@ public class IrisRavine extends IrisRegistrant {
             int width = (int) Math.round(bw.fitDouble(baseWidthStyle.getMin(), baseWidthStyle.getMax(), p.getX(), p.getZ()));
             int surface = (int) Math.round(rsurface - depth * 0.45);
 
-            fork.doCarving(writer, rng, engine, p.getX(), rng.i(surface-depth, surface), p.getZ());
+            fork.doCarving(writer, rng, engine, p.getX(), rng.i(surface-depth, surface), p.getZ(), Math.max(highestWater, waterHint));
 
             for(int i = surface + depth; i >= surface; i--)
             {

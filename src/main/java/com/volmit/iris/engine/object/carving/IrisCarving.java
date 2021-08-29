@@ -57,17 +57,23 @@ public class IrisCarving {
     @Desc("Define pyramids")
     private KList<IrisPyramid> pyramids = new KList<>();
 
+
     @BlockCoordinates
     public void doCarving(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
+        doCarving(writer, rng, engine, x, y, z, -1);
+    }
+
+    @BlockCoordinates
+    public void doCarving(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int waterHint) {
         if (caves.isNotEmpty()) {
             for (IrisCavePlacer i : caves) {
-                i.generateCave(writer, rng, engine, x, y, z);
+                i.generateCave(writer, rng, engine, x, y, z, waterHint);
             }
         }
 
         if (ravines.isNotEmpty()) {
             for (IrisRavinePlacer i : ravines) {
-                i.generateRavine(writer, rng, engine, x, y, z);
+                i.generateRavine(writer, rng, engine, x, y, z, waterHint);
             }
         }
 

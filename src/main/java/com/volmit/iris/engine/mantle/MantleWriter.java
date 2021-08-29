@@ -28,6 +28,7 @@ import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.function.Function3;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
 import com.volmit.iris.util.matter.Matter;
@@ -298,6 +299,11 @@ public class MantleWriter implements IObjectPlacer {
         setLine(ImmutableList.of(a, b), radius, filled, data);
     }
 
+
+    public <T> void setLine(List<IrisPosition> vectors, double radius, boolean filled, T data) {
+        setLineConsumer(vectors, radius, filled, (_x, _y, _z) -> data);
+    }
+
     /**
      * Set lines for points
      *
@@ -307,7 +313,7 @@ public class MantleWriter implements IObjectPlacer {
      * @param data    the data to set
      * @param <T>     the type of data to apply to the mantle
      */
-    public <T> void setLine(List<IrisPosition> vectors, double radius, boolean filled, T data) {
+    public <T> void setLineConsumer(List<IrisPosition> vectors, double radius, boolean filled, Function3<Integer, Integer, Integer, T> data) {
         Set<IrisPosition> vset = new KSet<>();
 
         for (int i = 0; vectors.size() != 0 && i < vectors.size() - 1; i++) {
@@ -365,7 +371,7 @@ public class MantleWriter implements IObjectPlacer {
             vset = getHollowed(vset);
         }
 
-        set(vset, data);
+        setConsumer(vset, data);
     }
 
     /**
@@ -466,6 +472,12 @@ public class MantleWriter implements IObjectPlacer {
     public <T> void set(Set<IrisPosition> positions, T data) {
         for (IrisPosition i : positions) {
             set(i, data);
+        }
+    }
+
+    public <T> void setConsumer(Set<IrisPosition> positions, Function3<Integer,Integer,Integer,T> data) {
+        for (IrisPosition i : positions) {
+            set(i, data.apply(i.getX(), i.getY(), i.getZ()));
         }
     }
 

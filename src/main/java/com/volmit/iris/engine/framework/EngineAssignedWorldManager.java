@@ -125,17 +125,6 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
 
     @EventHandler
     public void on(ChunkLoadEvent e) {
-
-        try
-        {
-            throw new RuntimeException("WHO FUCKIN DUN IT?");
-        }
-
-        catch(Throwable ee)
-        {
-            ee.printStackTrace();
-        }
-
         if (e.getChunk().getWorld().equals(getTarget().getWorld().realWorld())) {
             onChunkLoad(e.getChunk(), e.isNewChunk());
         }

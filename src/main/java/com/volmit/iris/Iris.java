@@ -19,9 +19,6 @@
 package com.volmit.iris;
 
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.command.CommandIris;
-import com.volmit.iris.core.command.PermissionIris;
-import com.volmit.iris.core.command.studio.CommandIrisStudio;
 import com.volmit.iris.core.link.IrisPapiExpansion;
 import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.link.MythicMobsLink;
@@ -89,9 +86,6 @@ public class Iris extends VolmitPlugin implements Listener {
     public static FileWatcher configWatcher;
     private static VolmitSender sender;
     private final KList<Runnable> postShutdown = new KList<>();
-
-    @Permission
-    public static PermissionIris perm;
 
     public static VolmitSender getSender() {
         return sender;
@@ -380,7 +374,7 @@ public class Iris extends VolmitPlugin implements Listener {
             Iris.error("============================================================================");
 
             for (Player i : Bukkit.getOnlinePlayers()) {
-                if (i.isOp() || Iris.perm.has(i)) {
+                if (i.isOp() || i.hasPermission("iris.all")) {
                     VolmitSender sender = new VolmitSender(i, getTag("WARNING"));
                     sender.sendMessage("There are some Iris Packs that have custom biomes in them");
                     sender.sendMessage("You need to restart your server to use these packs.");

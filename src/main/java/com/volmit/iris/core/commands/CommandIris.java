@@ -16,39 +16,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.decrees;
+package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
-import com.volmit.iris.engine.object.regional.IrisRegion;
-import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
-import com.volmit.iris.util.decree.DecreeSystem;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
-import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
-import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 import com.volmit.iris.util.format.C;
-import org.bukkit.FluidCollisionMode;
-import org.bukkit.Material;
-import org.bukkit.block.Block;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.Player;
 
 import java.io.File;
 
 @Decree(name = "iris", aliases = {"ir", "irs"}, description = "Basic Command")
-public class DecIris implements DecreeExecutor {
-    private DecStudio studio;
-    private DecPregen pregen;
-    private DecSettings settings;
-    private DecObject object;
-    private DecWhat what;
+public class CommandIris implements DecreeExecutor {
+    private CommandStudio studio;
+    private CommandPregen pregen;
+    private CommandSettings settings;
+    private CommandObject object;
+    private CommandWhat what;
 
     @Decree(description = "Create a new world", aliases = "+")
     public void create(

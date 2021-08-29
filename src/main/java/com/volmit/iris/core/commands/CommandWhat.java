@@ -1,53 +1,23 @@
-package com.volmit.iris.core.decrees;
+package com.volmit.iris.core.commands;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.core.service.ObjectSVC;
-import com.volmit.iris.core.service.StudioSVC;
-import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.biome.IrisBiome;
-import com.volmit.iris.engine.object.common.IObjectPlacer;
-import com.volmit.iris.engine.object.dimensional.IrisDimension;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
-import com.volmit.iris.engine.object.objects.IrisObject;
-import com.volmit.iris.engine.object.objects.IrisObjectPlacement;
-import com.volmit.iris.engine.object.objects.IrisObjectPlacementScaleInterpolator;
-import com.volmit.iris.engine.object.objects.IrisObjectRotation;
-import com.volmit.iris.engine.object.tile.TileData;
 import com.volmit.iris.util.data.B;
-import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
-import com.volmit.iris.util.decree.annotations.Param;
-import com.volmit.iris.util.decree.specialhandlers.ObjectHandler;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.json.JSONObject;
-import com.volmit.iris.util.math.Direction;
-import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.scheduling.Queue;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.Vector;
-
-import java.io.File;
-import java.io.IOException;
-import java.text.NumberFormat;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Decree(name = "what", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris What?")
-public class DecWhat implements DecreeExecutor {
+public class CommandWhat implements DecreeExecutor {
     @Decree(description = "What is in my hand?", origin = DecreeOrigin.PLAYER)
     public void hand() {
         try {

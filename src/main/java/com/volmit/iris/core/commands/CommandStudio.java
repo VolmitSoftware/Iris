@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.decrees;
+package com.volmit.iris.core.commands;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
@@ -48,7 +48,6 @@ import com.volmit.iris.engine.object.regional.IrisRegion;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
@@ -75,8 +74,6 @@ import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import com.volmit.iris.util.scheduling.jobs.SingleJob;
 import io.papermc.lib.PaperLib;
 import org.bukkit.*;
-import org.bukkit.block.Block;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.util.BlockVector;
@@ -98,7 +95,7 @@ import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 @Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
-public class DecStudio implements DecreeExecutor {
+public class CommandStudio implements DecreeExecutor {
     @Decree(description = "Open a new studio world", aliases = "o", sync = true)
     public void open(
             @Param(defaultValue = "overworld", description = "The dimension to open a studio for", aliases = "dim")

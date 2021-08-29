@@ -19,9 +19,8 @@
 package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.decrees.DecIris;
+import com.volmit.iris.core.commands.CommandIris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeSystem;
 import com.volmit.iris.util.decree.virtual.VirtualDecreeCommand;
 import com.volmit.iris.util.plugin.IrisService;
@@ -38,18 +37,9 @@ public class CommandSVC implements IrisService, DecreeSystem {
     }
 
     private final transient AtomicCache<VirtualDecreeCommand> commandCache = new AtomicCache<>();
-    private final transient AtomicCache<KList<String>> startsCache = new AtomicCache<>();
 
     @Override
     public VirtualDecreeCommand getRoot() {
-        return commandCache.aquire(() -> {
-            try {
-                return VirtualDecreeCommand.createRoot(new DecIris());
-            } catch (Throwable e) {
-                e.printStackTrace();
-            }
-
-            return null;
-        });
+        return commandCache.aquireNastyPrint(() -> VirtualDecreeCommand.createRoot(new CommandIris()));
     }
 }

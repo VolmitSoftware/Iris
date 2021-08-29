@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.decrees;
+package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.PregeneratorJob;
@@ -31,7 +31,7 @@ import org.bukkit.World;
 import org.bukkit.util.Vector;
 
 @Decree(name = "pregen", aliases = "pregenerate", description = "Pregenerate your Iris worlds!")
-public class DecPregen implements DecreeExecutor {
+public class CommandPregen implements DecreeExecutor {
     @Decree(description = "Pregenerate a world")
     public void start(
             @Param(description = "The world to pregen", contextual = true)

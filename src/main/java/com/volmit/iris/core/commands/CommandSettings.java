@@ -16,27 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.command;
+package com.volmit.iris.core.commands;
 
-import com.volmit.iris.util.plugin.MortarPermission;
+import com.volmit.iris.util.decree.DecreeExecutor;
 
-public class PermissionIrisStudio extends MortarPermission {
-    public PermissionIrisStudio() {
-        super();
-    }
+public class CommandSettings implements DecreeExecutor {
 
-    @Override
-    protected String getNode() {
-        return "studio";
-    }
-
-    @Override
-    public String getDescription() {
-        return "Iris Studio Permissions";
-    }
-
-    @Override
-    public boolean isDefault() {
-        return false;
-    }
 }

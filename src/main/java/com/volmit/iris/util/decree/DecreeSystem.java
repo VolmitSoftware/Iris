@@ -60,6 +60,11 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
 
     @Override
     default boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        if(!sender.hasPermission("iris.all"))
+        {
+            sender.sendMessage("You lack the Permission 'iris.all'");
+        }
+
         J.aBukkit(() -> {
             if (!call(new VolmitSender(sender), args)) {
                 sender.sendMessage(C.RED + "Unknown Iris Command");

@@ -1,4 +1,4 @@
-package com.volmit.iris.core.decrees;
+package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
@@ -37,7 +37,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Decree(name = "object", aliases = "o", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris object manipulation")
-public class DecObject implements DecreeExecutor {
+public class CommandObject implements DecreeExecutor {
 
     @Decree(description = "Check the composition of an object")
     public void analyze(

@@ -38,19 +38,17 @@ import org.bukkit.FluidCollisionMode;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Player;
 
 import java.io.File;
-import java.util.Objects;
 
 @Decree(name = "iris", aliases = {"ir", "irs"}, description = "Basic Command")
 public class DecIris implements DecreeExecutor {
     private DecStudio studio;
-
     private DecPregen pregen;
-
     private DecSettings settings;
-
     private DecObject object;
+    private DecWhat what;
 
     @Decree(description = "Create a new world", aliases = "+")
     public void create(
@@ -144,104 +142,6 @@ public class DecIris implements DecreeExecutor {
         boolean to = on == null ? !IrisSettings.get().getGeneral().isDebug() : on;
         IrisSettings.get().getGeneral().setDebug(to);
         sender().sendMessage(C.GREEN + "Set debug to: " + to);
-    }
-
-    @Decree(description = "Get information about the world around you", origin = DecreeOrigin.PLAYER)
-    public void what(
-            @Param(description = "Whether or not to show dimension information", defaultValue = "true")
-                    boolean dimension,
-            @Param(description = "Whether or not to show region information", defaultValue = "true")
-                    boolean region,
-            @Param(description = "Whether or not to show biome information", defaultValue = "true")
-                    boolean biome,
-            @Param(description = "Whether or not to show information about the block you are looking at", defaultValue = "true")
-                    boolean look,
-            @Param(description = "Whether or not to show information about the block you are holding", defaultValue = "true")
-                    boolean hand
-    ) {
-        if (engine() == null) {
-            sender().sendMessage(C.RED + "You must be in an Iris world!");
-            return;
-        }
-        // Data
-        BlockData handHeld = null;
-        try {
-            handHeld = player().getInventory().getItemInMainHand().getType().createBlockData();
-        } catch (Throwable e) {
-            sender().sendMessage("Could not get data for hand-held item");
-        }
-        Block targetBlock = player().getTargetBlockExact(128, FluidCollisionMode.NEVER);
-        BlockData targetBlockData;
-        if (targetBlock == null) {
-            targetBlockData = null;
-        } else {
-            targetBlockData = targetBlock.getBlockData();
-        }
-        IrisBiome currentBiome = engine().getBiome(player().getLocation());
-        IrisRegion currentRegion = engine().getRegion(player().getLocation());
-        IrisDimension currentDimension = engine().getDimension();
-
-        // Biome, region & dimension
-        if (dimension) {
-            sender().sendMessage(C.GREEN + "" + C.BOLD + "Current dimension:" + C.RESET + "" + C.WHITE + currentDimension.getName());
-        }
-        if (region) {
-            sender().sendMessage(C.GREEN + "" + C.BOLD + "Current region:" + C.RESET + "" + C.WHITE + currentRegion.getName());
-        }
-        if (biome) {
-            sender().sendMessage(C.GREEN + "" + C.BOLD + "Current biome:" + C.RESET + "" + C.WHITE + currentBiome.getName());
-        }
-
-        // Target
-        if (targetBlockData == null) {
-            sender().sendMessage(C.RED + "Not looking at any block");
-        } else if (look) {
-            sender().sendMessage(C.GREEN + "" + C.BOLD + "Looked-at block information");
-
-            sender().sendMessage("Material: " + C.GREEN + targetBlockData.getMaterial().name());
-            sender().sendMessage("Full: " + C.WHITE + targetBlockData.getAsString(true));
-
-            if (B.isStorage(targetBlockData)) {
-                sender().sendMessage(C.YELLOW + "* Storage Block (Loot Capable)");
-            }
-
-            if (B.isLit(targetBlockData)) {
-                sender().sendMessage(C.YELLOW + "* Lit Block (Light Capable)");
-            }
-
-            if (B.isFoliage(targetBlockData)) {
-                sender().sendMessage(C.YELLOW + "* Foliage Block");
-            }
-
-            if (B.isDecorant(targetBlockData)) {
-                sender().sendMessage(C.YELLOW + "* Decorant Block");
-            }
-
-            if (B.isFluid(targetBlockData)) {
-                sender().sendMessage(C.YELLOW + "* Fluid Block");
-            }
-
-            if (B.isFoliagePlantable(targetBlockData)) {
-                sender().sendMessage(C.YELLOW + "* Plantable Foliage Block");
-            }
-
-            if (B.isSolid(targetBlockData)) {
-                sender().sendMessage(C.YELLOW + "* Solid Block");
-            }
-        }
-
-        // Hand-held
-        if (handHeld == null){
-            return;
-        }
-        if (!handHeld.getMaterial().equals(Material.AIR)) {
-            sender().sendMessage(C.YELLOW + "No block held");
-        } else if (hand) {
-            sender().sendMessage(C.GREEN + "" + C.BOLD + "Hand-held block information");
-
-            sender().sendMessage("Material: " + C.GREEN + handHeld.getMaterial().name());
-            sender().sendMessage("Full: " + C.WHITE + handHeld.getAsString(true));
-        }
     }
 
     @Decree(description = "Download a project.", aliases = "dl")

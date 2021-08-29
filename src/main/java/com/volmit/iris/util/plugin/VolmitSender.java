@@ -490,8 +490,8 @@ public class VolmitSender implements CommandSender {
                 String onClick;
                 if (i.isNode()) {
                     if (i.getNode().getParameters().isEmpty()) {
-                        usage += "There are no parameters. Click to run.";
-                        onClick = "run_command";
+                        usage += "There are no parameters. Click to type command.";
+                        onClick = "suggest_command";
                     } else {
                         usage += "Hover over all of the parameters to learn more.";
                         onClick = "suggest_command";

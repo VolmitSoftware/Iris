@@ -112,6 +112,13 @@ public class IrisCavePlacer implements IRare {
     }
 
     public int getSize(IrisData data) {
-        return getRealCave(data).getMaxSize(data);
+        IrisCave cave = getRealCave(data);
+
+        if(cave != null)
+        {
+            return cave.getMaxSize(data);
+        }
+
+        return 32;
     }
 }

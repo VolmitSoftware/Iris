@@ -68,7 +68,6 @@ public class IrisData {
     private ResourceLoader<IrisCave> caveLoader;
     private ResourceLoader<IrisRavine> ravineLoader;
     private KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> loaders = new KMap<>();
-    private boolean closed;
     private final File dataFolder;
     private Engine engine;
     private final int id;
@@ -81,7 +80,6 @@ public class IrisData {
         this.engine = null;
         this.dataFolder = dataFolder;
         this.id = RNG.r.imax();
-        closed = false;
         hotloaded();
     }
 
@@ -156,9 +154,7 @@ public class IrisData {
     }
 
     public void close() {
-        closed = true;
         dump();
-        loaders.clear();
     }
 
     private static void printData(ResourceLoader<?> rl) {
@@ -193,10 +189,6 @@ public class IrisData {
     }
 
     public synchronized void hotloaded() {
-        if (closed) {
-            return;
-        }
-
         loaders.clear();
         File packs = dataFolder;
         packs.mkdirs();
@@ -220,20 +212,12 @@ public class IrisData {
     }
 
     public void dump() {
-        if (closed) {
-            return;
-        }
-
         for (ResourceLoader<?> i : loaders.values()) {
             i.clearCache();
         }
     }
 
     public void clearLists() {
-        if (closed) {
-            return;
-        }
-
         for (ResourceLoader<?> i : loaders.values()) {
             i.clearList();
         }

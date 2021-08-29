@@ -23,15 +23,19 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.MantleWriter;
+import com.volmit.iris.engine.modifier.IrisCarveModifier;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
 import com.volmit.iris.engine.object.noise.IrisStyledRange;
 import com.volmit.iris.engine.object.noise.NoiseStyle;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.MatterCavern;
+import com.volmit.iris.util.matter.slices.CavernMatter;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -62,6 +66,11 @@ public class IrisCavePlacer implements IRare {
     @Desc("The height range this cave can spawn at. If breakSurface is false, the output of this range will be clamped by the current world height to prevent surface breaking.")
     private IrisStyledRange caveStartHeight = new IrisStyledRange(13, 120, new IrisGeneratorStyle(NoiseStyle.STATIC));
 
+    @RegistryListResource(IrisBiome.class)
+    @Desc("Force this cave to only generate the specified custom biome")
+    private String customBiome = "";
+
+    private transient final AtomicCache<MatterCavern> matterNodeCache = new AtomicCache<>();
     private transient final AtomicCache<IrisCave> caveCache = new AtomicCache<>();
     private transient final AtomicBoolean fail = new AtomicBoolean(false);
 
@@ -94,7 +103,8 @@ public class IrisCavePlacer implements IRare {
         }
 
         try {
-            cave.generate(mantle, rng, engine, x + rng.nextInt(15), y, z + rng.nextInt(15));
+            cave.generate(mantle, rng, engine, x + rng.nextInt(15), y, z + rng.nextInt(15),
+                    matterNodeCache.aquire(() -> customBiome.isEmpty() ? CavernMatter.ON : CavernMatter.get(customBiome)));
         } catch (Throwable e) {
             e.printStackTrace();
             fail.set(true);

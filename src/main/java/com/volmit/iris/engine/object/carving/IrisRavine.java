@@ -55,10 +55,6 @@ public class IrisRavine extends IrisRegistrant {
     @Desc("Define the shape of this ravine (2d, ignores Y)")
     private IrisWorm worm;
 
-    @RegistryListResource(IrisBiome.class)
-    @Desc("Force this cave to only generate the specified custom biome")
-    private String customBiome = "";
-
     @Desc("Define potential forking features")
     private IrisCarving fork = new IrisCarving();
 
@@ -86,8 +82,6 @@ public class IrisRavine extends IrisRegistrant {
     @Desc("The thickness of the ravine ribs")
     private double ribThickness = 3;
 
-    private transient final AtomicCache<MatterCavern> matterNodeCache = new AtomicCache<>();
-
     @Override
     public String getFolderName() {
         return "ravines";
@@ -98,7 +92,7 @@ public class IrisRavine extends IrisRegistrant {
         return "Ravine";
     }
 
-    public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
+    public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, MatterCavern biome) {
 
         KList<IrisPosition> pos = getWorm().generate(rng, engine.getData(), writer, null, x, y, z, (at) -> {
         });
@@ -129,7 +123,7 @@ public class IrisRavine extends IrisRegistrant {
                         break;
                     }
 
-                    writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, matterNodeCache.aquire(() -> CavernMatter.get(getCustomBiome())));
+                    writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, biome);
                 }
             }
 
@@ -145,7 +139,7 @@ public class IrisRavine extends IrisRegistrant {
                         break;
                     }
 
-                    writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, matterNodeCache.aquire(() -> CavernMatter.get(getCustomBiome())));
+                    writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, biome);
                 }
             }
         }

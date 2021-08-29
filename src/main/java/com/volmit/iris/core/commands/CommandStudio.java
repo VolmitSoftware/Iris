@@ -692,7 +692,7 @@ public class CommandStudio implements DecreeExecutor {
             @Param(description = "The dimension to update the workspace of", contextual = true, defaultValue = "overworld")
                     IrisDimension dimension
     ) {
-        if (new IrisProject(dimension.getLoadFile().getParentFile().getParentFile()).updateWorkspace()) {
+        if (new IrisProject(dimension.getLoader().getDataFolder()).updateWorkspace()) {
             sender().sendMessage(C.GREEN + "Updated Code Workspace for " + dimension.getName());
         } else {
             sender().sendMessage(C.RED + "Invalid project: " + dimension.getName() + ". Try deleting the code-workspace file and try again.");

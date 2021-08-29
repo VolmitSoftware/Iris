@@ -52,14 +52,8 @@ public class IrisCave extends IrisRegistrant {
     @Desc("Define potential forking features")
     private IrisCarving fork = new IrisCarving();
 
-    @RegistryListResource(IrisBiome.class)
-    @Desc("Force this cave to only generate the specified custom biome")
-    private String customBiome = "";
-
     @Desc("Limit the worm from ever getting higher or lower than this range")
     private IrisRange verticalRange = new IrisRange(3, 255);
-
-    private transient final AtomicCache<MatterCavern> matterNodeCache = new AtomicCache<>();
 
     @Override
     public String getFolderName() {
@@ -71,12 +65,12 @@ public class IrisCave extends IrisRegistrant {
         return "Cave";
     }
 
-    public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
+    public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, MatterCavern biome) {
 
         writer.setLine(getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z,
                         (at) -> fork.doCarving(writer, rng, engine, at.getX(), at.getY(), at.getZ())),
                 getWorm().getGirth().get(rng, x, z, engine.getData()), true,
-                matterNodeCache.aquire(() -> CavernMatter.get(getCustomBiome())));
+                biome);
     }
 
     @Override

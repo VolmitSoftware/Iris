@@ -31,22 +31,26 @@ import com.volmit.iris.engine.object.decoration.IrisDecorator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterCavern;
+import com.volmit.iris.util.matter.slices.CavernMatter;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     private final RNG rng;
     private final BlockData AIR = Material.CAVE_AIR.createBlockData();
+    private final BlockData WATER = Material.WATER.createBlockData();
 
     public IrisCarveModifier(Engine engine) {
         super(engine, "Carve");
@@ -60,14 +64,19 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         MantleChunk mc = getEngine().getMantle().getMantle().getChunk(x, z);
         KMap<Long, KList<Integer>> positions = new KMap<>();
         KMap<IrisPosition, MatterCavern> walls = new KMap<>();
+        Consumer4<Integer, Integer, Integer, MatterCavern> iterator = (xx, yy, zz, c) -> {
+            if(c == null)
+            {
+                return;
+            }
 
-        mc.iterate(MatterCavern.class, (xx, yy, zz, c) -> {
             if (yy > 256 || yy < 0) {
                 return;
             }
 
             int rx = xx & 15;
             int rz = zz & 15;
+
             BlockData current = output.get(rx, yy, rz);
 
             if (B.isFluid(current)) {
@@ -96,8 +105,18 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 return;
             }
 
-            output.set(rx, yy, rz, AIR);
-        });
+            if(c.isWater())
+            {
+                output.set(rx, yy, rz,  WATER);
+            }
+
+            else
+            {
+                output.set(rx, yy, rz,  AIR);
+            }
+        };
+
+        mc.iterate(MatterCavern.class, iterator);
 
         walls.forEach((i, v) -> {
             IrisBiome biome = v.getCustomBiome().isEmpty()

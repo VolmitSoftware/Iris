@@ -53,7 +53,7 @@ public class IrisSphere implements IRare {
     private transient final AtomicCache<MatterCavern> matterNodeCache = new AtomicCache<>();
 
     public void generate(RNG rng, Engine engine, MantleWriter writer, int x, int y, int z) {
-        writer.setSphere(x, y, z, radius.get(rng, z, y, engine.getData()), true, matterNodeCache.aquire(() -> CavernMatter.get(getCustomBiome())));
+        writer.setSphere(x, y, z, radius.get(rng, z, y, engine.getData()), true, matterNodeCache.aquire(() -> CavernMatter.get(getCustomBiome(), false)));
     }
 
     public double maxSize() {

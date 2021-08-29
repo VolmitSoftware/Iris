@@ -53,7 +53,7 @@ public class IrisPyramid implements IRare {
     private transient final AtomicCache<MatterCavern> matterNodeCache = new AtomicCache<>();
 
     public void generate(RNG rng, Engine engine, MantleWriter writer, int x, int y, int z) {
-        writer.setPyramid(x, y, z, matterNodeCache.aquire(() -> CavernMatter.get(getCustomBiome())),
+        writer.setPyramid(x, y, z, matterNodeCache.aquire(() -> CavernMatter.get(getCustomBiome(), false)),
                 (int) baseWidth.get(rng, z, y, engine.getData()), true);
     }
 

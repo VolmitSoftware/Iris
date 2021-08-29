@@ -239,11 +239,6 @@ public interface EngineMantle extends IObjectPlacer {
     }
 
     @BlockCoordinates
-    default void cavernBlock(int x, int y, int z) {
-        getMantle().set(x, y, z, CavernMatter.ON);
-    }
-
-    @BlockCoordinates
     default void dropCavernBlock(int x, int y, int z) {
         Matter matter = getMantle().getChunk(x & 15, z & 15).get(y & 15);
 

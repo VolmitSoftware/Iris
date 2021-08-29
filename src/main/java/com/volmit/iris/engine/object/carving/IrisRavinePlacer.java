@@ -27,11 +27,8 @@ import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
-import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.matter.MatterCavern;
-import com.volmit.iris.util.matter.slices.CavernMatter;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -56,11 +53,6 @@ public class IrisRavinePlacer implements IRare {
     @RegistryListResource(IrisRavine.class)
     private String ravine;
 
-    @RegistryListResource(IrisBiome.class)
-    @Desc("Force this cave to only generate the specified custom biome")
-    private String customBiome = "";
-
-    private transient final AtomicCache<MatterCavern> matterNodeCache = new AtomicCache<>();
     private transient final AtomicCache<IrisRavine> ravineCache = new AtomicCache<>();
     private transient final AtomicBoolean fail = new AtomicBoolean(false);
 
@@ -89,8 +81,7 @@ public class IrisRavinePlacer implements IRare {
         try {
             int xx = x + rng.nextInt(15);
             int zz = z + rng.nextInt(15);
-            ravine.generate(mantle, rng, engine, xx, y, zz,
-                    matterNodeCache.aquire(() -> customBiome.isEmpty() ? CavernMatter.ON : CavernMatter.get(customBiome)));
+            ravine.generate(mantle, rng, engine, xx, y, zz);
         } catch (Throwable e) {
             e.printStackTrace();
             fail.set(true);

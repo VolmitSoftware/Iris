@@ -26,4 +26,5 @@ import lombok.Data;
 public class MatterCavern {
     private final boolean cavern;
     private final String customBiome;
+    private final boolean water;
 }

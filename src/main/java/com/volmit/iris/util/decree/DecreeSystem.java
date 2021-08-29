@@ -22,12 +22,15 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.virtual.VirtualDecreeCommand;
 import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
+import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -54,6 +57,12 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
         KList<String> enhanced = new KList<>(args);
         KList<String> v = getRoot().tabComplete(enhanced, enhanced.toString(" "));
         v.removeDuplicates();
+
+        if(sender instanceof Player)
+        {
+            ((Player)sender).playSound(((Player)sender).getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.25f,  RNG.r.f(0.125f, 1.95f));
+        }
+
         return v;
     }
 
@@ -66,7 +75,21 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
 
         J.aBukkit(() -> {
             if (!call(new VolmitSender(sender), args)) {
+                if(sender instanceof Player)
+                {
+                    ((Player)sender).playSound(((Player)sender).getLocation(), Sound.BLOCK_ANCIENT_DEBRIS_BREAK, 1f, 0.25f);
+                    ((Player)sender).playSound(((Player)sender).getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_DEPLETE, 0.2f, 1.95f);
+                }
+
                 sender.sendMessage(C.RED + "Unknown Iris Command");
+            }
+
+            else
+            {
+                if(sender instanceof Player)
+                {
+                    ((Player)sender).playSound(((Player)sender).getLocation(), Sound.BLOCK_AMETHYST_BLOCK_PLACE, 1f, 1f);
+                }
             }
         });
         return true;

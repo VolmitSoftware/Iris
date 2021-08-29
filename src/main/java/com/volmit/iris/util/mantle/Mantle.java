@@ -380,13 +380,11 @@ public class Mantle {
         try {
             return getSafe(x, z).get();
         } catch (InterruptedException e) {
-            Iris.error("Failed to get Tectonic Plate " + x + " " + z + " Due to a thread intterruption");
+            Iris.warn("Failed to get Tectonic Plate " + x + " " + z + " Due to a thread intterruption (hotload?)");
             Iris.reportError(e);
-            e.printStackTrace();
         } catch (ExecutionException e) {
-            Iris.error("Failed to get Tectonic Plate " + x + " " + z + " Due to a thread execution exception");
+            Iris.warn("Failed to get Tectonic Plate " + x + " " + z + " Due to a thread execution exception (engine close?)");
             Iris.reportError(e);
-            e.printStackTrace();
         }
 
         Iris.warn("Retrying to get " + x + " " + z + " Mantle Region");

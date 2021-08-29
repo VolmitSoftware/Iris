@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.framework;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 
@@ -32,6 +33,15 @@ public abstract class EngineAssignedModifier<T> extends EngineAssignedComponent 
     @BlockCoordinates
     @Override
     public void modify(int x, int z, Hunk<T> output, boolean multicore) {
-        onModify(x, z, output, multicore);
+        try
+        {
+            onModify(x, z, output, multicore);
+        }
+
+        catch(Throwable e)
+        {
+            Iris.error("Modifier Failure: " + getName());
+            e.printStackTrace();
+        }
     }
 }

@@ -68,6 +68,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @Data
 public class IrisEngine implements Engine {
+    private final AtomicInteger bud;
+    private final AtomicInteger buds;
     private final AtomicInteger generated;
     private final AtomicInteger generatedLast;
     private final AtomicDouble perSecond;
@@ -77,6 +79,7 @@ public class IrisEngine implements Engine {
     private EngineEffects effects;
     private final EngineMantle mantle;
     private final ChronoLatch perSecondLatch;
+    private final ChronoLatch perSecondBudLatch;
     private EngineExecutionEnvironment execution;
     private EngineWorldManager worldManager;
     private volatile int parallelism;
@@ -105,12 +108,15 @@ public class IrisEngine implements Engine {
     public IrisEngine(EngineTarget target, boolean studio) {
         this.studio = studio;
         this.target = target;
+        bud = new AtomicInteger(0);
+        buds = new AtomicInteger(0);
         metrics = new EngineMetrics(32);
         cleanLatch = new ChronoLatch(Math.max(10000, Math.min(IrisSettings.get().getParallax()
                 .getParallaxChunkEvictionMS(), IrisSettings.get().getParallax().getParallaxRegionEvictionMS())));
         generatedLast = new AtomicInteger(0);
         perSecond = new AtomicDouble(0);
         perSecondLatch = new ChronoLatch(1000, false);
+        perSecondBudLatch = new ChronoLatch(1000, false);
         wallClock = new AtomicRollingSequence(32);
         lastGPS = new AtomicLong(M.ms());
         generated = new AtomicInteger(0);
@@ -130,6 +136,12 @@ public class IrisEngine implements Engine {
     }
 
     private void tickRandomPlayer() {
+        if(perSecondBudLatch.flip())
+        {
+            buds.set(bud.get());
+            bud.set(0);
+        }
+
         if (effects != null) {
             effects.tickRandomPlayer();
         }
@@ -270,6 +282,11 @@ public class IrisEngine implements Engine {
 
             maxBiomeLayerDensity = Math.max(maxBiomeLayerDensity, density);
         }
+    }
+
+    @Override
+    public int getBlockUpdatesPerSecond() {
+        return buds.get();
     }
 
     public void printMetrics(CommandSender sender) {
@@ -442,6 +459,11 @@ public class IrisEngine implements Engine {
             Iris.error("Failed to save Engine Data");
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void blockUpdatedMetric() {
+        bud.incrementAndGet();
     }
 
     @Override

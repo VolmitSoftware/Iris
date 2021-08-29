@@ -152,6 +152,12 @@ public class BoardSVC implements IrisService, BoardProvider {
             v.add(C.LIGHT_PURPLE + "Tasks" + C.GRAY + ": " + Form.f(Iris.jobCount()));
         }
 
+        if(engine.getBlockUpdatesPerSecond() > 0)
+        {
+            v.add("&7&m------------------");
+            v.add(C.LIGHT_PURPLE + "BUD/s" + C.GRAY + ": " + Form.f(engine.getBlockUpdatesPerSecond()));
+        }
+
         v.add("&7&m------------------");
 
         return v;

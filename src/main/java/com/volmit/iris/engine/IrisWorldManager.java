@@ -38,6 +38,7 @@ import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.plugin.Chunks;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
@@ -154,6 +155,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     private void updateChunks() {
         for (Player i : getEngine().getWorld().realWorld().getPlayers()) {
             int r = 2;
+
             Chunk c = i.getLocation().getChunk();
             for (int x = -r; x <= r; x++) {
                 for (int z = -r; z <= r; z++) {
@@ -216,6 +218,12 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             }
 
             Chunk c = cc[RNG.r.nextInt(cc.length)];
+
+            if(!c.isLoaded() || !Chunks.isSafe(c.getWorld(), c.getX(), c.getZ()))
+            {
+                continue;
+            }
+
             spawnIn(c, false);
             chunkCooldowns.put(Cache.key(c), M.ms());
         }

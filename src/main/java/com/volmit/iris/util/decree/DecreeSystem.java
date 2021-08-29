@@ -70,7 +70,6 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
         return v;
     }
 
-
     @Override
     default boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!sender.hasPermission("iris.all")) {

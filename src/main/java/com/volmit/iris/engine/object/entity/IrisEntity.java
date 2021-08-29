@@ -35,6 +35,7 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.plugin.Chunks;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -173,6 +174,11 @@ public class IrisEntity extends IrisRegistrant {
     }
 
     public Entity spawn(Engine gen, Location at, RNG rng) {
+        if(!Chunks.isSafe(at))
+        {
+            return null;
+        }
+
         if (isSpawnEffectRiseOutOfGround()) {
             Location b = at.clone();
             double sy = b.getY() - 5;
@@ -181,6 +187,11 @@ public class IrisEntity extends IrisRegistrant {
         }
 
         Entity ee = doSpawn(at);
+
+        if(ee == null && !Chunks.isSafe(at))
+        {
+            return null;
+        }
 
         if (!spawnerScript.isEmpty() && ee == null) {
             synchronized (this) {
@@ -331,15 +342,22 @@ public class IrisEntity extends IrisRegistrant {
             }
         }
 
-        if (isSpawnEffectRiseOutOfGround() && e instanceof LivingEntity) {
+        if (Chunks.hasPlayersNearby(at) && isSpawnEffectRiseOutOfGround() && e instanceof LivingEntity) {
             Location start = at.clone();
             e.setInvulnerable(true);
             ((LivingEntity) e).setAI(false);
             ((LivingEntity) e).setCollidable(false);
             ((LivingEntity) e).setNoDamageTicks(100000);
-
+            AtomicInteger t = new AtomicInteger(0);
             AtomicInteger v = new AtomicInteger(0);
             v.set(J.sr(() -> {
+                if(t.get() > 100)
+                {
+                    J.csr(v.get());
+                    return;
+                }
+
+                t.incrementAndGet();
                 if (e.getLocation().getBlock().getType().isSolid() || ((LivingEntity) e).getEyeLocation().getBlock().getType().isSolid()) {
                     e.teleport(start.add(new Vector(0, 0.1, 0)));
                     ItemStack itemCrackData = new ItemStack(((LivingEntity) e).getEyeLocation().clone().subtract(0, 2, 0).getBlock().getBlockData().getMaterial());
@@ -376,6 +394,11 @@ public class IrisEntity extends IrisRegistrant {
     }
 
     private Entity doSpawn(Location at) {
+        if(!Chunks.isSafe(at))
+        {
+            return null;
+        }
+
         if (type.equals(EntityType.UNKNOWN)) {
             return null;
         }

@@ -86,6 +86,8 @@ import java.util.function.Consumer;
 public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdater, Renderer, Hotloadable {
     IrisComplex getComplex();
 
+    int getBlockUpdatesPerSecond();
+
     void printMetrics(CommandSender sender);
 
     EngineMantle getMantle();
@@ -230,6 +232,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     }
 
+    void blockUpdatedMetric();
+
     @ChunkCoordinates
     @Override
     default void updateChunk(Chunk c) {
@@ -298,7 +302,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     default void update(int x, int y, int z, Chunk c, RNG rf) {
         Block block = c.getBlock(x, y, z);
         BlockData data = block.getBlockData();
-
+        blockUpdatedMetric();
         if (B.isStorage(data)) {
             RNG rx = rf.nextParallelRNG(BlockPosition.toLong(x, y, z));
             InventorySlotType slot = null;

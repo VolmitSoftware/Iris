@@ -28,7 +28,6 @@ import com.volmit.iris.engine.mantle.components.MantleFeatureComponent;
 import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
 import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
 import com.volmit.iris.engine.object.biome.IrisBiome;
-import com.volmit.iris.engine.object.carving.IrisCarving;
 import com.volmit.iris.engine.object.deposits.IrisDepositGenerator;
 import com.volmit.iris.engine.object.feature.IrisFeaturePotential;
 import com.volmit.iris.engine.object.jigsaw.IrisJigsawStructurePlacement;
@@ -316,13 +315,11 @@ public class IrisEngineMantle implements EngineMantle {
 
         m = Math.max(m, getDimension().getCarving().getMaxRange(getData()));
 
-        for(IrisRegion i : getDimension().getAllRegions(getEngine()))
-        {
+        for (IrisRegion i : getDimension().getAllRegions(getEngine())) {
             m = Math.max(m, i.getCarving().getMaxRange(getData()));
         }
 
-        for(IrisBiome i : getDimension().getAllBiomes(getEngine()))
-        {
+        for (IrisBiome i : getDimension().getAllBiomes(getEngine())) {
             m = Math.max(m, i.getCarving().getMaxRange(getData()));
         }
 

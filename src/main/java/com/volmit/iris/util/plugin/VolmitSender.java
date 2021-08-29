@@ -43,7 +43,6 @@ import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.Plugin;
 
 import java.time.Duration;
-import java.util.Comparator;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -439,7 +438,7 @@ public class VolmitSender implements CommandSender {
             String usage = "<#bbe03f>✒ <#a8e0a2><font:minecraft:uniform>";
             String onClick;
             if (i.isNode()) {
-                if (i.getNode().getParameters().isEmpty()){
+                if (i.getNode().getParameters().isEmpty()) {
                     usage += "There are no parameters. Click to run.";
                     onClick = "run_command";
                 } else {
@@ -461,7 +460,7 @@ public class VolmitSender implements CommandSender {
 
             /// Params
             StringBuilder nodes = new StringBuilder();
-            if (i.isNode()){
+            if (i.isNode()) {
                 for (DecreeParameter p : i.getNode().getParameters()) {
 
                     String nTitle = "<gradient:#d665f0:#a37feb>" + p.getName();
@@ -469,19 +468,19 @@ public class VolmitSender implements CommandSender {
                     String nDescription = "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + p.getDescription();
                     String nUsage;
                     String context = "";
-                    if (p.isRequired()){
+                    if (p.isRequired()) {
                         nUsage = "<#db4321>⚠ <#faa796><font:minecraft:uniform>This parameter is required.";
                     } else if (p.hasDefault()) {
-                        nUsage = "<#2181db>✔ <#78dcf0><font:minecraft:uniform>Defaults to \""+ p.getParam().defaultValue()+"\" if undefined.";
+                        nUsage = "<#2181db>✔ <#78dcf0><font:minecraft:uniform>Defaults to \"" + p.getParam().defaultValue() + "\" if undefined.";
                     } else {
                         nUsage = "<#a73abd>✔ <#78dcf0><font:minecraft:uniform>This parameter is optional.";
                     }
-                    if (p.isContextual()){
+                    if (p.isContextual()) {
                         context = "<#ff9900>➱ <#ffcc00><font:minecraft:uniform>The value may be derived from environment context" + newline;
                     }
                     String type = "<#cc00ff>✢ <#ff33cc><font:minecraft:uniform>This parameter is of type " + p.getType().getSimpleName();
                     String fullTitle;
-                    if (p.isRequired()){
+                    if (p.isRequired()) {
                         fullTitle = "<red>[" + nTitle + "<red>] ";
                     } else {
                         fullTitle = "<#4f4f4f>⊰" + nTitle + "<#4f4f4f>⊱";
@@ -505,20 +504,20 @@ public class VolmitSender implements CommandSender {
             /// Wrapper
             String wrapper =
                     "<hover:show_text:'" +
-                        hoverTitle + newline +
-                        description + newline +
-                        usage +
-                        suggestion + //Newlines for suggestions are added when they're built, to prevent blanklines.
-                        suggestions + // ^
-                    "'>" +
-                    "<click:" +
-                        onClick +
-                        ":" +
-                        realText +
-                    "</click>" +
-                    "</hover>" +
-                    " " +
-                    nodes;
+                            hoverTitle + newline +
+                            description + newline +
+                            usage +
+                            suggestion + //Newlines for suggestions are added when they're built, to prevent blanklines.
+                            suggestions + // ^
+                            "'>" +
+                            "<click:" +
+                            onClick +
+                            ":" +
+                            realText +
+                            "</click>" +
+                            "</hover>" +
+                            " " +
+                            nodes;
 
             sendMessageRaw(wrapper);
         } else {

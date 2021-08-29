@@ -75,8 +75,7 @@ public class IrisGeneratorStyle {
         return this;
     }
 
-    public CNG createNoCache(RNG rng, IrisData data)
-    {
+    public CNG createNoCache(RNG rng, IrisData data) {
         if (getExpression() != null) {
             IrisExpression e = data.getExpressionLoader().load(getExpression());
 

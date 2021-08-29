@@ -441,7 +441,7 @@ public class B {
         return isLit(mat)
                 || isStorage(mat)
                 || (mat instanceof PointedDripstone
-                    && ((PointedDripstone)mat).getThickness().equals(PointedDripstone.Thickness.TIP));
+                && ((PointedDripstone) mat).getThickness().equals(PointedDripstone.Thickness.TIP));
     }
 
     public static boolean isFoliage(Material d) {
@@ -525,6 +525,6 @@ public class B {
     }
 
     public static boolean isWaterLogged(BlockData b) {
-        return (b instanceof Waterlogged) && ((Waterlogged)b).isWaterlogged();
+        return (b instanceof Waterlogged) && ((Waterlogged) b).isWaterlogged();
     }
 }

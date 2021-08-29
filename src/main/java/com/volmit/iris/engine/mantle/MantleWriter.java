@@ -26,22 +26,16 @@ import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.common.IObjectPlacer;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.engine.object.tile.TileData;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
-import com.volmit.iris.util.math.INode;
-import com.volmit.iris.util.math.KochanekBartelsInterpolation;
-import com.volmit.iris.util.math.M;
-import com.volmit.iris.util.math.PathInterpolation;
 import com.volmit.iris.util.matter.Matter;
 import lombok.Data;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.Vector;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -150,6 +144,7 @@ public class MantleWriter implements IObjectPlacer {
     public void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile) {
         getEngineMantle().setTile(xx, yy, zz, tile);
     }
+
     /**
      * Set a sphere into the mantle
      *
@@ -534,8 +529,7 @@ public class MantleWriter implements IObjectPlacer {
         return isWithin(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ());
     }
 
-    public boolean isWithin(int x, int y, int z)
-    {
+    public boolean isWithin(int x, int y, int z) {
         int cx = x >> 4;
         int cz = z >> 4;
 
@@ -543,11 +537,7 @@ public class MantleWriter implements IObjectPlacer {
             return false;
         }
 
-        if (cx >= this.x - radius && cx <= this.x + radius
-                && cz >= this.z - radius && cz <= this.z + radius) {
-            return true;
-        }
-
-        return false;
+        return cx >= this.x - radius && cx <= this.x + radius
+                && cz >= this.z - radius && cz <= this.z + radius;
     }
 }

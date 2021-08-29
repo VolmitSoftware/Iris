@@ -23,8 +23,8 @@ import com.volmit.iris.core.link.IrisPapiExpansion;
 import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.link.OraxenLink;
-import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.biome.IrisBiomeCustom;
@@ -47,7 +47,10 @@ import com.volmit.iris.util.io.JarScanner;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.MultiBurst;
-import com.volmit.iris.util.plugin.*;
+import com.volmit.iris.util.plugin.IrisService;
+import com.volmit.iris.util.plugin.Metrics;
+import com.volmit.iris.util.plugin.VolmitPlugin;
+import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.reflect.ShadeFix;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Queue;
@@ -129,17 +132,17 @@ public class Iris extends VolmitPlugin implements Listener {
         J.a(this::verifyDataPacksPost, 20);
         splash();
 
-        if(IrisSettings.get().getGeneral().isAutoStartDefaultStudio())
-        {
+        if (IrisSettings.get().getGeneral().isAutoStartDefaultStudio()) {
             Iris.info("Starting up auto Studio!");
             try {
                 Player r = new KList<>(getServer().getOnlinePlayers()).getRandom();
                 Iris.service(StudioSVC.class).open(r != null ? new VolmitSender(r) : sender, 1337, IrisSettings.get().getGenerator().getDefaultWorldType(), (w) -> {
-                    J.s(() -> {for(Player i : getServer().getOnlinePlayers())
-                    {
-                        i.setGameMode(GameMode.SPECTATOR);
-                        i.teleport(new Location(w, 0, 200, 0));
-                    }});
+                    J.s(() -> {
+                        for (Player i : getServer().getOnlinePlayers()) {
+                            i.setGameMode(GameMode.SPECTATOR);
+                            i.teleport(new Location(w, 0, 200, 0));
+                        }
+                    });
                 });
             } catch (IrisException e) {
                 e.printStackTrace();

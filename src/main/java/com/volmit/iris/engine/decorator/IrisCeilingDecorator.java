@@ -70,37 +70,27 @@ public class IrisCeilingDecorator extends IrisEngineDecorator {
                             decorator.getBlockDataForTop(biome, getRng(), realX, h, realZ, getData()) :
                             decorator.getBlockData100(biome, getRng(), realX, h, realZ, getData());
 
-                    if(bd instanceof PointedDripstone)
-                    {
+                    if (bd instanceof PointedDripstone) {
                         PointedDripstone.Thickness th = PointedDripstone.Thickness.BASE;
 
-                        if(stack == 2)
-                        {
+                        if (stack == 2) {
                             th = PointedDripstone.Thickness.FRUSTUM;
 
-                            if(i == stack-1)
-                            {
+                            if (i == stack - 1) {
                                 th = PointedDripstone.Thickness.TIP;
                             }
-                        }
-
-                        else
-                        {
-                            if(i == stack-1)
-                            {
+                        } else {
+                            if (i == stack - 1) {
                                 th = PointedDripstone.Thickness.TIP;
-                            }
-
-                            else if(i == stack-2)
-                            {
+                            } else if (i == stack - 2) {
                                 th = PointedDripstone.Thickness.FRUSTUM;
                             }
                         }
 
 
                         bd = Material.POINTED_DRIPSTONE.createBlockData();
-                        ((PointedDripstone)bd).setThickness(th);
-                        ((PointedDripstone)bd).setVerticalDirection(BlockFace.DOWN);
+                        ((PointedDripstone) bd).setThickness(th);
+                        ((PointedDripstone) bd).setVerticalDirection(BlockFace.DOWN);
                     }
 
                     data.set(x, h, z, bd);

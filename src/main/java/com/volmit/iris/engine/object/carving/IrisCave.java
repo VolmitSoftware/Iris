@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine.object.carving;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
@@ -26,14 +25,9 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
-import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.basic.IrisRange;
 import com.volmit.iris.engine.object.biome.IrisBiome;
-import com.volmit.iris.engine.object.block.IrisBlockData;
 import com.volmit.iris.engine.object.noise.IrisWorm;
-import com.volmit.iris.engine.object.objects.IrisObjectLimit;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterCavern;
@@ -44,9 +38,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.bukkit.block.data.BlockData;
-
-import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @Accessors(chain = true)
@@ -83,9 +74,9 @@ public class IrisCave extends IrisRegistrant {
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
 
         writer.setLine(getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z,
-            (at) -> fork.doCarving(writer, rng, engine, at.getX(), at.getY(), at.getZ())),
-            getWorm().getGirth().get(rng, x, z, engine.getData()), true,
-            matterNodeCache.aquire(() -> CavernMatter.get(getCustomBiome())));
+                        (at) -> fork.doCarving(writer, rng, engine, at.getX(), at.getY(), at.getZ())),
+                getWorm().getGirth().get(rng, x, z, engine.getData()), true,
+                matterNodeCache.aquire(() -> CavernMatter.get(getCustomBiome())));
     }
 
     @Override

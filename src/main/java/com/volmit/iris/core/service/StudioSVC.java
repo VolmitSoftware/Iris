@@ -22,9 +22,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.pack.IrisPack;
 import com.volmit.iris.core.project.IrisProject;
-import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.dimensional.IrisDimension;
@@ -60,8 +60,7 @@ public class StudioSVC implements IrisService {
             String pack = IrisSettings.get().getGenerator().getDefaultWorldType();
             File f = IrisPack.packsPack(pack);
 
-            if(!f.exists())
-            {
+            if (!f.exists()) {
                 Iris.info("Downloading Default Pack " + pack);
                 downloadSearch(Iris.getSender(), pack, false);
             }
@@ -323,7 +322,8 @@ public class StudioSVC implements IrisService {
 
     public void open(VolmitSender sender, long seed, String dimm) {
         try {
-            open(sender, seed, dimm, (w) -> {});
+            open(sender, seed, dimm, (w) -> {
+            });
         } catch (Exception e) {
             Iris.reportError(e);
             sender.sendMessage("Error when creating studio world:");

@@ -50,7 +50,8 @@ public interface Job {
 
 
     default void execute(VolmitSender sender) {
-        execute(sender, () -> {});
+        execute(sender, () -> {
+        });
     }
 
     default void execute(VolmitSender sender, Runnable whenComplete) {

@@ -27,7 +27,6 @@ import com.volmit.iris.engine.object.decoration.IrisDecorationPart;
 import com.volmit.iris.engine.object.decoration.IrisDecorator;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
-import net.minecraft.world.level.block.PointedDripstoneBlock;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.Bisected;
@@ -112,37 +111,27 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                         break;
                     }
 
-                    if(bd instanceof PointedDripstone)
-                    {
+                    if (bd instanceof PointedDripstone) {
                         PointedDripstone.Thickness th = PointedDripstone.Thickness.BASE;
 
-                        if(stack == 2)
-                        {
+                        if (stack == 2) {
                             th = PointedDripstone.Thickness.FRUSTUM;
 
-                            if(i == stack-1)
-                            {
+                            if (i == stack - 1) {
                                 th = PointedDripstone.Thickness.TIP;
                             }
-                        }
-
-                        else
-                        {
-                            if(i == stack-1)
-                            {
+                        } else {
+                            if (i == stack - 1) {
                                 th = PointedDripstone.Thickness.TIP;
-                            }
-
-                            else if(i == stack-2)
-                            {
+                            } else if (i == stack - 2) {
                                 th = PointedDripstone.Thickness.FRUSTUM;
                             }
                         }
 
 
                         bd = Material.POINTED_DRIPSTONE.createBlockData();
-                        ((PointedDripstone)bd).setThickness(th);
-                        ((PointedDripstone)bd).setVerticalDirection(BlockFace.UP);
+                        ((PointedDripstone) bd).setThickness(th);
+                        ((PointedDripstone) bd).setVerticalDirection(BlockFace.UP);
                     }
 
                     data.set(x, height + 1 + i, z, bd);

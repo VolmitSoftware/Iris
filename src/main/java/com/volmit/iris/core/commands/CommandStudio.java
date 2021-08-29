@@ -23,8 +23,8 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.core.gui.VisionGUI;
-import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.service.ConversionSVC;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -309,7 +309,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Charges all spawners in the area", aliases = "zzt", origin = DecreeOrigin.PLAYER)
     public void charge() {
-        if (!IrisToolbelt.isIrisWorld(world())){
+        if (!IrisToolbelt.isIrisWorld(world())) {
             sender().sendMessage(C.RED + "You must be in an Iris world to charge spawners!");
             return;
         }
@@ -377,13 +377,13 @@ public class CommandStudio implements DecreeExecutor {
 
         if (regionPosition == null && region != null) {
             sender().sendMessage(C.RED + "Could not find the region you specified.");
-        } else if (regionPosition != null){
-            sender().sendMessage(C.GREEN + "Found the region at: " + regionPosition.toString());
+        } else if (regionPosition != null) {
+            sender().sendMessage(C.GREEN + "Found the region at: " + regionPosition);
         }
         if (biomePosition == null && biome != null) {
             sender().sendMessage(C.RED + "Could not find the biome you specified.");
-        } else if (biomePosition != null){
-            sender().sendMessage(C.GREEN + "Found the biome at: " + biomePosition.toString());
+        } else if (biomePosition != null) {
+            sender().sendMessage(C.GREEN + "Found the biome at: " + biomePosition);
         }
 
         final IrisPosition finalL = regionPosition == null ? biomePosition : regionPosition;
@@ -705,7 +705,7 @@ public class CommandStudio implements DecreeExecutor {
     @Decree(aliases = {"find-features", "nf"}, description = "Get the noise feature data in your chunk")
     public void features() {
 
-        if (!IrisToolbelt.isIrisWorld(player().getWorld())){
+        if (!IrisToolbelt.isIrisWorld(player().getWorld())) {
             sender().sendMessage(C.RED + "Iris worlds only");
             return;
         }
@@ -719,7 +719,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(aliases = "find-objects", description = "Get information about nearby structures")
     public void objects() {
-        if (!IrisToolbelt.isIrisWorld(player().getWorld())){
+        if (!IrisToolbelt.isIrisWorld(player().getWorld())) {
             sender().sendMessage(C.RED + "You must be in an Iris world");
             return;
         }

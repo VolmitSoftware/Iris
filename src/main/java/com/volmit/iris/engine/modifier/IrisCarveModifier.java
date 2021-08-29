@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine.modifier;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.actuator.IrisDecorantActuator;
 import com.volmit.iris.engine.data.cache.Cache;
@@ -32,14 +31,11 @@ import com.volmit.iris.engine.object.decoration.IrisDecorator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
-import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterCavern;
-import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 import org.bukkit.Material;
@@ -66,8 +62,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         KMap<IrisPosition, MatterCavern> walls = new KMap<>();
 
         mc.iterate(MatterCavern.class, (xx, yy, zz, c) -> {
-            if(yy > 256 || yy < 0)
-            {
+            if (yy > 256 || yy < 0) {
                 return;
             }
 
@@ -75,27 +70,29 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             int rz = zz & 15;
             BlockData current = output.get(rx, yy, rz);
 
-            if(B.isFluid(current))
-            {
+            if (B.isFluid(current)) {
                 return;
             }
 
-            positions.compute(Cache.key(rx, rz), (k,v) -> Objects.requireNonNullElseGet(v, (Supplier<KList<Integer>>) KList::new).qadd(yy));
+            positions.compute(Cache.key(rx, rz), (k, v) -> Objects.requireNonNullElseGet(v, (Supplier<KList<Integer>>) KList::new).qadd(yy));
 
-            if(rz < 15 && mantle.get(xx, yy, zz + 1, MatterCavern.class) == null)
-            {walls.put(new IrisPosition(rx, yy, rz + 1), c);}
+            if (rz < 15 && mantle.get(xx, yy, zz + 1, MatterCavern.class) == null) {
+                walls.put(new IrisPosition(rx, yy, rz + 1), c);
+            }
 
-            if(rx < 15 && mantle.get(xx + 1, yy, zz, MatterCavern.class) == null)
-            {walls.put(new IrisPosition(rx + 1, yy, rz), c);}
+            if (rx < 15 && mantle.get(xx + 1, yy, zz, MatterCavern.class) == null) {
+                walls.put(new IrisPosition(rx + 1, yy, rz), c);
+            }
 
-            if(rz > 0 && mantle.get(xx, yy, zz - 1, MatterCavern.class) == null)
-            {walls.put(new IrisPosition(rx, yy, rz - 1), c);}
+            if (rz > 0 && mantle.get(xx, yy, zz - 1, MatterCavern.class) == null) {
+                walls.put(new IrisPosition(rx, yy, rz - 1), c);
+            }
 
-            if(rx > 0 && mantle.get(xx - 1, yy, zz, MatterCavern.class) == null)
-            {walls.put(new IrisPosition(rx - 1, yy, rz), c);}
+            if (rx > 0 && mantle.get(xx - 1, yy, zz, MatterCavern.class) == null) {
+                walls.put(new IrisPosition(rx - 1, yy, rz), c);
+            }
 
-            if(current.getMaterial().isAir())
-            {
+            if (current.getMaterial().isAir()) {
                 return;
             }
 
@@ -107,20 +104,18 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                     ? getEngine().getCaveBiome(i.getX() + (x << 4), i.getZ() + (z << 4))
                     : getEngine().getData().getBiomeLoader().load(v.getCustomBiome());
 
-            if(biome != null)
-            {
+            if (biome != null) {
                 biome.setInferredType(InferredType.CAVE);
                 BlockData d = biome.getWall().get(rng, i.getX() + (x << 4), i.getY(), i.getZ() + (z << 4), getData());
 
-                if(d != null && B.isSolid(output.get(i.getX(), i.getY(), i.getZ()))) {
+                if (d != null && B.isSolid(output.get(i.getX(), i.getY(), i.getZ()))) {
                     output.set(i.getX(), i.getY(), i.getZ(), d);
                 }
             }
         });
 
         positions.forEach((k, v) -> {
-            if(v.isEmpty())
-            {
+            if (v.isEmpty()) {
                 return;
             }
 
@@ -131,19 +126,15 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             zone.setFloor(v.get(0));
             int buf = v.get(0) - 1;
 
-            for(Integer i : v) {
+            for (Integer i : v) {
                 if (i < 0 || i > 255) {
                     continue;
                 }
 
-                if (i == buf + 1)
-                {
+                if (i == buf + 1) {
                     buf = i;
                     zone.ceiling = buf;
-                }
-
-                else if(zone.isValid())
-                {
+                } else if (zone.isValid()) {
                     processZone(output, mc, zone, rx, rz, rx + (x << 4), rz + (z << 4));
                     zone = new CaveZone();
                     zone.setFloor(i);
@@ -151,8 +142,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 }
             }
 
-            if(zone.isValid())
-            {
+            if (zone.isValid()) {
                 processZone(output, mc, zone, rx, rz, rx + (x << 4), rz + (z << 4));
             }
         });
@@ -167,13 +157,11 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         int thickness = zone.airThickness();
         String customBiome = "";
 
-        for(int i = zone.floor; i <= zone.ceiling; i++)
-        {
+        for (int i = zone.floor; i <= zone.ceiling; i++) {
             MatterCavern cavernData = (MatterCavern) mc.getOrCreate(i >> 4).slice(MatterCavern.class)
                     .get(rx, i & 15, rz);
 
-            if(cavernData != null && !cavernData.getCustomBiome().isEmpty())
-            {
+            if (cavernData != null && !cavernData.getCustomBiome().isEmpty()) {
                 customBiome = cavernData.getCustomBiome();
                 break;
             }
@@ -183,38 +171,33 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 ? getEngine().getCaveBiome(xx, zz)
                 : getEngine().getData().getBiomeLoader().load(customBiome);
 
-        if(biome == null)
-        {
+        if (biome == null) {
             return;
         }
 
         biome.setInferredType(InferredType.CAVE);
 
-        IrisDecorantActuator actuator = (IrisDecorantActuator) ((IrisEngine)getEngine()).getDecorantActuator();
-        for(IrisDecorator i : biome.getDecorators()) {
-            if (i.getPartOf().equals(IrisDecorationPart.NONE) && B.isSolid(output.get(rx, zone.getFloor()-1, rz))) {
+        IrisDecorantActuator actuator = (IrisDecorantActuator) ((IrisEngine) getEngine()).getDecorantActuator();
+        for (IrisDecorator i : biome.getDecorators()) {
+            if (i.getPartOf().equals(IrisDecorationPart.NONE) && B.isSolid(output.get(rx, zone.getFloor() - 1, rz))) {
                 actuator.getSurfaceDecorator().decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, biome, zone.getFloor() - 1, zone.airThickness());
-            } else if (i.getPartOf().equals(IrisDecorationPart.CEILING) && B.isSolid(output.get(rx, zone.getCeiling()+1, rz))) {
+            } else if (i.getPartOf().equals(IrisDecorationPart.CEILING) && B.isSolid(output.get(rx, zone.getCeiling() + 1, rz))) {
                 actuator.getCeilingDecorator().decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, biome, zone.getCeiling(), zone.airThickness());
             }
         }
 
         KList<BlockData> blocks = biome.generateLayers(getDimension(), xx, zz, rng, 3, zone.floor, getData(), getComplex());
 
-        for(int i = 0; i < zone.floor-1; i++)
-        {
-            if(!blocks.hasIndex(i))
-            {
+        for (int i = 0; i < zone.floor - 1; i++) {
+            if (!blocks.hasIndex(i)) {
                 break;
             }
 
-            if(!B.isSolid(output.get(rx, zone.floor - i - 1, rz)))
-            {
+            if (!B.isSolid(output.get(rx, zone.floor - i - 1, rz))) {
                 continue;
             }
 
-            if(B.isOre(output.get(rx, zone.floor - i - 1, rz)))
-            {
+            if (B.isOre(output.get(rx, zone.floor - i - 1, rz))) {
                 continue;
             }
 
@@ -223,45 +206,37 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
 
         blocks = biome.generateCeilingLayers(getDimension(), xx, zz, rng, 3, zone.ceiling, getData(), getComplex());
 
-        for(int i = 0; i < zone.ceiling+1; i++)
-        {
-            if(!blocks.hasIndex(i))
-            {
+        for (int i = 0; i < zone.ceiling + 1; i++) {
+            if (!blocks.hasIndex(i)) {
                 break;
             }
 
-            if(!B.isSolid(output.get(rx, zone.ceiling + i + 1, rz)))
-            {
+            if (!B.isSolid(output.get(rx, zone.ceiling + i + 1, rz))) {
                 continue;
             }
 
-            if(B.isOre(output.get(rx, zone.ceiling + i  + 1, rz)))
-            {
+            if (B.isOre(output.get(rx, zone.ceiling + i + 1, rz))) {
                 continue;
             }
 
-            output.set(rx, zone.ceiling + i  + 1, rz, blocks.get(i));
+            output.set(rx, zone.ceiling + i + 1, rz, blocks.get(i));
         }
     }
 
     @Data
-    public static class CaveZone
-    {
+    public static class CaveZone {
         private int ceiling = -1;
         private int floor = -1;
 
-        public int airThickness()
-        {
+        public int airThickness() {
             return (ceiling - floor) - 1;
         }
 
-        public boolean isValid()
-        {
+        public boolean isValid() {
             return floor < ceiling && ceiling - floor >= 1 && floor >= 0 && ceiling <= 255 && airThickness() > 0;
         }
 
-        public String toString()
-        {
+        public String toString() {
             return floor + "-" + ceiling;
         }
     }

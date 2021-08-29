@@ -42,7 +42,7 @@ public class CommandObject implements DecreeExecutor {
     @Decree(description = "Check the composition of an object")
     public void analyze(
             @Param(description = "The object to analyze", customHandler = ObjectHandler.class)
-            String object
+                    String object
     ) {
         IrisObject o = IrisData.loadAnyObject(object);
         sender().sendMessage("Object Size: " + o.getW() + " * " + o.getH() + " * " + o.getD() + "");
@@ -194,20 +194,20 @@ public class CommandObject implements DecreeExecutor {
     @Decree(description = "Paste an object", sync = true)
     public void paste(
             @Param(description = "The object to paste", customHandler = ObjectHandler.class)
-            String object,
+                    String object,
             @Param(description = "Whether or not to edit the object (need to hold wand)", defaultValue = "false")
                     boolean edit,
             @Param(description = "The amount of degrees to rotate by", defaultValue = "0")
                     int rotate,
             @Param(description = "The factor by which to scale the object placement", defaultValue = "1")
-            double scale
+                    double scale
 //            ,
 //            @Param(description = "The scale interpolator to use", defaultValue = "none")
 //            IrisObjectPlacementScaleInterpolator interpolator
-    ){
+    ) {
         IrisObject o = IrisData.loadAnyObject(object);
         double maxScale = Double.max(10 - o.getBlocks().size() / 10000d, 1);
-        if (scale > maxScale){
+        if (scale > maxScale) {
             sender().sendMessage(C.YELLOW + "Indicated scale exceeds maximum. Downscaled to maximum: " + maxScale);
             scale = maxScale;
         }
@@ -321,12 +321,12 @@ public class CommandObject implements DecreeExecutor {
     @Decree(description = "Save an object")
     public void save(
             @Param(description = "The dimension to store the object in", contextual = true)
-            IrisDimension dimension,
+                    IrisDimension dimension,
             @Param(description = "The file to store it in, can use / for subfolders")
-            String name,
+                    String name,
             @Param(description = "Overwrite existing object files", defaultValue = "false", aliases = "force")
-            boolean overwrite
-    ){
+                    boolean overwrite
+    ) {
         IrisObject o = WandSVC.createSchematic(player().getInventory().getItemInMainHand());
 
         if (o == null) {
@@ -342,7 +342,7 @@ public class CommandObject implements DecreeExecutor {
         }
         try {
             o.write(file);
-        } catch (IOException e){
+        } catch (IOException e) {
             sender().sendMessage(C.RED + "Failed to save object because of an IOException: " + e.getMessage());
             Iris.reportError(e);
         }
@@ -355,7 +355,7 @@ public class CommandObject implements DecreeExecutor {
     public void shift(
             @Param(description = "The amount to shift by", defaultValue = "1")
                     int amount
-    ){
+    ) {
         if (!WandSVC.isHoldingWand(player())) {
             sender().sendMessage("Hold your wand.");
             return;
@@ -379,7 +379,7 @@ public class CommandObject implements DecreeExecutor {
     public void undo(
             @Param(description = "The amount of pastes to undo", defaultValue = "1")
                     int amount
-    ){
+    ) {
         ObjectSVC service = Iris.service(ObjectSVC.class);
         int actualReverts = Math.min(service.getUndos().size(), amount);
         service.revertChanges(actualReverts);
@@ -394,8 +394,8 @@ public class CommandObject implements DecreeExecutor {
     }
 
     @Decree(name = "x&y", description = "Autoselect up, down & out", sync = true)
-    public void xay(){
-        if (!WandSVC.isHoldingWand(player())){
+    public void xay() {
+        if (!WandSVC.isHoldingWand(player())) {
             sender().sendMessage(C.YELLOW + "Hold your wand!");
             return;
         }

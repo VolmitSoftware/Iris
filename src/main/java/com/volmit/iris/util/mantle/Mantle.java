@@ -18,12 +18,10 @@
 
 package com.volmit.iris.util.mantle;
 
-import com.google.common.collect.ImmutableList;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.MantleWriter;
-import com.volmit.iris.engine.object.basic.IrisPosition;
 import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -33,21 +31,16 @@ import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer4;
-import com.volmit.iris.util.math.INode;
-import com.volmit.iris.util.math.KochanekBartelsInterpolation;
 import com.volmit.iris.util.math.M;
-import com.volmit.iris.util.math.PathInterpolation;
 import com.volmit.iris.util.matter.Matter;
-import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.HyperLock;
 import com.volmit.iris.util.parallel.MultiBurst;
 import org.bukkit.Chunk;
-import org.bukkit.util.Vector;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;

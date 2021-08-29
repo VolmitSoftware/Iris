@@ -51,7 +51,6 @@ public class IrisPackRepository {
     private String tag = "";
 
     /**
-     *
      * @param g
      * @return
      */
@@ -127,10 +126,7 @@ public class IrisPackRepository {
                             e.printStackTrace();
                         }
                     })).execute(sender, whenComplete);
-        }
-
-        else
-        {
+        } else {
             sender.sendMessage("Pack already exists!");
         }
     }

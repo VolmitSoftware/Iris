@@ -26,7 +26,6 @@ import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.engine.object.biome.IrisBiome;
-import com.volmit.iris.engine.object.block.IrisBlockData;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
 import com.volmit.iris.engine.object.noise.IrisStyledRange;
@@ -38,8 +37,7 @@ import lombok.Data;
 
 @Desc("Represents an procedural eliptical shape")
 @Data
-public class IrisSphere implements IRare
-{
+public class IrisSphere implements IRare {
     @Required
     @Desc("Typically a 1 in RARITY on a per fork basis")
     @MinNumber(1)
@@ -53,9 +51,9 @@ public class IrisSphere implements IRare
     private IrisStyledRange radius = new IrisStyledRange(1, 5, new IrisGeneratorStyle(NoiseStyle.STATIC));
 
     private transient final AtomicCache<MatterCavern> matterNodeCache = new AtomicCache<>();
-    public void generate(RNG rng, Engine engine, MantleWriter writer, int x, int y, int z)
-    {
-        writer.setSphere(x, y, z, radius.get(rng, z, y, engine.getData()),true, matterNodeCache.aquire(() -> CavernMatter.get(getCustomBiome())));
+
+    public void generate(RNG rng, Engine engine, MantleWriter writer, int x, int y, int z) {
+        writer.setSphere(x, y, z, radius.get(rng, z, y, engine.getData()), true, matterNodeCache.aquire(() -> CavernMatter.get(getCustomBiome())));
     }
 
     public double maxSize() {

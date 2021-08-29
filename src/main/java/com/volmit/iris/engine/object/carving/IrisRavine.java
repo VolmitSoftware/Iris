@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine.object.carving;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
@@ -29,7 +28,6 @@ import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.basic.IrisPosition;
-import com.volmit.iris.engine.object.basic.IrisRange;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.noise.IrisShapedGeneratorStyle;
 import com.volmit.iris.engine.object.noise.IrisWorm;
@@ -89,6 +87,7 @@ public class IrisRavine extends IrisRegistrant {
     private double ribThickness = 3;
 
     private transient final AtomicCache<MatterCavern> matterNodeCache = new AtomicCache<>();
+
     @Override
     public String getFolderName() {
         return "ravines";
@@ -101,36 +100,32 @@ public class IrisRavine extends IrisRegistrant {
 
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
 
-        KList<IrisPosition> pos = getWorm().generate(rng, engine.getData(), writer, null, x, y, z, (at) -> {});
+        KList<IrisPosition> pos = getWorm().generate(rng, engine.getData(), writer, null, x, y, z, (at) -> {
+        });
         CNG dg = depthStyle.getGenerator().createNoCache(rng, engine.getData());
         CNG bw = baseWidthStyle.getGenerator().createNoCache(rng, engine.getData());
 
-        if(pos.size() < nodeThreshold)
-        {
+        if (pos.size() < nodeThreshold) {
             return;
         }
 
-        for(IrisPosition p : pos)
-        {
+        for (IrisPosition p : pos) {
             int rsurface = y == -1 ? engine.getComplex().getHeightStream().get(x, z).intValue() : y;
             int depth = (int) Math.round(dg.fitDouble(depthStyle.getMin(), depthStyle.getMax(), p.getX(), p.getZ()));
             int width = (int) Math.round(bw.fitDouble(baseWidthStyle.getMin(), baseWidthStyle.getMax(), p.getX(), p.getZ()));
             int surface = (int) Math.round(rsurface - depth * 0.45);
 
-            fork.doCarving(writer, rng, engine, p.getX(), rng.i(surface-depth, surface), p.getZ());
+            fork.doCarving(writer, rng, engine, p.getX(), rng.i(surface - depth, surface), p.getZ());
 
-            for(int i = surface + depth; i >= surface; i--)
-            {
-                if(i % ribThickness == 0) {
+            for (int i = surface + depth; i >= surface; i--) {
+                if (i % ribThickness == 0) {
                     double v = width + ((((surface + depth) - i) * (angle / 360D)));
 
-                    if(v <= 0.25)
-                    {
+                    if (v <= 0.25) {
                         break;
                     }
 
-                    if(i <= ribThickness+2)
-                    {
+                    if (i <= ribThickness + 2) {
                         break;
                     }
 
@@ -138,18 +133,15 @@ public class IrisRavine extends IrisRegistrant {
                 }
             }
 
-            for(int i = surface - depth; i <= surface; i++)
-            {
-                if(i % ribThickness == 0) {
+            for (int i = surface - depth; i <= surface; i++) {
+                if (i % ribThickness == 0) {
                     double v = width - ((((surface - depth) - i) * (angle / 360D)));
 
-                    if(v <= 0.25)
-                    {
+                    if (v <= 0.25) {
                         break;
                     }
 
-                    if(i <= ribThickness+2)
-                    {
+                    if (i <= ribThickness + 2) {
                         break;
                     }
 

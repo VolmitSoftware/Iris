@@ -20,8 +20,6 @@ package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.matter.Sliced;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -32,10 +30,8 @@ public class CavernMatter extends RawMatter<MatterCavern> {
     public static final MatterCavern ON = new MatterCavern(true, "");
     public static final MatterCavern OFF = new MatterCavern(false, "");
 
-    public static MatterCavern get(String customBiome)
-    {
-        if(customBiome.isEmpty())
-        {
+    public static MatterCavern get(String customBiome) {
+        if (customBiome.isEmpty()) {
             return ON;
         }
 

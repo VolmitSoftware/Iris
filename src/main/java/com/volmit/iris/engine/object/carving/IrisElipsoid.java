@@ -26,7 +26,6 @@ import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.engine.object.biome.IrisBiome;
-import com.volmit.iris.engine.object.block.IrisBlockData;
 import com.volmit.iris.engine.object.common.IRare;
 import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
 import com.volmit.iris.engine.object.noise.IrisStyledRange;
@@ -38,8 +37,7 @@ import lombok.Data;
 
 @Desc("Represents an procedural eliptical shape")
 @Data
-public class IrisElipsoid implements IRare
-{
+public class IrisElipsoid implements IRare {
     @Required
     @Desc("Typically a 1 in RARITY on a per fork basis")
     @MinNumber(1)
@@ -60,8 +58,7 @@ public class IrisElipsoid implements IRare
     private transient final AtomicCache<MatterCavern> matterNodeCache = new AtomicCache<>();
 
     @SuppressWarnings("SuspiciousNameCombination")
-    public void generate(RNG rng, Engine engine, MantleWriter writer, int x, int y, int z)
-    {
+    public void generate(RNG rng, Engine engine, MantleWriter writer, int x, int y, int z) {
         writer.setElipsoid(x, y, z,
                 xRadius.get(rng, z, y, engine.getData()),
                 yRadius.get(rng, x, z, engine.getData()),

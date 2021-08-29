@@ -46,7 +46,6 @@ import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.MantleFlag;
@@ -55,7 +54,6 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.matter.MatterUpdate;
-import com.volmit.iris.util.matter.slices.UpdateMatter;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.ChronoLatch;
@@ -63,20 +61,20 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.stream.ProceduralStream;
 import io.papermc.lib.PaperLib;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
-import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
-import org.bukkit.craftbukkit.v1_17_R1.block.CraftBlock;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
 import java.awt.*;
-import java.awt.Color;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -235,28 +233,25 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     @ChunkCoordinates
     @Override
     default void updateChunk(Chunk c) {
-        if(c.getWorld().isChunkLoaded(c.getX() + 1, c.getZ() + 1)
+        if (c.getWorld().isChunkLoaded(c.getX() + 1, c.getZ() + 1)
                 && c.getWorld().isChunkLoaded(c.getX(), c.getZ() + 1)
                 && c.getWorld().isChunkLoaded(c.getX() + 1, c.getZ())
                 && c.getWorld().isChunkLoaded(c.getX() - 1, c.getZ() - 1)
                 && c.getWorld().isChunkLoaded(c.getX(), c.getZ() - 1)
                 && c.getWorld().isChunkLoaded(c.getX() - 1, c.getZ())
                 && c.getWorld().isChunkLoaded(c.getX() + 1, c.getZ() - 1)
-                && c.getWorld().isChunkLoaded(c.getX() - 1, c.getZ() + 1))
-        {
+                && c.getWorld().isChunkLoaded(c.getX() - 1, c.getZ() + 1)) {
             getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.UPDATE, () -> J.s(() -> {
                 PrecisionStopwatch p = PrecisionStopwatch.start();
                 KMap<Long, Integer> updates = new KMap<>();
                 RNG r = new RNG(Cache.key(c.getX(), c.getZ()));
                 getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, y, z, v) -> {
-                    if(B.isAir(c.getBlock(x & 15, y, z & 15).getBlockData()))
-                    {
+                    if (B.isAir(c.getBlock(x & 15, y, z & 15).getBlockData())) {
                         return;
                     }
 
-                    updates.compute(Cache.key(x & 15, z & 15), (k,vv) -> {
-                        if(vv != null)
-                        {
+                    updates.compute(Cache.key(x & 15, z & 15), (k, vv) -> {
+                        if (vv != null) {
                             return Math.max(vv, y);
                         }
 
@@ -264,7 +259,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     });
                 });
 
-                updates.forEach((k,v) -> update(Cache.keyX(k), v, Cache.keyZ(k), c, r));
+                updates.forEach((k, v) -> update(Cache.keyX(k), v, Cache.keyZ(k), c, r));
                 getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterUpdate.class, (x, y, z, v) -> {
                     if (v != null && v.isUpdate()) {
                         int vx = x & 15;
@@ -322,10 +317,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     Iris.reportError(e);
                 }
             }
-        }
-
-        else
-        {
+        } else {
             block.setType(Material.AIR, false);
             block.setBlockData(data, true);
         }

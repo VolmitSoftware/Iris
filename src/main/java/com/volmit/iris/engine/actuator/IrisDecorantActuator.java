@@ -32,7 +32,6 @@ import lombok.Getter;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
-import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
 public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {

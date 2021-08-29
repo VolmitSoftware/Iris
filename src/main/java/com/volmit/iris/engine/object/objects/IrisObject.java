@@ -464,8 +464,7 @@ public class IrisObject extends IrisRegistrant {
         if (yv < 0) {
             if (config.getMode().equals(ObjectPlaceMode.CENTER_HEIGHT)) {
                 y = (c != null ? c.getSurface() : placer.getHighest(x, z, getLoader(), config.isUnderwater())) + rty;
-                if(placer.isCarved(x, y, z) || placer.isCarved(x, y-1, z))
-                {
+                if (placer.isCarved(x, y, z) || placer.isCarved(x, y - 1, z)) {
                     bail = true;
                 }
             } else if (config.getMode().equals(ObjectPlaceMode.MAX_HEIGHT) || config.getMode().equals(ObjectPlaceMode.STILT)) {
@@ -476,8 +475,7 @@ public class IrisObject extends IrisRegistrant {
                     for (int j = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j <= z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j++) {
                         int h = placer.getHighest(i, j, getLoader(), config.isUnderwater()) + rty;
 
-                        if(placer.isCarved(i, h, j))
-                        {
+                        if (placer.isCarved(i, h, j)) {
                             bail = true;
                             break;
                         }
@@ -495,8 +493,7 @@ public class IrisObject extends IrisRegistrant {
                     for (int j = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j <= z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j += (rotatedDimensions.getBlockZ() / 2) + 1) {
                         int h = placer.getHighest(i, j, getLoader(), config.isUnderwater()) + rty;
 
-                        if(placer.isCarved(i, h, j))
-                        {
+                        if (placer.isCarved(i, h, j)) {
                             bail = true;
                             break;
                         }
@@ -514,8 +511,7 @@ public class IrisObject extends IrisRegistrant {
                 for (int i = x - (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i <= x + (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i++) {
                     for (int j = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j <= z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j++) {
                         int h = placer.getHighest(i, j, getLoader(), config.isUnderwater()) + rty;
-                        if(placer.isCarved(i, h, j))
-                        {
+                        if (placer.isCarved(i, h, j)) {
                             bail = true;
                             break;
                         }
@@ -532,8 +528,7 @@ public class IrisObject extends IrisRegistrant {
                 for (int i = x - (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i <= x + (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i += (rotatedDimensions.getBlockX() / 2) + 1) {
                     for (int j = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j <= z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j += (rotatedDimensions.getBlockZ() / 2) + 1) {
                         int h = placer.getHighest(i, j, getLoader(), config.isUnderwater()) + rty;
-                        if(placer.isCarved(i, h, j))
-                        {
+                        if (placer.isCarved(i, h, j)) {
                             bail = true;
                             break;
                         }
@@ -544,15 +539,13 @@ public class IrisObject extends IrisRegistrant {
                 }
             } else if (config.getMode().equals(ObjectPlaceMode.PAINT)) {
                 y = placer.getHighest(x, z, getLoader(), config.isUnderwater()) + rty;
-                if(placer.isCarved(x, y, z))
-                {
+                if (placer.isCarved(x, y, z)) {
                     bail = true;
                 }
             }
         } else {
             y = yv;
-            if(placer.isCarved(x, y, z))
-            {
+            if (placer.isCarved(x, y, z)) {
                 bail = true;
             }
         }
@@ -562,8 +555,7 @@ public class IrisObject extends IrisRegistrant {
             bail = placer.isCarved(x, y, z);
         }
 
-        if(bail)
-        {
+        if (bail) {
             return -1;
         }
 

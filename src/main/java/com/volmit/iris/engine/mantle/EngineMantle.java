@@ -84,8 +84,7 @@ public interface EngineMantle extends IObjectPlacer {
         return getComplex().getTrueHeightStream().get(x, z);
     }
 
-    default boolean isCarved(int x, int h, int z)
-    {
+    default boolean isCarved(int x, int h, int z) {
         return getMantle().get(x, h, z, MatterCavern.class) != null;
     }
 
@@ -248,8 +247,7 @@ public interface EngineMantle extends IObjectPlacer {
     default void dropCavernBlock(int x, int y, int z) {
         Matter matter = getMantle().getChunk(x & 15, z & 15).get(y & 15);
 
-        if(matter != null)
-        {
+        if (matter != null) {
             matter.slice(MatterCavern.class).set(x & 15, y & 15, z & 15, null);
         }
     }

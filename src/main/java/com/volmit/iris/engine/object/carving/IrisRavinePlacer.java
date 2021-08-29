@@ -28,9 +28,6 @@ import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.engine.object.common.IRare;
-import com.volmit.iris.engine.object.noise.IrisGeneratorStyle;
-import com.volmit.iris.engine.object.noise.IrisStyledRange;
-import com.volmit.iris.engine.object.noise.NoiseStyle;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -68,8 +65,7 @@ public class IrisRavinePlacer implements IRare {
             return;
         }
 
-        if(rng.nextInt(rarity) != 0)
-        {
+        if (rng.nextInt(rarity) != 0) {
             return;
         }
 
@@ -82,15 +78,11 @@ public class IrisRavinePlacer implements IRare {
             return;
         }
 
-        try
-        {
+        try {
             int xx = x + rng.nextInt(15);
             int zz = z + rng.nextInt(15);
             ravine.generate(mantle, rng, engine, xx, y, zz);
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             e.printStackTrace();
             fail.set(true);
         }

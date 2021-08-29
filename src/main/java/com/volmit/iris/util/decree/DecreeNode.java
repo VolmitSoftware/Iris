@@ -52,13 +52,13 @@ public class DecreeNode {
 
         for (Parameter i : method.getParameters()) {
             DecreeParameter p = new DecreeParameter(i);
-            if (p.isRequired()){
+            if (p.isRequired()) {
                 required.add(p);
             } else {
                 optional.add(p);
             }
         }
-        
+
         required.addAll(optional);
 
         return required;

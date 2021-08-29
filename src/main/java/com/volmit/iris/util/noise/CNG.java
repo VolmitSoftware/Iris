@@ -388,8 +388,7 @@ public class CNG {
         return noise(dim);
     }
 
-    public double noiseSym(double... dim)
-    {
+    public double noiseSym(double... dim) {
         return (noise(dim) * 2) - 1;
     }
 

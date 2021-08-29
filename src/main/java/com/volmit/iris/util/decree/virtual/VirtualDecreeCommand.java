@@ -359,6 +359,18 @@ public class VirtualDecreeCommand {
             return true;
         }
 
+        else if(args.size() == 1)
+        {
+            for(String i : args)
+            {
+                if(i.startsWith("help="))
+                {
+                    sender.sendDecreeHelp(this, Integer.parseInt(i.split("\\Q=\\E")[1])-1);
+                    return true;
+                }
+            }
+        }
+
         String head = args.get(0);
         VirtualDecreeCommand match = matchNode(head, skip);
 

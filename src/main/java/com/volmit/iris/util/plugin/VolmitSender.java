@@ -21,6 +21,7 @@ package com.volmit.iris.util.plugin;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.decree.DecreeParameter;
 import com.volmit.iris.util.decree.virtual.VirtualDecreeCommand;
 import com.volmit.iris.util.format.C;
@@ -41,12 +42,14 @@ import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.ChatPaginator;
 
 import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -408,118 +411,167 @@ public class VolmitSender implements CommandSender {
         sendHeader(name, 46);
     }
 
+
     public void sendDecreeHelp(VirtualDecreeCommand v) {
+        sendDecreeHelp(v, 0);
+    }
+
+
+    public static <T> KList<T> paginate(KList<T> all, int linesPerPage, int page, AtomicBoolean hasNext)
+    {
+        int totalPages = (int) Math.ceil((double)all.size() / linesPerPage);
+        page = page < 0 ? 0 : page >= totalPages ? totalPages - 1 : page;
+        hasNext.set(page < totalPages-1);
+        KList<T> d = new KList<>();
+
+        for(int i = linesPerPage * page; i < Math.min(all.size(), linesPerPage * (page + 1)); i++)
+        {
+            d.add(all.get(i));
+        }
+
+        return d;
+    }
+
+    public void sendDecreeHelp(VirtualDecreeCommand v, int page) {
         int m = v.getNodes().size();
 
+        sendMessageRaw("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+
         if (v.getNodes().isNotEmpty()) {
-            sendHeader(Form.capitalize(v.getName()) + " Help");
+            sendHeader(v.getPath() + (page > 0 ? (" {" + (page+1) + "}") : ""));
             if (isPlayer() && v.getParent() != null) {
                 sendMessageRaw("<hover:show_text:'" + "<#b54b38>Click to go back to <#3299bf>" + Form.capitalize(v.getParent().getName()) + " Help" + "'><click:run_command:" + v.getParent().getPath() + "><font:minecraft:uniform><#f58571>〈 Back</click></hover>");
             }
 
-            for (VirtualDecreeCommand i : v.getNodes()) {
+            AtomicBoolean next = new AtomicBoolean(false);
+            for (VirtualDecreeCommand i : paginate(v.getNodes(), 17, page, next)) {
                 sendDecreeHelpNode(i);
             }
+
+            String s = "";
+            int l = 75 - (page > 0 ? 10 : 0) - (next.get() ? 10 : 0);
+
+            if(page > 0)
+            {
+                s += "<hover:show_text:'<green>Click to go back to page " + page + "'><click:run_command:" + v.getPath() + " help=" + page + "><gradient:#27b84d:#2770b8>〈 Page " + page + "</click></hover><reset> ";
+            }
+
+            s += "<reset><font:minecraft:uniform><strikethrough><gradient:#32bfad:#34eb6b>" + Form.repeat(" ", l) + "<reset>";
+
+            if(next.get())
+            {
+                s += " <hover:show_text:'<green>Click to go to back to page " + (page+2) + "'><click:run_command:" + v.getPath() + " help=" + (page+2) + "><gradient:#2770b8:#27b84d>Page " + (page+2) + " ❭</click></hover>";
+            }
+
+            sendMessageRaw(s);
         } else {
             sendMessage(C.RED + "There are no subcommands in this group! Contact support, this is a command design issue!");
         }
     }
 
+    private static final KMap<String, String> helpCache = new KMap<>();
+
     public void sendDecreeHelpNode(VirtualDecreeCommand i) {
         if (isPlayer()) {
+            sendMessageRaw(helpCache.compute(i.getPath(), (k, v) -> {
+                if(v != null)
+                {
+                    return v;
+                }
 
-            String newline = "<reset>\n";
+                String newline = "<reset>\n";
 
-            /// Command
-            // Contains main command & aliases
-            String realText = i.getPath() + " >" + "<#46826a>⇀<gradient:#42ecf5:#428df5> " + i.getName();
-            String hoverTitle = i.getNames().copy().reverse().convert((f) -> "<#42ecf5>" + f).toString(", ");
-            String description = "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + i.getDescription();
-            String usage = "<#bbe03f>✒ <#a8e0a2><font:minecraft:uniform>";
-            String onClick;
-            if (i.isNode()) {
-                if (i.getNode().getParameters().isEmpty()) {
-                    usage += "There are no parameters. Click to run.";
-                    onClick = "run_command";
+                /// Command
+                // Contains main command & aliases
+                String realText = i.getPath() + " >" + "<#46826a>⇀<gradient:#42ecf5:#428df5> " + i.getName();
+                String hoverTitle = i.getNames().copy().reverse().convert((f) -> "<#42ecf5>" + f).toString(", ");
+                String description = "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + i.getDescription();
+                String usage = "<#bbe03f>✒ <#a8e0a2><font:minecraft:uniform>";
+                String onClick;
+                if (i.isNode()) {
+                    if (i.getNode().getParameters().isEmpty()) {
+                        usage += "There are no parameters. Click to run.";
+                        onClick = "run_command";
+                    } else {
+                        usage += "Hover over all of the parameters to learn more.";
+                        onClick = "suggest_command";
+                    }
                 } else {
-                    usage += "Hover over all of the parameters to learn more.";
-                    onClick = "suggest_command";
+                    usage += "This is a command category. Click to run.";
+                    onClick = "run_command";
                 }
-            } else {
-                usage += "This is a command category. Click to run.";
-                onClick = "run_command";
-            }
 
-            String suggestion = "";
-            String suggestions = "";
-            if (i.isNode() && i.getNode().getParameters().isNotEmpty()) {
-                suggestion += newline + "<#aebef2>✦ <#5ef288><font:minecraft:uniform>" + i.getParentPath() + " <#42ecf5>" + i.getName() + " "
-                        + i.getNode().getParameters().convert((f) -> "<#d665f0>" + f.example()).toString(" ");
-                suggestions += newline + "<font:minecraft:uniform>" + pickRandoms(Math.min(i.getNode().getParameters().size() + 1, 5), i);
-            }
-
-            /// Params
-            StringBuilder nodes = new StringBuilder();
-            if (i.isNode()) {
-                for (DecreeParameter p : i.getNode().getParameters()) {
-
-                    String nTitle = "<gradient:#d665f0:#a37feb>" + p.getName();
-                    String nHoverTitle = p.getNames().convert((ff) -> "<#d665f0>" + ff).toString(", ");
-                    String nDescription = "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + p.getDescription();
-                    String nUsage;
-                    String context = "";
-                    if (p.isRequired()) {
-                        nUsage = "<#db4321>⚠ <#faa796><font:minecraft:uniform>This parameter is required.";
-                    } else if (p.hasDefault()) {
-                        nUsage = "<#2181db>✔ <#78dcf0><font:minecraft:uniform>Defaults to \"" + p.getParam().defaultValue() + "\" if undefined.";
-                    } else {
-                        nUsage = "<#a73abd>✔ <#78dcf0><font:minecraft:uniform>This parameter is optional.";
-                    }
-                    if (p.isContextual()) {
-                        context = "<#ff9900>➱ <#ffcc00><font:minecraft:uniform>The value may be derived from environment context" + newline;
-                    }
-                    String type = "<#cc00ff>✢ <#ff33cc><font:minecraft:uniform>This parameter is of type " + p.getType().getSimpleName();
-                    String fullTitle;
-                    if (p.isRequired()) {
-                        fullTitle = "<red>[" + nTitle + "<red>] ";
-                    } else {
-                        fullTitle = "<#4f4f4f>⊰" + nTitle + "<#4f4f4f>⊱";
-                    }
-
-                    nodes
-                            .append("<hover:show_text:'")
-                            .append(nHoverTitle).append(newline)
-                            .append(nDescription).append(newline)
-                            .append(context)
-                            .append(nUsage).append(newline)
-                            .append(type)
-                            .append("'>")
-                            .append(fullTitle)
-                            .append("</hover>");
+                String suggestion = "";
+                String suggestions = "";
+                if (i.isNode() && i.getNode().getParameters().isNotEmpty()) {
+                    suggestion += newline + "<#aebef2>✦ <#5ef288><font:minecraft:uniform>" + i.getParentPath() + " <#42ecf5>" + i.getName() + " "
+                            + i.getNode().getParameters().convert((f) -> "<#d665f0>" + f.example()).toString(" ");
+                    suggestions += newline + "<font:minecraft:uniform>" + pickRandoms(Math.min(i.getNode().getParameters().size() + 1, 5), i);
                 }
-            } else {
-                nodes = new StringBuilder("<gradient:#afe3d3:#a2dae0> - Category of Commands");
-            }
 
-            /// Wrapper
-            String wrapper =
-                    "<hover:show_text:'" +
-                            hoverTitle + newline +
-                            description + newline +
-                            usage +
-                            suggestion + //Newlines for suggestions are added when they're built, to prevent blanklines.
-                            suggestions + // ^
-                            "'>" +
-                            "<click:" +
-                            onClick +
-                            ":" +
-                            realText +
-                            "</click>" +
-                            "</hover>" +
-                            " " +
-                            nodes;
+                /// Params
+                StringBuilder nodes = new StringBuilder();
+                if (i.isNode()) {
+                    for (DecreeParameter p : i.getNode().getParameters()) {
 
-            sendMessageRaw(wrapper);
+                        String nTitle = "<gradient:#d665f0:#a37feb>" + p.getName();
+                        String nHoverTitle = p.getNames().convert((ff) -> "<#d665f0>" + ff).toString(", ");
+                        String nDescription = "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + p.getDescription();
+                        String nUsage;
+                        String context = "";
+                        if (p.isRequired()) {
+                            nUsage = "<#db4321>⚠ <#faa796><font:minecraft:uniform>This parameter is required.";
+                        } else if (p.hasDefault()) {
+                            nUsage = "<#2181db>✔ <#78dcf0><font:minecraft:uniform>Defaults to \"" + p.getParam().defaultValue() + "\" if undefined.";
+                        } else {
+                            nUsage = "<#a73abd>✔ <#78dcf0><font:minecraft:uniform>This parameter is optional.";
+                        }
+                        if (p.isContextual()) {
+                            context = "<#ff9900>➱ <#ffcc00><font:minecraft:uniform>The value may be derived from environment context" + newline;
+                        }
+                        String type = "<#cc00ff>✢ <#ff33cc><font:minecraft:uniform>This parameter is of type " + p.getType().getSimpleName();
+                        String fullTitle;
+                        if (p.isRequired()) {
+                            fullTitle = "<red>[" + nTitle + "<red>] ";
+                        } else {
+                            fullTitle = "<#4f4f4f>⊰" + nTitle + "<#4f4f4f>⊱";
+                        }
+
+                        nodes
+                                .append("<hover:show_text:'")
+                                .append(nHoverTitle).append(newline)
+                                .append(nDescription).append(newline)
+                                .append(context)
+                                .append(nUsage).append(newline)
+                                .append(type)
+                                .append("'>")
+                                .append(fullTitle)
+                                .append("</hover>");
+                    }
+                } else {
+                    nodes = new StringBuilder("<gradient:#afe3d3:#a2dae0> - Category of Commands");
+                }
+
+                /// Wrapper
+                String wrapper =
+                        "<hover:show_text:'" +
+                                hoverTitle + newline +
+                                description + newline +
+                                usage +
+                                suggestion + //Newlines for suggestions are added when they're built, to prevent blanklines.
+                                suggestions + // ^
+                                "'>" +
+                                "<click:" +
+                                onClick +
+                                ":" +
+                                realText +
+                                "</click>" +
+                                "</hover>" +
+                                " " +
+                                nodes;
+
+                return wrapper;
+            }));
         } else {
             sendMessage(i.getPath());
         }

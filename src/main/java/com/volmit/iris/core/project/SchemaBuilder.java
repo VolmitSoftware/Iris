@@ -523,20 +523,30 @@ public class SchemaBuilder {
         d.add(fancyType);
         d.add(getDescription(k.getType()));
 
+        if(k.getType().isAnnotationPresent(Snippet.class))
+        {
+            String sm = k.getType().getDeclaredAnnotation(Snippet.class).value();
+            d.add("    ");
+            d.add("You can instead specify \"snippet/" + sm + "/some-name.json\" to use a snippet file instead of specifying it here.");
+        }
+
         try {
             k.setAccessible(true);
             Object value = k.get(cl.newInstance());
 
             if (value != null) {
                 if (value instanceof List) {
+                    d.add("    ");
                     d.add("* Default Value is an empty list");
                 } else if (!cl.isPrimitive() && !(value instanceof Number) && !(value instanceof String) && !(cl.isEnum())) {
+                    d.add("    ");
                     d.add("* Default Value is a default object (create this object to see default properties)");
                 } else {
+                    d.add("    ");
                     d.add("* Default Value is " + value);
                 }
             }
-        } catch (Throwable ignored) {
+       } catch (Throwable ignored) {
 
         }
 

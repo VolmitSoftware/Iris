@@ -405,7 +405,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
                     if(r.startsWith("snippet/" + snippetType + "/"))
                     {
-                        File f = new File(getDataFolder(), r);
+                        File f = new File(getDataFolder(), r + ".json");
 
                         if(f.exists())
                         {

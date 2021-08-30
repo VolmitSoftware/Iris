@@ -487,7 +487,7 @@ public class B {
     }
 
 
-    public static String[] getBlockTypes() {
+    public synchronized static String[] getBlockTypes() {
         KList<String> bt = new KList<>();
 
         for (Material i : Material.values()) {

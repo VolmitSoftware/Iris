@@ -140,7 +140,6 @@ public class SchemaBuilder {
             arr.put(o);
             arr.put(str);
             anyOf.put("anyOf", arr);
-            anyOf.put("description", getDescription(c));
 
             return anyOf;
         }
@@ -584,6 +583,8 @@ public class SchemaBuilder {
 
             arr.put(prop);
             arr.put(str);
+            prop.put("description", d.toString("\n"));
+            str.put("description", d.toString("\n"));
             anyOf.put("anyOf", arr);
             anyOf.put("description", d.toString("\n"));
             anyOf.put("!required", k.isAnnotationPresent(Required.class));

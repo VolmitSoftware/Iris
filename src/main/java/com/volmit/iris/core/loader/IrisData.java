@@ -56,6 +56,7 @@ import lombok.Data;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -438,6 +439,19 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
                 catch(Throwable e)
                 {
+                    Iris.error("Failed to read " + typeToken.getRawType().getCanonicalName() + "... faking objects a little to load the file at least.");
+                    try {
+                        T o = (T) typeToken.getRawType().getConstructor().newInstance();
+                        return o;
+                    } catch (InstantiationException ex) {
+                        ex.printStackTrace();
+                    } catch (IllegalAccessException ex) {
+                        ex.printStackTrace();
+                    } catch (InvocationTargetException ex) {
+                        ex.printStackTrace();
+                    } catch (NoSuchMethodException ex) {
+                        ex.printStackTrace();
+                    }
                     return null;
                 }
             }

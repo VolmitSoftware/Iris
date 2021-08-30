@@ -20,7 +20,7 @@ package com.volmit.iris.core.pregenerator.syndicate;
 
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.syndicate.command.*;
-import com.volmit.iris.engine.object.common.HeadlessWorld;
+import com.volmit.iris.engine.object.HeadlessWorld;
 import com.volmit.iris.engine.platform.HeadlessGenerator;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.scheduling.J;

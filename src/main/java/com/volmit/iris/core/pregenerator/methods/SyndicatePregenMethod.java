@@ -25,7 +25,7 @@ import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.pregenerator.syndicate.SyndicateClient;
 import com.volmit.iris.core.pregenerator.syndicate.command.*;
-import com.volmit.iris.engine.object.dimensional.IrisDimension;
+import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Getter;

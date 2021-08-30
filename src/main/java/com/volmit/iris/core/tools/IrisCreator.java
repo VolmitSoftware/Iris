@@ -23,7 +23,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.service.StudioSVC;
-import com.volmit.iris.engine.object.dimensional.IrisDimension;
+import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;

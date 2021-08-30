@@ -19,7 +19,7 @@
 package com.volmit.iris.util.decree.context;
 
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.object.regional.IrisRegion;
+import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.decree.DecreeContextHandler;
 import com.volmit.iris.util.plugin.VolmitSender;
 

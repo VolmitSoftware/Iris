@@ -20,7 +20,7 @@ package com.volmit.iris.util.decree.context;
 
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.noise.IrisGenerator;
+import com.volmit.iris.engine.object.IrisGenerator;
 import com.volmit.iris.util.decree.DecreeContextHandler;
 import com.volmit.iris.util.plugin.VolmitSender;
 

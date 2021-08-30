@@ -19,7 +19,7 @@
 package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.engine.object.basic.IrisPosition;
+import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.Varint;

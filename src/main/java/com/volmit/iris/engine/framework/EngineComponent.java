@@ -21,7 +21,7 @@ package com.volmit.iris.engine.framework;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
-import com.volmit.iris.engine.object.dimensional.IrisDimension;
+import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.parallel.MultiBurst;
 import org.bukkit.event.Listener;

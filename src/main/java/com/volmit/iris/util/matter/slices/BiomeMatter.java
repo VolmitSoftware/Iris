@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util.matter.slices;
 
-import com.volmit.iris.engine.object.biome.IrisBiome;
+import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.util.matter.Sliced;
 
 @Sliced

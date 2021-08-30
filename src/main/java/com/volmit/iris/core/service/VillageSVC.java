@@ -20,8 +20,8 @@ package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.object.villager.IrisVillagerOverride;
-import com.volmit.iris.engine.object.villager.IrisVillagerTrade;
+import com.volmit.iris.engine.object.IrisVillagerOverride;
+import com.volmit.iris.engine.object.IrisVillagerTrade;
 import com.volmit.iris.util.plugin.IrisService;
 import org.bukkit.Material;
 import org.bukkit.event.EventHandler;

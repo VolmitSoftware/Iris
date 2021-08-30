@@ -22,7 +22,7 @@ import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.WrongEngineBroException;
-import com.volmit.iris.engine.object.biome.IrisBiome;
+import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.platform.studio.EnginedStudioGenerator;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;

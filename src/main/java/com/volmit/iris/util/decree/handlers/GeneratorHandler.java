@@ -20,7 +20,7 @@ package com.volmit.iris.util.decree.handlers;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.engine.object.noise.IrisGenerator;
+import com.volmit.iris.engine.object.IrisGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.decree.DecreeParameterHandler;

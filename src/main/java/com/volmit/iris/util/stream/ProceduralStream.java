@@ -20,8 +20,8 @@ package com.volmit.iris.util.stream;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.engine.object.common.IRare;
-import com.volmit.iris.engine.object.noise.IrisStyledRange;
+import com.volmit.iris.engine.object.IRare;
+import com.volmit.iris.engine.object.IrisStyledRange;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.function.Function3;

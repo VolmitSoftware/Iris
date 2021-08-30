@@ -19,8 +19,8 @@
 package com.volmit.iris.core.tools;
 
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.engine.object.common.IrisWorld;
-import com.volmit.iris.engine.object.dimensional.IrisDimension;
+import com.volmit.iris.engine.object.IrisWorld;
+import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;

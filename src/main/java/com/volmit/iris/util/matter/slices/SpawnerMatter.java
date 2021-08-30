@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util.matter.slices;
 
-import com.volmit.iris.engine.object.spawners.IrisSpawner;
+import com.volmit.iris.engine.object.IrisSpawner;
 import com.volmit.iris.util.matter.Sliced;
 
 @Sliced

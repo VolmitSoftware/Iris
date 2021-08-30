@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util.noise;
 
-import com.volmit.iris.engine.object.noise.IrisExpression;
+import com.volmit.iris.engine.object.IrisExpression;
 import com.volmit.iris.util.math.RNG;
 
 public class ExpressionNoise implements NoiseGenerator {

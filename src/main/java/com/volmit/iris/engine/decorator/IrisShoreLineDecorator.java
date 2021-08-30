@@ -20,9 +20,9 @@ package com.volmit.iris.engine.decorator;
 
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.biome.IrisBiome;
-import com.volmit.iris.engine.object.decoration.IrisDecorationPart;
-import com.volmit.iris.engine.object.decoration.IrisDecorator;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisDecorationPart;
+import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import org.bukkit.block.data.BlockData;

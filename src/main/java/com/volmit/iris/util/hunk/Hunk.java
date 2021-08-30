@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util.hunk;
 
-import com.volmit.iris.engine.object.basic.IrisPosition;
+import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.function.*;
 import com.volmit.iris.util.hunk.storage.*;

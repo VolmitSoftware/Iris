@@ -20,7 +20,7 @@ package com.volmit.iris.engine;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.common.IrisScript;
+import com.volmit.iris.engine.object.IrisScript;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.engine.scripting.IrisScriptingAPI;
 import com.volmit.iris.util.format.C;

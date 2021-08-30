@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util.math;
 
-import com.volmit.iris.engine.object.basic.IrisPosition;
+import com.volmit.iris.engine.object.IrisPosition;
 import org.bukkit.util.Vector;
 
 public class Position2 {

@@ -23,7 +23,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
-import com.volmit.iris.engine.object.common.IrisScript;
+import com.volmit.iris.engine.object.IrisScript;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.VolmitSender;

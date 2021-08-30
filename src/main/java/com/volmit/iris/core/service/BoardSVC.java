@@ -22,7 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.feature.IrisFeaturePositional;
+import com.volmit.iris.engine.object.IrisFeaturePositional;
 import com.volmit.iris.util.board.BoardProvider;
 import com.volmit.iris.util.board.BoardSettings;
 import com.volmit.iris.util.board.ScoreDirection;

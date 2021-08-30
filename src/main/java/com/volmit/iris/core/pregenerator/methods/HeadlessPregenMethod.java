@@ -20,7 +20,7 @@ package com.volmit.iris.core.pregenerator.methods;
 
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
-import com.volmit.iris.engine.object.common.HeadlessWorld;
+import com.volmit.iris.engine.object.HeadlessWorld;
 import com.volmit.iris.engine.platform.HeadlessGenerator;
 import lombok.Getter;
 

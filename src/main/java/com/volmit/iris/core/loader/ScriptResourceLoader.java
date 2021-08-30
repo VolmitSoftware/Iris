@@ -19,7 +19,7 @@
 package com.volmit.iris.core.loader;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.object.common.IrisScript;
+import com.volmit.iris.engine.object.IrisScript;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.io.IO;

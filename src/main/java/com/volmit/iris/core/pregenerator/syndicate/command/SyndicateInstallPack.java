@@ -18,7 +18,7 @@
 
 package com.volmit.iris.core.pregenerator.syndicate.command;
 
-import com.volmit.iris.engine.object.dimensional.IrisDimension;
+import com.volmit.iris.engine.object.IrisDimension;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util.noise;
 
-import com.volmit.iris.engine.object.common.IRare;
+import com.volmit.iris.engine.object.IRare;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 

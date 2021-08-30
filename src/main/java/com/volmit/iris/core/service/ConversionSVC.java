@@ -20,12 +20,12 @@ package com.volmit.iris.core.service;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.object.basic.IrisPosition;
-import com.volmit.iris.engine.object.jigsaw.IrisJigsawPiece;
-import com.volmit.iris.engine.object.jigsaw.IrisJigsawPieceConnector;
-import com.volmit.iris.engine.object.jigsaw.IrisJigsawPool;
-import com.volmit.iris.engine.object.objects.IrisDirection;
-import com.volmit.iris.engine.object.objects.IrisObject;
+import com.volmit.iris.engine.object.IrisPosition;
+import com.volmit.iris.engine.object.IrisJigsawPiece;
+import com.volmit.iris.engine.object.IrisJigsawPieceConnector;
+import com.volmit.iris.engine.object.IrisJigsawPool;
+import com.volmit.iris.engine.object.IrisDirection;
+import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.Form;

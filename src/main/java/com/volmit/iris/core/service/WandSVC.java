@@ -21,7 +21,7 @@ package com.volmit.iris.core.service;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.edit.DustRevealer;
 import com.volmit.iris.core.wand.WandSelection;
-import com.volmit.iris.engine.object.objects.IrisObject;
+import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.format.C;

@@ -27,7 +27,7 @@ import com.volmit.iris.engine.data.chunk.MCATerrainChunk;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
-import com.volmit.iris.engine.object.common.HeadlessWorld;
+import com.volmit.iris.engine.object.HeadlessWorld;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.documentation.RegionCoordinates;

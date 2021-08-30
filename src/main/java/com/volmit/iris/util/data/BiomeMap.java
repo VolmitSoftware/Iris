@@ -18,7 +18,7 @@
 
 package com.volmit.iris.util.data;
 
-import com.volmit.iris.engine.object.biome.IrisBiome;
+import com.volmit.iris.engine.object.IrisBiome;
 
 public class BiomeMap {
     private final IrisBiome[] height;

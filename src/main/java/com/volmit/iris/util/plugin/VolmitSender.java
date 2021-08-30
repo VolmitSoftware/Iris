@@ -461,6 +461,15 @@ public class VolmitSender implements CommandSender {
     }
 
     public void sendDecreeHelp(VirtualDecreeCommand v, int page) {
+        if(!isPlayer())
+        {
+            for (VirtualDecreeCommand i : v.getNodes()) {
+                sendDecreeHelpNode(i);
+            }
+
+            return;
+        }
+
         int m = v.getNodes().size();
 
         sendMessageRaw("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");

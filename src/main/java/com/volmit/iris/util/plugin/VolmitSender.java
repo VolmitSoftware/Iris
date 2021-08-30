@@ -251,6 +251,12 @@ public class VolmitSender implements CommandSender {
     }
 
     private Component createNoPrefixComponent(String message) {
+        if(!IrisSettings.get().getGeneral().canUseCustomColors(this))
+        {
+            String t = C.translateAlternateColorCodes('&', MiniMessage.get().stripTokens(message));
+            return MiniMessage.get().parse(t);
+        }
+
         String t = C.translateAlternateColorCodes('&', message);
         String a = C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb(), 0.36);
         return MiniMessage.get().parse(a);
@@ -261,12 +267,24 @@ public class VolmitSender implements CommandSender {
     }
 
     private Component createComponent(String message) {
+        if(!IrisSettings.get().getGeneral().canUseCustomColors(this))
+        {
+            String t = C.translateAlternateColorCodes('&', MiniMessage.get().stripTokens(getTag() + message));
+            return MiniMessage.get().parse(t);
+        }
+
         String t = C.translateAlternateColorCodes('&', getTag() + message);
         String a = C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb());
         return MiniMessage.get().parse(a);
     }
 
     private Component createComponentRaw(String message) {
+        if(!IrisSettings.get().getGeneral().canUseCustomColors(this))
+        {
+            String t = C.translateAlternateColorCodes('&', MiniMessage.get().stripTokens(getTag() + message));
+            return MiniMessage.get().parse(t);
+        }
+
         String t = C.translateAlternateColorCodes('&', getTag() + message);
         return MiniMessage.get().parse(t);
     }

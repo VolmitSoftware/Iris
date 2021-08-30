@@ -23,6 +23,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.Data;
 
 import java.io.File;
@@ -103,12 +104,16 @@ public class IrisSettings {
         public boolean pluginMetrics = true;
         public boolean splashLogoStartup = true;
         public boolean autoStartDefaultStudio = false;
-        public boolean useConsoleCustomColors = false;
+        public boolean useConsoleCustomColors = true;
         public boolean useCustomColorsIngame = true;
         public String forceMainWorld = "";
         public int spinh = -20;
         public int spins = 7;
         public int spinb = 8;
+
+        public boolean canUseCustomColors(VolmitSender volmitSender) {
+            return (volmitSender.isPlayer() && useCustomColorsIngame) || (!volmitSender.isPlayer() && useConsoleCustomColors);
+        }
     }
 
     @Data

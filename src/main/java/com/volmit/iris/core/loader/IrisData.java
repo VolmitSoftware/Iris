@@ -44,6 +44,7 @@ import com.volmit.iris.engine.object.IrisGenerator;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.engine.object.IrisSpawner;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.format.C;
@@ -430,7 +431,15 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                     return null;
                 }
 
-                return adapter.read(reader);
+                try
+                {
+                    return adapter.read(reader);
+                }
+
+                catch(Throwable e)
+                {
+                    return null;
+                }
             }
         };
     }

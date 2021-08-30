@@ -120,10 +120,6 @@ public class SchemaBuilder {
 
             JSONObject property = buildProperty(k, c);
 
-            if (property.getBoolean("!required")) {
-                required.put(k.getName());
-            }
-
             property.remove("!required");
             properties.put(k.getName(), property);
         }
@@ -133,6 +129,21 @@ public class SchemaBuilder {
         }
 
         o.put("properties", properties);
+
+
+        if(c.isAnnotationPresent(Snippet.class))
+        {
+            JSONObject anyOf = new JSONObject();
+            JSONArray arr = new JSONArray();
+            JSONObject str = new JSONObject();
+            str.put("type", "string");
+            arr.put(o);
+            arr.put(str);
+            anyOf.put("anyOf", arr);
+            anyOf.put("description", getDescription(c));
+
+            return anyOf;
+        }
 
         return o;
     }
@@ -553,6 +564,32 @@ public class SchemaBuilder {
         description.forEach((g) -> d.add(g.trim()));
         prop.put("type", type);
         prop.put("description", d.toString("\n"));
+
+        if(k.getType().isAnnotationPresent(Snippet.class))
+        {
+            JSONObject anyOf = new JSONObject();
+            JSONArray arr = new JSONArray();
+            JSONObject str = new JSONObject();
+            str.put("type", "string");
+            String key = "enum-snippet-" + k.getType().getDeclaredAnnotation(Snippet.class).value();
+            str.put("$ref", "#/definitions/"+key);
+
+            if (!definitions.containsKey(key)) {
+                JSONObject j = new JSONObject();
+                JSONArray snl = new JSONArray();
+                data.getPossibleSnippets(k.getType().getDeclaredAnnotation(Snippet.class).value()).forEach(snl::put);
+                j.put("enum", snl);
+                definitions.put(key, j);
+            }
+
+            arr.put(prop);
+            arr.put(str);
+            anyOf.put("anyOf", arr);
+            anyOf.put("description", d.toString("\n"));
+            anyOf.put("!required", k.isAnnotationPresent(Required.class));
+
+            return anyOf;
+        }
 
         return prop;
     }

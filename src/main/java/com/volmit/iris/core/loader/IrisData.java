@@ -80,6 +80,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private ResourceLoader<IrisScript> scriptLoader;
     private ResourceLoader<IrisCave> caveLoader;
     private ResourceLoader<IrisRavine> ravineLoader;
+    private KMap<String, KList<String>> possibleSnippets;
     private Gson gson;
     private Gson snippetLoader;
     private GsonBuilder builder;
@@ -206,6 +207,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public synchronized void hotloaded() {
+        possibleSnippets = new KMap<>();
         builder = new GsonBuilder()
                 .addDeserializationExclusionStrategy(this)
                 .addSerializationExclusionStrategy(this)
@@ -449,5 +451,23 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                 return null;
             }
         };
+    }
+
+    public KList<String> getPossibleSnippets(String f) {
+        return possibleSnippets.computeIfAbsent(f, (k) -> {
+            KList<String> l = new KList<>();
+
+            File snippetFolder = new File(getDataFolder(), "snippet/" + f);
+
+            if(snippetFolder.exists() && snippetFolder.isDirectory())
+            {
+                for(File i : snippetFolder.listFiles())
+                {
+                    l.add("snippet/" + f + "/" + i.getName().split("\\Q.\\E")[0]);
+                }
+            }
+
+            return l;
+        });
     }
 }

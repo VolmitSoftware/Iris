@@ -35,11 +35,13 @@ import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.engine.object.IrisSpawner;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.exceptions.IrisException;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.json.JSONObject;
@@ -271,6 +273,41 @@ public class IrisProject {
         for (ResourceLoader<?> r : dm.getLoaders().v()) {
             if (r.supportsSchemas()) {
                 schemas.put(r.buildSchema());
+            }
+        }
+
+        for(Class<?> i : Iris.getClasses("com.volmit.iris.engine.object.", Snippet.class))
+        {
+            try
+            {
+                String snipType = i.getDeclaredAnnotation(Snippet.class).value();
+                JSONObject o = new JSONObject();
+                KList<String> fm = new KList<>();
+
+                for (int g = 1; g < 8; g++) {
+                    fm.add("/snippet/" + snipType + Form.repeat("/*", g) + ".json");
+                }
+
+                o.put("fileMatch", new JSONArray(fm.toArray()));
+                o.put("url", "./.iris/schema/snippet/" + snipType + "-schema.json");
+                schemas.put(o);
+                File a = new File(dm.getDataFolder(), ".iris/schema/snippet/" + snipType + "-schema.json");
+                J.attemptAsync(() -> {
+                    try
+                    {
+                        IO.writeAll(a, new SchemaBuilder(i, dm).compute().toString(4));
+                    }
+
+                    catch(Throwable e)
+                    {
+                        e.printStackTrace();
+                    }
+                });
+            }
+
+            catch(Throwable e)
+            {
+                e.printStackTrace();
             }
         }
 

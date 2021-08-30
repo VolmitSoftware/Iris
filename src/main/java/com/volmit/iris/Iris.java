@@ -202,6 +202,23 @@ public class Iris extends VolmitPlugin implements Listener {
         return v;
     }
 
+    public static KList<Class<?>> getClasses(String s, Class<? extends Annotation> slicedClass) {
+        JarScanner js = new JarScanner(instance.getJarFile(), s);
+        KList<Class<?>> v = new KList<>();
+        J.attempt(js::scan);
+        for (Class<?> i : js.getClasses()) {
+            if (slicedClass == null || i.isAnnotationPresent(slicedClass)) {
+                try {
+                    v.add(i);
+                } catch (Throwable ignored) {
+
+                }
+            }
+        }
+
+        return v;
+    }
+
     public static KList<Object> initialize(String s) {
         return initialize(s, null);
     }

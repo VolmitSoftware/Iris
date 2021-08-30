@@ -263,6 +263,12 @@ public class Iris extends VolmitPlugin implements Listener {
                         for (File j : dims.listFiles()) {
                             if (j.getName().endsWith(".json")) {
                                 IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
+
+                                if(dim == null)
+                                {
+                                    continue;
+                                }
+
                                 Iris.verbose("  Checking Dimension " + dim.getLoadFile().getPath());
                                 if (dim.installDataPack(() -> data, dpacks)) {
                                     reboot = true;
@@ -357,6 +363,12 @@ public class Iris extends VolmitPlugin implements Listener {
                         for (File j : dims.listFiles()) {
                             if (j.getName().endsWith(".json")) {
                                 IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
+
+                                if(dim == null)
+                                {
+                                    Iris.error("Failed to load " + j.getPath());
+                                    continue;
+                                }
 
                                 if (!verifyDataPackInstalled(dim)) {
                                     bad = true;

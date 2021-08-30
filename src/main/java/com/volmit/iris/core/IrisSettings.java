@@ -103,6 +103,8 @@ public class IrisSettings {
         public boolean pluginMetrics = true;
         public boolean splashLogoStartup = true;
         public boolean autoStartDefaultStudio = false;
+        public boolean useConsoleCustomColors = false;
+        public boolean useCustomColorsIngame = true;
         public String forceMainWorld = "";
         public int spinh = -20;
         public int spins = 7;

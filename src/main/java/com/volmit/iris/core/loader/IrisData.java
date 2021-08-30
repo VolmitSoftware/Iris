@@ -441,19 +441,12 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                 {
                     Iris.error("Failed to read " + typeToken.getRawType().getCanonicalName() + "... faking objects a little to load the file at least.");
                     try {
-                        T o = (T) typeToken.getRawType().getConstructor().newInstance();
-                        return o;
-                    } catch (InstantiationException ex) {
-                        ex.printStackTrace();
-                    } catch (IllegalAccessException ex) {
-                        ex.printStackTrace();
-                    } catch (InvocationTargetException ex) {
-                        ex.printStackTrace();
-                    } catch (NoSuchMethodException ex) {
-                        ex.printStackTrace();
+                        return (T) typeToken.getRawType().getConstructor().newInstance();
+                    } catch (Throwable ignored) {
+
                     }
-                    return null;
                 }
+                return null;
             }
         };
     }

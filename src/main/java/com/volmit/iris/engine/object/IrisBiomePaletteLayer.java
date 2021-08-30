@@ -30,6 +30,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
 
+@Snippet("biome-palette")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

@@ -18,10 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
@@ -30,6 +27,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+@Snippet("interpolator")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

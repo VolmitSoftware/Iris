@@ -19,11 +19,13 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.format.Form;
 import lombok.Data;
 
 import java.util.concurrent.TimeUnit;
 
+@Snippet("duration")
 @Data
 @Desc("Represents a combined duration. Fill each property to add time into a single duration")
 public class IrisDuration {

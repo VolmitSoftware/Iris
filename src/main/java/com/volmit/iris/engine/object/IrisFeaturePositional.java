@@ -24,6 +24,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
@@ -36,8 +37,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+@Snippet("positional-feature")
 @Data
-
 @NoArgsConstructor
 @Desc("Represents an Iris zone")
 public class IrisFeaturePositional {

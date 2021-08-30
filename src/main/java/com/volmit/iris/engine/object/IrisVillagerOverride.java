@@ -18,10 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.engine.object.annotations.ArrayType;
-import com.volmit.iris.engine.object.annotations.DependsOn;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -31,10 +28,10 @@ import lombok.experimental.Accessors;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
+@Snippet("villager-override")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-
 @Desc("Override cartographer map trades with others or disable the trade altogether")
 @Data
 @EqualsAndHashCode(callSuper = false)

@@ -19,12 +19,14 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+@Snippet("rate")
 @NoArgsConstructor
 @AllArgsConstructor
 @Data

@@ -23,6 +23,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.math.RNG;
@@ -31,6 +32,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+@Snippet("carving")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

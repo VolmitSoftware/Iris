@@ -22,10 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListResource;
-import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.RNG;
@@ -37,6 +34,7 @@ import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 
+@Snippet("entity-spawn")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

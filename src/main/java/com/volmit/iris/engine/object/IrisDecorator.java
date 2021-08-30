@@ -31,6 +31,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
 
+@Snippet("decorator")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

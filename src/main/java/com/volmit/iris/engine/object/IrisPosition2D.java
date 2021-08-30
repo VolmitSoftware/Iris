@@ -19,11 +19,13 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+@Snippet("position-2d")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

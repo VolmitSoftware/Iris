@@ -32,8 +32,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+@Snippet("feature")
 @Data
-
 @NoArgsConstructor
 @AllArgsConstructor
 @Desc("Represents an Iris zone")

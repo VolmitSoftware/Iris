@@ -30,6 +30,7 @@ import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 
+@Snippet("deposit")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

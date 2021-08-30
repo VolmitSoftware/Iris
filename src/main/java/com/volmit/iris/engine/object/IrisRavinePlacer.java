@@ -23,10 +23,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.MantleWriter;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListResource;
-import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -35,6 +32,7 @@ import lombok.experimental.Accessors;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@Snippet("ravine-placer")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

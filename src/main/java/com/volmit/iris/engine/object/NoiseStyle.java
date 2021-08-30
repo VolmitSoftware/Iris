@@ -26,7 +26,6 @@ import com.volmit.iris.util.noise.NoiseType;
 import com.volmit.iris.util.stream.ProceduralStream;
 
 @Desc("Styles of noise")
-
 public enum NoiseStyle {
     @Desc("White Noise is like static. Useful for block scattering but not terrain.")
     STATIC(rng -> new CNG(rng, NoiseType.WHITE, 1D, 1)),

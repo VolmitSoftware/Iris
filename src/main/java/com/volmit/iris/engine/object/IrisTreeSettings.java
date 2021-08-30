@@ -20,12 +20,14 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+@Snippet("tree-settings")
 @Accessors(chain = true)
 @AllArgsConstructor
 @NoArgsConstructor

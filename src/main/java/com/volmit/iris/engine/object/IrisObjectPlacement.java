@@ -39,6 +39,7 @@ import org.bukkit.Material;
 import org.bukkit.TreeType;
 import org.bukkit.block.data.BlockData;
 
+@Snippet("object-placer")
 @EqualsAndHashCode()
 @Accessors(chain = true)
 @NoArgsConstructor

@@ -19,9 +19,11 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import lombok.Data;
 import org.bukkit.World;
 
+@Snippet("time-block")
 @Data
 @Desc("Represents a time of day (24h time, not 12h am/pm). Set both to the same number for any time. If they are both set to -1, it will always be not allowed.")
 public class IrisTimeBlock {

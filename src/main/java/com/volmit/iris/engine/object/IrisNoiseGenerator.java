@@ -30,6 +30,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+@Snippet("generator")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

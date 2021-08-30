@@ -38,6 +38,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
+@Snippet("effect")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

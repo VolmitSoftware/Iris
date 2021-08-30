@@ -20,6 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.stream.ProceduralStream;
@@ -29,6 +30,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+@Snippet("style-range")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

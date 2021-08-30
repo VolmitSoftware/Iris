@@ -23,6 +23,7 @@ import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
@@ -32,6 +33,7 @@ import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 
+@Snippet("block-drops")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

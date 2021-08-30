@@ -22,6 +22,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.stream.ProceduralStream;
 import lombok.AllArgsConstructor;
@@ -30,6 +31,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+@Snippet("expression-load")
 @SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor

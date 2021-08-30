@@ -34,10 +34,10 @@ import org.bukkit.inventory.MerchantRecipe;
 import java.util.List;
 
 
+@Snippet("villager-trade")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-
 @SuppressWarnings("BooleanMethodIsAlwaysInverted")
 @Desc("Represents a villager trade.")
 @Data

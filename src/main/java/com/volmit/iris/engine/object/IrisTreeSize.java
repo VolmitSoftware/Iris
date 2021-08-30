@@ -20,11 +20,13 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+@Snippet("tree-size")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

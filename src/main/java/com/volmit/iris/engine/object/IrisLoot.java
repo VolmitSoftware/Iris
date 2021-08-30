@@ -42,6 +42,7 @@ import org.bukkit.material.Colorable;
 
 import java.awt.*;
 
+@Snippet("loot")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

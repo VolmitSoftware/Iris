@@ -31,6 +31,7 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor
 @AllArgsConstructor
 
+@Snippet("connector")
 @Desc("Represents a structure tile")
 @Data
 @EqualsAndHashCode(callSuper = false)

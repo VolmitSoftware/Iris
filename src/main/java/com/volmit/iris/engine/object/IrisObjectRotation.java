@@ -20,6 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -33,6 +34,7 @@ import org.bukkit.util.BlockVector;
 
 import java.util.List;
 
+@Snippet("object-rotator")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

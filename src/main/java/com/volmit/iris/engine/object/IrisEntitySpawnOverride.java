@@ -20,10 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListResource;
-import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -34,6 +31,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.EntitySpawnEvent;
 
+@Snippet("entity-spawn-override")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

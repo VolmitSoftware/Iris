@@ -18,16 +18,14 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.util.BlockVector;
 
+@Snippet("object-translator")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

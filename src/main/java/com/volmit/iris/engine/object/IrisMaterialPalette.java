@@ -20,10 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.annotations.ArrayType;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
@@ -33,6 +30,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
 
+@Snippet("palette")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

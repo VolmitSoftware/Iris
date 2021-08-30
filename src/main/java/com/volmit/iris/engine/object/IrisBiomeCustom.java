@@ -32,6 +32,7 @@ import lombok.experimental.Accessors;
 import java.awt.*;
 import java.util.Locale;
 
+@Snippet("custom-biome")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

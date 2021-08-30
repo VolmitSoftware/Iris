@@ -27,6 +27,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+@Snippet("generator-layer")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

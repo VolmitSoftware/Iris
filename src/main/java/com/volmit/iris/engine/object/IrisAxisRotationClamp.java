@@ -25,6 +25,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+@Snippet("axis-rotation")
 @Accessors(chain = true)
 @AllArgsConstructor
 @NoArgsConstructor

@@ -22,6 +22,7 @@ import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
@@ -29,6 +30,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+@Snippet("object-scale")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

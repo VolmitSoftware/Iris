@@ -21,6 +21,7 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.math.RNG;
@@ -32,6 +33,7 @@ import lombok.experimental.Accessors;
 
 import java.util.function.Consumer;
 
+@Snippet("worm")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

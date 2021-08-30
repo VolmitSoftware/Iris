@@ -23,12 +23,14 @@ import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 import java.awt.*;
 
+@Snippet("color")
 @Accessors(chain = true)
 @NoArgsConstructor
 @Desc("Represents a color")

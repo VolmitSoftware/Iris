@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -28,6 +29,7 @@ import org.bukkit.World;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
+@Snippet("position-3d")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

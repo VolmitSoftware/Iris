@@ -18,8 +18,15 @@
 
 package com.volmit.iris.core.loader;
 
+import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.engine.object.biome.IrisBiome;
 import com.volmit.iris.engine.object.block.IrisBlockData;
 import com.volmit.iris.engine.object.carving.IrisCave;
@@ -41,14 +48,19 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.scheduling.ChronoLatch;
+import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
 
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.Objects;
 import java.util.function.Function;
 
 @Data
-public class IrisData {
+public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private static final KMap<File, IrisData> dataLoaders = new KMap<>();
     private ResourceLoader<IrisBiome> biomeLoader;
     private ResourceLoader<IrisLootTable> lootLoader;
@@ -67,6 +79,9 @@ public class IrisData {
     private ResourceLoader<IrisScript> scriptLoader;
     private ResourceLoader<IrisCave> caveLoader;
     private ResourceLoader<IrisRavine> ravineLoader;
+    private Gson gson;
+    private Gson snippetLoader;
+    private GsonBuilder builder;
     private KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> loaders = new KMap<>();
     private final File dataFolder;
     private Engine engine;
@@ -174,7 +189,8 @@ public class IrisData {
             } else if (registrant.equals(IrisScript.class)) {
                 r = (ResourceLoader<T>) new ScriptResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
             } else {
-                r = new ResourceLoader<T>(dataFolder, this, rr.getFolderName(), rr.getTypeName(), registrant);
+                J.attempt(() -> registrant.getConstructor().newInstance().registerTypeAdapters(builder));
+                r = new ResourceLoader<>(dataFolder, this, rr.getFolderName(), rr.getTypeName(), registrant);
             }
 
             loaders.put(registrant, r);
@@ -189,6 +205,12 @@ public class IrisData {
     }
 
     public synchronized void hotloaded() {
+        builder = new GsonBuilder()
+                .addDeserializationExclusionStrategy(this)
+                .addSerializationExclusionStrategy(this)
+                .setLenient()
+                .registerTypeAdapterFactory(this)
+                .setPrettyPrinting();
         loaders.clear();
         File packs = dataFolder;
         packs.mkdirs();
@@ -209,6 +231,7 @@ public class IrisData {
         this.expressionLoader = registerLoader(IrisExpression.class);
         this.objectLoader = registerLoader(IrisObject.class);
         this.scriptLoader = registerLoader(IrisScript.class);
+        gson = builder.create();
     }
 
     public void dump() {
@@ -337,5 +360,79 @@ public class IrisData {
         Iris.error("Failed to load " + f.getPath() + " (loader realm: " + getDataFolder().getPath() + ")");
 
         return null;
+    }
+
+    @Override
+    public boolean shouldSkipField(FieldAttributes f) {
+        return false;
+    }
+
+    @Override
+    public boolean shouldSkipClass(Class<?> c) {
+        if(c.equals(AtomicCache.class))
+        {
+            return true;
+        }
+
+        else if(c.equals(ChronoLatch.class))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> typeToken) {
+        if(!typeToken.getRawType().isAnnotationPresent(Snippet.class))
+        {
+            return null;
+        }
+
+        String snippetType = typeToken.getRawType().getDeclaredAnnotation(Snippet.class).value();
+
+        return new TypeAdapter<>() {
+            @Override
+            public void write(JsonWriter jsonWriter, T t) throws IOException {
+                gson.getDelegateAdapter(IrisData.this, typeToken).write(jsonWriter, t);
+            }
+
+            @Override
+            public T read(JsonReader reader) throws IOException {
+                TypeAdapter<T> adapter = gson.getDelegateAdapter(IrisData.this, typeToken);
+
+                if (reader.peek().equals(JsonToken.STRING)) {
+                    String r = reader.nextString();
+
+                    if(r.startsWith("snippet/" + snippetType + "/"))
+                    {
+                        File f = new File(getDataFolder(), r);
+
+                        if(f.exists())
+                        {
+                            try
+                            {
+                                JsonReader snippetReader = new JsonReader(new FileReader(f));
+                                return adapter.read(snippetReader);
+                            }
+
+                            catch(Throwable e)
+                            {
+                                Iris.error("Couldn't read snippet " + r + " in " + reader.getPath() + " (" + e.getMessage() + ")");
+                            }
+                        }
+
+                        else
+                        {
+                            Iris.error("Couldn't find snippet " + r + " in " + reader.getPath());
+                        }
+                    }
+
+                    return null;
+                }
+
+                return adapter.read(reader);
+            }
+        };
     }
 }

@@ -18,6 +18,7 @@
 
 package com.volmit.iris.core.loader;
 
+import com.google.gson.GsonBuilder;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
@@ -47,6 +48,11 @@ public abstract class IrisRegistrant {
     public abstract String getFolderName();
 
     public abstract String getTypeName();
+
+    public void registerTypeAdapters(GsonBuilder builder)
+    {
+
+    }
 
     public File openInVSCode() {
         try {

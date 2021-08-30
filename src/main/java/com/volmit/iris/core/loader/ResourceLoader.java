@@ -19,9 +19,13 @@
 package com.volmit.iris.core.loader;
 
 import com.google.common.util.concurrent.AtomicDouble;
+import com.google.gson.ExclusionStrategy;
+import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.project.SchemaBuilder;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -37,6 +41,7 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
@@ -176,7 +181,8 @@ public class ResourceLoader<T extends IrisRegistrant> {
     protected T loadFile(File j, String key, String name) {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
-            T t = new Gson().fromJson(IO.readAll(j), objectClass);
+            T t = getManager().getGson()
+                    .fromJson(preprocess(new JSONObject(IO.readAll(j))).toString(0), objectClass);
             t.setLoadKey(name);
             t.setLoadFile(j);
             t.setLoader(manager);
@@ -192,6 +198,10 @@ public class ResourceLoader<T extends IrisRegistrant> {
             failLoad(j, e);
             return null;
         }
+    }
+
+    protected JSONObject preprocess(JSONObject j) {
+        return j;
     }
 
     public Stream<T> streamAll(Stream<String> s) {

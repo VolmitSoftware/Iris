@@ -297,6 +297,11 @@ public class VolmitSender implements CommandSender {
 
     @Override
     public void sendMessage(String message) {
+        if(s instanceof CommandDummy)
+        {
+            return;
+        }
+
         if (message.contains("<NOMINI>")) {
             s.sendMessage(message.replaceAll("\\Q<NOMINI>\\E", ""));
             return;
@@ -318,6 +323,11 @@ public class VolmitSender implements CommandSender {
     }
 
     public void sendMessageRaw(String message) {
+        if(s instanceof CommandDummy)
+        {
+            return;
+        }
+
         if (message.contains("<NOMINI>")) {
             s.sendMessage(message.replaceAll("\\Q<NOMINI>\\E", ""));
             return;
@@ -469,10 +479,11 @@ public class VolmitSender implements CommandSender {
         }
     }
 
+    @Getter
     private static final KMap<String, String> helpCache = new KMap<>();
 
     public void sendDecreeHelpNode(VirtualDecreeCommand i) {
-        if (isPlayer()) {
+        if (isPlayer() || s instanceof CommandDummy) {
             sendMessageRaw(helpCache.compute(i.getPath(), (k, v) -> {
                 if(v != null)
                 {

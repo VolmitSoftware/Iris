@@ -31,14 +31,19 @@ import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.plugin.CommandDummy;
 import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.stream.utility.SemaphoreStream;
 import lombok.Data;
+import org.bukkit.command.CommandSender;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Objects;
+import java.util.concurrent.Semaphore;
 
 @Data
 public class VirtualDecreeCommand {
@@ -94,6 +99,23 @@ public class VirtualDecreeCommand {
         }
 
         return c;
+    }
+
+    private ChronoLatch cl = new ChronoLatch(1000);
+
+    public void cacheAll()
+    {
+        VolmitSender sender = new VolmitSender(new CommandDummy());
+
+        if(isNode())
+        {
+            J.a(() -> sender.sendDecreeHelpNode(this));
+        }
+
+        for(VirtualDecreeCommand j : nodes)
+        {
+            j.cacheAll();
+        }
     }
 
     public String getPath() {

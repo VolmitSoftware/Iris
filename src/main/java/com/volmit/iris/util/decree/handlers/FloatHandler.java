@@ -33,7 +33,7 @@ public class FloatHandler implements DecreeParameterHandler<Float> {
     }
 
     @Override
-    public Float parse(String in) throws DecreeParsingException {
+    public Float parse(String in, boolean force) throws DecreeParsingException {
         try {
             AtomicReference<String> r = new AtomicReference<>(in);
             double m = getMultiplier(r);

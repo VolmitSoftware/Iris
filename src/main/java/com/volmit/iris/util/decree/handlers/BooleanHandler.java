@@ -35,7 +35,7 @@ public class BooleanHandler implements DecreeParameterHandler<Boolean> {
     }
 
     @Override
-    public Boolean parse(String in) throws DecreeParsingException {
+    public Boolean parse(String in, boolean force) throws DecreeParsingException {
         try {
             if (in.equals("null") || in.equals("other") || in.equals("flip")) {
                 return null;

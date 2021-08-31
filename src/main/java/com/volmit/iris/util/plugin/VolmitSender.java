@@ -436,7 +436,7 @@ public class VolmitSender implements CommandSender {
     }
 
     public void sendHeader(String name) {
-        sendHeader(name, 46);
+        sendHeader(name, 44);
     }
 
 

@@ -22,11 +22,19 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.commands.CommandIris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.decree.DecreeSystem;
 import com.volmit.iris.util.decree.virtual.VirtualDecreeCommand;
 import com.volmit.iris.util.plugin.IrisService;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+
+import java.util.concurrent.CompletableFuture;
 
 public class CommandSVC implements IrisService, DecreeSystem {
+    private final KMap<String, CompletableFuture<String>> futures = new KMap<>();
+    private final transient AtomicCache<VirtualDecreeCommand> commandCache = new AtomicCache<>();
+
     @Override
     public void onEnable() {
         Iris.instance.getCommand("iris").setExecutor(this);
@@ -38,10 +46,30 @@ public class CommandSVC implements IrisService, DecreeSystem {
 
     }
 
-    private final transient AtomicCache<VirtualDecreeCommand> commandCache = new AtomicCache<>();
+    @EventHandler
+    public void on(PlayerCommandPreprocessEvent e)
+    {
+        String msg = e.getMessage().startsWith("/") ? e.getMessage().substring(1) : e.getMessage();
+
+        if(msg.startsWith("irisdecree "))
+        {
+            String[] args = msg.split("\\Q \\E");
+            CompletableFuture<String> future = futures.get(args[1]);
+
+            if(future != null)
+            {
+                future.complete(args[2]);
+                e.setCancelled(true);
+            }
+        }
+    }
 
     @Override
     public VirtualDecreeCommand getRoot() {
         return commandCache.aquireNastyPrint(() -> VirtualDecreeCommand.createRoot(new CommandIris()));
+    }
+
+    public void post(String password, CompletableFuture<String> future) {
+        futures.put(password, future);
     }
 }

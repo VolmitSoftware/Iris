@@ -32,7 +32,7 @@ public class IntegerHandler implements DecreeParameterHandler<Integer> {
     }
 
     @Override
-    public Integer parse(String in) throws DecreeParsingException {
+    public Integer parse(String in, boolean force) throws DecreeParsingException {
         try {
             AtomicReference<String> r = new AtomicReference<>(in);
             double m = getMultiplier(r);

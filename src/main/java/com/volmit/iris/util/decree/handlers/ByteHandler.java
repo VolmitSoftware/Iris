@@ -35,7 +35,7 @@ public class ByteHandler implements DecreeParameterHandler<Byte> {
     }
 
     @Override
-    public Byte parse(String in) throws DecreeParsingException {
+    public Byte parse(String in, boolean force) throws DecreeParsingException {
         try {
             return Byte.parseByte(in);
         } catch (Throwable e) {

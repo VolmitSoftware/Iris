@@ -26,6 +26,7 @@ import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 
 import java.io.File;
+import java.util.stream.Collectors;
 
 public class ObjectHandler implements DecreeParameterHandler<String> {
     @Override
@@ -49,22 +50,32 @@ public class ObjectHandler implements DecreeParameterHandler<String> {
     }
 
     @Override
-    public String parse(String in) throws DecreeParsingException, DecreeWhichException {
-        try {
-            KList<String> options = getPossibilities(in);
+    public String parse(String in, boolean force) throws DecreeParsingException, DecreeWhichException {
+        KList<String> options = getPossibilities(in);
 
-            if (options.isEmpty()) {
-                throw new DecreeParsingException("Unable to find Object \"" + in + "\"");
-            } else if (options.size() > 1) {
-                throw new DecreeWhichException();
+        if (options.isEmpty()) {
+            throw new DecreeParsingException("Unable to find Object \"" + in + "\"");
+        } else if (options.size() > 1) {
+            if(force)
+            {
+                try
+                {
+                    return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
+                }
+
+                catch(Throwable e)
+                {
+                    throw new DecreeParsingException("Unable to filter which Biome \"" + in + "\"");
+                }
             }
 
-            return options.get(0);
-        } catch (DecreeParsingException e) {
-            throw e;
-        } catch (Throwable e) {
-            throw new DecreeParsingException("Unable to find Object \"" + in + "\" because of an uncaught exception: " + e);
+            else
+            {
+                throw new DecreeWhichException();
+            }
         }
+
+        return options.get(0);
     }
 
     @Override

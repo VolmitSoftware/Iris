@@ -32,7 +32,7 @@ public class ShortHandler implements DecreeParameterHandler<Short> {
     }
 
     @Override
-    public Short parse(String in) throws DecreeParsingException {
+    public Short parse(String in, boolean force) throws DecreeParsingException {
         try {
             AtomicReference<String> r = new AtomicReference<>(in);
             double m = getMultiplier(r);

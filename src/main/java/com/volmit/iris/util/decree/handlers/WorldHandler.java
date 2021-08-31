@@ -25,6 +25,8 @@ import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 
+import java.util.stream.Collectors;
+
 public class WorldHandler implements DecreeParameterHandler<World> {
     @Override
     public KList<World> getPossibilities() {
@@ -43,22 +45,32 @@ public class WorldHandler implements DecreeParameterHandler<World> {
     }
 
     @Override
-    public World parse(String in) throws DecreeParsingException, DecreeWhichException {
-        try {
-            KList<World> options = getPossibilities(in);
+    public World parse(String in, boolean force) throws DecreeParsingException, DecreeWhichException {
+        KList<World> options = getPossibilities(in);
 
-            if (options.isEmpty()) {
-                throw new DecreeParsingException("Unable to find World \"" + in + "\"");
-            } else if (options.size() > 1) {
-                throw new DecreeWhichException();
+        if (options.isEmpty()) {
+            throw new DecreeParsingException("Unable to find World \"" + in + "\"");
+        } else if (options.size() > 1) {
+            if(force)
+            {
+                try
+                {
+                    return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
+                }
+
+                catch(Throwable e)
+                {
+                    throw new DecreeParsingException("Unable to filter which Biome \"" + in + "\"");
+                }
             }
 
-            return options.get(0);
-        } catch (DecreeParsingException e) {
-            throw e;
-        } catch (Throwable e) {
-            throw new DecreeParsingException("Unable to find World \"" + in + "\" because of an uncaught exception: " + e);
+            else
+            {
+                throw new DecreeWhichException();
+            }
         }
+
+        return options.get(0);
     }
 
     @Override

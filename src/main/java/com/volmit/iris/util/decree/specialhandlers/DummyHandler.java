@@ -39,7 +39,7 @@ public class DummyHandler implements DecreeParameterHandler<Object> {
     }
 
     @Override
-    public Object parse(String in) throws DecreeParsingException, DecreeWhichException {
+    public Object parse(String in, boolean force) throws DecreeParsingException, DecreeWhichException {
         return null;
     }
 

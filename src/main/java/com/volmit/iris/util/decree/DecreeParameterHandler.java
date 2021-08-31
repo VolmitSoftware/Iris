@@ -62,7 +62,20 @@ public interface DecreeParameterHandler<T> {
      * @throws DecreeParsingException Thrown when the parsing fails (ex: "oop" translated to an integer throws this)
      * @throws DecreeWhichException   Thrown when multiple results are possible
      */
-    T parse(String in) throws DecreeParsingException, DecreeWhichException;
+    default T parse(String in) throws DecreeParsingException, DecreeWhichException {
+        return parse(in, false);
+    }
+
+    /**
+     * Should parse a String into the designated type. You can force it to not throw a whichexception
+     *
+     * @param in The string to parse
+     * @param force force an option instead of throwing decreewhich
+     * @return The value extracted from the string, of the designated type
+     * @throws DecreeParsingException Thrown when the parsing fails (ex: "oop" translated to an integer throws this)
+     * @throws DecreeWhichException   Thrown when multiple results are possible
+     */
+    T parse(String in, boolean force) throws DecreeParsingException, DecreeWhichException;
 
     /**
      * Returns whether a certain type is supported by this handler<br>

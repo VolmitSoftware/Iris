@@ -33,7 +33,7 @@ public class DoubleHandler implements DecreeParameterHandler<Double> {
     }
 
     @Override
-    public Double parse(String in) throws DecreeParsingException {
+    public Double parse(String in, boolean force) throws DecreeParsingException {
         try {
             AtomicReference<String> r = new AtomicReference<>(in);
             double m = getMultiplier(r);

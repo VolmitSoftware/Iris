@@ -20,12 +20,11 @@ package com.volmit.iris.util.decree.virtual;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.service.CommandSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.decree.DecreeContext;
-import com.volmit.iris.util.decree.DecreeContextHandler;
-import com.volmit.iris.util.decree.DecreeNode;
-import com.volmit.iris.util.decree.DecreeParameter;
+import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.decree.*;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
@@ -37,13 +36,16 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.stream.utility.SemaphoreStream;
 import lombok.Data;
+import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Objects;
-import java.util.concurrent.Semaphore;
+import java.util.UUID;
+import java.util.concurrent.*;
 
 @Data
 public class VirtualDecreeCommand {
@@ -279,9 +281,16 @@ public class VirtualDecreeCommand {
 
     private KMap<String, Object> map(VolmitSender sender, KList<String> in) {
         KMap<String, Object> data = new KMap<>();
+        KSet<Integer> nowhich = new KSet<>();
 
         for (int ix = 0; ix < in.size(); ix++) {
             String i = in.get(ix);
+
+            if(i == null)
+            {
+                Iris.warn("Param " + ix + " is null? (" + in.toString(",") + ")");
+            }
+
             if (i.contains("=")) {
                 String[] v = i.split("\\Q=\\E");
                 String key = v[0];
@@ -317,32 +326,35 @@ public class VirtualDecreeCommand {
                 key = param.getName();
 
                 try {
-                    data.put(key, param.getHandler().parse(value));
+                    data.put(key, param.getHandler().parse(value, nowhich.contains(ix)));
                 } catch (DecreeParsingException e) {
                     Iris.debug("Can't parse parameter value for " + key + "=" + value + " in " + getPath() + " using handler " + param.getHandler().getClass().getSimpleName());
                     sender.sendMessage(C.RED + "Cannot convert \"" + value + "\" into a " + param.getType().getSimpleName());
+                    e.printStackTrace();
                     return null;
                 } catch (DecreeWhichException e) {
                     KList<?> validOptions = param.getHandler().getPossibilities(value);
                     Iris.debug("Found multiple results for " + key + "=" + value + " in " + getPath() + " using the handler " + param.getHandler().getClass().getSimpleName() + " with potential matches [" + validOptions.toString(",") + "]. Asking client to define one");
-                    String update = null; // TODO: PICK ONE
+                    String update = pickValidOption(sender, validOptions, param.getHandler(), param.getName(), param.getType().getSimpleName());
                     Iris.debug("Client chose " + update + " for " + key + "=" + value + " (old) in " + getPath());
+                    nowhich.add(ix);
                     in.set(ix--, update);
                 }
             } else {
                 try {
                     DecreeParameter par = getNode().getParameters().get(ix);
                     try {
-                        data.put(par.getName(), par.getHandler().parse(i));
+                        data.put(par.getName(), par.getHandler().parse(i, nowhich.contains(ix)));
                     } catch (DecreeParsingException e) {
                         Iris.debug("Can't parse parameter value for " + par.getName() + "=" + i + " in " + getPath() + " using handler " + par.getHandler().getClass().getSimpleName());
                         sender.sendMessage(C.RED + "Cannot convert \"" + i + "\" into a " + par.getType().getSimpleName());
+                        e.printStackTrace();
                         return null;
                     } catch (DecreeWhichException e) {
-                        Iris.debug("Can't parse parameter value for " + par.getName() + "=" + i + " in " + getPath() + " using handler " + par.getHandler().getClass().getSimpleName());
                         KList<?> validOptions = par.getHandler().getPossibilities(i);
-                        String update = null; // TODO: PICK ONE
+                        String update = pickValidOption(sender, validOptions, par.getHandler(), par.getName(), par.getType().getSimpleName());
                         Iris.debug("Client chose " + update + " for " + par.getName() + "=" + i + " (old) in " + getPath());
+                        nowhich.add(ix);
                         in.set(ix--, update);
                     }
                 } catch (IndexOutOfBoundsException e) {
@@ -425,20 +437,10 @@ public class VirtualDecreeCommand {
                 sender.sendMessage(C.RED + "Cannot convert \"" + i + "\" into a " + i.getType().getSimpleName());
                 return false;
             } catch (DecreeWhichException e) {
-                Iris.debug("Can't parse parameter value for " + i.getName() + "=" + i + " in " + getPath() + " using handler " + i.getHandler().getClass().getSimpleName());
                 KList<?> validOptions = i.getHandler().getPossibilities(i.getParam().defaultValue());
-                String update = null; // TODO: PICK ONE
+                String update = pickValidOption(sender, validOptions, i.getHandler(), i.getName(), i.getType().getSimpleName());
                 Iris.debug("Client chose " + update + " for " + i.getName() + "=" + i + " (old) in " + getPath());
-                try {
-                    value = i.getDefaultValue();
-                } catch (DecreeParsingException x) {
-                    x.printStackTrace();
-                    Iris.debug("Can't parse parameter value for " + i.getName() + "=" + i + " in " + getPath() + " using handler " + i.getHandler().getClass().getSimpleName());
-                    sender.sendMessage(C.RED + "Cannot convert \"" + i + "\" into a " + i.getType().getSimpleName());
-                    return false;
-                } catch (DecreeWhichException x) {
-                    x.printStackTrace();
-                }
+                value = update;
             }
 
             if (i.isContextual() && value == null) {
@@ -493,6 +495,45 @@ public class VirtualDecreeCommand {
         }
 
         return true;
+    }
+
+    String[] gradients = new String[]{
+            "<gradient:#f5bc42:#45b32d>",
+            "<gradient:#1ed43f:#1ecbd4>",
+            "<gradient:#1e2ad4:#821ed4>",
+            "<gradient:#d41ea7:#611ed4>",
+            "<gradient:#1ed473:#1e55d4>",
+            "<gradient:#6ad41e:#9a1ed4>"
+    };
+
+    private String pickValidOption(VolmitSender sender, KList<?> validOptions, DecreeParameterHandler<?> handler, String name, String type) {
+        sender.sendHeader("Pick a " + name + " (" + type + ")");
+        sender.sendMessageRaw("<gradient:#1ed497:#b39427>This query will expire in 15 seconds.</gradient>");
+        String password = UUID.randomUUID().toString().replaceAll("\\Q-\\E", "");
+        int m = 0;
+
+        for(String i : validOptions.convert(handler::toStringForce))
+        {
+            sender.sendMessage( "<hover:show_text:'" + gradients[m%gradients.length] + i+"</gradient>'><click:run_command:/irisdecree "+ password + " " + i+">"+"- " + gradients[m%gradients.length] +   i         + "</gradient></click></hover>");
+            m++;
+        }
+
+        CompletableFuture<String> future = new CompletableFuture<>();
+        Iris.service(CommandSVC.class).post(password, future);
+
+        if(IrisSettings.get().getGeneral().isCommandSounds() && sender.isPlayer())
+        {
+            (sender.player()).playSound((sender.player()).getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.77f, 0.65f);
+            (sender.player()).playSound((sender.player()).getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.125f, 1.99f);
+        }
+
+        try {
+            return future.get(15, TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+
+        }
+
+        return null;
     }
 
     public KList<VirtualDecreeCommand> matchAllNodes(String in) {

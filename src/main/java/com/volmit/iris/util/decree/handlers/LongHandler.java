@@ -32,7 +32,7 @@ public class LongHandler implements DecreeParameterHandler<Long> {
     }
 
     @Override
-    public Long parse(String in) throws DecreeParsingException {
+    public Long parse(String in, boolean force) throws DecreeParsingException {
         try {
             AtomicReference<String> r = new AtomicReference<>(in);
             double m = getMultiplier(r);

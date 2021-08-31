@@ -246,13 +246,13 @@ public class KList<T> extends ArrayList<T> implements List<T> {
         }
 
         if (size() == 1) {
-            return get(0).toString();
+            return get(0) + "";
         }
 
         StringBuilder b = new StringBuilder();
 
         for (String i : toStringList()) {
-            b.append(split).append(i);
+            b.append(split).append(i == null ? "null" : i);
         }
 
         return b.substring(split.length());
@@ -264,7 +264,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
      * @return the string list
      */
     public KList<String> toStringList() {
-        return convert((t) -> t.toString());
+        return convert((t) -> t + "");
     }
 
     /**

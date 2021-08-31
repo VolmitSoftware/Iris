@@ -54,7 +54,7 @@ public class BlockVectorHandler implements DecreeParameterHandler<BlockVector> {
     }
 
     @Override
-    public BlockVector parse(String in) throws DecreeParsingException, DecreeWhichException {
+    public BlockVector parse(String in, boolean force) throws DecreeParsingException, DecreeWhichException {
         try {
             if (in.contains(",")) {
                 String[] comp = in.split("\\Q,\\E");

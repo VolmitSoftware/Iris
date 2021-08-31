@@ -68,7 +68,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 return;
             }
 
-            if (yy > 256 || yy < 0) {
+            if (yy >= 256 || yy <= 0) { // Yes, skip bedrock
                 return;
             }
 

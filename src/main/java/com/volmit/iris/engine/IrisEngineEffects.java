@@ -46,10 +46,11 @@ public class IrisEngineEffects extends EngineAssignedComponent implements Engine
     public void updatePlayerMap() {
         List<Player> pr = getEngine().getWorld().getPlayers();
 
-        if (pr == null) return; //Fix for paper returning a world with a null playerlist
+        if (pr == null) {
+            return;
+        }
 
         for (Player i : pr) {
-            Location l = i.getLocation();
             boolean pcc = players.containsKey(i.getUniqueId());
             if (!pcc) {
                 players.put(i.getUniqueId(), new EnginePlayer(getEngine(), i));

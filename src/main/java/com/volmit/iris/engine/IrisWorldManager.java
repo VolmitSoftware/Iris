@@ -67,6 +67,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     private double energy = 25;
     private int entityCount = 0;
     private final ChronoLatch cl;
+    private final ChronoLatch clw;
     private final ChronoLatch ecl;
     private final ChronoLatch cln;
     private final ChronoLatch chunkUpdater;
@@ -80,6 +81,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         cl = null;
         ecl = null;
         cln = null;
+        clw = null;
         chunkCooldowns = null;
         looper = null;
         chunkUpdater = null;
@@ -92,6 +94,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         cln = new ChronoLatch(60000);
         cl = new ChronoLatch(3000);
         ecl = new ChronoLatch(250);
+        clw = new ChronoLatch(1000, true);
         chunkCooldowns = new KMap<>();
         id = engine.getCacheID();
         energy = 25;
@@ -100,6 +103,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             protected long loop() {
                 if (getEngine().isClosed() || getEngine().getCacheID() != id) {
                     interrupt();
+                }
+
+                if(!getEngine().getWorld().hasRealWorld() && clw.flip())
+                {
+                    getEngine().getWorld().tryGetRealWorld();
                 }
 
                 if (getEngine().getWorld().hasRealWorld()) {

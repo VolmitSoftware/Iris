@@ -26,6 +26,8 @@ import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.MatterMarker;
+import com.volmit.iris.util.matter.slices.MarkerMatter;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -77,15 +79,8 @@ public class IrisEntitySpawn implements IRare {
                 int hf = gen.getHeight(x, z, false);
                 Location l = switch (getReferenceSpawner().getGroup()) {
                     case NORMAL -> new Location(c.getWorld(), x, hf + 1, z);
-                    case CAVE -> {
-                        IrisComplex comp = gen.getComplex();
-                        IrisBiome cave = comp.getCaveBiomeStream().get(x, z);
-                        KList<Location> r = new KList<>();
-                        r.add(new Location(c.getWorld(), x, hf + 1, z)); // TODO CAVE HEIGHT
-
-                        yield r.getRandom(rng);
-                    }
-
+                    case CAVE -> gen.getMantle().findMarkers(c.getX(), c.getZ(), MarkerMatter.CAVE_FLOOR)
+                            .convert((i) -> i.toLocation(c.getWorld()).add(0, 1, 0)).getRandom(rng);
                     case UNDERWATER, BEACH -> new Location(c.getWorld(), x, rng.i(h + 1, hf), z);
                 };
 

@@ -275,8 +275,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     }
                 });
 
-                getMantle().getMantle().deleteChunkSlice(c.getX(), c.getZ(), MatterCavern.class);
-                getMantle().getMantle().deleteChunkSlice(c.getX(), c.getZ(), MatterUpdate.class);
                 getMetrics().getUpdates().put(p.getMilliseconds());
             }, RNG.r.i(0, 20)));
         }

@@ -23,10 +23,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
-import com.volmit.iris.engine.object.IObjectPlacer;
-import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisFeaturePositional;
-import com.volmit.iris.engine.object.TileData;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.documentation.BlockCoordinates;
@@ -37,6 +34,8 @@ import com.volmit.iris.util.mantle.MantleChunk;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterCavern;
+import com.volmit.iris.util.matter.MatterMarker;
+import com.volmit.iris.util.matter.slices.MarkerMatter;
 import com.volmit.iris.util.matter.slices.UpdateMatter;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -63,6 +62,20 @@ public interface EngineMantle extends IObjectPlacer {
 
     default int getHighest(int x, int z) {
         return getHighest(x, z, getData());
+    }
+
+    @ChunkCoordinates
+    default KList<IrisPosition> findMarkers(int x, int z, MatterMarker marker)
+    {
+        KList<IrisPosition> p = new KList<>();
+        getMantle().iterateChunk(x, z, MatterMarker.class, (xx, yy, zz, mm) -> {
+            if(marker.equals(mm))
+            {
+                p.add(new IrisPosition(xx + (x << 4), yy, zz + (z << 4)));
+            }
+        });
+
+        return p;
     }
 
     default int getHighest(int x, int z, boolean ignoreFluid) {
@@ -229,7 +242,6 @@ public interface EngineMantle extends IObjectPlacer {
         }
 
         getMantle().iterateChunk(x, z, t, blocks::set);
-        getMantle().deleteChunkSlice(x, z, BlockData.class);
     }
 
     @BlockCoordinates

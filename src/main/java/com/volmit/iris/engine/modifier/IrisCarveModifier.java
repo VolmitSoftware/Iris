@@ -35,8 +35,10 @@ import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
+import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterCavern;
+import com.volmit.iris.util.matter.slices.MarkerMatter;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 import org.bukkit.Material;
@@ -152,7 +154,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                     buf = i;
                     zone.ceiling = buf;
                 } else if (zone.isValid()) {
-                    processZone(output, mc, zone, rx, rz, rx + (x << 4), rz + (z << 4));
+                    processZone(output, mc, mantle, zone, rx, rz, rx + (x << 4), rz + (z << 4));
                     zone = new CaveZone();
                     zone.setFloor(i);
                     buf = i;
@@ -160,19 +162,29 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             }
 
             if (zone.isValid()) {
-                processZone(output, mc, zone, rx, rz, rx + (x << 4), rz + (z << 4));
+                processZone(output, mc, mantle, zone, rx, rz, rx + (x << 4), rz + (z << 4));
             }
         });
 
         getEngine().getMetrics().getDeposit().put(p.getMilliseconds());
     }
 
-    private void processZone(Hunk<BlockData> output, MantleChunk mc, CaveZone zone, int rx, int rz, int xx, int zz) {
+    private void processZone(Hunk<BlockData> output, MantleChunk mc, Mantle mantle,  CaveZone zone, int rx, int rz, int xx, int zz) {
         boolean decFloor = B.isSolid(output.get(rx, zone.floor - 1, rz));
         boolean decCeiling = B.isSolid(output.get(rx, zone.ceiling + 1, rz));
         int center = (zone.floor + zone.ceiling) / 2;
         int thickness = zone.airThickness();
         String customBiome = "";
+
+        if(M.r(1D/16D))
+        {
+            mantle.set(xx, zone.ceiling, zz, MarkerMatter.CAVE_CEILING);
+        }
+
+        if(M.r(1D/16D))
+        {
+            mantle.set(xx, zone.floor, zz, MarkerMatter.CAVE_FLOOR);
+        }
 
         for (int i = zone.floor; i <= zone.ceiling; i++) {
             MatterCavern cavernData = (MatterCavern) mc.getOrCreate(i >> 4).slice(MatterCavern.class)

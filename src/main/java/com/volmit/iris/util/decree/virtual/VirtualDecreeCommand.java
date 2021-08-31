@@ -288,7 +288,7 @@ public class VirtualDecreeCommand {
 
             if(i == null)
             {
-                Iris.warn("Param " + ix + " is null? (" + in.toString(",") + ")");
+                continue;
             }
 
             if (i.contains("=")) {
@@ -336,6 +336,12 @@ public class VirtualDecreeCommand {
                     KList<?> validOptions = param.getHandler().getPossibilities(value);
                     Iris.debug("Found multiple results for " + key + "=" + value + " in " + getPath() + " using the handler " + param.getHandler().getClass().getSimpleName() + " with potential matches [" + validOptions.toString(",") + "]. Asking client to define one");
                     String update = pickValidOption(sender, validOptions, param.getHandler(), param.getName(), param.getType().getSimpleName());
+
+                    if(update == null)
+                    {
+                        return null;
+                    }
+
                     Iris.debug("Client chose " + update + " for " + key + "=" + value + " (old) in " + getPath());
                     nowhich.add(ix);
                     in.set(ix--, update);
@@ -353,6 +359,12 @@ public class VirtualDecreeCommand {
                     } catch (DecreeWhichException e) {
                         KList<?> validOptions = par.getHandler().getPossibilities(i);
                         String update = pickValidOption(sender, validOptions, par.getHandler(), par.getName(), par.getType().getSimpleName());
+
+                        if(update == null)
+                        {
+                            return null;
+                        }
+
                         Iris.debug("Client chose " + update + " for " + par.getName() + "=" + i + " (old) in " + getPath());
                         nowhich.add(ix);
                         in.set(ix--, update);
@@ -439,6 +451,12 @@ public class VirtualDecreeCommand {
             } catch (DecreeWhichException e) {
                 KList<?> validOptions = i.getHandler().getPossibilities(i.getParam().defaultValue());
                 String update = pickValidOption(sender, validOptions, i.getHandler(), i.getName(), i.getType().getSimpleName());
+
+                if(update == null)
+                {
+                    return false;
+                }
+
                 Iris.debug("Client chose " + update + " for " + i.getName() + "=" + i + " (old) in " + getPath());
                 value = update;
             }

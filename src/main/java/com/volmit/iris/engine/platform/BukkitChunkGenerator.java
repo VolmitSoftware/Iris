@@ -117,7 +117,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             IrisDimension test = IrisData.loadAnyDimension(dimensionKey);
 
             if (test != null) {
-                Iris.warn("Looks like " + dimensionKey + " exists in " + test.getLoadFile().getPath());
+                Iris.warn("Looks like " + dimensionKey + " exists in " + test.getLoadFile().getPath() + " ");
                 Iris.service(StudioSVC.class).installIntoWorld(Iris.getSender(), dimensionKey, dataLocation.getParentFile().getParentFile());
                 Iris.warn("Attempted to install into " + data.getDataFolder().getPath());
                 data.dump();

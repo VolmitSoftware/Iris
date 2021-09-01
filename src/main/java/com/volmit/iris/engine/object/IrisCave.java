@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.framework.Engine;
@@ -55,9 +56,6 @@ public class IrisCave extends IrisRegistrant {
     @Desc("Limit the worm from ever getting higher or lower than this range")
     private IrisRange verticalRange = new IrisRange(3, 255);
 
-    @Desc("To fill this cave with lava, set the lava level to a height from the bottom most point of the cave.")
-    private int lavaLevel = -1;
-
     @Override
     public String getFolderName() {
         return "caves";
@@ -77,7 +75,6 @@ public class IrisCave extends IrisRegistrant {
         double girth = getWorm().getGirth().get(rng, x, z, engine.getData());
         KList<IrisPosition> points = getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z, (at) -> {});
         int highestWater = Math.max(waterHint, -1);
-        int lowestPoint = Integer.MAX_VALUE;
 
         if (highestWater == -1) {
             for (IrisPosition i : points) {
@@ -91,13 +88,6 @@ public class IrisCave extends IrisRegistrant {
             }
         }
 
-        if(lavaLevel >= 0)
-        {
-            for(IrisPosition i : points)
-            {
-                lowestPoint = Math.min(i.getY(), lowestPoint);
-            }
-        }
 
         int h = Math.min(Math.max(highestWater, waterHint), engine.getDimension().getFluidHeight());
 
@@ -107,11 +97,10 @@ public class IrisCave extends IrisRegistrant {
 
         MatterCavern c = new MatterCavern(true, customBiome, (byte) 0);
         MatterCavern w = new MatterCavern(true, customBiome, (byte) 1);
-        MatterCavern l = new MatterCavern(true, customBiome, (byte) 2);
-        int flp = lowestPoint - worm.getGirth().getMid();
+
         writer.setLineConsumer(points,
                 girth, true,
-                (xf, yf, zf) -> (lavaLevel + flp >= yf && lavaLevel >= 0) ? l : (yf <= h ? w : c));
+                (xf, yf, zf) -> yf <= h ? w : c);
     }
 
     @Override

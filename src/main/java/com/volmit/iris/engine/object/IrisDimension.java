@@ -293,7 +293,7 @@ public class IrisDimension extends IrisRegistrant {
             }
 
             pos.remove(0);
-            
+
             return pos;
         });
     }

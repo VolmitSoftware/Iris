@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.framework.Engine;
@@ -103,15 +104,6 @@ public class IrisRavine extends IrisRegistrant {
         CNG bw = baseWidthStyle.getGenerator().createNoCache(rng, engine.getData());
         int highestWater = Math.max(waterHint, -1);
         boolean water = false;
-        int lowestPoint = Integer.MAX_VALUE;
-
-        if(lavaLevel >= 0)
-        {
-            for(IrisPosition i : pos)
-            {
-                lowestPoint = Math.min(i.getY(), lowestPoint);
-            }
-        }
 
         if (highestWater == -1) {
             for (IrisPosition i : pos) {
@@ -158,7 +150,15 @@ public class IrisRavine extends IrisRegistrant {
                         break;
                     }
 
-                    writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, ((lavaLevel + (lowestPoint - depthStyle.getMid())) >= i) && lavaLevel >= 0 ? l : c);
+                    if(lavaLevel >= 0 &&  i <= lavaLevel + (surface - depthStyle.getMid()))
+                    {
+                        writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, l);
+                    }
+
+                    else
+                    {
+                        writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, c);
+                    }
                 }
             }
 
@@ -174,7 +174,15 @@ public class IrisRavine extends IrisRegistrant {
                         break;
                     }
 
-                    writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, ((lavaLevel + (lowestPoint - depthStyle.getMid())) >= i) && lavaLevel >= 0 ? l : c);
+                    if(lavaLevel >= 0 &&  i <= lavaLevel + (surface - depthStyle.getMid()))
+                    {
+                        writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, l);
+                    }
+
+                    else
+                    {
+                        writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, c);
+                    }
                 }
             }
         }

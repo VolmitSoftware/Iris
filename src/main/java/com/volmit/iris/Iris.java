@@ -315,7 +315,7 @@ public class Iris extends VolmitPlugin implements Listener {
             IrisSettings.invalidate();
             IrisSettings.get();
             configWatcher.checkModified();
-            Iris.info("Hotloaded settings.json");
+            Iris.info("Hotloaded settings.json ");
         }
     }
 

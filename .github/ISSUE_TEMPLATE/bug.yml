@@ -60,9 +60,9 @@ body:
       label: Checklist
       description: Please ensure you meet each of the requirements below
       options:
-        - label: I am using an unmodified version of Iris. (If you modified the plugin and see an issue, make sure it is reproducable on the latest spigot version or contact [support](discord.gg/volmit))
+        - label: I am using an unmodified version of Iris. (If you modified the plugin and see an issue, make sure it is reproducable on the latest spigot version or contact [support](https://discord.gg/volmit))
           required: true
-        - label: I am using Spigot, Paper, Tuinity, or Purpur. (If you are not, and still think it is a valid issue, contact [support](discord.gg/volmit))
+        - label: I am using Spigot, Paper, Tuinity, or Purpur. (If you are not, and still think it is a valid issue, contact [support](https://discord.gg/volmit))
           required: true
   - type: markdown
     id: thanks

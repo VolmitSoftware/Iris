@@ -62,12 +62,12 @@ public class IrisRavine extends IrisRegistrant {
     private IrisShapedGeneratorStyle baseWidthStyle = new IrisShapedGeneratorStyle(NoiseStyle.PERLIN, 3, 6);
 
     @MinNumber(1)
-    @MaxNumber(70)
+    @MaxNumber(100)
     @Desc("The angle at which the ravine widens as it gets closer to the surface")
     private double angle = 18;
 
     @MinNumber(1)
-    @MaxNumber(70)
+    @MaxNumber(100)
     @Desc("The angle at which the ravine widens as it gets closer to the surface")
     private double topAngle = 38;
 

@@ -132,7 +132,7 @@ public class IrisRavine extends IrisRegistrant {
         }
 
         MatterCavern c = new MatterCavern(true, customBiome, (byte) (water ? 1 : 0));
-        MatterCavern l = lavaLevel >= 0 ? new MatterCavern(true, customBiome, (byte) 2) : null;
+        MatterCavern l = new MatterCavern(true, customBiome, (byte) 2);
 
         if (pos.size() < nodeThreshold) {
             return;
@@ -158,7 +158,7 @@ public class IrisRavine extends IrisRegistrant {
                         break;
                     }
 
-                    writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, (lavaLevel + lowestPoint) >= i ? l : c);
+                    writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, ((lavaLevel + (lowestPoint - depthStyle.getMid())) >= i) && lavaLevel >= 0 ? l : c);
                 }
             }
 
@@ -174,7 +174,7 @@ public class IrisRavine extends IrisRegistrant {
                         break;
                     }
 
-                    writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, (lavaLevel + lowestPoint) >= i ? l : c);
+                    writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, ((lavaLevel + (lowestPoint - depthStyle.getMid())) >= i) && lavaLevel >= 0 ? l : c);
                 }
             }
         }

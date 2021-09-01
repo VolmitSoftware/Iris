@@ -47,6 +47,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     private final RNG rng;
     private final BlockData AIR = Material.CAVE_AIR.createBlockData();
     private final BlockData WATER = Material.WATER.createBlockData();
+    private final BlockData LAVA = Material.LAVA.createBlockData();
 
     public IrisCarveModifier(Engine engine) {
         super(engine, "Carve");
@@ -102,7 +103,10 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
 
             if (c.isWater()) {
                 output.set(rx, yy, rz, WATER);
-            } else {
+            } else if(c.isLava()) {
+                output.set(rx, yy, rz, LAVA);
+            }
+            else {
                 output.set(rx, yy, rz, AIR);
             }
         };

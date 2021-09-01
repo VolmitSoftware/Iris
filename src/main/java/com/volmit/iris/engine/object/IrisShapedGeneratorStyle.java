@@ -66,4 +66,8 @@ public class IrisShapedGeneratorStyle {
     public boolean isFlat() {
         return min == max || getGenerator().isFlat();
     }
+
+    public int getMid() {
+        return (getMax() + getMin()) / 2;
+    }
 }

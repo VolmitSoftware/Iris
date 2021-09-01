@@ -78,7 +78,7 @@ public class IrisCave extends IrisRegistrant {
         KList<IrisPosition> points = getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z, (at) -> {});
         int highestWater = Math.max(waterHint, -1);
         int lowestPoint = Integer.MAX_VALUE;
-        
+
         if (highestWater == -1) {
             for (IrisPosition i : points) {
                 double yy = i.getY() + girth;
@@ -106,12 +106,12 @@ public class IrisCave extends IrisRegistrant {
         }
 
         MatterCavern c = new MatterCavern(true, customBiome, (byte) 0);
-        MatterCavern w = h >= 0 ? new MatterCavern(true, customBiome, (byte) 1) : null;
-        MatterCavern l = lavaLevel >= 0 ? new MatterCavern(true, customBiome, (byte) 2) : null;
-        int flp = lowestPoint;
+        MatterCavern w = new MatterCavern(true, customBiome, (byte) 1);
+        MatterCavern l = new MatterCavern(true, customBiome, (byte) 2);
+        int flp = lowestPoint - worm.getGirth().getMid();
         writer.setLineConsumer(points,
                 girth, true,
-                (xf, yf, zf) -> (lavaLevel + flp >= yf) ? l : (yf <= h ? w : c));
+                (xf, yf, zf) -> (lavaLevel + flp >= yf && lavaLevel >= 0) ? l : (yf <= h ? w : c));
     }
 
     @Override

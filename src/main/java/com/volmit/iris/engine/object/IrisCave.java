@@ -55,6 +55,9 @@ public class IrisCave extends IrisRegistrant {
     @Desc("Limit the worm from ever getting higher or lower than this range")
     private IrisRange verticalRange = new IrisRange(3, 255);
 
+    @Desc("To fill this cave with lava, set the lava level to a height from the bottom most point of the cave.")
+    private int lavaLevel = -1;
+
     @Override
     public String getFolderName() {
         return "caves";
@@ -72,12 +75,10 @@ public class IrisCave extends IrisRegistrant {
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int waterHint) {
 
         double girth = getWorm().getGirth().get(rng, x, z, engine.getData());
-        KList<IrisPosition> points = getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z,
-                (at) -> {
-                });
+        KList<IrisPosition> points = getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z, (at) -> {});
         int highestWater = Math.max(waterHint, -1);
-        boolean water = false;
-
+        int lowestPoint = Integer.MAX_VALUE;
+        
         if (highestWater == -1) {
             for (IrisPosition i : points) {
                 double yy = i.getY() + girth;
@@ -85,12 +86,17 @@ public class IrisCave extends IrisRegistrant {
 
                 if (yy > th && th < engine.getDimension().getFluidHeight()) {
                     highestWater = Math.max(highestWater, (int) yy);
-                    water = true;
                     break;
                 }
             }
-        } else {
-            water = true;
+        }
+
+        if(lavaLevel >= 0)
+        {
+            for(IrisPosition i : points)
+            {
+                lowestPoint = Math.min(i.getY(), lowestPoint);
+            }
         }
 
         int h = Math.min(Math.max(highestWater, waterHint), engine.getDimension().getFluidHeight());
@@ -99,9 +105,13 @@ public class IrisCave extends IrisRegistrant {
             fork.doCarving(writer, rng, engine, i.getX(), i.getY(), i.getZ(), h);
         }
 
+        MatterCavern c = new MatterCavern(true, customBiome, (byte) 0);
+        MatterCavern w = h >= 0 ? new MatterCavern(true, customBiome, (byte) 1) : null;
+        MatterCavern l = lavaLevel >= 0 ? new MatterCavern(true, customBiome, (byte) 2) : null;
+        int flp = lowestPoint;
         writer.setLineConsumer(points,
                 girth, true,
-                (xf, yf, zf) -> new MatterCavern(true, customBiome, yf <= h));
+                (xf, yf, zf) -> (lavaLevel + flp >= yf) ? l : (yf <= h ? w : c));
     }
 
     @Override

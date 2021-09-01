@@ -71,6 +71,9 @@ public class IrisRavine extends IrisRegistrant {
     @Desc("The angle at which the ravine widens as it gets closer to the surface")
     private double topAngle = 38;
 
+    @Desc("To fill this cave with lava, set the lava level to a height from the bottom most point of the cave.")
+    private int lavaLevel = -1;
+
     @Desc("How many worm nodes must be placed to actually generate a ravine? Higher reduces the chances but also reduces ravine 'holes'")
     private int nodeThreshold = 5;
 
@@ -94,13 +97,21 @@ public class IrisRavine extends IrisRegistrant {
     }
 
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int waterHint) {
-
         KList<IrisPosition> pos = getWorm().generate(rng, engine.getData(), writer, null, x, y, z, (at) -> {
         });
         CNG dg = depthStyle.getGenerator().createNoCache(rng, engine.getData());
         CNG bw = baseWidthStyle.getGenerator().createNoCache(rng, engine.getData());
         int highestWater = Math.max(waterHint, -1);
         boolean water = false;
+        int lowestPoint = Integer.MAX_VALUE;
+
+        if(lavaLevel >= 0)
+        {
+            for(IrisPosition i : pos)
+            {
+                lowestPoint = Math.min(i.getY(), lowestPoint);
+            }
+        }
 
         if (highestWater == -1) {
             for (IrisPosition i : pos) {
@@ -120,7 +131,8 @@ public class IrisRavine extends IrisRegistrant {
             water = true;
         }
 
-        MatterCavern c = new MatterCavern(true, customBiome, water);
+        MatterCavern c = new MatterCavern(true, customBiome, (byte) (water ? 1 : 0));
+        MatterCavern l = lavaLevel >= 0 ? new MatterCavern(true, customBiome, (byte) 2) : null;
 
         if (pos.size() < nodeThreshold) {
             return;
@@ -146,7 +158,7 @@ public class IrisRavine extends IrisRegistrant {
                         break;
                     }
 
-                    writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, c);
+                    writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, (lavaLevel + lowestPoint) >= i ? l : c);
                 }
             }
 
@@ -162,7 +174,7 @@ public class IrisRavine extends IrisRegistrant {
                         break;
                     }
 
-                    writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, c);
+                    writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, (lavaLevel + lowestPoint) >= i ? l : c);
                 }
             }
         }

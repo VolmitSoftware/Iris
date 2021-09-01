@@ -23,6 +23,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisFeaturePositional;
+import com.volmit.iris.util.board.BoardManager;
 import com.volmit.iris.util.board.BoardProvider;
 import com.volmit.iris.util.board.BoardSettings;
 import com.volmit.iris.util.board.ScoreDirection;
@@ -35,6 +36,7 @@ import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
+import net.minecraft.server.dedicated.ThreadWatchdog;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.boss.BarColor;
@@ -43,6 +45,7 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 
 import java.util.List;
@@ -54,6 +57,10 @@ public class BoardSVC implements IrisService, BoardProvider {
     @Override
     public void onEnable() {
         J.ar(this::tick, 20);
+        manager = new BoardManager(Iris.instance, BoardSettings.builder()
+                .boardProvider(this)
+                .scoreDirection(ScoreDirection.DOWN)
+                .build());
     }
 
     @Override
@@ -68,13 +75,8 @@ public class BoardSVC implements IrisService, BoardProvider {
     }
 
     @EventHandler
-    public void on(PlayerToggleSneakEvent e) {
-        PlayerBoard b = boards.get(e.getPlayer());
-
-        if(b != null)
-        {
-            b.update();
-        }
+    public void on(PlayerJoinEvent e) {
+        J.s(() -> updatePlayer(e.getPlayer()));
     }
 
     public void updatePlayer(Player p) {
@@ -135,28 +137,18 @@ public class BoardSVC implements IrisService, BoardProvider {
                 KList<IrisFeaturePositional> f = new KList<>();
                 f.add(engine.getMantle().forEachFeature(x, z));
 
-                lines.add("&7&m------------------");
+                lines.add("&7&m                   ");
                 lines.add(C.GREEN + "Speed" + C.GRAY + ":  " + Form.f(engine.getGeneratedPerSecond(), 0) + "/s " + Form.duration(1000D / engine.getGeneratedPerSecond(), 0));
                 lines.add(C.AQUA + "Cache" + C.GRAY + ": " + Form.f(IrisData.cacheSize()));
                 lines.add(C.AQUA + "Mantle" + C.GRAY + ": " + engine.getMantle().getLoadedRegionCount());
-                lines.add("&7&m------------------");
+                lines.add("&7&m                   ");
                 lines.add(C.AQUA + "Region" + C.GRAY + ": " + engine.getRegion(x, z).getName());
                 lines.add(C.AQUA + "Biome" + C.GRAY + ":  " + engine.getBiomeOrMantle(x, y, z).getName());
                 lines.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z)));
                 lines.add(C.AQUA + "Slope" + C.GRAY + ":  " + Form.f(engine.getComplex().getSlopeStream().get(x, z), 2));
                 lines.add(C.AQUA + "Features" + C.GRAY + ": " + Form.f(f.size()));
-
-                if (Iris.jobCount() > 0) {
-                    lines.add("&7&m------------------");
-                    lines.add(C.LIGHT_PURPLE + "Tasks" + C.GRAY + ": " + Form.f(Iris.jobCount()));
-                }
-
-                if (engine.getBlockUpdatesPerSecond() > 0) {
-                    lines.add("&7&m------------------");
-                    lines.add(C.LIGHT_PURPLE + "BUD/s" + C.GRAY + ": " + Form.f(engine.getBlockUpdatesPerSecond()));
-                }
-
-                lines.add("&7&m------------------");
+                lines.add(C.AQUA + "BUD/s" + C.GRAY + ": " + Form.f(engine.getBlockUpdatesPerSecond()));
+                lines.add("&7&m                   ");
             }
         }
     }

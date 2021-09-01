@@ -22,15 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedWorldManager;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBlockDrops;
-import com.volmit.iris.engine.object.IRare;
-import com.volmit.iris.engine.object.IrisEngineChunkData;
-import com.volmit.iris.engine.object.IrisEngineData;
-import com.volmit.iris.engine.object.IrisEngineSpawnerCooldown;
-import com.volmit.iris.engine.object.IrisEntitySpawn;
-import com.volmit.iris.engine.object.IrisRegion;
-import com.volmit.iris.engine.object.IrisSpawner;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.Form;
@@ -105,8 +97,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                     interrupt();
                 }
 
-                if(!getEngine().getWorld().hasRealWorld() && clw.flip())
-                {
+                if (!getEngine().getWorld().hasRealWorld() && clw.flip()) {
                     getEngine().getWorld().tryGetRealWorld();
                 }
 
@@ -227,8 +218,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
             Chunk c = cc[RNG.r.nextInt(cc.length)];
 
-            if(!c.isLoaded() || !Chunks.isSafe(c.getWorld(), c.getX(), c.getZ()))
-            {
+            if (!c.isLoaded() || !Chunks.isSafe(c.getWorld(), c.getX(), c.getZ())) {
                 continue;
             }
 

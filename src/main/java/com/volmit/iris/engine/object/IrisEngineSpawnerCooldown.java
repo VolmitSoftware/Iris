@@ -19,7 +19,6 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.IrisRate;
 import com.volmit.iris.util.math.M;
 import lombok.Data;
 

@@ -22,9 +22,9 @@ import com.google.common.collect.ImmutableList;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.Cache;
-import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.IObjectPlacer;
 import com.volmit.iris.engine.object.IrisFeaturePositional;
+import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -475,7 +475,7 @@ public class MantleWriter implements IObjectPlacer {
         }
     }
 
-    public <T> void setConsumer(Set<IrisPosition> positions, Function3<Integer,Integer,Integer,T> data) {
+    public <T> void setConsumer(Set<IrisPosition> positions, Function3<Integer, Integer, Integer, T> data) {
         for (IrisPosition i : positions) {
             set(i, data.apply(i.getX(), i.getY(), i.getZ()));
         }

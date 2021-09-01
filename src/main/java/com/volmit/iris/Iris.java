@@ -26,11 +26,7 @@ import com.volmit.iris.core.link.OraxenLink;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.service.StudioSVC;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBiomeCustom;
-import com.volmit.iris.engine.object.IrisWorld;
-import com.volmit.iris.engine.object.IrisCompat;
-import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.engine.platform.DummyChunkGenerator;
 import com.volmit.iris.util.collection.KList;
@@ -281,8 +277,7 @@ public class Iris extends VolmitPlugin implements Listener {
                             if (j.getName().endsWith(".json")) {
                                 IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
 
-                                if(dim == null)
-                                {
+                                if (dim == null) {
                                     continue;
                                 }
 
@@ -381,8 +376,7 @@ public class Iris extends VolmitPlugin implements Listener {
                             if (j.getName().endsWith(".json")) {
                                 IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
 
-                                if(dim == null)
-                                {
+                                if (dim == null) {
                                     Iris.error("Failed to load " + j.getPath());
                                     continue;
                                 }

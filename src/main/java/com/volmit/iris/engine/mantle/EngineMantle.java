@@ -35,7 +35,6 @@ import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.matter.MatterMarker;
-import com.volmit.iris.util.matter.slices.MarkerMatter;
 import com.volmit.iris.util.matter.slices.UpdateMatter;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -65,12 +64,10 @@ public interface EngineMantle extends IObjectPlacer {
     }
 
     @ChunkCoordinates
-    default KList<IrisPosition> findMarkers(int x, int z, MatterMarker marker)
-    {
+    default KList<IrisPosition> findMarkers(int x, int z, MatterMarker marker) {
         KList<IrisPosition> p = new KList<>();
         getMantle().iterateChunk(x, z, MatterMarker.class, (xx, yy, zz, mm) -> {
-            if(marker.equals(mm))
-            {
+            if (marker.equals(mm)) {
                 p.add(new IrisPosition(xx + (x << 4), yy, zz + (z << 4)));
             }
         });

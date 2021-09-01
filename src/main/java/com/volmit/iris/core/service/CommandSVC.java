@@ -19,7 +19,6 @@
 package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.commands.CommandIris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.collection.KMap;
@@ -47,17 +46,14 @@ public class CommandSVC implements IrisService, DecreeSystem {
     }
 
     @EventHandler
-    public void on(PlayerCommandPreprocessEvent e)
-    {
+    public void on(PlayerCommandPreprocessEvent e) {
         String msg = e.getMessage().startsWith("/") ? e.getMessage().substring(1) : e.getMessage();
 
-        if(msg.startsWith("irisdecree "))
-        {
+        if (msg.startsWith("irisdecree ")) {
             String[] args = msg.split("\\Q \\E");
             CompletableFuture<String> future = futures.get(args[1]);
 
-            if(future != null)
-            {
+            if (future != null) {
                 future.complete(args[2]);
                 e.setCancelled(true);
             }

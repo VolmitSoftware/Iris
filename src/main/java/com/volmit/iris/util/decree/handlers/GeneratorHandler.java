@@ -62,21 +62,13 @@ public class GeneratorHandler implements DecreeParameterHandler<IrisGenerator> {
         if (options.isEmpty()) {
             throw new DecreeParsingException("Unable to find Generator \"" + in + "\"");
         } else if (options.size() > 1) {
-            if(force)
-            {
-                try
-                {
+            if (force) {
+                try {
                     return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
-                }
-
-                catch(Throwable e)
-                {
+                } catch (Throwable e) {
                     throw new DecreeParsingException("Unable to filter which Biome \"" + in + "\"");
                 }
-            }
-
-            else
-            {
+            } else {
                 throw new DecreeWhichException();
             }
         }

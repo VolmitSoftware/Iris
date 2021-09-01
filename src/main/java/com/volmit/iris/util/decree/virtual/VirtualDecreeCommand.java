@@ -34,18 +34,18 @@ import com.volmit.iris.util.plugin.CommandDummy;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.stream.utility.SemaphoreStream;
 import lombok.Data;
 import org.bukkit.Sound;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Data
 public class VirtualDecreeCommand {
@@ -105,17 +105,14 @@ public class VirtualDecreeCommand {
 
     private ChronoLatch cl = new ChronoLatch(1000);
 
-    public void cacheAll()
-    {
+    public void cacheAll() {
         VolmitSender sender = new VolmitSender(new CommandDummy());
 
-        if(isNode())
-        {
+        if (isNode()) {
             J.a(() -> sender.sendDecreeHelpNode(this));
         }
 
-        for(VirtualDecreeCommand j : nodes)
-        {
+        for (VirtualDecreeCommand j : nodes) {
             j.cacheAll();
         }
     }
@@ -286,8 +283,7 @@ public class VirtualDecreeCommand {
         for (int ix = 0; ix < in.size(); ix++) {
             String i = in.get(ix);
 
-            if(i == null)
-            {
+            if (i == null) {
                 continue;
             }
 
@@ -337,8 +333,7 @@ public class VirtualDecreeCommand {
                     Iris.debug("Found multiple results for " + key + "=" + value + " in " + getPath() + " using the handler " + param.getHandler().getClass().getSimpleName() + " with potential matches [" + validOptions.toString(",") + "]. Asking client to define one");
                     String update = pickValidOption(sender, validOptions, param.getHandler(), param.getName(), param.getType().getSimpleName());
 
-                    if(update == null)
-                    {
+                    if (update == null) {
                         return null;
                     }
 
@@ -360,8 +355,7 @@ public class VirtualDecreeCommand {
                         KList<?> validOptions = par.getHandler().getPossibilities(i);
                         String update = pickValidOption(sender, validOptions, par.getHandler(), par.getName(), par.getType().getSimpleName());
 
-                        if(update == null)
-                        {
+                        if (update == null) {
                             return null;
                         }
 
@@ -403,15 +397,10 @@ public class VirtualDecreeCommand {
             sender.sendDecreeHelp(this);
 
             return true;
-        }
-
-        else if(args.size() == 1)
-        {
-            for(String i : args)
-            {
-                if(i.startsWith("help="))
-                {
-                    sender.sendDecreeHelp(this, Integer.parseInt(i.split("\\Q=\\E")[1])-1);
+        } else if (args.size() == 1) {
+            for (String i : args) {
+                if (i.startsWith("help=")) {
+                    sender.sendDecreeHelp(this, Integer.parseInt(i.split("\\Q=\\E")[1]) - 1);
                     return true;
                 }
             }
@@ -452,8 +441,7 @@ public class VirtualDecreeCommand {
                 KList<?> validOptions = i.getHandler().getPossibilities(i.getParam().defaultValue());
                 String update = pickValidOption(sender, validOptions, i.getHandler(), i.getName(), i.getType().getSimpleName());
 
-                if(update == null)
-                {
+                if (update == null) {
                     return false;
                 }
 
@@ -530,17 +518,15 @@ public class VirtualDecreeCommand {
         String password = UUID.randomUUID().toString().replaceAll("\\Q-\\E", "");
         int m = 0;
 
-        for(String i : validOptions.convert(handler::toStringForce))
-        {
-            sender.sendMessage( "<hover:show_text:'" + gradients[m%gradients.length] + i+"</gradient>'><click:run_command:/irisdecree "+ password + " " + i+">"+"- " + gradients[m%gradients.length] +   i         + "</gradient></click></hover>");
+        for (String i : validOptions.convert(handler::toStringForce)) {
+            sender.sendMessage("<hover:show_text:'" + gradients[m % gradients.length] + i + "</gradient>'><click:run_command:/irisdecree " + password + " " + i + ">" + "- " + gradients[m % gradients.length] + i + "</gradient></click></hover>");
             m++;
         }
 
         CompletableFuture<String> future = new CompletableFuture<>();
         Iris.service(CommandSVC.class).post(password, future);
 
-        if(IrisSettings.get().getGeneral().isCommandSounds() && sender.isPlayer())
-        {
+        if (IrisSettings.get().getGeneral().isCommandSounds() && sender.isPlayer()) {
             (sender.player()).playSound((sender.player()).getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.77f, 0.65f);
             (sender.player()).playSound((sender.player()).getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.125f, 1.99f);
         }

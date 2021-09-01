@@ -23,11 +23,7 @@ import com.volmit.iris.engine.actuator.IrisDecorantActuator;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
-import com.volmit.iris.engine.object.IrisPosition;
-import com.volmit.iris.engine.object.InferredType;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisDecorationPart;
-import com.volmit.iris.engine.object.IrisDecorator;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
@@ -65,8 +61,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         KMap<Long, KList<Integer>> positions = new KMap<>();
         KMap<IrisPosition, MatterCavern> walls = new KMap<>();
         Consumer4<Integer, Integer, Integer, MatterCavern> iterator = (xx, yy, zz, c) -> {
-            if(c == null)
-            {
+            if (c == null) {
                 return;
             }
 
@@ -105,14 +100,10 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 return;
             }
 
-            if(c.isWater())
-            {
-                output.set(rx, yy, rz,  WATER);
-            }
-
-            else
-            {
-                output.set(rx, yy, rz,  AIR);
+            if (c.isWater()) {
+                output.set(rx, yy, rz, WATER);
+            } else {
+                output.set(rx, yy, rz, AIR);
             }
         };
 
@@ -169,20 +160,18 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         getEngine().getMetrics().getDeposit().put(p.getMilliseconds());
     }
 
-    private void processZone(Hunk<BlockData> output, MantleChunk mc, Mantle mantle,  CaveZone zone, int rx, int rz, int xx, int zz) {
+    private void processZone(Hunk<BlockData> output, MantleChunk mc, Mantle mantle, CaveZone zone, int rx, int rz, int xx, int zz) {
         boolean decFloor = B.isSolid(output.get(rx, zone.floor - 1, rz));
         boolean decCeiling = B.isSolid(output.get(rx, zone.ceiling + 1, rz));
         int center = (zone.floor + zone.ceiling) / 2;
         int thickness = zone.airThickness();
         String customBiome = "";
 
-        if(M.r(1D/16D))
-        {
+        if (M.r(1D / 16D)) {
             mantle.set(xx, zone.ceiling, zz, MarkerMatter.CAVE_CEILING);
         }
 
-        if(M.r(1D/16D))
-        {
+        if (M.r(1D / 16D)) {
             mantle.set(xx, zone.floor, zz, MarkerMatter.CAVE_FLOOR);
         }
 

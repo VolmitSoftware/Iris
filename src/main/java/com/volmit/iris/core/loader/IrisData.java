@@ -26,24 +26,8 @@ import com.google.gson.stream.JsonWriter;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.object.annotations.Snippet;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBlockData;
-import com.volmit.iris.engine.object.IrisCave;
-import com.volmit.iris.engine.object.IrisRavine;
-import com.volmit.iris.engine.object.IrisScript;
-import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisEntity;
-import com.volmit.iris.engine.object.IrisJigsawPiece;
-import com.volmit.iris.engine.object.IrisJigsawPool;
-import com.volmit.iris.engine.object.IrisJigsawStructure;
-import com.volmit.iris.engine.object.IrisLootTable;
-import com.volmit.iris.engine.object.IrisMod;
-import com.volmit.iris.engine.object.IrisExpression;
-import com.volmit.iris.engine.object.IrisGenerator;
-import com.volmit.iris.engine.object.IrisObject;
-import com.volmit.iris.engine.object.IrisRegion;
-import com.volmit.iris.engine.object.IrisSpawner;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
@@ -56,7 +40,6 @@ import lombok.Data;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -372,13 +355,9 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     @Override
     public boolean shouldSkipClass(Class<?> c) {
-        if(c.equals(AtomicCache.class))
-        {
+        if (c.equals(AtomicCache.class)) {
             return true;
-        }
-
-        else if(c.equals(ChronoLatch.class))
-        {
+        } else if (c.equals(ChronoLatch.class)) {
             return true;
         }
 
@@ -387,8 +366,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     @Override
     public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> typeToken) {
-        if(!typeToken.getRawType().isAnnotationPresent(Snippet.class))
-        {
+        if (!typeToken.getRawType().isAnnotationPresent(Snippet.class)) {
             return null;
         }
 
@@ -407,26 +385,17 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                 if (reader.peek().equals(JsonToken.STRING)) {
                     String r = reader.nextString();
 
-                    if(r.startsWith("snippet/" + snippetType + "/"))
-                    {
+                    if (r.startsWith("snippet/" + snippetType + "/")) {
                         File f = new File(getDataFolder(), r + ".json");
 
-                        if(f.exists())
-                        {
-                            try
-                            {
+                        if (f.exists()) {
+                            try {
                                 JsonReader snippetReader = new JsonReader(new FileReader(f));
                                 return adapter.read(snippetReader);
-                            }
-
-                            catch(Throwable e)
-                            {
+                            } catch (Throwable e) {
                                 Iris.error("Couldn't read snippet " + r + " in " + reader.getPath() + " (" + e.getMessage() + ")");
                             }
-                        }
-
-                        else
-                        {
+                        } else {
                             Iris.error("Couldn't find snippet " + r + " in " + reader.getPath());
                         }
                     }
@@ -434,13 +403,9 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                     return null;
                 }
 
-                try
-                {
+                try {
                     return adapter.read(reader);
-                }
-
-                catch(Throwable e)
-                {
+                } catch (Throwable e) {
                     Iris.error("Failed to read " + typeToken.getRawType().getCanonicalName() + "... faking objects a little to load the file at least.");
                     try {
                         return (T) typeToken.getRawType().getConstructor().newInstance();
@@ -459,10 +424,8 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
             File snippetFolder = new File(getDataFolder(), "snippet/" + f);
 
-            if(snippetFolder.exists() && snippetFolder.isDirectory())
-            {
-                for(File i : snippetFolder.listFiles())
-                {
+            if (snippetFolder.exists() && snippetFolder.isDirectory()) {
+                for (File i : snippetFolder.listFiles()) {
                     l.add("snippet/" + f + "/" + i.getName().split("\\Q.\\E")[0]);
                 }
             }

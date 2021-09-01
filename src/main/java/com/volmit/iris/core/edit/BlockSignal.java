@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @SuppressWarnings("InstantiationOfUtilityClass")
 public class BlockSignal {
     public static final AtomicInteger active = new AtomicInteger(0);
+
     public static void of(Block block, int ticks) {
         new BlockSignal(block, ticks);
     }

@@ -284,7 +284,7 @@ public class IrisDimension extends IrisRegistrant {
             int jump = strongholdJumpDistance;
             RNG rng = new RNG((seed * 223) + 12945);
 
-            for (int i = 0; i < maxStrongholds; i++) {
+            for (int i = 0; i < maxStrongholds+1; i++) {
                 int m = i + 1;
                 pos.add(new Position2(
                         (int) ((rng.i(jump * i) + (jump * i)) * (rng.b() ? -1D : 1D)),
@@ -292,6 +292,8 @@ public class IrisDimension extends IrisRegistrant {
                 ));
             }
 
+            pos.remove(0);
+            
             return pos;
         });
     }

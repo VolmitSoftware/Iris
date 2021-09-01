@@ -18,10 +18,13 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
+import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -33,7 +36,7 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @Desc("Configures rotation for iris")
 @Data
-public class IrisInterpolator {
+public class IrisInterpolator extends IrisRegistrant {
     @Required
     @Desc("The interpolation method when two biomes use different heights but this same generator")
     private InterpolationMethod function = InterpolationMethod.BILINEAR_STARCAST_6;
@@ -50,5 +53,20 @@ public class IrisInterpolator {
 
     public double interpolate(int x, int z, NoiseProvider provider) {
         return IrisInterpolation.getNoise(getFunction(), x, z, getHorizontalScale(), provider);
+    }
+
+    @Override
+    public String getFolderName() {
+        return "interpolators";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Interpolator";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

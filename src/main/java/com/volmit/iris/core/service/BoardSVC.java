@@ -31,22 +31,13 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.plugin.IrisService;
-import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
-import net.minecraft.server.dedicated.ThreadWatchdog;
-import org.bukkit.Bukkit;
-import org.bukkit.World;
-import org.bukkit.boss.BarColor;
-import org.bukkit.boss.BarStyle;
-import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerToggleSneakEvent;
 
 import java.util.List;
 
@@ -94,36 +85,31 @@ public class BoardSVC implements IrisService, BoardProvider {
         return C.GREEN + "Iris";
     }
 
-    public void tick()
-    {
-        boards.forEach((k,v) -> v.update());
+    public void tick() {
+        boards.forEach((k, v) -> v.update());
     }
 
     @Override
     public List<String> getLines(Player player) {
         PlayerBoard pb = boards.computeIfAbsent(player, PlayerBoard::new);
-        synchronized (pb.lines)
-        {
+        synchronized (pb.lines) {
             return pb.lines;
         }
     }
 
     @Data
-    public static class PlayerBoard
-    {
+    public static class PlayerBoard {
         private final Player player;
         private final KList<String> lines;
 
-        public PlayerBoard(Player player)
-        {
+        public PlayerBoard(Player player) {
             this.player = player;
             this.lines = new KList<>();
             update();
         }
 
         public void update() {
-            synchronized (lines)
-            {
+            synchronized (lines) {
                 lines.clear();
 
                 if (!IrisToolbelt.isIrisStudioWorld(player.getWorld())) {

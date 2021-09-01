@@ -272,8 +272,7 @@ public class CommandStudio implements DecreeExecutor {
         }
 
         try {
-            if(biome.getLoadFile() == null)
-            {
+            if (biome.getLoadFile() == null) {
                 sender().sendMessage(C.GOLD + "Cannot find the file for the biome you are in! Perhaps it was not loaded directly from a file?");
                 return;
             }

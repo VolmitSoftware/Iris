@@ -313,8 +313,7 @@ public interface EngineMantle extends IObjectPlacer {
         return false;// TODO:
     }
 
-    default int getLoadedRegionCount()
-    {
+    default int getLoadedRegionCount() {
         return getMantle().getLoadedRegionCount();
     }
 }

@@ -188,12 +188,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     default IrisBiome getCaveOrMantleBiome(int x, int y, int z) {
         MatterCavern m = getMantle().getMantle().get(x, y, z, MatterCavern.class);
 
-        if(m != null && m.getCustomBiome() != null && !m.getCustomBiome().isEmpty())
-        {
+        if (m != null && m.getCustomBiome() != null && !m.getCustomBiome().isEmpty()) {
             IrisBiome biome = getData().getBiomeLoader().load(m.getCustomBiome());
 
-            if(biome != null)
-            {
+            if (biome != null) {
                 return biome;
             }
         }
@@ -727,8 +725,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     int getCacheID();
 
-    default IrisBiome getBiomeOrMantle(Location l)
-    {
+    default IrisBiome getBiomeOrMantle(Location l) {
         return getBiomeOrMantle(l.getBlockX(), l.getBlockY(), l.getBlockZ());
     }
 }

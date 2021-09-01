@@ -37,13 +37,11 @@ public class IrisSeed {
     @Desc("To calculate a seed Iris passes in it's natural seed for the current feature, then mixes it with your seed. Setting this to true ignores the parent seed and always uses your exact seed ignoring the input of Iris feature seeds. You can use this to match seeds on other generators.")
     private boolean ignoreNaturalSeedInput = false;
 
-    public long getSeed(long seed)
-    {
+    public long getSeed(long seed) {
         return (seed * 47) + getSeed() + 29334667L;
     }
 
-    public RNG rng(long inseed)
-    {
+    public RNG rng(long inseed) {
         return new RNG(getSeed(inseed));
     }
 }

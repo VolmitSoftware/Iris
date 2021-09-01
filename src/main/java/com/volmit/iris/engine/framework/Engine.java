@@ -678,6 +678,14 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return getSurfaceBiome(x, z);
     }
 
+    default IrisBiome getBiomeOrMantle(int x, int y, int z) {
+        if (y <= getHeight(x, z) - 2) {
+            return getCaveOrMantleBiome(x, y, z);
+        }
+
+        return getSurfaceBiome(x, z);
+    }
+
     default String getObjectPlacementKey(int x, int y, int z) {
         PlacedObject o = getObjectPlacement(x, y, z);
 
@@ -718,4 +726,9 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     int getCacheID();
+
+    default IrisBiome getBiomeOrMantle(Location l)
+    {
+        return getBiomeOrMantle(l.getBlockX(), l.getBlockY(), l.getBlockZ());
+    }
 }

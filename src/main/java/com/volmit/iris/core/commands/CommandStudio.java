@@ -267,9 +267,17 @@ public class CommandStudio implements DecreeExecutor {
             @Param(contextual = true, description = "The biome to edit")
                     IrisBiome biome
     ) {
-        if (noStudio()) return;
+        if (noStudio()) {
+            return;
+        }
 
         try {
+            if(biome.getLoadFile() == null)
+            {
+                sender().sendMessage(C.GOLD + "Cannot find the file for the biome you are in! Perhaps it was not loaded directly from a file?");
+                return;
+            }
+
             Desktop.getDesktop().open(biome.getLoadFile());
         } catch (Throwable e) {
             Iris.reportError(e);

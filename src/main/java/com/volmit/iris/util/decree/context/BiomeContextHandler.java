@@ -32,7 +32,7 @@ public class BiomeContextHandler implements DecreeContextHandler<IrisBiome> {
         if (sender.isPlayer()
                 && IrisToolbelt.isIrisWorld(sender.player().getWorld())
                 && IrisToolbelt.access(sender.player().getWorld()).getEngine() != null) {
-            return IrisToolbelt.access(sender.player().getWorld()).getEngine().getBiome(sender.player().getLocation());
+            return IrisToolbelt.access(sender.player().getWorld()).getEngine().getBiomeOrMantle(sender.player().getLocation());
         }
 
         return null;

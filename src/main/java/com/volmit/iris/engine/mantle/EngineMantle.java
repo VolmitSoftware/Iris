@@ -312,4 +312,9 @@ public interface EngineMantle extends IObjectPlacer {
     default boolean dequeueRegenerate(int x, int z) {
         return false;// TODO:
     }
+
+    default int getLoadedRegionCount()
+    {
+        return getMantle().getLoadedRegionCount();
+    }
 }

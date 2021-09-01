@@ -48,7 +48,7 @@ public class BoardManager {
         this.plugin = plugin;
         this.boardSettings = boardSettings;
         this.scoreboards = new ConcurrentHashMap<>();
-        this.updateTask = new BoardUpdateTask(this).runTaskTimer(plugin, 2L, 2L);
+        this.updateTask = new BoardUpdateTask(this).runTaskTimer(plugin, 2L, 20L);
         plugin.getServer().getOnlinePlayers().forEach(this::setup);
     }
 

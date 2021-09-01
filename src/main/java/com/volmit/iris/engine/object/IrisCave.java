@@ -65,7 +65,6 @@ public class IrisCave extends IrisRegistrant {
         return "Cave";
     }
 
-
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
         generate(writer, rng, engine, x, y, z, -1);
     }

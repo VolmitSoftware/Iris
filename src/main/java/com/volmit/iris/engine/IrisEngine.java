@@ -428,9 +428,9 @@ public class IrisEngine implements Engine {
                 getTerrainActuator().actuate(x, z, blocks, multicore);
                 getBiomeActuator().actuate(x, z, vbiomes, multicore);
                 getDecorantActuator().actuate(x, z, blocks, multicore);
-                getDepositModifier().modify(x, z, blocks, multicore);
                 getCaveModifier().modify(x >> 4, z >> 4, blocks, multicore);
                 getPostModifier().modify(x, z, blocks, multicore);
+                getDepositModifier().modify(x, z, blocks, multicore);
                 getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, blocks, multicore);
             }
             getMetrics().getTotal().put(p.getMilliseconds());

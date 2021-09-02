@@ -120,19 +120,8 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
                     continue;
                 }
 
-                boolean allow = false;
-
-                BlockData b = data.get(nx, ny, nz);
-                if (b != null) {
-                    for (BlockData f : getDimension().getRockPalette().getBlockData(getData())) {
-                        if (f.getMaterial().equals(b.getMaterial())) {
-                            allow = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (allow) {
+                if(!getEngine().getMantle().isCarved((cx << 4) + nx, ny, (cz << 4) + nz))
+                {
                     data.set(nx, ny, nz, clump.getBlocks().get(j));
                 }
             }

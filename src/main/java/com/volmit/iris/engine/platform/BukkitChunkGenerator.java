@@ -93,7 +93,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         this.dimensionKey = dimensionKey;
         this.folder = new ReactiveFolder(dataLocation, (_a, _b, _c) -> hotload());
         setupEngine();
-        this.hotloader = new Looper() {
+        this.hotloader = studio ? new Looper() {
             @Override
             protected long loop() {
                 if (hotloadChecker.flip()) {
@@ -102,10 +102,14 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
                 return 250;
             }
-        };
-        hotloader.setPriority(Thread.MIN_PRIORITY);
-        hotloader.start();
-        hotloader.setName(getTarget().getWorld().name() + " Hotloader");
+        } : null;
+
+        if(studio)
+        {
+            hotloader.setPriority(Thread.MIN_PRIORITY);
+            hotloader.start();
+            hotloader.setName(getTarget().getWorld().name() + " Hotloader");
+        }
     }
 
     private void setupEngine() {
@@ -232,7 +236,11 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @Override
     public void close() {
         withExclusiveControl(() -> {
-            hotloader.interrupt();
+            if(isStudio())
+            {
+                hotloader.interrupt();
+            }
+
             getEngine().close();
         });
     }
@@ -244,6 +252,11 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void hotload() {
+        if(!isStudio())
+        {
+            return;
+        }
+
         withExclusiveControl(() -> getEngine().hotload());
     }
 

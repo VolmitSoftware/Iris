@@ -20,11 +20,14 @@ package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.commands.CommandIris;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.decree.DecreeSystem;
 import com.volmit.iris.util.decree.virtual.VirtualDecreeCommand;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.plugin.IrisService;
+import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
@@ -56,7 +59,13 @@ public class CommandSVC implements IrisService, DecreeSystem {
             if (future != null) {
                 future.complete(args[2]);
                 e.setCancelled(true);
+                return;
             }
+        }
+
+        if ((msg.startsWith("locate ") || msg.startsWith("locatebiome ")) && IrisToolbelt.isIrisWorld(e.getPlayer().getWorld())){
+            new VolmitSender(e.getPlayer()).sendMessage(C.RED + "Locating biomes & objects is disabled in Iris Worlds. Use /iris studio goto <biome>");
+            e.setCancelled(true);
         }
     }
 

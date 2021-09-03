@@ -233,15 +233,19 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 break;
             }
 
-            if (!B.isSolid(output.get(rx, zone.ceiling + i + 1, rz))) {
+            BlockData b = blocks.get(i);
+            BlockData up = output.get(rx, zone.ceiling + i + 1, rz);
+
+            if (!B.isSolid(up)) {
                 continue;
             }
 
-            if (B.isOre(output.get(rx, zone.ceiling + i + 1, rz))) {
+            if (B.isOre(up)) {
+                output.set(rx, zone.ceiling + i + 1, rz, B.toDeepSlateOre(up, b));
                 continue;
             }
 
-            output.set(rx, zone.ceiling + i + 1, rz, blocks.get(i));
+            output.set(rx, zone.ceiling + i + 1, rz, b);
         }
     }
 

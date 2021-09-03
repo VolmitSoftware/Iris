@@ -109,7 +109,7 @@ public class VirtualDecreeCommand {
         VolmitSender sender = new VolmitSender(new CommandDummy());
 
         if (isNode()) {
-            J.a(() -> sender.sendDecreeHelpNode(this));
+            sender.sendDecreeHelpNode(this);
         }
 
         for (VirtualDecreeCommand j : nodes) {

@@ -28,6 +28,7 @@ import com.volmit.iris.util.decree.virtual.VirtualDecreeCommand;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.scheduling.J;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
@@ -40,7 +41,7 @@ public class CommandSVC implements IrisService, DecreeSystem {
     @Override
     public void onEnable() {
         Iris.instance.getCommand("iris").setExecutor(this);
-        getRoot().cacheAll();
+        J.a(() -> getRoot().cacheAll());
     }
 
     @Override

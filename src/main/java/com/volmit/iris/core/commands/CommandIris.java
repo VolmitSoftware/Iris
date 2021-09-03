@@ -39,7 +39,7 @@ public class CommandIris implements DecreeExecutor {
     private CommandObject object;
     private CommandWhat what;
 
-    @Decree(description = "Create a new world", aliases = "+")
+    @Decree(description = "Create a new world", aliases = {"+", "c"})
     public void create(
             @Param(aliases = "world-name", description = "The name of the world to create")
                     String name,

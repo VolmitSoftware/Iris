@@ -101,7 +101,7 @@ public class CommandObject implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Get a powder that reveals objects", studio = true)
+    @Decree(description = "Get a powder that reveals objects", studio = true, aliases = "d")
     public void dust() {
         player().getInventory().addItem(WandSVC.createDust());
         sender().playSound(Sound.AMBIENT_SOUL_SAND_VALLEY_ADDITIONS, 1f, 1.5f);

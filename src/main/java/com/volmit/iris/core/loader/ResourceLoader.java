@@ -158,8 +158,14 @@ public class ResourceLoader<T extends IrisRegistrant> {
         }
 
         KSet<String> m = new KSet<>();
+        KList<File> files = getFolders();
 
-        for (File i : getFolders()) {
+        if (files == null) {
+            possibleKeys = new String[0];
+            return possibleKeys;
+        }
+
+        for (File i : files) {
             for (File j : matchAllFiles(i, (f) -> f.getName().endsWith(".json"))) {
                 m.add(i.toURI().relativize(j.toURI()).getPath().replaceAll("\\Q.json\\E", ""));
             }

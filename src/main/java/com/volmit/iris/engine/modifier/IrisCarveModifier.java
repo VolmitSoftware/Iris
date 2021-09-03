@@ -171,6 +171,16 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         int thickness = zone.airThickness();
         String customBiome = "";
 
+        if(B.isDecorant(output.get(rx, zone.ceiling+1, rz)))
+        {
+            output.set(rx, zone.ceiling+1, rz, AIR);
+        }
+
+        if(B.isDecorant(output.get(rx, zone.ceiling, rz)))
+        {
+            output.set(rx, zone.ceiling, rz, AIR);
+        }
+
         if (M.r(1D / 16D)) {
             mantle.set(xx, zone.ceiling, zz, MarkerMatter.CAVE_CEILING);
         }

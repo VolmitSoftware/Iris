@@ -122,7 +122,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 biome.setInferredType(InferredType.CAVE);
                 BlockData d = biome.getWall().get(rng, i.getX() + (x << 4), i.getY(), i.getZ() + (z << 4), getData());
 
-                if (d != null && B.isSolid(output.get(i.getX(), i.getY(), i.getZ()))) {
+                if (d != null && B.isSolid(output.get(i.getX(), i.getY(), i.getZ())) && i.getY() <= getComplex().getHeightStream().get(i.getX() + (x << 4), i.getZ() + (z << 4))) {
                     output.set(i.getX(), i.getY(), i.getZ(), d);
                 }
             }

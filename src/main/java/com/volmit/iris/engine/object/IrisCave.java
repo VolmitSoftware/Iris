@@ -43,7 +43,7 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisCave extends IrisRegistrant {
     @Desc("Define the shape of this cave")
-    private IrisWorm worm;
+    private IrisWorm worm = new IrisWorm();
 
     @Desc("Define potential forking features")
     private IrisCarving fork = new IrisCarving();

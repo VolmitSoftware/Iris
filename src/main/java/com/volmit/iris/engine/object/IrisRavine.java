@@ -46,7 +46,7 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisRavine extends IrisRegistrant {
     @Desc("Define the shape of this ravine (2d, ignores Y)")
-    private IrisWorm worm;
+    private IrisWorm worm = new IrisWorm();
 
     @RegistryListResource(IrisBiome.class)
     @Desc("Force this cave to only generate the specified custom biome")

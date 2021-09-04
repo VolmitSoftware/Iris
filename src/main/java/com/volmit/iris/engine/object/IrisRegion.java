@@ -131,6 +131,9 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @Desc("Carving configuration for the dimension")
     private IrisCarving carving = new IrisCarving();
 
+    @Desc("Configuration of fluid bodies such as rivers & lakes")
+    private IrisFluidBodies fluidBodies = new IrisFluidBodies();
+
     @RegistryListResource(IrisBiome.class)
     @Required
     @ArrayType(min = 1, type = String.class)

@@ -165,6 +165,9 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Carving configuration for the dimension")
     private IrisCarving carving = new IrisCarving();
 
+    @Desc("Configuration of fluid bodies such as rivers & lakes")
+    private IrisFluidBodies fluidBodies = new IrisFluidBodies();
+
     @Desc("The world environment")
     private Environment environment = Environment.NORMAL;
 

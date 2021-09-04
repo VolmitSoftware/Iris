@@ -79,9 +79,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
-@Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
+@Decree(name = "studio", aliases = {"std"}, description = "Studio Commands", studio = true)
 public class CommandStudio implements DecreeExecutor {
-    @Decree(description = "Open a new studio world", aliases = "o", sync = true)
+    @Decree(description = "Open a new studio world", sync = true)
     public void open(
             @Param(defaultValue = "overworld", description = "The dimension to open a studio for", aliases = "dim")
                     IrisDimension dimension,
@@ -91,7 +91,7 @@ public class CommandStudio implements DecreeExecutor {
         Iris.service(StudioSVC.class).open(sender(), seed, dimension.getLoadKey());
     }
 
-    @Decree(description = "Open VSCode for a dimension", aliases = {"vsc", "edit"})
+    @Decree(description = "Open VSCode for a dimension", aliases = {"edit"})
     public void vscode(
             @Param(defaultValue = "overworld", description = "The dimension to open VSCode for", aliases = "dim")
                     IrisDimension dimension
@@ -100,7 +100,7 @@ public class CommandStudio implements DecreeExecutor {
         Iris.service(StudioSVC.class).openVSCode(sender(), dimension.getLoadKey());
     }
 
-    @Decree(description = "Close an open studio project", aliases = {"x", "c"}, sync = true)
+    @Decree(description = "Close an open studio project", aliases = {"x"}, sync = true)
     public void close() {
         if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender().sendMessage(C.RED + "No open studio projects.");
@@ -111,7 +111,7 @@ public class CommandStudio implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Project Closed.");
     }
 
-    @Decree(description = "Create a new studio project", aliases = "+", sync = true)
+    @Decree(description = "Create a new studio project", sync = true)
     public void create(
             @Param(description = "The name of this new Iris Project.")
                     String name,
@@ -262,7 +262,7 @@ public class CommandStudio implements DecreeExecutor {
     }
 
 
-    @Decree(description = "Edit the biome you are currently in", aliases = {"ebiome", "eb"}, origin = DecreeOrigin.PLAYER)
+    @Decree(description = "Edit the biome you are currently in", aliases = {"eb"}, origin = DecreeOrigin.PLAYER)
     public void editbiome(
             @Param(contextual = true, description = "The biome to edit")
                     IrisBiome biome
@@ -309,7 +309,7 @@ public class CommandStudio implements DecreeExecutor {
         engine().getWorldManager().chargeEnergy();
     }
 
-    @Decree(description = "Preview noise gens (External GUI)", aliases = {"generator", "gen"})
+    @Decree(description = "Preview noise gens (External GUI)", aliases = {"generator"})
     public void explore(
             @Param(description = "The generator to explore", contextual = true)
                     IrisGenerator generator,
@@ -330,7 +330,7 @@ public class CommandStudio implements DecreeExecutor {
         NoiseExplorerGUI.launch(l, "Custom Generator");
     }
 
-    @Decree(description = "Find any biome or region", aliases = {"goto", "g"}, origin = DecreeOrigin.PLAYER)
+    @Decree(description = "Find any biome or region", aliases = {"goto"}, origin = DecreeOrigin.PLAYER)
     public void find(
             @Param(description = "The biome or region to find", defaultValue = "null")
                     IrisBiome biome,
@@ -446,7 +446,7 @@ public class CommandStudio implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Opening map!");
     }
 
-    @Decree(description = "Package a dimension into a compressed format", aliases = "package")
+    @Decree(name = "package", description = "Package a dimension into a compressed format")
     public void pkg(
             @Param(name = "dimension", description = "The dimension pack to compress", contextual = true, defaultValue = "overworld")
                     IrisDimension dimension,
@@ -662,7 +662,7 @@ public class CommandStudio implements DecreeExecutor {
         entity.spawn(engine(), new Location(world(), location.getX(), location.getY(), location.getZ()));
     }
 
-    @Decree(description = "Teleport to the active studio world", aliases = "stp", origin = DecreeOrigin.PLAYER, sync = true)
+    @Decree(description = "Teleport to the active studio world", aliases = {"tp"}, origin = DecreeOrigin.PLAYER, sync = true)
     public void tpstudio() {
         if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender().sendMessage(C.RED + "No studio world is open!");
@@ -691,7 +691,7 @@ public class CommandStudio implements DecreeExecutor {
         }
     }
 
-    @Decree(aliases = {"find-features", "nf"}, description = "Get the noise feature data in your chunk")
+    @Decree(aliases = "nf", description = "Get the noise feature data in your chunk")
     public void features() {
 
         if (!IrisToolbelt.isIrisWorld(player().getWorld())) {
@@ -706,7 +706,7 @@ public class CommandStudio implements DecreeExecutor {
         }
     }
 
-    @Decree(aliases = "find-objects", description = "Get information about nearby structures")
+    @Decree(description = "Get information about nearby structures")
     public void objects() {
         if (!IrisToolbelt.isIrisWorld(player().getWorld())) {
             sender().sendMessage(C.RED + "You must be in an Iris world");

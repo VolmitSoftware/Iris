@@ -65,7 +65,7 @@ public class CommandPregen implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Pause / continue the active pregeneration task", aliases = {"resume", "unpause"})
+    @Decree(description = "Pause / continue the active pregeneration task", aliases = {"t", "resume", "unpause"})
     public void pause() {
         if (PregeneratorJob.pauseResume()) {
             sender().sendMessage(C.GREEN + "Paused/unpaused pregeneration task, now: " + (PregeneratorJob.isPaused() ? "Paused" : "Running") + ".");

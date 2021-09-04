@@ -162,6 +162,16 @@ public class CommandIris implements DecreeExecutor {
         Iris.service(StudioSVC.class).downloadSearch(sender(), "IrisDimensions/" + pack + "/" + branch, trim, overwrite);
     }
 
+    @Decree(description = "Get metrics for your world", aliases = "measure", origin = DecreeOrigin.PLAYER)
+    public void metrics() {
+        if (!IrisToolbelt.isIrisWorld(world())) {
+            sender().sendMessage(C.RED + "You must be in an Iris world");
+            return;
+        }
+        sender().sendMessage(C.GREEN + "Sending metrics...");
+        engine().printMetrics(sender());
+    }
+
     @Decree(description = "Reload configuration file (this is also done automatically)")
     public void reload() {
         IrisSettings.invalidate();

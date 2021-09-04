@@ -40,7 +40,6 @@ import org.bukkit.util.Vector;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Supplier;
 
 @Data
 public class MantleWriter implements IObjectPlacer {
@@ -67,8 +66,7 @@ public class MantleWriter implements IObjectPlacer {
     }
 
     public <T> void setData(int x, int y, int z, T t) {
-        if(t == null)
-        {
+        if (t == null) {
             return;
         }
 
@@ -168,7 +166,7 @@ public class MantleWriter implements IObjectPlacer {
     }
 
     public <T> void setElipsoid(int cx, int cy, int cz, double rx, double ry, double rz, boolean fill, T data) {
-        setElipsoidFunction(cx, cy, cz, rx, ry, rz, fill, (a,b,c)->data);
+        setElipsoidFunction(cx, cy, cz, rx, ry, rz, fill, (a, b, c) -> data);
     }
 
     /**

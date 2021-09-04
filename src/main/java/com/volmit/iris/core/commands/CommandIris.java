@@ -172,17 +172,15 @@ public class CommandIris implements DecreeExecutor {
     @Decree(name = "regen", description = "Regenerate nearby chunks.", aliases = "rg", sync = true, origin = DecreeOrigin.PLAYER)
     public void regen(
             @Param(name = "radius", description = "The radius of nearby cunks", defaultValue = "5")
-            int radius
+                    int radius
     ) {
-        if(IrisToolbelt.isIrisWorld(player().getWorld()))
-        {
+        if (IrisToolbelt.isIrisWorld(player().getWorld())) {
             VolmitSender sender = sender();
             J.a(() -> {
                 DecreeContext.touch(sender);
                 PlatformChunkGenerator plat = IrisToolbelt.access(player().getWorld());
                 Engine engine = plat.getEngine();
-                try
-                {
+                try {
                     int vd = radius;
                     int rg = 0;
                     Chunk cx = player().getLocation().getChunk();
@@ -190,21 +188,18 @@ public class CommandIris implements DecreeExecutor {
                     BurstExecutor b = MultiBurst.burst.burst();
                     b.setMulticore(false);
                     int rad = engine.getMantle().getRealRadius();
-                    for(int i = -(vd+rad); i <= vd+rad; i++) {
-                        for (int j = -(vd+rad); j <= vd+rad; j++) {
+                    for (int i = -(vd + rad); i <= vd + rad; i++) {
+                        for (int j = -(vd + rad); j <= vd + rad; j++) {
                             engine.getMantle().getMantle().deleteChunk(i + cx.getX(), j + cx.getZ());
                         }
                     }
 
-                    for(int i = -vd; i <= vd; i++)
-                    {
-                        for(int j = -vd; j <= vd; j++)
-                        {
+                    for (int i = -vd; i <= vd; i++) {
+                        for (int j = -vd; j <= vd; j++) {
                             int finalJ = j;
                             int finalI = i;
                             b.queue(() -> plat.injectChunkReplacement(player().getWorld(), finalI + cx.getX(), finalJ + cx.getZ(), (f) -> {
-                                synchronized (js)
-                                {
+                                synchronized (js) {
                                     js.add(f);
                                 }
                             }));
@@ -220,10 +215,8 @@ public class CommandIris implements DecreeExecutor {
                         public void execute(Runnable runnable) {
                             futures.add(J.sfut(runnable));
 
-                            if(futures.size() > 64)
-                            {
-                                while(futures.isNotEmpty())
-                                {
+                            if (futures.size() > 64) {
+                                while (futures.isNotEmpty()) {
                                     try {
                                         futures.remove(0).get();
                                     } catch (InterruptedException | ExecutionException e) {
@@ -240,17 +233,11 @@ public class CommandIris implements DecreeExecutor {
                     };
                     r.queue(js);
                     r.execute(sender());
-                }
-
-                catch(Throwable e)
-                {
+                } catch (Throwable e) {
                     sender().sendMessage("Unable to parse view-distance");
                 }
             });
-        }
-
-        else
-        {
+        } else {
             sender().sendMessage(C.RED + "You must be in an Iris World to use regen!");
         }
     }

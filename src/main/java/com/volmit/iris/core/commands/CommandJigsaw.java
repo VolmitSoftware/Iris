@@ -1,15 +1,13 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.edit.JigsawEditor;
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.core.service.ObjectSVC;
-import com.volmit.iris.core.service.StudioSVC;
-import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.engine.jigsaw.PlannedStructure;
-import com.volmit.iris.engine.object.*;
-import com.volmit.iris.util.data.Cuboid;
+import com.volmit.iris.engine.object.IrisJigsawPiece;
+import com.volmit.iris.engine.object.IrisJigsawStructure;
+import com.volmit.iris.engine.object.IrisObject;
+import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
@@ -17,23 +15,10 @@ import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.decree.specialhandlers.ObjectHandler;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.math.Direction;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import com.volmit.iris.util.scheduling.Queue;
-import org.bukkit.*;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.TileState;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.Vector;
 
 import java.io.File;
-import java.io.IOException;
-import java.text.NumberFormat;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Decree(name = "jigsaw", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris jigsaw commands")
 public class CommandJigsaw implements DecreeExecutor {
@@ -82,30 +67,28 @@ public class CommandJigsaw implements DecreeExecutor {
     }
 
     @Decree(description = "Exit the current jigsaw editor")
-    public void exit()
-    {
+    public void exit() {
         JigsawEditor editor = JigsawEditor.editors.get(player());
 
         if (editor == null) {
-            sender().sendMessage(C.GOLD +"You don't have any pieces open to exit!");
+            sender().sendMessage(C.GOLD + "You don't have any pieces open to exit!");
             return;
         }
 
         editor.exit();
-        sender().sendMessage(C.GREEN +"Exited Jigsaw Editor");
+        sender().sendMessage(C.GREEN + "Exited Jigsaw Editor");
     }
 
     @Decree(description = "Save & Exit the current jigsaw editor")
-    public void save()
-    {
+    public void save() {
         JigsawEditor editor = JigsawEditor.editors.get(player());
 
         if (editor == null) {
-            sender().sendMessage(C.GOLD +"You don't have any pieces open to save!");
+            sender().sendMessage(C.GOLD + "You don't have any pieces open to save!");
             return;
         }
 
         editor.close();
-        sender().sendMessage(C.GREEN +"Saved & Exited Jigsaw Editor");
+        sender().sendMessage(C.GREEN + "Saved & Exited Jigsaw Editor");
     }
 }

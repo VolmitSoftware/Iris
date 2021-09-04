@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.framework.Engine;
@@ -150,13 +149,9 @@ public class IrisRavine extends IrisRegistrant {
                         break;
                     }
 
-                    if(lavaLevel >= 0 &&  i <= lavaLevel + (surface - depthStyle.getMid()))
-                    {
+                    if (lavaLevel >= 0 && i <= lavaLevel + (surface - depthStyle.getMid())) {
                         writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, l);
-                    }
-
-                    else
-                    {
+                    } else {
                         writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, c);
                     }
                 }
@@ -174,13 +169,9 @@ public class IrisRavine extends IrisRegistrant {
                         break;
                     }
 
-                    if(lavaLevel >= 0 &&  i <= lavaLevel + (surface - depthStyle.getMid()))
-                    {
+                    if (lavaLevel >= 0 && i <= lavaLevel + (surface - depthStyle.getMid())) {
                         writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, l);
-                    }
-
-                    else
-                    {
+                    } else {
                         writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, c);
                     }
                 }

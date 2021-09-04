@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.framework.Engine;
@@ -73,7 +72,8 @@ public class IrisCave extends IrisRegistrant {
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int waterHint) {
 
         double girth = getWorm().getGirth().get(rng, x, z, engine.getData());
-        KList<IrisPosition> points = getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z, (at) -> {});
+        KList<IrisPosition> points = getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z, (at) -> {
+        });
         int highestWater = Math.max(waterHint, -1);
 
         if (highestWater == -1) {

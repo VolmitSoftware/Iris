@@ -73,8 +73,7 @@ public class IrisLake implements IRare {
         double[] surfaces = new double[pos.size()];
         int i = 0;
 
-        for(IrisPosition p : pos)
-        {
+        for (IrisPosition p : pos) {
             surfaces[i] = engine.getComplex().getHeightStream().get(x, z);
             ax += p.getX();
             ay += surfaces[i];
@@ -92,11 +91,9 @@ public class IrisLake implements IRare {
             double depth = dg.fitDouble(depthStyle.getMin(), depthStyle.getMax(), p.getX(), p.getZ()) + (surface - avg.getY());
             double width = bw.fitDouble(widthStyle.getMin(), widthStyle.getMax(), p.getX(), p.getZ());
 
-            if(depth > 1)
-            {
-                writer.setElipsoidFunction(p.getX(), avg.getY(), p.getZ(), width, depth, width, true, (xx,yy,zz) -> {
-                    if(yy > avg.getY())
-                    {
+            if (depth > 1) {
+                writer.setElipsoidFunction(p.getX(), avg.getY(), p.getZ(), width, depth, width, true, (xx, yy, zz) -> {
+                    if (yy > avg.getY()) {
                         return null;
                     }
 

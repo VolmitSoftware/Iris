@@ -104,8 +104,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             }
         } : null;
 
-        if(studio)
-        {
+        if (studio) {
             hotloader.setPriority(Thread.MIN_PRIORITY);
             hotloader.start();
             hotloader.setName(getTarget().getWorld().name() + " Hotloader");
@@ -236,8 +235,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @Override
     public void close() {
         withExclusiveControl(() -> {
-            if(isStudio())
-            {
+            if (isStudio()) {
                 hotloader.interrupt();
             }
 
@@ -252,8 +250,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void hotload() {
-        if(!isStudio())
-        {
+        if (!isStudio()) {
             return;
         }
 

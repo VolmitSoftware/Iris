@@ -291,10 +291,8 @@ public class ResourceLoader<T extends IrisRegistrant> {
 
         lock.unlock();
 
-        if(folderCache == null)
-        {
-            synchronized (this)
-            {
+        if (folderCache == null) {
+            synchronized (this) {
                 return getFolderCache();
             }
         }

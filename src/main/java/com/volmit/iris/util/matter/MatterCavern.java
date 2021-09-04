@@ -28,18 +28,15 @@ public class MatterCavern {
     private final String customBiome;
     private final byte liquid; // 0 none 1 water 2 lava
 
-    public boolean isAir()
-    {
+    public boolean isAir() {
         return liquid == 0;
     }
 
-    public boolean isWater()
-    {
+    public boolean isWater() {
         return liquid == 1;
     }
 
-    public boolean isLava()
-    {
+    public boolean isLava() {
         return liquid == 2;
     }
 }

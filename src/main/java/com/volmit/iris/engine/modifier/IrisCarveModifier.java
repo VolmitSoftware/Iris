@@ -103,10 +103,9 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
 
             if (c.isWater()) {
                 output.set(rx, yy, rz, WATER);
-            } else if(c.isLava()) {
+            } else if (c.isLava()) {
                 output.set(rx, yy, rz, LAVA);
-            }
-            else {
+            } else {
                 output.set(rx, yy, rz, AIR);
             }
         };
@@ -171,13 +170,11 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         int thickness = zone.airThickness();
         String customBiome = "";
 
-        if(B.isDecorant(output.get(rx, zone.ceiling+1, rz)))
-        {
-            output.set(rx, zone.ceiling+1, rz, AIR);
+        if (B.isDecorant(output.get(rx, zone.ceiling + 1, rz))) {
+            output.set(rx, zone.ceiling + 1, rz, AIR);
         }
 
-        if(B.isDecorant(output.get(rx, zone.ceiling, rz)))
-        {
+        if (B.isDecorant(output.get(rx, zone.ceiling, rz))) {
             output.set(rx, zone.ceiling, rz, AIR);
         }
 

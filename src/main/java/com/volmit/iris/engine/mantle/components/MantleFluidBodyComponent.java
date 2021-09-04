@@ -23,7 +23,7 @@ import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.IrisMantleComponent;
 import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisCarving;
+import com.volmit.iris.engine.object.IrisFluidBodies;
 import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.MantleFlag;
@@ -33,28 +33,28 @@ import java.util.function.Consumer;
 
 public class MantleFluidBodyComponent extends IrisMantleComponent {
     public MantleFluidBodyComponent(EngineMantle engineMantle) {
-        super(engineMantle, MantleFlag.CARVED);
+        super(engineMantle, MantleFlag.FLUID_BODIES);
     }
 
     @Override
     public void generateLayer(MantleWriter writer, int x, int z, Consumer<Runnable> post) {
-        RNG rng = new RNG(Cache.key(x, z) + seed());
+        RNG rng = new RNG(Cache.key(x, z) + seed() + 405666);
         int xxx = 8 + (x << 4);
         int zzz = 8 + (z << 4);
         IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
         IrisBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xxx, zzz);
-        carve(writer, rng, x, z, region, biome);
+        generate(writer, rng, x, z, region, biome);
     }
 
     @ChunkCoordinates
-    private void carve(MantleWriter writer, RNG rng, int cx, int cz, IrisRegion region, IrisBiome biome) {
-        carve(getDimension().getCarving(), writer, new RNG((rng.nextLong() * cx) + 490495 + cz), cx, cz);
-        carve(biome.getCarving(), writer, new RNG((rng.nextLong() * cx) + 490495 + cz), cx, cz);
-        carve(region.getCarving(), writer, new RNG((rng.nextLong() * cx) + 490495 + cz), cx, cz);
+    private void generate(MantleWriter writer, RNG rng, int cx, int cz, IrisRegion region, IrisBiome biome) {
+        generate(getDimension().getFluidBodies(), writer, new RNG((rng.nextLong() * cx) + 490495 + cz), cx, cz);
+        generate(biome.getFluidBodies(), writer, new RNG((rng.nextLong() * cx) + 490495 + cz), cx, cz);
+        generate(region.getFluidBodies(), writer, new RNG((rng.nextLong() * cx) + 490495 + cz), cx, cz);
     }
 
     @ChunkCoordinates
-    private void carve(IrisCarving carving, MantleWriter writer, RNG rng, int cx, int cz) {
-        carving.doCarving(writer, rng, getEngineMantle().getEngine(), cx << 4, -1, cz << 4);
+    private void generate(IrisFluidBodies bodies, MantleWriter writer, RNG rng, int cx, int cz) {
+        bodies.generate(writer, rng, getEngineMantle().getEngine(), cx << 4, -1, cz << 4);
     }
 }

@@ -55,5 +55,6 @@ public class IrisLake implements IRare {
     }
 
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
+        
     }
 }

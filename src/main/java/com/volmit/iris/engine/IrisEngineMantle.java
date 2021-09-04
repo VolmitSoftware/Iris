@@ -293,7 +293,7 @@ public class IrisEngineMantle implements EngineMantle {
         x = Math.max(z, x);
         int u = x;
         int v = computeFeatureRange();
-        int c = computeCarvingRange();
+        int c = Math.max(computeCarvingRange(), computeBodyRange());
         x = Math.max(jig, x);
         x = Math.max(x, v);
         x = Math.max(x, c);
@@ -306,6 +306,22 @@ public class IrisEngineMantle implements EngineMantle {
         Iris.info("  Carving Mantle Size: " + c + " (" + ((Math.max(c, 16) + 16) >> 4) + ")");
 
         return x;
+    }
+
+    private int computeBodyRange() {
+        int m = 0;
+
+        m = Math.max(m, getDimension().getFluidBodies().getMaxRange(getData()));
+
+        for (IrisRegion i : getDimension().getAllRegions(getEngine())) {
+            m = Math.max(m, i.getFluidBodies().getMaxRange(getData()));
+        }
+
+        for (IrisBiome i : getDimension().getAllBiomes(getEngine())) {
+            m = Math.max(m, i.getFluidBodies().getMaxRange(getData()));
+        }
+
+        return m;
     }
 
     private int computeCarvingRange() {

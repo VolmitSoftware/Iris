@@ -48,7 +48,7 @@ public class IrisFluidBodies {
     private KList<IrisLake> lakes = new KList<>();
 
     @BlockCoordinates
-    public void doCarving(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
+    public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
         if (rivers.isNotEmpty()) {
             for (IrisRiver i : rivers) {
                 i.generate(writer, rng, engine, x, y, z);

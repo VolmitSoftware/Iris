@@ -40,6 +40,7 @@ import org.bukkit.util.Vector;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 
 @Data
 public class MantleWriter implements IObjectPlacer {
@@ -66,6 +67,11 @@ public class MantleWriter implements IObjectPlacer {
     }
 
     public <T> void setData(int x, int y, int z, T t) {
+        if(t == null)
+        {
+            return;
+        }
+
         int cx = x >> 4;
         int cz = z >> 4;
 
@@ -161,6 +167,10 @@ public class MantleWriter implements IObjectPlacer {
         setElipsoid(cx, cy, cz, radius, radius, radius, fill, data);
     }
 
+    public <T> void setElipsoid(int cx, int cy, int cz, double rx, double ry, double rz, boolean fill, T data) {
+        setElipsoidFunction(cx, cy, cz, rx, ry, rz, fill, (a,b,c)->data);
+    }
+
     /**
      * Set an elipsoid into the mantle
      *
@@ -174,7 +184,7 @@ public class MantleWriter implements IObjectPlacer {
      * @param data the data to set
      * @param <T>  the type of data to apply to the mantle
      */
-    public <T> void setElipsoid(int cx, int cy, int cz, double rx, double ry, double rz, boolean fill, T data) {
+    public <T> void setElipsoidFunction(int cx, int cy, int cz, double rx, double ry, double rz, boolean fill, Function3<Integer, Integer, Integer, T> data) {
         rx += 0.5;
         ry += 0.5;
         rz += 0.5;
@@ -217,15 +227,15 @@ public class MantleWriter implements IObjectPlacer {
                         }
                     }
 
-                    setData(x + cx, y + cy, z + cz, data);
-                    setData(-x + cx, y + cy, z + cz, data);
-                    setData(x + cx, -y + cy, z + cz, data);
-                    setData(x + cx, y + cy, -z + cz, data);
-                    setData(-x + cx, y + cy, -z + cz, data);
-                    setData(-x + cx, -y + cy, z + cz, data);
-                    setData(x + cx, -y + cy, -z + cz, data);
-                    setData(-x + cx, y + cy, -z + cz, data);
-                    setData(-x + cx, -y + cy, -z + cz, data);
+                    setData(x + cx, y + cy, z + cz, data.apply(x + cx, y + cy, z + cz));
+                    setData(-x + cx, y + cy, z + cz, data.apply(-x + cx, y + cy, z + cz));
+                    setData(x + cx, -y + cy, z + cz, data.apply(x + cx, -y + cy, z + cz));
+                    setData(x + cx, y + cy, -z + cz, data.apply(x + cx, y + cy, -z + cz));
+                    setData(-x + cx, y + cy, -z + cz, data.apply(-x + cx, y + cy, -z + cz));
+                    setData(-x + cx, -y + cy, z + cz, data.apply(-x + cx, -y + cy, z + cz));
+                    setData(x + cx, -y + cy, -z + cz, data.apply(x + cx, -y + cy, -z + cz));
+                    setData(-x + cx, y + cy, -z + cz, data.apply(-x + cx, y + cy, -z + cz));
+                    setData(-x + cx, -y + cy, -z + cz, data.apply(-x + cx, -y + cy, -z + cz));
                 }
             }
         }

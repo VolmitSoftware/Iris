@@ -59,11 +59,9 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
         KList<String> v = getRoot().tabComplete(enhanced, enhanced.toString(" "));
         v.removeDuplicates();
 
-        if(sender instanceof Player)
-        {
-            if(IrisSettings.get().getGeneral().isCommandSounds())
-            {
-                ((Player)sender).playSound(((Player)sender).getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.25f,  RNG.r.f(0.125f, 1.95f));
+        if (sender instanceof Player) {
+            if (IrisSettings.get().getGeneral().isCommandSounds()) {
+                ((Player) sender).playSound(((Player) sender).getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.25f, RNG.r.f(0.125f, 1.95f));
             }
         }
 
@@ -79,26 +77,19 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
         J.aBukkit(() -> {
             if (!call(new VolmitSender(sender), args)) {
 
-                if(IrisSettings.get().getGeneral().isCommandSounds())
-                {
-                    if(sender instanceof Player)
-                    {
-                        ((Player)sender).playSound(((Player)sender).getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.77f, 0.25f);
-                        ((Player)sender).playSound(((Player)sender).getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.2f, 0.45f);
+                if (IrisSettings.get().getGeneral().isCommandSounds()) {
+                    if (sender instanceof Player) {
+                        ((Player) sender).playSound(((Player) sender).getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.77f, 0.25f);
+                        ((Player) sender).playSound(((Player) sender).getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.2f, 0.45f);
                     }
                 }
 
                 sender.sendMessage(C.RED + "Unknown Iris Command");
-            }
-
-            else
-            {
-                if(IrisSettings.get().getGeneral().isCommandSounds())
-                {
-                    if(sender instanceof Player)
-                    {
-                        ((Player)sender).playSound(((Player)sender).getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.77f, 1.65f);
-                        ((Player)sender).playSound(((Player)sender).getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 0.125f, 2.99f);
+            } else {
+                if (IrisSettings.get().getGeneral().isCommandSounds()) {
+                    if (sender instanceof Player) {
+                        ((Player) sender).playSound(((Player) sender).getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.77f, 1.65f);
+                        ((Player) sender).playSound(((Player) sender).getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 0.125f, 2.99f);
                     }
                 }
             }

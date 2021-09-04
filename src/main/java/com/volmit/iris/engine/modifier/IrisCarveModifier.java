@@ -23,11 +23,7 @@ import com.volmit.iris.engine.actuator.IrisDecorantActuator;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
-import com.volmit.iris.engine.object.IrisPosition;
-import com.volmit.iris.engine.object.InferredType;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisDecorationPart;
-import com.volmit.iris.engine.object.IrisDecorator;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
@@ -51,6 +47,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     private final RNG rng;
     private final BlockData AIR = Material.CAVE_AIR.createBlockData();
     private final BlockData WATER = Material.WATER.createBlockData();
+    private final BlockData LAVA = Material.LAVA.createBlockData();
 
     public IrisCarveModifier(Engine engine) {
         super(engine, "Carve");
@@ -65,8 +62,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         KMap<Long, KList<Integer>> positions = new KMap<>();
         KMap<IrisPosition, MatterCavern> walls = new KMap<>();
         Consumer4<Integer, Integer, Integer, MatterCavern> iterator = (xx, yy, zz, c) -> {
-            if(c == null)
-            {
+            if (c == null) {
                 return;
             }
 
@@ -105,14 +101,13 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 return;
             }
 
-            if(c.isWater())
-            {
-                output.set(rx, yy, rz,  WATER);
+            if (c.isWater()) {
+                output.set(rx, yy, rz, WATER);
+            } else if(c.isLava()) {
+                output.set(rx, yy, rz, LAVA);
             }
-
-            else
-            {
-                output.set(rx, yy, rz,  AIR);
+            else {
+                output.set(rx, yy, rz, AIR);
             }
         };
 
@@ -127,7 +122,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 biome.setInferredType(InferredType.CAVE);
                 BlockData d = biome.getWall().get(rng, i.getX() + (x << 4), i.getY(), i.getZ() + (z << 4), getData());
 
-                if (d != null && B.isSolid(output.get(i.getX(), i.getY(), i.getZ()))) {
+                if (d != null && B.isSolid(output.get(i.getX(), i.getY(), i.getZ())) && i.getY() <= getComplex().getHeightStream().get(i.getX() + (x << 4), i.getZ() + (z << 4))) {
                     output.set(i.getX(), i.getY(), i.getZ(), d);
                 }
             }
@@ -169,20 +164,28 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         getEngine().getMetrics().getDeposit().put(p.getMilliseconds());
     }
 
-    private void processZone(Hunk<BlockData> output, MantleChunk mc, Mantle mantle,  CaveZone zone, int rx, int rz, int xx, int zz) {
+    private void processZone(Hunk<BlockData> output, MantleChunk mc, Mantle mantle, CaveZone zone, int rx, int rz, int xx, int zz) {
         boolean decFloor = B.isSolid(output.get(rx, zone.floor - 1, rz));
         boolean decCeiling = B.isSolid(output.get(rx, zone.ceiling + 1, rz));
         int center = (zone.floor + zone.ceiling) / 2;
         int thickness = zone.airThickness();
         String customBiome = "";
 
-        if(M.r(1D/16D))
+        if(B.isDecorant(output.get(rx, zone.ceiling+1, rz)))
         {
+            output.set(rx, zone.ceiling+1, rz, AIR);
+        }
+
+        if(B.isDecorant(output.get(rx, zone.ceiling, rz)))
+        {
+            output.set(rx, zone.ceiling, rz, AIR);
+        }
+
+        if (M.r(1D / 16D)) {
             mantle.set(xx, zone.ceiling, zz, MarkerMatter.CAVE_CEILING);
         }
 
-        if(M.r(1D/16D))
-        {
+        if (M.r(1D / 16D)) {
             mantle.set(xx, zone.floor, zz, MarkerMatter.CAVE_FLOOR);
         }
 
@@ -240,15 +243,19 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 break;
             }
 
-            if (!B.isSolid(output.get(rx, zone.ceiling + i + 1, rz))) {
+            BlockData b = blocks.get(i);
+            BlockData up = output.get(rx, zone.ceiling + i + 1, rz);
+
+            if (!B.isSolid(up)) {
                 continue;
             }
 
-            if (B.isOre(output.get(rx, zone.ceiling + i + 1, rz))) {
+            if (B.isOre(up)) {
+                output.set(rx, zone.ceiling + i + 1, rz, B.toDeepSlateOre(up, b));
                 continue;
             }
 
-            output.set(rx, zone.ceiling + i + 1, rz, blocks.get(i));
+            output.set(rx, zone.ceiling + i + 1, rz, b);
         }
     }
 

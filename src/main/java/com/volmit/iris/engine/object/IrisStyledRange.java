@@ -65,4 +65,8 @@ public class IrisStyledRange {
     public boolean isFlat() {
         return getMax() == getMin() || style.isFlat();
     }
+
+    public int getMid() {
+        return (int) ((getMax() + getMin()) / 2);
+    }
 }

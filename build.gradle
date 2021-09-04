@@ -15,16 +15,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.guardsquare:proguard-gradle:7.1.0'
-    }
-}
-
 plugins {
     id 'java'
     id 'io.freefair.lombok' version '5.2.1'
@@ -32,11 +22,10 @@ plugins {
 }
 
 group 'com.volmit.iris'
-version '1.8'
+version '1.8.3'
 def apiVersion = '1.17'
-def name = getRootProject().getName() // See settings.gradle
+def name = getRootProject().getName() // Defined in settings.gradle
 def main = 'com.volmit.iris.Iris'
-// You need to also set command usage, aliases and description in src/main/resources/plugin.yml
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ==============================================================
@@ -46,32 +35,6 @@ registerCustomOutputTask('ArcaneArts', 'C://Users/arcane/Documents/development/s
 registerCustomOutputTask('Coco', 'C:/Users/sjoer/Documents/Development/MCServer/plugins', name)
 registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins', name)
 // ==============================================================
-
-def dependsDir = "${buildDir}/libs/dependencies/" as String
-
-task copyDepends(type: Copy) {
-    dependsOn(":shadowJar")
-    group('proguard')
-    from configurations.default
-    into "${dependsDir}"
-}
-
-task release(type: proguard.gradle.ProGuardTask) {
-    dependsOn(":copyDepends")
-    group('proguard')
-    configuration 'proguard.pro'
-    injars("${buildDir}/libs/" + name + "-" + version + "-all.jar")
-    outjars("${buildDir}/production/" + name + "/" + version + "/" + name + "-" + version + ".jar")
-    libraryjars "${System.getProperty('java.home')}/lib/rt.jar"
-    libraryjars "${System.getProperty('java.home')}/jmods/"
-    libraryjars "${dependsDir}"
-    dontobfuscate()
-    dontwarn()
-    dontshrink()
-    dontoptimize()
-    dontnote()
-    verbose()
-}
 
 def registerCustomOutputTask(name, path, plugin) {
     tasks.register('build' + name, Copy) {
@@ -86,8 +49,14 @@ def registerCustomOutputTask(name, path, plugin) {
     }
 }
 
+/**
+ * Gradle is weird sometimes, we need to delete the plugin yml from the build folder to actually filter properly.
+ */
 file(jar.archiveFile.get().getAsFile().getParentFile().getParentFile().getParentFile().getAbsolutePath() + '/build/resources/main/plugin.yml').delete()
 
+/**
+ * Expand properties into plugin yml
+ */
 processResources {
     filesMatching('**/plugin.yml') {
         expand(
@@ -99,6 +68,10 @@ processResources {
     }
 }
 
+/**
+ * For performance during compilation, we specify which module groups are accessible from which repositories
+ * This may cause issues resolving new dependencies but normally it shouldn't.
+ */
 repositories {
     maven {
         url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/'
@@ -153,23 +126,45 @@ repositories {
     // maven { allowInsecureProtocol true, url 'http://archive.arcane.art/repository/arcane'}
 }
 
+/**
+ * We need parameter meta for the decree command system
+ */
 compileJava {
     options.compilerArgs << '-parameters'
 }
 
-shadowJar
-        {
-            minimize()
-            append("plugin.yml")
-            relocate 'com.dfsek.paralithic', 'com.volmit.iris.util.paralithic'
-            relocate 'io.papermc.lib', 'com.volmit.iris.util.paper'
-            dependencies {
-                include(dependency('io.papermc:paperlib'))
-                include(dependency('com.dfsek:Paralithic'))
-                include(dependency('net.kyori:'))
-            }
-        }
+/**
+ * Configure Iris for shading
+ */
+shadowJar {
+    minimize()
+    append("plugin.yml")
+    relocate 'com.dfsek.paralithic', 'com.volmit.iris.util.paralithic'
+    relocate 'io.papermc.lib', 'com.volmit.iris.util.paper'
+    dependencies {
+        include(dependency('io.papermc:paperlib'))
+        include(dependency('com.dfsek:Paralithic'))
+        include(dependency('net.kyori:'))
+    }
+}
 
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor 60, 'minutes'
+    resolutionStrategy.cacheDynamicVersionsFor 60, 'minutes'
+}
+
+/**
+ * Dependencies.
+ *
+ * Provided or classpath dependencies are not shaded and are available on the runtime classpath
+ *
+ * Shaded dependencies are not available at runtime, nor are they available on mvn central so they
+ * need to be shaded into the jar (increasing binary size)
+ *
+ * Dynamically loaded dependencies are defined in the plugin.yml (updating these must be updated in the
+ * plugin.yml also, otherwise they wont be available). These do not increase binary size). Only declare
+ * these dependencies if they are available on mvn central.
+ */
 dependencies {
     // Provided or Classpath
     compileOnly 'org.projectlombok:lombok:1.18.20'

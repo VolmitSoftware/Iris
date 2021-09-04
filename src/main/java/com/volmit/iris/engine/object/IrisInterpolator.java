@@ -34,6 +34,8 @@ import lombok.experimental.Accessors;
 @Desc("Configures rotation for iris")
 @Data
 public class IrisInterpolator {
+    public static final IrisInterpolator DEFAULT = new IrisInterpolator();
+
     @Required
     @Desc("The interpolation method when two biomes use different heights but this same generator")
     private InterpolationMethod function = InterpolationMethod.BILINEAR_STARCAST_6;

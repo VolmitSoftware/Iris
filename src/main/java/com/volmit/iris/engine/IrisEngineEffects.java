@@ -25,7 +25,6 @@ import com.volmit.iris.engine.framework.EnginePlayer;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import java.util.List;

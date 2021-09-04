@@ -19,13 +19,16 @@
 package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.commands.CommandIris;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.decree.DecreeSystem;
 import com.volmit.iris.util.decree.virtual.VirtualDecreeCommand;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.plugin.IrisService;
+import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.scheduling.J;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
@@ -38,7 +41,7 @@ public class CommandSVC implements IrisService, DecreeSystem {
     @Override
     public void onEnable() {
         Iris.instance.getCommand("iris").setExecutor(this);
-        getRoot().cacheAll();
+        J.a(() -> getRoot().cacheAll());
     }
 
     @Override
@@ -47,20 +50,23 @@ public class CommandSVC implements IrisService, DecreeSystem {
     }
 
     @EventHandler
-    public void on(PlayerCommandPreprocessEvent e)
-    {
+    public void on(PlayerCommandPreprocessEvent e) {
         String msg = e.getMessage().startsWith("/") ? e.getMessage().substring(1) : e.getMessage();
 
-        if(msg.startsWith("irisdecree "))
-        {
+        if (msg.startsWith("irisdecree ")) {
             String[] args = msg.split("\\Q \\E");
             CompletableFuture<String> future = futures.get(args[1]);
 
-            if(future != null)
-            {
+            if (future != null) {
                 future.complete(args[2]);
                 e.setCancelled(true);
+                return;
             }
+        }
+
+        if ((msg.startsWith("locate ") || msg.startsWith("locatebiome ")) && IrisToolbelt.isIrisWorld(e.getPlayer().getWorld())){
+            new VolmitSender(e.getPlayer()).sendMessage(C.RED + "Locating biomes & objects is disabled in Iris Worlds. Use /iris studio goto <biome>");
+            e.setCancelled(true);
         }
     }
 

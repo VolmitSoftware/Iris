@@ -27,8 +27,8 @@ import java.io.IOException;
 
 @Sliced
 public class CavernMatter extends RawMatter<MatterCavern> {
-    public static MatterCavern get(String customBiome, boolean underwater) {
-        return new MatterCavern(true, customBiome, underwater);
+    public static MatterCavern get(String customBiome, int liquid) {
+        return new MatterCavern(true, customBiome, (byte) liquid);
     }
 
     public CavernMatter() {
@@ -42,16 +42,16 @@ public class CavernMatter extends RawMatter<MatterCavern> {
     @Override
     public void writeNode(MatterCavern b, DataOutputStream dos) throws IOException {
         dos.writeBoolean(b.isCavern());
-        dos.writeBoolean(b.isWater());
         dos.writeUTF(b.getCustomBiome());
+        dos.writeByte(b.getLiquid());
     }
 
     @Override
     public MatterCavern readNode(DataInputStream din) throws IOException {
         boolean b = din.readBoolean();
-        boolean w = din.readBoolean();
         String v = din.readUTF();
+        byte l = din.readByte();
 
-        return new MatterCavern(b, v, w);
+        return new MatterCavern(b, v, l);
     }
 }

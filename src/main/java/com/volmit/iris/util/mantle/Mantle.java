@@ -502,4 +502,8 @@ public class Mantle {
     public void deleteChunkSlice(int x, int z, Class<?> c) {
         getChunk(x, z).deleteSlices(c);
     }
+
+    public int getLoadedRegionCount() {
+        return loadedRegions.size();
+    }
 }

@@ -18,28 +18,30 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.engine.object.annotations.*;
-import com.volmit.iris.util.collection.KList;
-import lombok.AllArgsConstructor;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.util.math.RNG;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-@Snippet("biome-replacer")
+@Snippet("color")
 @Accessors(chain = true)
 @NoArgsConstructor
-@AllArgsConstructor
-@Desc("A biome replacer")
+@Desc("Represents a color")
 @Data
-public class IrisModBiomeReplacer {
-    @Required
-    @Desc("A list of biomes to find")
-    @RegistryListResource(IrisBiome.class)
-    @ArrayType(type = String.class, min = 1)
-    private KList<String> find = new KList<>();
+public class IrisSeed {
+    @Desc("The seed to use")
+    private long seed = 1337;
 
-    @Required
-    @Desc("A biome to replace it with")
-    @RegistryListResource(IrisBiome.class)
-    private String replace = "";
+    @Desc("To calculate a seed Iris passes in it's natural seed for the current feature, then mixes it with your seed. Setting this to true ignores the parent seed and always uses your exact seed ignoring the input of Iris feature seeds. You can use this to match seeds on other generators.")
+    private boolean ignoreNaturalSeedInput = false;
+
+    public long getSeed(long seed) {
+        return (seed * 47) + getSeed() + 29334667L;
+    }
+
+    public RNG rng(long inseed) {
+        return new RNG(getSeed(inseed));
+    }
 }

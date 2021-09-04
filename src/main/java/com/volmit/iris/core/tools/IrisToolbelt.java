@@ -90,6 +90,10 @@ public class IrisToolbelt {
         return world.getGenerator() instanceof PlatformChunkGenerator;
     }
 
+    public static boolean isIrisStudioWorld(World world) {
+        return isIrisWorld(world) && access(world).isStudio();
+    }
+
     /**
      * Get the Iris generator for the given world
      *

@@ -24,6 +24,7 @@ import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDepositGenerator;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.HeightMap;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
@@ -120,20 +121,9 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
                     continue;
                 }
 
-                boolean allow = false;
-
-                BlockData b = data.get(nx, ny, nz);
-                if (b != null) {
-                    for (BlockData f : getDimension().getRockPalette().getBlockData(getData())) {
-                        if (f.getMaterial().equals(b.getMaterial())) {
-                            allow = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (allow) {
-                    data.set(nx, ny, nz, clump.getBlocks().get(j));
+                if(!getEngine().getMantle().isCarved((cx << 4) + nx, ny, (cz << 4) + nz))
+                {
+                    data.set(nx, ny, nz, B.toDeepSlateOre(data.get(nx, ny, nz), clump.getBlocks().get(j)));
                 }
             }
         }

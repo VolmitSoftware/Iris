@@ -22,9 +22,8 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.scheduling.ChronoLatch;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
-import it.unimi.dsi.fastutil.ints.IntSets;
+import it.unimi.dsi.fastutil.ints.*;
+import net.minecraft.world.level.levelgen.OreVeinifier;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -43,6 +42,9 @@ public class B {
     private static final Material AIR_MATERIAL = Material.AIR;
     private static final BlockData AIR = AIR_MATERIAL.createBlockData();
     private static final IntSet foliageCache = buildFoliageCache();
+    private static final IntSet deepslateCache = buildDeepslateCache();
+    private static final Int2IntMap normal2DeepslateCache = buildNormal2DeepslateCache();
+    private static final Int2IntMap deepslate2NormalCache = buildNormal2DeepslateCache();
     private static final IntSet decorantCache = buildDecorantCache();
     private static final IntSet storageCache = buildStorageCache();
     private static final IntSet storageChestCache = buildStorageChestCache();
@@ -82,6 +84,54 @@ public class B {
         }).forEach((i) -> b.add(i.ordinal()));
 
         return IntSets.unmodifiable(b);
+    }
+
+    private static IntSet buildDeepslateCache() {
+        IntSet b = new IntOpenHashSet();
+        Arrays.stream(new Material[]{
+                DEEPSLATE,
+                DEEPSLATE_BRICKS,
+                DEEPSLATE_BRICK_SLAB,
+                DEEPSLATE_BRICK_STAIRS,
+                DEEPSLATE_BRICK_WALL,
+                DEEPSLATE_TILE_SLAB,
+                DEEPSLATE_TILES,
+                DEEPSLATE_TILE_STAIRS,
+                DEEPSLATE_TILE_WALL,
+                CRACKED_DEEPSLATE_TILES
+        }).forEach((i) -> b.add(i.ordinal()));
+
+        return IntSets.unmodifiable(b);
+    }
+
+    private static Int2IntMap buildNormal2DeepslateCache() {
+        Int2IntMap b = new Int2IntOpenHashMap();
+
+        b.put(COAL_ORE.ordinal(), DEEPSLATE_COAL_ORE.ordinal());
+        b.put(EMERALD_ORE.ordinal(), DEEPSLATE_EMERALD_ORE.ordinal());
+        b.put(DIAMOND_ORE.ordinal(), DEEPSLATE_DIAMOND_ORE.ordinal());
+        b.put(COPPER_ORE.ordinal(), DEEPSLATE_COPPER_ORE.ordinal());
+        b.put(GOLD_ORE.ordinal(), DEEPSLATE_GOLD_ORE.ordinal());
+        b.put(IRON_ORE.ordinal(), DEEPSLATE_IRON_ORE.ordinal());
+        b.put(LAPIS_ORE.ordinal(), DEEPSLATE_LAPIS_ORE.ordinal());
+        b.put(REDSTONE_ORE.ordinal(), DEEPSLATE_REDSTONE_ORE.ordinal());
+
+        return b;
+    }
+
+    private static Int2IntMap buildDeepslate2NormalCache() {
+        Int2IntMap b = new Int2IntOpenHashMap();
+
+        b.put(DEEPSLATE_COAL_ORE.ordinal(), COAL_ORE.ordinal());
+        b.put(DEEPSLATE_EMERALD_ORE.ordinal(), EMERALD_ORE.ordinal());
+        b.put(DEEPSLATE_DIAMOND_ORE.ordinal(), DIAMOND_ORE.ordinal());
+        b.put(DEEPSLATE_COPPER_ORE.ordinal(), COPPER_ORE.ordinal());
+        b.put(DEEPSLATE_GOLD_ORE.ordinal(), GOLD_ORE.ordinal());
+        b.put(DEEPSLATE_IRON_ORE.ordinal(), IRON_ORE.ordinal());
+        b.put(DEEPSLATE_LAPIS_ORE.ordinal(), LAPIS_ORE.ordinal());
+        b.put(DEEPSLATE_REDSTONE_ORE.ordinal(), REDSTONE_ORE.ordinal());
+
+        return b;
     }
 
     private static IntSet buildDecorantCache() {
@@ -214,6 +264,32 @@ public class B {
         }).forEach((i) -> b.add(i.ordinal()));
 
         return IntSets.unmodifiable(b);
+    }
+
+    public static BlockData toDeepSlateOre(BlockData block, BlockData ore) {
+        int key = ore.getMaterial().ordinal();
+
+        if(isDeepSlate(block))
+        {
+            if(normal2DeepslateCache.containsKey(key))
+            {
+                return Material.values()[normal2DeepslateCache.get(key)].createBlockData();
+            }
+        }
+
+        else
+        {
+            if(deepslate2NormalCache.containsKey(key))
+            {
+                return Material.values()[deepslate2NormalCache.get(key)].createBlockData();
+            }
+        }
+
+        return ore;
+    }
+
+    public static boolean isDeepSlate(BlockData blockData) {
+        return deepslateCache.contains(blockData.getMaterial().ordinal());
     }
 
     public static boolean isOre(BlockData blockData) {

@@ -42,7 +42,6 @@ import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.util.ChatPaginator;
 
 import java.time.Duration;
 import java.util.Set;
@@ -251,8 +250,7 @@ public class VolmitSender implements CommandSender {
     }
 
     private Component createNoPrefixComponent(String message) {
-        if(!IrisSettings.get().getGeneral().canUseCustomColors(this))
-        {
+        if (!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
             String t = C.translateAlternateColorCodes('&', MiniMessage.get().stripTokens(message));
             return MiniMessage.get().parse(t);
         }
@@ -267,8 +265,7 @@ public class VolmitSender implements CommandSender {
     }
 
     private Component createComponent(String message) {
-        if(!IrisSettings.get().getGeneral().canUseCustomColors(this))
-        {
+        if (!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
             String t = C.translateAlternateColorCodes('&', MiniMessage.get().stripTokens(getTag() + message));
             return MiniMessage.get().parse(t);
         }
@@ -279,8 +276,7 @@ public class VolmitSender implements CommandSender {
     }
 
     private Component createComponentRaw(String message) {
-        if(!IrisSettings.get().getGeneral().canUseCustomColors(this))
-        {
+        if (!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
             String t = C.translateAlternateColorCodes('&', MiniMessage.get().stripTokens(getTag() + message));
             return MiniMessage.get().parse(t);
         }
@@ -315,8 +311,7 @@ public class VolmitSender implements CommandSender {
 
     @Override
     public void sendMessage(String message) {
-        if(s instanceof CommandDummy)
-        {
+        if (s instanceof CommandDummy) {
             return;
         }
 
@@ -341,8 +336,7 @@ public class VolmitSender implements CommandSender {
     }
 
     public void sendMessageRaw(String message) {
-        if(s instanceof CommandDummy)
-        {
+        if (s instanceof CommandDummy) {
             return;
         }
 
@@ -445,15 +439,13 @@ public class VolmitSender implements CommandSender {
     }
 
 
-    public static <T> KList<T> paginate(KList<T> all, int linesPerPage, int page, AtomicBoolean hasNext)
-    {
-        int totalPages = (int) Math.ceil((double)all.size() / linesPerPage);
+    public static <T> KList<T> paginate(KList<T> all, int linesPerPage, int page, AtomicBoolean hasNext) {
+        int totalPages = (int) Math.ceil((double) all.size() / linesPerPage);
         page = page < 0 ? 0 : page >= totalPages ? totalPages - 1 : page;
-        hasNext.set(page < totalPages-1);
+        hasNext.set(page < totalPages - 1);
         KList<T> d = new KList<>();
 
-        for(int i = linesPerPage * page; i < Math.min(all.size(), linesPerPage * (page + 1)); i++)
-        {
+        for (int i = linesPerPage * page; i < Math.min(all.size(), linesPerPage * (page + 1)); i++) {
             d.add(all.get(i));
         }
 
@@ -461,8 +453,7 @@ public class VolmitSender implements CommandSender {
     }
 
     public void sendDecreeHelp(VirtualDecreeCommand v, int page) {
-        if(!isPlayer())
-        {
+        if (!isPlayer()) {
             for (VirtualDecreeCommand i : v.getNodes()) {
                 sendDecreeHelpNode(i);
             }
@@ -475,7 +466,7 @@ public class VolmitSender implements CommandSender {
         sendMessageRaw("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
 
         if (v.getNodes().isNotEmpty()) {
-            sendHeader(v.getPath() + (page > 0 ? (" {" + (page+1) + "}") : ""));
+            sendHeader(v.getPath() + (page > 0 ? (" {" + (page + 1) + "}") : ""));
             if (isPlayer() && v.getParent() != null) {
                 sendMessageRaw("<hover:show_text:'" + "<#b54b38>Click to go back to <#3299bf>" + Form.capitalize(v.getParent().getName()) + " Help" + "'><click:run_command:" + v.getParent().getPath() + "><font:minecraft:uniform><#f58571>〈 Back</click></hover>");
             }
@@ -488,16 +479,14 @@ public class VolmitSender implements CommandSender {
             String s = "";
             int l = 75 - (page > 0 ? 10 : 0) - (next.get() ? 10 : 0);
 
-            if(page > 0)
-            {
+            if (page > 0) {
                 s += "<hover:show_text:'<green>Click to go back to page " + page + "'><click:run_command:" + v.getPath() + " help=" + page + "><gradient:#27b84d:#2770b8>〈 Page " + page + "</click></hover><reset> ";
             }
 
             s += "<reset><font:minecraft:uniform><strikethrough><gradient:#32bfad:#34eb6b>" + Form.repeat(" ", l) + "<reset>";
 
-            if(next.get())
-            {
-                s += " <hover:show_text:'<green>Click to go to back to page " + (page+2) + "'><click:run_command:" + v.getPath() + " help=" + (page+2) + "><gradient:#2770b8:#27b84d>Page " + (page+2) + " ❭</click></hover>";
+            if (next.get()) {
+                s += " <hover:show_text:'<green>Click to go to back to page " + (page + 2) + "'><click:run_command:" + v.getPath() + " help=" + (page + 2) + "><gradient:#2770b8:#27b84d>Page " + (page + 2) + " ❭</click></hover>";
             }
 
             sendMessageRaw(s);
@@ -512,8 +501,7 @@ public class VolmitSender implements CommandSender {
     public void sendDecreeHelpNode(VirtualDecreeCommand i) {
         if (isPlayer() || s instanceof CommandDummy) {
             sendMessageRaw(helpCache.compute(i.getPath(), (k, v) -> {
-                if(v != null)
-                {
+                if (v != null) {
                     return v;
                 }
 

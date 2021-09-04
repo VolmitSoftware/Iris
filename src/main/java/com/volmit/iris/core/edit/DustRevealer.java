@@ -32,8 +32,6 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 @SuppressWarnings("ALL")
 @Data
 public class DustRevealer {
@@ -70,13 +68,11 @@ public class DustRevealer {
 
         J.s(() -> {
             new BlockSignal(world.getBlockAt(block.getX(), block.getY(), block.getZ()), 7);
-            if(M.r(0.25))
-            {
+            if (M.r(0.25)) {
                 world.playSound(block.toBlock(world).getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, RNG.r.f(0.2f, 2f));
             }
             J.a(() -> {
-                while(BlockSignal.active.get() > 128)
-                {
+                while (BlockSignal.active.get() > 128) {
                     J.sleep(5);
                 }
 
@@ -112,7 +108,7 @@ public class DustRevealer {
                     e.printStackTrace();
                 }
             });
-        }, RNG.r.i(2,8));
+        }, RNG.r.i(2, 8));
     }
 
     private boolean is(BlockPosition a) {

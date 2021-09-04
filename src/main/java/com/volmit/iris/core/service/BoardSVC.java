@@ -23,48 +23,41 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisFeaturePositional;
+import com.volmit.iris.util.board.BoardManager;
 import com.volmit.iris.util.board.BoardProvider;
 import com.volmit.iris.util.board.BoardSettings;
 import com.volmit.iris.util.board.ScoreDirection;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.plugin.IrisService;
-import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
-import org.bukkit.Bukkit;
-import org.bukkit.World;
-import org.bukkit.boss.BarColor;
-import org.bukkit.boss.BarStyle;
-import org.bukkit.boss.BossBar;
+import lombok.Data;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 
 import java.util.List;
 
 public class BoardSVC implements IrisService, BoardProvider {
-    private BossBar energyBar;
     private com.volmit.iris.util.board.BoardManager manager;
-    private String mem = "...";
-    public final RollingSequence tp = new RollingSequence(100);
-    private final ChronoLatch cl = new ChronoLatch(1000);
-    private final ChronoLatch ecl = new ChronoLatch(50);
+    private final KMap<Player, PlayerBoard> boards = new KMap<>();
 
     @Override
     public void onEnable() {
-        manager = new com.volmit.iris.util.board.BoardManager(Iris.instance, BoardSettings.builder()
+        J.ar(this::tick, 20);
+        manager = new BoardManager(Iris.instance, BoardSettings.builder()
                 .boardProvider(this)
                 .scoreDirection(ScoreDirection.DOWN)
                 .build());
-        energyBar = Bukkit.createBossBar("Spawner Energy " + 0, BarColor.BLUE, BarStyle.SOLID);
     }
 
     @Override
     public void onDisable() {
         manager.onDisable();
-        energyBar.removeAll();
+        boards.clear();
     }
 
     @EventHandler
@@ -72,19 +65,18 @@ public class BoardSVC implements IrisService, BoardProvider {
         J.s(() -> updatePlayer(e.getPlayer()));
     }
 
-    private boolean isIrisWorld(World w) {
-        return IrisToolbelt.isIrisWorld(w) && IrisToolbelt.access(w).isStudio();
+    @EventHandler
+    public void on(PlayerJoinEvent e) {
+        J.s(() -> updatePlayer(e.getPlayer()));
     }
 
     public void updatePlayer(Player p) {
-        if (isIrisWorld(p.getWorld())) {
+        if (IrisToolbelt.isIrisStudioWorld(p.getWorld())) {
             manager.remove(p);
             manager.setup(p);
-            energyBar.removePlayer(p);
-            energyBar.addPlayer(p);
         } else {
             manager.remove(p);
-            energyBar.removePlayer(p);
+            boards.remove(p);
         }
     }
 
@@ -93,73 +85,57 @@ public class BoardSVC implements IrisService, BoardProvider {
         return C.GREEN + "Iris";
     }
 
+    public void tick() {
+        boards.forEach((k, v) -> v.update());
+    }
 
     @Override
     public List<String> getLines(Player player) {
-        KList<String> v = new KList<>();
+        PlayerBoard pb = boards.computeIfAbsent(player, PlayerBoard::new);
+        synchronized (pb.lines) {
+            return pb.lines;
+        }
+    }
 
-        if (!isIrisWorld(player.getWorld())) {
-            return v;
+    @Data
+    public static class PlayerBoard {
+        private final Player player;
+        private final KList<String> lines;
+
+        public PlayerBoard(Player player) {
+            this.player = player;
+            this.lines = new KList<>();
+            update();
         }
 
-        Engine engine = IrisToolbelt.access(player.getWorld()).getEngine();
+        public void update() {
+            synchronized (lines) {
+                lines.clear();
 
-        if (cl.flip()) {
-            mem = Form.memSize(0, 2);
+                if (!IrisToolbelt.isIrisStudioWorld(player.getWorld())) {
+                    return;
+                }
+
+                Engine engine = IrisToolbelt.access(player.getWorld()).getEngine();
+                int x = player.getLocation().getBlockX();
+                int y = player.getLocation().getBlockY();
+                int z = player.getLocation().getBlockZ();
+                KList<IrisFeaturePositional> f = new KList<>();
+                f.add(engine.getMantle().forEachFeature(x, z));
+
+                lines.add("&7&m                   ");
+                lines.add(C.GREEN + "Speed" + C.GRAY + ":  " + Form.f(engine.getGeneratedPerSecond(), 0) + "/s " + Form.duration(1000D / engine.getGeneratedPerSecond(), 0));
+                lines.add(C.AQUA + "Cache" + C.GRAY + ": " + Form.f(IrisData.cacheSize()));
+                lines.add(C.AQUA + "Mantle" + C.GRAY + ": " + engine.getMantle().getLoadedRegionCount());
+                lines.add("&7&m                   ");
+                lines.add(C.AQUA + "Region" + C.GRAY + ": " + engine.getRegion(x, z).getName());
+                lines.add(C.AQUA + "Biome" + C.GRAY + ":  " + engine.getBiomeOrMantle(x, y, z).getName());
+                lines.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z)));
+                lines.add(C.AQUA + "Slope" + C.GRAY + ":  " + Form.f(engine.getComplex().getSlopeStream().get(x, z), 2));
+                lines.add(C.AQUA + "Features" + C.GRAY + ": " + Form.f(f.size()));
+                lines.add(C.AQUA + "BUD/s" + C.GRAY + ": " + Form.f(engine.getBlockUpdatesPerSecond()));
+                lines.add("&7&m                   ");
+            }
         }
-
-        int x = player.getLocation().getBlockX();
-        int y = player.getLocation().getBlockY();
-        int z = player.getLocation().getBlockZ();
-
-        if (ecl.flip()) {
-            energyBar.setProgress(Math.min(1000D, engine.getWorldManager().getEnergy()) / 1000D);
-            energyBar.setTitle("Spawner Energy: " + Form.f((int) Math.min(1000D, engine.getWorldManager().getEnergy())));
-        }
-
-        int parallaxChunks = 0;
-        int parallaxRegions = 0;
-        long memoryGuess = 0;
-        int loadedObjects = 0;
-
-        loadedObjects += engine.getData().getObjectLoader().getSize();
-        memoryGuess += engine.getData().getObjectLoader().getTotalStorage() * 225L;
-        memoryGuess += parallaxChunks * 3500L;
-        memoryGuess += parallaxRegions * 1700000L;
-
-        tp.put(engine.getGeneratedPerSecond());
-
-
-        v.add("&7&m------------------");
-        v.add(C.GREEN + "Speed" + C.GRAY + ":  " + Form.f(tp.getAverage(), 0) + "/s " + Form.duration(1000D / engine.getGeneratedPerSecond(), 0));
-        v.add(C.GREEN + "Memory Use" + C.GRAY + ":  ~" + Form.memSize(memoryGuess, 0));
-
-        if (engine != null) {
-            v.add("&7&m------------------");
-            KList<IrisFeaturePositional> f = new KList<>();
-            f.add(engine.getMantle().forEachFeature(x, z));
-            v.add(C.AQUA + "Region" + C.GRAY + ": " + engine.getRegion(x, z).getName());
-            v.add(C.AQUA + "Biome" + C.GRAY + ":  " + engine.getBiome(x, y, z).getName());
-            v.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z)));
-            v.add(C.AQUA + "Slope" + C.GRAY + ":  " + Form.f(engine.getComplex().getSlopeStream().get(x, z), 2));
-            v.add(C.AQUA + "Features" + C.GRAY + ": " + Form.f(f.size()));
-            v.add(C.AQUA + "Cache" + C.GRAY + ": " + Form.f(IrisData.cacheSize()));
-            v.add(C.AQUA + "Sat" + C.GRAY + ": " + Form.f(engine.getWorldManager().getEntityCount()) + "e / " + Form.f(engine.getWorldManager().getChunkCount()) + "c (" + Form.pc(engine.getWorldManager().getEntitySaturation(), 0) + ")");
-        }
-
-        if (Iris.jobCount() > 0) {
-            v.add("&7&m------------------");
-            v.add(C.LIGHT_PURPLE + "Tasks" + C.GRAY + ": " + Form.f(Iris.jobCount()));
-        }
-
-        if(engine.getBlockUpdatesPerSecond() > 0)
-        {
-            v.add("&7&m------------------");
-            v.add(C.LIGHT_PURPLE + "BUD/s" + C.GRAY + ": " + Form.f(engine.getBlockUpdatesPerSecond()));
-        }
-
-        v.add("&7&m------------------");
-
-        return v;
     }
 }

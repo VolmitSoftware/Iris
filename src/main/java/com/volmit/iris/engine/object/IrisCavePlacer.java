@@ -62,6 +62,7 @@ public class IrisCavePlacer implements IRare {
     public IrisCave getRealCave(IrisData data) {
         return caveCache.aquire(() -> data.getCaveLoader().load(getCave()));
     }
+
     public void generateCave(MantleWriter mantle, RNG rng, Engine engine, int x, int y, int z) {
         generateCave(mantle, rng, engine, x, y, z, -1);
     }
@@ -101,8 +102,7 @@ public class IrisCavePlacer implements IRare {
     public int getSize(IrisData data) {
         IrisCave cave = getRealCave(data);
 
-        if(cave != null)
-        {
+        if (cave != null) {
             return cave.getMaxSize(data);
         }
 

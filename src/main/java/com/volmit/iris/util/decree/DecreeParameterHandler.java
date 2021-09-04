@@ -69,7 +69,7 @@ public interface DecreeParameterHandler<T> {
     /**
      * Should parse a String into the designated type. You can force it to not throw a whichexception
      *
-     * @param in The string to parse
+     * @param in    The string to parse
      * @param force force an option instead of throwing decreewhich
      * @return The value extracted from the string, of the designated type
      * @throws DecreeParsingException Thrown when the parsing fails (ex: "oop" translated to an integer throws this)

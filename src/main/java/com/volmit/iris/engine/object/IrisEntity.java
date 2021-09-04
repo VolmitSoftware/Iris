@@ -166,8 +166,7 @@ public class IrisEntity extends IrisRegistrant {
     }
 
     public Entity spawn(Engine gen, Location at, RNG rng) {
-        if(!Chunks.isSafe(at))
-        {
+        if (!Chunks.isSafe(at)) {
             return null;
         }
 
@@ -180,8 +179,7 @@ public class IrisEntity extends IrisRegistrant {
 
         Entity ee = doSpawn(at);
 
-        if(ee == null && !Chunks.isSafe(at))
-        {
+        if (ee == null && !Chunks.isSafe(at)) {
             return null;
         }
 
@@ -345,8 +343,7 @@ public class IrisEntity extends IrisRegistrant {
                 AtomicInteger t = new AtomicInteger(0);
                 AtomicInteger v = new AtomicInteger(0);
                 v.set(J.sr(() -> {
-                    if(t.get() > 100)
-                    {
+                    if (t.get() > 100) {
                         J.csr(v.get());
                         return;
                     }
@@ -389,8 +386,7 @@ public class IrisEntity extends IrisRegistrant {
     }
 
     private Entity doSpawn(Location at) {
-        if(!Chunks.isSafe(at))
-        {
+        if (!Chunks.isSafe(at)) {
             return null;
         }
 

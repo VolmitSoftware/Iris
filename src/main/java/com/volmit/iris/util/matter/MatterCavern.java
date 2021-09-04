@@ -26,5 +26,20 @@ import lombok.Data;
 public class MatterCavern {
     private final boolean cavern;
     private final String customBiome;
-    private final boolean water;
+    private final byte liquid; // 0 none 1 water 2 lava
+
+    public boolean isAir()
+    {
+        return liquid == 0;
+    }
+
+    public boolean isWater()
+    {
+        return liquid == 1;
+    }
+
+    public boolean isLava()
+    {
+        return liquid == 2;
+    }
 }

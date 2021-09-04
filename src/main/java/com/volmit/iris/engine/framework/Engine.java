@@ -26,18 +26,7 @@ import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.mantle.EngineMantle;
-import com.volmit.iris.engine.object.IrisColor;
-import com.volmit.iris.engine.object.IrisPosition;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisWorld;
-import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisEngineData;
-import com.volmit.iris.engine.object.IrisLootMode;
-import com.volmit.iris.engine.object.IrisLootReference;
-import com.volmit.iris.engine.object.IrisLootTable;
-import com.volmit.iris.engine.object.InventorySlotType;
-import com.volmit.iris.engine.object.IrisObjectPlacement;
-import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -193,6 +182,21 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     @BlockCoordinates
     default IrisRegion getRegion(int x, int z) {
         return getComplex().getRegionStream().get(x, z);
+    }
+
+    @BlockCoordinates
+    default IrisBiome getCaveOrMantleBiome(int x, int y, int z) {
+        MatterCavern m = getMantle().getMantle().get(x, y, z, MatterCavern.class);
+
+        if (m != null && m.getCustomBiome() != null && !m.getCustomBiome().isEmpty()) {
+            IrisBiome biome = getData().getBiomeLoader().load(m.getCustomBiome());
+
+            if (biome != null) {
+                return biome;
+            }
+        }
+
+        return getCaveBiome(x, z);
     }
 
     @BlockCoordinates
@@ -672,6 +676,14 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return getSurfaceBiome(x, z);
     }
 
+    default IrisBiome getBiomeOrMantle(int x, int y, int z) {
+        if (y <= getHeight(x, z) - 2) {
+            return getCaveOrMantleBiome(x, y, z);
+        }
+
+        return getSurfaceBiome(x, z);
+    }
+
     default String getObjectPlacementKey(int x, int y, int z) {
         PlacedObject o = getObjectPlacement(x, y, z);
 
@@ -712,4 +724,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     int getCacheID();
+
+    default IrisBiome getBiomeOrMantle(Location l) {
+        return getBiomeOrMantle(l.getBlockX(), l.getBlockY(), l.getBlockZ());
+    }
 }

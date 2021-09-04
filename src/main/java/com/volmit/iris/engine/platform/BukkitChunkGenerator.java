@@ -26,8 +26,8 @@ import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.framework.WrongEngineBroException;
-import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.object.StudioMode;
 import com.volmit.iris.engine.platform.studio.StudioGenerator;
 import com.volmit.iris.util.collection.KList;
@@ -93,7 +93,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         this.dimensionKey = dimensionKey;
         this.folder = new ReactiveFolder(dataLocation, (_a, _b, _c) -> hotload());
         setupEngine();
-        this.hotloader = new Looper() {
+        this.hotloader = studio ? new Looper() {
             @Override
             protected long loop() {
                 if (hotloadChecker.flip()) {
@@ -102,10 +102,14 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
                 return 250;
             }
-        };
-        hotloader.setPriority(Thread.MIN_PRIORITY);
-        hotloader.start();
-        hotloader.setName(getTarget().getWorld().name() + " Hotloader");
+        } : null;
+
+        if(studio)
+        {
+            hotloader.setPriority(Thread.MIN_PRIORITY);
+            hotloader.start();
+            hotloader.setName(getTarget().getWorld().name() + " Hotloader");
+        }
     }
 
     private void setupEngine() {
@@ -117,7 +121,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             IrisDimension test = IrisData.loadAnyDimension(dimensionKey);
 
             if (test != null) {
-                Iris.warn("Looks like " + dimensionKey + " exists in " + test.getLoadFile().getPath());
+                Iris.warn("Looks like " + dimensionKey + " exists in " + test.getLoadFile().getPath() + " ");
                 Iris.service(StudioSVC.class).installIntoWorld(Iris.getSender(), dimensionKey, dataLocation.getParentFile().getParentFile());
                 Iris.warn("Attempted to install into " + data.getDataFolder().getPath());
                 data.dump();
@@ -232,7 +236,11 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @Override
     public void close() {
         withExclusiveControl(() -> {
-            hotloader.interrupt();
+            if(isStudio())
+            {
+                hotloader.interrupt();
+            }
+
             getEngine().close();
         });
     }
@@ -244,6 +252,11 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void hotload() {
+        if(!isStudio())
+        {
+            return;
+        }
+
         withExclusiveControl(() -> getEngine().hotload());
     }
 

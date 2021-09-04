@@ -25,16 +25,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.loader.ResourceLoader;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBlockData;
-import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisEntity;
-import com.volmit.iris.engine.object.IrisLootTable;
-import com.volmit.iris.engine.object.IrisGenerator;
-import com.volmit.iris.engine.object.IrisObject;
-import com.volmit.iris.engine.object.IrisObjectPlacement;
-import com.volmit.iris.engine.object.IrisRegion;
-import com.volmit.iris.engine.object.IrisSpawner;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
@@ -276,10 +267,8 @@ public class IrisProject {
             }
         }
 
-        for(Class<?> i : Iris.getClasses("com.volmit.iris.engine.object.", Snippet.class))
-        {
-            try
-            {
+        for (Class<?> i : Iris.getClasses("com.volmit.iris.engine.object.", Snippet.class)) {
+            try {
                 String snipType = i.getDeclaredAnnotation(Snippet.class).value();
                 JSONObject o = new JSONObject();
                 KList<String> fm = new KList<>();
@@ -293,20 +282,13 @@ public class IrisProject {
                 schemas.put(o);
                 File a = new File(dm.getDataFolder(), ".iris/schema/snippet/" + snipType + "-schema.json");
                 J.attemptAsync(() -> {
-                    try
-                    {
+                    try {
                         IO.writeAll(a, new SchemaBuilder(i, dm).compute().toString(4));
-                    }
-
-                    catch(Throwable e)
-                    {
+                    } catch (Throwable e) {
                         e.printStackTrace();
                     }
                 });
-            }
-
-            catch(Throwable e)
-            {
+            } catch (Throwable e) {
                 e.printStackTrace();
             }
         }

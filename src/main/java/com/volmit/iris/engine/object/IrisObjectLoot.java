@@ -21,8 +21,6 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
-import com.volmit.iris.engine.object.IrisBlockData;
-import com.volmit.iris.engine.object.IrisLootTable;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;

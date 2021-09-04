@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.framework.Engine;
@@ -65,7 +66,6 @@ public class IrisCave extends IrisRegistrant {
         return "Cave";
     }
 
-
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
         generate(writer, rng, engine, x, y, z, -1);
     }
@@ -73,42 +73,34 @@ public class IrisCave extends IrisRegistrant {
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int waterHint) {
 
         double girth = getWorm().getGirth().get(rng, x, z, engine.getData());
-        KList<IrisPosition> points = getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z,
-                (at) -> {});
+        KList<IrisPosition> points = getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z, (at) -> {});
         int highestWater = Math.max(waterHint, -1);
-        boolean water = false;
 
-        if(highestWater == -1)
-        {
-            for(IrisPosition i : points)
-            {
+        if (highestWater == -1) {
+            for (IrisPosition i : points) {
                 double yy = i.getY() + girth;
                 int th = engine.getHeight(x, z, true);
 
-                if(yy > th && th < engine.getDimension().getFluidHeight())
-                {
-                    highestWater = Math.max(highestWater, (int)yy);
-                    water = true;
+                if (yy > th && th < engine.getDimension().getFluidHeight()) {
+                    highestWater = Math.max(highestWater, (int) yy);
                     break;
                 }
             }
         }
 
-        else
-        {
-            water = true;
-        }
 
-        int h =  Math.min(Math.max(highestWater, waterHint), engine.getDimension().getFluidHeight());
+        int h = Math.min(Math.max(highestWater, waterHint), engine.getDimension().getFluidHeight());
 
-        for(IrisPosition i : points)
-        {
+        for (IrisPosition i : points) {
             fork.doCarving(writer, rng, engine, i.getX(), i.getY(), i.getZ(), h);
         }
 
+        MatterCavern c = new MatterCavern(true, customBiome, (byte) 0);
+        MatterCavern w = new MatterCavern(true, customBiome, (byte) 1);
+
         writer.setLineConsumer(points,
-            girth, true,
-                (xf, yf, zf) -> new MatterCavern(true, customBiome, yf <= h));
+                girth, true,
+                (xf, yf, zf) -> yf <= h ? w : c);
     }
 
     @Override

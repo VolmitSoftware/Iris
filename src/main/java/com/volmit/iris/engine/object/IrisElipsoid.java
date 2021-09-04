@@ -55,7 +55,7 @@ public class IrisElipsoid implements IRare {
         writer.setElipsoid(x, y, z,
                 xRadius.get(rng, z, y, engine.getData()),
                 yRadius.get(rng, x, z, engine.getData()),
-                zRadius.get(rng, y, x, engine.getData()), true, matterNodeCache.aquire(() -> CavernMatter.get(getCustomBiome(), false)));
+                zRadius.get(rng, y, x, engine.getData()), true, matterNodeCache.aquire(() -> CavernMatter.get(getCustomBiome(), 0)));
     }
 
     public double maxSize() {

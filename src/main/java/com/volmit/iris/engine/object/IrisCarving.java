@@ -111,6 +111,10 @@ public class IrisCarving {
             max = Math.max(max, i.getSize(data));
         }
 
+        for (IrisRavinePlacer i : ravines) {
+            max = Math.max(max, i.getSize(data));
+        }
+
         if (elipsoids.isNotEmpty()) {
             max = (int) Math.max(elipsoids.stream().mapToDouble(IrisElipsoid::maxSize).max().getAsDouble(), max);
         }

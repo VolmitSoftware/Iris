@@ -23,10 +23,7 @@ import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.MantleComponent;
-import com.volmit.iris.engine.mantle.components.MantleCarvingComponent;
-import com.volmit.iris.engine.mantle.components.MantleFeatureComponent;
-import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
-import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
+import com.volmit.iris.engine.mantle.components.*;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -56,6 +53,7 @@ public class IrisEngineMantle implements EngineMantle {
         radius = radCache.aquire(this::computeParallaxSize);
         components = new KList<>();
         registerComponent(new MantleCarvingComponent(this));
+        registerComponent(new MantleFluidBodyComponent(this));
         registerComponent(new MantleFeatureComponent(this));
         registerComponent(new MantleJigsawComponent(this));
         registerComponent(new MantleObjectComponent(this));
@@ -288,7 +286,7 @@ public class IrisEngineMantle implements EngineMantle {
         x = Math.max(z, x);
         int u = x;
         int v = computeFeatureRange();
-        int c = computeCarvingRange();
+        int c = Math.max(computeCarvingRange(), computeBodyRange());
         x = Math.max(jig, x);
         x = Math.max(x, v);
         x = Math.max(x, c);
@@ -301,6 +299,22 @@ public class IrisEngineMantle implements EngineMantle {
         Iris.info("  Carving Mantle Size: " + c + " (" + ((Math.max(c, 16) + 16) >> 4) + ")");
 
         return x;
+    }
+
+    private int computeBodyRange() {
+        int m = 0;
+
+        m = Math.max(m, getDimension().getFluidBodies().getMaxRange(getData()));
+
+        for (IrisRegion i : getDimension().getAllRegions(getEngine())) {
+            m = Math.max(m, i.getFluidBodies().getMaxRange(getData()));
+        }
+
+        for (IrisBiome i : getDimension().getAllBiomes(getEngine())) {
+            m = Math.max(m, i.getFluidBodies().getMaxRange(getData()));
+        }
+
+        return m;
     }
 
     private int computeCarvingRange() {

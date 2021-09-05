@@ -23,7 +23,6 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import it.unimi.dsi.fastutil.ints.*;
-import net.minecraft.world.level.levelgen.OreVeinifier;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -269,18 +268,12 @@ public class B {
     public static BlockData toDeepSlateOre(BlockData block, BlockData ore) {
         int key = ore.getMaterial().ordinal();
 
-        if(isDeepSlate(block))
-        {
-            if(normal2DeepslateCache.containsKey(key))
-            {
+        if (isDeepSlate(block)) {
+            if (normal2DeepslateCache.containsKey(key)) {
                 return Material.values()[normal2DeepslateCache.get(key)].createBlockData();
             }
-        }
-
-        else
-        {
-            if(deepslate2NormalCache.containsKey(key))
-            {
+        } else {
+            if (deepslate2NormalCache.containsKey(key)) {
                 return Material.values()[deepslate2NormalCache.get(key)].createBlockData();
             }
         }

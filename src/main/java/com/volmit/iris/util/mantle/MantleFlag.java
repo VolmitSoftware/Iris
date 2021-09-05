@@ -27,7 +27,8 @@ public enum MantleFlag {
     FEATURE,
     INITIAL_SPAWNED,
     REAL,
-    CARVED;
+    CARVED,
+    FLUID_BODIES;
 
     static StateList getStateList() {
         return new StateList(MantleFlag.values());

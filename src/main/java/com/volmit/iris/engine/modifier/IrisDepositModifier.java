@@ -121,8 +121,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
                     continue;
                 }
 
-                if(!getEngine().getMantle().isCarved((cx << 4) + nx, ny, (cz << 4) + nz))
-                {
+                if (!getEngine().getMantle().isCarved((cx << 4) + nx, ny, (cz << 4) + nz)) {
                     data.set(nx, ny, nz, B.toDeepSlateOre(data.get(nx, ny, nz), clump.getBlocks().get(j)));
                 }
             }

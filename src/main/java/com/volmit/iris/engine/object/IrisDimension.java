@@ -165,6 +165,9 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Carving configuration for the dimension")
     private IrisCarving carving = new IrisCarving();
 
+    @Desc("Configuration of fluid bodies such as rivers & lakes")
+    private IrisFluidBodies fluidBodies = new IrisFluidBodies();
+
     @Desc("The world environment")
     private Environment environment = Environment.NORMAL;
 
@@ -284,7 +287,7 @@ public class IrisDimension extends IrisRegistrant {
             int jump = strongholdJumpDistance;
             RNG rng = new RNG((seed * 223) + 12945);
 
-            for (int i = 0; i < maxStrongholds+1; i++) {
+            for (int i = 0; i < maxStrongholds + 1; i++) {
                 int m = i + 1;
                 pos.add(new Position2(
                         (int) ((rng.i(jump * i) + (jump * i)) * (rng.b() ? -1D : 1D)),

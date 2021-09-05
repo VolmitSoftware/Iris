@@ -23,20 +23,8 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class MatterCavern {
-    private final boolean cavern;
+public class MatterFluidBody {
+    private final boolean body;
     private final String customBiome;
-    private final byte liquid; // 0 none 1 water 2 lava
-
-    public boolean isAir() {
-        return liquid == 0;
-    }
-
-    public boolean isWater() {
-        return liquid == 1;
-    }
-
-    public boolean isLava() {
-        return liquid == 2;
-    }
+    private final boolean lava;
 }

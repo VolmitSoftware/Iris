@@ -357,11 +357,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     public boolean shouldSkipClass(Class<?> c) {
         if (c.equals(AtomicCache.class)) {
             return true;
-        } else if (c.equals(ChronoLatch.class)) {
-            return true;
-        }
-
-        return false;
+        } else return c.equals(ChronoLatch.class);
     }
 
     @Override

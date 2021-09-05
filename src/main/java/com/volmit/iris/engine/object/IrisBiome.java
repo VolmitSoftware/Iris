@@ -103,6 +103,9 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Desc("Carving configuration for the dimension")
     private IrisCarving carving = new IrisCarving();
 
+    @Desc("Configuration of fluid bodies such as rivers & lakes")
+    private IrisFluidBodies fluidBodies = new IrisFluidBodies();
+
     @MinNumber(1)
     @MaxNumber(512)
     @Desc("The rarity of this biome (integer)")

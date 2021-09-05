@@ -483,6 +483,7 @@ public class VirtualDecreeCommand {
             vm++;
         }
 
+        DecreeContext.touch(sender);
         Runnable rx = () -> {
             try {
                 DecreeContext.touch(sender);

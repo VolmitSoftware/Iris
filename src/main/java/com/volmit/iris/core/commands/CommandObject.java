@@ -107,7 +107,7 @@ public class CommandObject implements DecreeExecutor {
         sender().playSound(Sound.AMBIENT_SOUL_SAND_VALLEY_ADDITIONS, 1f, 1.5f);
     }
 
-    @Decree(description = "Contract a selection based on your looking direction")
+    @Decree(description = "Contract a selection based on your looking direction", aliases = "-")
     public void contract(
             @Param(description = "The amount to inset by", defaultValue = "1")
                     int amount
@@ -345,7 +345,7 @@ public class CommandObject implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Successfully object to saved: " + dimension.getLoadKey() + "/objects/" + name);
     }
 
-    @Decree(description = "Shift a selection in your looking direction")
+    @Decree(description = "Shift a selection in your looking direction", aliases = "-")
     public void shift(
             @Param(description = "The amount to shift by", defaultValue = "1")
                     int amount
@@ -369,7 +369,7 @@ public class CommandObject implements DecreeExecutor {
         sender().playSound(Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 0.55f);
     }
 
-    @Decree(description = "Undo a number of pastes")
+    @Decree(description = "Undo a number of pastes", aliases = "-")
     public void undo(
             @Param(description = "The amount of pastes to undo", defaultValue = "1")
                     int amount

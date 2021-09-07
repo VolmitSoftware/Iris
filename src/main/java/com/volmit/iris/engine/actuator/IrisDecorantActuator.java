@@ -52,7 +52,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
     public IrisDecorantActuator(Engine engine) {
         super(engine, "Decorant");
         shouldRay = shouldRayDecorate();
-        this.rng = new RNG(engine.getTarget().getWorld().seed());
+        this.rng = new RNG(engine.getSeedManager().getDecorator());
         surfaceDecorator = new IrisSurfaceDecorator(getEngine());
         ceilingDecorator = new IrisCeilingDecorator(getEngine());
         seaSurfaceDecorator = new IrisSeaSurfaceDecorator(getEngine());

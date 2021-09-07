@@ -60,7 +60,7 @@ public class IrisCreator {
     /**
      * The seed to use for this generator
      */
-    private long seed = RNG.r.nextLong();
+    private long seed = 1337;
 
     /**
      * The dimension to use. This can be any online dimension, or a dimension in the

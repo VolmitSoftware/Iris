@@ -109,7 +109,7 @@ public class IrisEntitySpawn implements IRare {
             return null;
         }
 
-        if (rng.aquire(() -> new RNG(g.getTarget().getWorld().seed() + 4)).i(1, getRarity()) == 1) {
+        if (rng.aquire(() -> new RNG(g.getSeedManager().getEntity())).i(1, getRarity()) == 1) {
             return spawn100(g, at);
         }
 
@@ -123,7 +123,7 @@ public class IrisEntitySpawn implements IRare {
             if (!irisEntity.getSurface().matches(at.clone().subtract(0, 1, 0).getBlock()))
                 return null; //Make sure it can spawn on the block
 
-            Entity e = irisEntity.spawn(g, at.add(0.5, 0, 0.5), rng.aquire(() -> new RNG(g.getTarget().getWorld().seed() + 4)));
+            Entity e = irisEntity.spawn(g, at.add(0.5, 0, 0.5), rng.aquire(() -> new RNG(g.getSeedManager().getEntity())));
             if (e != null) {
                 Iris.debug("Spawned " + C.DARK_AQUA + "Entity<" + getEntity() + "> " + C.GREEN + e.getType() + C.LIGHT_PURPLE + " @ " + C.GRAY + e.getLocation().getX() + ", " + e.getLocation().getY() + ", " + e.getLocation().getZ());
             }

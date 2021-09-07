@@ -73,7 +73,7 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
     public void on(EntitySpawnEvent e) {
         if (e.getEntity().getWorld().equals(getTarget().getWorld().realWorld())) {
             if (e.getEntityType().equals(EntityType.ENDER_SIGNAL)) {
-                KList<Position2> p = getEngine().getDimension().getStrongholds(getEngine().getWorld().seed());
+                KList<Position2> p = getEngine().getDimension().getStrongholds(getEngine().getSeedManager().getSpawn());
                 Position2 px = new Position2(e.getEntity().getLocation().getBlockX(), e.getEntity().getLocation().getBlockZ());
                 Position2 pr = null;
                 double d = Double.MAX_VALUE;

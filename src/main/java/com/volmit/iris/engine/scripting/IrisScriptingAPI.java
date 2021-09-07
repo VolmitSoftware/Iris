@@ -53,7 +53,7 @@ public class IrisScriptingAPI {
     }
 
     public long getSeed() {
-        return getEngine().getTarget().getWorld().seed();
+        return getEngine().getSeedManager().getScript();
     }
 
     public double expression(String expressionName, double x, double y, double z) {

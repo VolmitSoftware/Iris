@@ -51,7 +51,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
 
     public IrisCarveModifier(Engine engine) {
         super(engine, "Carve");
-        rng = new RNG(getEngine().getWorld().seed() + 3297778).nextParallelRNG(67648777);
+        rng = new RNG(getEngine().getSeedManager().getCarve());
     }
 
     @Override

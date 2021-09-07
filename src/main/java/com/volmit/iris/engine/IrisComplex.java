@@ -21,6 +21,7 @@ package com.volmit.iris.engine;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
@@ -69,8 +70,6 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<Integer> trueHeightStreamNoFeatures;
     private ProceduralStream<Double> slopeStream;
     private ProceduralStream<Integer> topSurfaceStream;
-    private ProceduralStream<RNG> rngStream;
-    private ProceduralStream<RNG> chunkRngStream;
     private ProceduralStream<IrisDecorator> terrainSurfaceDecoration;
     private ProceduralStream<IrisDecorator> terrainCeilingDecoration;
     private ProceduralStream<IrisDecorator> terrainCaveSurfaceDecoration;
@@ -108,7 +107,7 @@ public class IrisComplex implements DataProvider {
         int cacheSize = 131072;
         IrisBiome emptyBiome = new IrisBiome();
         UUID focusUUID = UUID.nameUUIDFromBytes("focus".getBytes());
-        this.rng = new RNG(engine.getWorld().seed());
+        this.rng = new RNG(engine.getSeedManager().getComplex());
         this.data = engine.getData();
         double height = engine.getHeight();
         fluidHeight = engine.getDimension().getFluidHeight();
@@ -121,7 +120,6 @@ public class IrisComplex implements DataProvider {
         }
 
         IrisRegion focusRegion = focus != null ? findRegion(focus, engine) : null;
-        RNG rng = new RNG(engine.getWorld().seed());
         //@builder
         engine.getDimension().getRegions().forEach((i) -> data.getRegionLoader().load(i)
                 .getAllBiomes(this).forEach((b) -> b
@@ -129,9 +127,6 @@ public class IrisComplex implements DataProvider {
                         .forEach((c) -> registerGenerator(c.getCachedGenerator(this)))));
         overlayStream = ProceduralStream.ofDouble((x, z) -> 0D);
         engine.getDimension().getOverlayNoise().forEach((i) -> overlayStream.add((x, z) -> i.get(rng, getData(), x, z)));
-        rngStream = ProceduralStream.of((x, z) -> new RNG(((x.longValue()) << 32) | (z.longValue() & 0xffffffffL))
-                .nextParallelRNG(engine.getWorld().seed()), Interpolated.RNG);
-        chunkRngStream = rngStream.blockToChunkCoords();
         rockStream = engine.getDimension().getRockPalette().getLayerGenerator(rng.nextParallelRNG(45), data).stream()
                 .select(engine.getDimension().getRockPalette().getBlockData(data));
         fluidStream = engine.getDimension().getFluidPalette().getLayerGenerator(rng.nextParallelRNG(78), data).stream()
@@ -198,11 +193,11 @@ public class IrisComplex implements DataProvider {
                         .convertAware2D(this::implode).cache2D(cacheSize);
         heightStream = ProceduralStream.of((x, z) -> {
             IrisBiome b = focus != null ? focus : baseBiomeStream.get(x, z);
-            return getHeight(engine, b, x, z, engine.getWorld().seed(), true);
+            return getHeight(engine, b, x, z, engine.getSeedManager().getHeight(), true);
         }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D(cacheSize);
         heightStreamNoFeatures = ProceduralStream.of((x, z) -> {
             IrisBiome b = focus != null ? focus : baseBiomeStream.get(x, z);
-            return getHeight(engine, b, x, z, engine.getWorld().seed(), false);
+            return getHeight(engine, b, x, z, engine.getSeedManager().getHeight(), false);
         }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D(cacheSize);
         slopeStream = heightStream.slope(3).cache2D(cacheSize);
         objectChanceStream = ProceduralStream.ofDouble((x, z) -> {
@@ -332,7 +327,7 @@ public class IrisComplex implements DataProvider {
     }
 
     private IrisDecorator decorateFor(IrisBiome b, double x, double z, IrisDecorationPart part) {
-        RNG rngc = chunkRngStream.get(x, z);
+        RNG rngc = new RNG(Cache.key(((int)x), ((int)z)));
 
         for (IrisDecorator i : b.getDecorators()) {
             if (!i.getPartOf().equals(part)) {

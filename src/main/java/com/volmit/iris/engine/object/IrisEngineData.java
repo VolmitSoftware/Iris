@@ -28,6 +28,7 @@ public class IrisEngineData {
     private IrisEngineStatistics statistics = new IrisEngineStatistics();
     private KList<IrisEngineSpawnerCooldown> spawnerCooldowns = new KList<>();
     private KList<IrisEngineChunkData> chunks = new KList<>();
+    private Long seed = null;
 
     public void removeChunk(int x, int z) {
         long k = Cache.key(x, z);

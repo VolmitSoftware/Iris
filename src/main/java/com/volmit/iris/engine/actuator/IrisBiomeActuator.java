@@ -39,7 +39,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
 
     public IrisBiomeActuator(Engine engine) {
         super(engine, "Biome");
-        rng = new RNG(engine.getWorld().seed() + 243995);
+        rng = new RNG(engine.getSeedManager().getBiome());
     }
 
     @BlockCoordinates

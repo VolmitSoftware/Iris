@@ -43,7 +43,7 @@ public class B {
     private static final IntSet foliageCache = buildFoliageCache();
     private static final IntSet deepslateCache = buildDeepslateCache();
     private static final Int2IntMap normal2DeepslateCache = buildNormal2DeepslateCache();
-    private static final Int2IntMap deepslate2NormalCache = buildNormal2DeepslateCache();
+    private static final Int2IntMap deepslate2NormalCache = buildDeepslate2NormalCache();
     private static final IntSet decorantCache = buildDecorantCache();
     private static final IntSet storageCache = buildStorageCache();
     private static final IntSet storageChestCache = buildStorageChestCache();

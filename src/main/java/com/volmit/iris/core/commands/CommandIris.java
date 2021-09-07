@@ -191,8 +191,6 @@ public class CommandIris implements DecreeExecutor {
                 PlatformChunkGenerator plat = IrisToolbelt.access(player().getWorld());
                 Engine engine = plat.getEngine();
                 try {
-                    int vd = radius;
-                    int rg = 0;
                     Chunk cx = player().getLocation().getChunk();
                     KList<Runnable> js = new KList<>();
                     BurstExecutor b = MultiBurst.burst.burst();

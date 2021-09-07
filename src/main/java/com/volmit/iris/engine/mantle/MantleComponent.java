@@ -46,7 +46,7 @@ public interface MantleComponent {
     }
 
     default long seed() {
-        return getEngineMantle().getEngine().getTarget().getWorld().seed();
+        return getEngineMantle().getEngine().getSeedManager().getMantle();
     }
 
     default BurstExecutor burst() {

@@ -146,6 +146,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         saveEngineData();
     }
 
+    SeedManager getSeedManager();
+
     void saveEngineData();
 
     default String getName() {

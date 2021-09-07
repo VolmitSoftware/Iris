@@ -43,7 +43,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
 
     public IrisTerrainNormalActuator(Engine engine) {
         super(engine, "Terrain");
-        rng = new RNG(engine.getWorld().seed());
+        rng = new RNG(engine.getSeedManager().getTerrain());
     }
 
     @BlockCoordinates

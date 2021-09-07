@@ -501,7 +501,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
         IrisWorld w = IrisWorld.builder()
                 .name(worldName)
-                .seed(RNG.r.lmax())
+                .seed(1337)
                 .environment(dim.getEnvironment())
                 .worldFolder(new File(worldName))
                 .minHeight(0)

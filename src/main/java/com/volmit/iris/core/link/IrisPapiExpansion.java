@@ -97,7 +97,7 @@ public class IrisPapiExpansion extends PlaceholderExpansion {
             }
         } else if (p.equalsIgnoreCase("world_seed")) {
             if (a != null) {
-                return a.getTarget().getWorld().seed() + "";
+                return a.getEngine().getSeedManager().getSeed() + "";
             }
         } else if (p.equalsIgnoreCase("world_speed")) {
             if (a != null) {

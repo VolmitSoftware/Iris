@@ -38,7 +38,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
 
     public IrisDepositModifier(Engine engine) {
         super(engine, "Deposit");
-        rng = new RNG(getEngine().getWorld().seed() + 12938).nextParallelRNG(28348777);
+        rng = new RNG(getEngine().getSeedManager().getDeposit());
     }
 
     @Override

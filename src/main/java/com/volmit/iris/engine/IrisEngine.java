@@ -100,10 +100,14 @@ public class IrisEngine implements Engine {
     private final AtomicCache<IrisEngineData> engineData = new AtomicCache<>();
     private final AtomicBoolean cleaning;
     private final ChronoLatch cleanLatch;
+    private final SeedManager seedManager;
 
     public IrisEngine(EngineTarget target, boolean studio) {
         this.studio = studio;
         this.target = target;
+        getEngineData();
+        verifySeed();
+        this.seedManager = new SeedManager(target.getWorld().getRawWorldSeed());
         bud = new AtomicInteger(0);
         buds = new AtomicInteger(0);
         metrics = new EngineMetrics(32);
@@ -120,15 +124,21 @@ public class IrisEngine implements Engine {
         context = new IrisContext(this);
         cleaning = new AtomicBoolean(false);
         context.touch();
-        Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + 256 + " height)");
+        Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + 256 + " height) Seed: " + getSeedManager().toString());
         getData().setEngine(this);
-        getEngineData();
         minHeight = 0;
         failing = false;
         closed = false;
         art = J.ar(this::tickRandomPlayer, 0);
         setupEngine();
         Iris.debug("Engine Initialized " + getCacheID());
+    }
+
+    private void verifySeed() {
+        if(getEngineData().getSeed() != null && getEngineData().getSeed() != target.getWorld().getRawWorldSeed())
+        {
+            target.getWorld().setRawWorldSeed(getEngineData().getSeed());
+        }
     }
 
     private void tickRandomPlayer() {

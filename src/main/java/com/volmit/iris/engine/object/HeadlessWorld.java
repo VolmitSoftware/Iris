@@ -85,7 +85,7 @@ public class HeadlessWorld {
     public World load() {
         World w = new WorldCreator(worldName)
                 .environment(dimension.getEnvironment())
-                .seed(world.seed())
+                .seed(world.getRawWorldSeed())
                 .generator(new BukkitChunkGenerator(world, studio, dimension.getLoader().getDataFolder(),
                         dimension.getLoadKey()))
                 .createWorld();

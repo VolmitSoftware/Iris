@@ -40,7 +40,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
 
     public IrisPostModifier(Engine engine) {
         super(engine, "Post");
-        rng = new RNG(getEngine().getWorld().seed() + 12938).nextParallelRNG(28348777);
+        rng = new RNG(getEngine().getSeedManager().getPost());
     }
 
     @Override

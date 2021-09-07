@@ -69,7 +69,7 @@ public interface EngineComponent {
     }
 
     default long getSeed() {
-        return getTarget().getWorld().seed();
+        return getEngine().getSeedManager().getComponent();
     }
 
     default int getParallelism() {

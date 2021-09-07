@@ -59,6 +59,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 @EqualsAndHashCode(callSuper = true)
@@ -73,18 +74,18 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final ReactiveFolder folder;
     private final KList<BlockPopulator> populators;
     private final ChronoLatch hotloadChecker;
-    private final Looper hotloader;
+    private Looper hotloader;
+    private final AtomicBoolean setup;
     private StudioMode lastMode;
 
     @Setter
     private StudioGenerator studioGenerator;
     private final boolean studio;
-    private long lastSeed;
 
     public BukkitChunkGenerator(IrisWorld world, boolean studio, File dataLocation, String dimensionKey) {
+        setup = new AtomicBoolean(false);
         studioGenerator = null;
         populators = new KList<>();
-        lastSeed = world.seed();
         loadLock = new Semaphore(LOAD_LOCKS);
         this.world = world;
         this.hotloadChecker = new ChronoLatch(1000, false);
@@ -92,23 +93,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         this.dataLocation = dataLocation;
         this.dimensionKey = dimensionKey;
         this.folder = new ReactiveFolder(dataLocation, (_a, _b, _c) -> hotload());
-        setupEngine();
-        this.hotloader = studio ? new Looper() {
-            @Override
-            protected long loop() {
-                if (hotloadChecker.flip()) {
-                    folder.check();
-                }
-
-                return 250;
-            }
-        } : null;
-
-        if (studio) {
-            hotloader.setPriority(Thread.MIN_PRIORITY);
-            hotloader.start();
-            hotloader.setName(getTarget().getWorld().name() + " Hotloader");
-        }
     }
 
     private void setupEngine() {
@@ -153,14 +137,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @Override
     public void injectChunkReplacement(World world, int x, int z, Consumer<Runnable> jobs) {
         try {
-            if (lastSeed != world.getSeed()) {
-                Iris.debug("Seed for engine " + lastSeed + " does not match world seed if " + world.getSeed());
-                lastSeed = world.getSeed();
-                engine.getTarget().getWorld().seed(lastSeed);
-                engine.hotload();
-                Iris.debug("Updated Engine seed to " + lastSeed);
-            }
-
             loadLock.acquire();
             IrisBiomeStorage st = new IrisBiomeStorage();
             TerrainChunk tc = TerrainChunk.createUnsafe(world, st);
@@ -204,17 +180,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             }
 
             loadLock.release();
-        } catch (WrongEngineBroException e) {
-            Iris.warn("Trying to generate with a shut-down engine! Did you reload? Attempting to resolve this...");
-
-            try {
-                setupEngine();
-                Iris.success("Resolved! Should generate now!");
-            } catch (Throwable fe) {
-                Iris.error("FATAL! Iris cannot generate in this world since it was reloaded! This will cause a crash, with missing chunks, so we're crashing right now!");
-                Bukkit.shutdown();
-                throw new RuntimeException();
-            }
         } catch (Throwable e) {
             loadLock.release();
             Iris.error("======================================");
@@ -230,6 +195,40 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 }
             }
         }
+    }
+
+    private Engine getEngine(World world)
+    {
+        if(setup.get())
+        {
+            return getEngine();
+        }
+
+        synchronized (this)
+        {
+            getWorld().setRawWorldSeed(world.getSeed());
+            setupEngine();
+            this.hotloader = studio ? new Looper() {
+                @Override
+                protected long loop() {
+                    if (hotloadChecker.flip()) {
+                        folder.check();
+                    }
+
+                    return 250;
+                }
+            } : null;
+
+            if (studio) {
+                hotloader.setPriority(Thread.MIN_PRIORITY);
+                hotloader.start();
+                hotloader.setName(getTarget().getWorld().name() + " Hotloader");
+            }
+
+            setup.set(true);
+        }
+
+        return engine;
     }
 
     @Override
@@ -272,14 +271,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @Override
     public @NotNull ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
         try {
-            if (lastSeed != world.getSeed()) {
-                Iris.debug("Seed for engine " + lastSeed + " does not match world seed if " + world.getSeed());
-                lastSeed = world.getSeed();
-                engine.getTarget().getWorld().seed(lastSeed);
-                engine.hotload();
-                Iris.debug("Updated Engine seed to " + lastSeed);
-            }
-
+            getEngine(world);
             loadLock.acquire();
             computeStudioGenerator();
             TerrainChunk tc = TerrainChunk.create(world, biome);
@@ -297,19 +289,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             Iris.debug("Generated " + x + " " + z);
             loadLock.release();
             return c;
-        } catch (WrongEngineBroException e) {
-            Iris.warn("Trying to generate with a shut-down engine! Did you reload? Attempting to resolve this...");
-
-            try {
-                setupEngine();
-                Iris.success("Resolved! Should generate now!");
-            } catch (Throwable fe) {
-                Iris.error("FATAL! Iris cannot generate in this world since it was reloaded! This will cause a crash, with missing chunks, so we're crashing right now!");
-                Bukkit.shutdown();
-                throw new RuntimeException();
-            }
-
-            return generateChunkData(world, ignored, x, z, biome);
         } catch (Throwable e) {
             loadLock.release();
             Iris.error("======================================");

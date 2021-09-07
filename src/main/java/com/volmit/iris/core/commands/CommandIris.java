@@ -196,14 +196,14 @@ public class CommandIris implements DecreeExecutor {
                     BurstExecutor b = MultiBurst.burst.burst();
                     b.setMulticore(false);
                     int rad = engine.getMantle().getRealRadius();
-                    for (int i = -(vd + rad); i <= vd + rad; i++) {
-                        for (int j = -(vd + rad); j <= vd + rad; j++) {
+                    for (int i = -(radius + rad); i <= radius + rad; i++) {
+                        for (int j = -(radius + rad); j <= radius + rad; j++) {
                             engine.getMantle().getMantle().deleteChunk(i + cx.getX(), j + cx.getZ());
                         }
                     }
 
-                    for (int i = -vd; i <= vd; i++) {
-                        for (int j = -vd; j <= vd; j++) {
+                    for (int i = -radius; i <= radius; i++) {
+                        for (int j = -radius; j <= radius; j++) {
                             int finalJ = j;
                             int finalI = i;
                             b.queue(() -> plat.injectChunkReplacement(player().getWorld(), finalI + cx.getX(), finalJ + cx.getZ(), (f) -> {

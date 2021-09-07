@@ -514,11 +514,6 @@ public class VirtualDecreeCommand {
     };
 
     private String pickValidOption(VolmitSender sender, KList<?> validOptions, DecreeParameterHandler<?> handler, String name, String type) {
-        if (!sender.isPlayer()) {
-            String picked = handler.toStringForce(validOptions.getRandom());
-            sender.sendMessage(C.RED + "We went ahead and picked an option for you: " + picked);
-            return picked;
-        }
         sender.sendHeader("Pick a " + name + " (" + type + ")");
         sender.sendMessageRaw("<gradient:#1ed497:#b39427>This query will expire in 15 seconds.</gradient>");
         String password = UUID.randomUUID().toString().replaceAll("\\Q-\\E", "");

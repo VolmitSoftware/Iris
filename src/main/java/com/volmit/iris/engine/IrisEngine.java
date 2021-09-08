@@ -31,6 +31,7 @@ import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.engine.mantle.EngineMantle;
+import com.volmit.iris.engine.modifier.IrisBodyModifier;
 import com.volmit.iris.engine.modifier.IrisCarveModifier;
 import com.volmit.iris.engine.modifier.IrisDepositModifier;
 import com.volmit.iris.engine.modifier.IrisPostModifier;
@@ -184,12 +185,14 @@ public class IrisEngine implements Engine {
         var cave = new IrisCarveModifier(this);
         var post = new IrisPostModifier(this);
         var deposit = new IrisDepositModifier(this);
+        var bodies = new IrisBodyModifier(this);
 
         registerStage((x, z, k, p, m) -> getMantle().generateMatter(x >> 4, z >> 4, m));
         registerStage((x, z, k, p, m) -> terrain.actuate(x, z, k, m));
         registerStage((x, z, k, p, m) -> biome.actuate(x, z, p, m));
-        registerStage((x, z, k, p, m) -> decorant.actuate(x, z, k, m));
         registerStage((x, z, k, p, m) -> cave.modify(x >> 4, z >> 4, k, m));
+        registerStage((x, z, k, p, m) -> bodies.modify(x >> 4, z >> 4, k, m));
+        registerStage((x, z, k, p, m) -> decorant.actuate(x, z, k, m));
         registerStage((x, z, k, p, m) -> post.modify(x, z, k, m));
         registerStage((x, z, k, p, m) -> deposit.modify(x, z, k, m));
         registerStage((x, z, K, p, m) -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, K, m));

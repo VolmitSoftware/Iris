@@ -54,6 +54,8 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
 import io.papermc.lib.PaperLib;
+import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
 import org.bukkit.Bukkit;
@@ -67,12 +69,15 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.util.Date;
 import java.util.Map;
+import java.util.UUID;
+import java.util.function.Predicate;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -103,7 +108,7 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     private void enable() {
-        audiences = BukkitAudiences.create(this);
+        setupAudience();
         sender = new VolmitSender(Bukkit.getConsoleSender());
         sender.setTag(getTag());
         instance = this;
@@ -114,6 +119,78 @@ public class Iris extends VolmitPlugin implements Listener {
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
+    }
+
+    private void setupAudience() {
+        try
+        {
+            audiences = BukkitAudiences.create(this);
+        }
+
+        catch(Throwable e)
+        {
+            e.printStackTrace();
+            Audience dummy = new Audience() {};
+            IrisSettings.get().getGeneral().setUseConsoleCustomColors(false);
+            IrisSettings.get().getGeneral().setUseCustomColorsIngame(false);
+            Iris.error("Failed to setup Adventure API... No custom colors :(");
+            audiences = new BukkitAudiences() {
+                @Override
+                public @NotNull Audience sender(@NotNull CommandSender sender) {
+                    return dummy;
+                }
+
+                @Override
+                public @NotNull Audience player(@NotNull Player player) {
+                    return dummy;
+                }
+
+                @Override
+                public @NotNull Audience filter(@NotNull Predicate<CommandSender> filter) {
+                    return dummy;
+                }
+
+                @Override
+                public @NotNull Audience all() {
+                    return dummy;
+                }
+
+                @Override
+                public @NotNull Audience console() {
+                    return dummy;
+                }
+
+                @Override
+                public @NotNull Audience players() {
+                    return dummy;
+                }
+
+                @Override
+                public @NotNull Audience player(@NotNull UUID playerId) {
+                    return dummy;
+                }
+
+                @Override
+                public @NotNull Audience permission(@NotNull String permission) {
+                    return dummy;
+                }
+
+                @Override
+                public @NotNull Audience world(@NotNull Key world) {
+                    return dummy;
+                }
+
+                @Override
+                public @NotNull Audience server(@NotNull String serverName) {
+                    return dummy;
+                }
+
+                @Override
+                public void close() {
+
+                }
+            };
+        }
     }
 
     public void postShutdown(Runnable r) {

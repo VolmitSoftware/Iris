@@ -37,6 +37,7 @@ import net.kyori.adventure.title.Title;
 import org.bukkit.Server;
 import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionAttachment;
@@ -315,8 +316,14 @@ public class VolmitSender implements CommandSender {
             return;
         }
 
+        if((!IrisSettings.get().getGeneral().isUseCustomColorsIngame() && s instanceof Player) || !IrisSettings.get().getGeneral().isUseConsoleCustomColors())
+        {
+            s.sendMessage(C.translateAlternateColorCodes('&', getTag() + message));
+            return;
+        }
+
         if (message.contains("<NOMINI>")) {
-            s.sendMessage(message.replaceAll("\\Q<NOMINI>\\E", ""));
+            s.sendMessage(C.translateAlternateColorCodes('&', getTag() + message.replaceAll("\\Q<NOMINI>\\E", "")));
             return;
         }
 
@@ -337,6 +344,12 @@ public class VolmitSender implements CommandSender {
 
     public void sendMessageRaw(String message) {
         if (s instanceof CommandDummy) {
+            return;
+        }
+
+        if((!IrisSettings.get().getGeneral().isUseCustomColorsIngame() && s instanceof Player) || !IrisSettings.get().getGeneral().isUseConsoleCustomColors())
+        {
+            s.sendMessage(C.translateAlternateColorCodes('&', message));
             return;
         }
 

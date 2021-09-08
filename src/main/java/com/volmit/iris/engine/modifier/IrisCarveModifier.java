@@ -48,10 +48,12 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     private final BlockData AIR = Material.CAVE_AIR.createBlockData();
     private final BlockData WATER = Material.WATER.createBlockData();
     private final BlockData LAVA = Material.LAVA.createBlockData();
+    private final IrisDecorantActuator decorant;
 
     public IrisCarveModifier(Engine engine) {
         super(engine, "Carve");
         rng = new RNG(getEngine().getSeedManager().getCarve());
+        decorant = new IrisDecorantActuator(engine);
     }
 
     @Override
@@ -206,12 +208,11 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
 
         biome.setInferredType(InferredType.CAVE);
 
-        IrisDecorantActuator actuator = (IrisDecorantActuator) ((IrisEngine) getEngine()).getDecorantActuator();
         for (IrisDecorator i : biome.getDecorators()) {
             if (i.getPartOf().equals(IrisDecorationPart.NONE) && B.isSolid(output.get(rx, zone.getFloor() - 1, rz))) {
-                actuator.getSurfaceDecorator().decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, biome, zone.getFloor() - 1, zone.airThickness());
+                decorant.getSurfaceDecorator().decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, biome, zone.getFloor() - 1, zone.airThickness());
             } else if (i.getPartOf().equals(IrisDecorationPart.CEILING) && B.isSolid(output.get(rx, zone.getCeiling() + 1, rz))) {
-                actuator.getCeilingDecorator().decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, biome, zone.getCeiling(), zone.airThickness());
+                decorant.getCeilingDecorator().decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, biome, zone.getCeiling(), zone.airThickness());
             }
         }
 

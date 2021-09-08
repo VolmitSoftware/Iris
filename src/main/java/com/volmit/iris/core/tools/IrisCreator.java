@@ -40,6 +40,8 @@ import java.io.File;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Makes it a lot easier to setup an engine, world, studio or whatever
@@ -119,9 +121,19 @@ public class IrisCreator {
         J.a(() ->
         {
             int req = 441;
+            Supplier<Integer> g = () -> {
+                try
+                {
+                    return finalAccess1.getEngine().getGenerated();
+                }
 
-            while (finalAccess1.getEngine().getGenerated() < req) {
-                double v = (double) finalAccess1.getEngine().getGenerated() / (double) req;
+                catch(Throwable e)
+                {
+                    return 0;
+                }
+            };
+            while (g.get() < req) {
+                double v = (double) g.get() / (double) req;
 
                 if (sender.isPlayer()) {
                     sender.sendProgress(v, "Generating");

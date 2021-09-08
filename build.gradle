@@ -141,6 +141,7 @@ shadowJar {
     append("plugin.yml")
     relocate 'com.dfsek.paralithic', 'com.volmit.iris.util.paralithic'
     relocate 'io.papermc.lib', 'com.volmit.iris.util.paper'
+    relocate 'net.kyori', 'com.volmit.iris.util.kyori'
     dependencies {
         include(dependency('io.papermc:paperlib'))
         include(dependency('com.dfsek:Paralithic'))

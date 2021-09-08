@@ -117,6 +117,10 @@ public class MantleJigsawComponent extends IrisMantleComponent {
             }
             writer.setData(position.getX(), 0, position.getZ(),
                     new IrisFeaturePositional(position.getX(), position.getZ(), structure.getFeature()));
+
+            if (structure.getFeature().getEntitySpawners().isNotEmpty()) {
+                Iris.info("Placed Structure  MAIN SPAWN " + structure.getFeature().getEntitySpawners().get(0) + " @R " + structure.getFeature().getBlockRadius());
+            }
         }
 
         new PlannedStructure(structure, position, rng).place(writer, getMantle(), post);

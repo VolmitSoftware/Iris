@@ -93,12 +93,6 @@ public class IrisEngine implements Engine {
     private double maxBiomeLayerDensity;
     private double maxBiomeDecoratorDensity;
     private IrisComplex complex;
-    private EngineActuator<BlockData> terrainActuator;
-    private EngineActuator<BlockData> decorantActuator;
-    private EngineActuator<Biome> biomeActuator;
-    private EngineModifier<BlockData> depositModifier;
-    private EngineModifier<BlockData> caveModifier;
-    private EngineModifier<BlockData> postModifier;
     private final AtomicCache<IrisEngineData> engineData = new AtomicCache<>();
     private final AtomicBoolean cleaning;
     private final ChronoLatch cleanLatch;
@@ -159,12 +153,8 @@ public class IrisEngine implements Engine {
         worldManager.close();
         complex.close();
         execution.close();
-        terrainActuator.close();
-        decorantActuator.close();
-        biomeActuator.close();
-        depositModifier.close();
-        caveModifier.close();
-        postModifier.close();
+        stages.forEach(EngineStage::close);
+        stages.clear();
         effects.close();
         J.a(() -> new IrisProject(getData().getDataFolder()).updateWorkspace());
     }
@@ -176,12 +166,6 @@ public class IrisEngine implements Engine {
             worldManager = new IrisWorldManager(this);
             complex = new IrisComplex(this);
             execution = new IrisExecutionEnvironment(this);
-            terrainActuator = new IrisTerrainNormalActuator(this);
-            decorantActuator = new IrisDecorantActuator(this);
-            biomeActuator = new IrisBiomeActuator(this);
-            depositModifier = new IrisDepositModifier(this);
-            postModifier = new IrisPostModifier(this);
-            caveModifier = new IrisCarveModifier(this);
             effects = new IrisEngineEffects(this);
             setupStages();
             J.a(this::computeBiomeMaxes);
@@ -194,13 +178,20 @@ public class IrisEngine implements Engine {
     }
 
     private void setupStages() {
+        var terrain = new IrisTerrainNormalActuator(this);
+        var biome = new IrisBiomeActuator(this);
+        var decorant = new IrisDecorantActuator(this);
+        var cave = new IrisCarveModifier(this);
+        var post = new IrisPostModifier(this);
+        var deposit = new IrisDepositModifier(this);
+
         registerStage((x, z, k, p, m) -> getMantle().generateMatter(x >> 4, z >> 4, m));
-        registerStage((x, z, k, p, m) -> getTerrainActuator().actuate(x, z, k, m));
-        registerStage((x, z, k, p, m) -> getBiomeActuator().actuate(x, z, p, m));
-        registerStage((x, z, k, p, m) -> getDecorantActuator().actuate(x, z, k, m));
-        registerStage((x, z, k, p, m) -> getCaveModifier().modify(x >> 4, z >> 4, k, m));
-        registerStage((x, z, k, p, m) -> getPostModifier().modify(x, z, k, m));
-        registerStage((x, z, k, p, m) -> getDepositModifier().modify(x, z, k, m));
+        registerStage((x, z, k, p, m) -> terrain.actuate(x, z, k, m));
+        registerStage((x, z, k, p, m) -> biome.actuate(x, z, p, m));
+        registerStage((x, z, k, p, m) -> decorant.actuate(x, z, k, m));
+        registerStage((x, z, k, p, m) -> cave.modify(x >> 4, z >> 4, k, m));
+        registerStage((x, z, k, p, m) -> post.modify(x, z, k, m));
+        registerStage((x, z, k, p, m) -> deposit.modify(x, z, k, m));
         registerStage((x, z, K, p, m) -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, K, m));
     }
 
@@ -376,12 +367,8 @@ public class IrisEngine implements Engine {
         getWorldManager().close();
         getTarget().close();
         saveEngineData();
-        getTerrainActuator().close();
-        getDecorantActuator().close();
-        getBiomeActuator().close();
-        getDepositModifier().close();
-        getPostModifier().close();
-        getCaveModifier().close();
+        stages.forEach(EngineStage::close);
+        stages.clear();
         getMantle().close();
         getComplex().close();
         getData().dump();

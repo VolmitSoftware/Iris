@@ -26,4 +26,11 @@ import org.bukkit.block.data.BlockData;
 public interface EngineStage {
     @BlockCoordinates
     void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes, boolean multicore);
+
+    default void close() {
+        if(this instanceof EngineComponent c)
+        {
+            c.close();
+        }
+    }
 }

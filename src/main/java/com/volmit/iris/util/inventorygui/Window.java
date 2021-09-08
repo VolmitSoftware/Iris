@@ -23,9 +23,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 public interface Window {
-    Window setDecorator(WindowDecorator decorator);
-
     WindowDecorator getDecorator();
+
+    Window setDecorator(WindowDecorator decorator);
 
     WindowResolution getResolution();
 
@@ -40,8 +40,6 @@ public interface Window {
     Window callClosed();
 
     Window updateInventory();
-
-    Window setVisible(boolean visible);
 
     ItemStack computeItemStack(int viewportSlot);
 
@@ -59,11 +57,13 @@ public interface Window {
 
     boolean isVisible();
 
+    Window setVisible(boolean visible);
+
     int getViewportPosition();
 
-    int getViewportSlots();
-
     Window setViewportPosition(int position);
+
+    int getViewportSlots();
 
     int getMaxViewportPosition();
 

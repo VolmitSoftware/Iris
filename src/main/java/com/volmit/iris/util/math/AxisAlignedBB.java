@@ -40,20 +40,20 @@ public class AxisAlignedBB {
         this.zb = zb;
     }
 
-    public AxisAlignedBB shifted(IrisPosition p) {
-        return shifted(p.getX(), p.getY(), p.getZ());
-    }
-
-    public AxisAlignedBB shifted(double x, double y, double z) {
-        return new AxisAlignedBB(min().add(new IrisPosition((int) x, (int) y, (int) z)), max().add(new IrisPosition((int) x, (int) y, (int) z)));
-    }
-
     public AxisAlignedBB(AlignedPoint a, AlignedPoint b) {
         this(a.getX(), b.getX(), a.getY(), b.getY(), a.getZ(), b.getZ());
     }
 
     public AxisAlignedBB(IrisPosition a, IrisPosition b) {
         this(a.getX(), b.getX(), a.getY(), b.getY(), a.getZ(), b.getZ());
+    }
+
+    public AxisAlignedBB shifted(IrisPosition p) {
+        return shifted(p.getX(), p.getY(), p.getZ());
+    }
+
+    public AxisAlignedBB shifted(double x, double y, double z) {
+        return new AxisAlignedBB(min().add(new IrisPosition((int) x, (int) y, (int) z)), max().add(new IrisPosition((int) x, (int) y, (int) z)));
     }
 
     public boolean contains(AlignedPoint p) {

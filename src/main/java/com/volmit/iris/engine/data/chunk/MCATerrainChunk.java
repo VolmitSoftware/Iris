@@ -47,16 +47,9 @@ public class MCATerrainChunk implements TerrainChunk {
     }
 
     @Override
-    public void setRaw(ChunkGenerator.ChunkData data) {
-
-    }
-
-
-    @Override
     public Biome getBiome(int x, int z) {
         return Biome.THE_VOID;
     }
-
 
     @Override
     public Biome getBiome(int x, int y, int z) {
@@ -99,7 +92,6 @@ public class MCATerrainChunk implements TerrainChunk {
         mcaChunk.setBlockStateAt(xx, y, zz, NBTWorld.getCompound(blockData), false);
     }
 
-
     @Override
     public org.bukkit.block.data.BlockData getBlockData(int x, int y, int z) {
         if (y > getMaxHeight()) {
@@ -116,6 +108,11 @@ public class MCATerrainChunk implements TerrainChunk {
     @Override
     public ChunkGenerator.ChunkData getRaw() {
         return null;
+    }
+
+    @Override
+    public void setRaw(ChunkGenerator.ChunkData data) {
+
     }
 
     @Override

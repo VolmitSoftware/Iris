@@ -26,7 +26,7 @@ import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import java.awt.*;
+import java.awt.Color;
 
 public class WandSelection {
     private final Cuboid c;

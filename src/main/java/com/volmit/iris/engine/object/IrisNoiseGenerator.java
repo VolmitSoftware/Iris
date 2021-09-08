@@ -20,7 +20,12 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.math.RNG;
@@ -37,59 +42,44 @@ import lombok.experimental.Accessors;
 @Desc("A noise generator")
 @Data
 public class IrisNoiseGenerator {
+    private final transient AtomicCache<CNG> generator = new AtomicCache<>();
     @MinNumber(0.0001)
     @Desc("The coordinate input zoom")
     private double zoom = 1;
-
     @Desc("Reverse the output. So that noise = -noise + opacity")
     private boolean negative = false;
-
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The output multiplier")
     private double opacity = 1;
-
     @Desc("Coordinate offset x")
     private double offsetX = 0;
-
     @Desc("Height output offset y. Avoid using with terrain generation.")
     private double offsetY = 0;
-
     @Desc("Coordinate offset z")
     private double offsetZ = 0;
-
     @Required
     @Desc("The seed")
     private long seed = 0;
-
     @Desc("Apply a parametric curve on the output")
     private boolean parametric = false;
-
     @Desc("Apply a bezier curve on the output")
     private boolean bezier = false;
-
     @Desc("Apply a sin-center curve on the output (0, and 1 = 0 and 0.5 = 1.0 using a sinoid shape.)")
     private boolean sinCentered = false;
-
     @Desc("The exponent noise^EXPONENT")
     private double exponent = 1;
-
     @Desc("Enable / disable. Outputs offsetY if disabled")
     private boolean enabled = true;
-
     @Required
     @Desc("The Noise Style")
     private IrisGeneratorStyle style = NoiseStyle.IRIS.style();
-
     @MinNumber(1)
     @Desc("Multiple octaves for multple generators of changing zooms added together")
     private int octaves = 1;
-
     @ArrayType(min = 1, type = IrisNoiseGenerator.class)
     @Desc("Apply a child noise generator to fracture the input coordinates of this generator")
     private KList<IrisNoiseGenerator> fracture = new KList<>();
-
-    private final transient AtomicCache<CNG> generator = new AtomicCache<>();
 
     public IrisNoiseGenerator(boolean enabled) {
         this();

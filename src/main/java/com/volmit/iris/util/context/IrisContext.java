@@ -30,8 +30,8 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class IrisContext {
-    private static ChronoLatch cl = new ChronoLatch(60000);
     private static final KMap<Thread, IrisContext> context = new KMap<>();
+    private static ChronoLatch cl = new ChronoLatch(60000);
     private final Engine engine;
 
     public static IrisContext get() {

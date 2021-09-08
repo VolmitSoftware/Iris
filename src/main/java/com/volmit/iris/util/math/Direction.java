@@ -48,6 +48,13 @@ public enum Direction {
     private final int z;
     private final CuboidDirection f;
 
+    Direction(int x, int y, int z, CuboidDirection f) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.f = f;
+    }
+
     public static Direction getDirection(BlockFace f) {
         return switch (f) {
             case DOWN -> D;
@@ -58,23 +65,6 @@ public enum Direction {
             case WEST, WEST_SOUTH_WEST, WEST_NORTH_WEST -> W;
         };
 
-    }
-
-    @Override
-    public String toString() {
-        return switch (this) {
-            case D -> "Down";
-            case E -> "East";
-            case N -> "North";
-            case S -> "South";
-            case U -> "Up";
-            case W -> "West";
-        };
-
-    }
-
-    public boolean isVertical() {
-        return equals(D) || equals(U);
     }
 
     public static Direction closest(Vector v) {
@@ -128,75 +118,6 @@ public enum Direction {
         return s;
     }
 
-    public Vector toVector() {
-        return new Vector(x, y, z);
-    }
-
-    public boolean isCrooked(Direction to) {
-        if (equals(to.reverse())) {
-            return false;
-        }
-
-        return !equals(to);
-    }
-
-    Direction(int x, int y, int z, CuboidDirection f) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-        this.f = f;
-    }
-
-    public Vector angle(Vector initial, Direction d) {
-        calculatePermutations();
-
-        for (Map.Entry<GBiset<Direction, Direction>, DOP> entry : permute.entrySet()) {
-            GBiset<Direction, Direction> i = entry.getKey();
-            if (i.getA().equals(this) && i.getB().equals(d)) {
-                return entry.getValue().op(initial);
-            }
-        }
-
-        return initial;
-    }
-
-    public Direction reverse() {
-        switch (this) {
-            case D:
-                return U;
-            case E:
-                return W;
-            case N:
-                return S;
-            case S:
-                return N;
-            case U:
-                return D;
-            case W:
-                return E;
-            default:
-                break;
-        }
-
-        return null;
-    }
-
-    public int x() {
-        return x;
-    }
-
-    public int y() {
-        return y;
-    }
-
-    public int z() {
-        return z;
-    }
-
-    public CuboidDirection f() {
-        return f;
-    }
-
     public static KList<Direction> news() {
         return new KList<Direction>().add(N, E, W, S);
     }
@@ -243,32 +164,6 @@ public enum Direction {
         } else {
             return E;
         }
-    }
-
-    /**
-     * Get the byte value represented in some directional blocks
-     *
-     * @return the byte value
-     */
-    public byte byteValue() {
-        switch (this) {
-            case D:
-                return 0;
-            case E:
-                return 5;
-            case N:
-                return 2;
-            case S:
-                return 3;
-            case U:
-                return 1;
-            case W:
-                return 4;
-            default:
-                break;
-        }
-
-        return -1;
     }
 
     public static void calculatePermutations() {
@@ -357,6 +252,111 @@ public enum Direction {
                 }
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return switch (this) {
+            case D -> "Down";
+            case E -> "East";
+            case N -> "North";
+            case S -> "South";
+            case U -> "Up";
+            case W -> "West";
+        };
+
+    }
+
+    public boolean isVertical() {
+        return equals(D) || equals(U);
+    }
+
+    public Vector toVector() {
+        return new Vector(x, y, z);
+    }
+
+    public boolean isCrooked(Direction to) {
+        if (equals(to.reverse())) {
+            return false;
+        }
+
+        return !equals(to);
+    }
+
+    public Vector angle(Vector initial, Direction d) {
+        calculatePermutations();
+
+        for (Map.Entry<GBiset<Direction, Direction>, DOP> entry : permute.entrySet()) {
+            GBiset<Direction, Direction> i = entry.getKey();
+            if (i.getA().equals(this) && i.getB().equals(d)) {
+                return entry.getValue().op(initial);
+            }
+        }
+
+        return initial;
+    }
+
+    public Direction reverse() {
+        switch (this) {
+            case D:
+                return U;
+            case E:
+                return W;
+            case N:
+                return S;
+            case S:
+                return N;
+            case U:
+                return D;
+            case W:
+                return E;
+            default:
+                break;
+        }
+
+        return null;
+    }
+
+    public int x() {
+        return x;
+    }
+
+    public int y() {
+        return y;
+    }
+
+    public int z() {
+        return z;
+    }
+
+    public CuboidDirection f() {
+        return f;
+    }
+
+    /**
+     * Get the byte value represented in some directional blocks
+     *
+     * @return the byte value
+     */
+    public byte byteValue() {
+        switch (this) {
+            case D:
+                return 0;
+            case E:
+                return 5;
+            case N:
+                return 2;
+            case S:
+                return 3;
+            case U:
+                return 1;
+            case W:
+                return 4;
+            default:
+                break;
+        }
+
+        return -1;
     }
 
     public BlockFace getFace() {

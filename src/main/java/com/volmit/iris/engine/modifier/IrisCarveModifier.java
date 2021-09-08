@@ -18,12 +18,15 @@
 
 package com.volmit.iris.engine.modifier;
 
-import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.actuator.IrisDecorantActuator;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.InferredType;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisDecorationPart;
+import com.volmit.iris.engine.object.IrisDecorator;
+import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
@@ -48,10 +51,12 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     private final BlockData AIR = Material.CAVE_AIR.createBlockData();
     private final BlockData WATER = Material.WATER.createBlockData();
     private final BlockData LAVA = Material.LAVA.createBlockData();
+    private final IrisDecorantActuator decorant;
 
     public IrisCarveModifier(Engine engine) {
         super(engine, "Carve");
         rng = new RNG(getEngine().getSeedManager().getCarve());
+        decorant = new IrisDecorantActuator(engine);
     }
 
     @Override
@@ -206,12 +211,11 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
 
         biome.setInferredType(InferredType.CAVE);
 
-        IrisDecorantActuator actuator = (IrisDecorantActuator) ((IrisEngine) getEngine()).getDecorantActuator();
         for (IrisDecorator i : biome.getDecorators()) {
             if (i.getPartOf().equals(IrisDecorationPart.NONE) && B.isSolid(output.get(rx, zone.getFloor() - 1, rz))) {
-                actuator.getSurfaceDecorator().decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, biome, zone.getFloor() - 1, zone.airThickness());
+                decorant.getSurfaceDecorator().decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, biome, zone.getFloor() - 1, zone.airThickness());
             } else if (i.getPartOf().equals(IrisDecorationPart.CEILING) && B.isSolid(output.get(rx, zone.getCeiling() + 1, rz))) {
-                actuator.getCeilingDecorator().decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, biome, zone.getCeiling(), zone.airThickness());
+                decorant.getCeilingDecorator().decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, biome, zone.getCeiling(), zone.airThickness());
             }
         }
 

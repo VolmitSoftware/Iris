@@ -37,30 +37,26 @@ import lombok.experimental.Accessors;
 @Desc("Scale objects")
 @Data
 public class IrisObjectScale {
-    @MinNumber(1)
-    @MaxNumber(32)
-    @Desc("Iris Objects are scaled and cached to speed up placements. Because of this extra memory is used, so we evenly distribute variations across the defined scale range, then pick one randomly. If the differences is small, use a lower number. For more possibilities on the scale spectrum, increase this at the cost of memory.")
-    private int variations = 7;
-
-    @MinNumber(0.01)
-    @MaxNumber(50)
-    @Desc("The minimum scale")
-    private double minimumScale = 1;
-
-    @MinNumber(0.01)
-    @MaxNumber(50)
-    @Desc("The maximum height for placement (top of object)")
-    private double maximumScale = 1;
-
-    @Desc("If this object is scaled up beyond its origin size, specify a 3D interpolator")
-    private IrisObjectPlacementScaleInterpolator interpolation = IrisObjectPlacementScaleInterpolator.NONE;
-
     private static transient ConcurrentLinkedHashMap<IrisObject, KList<IrisObject>> cache
             = new ConcurrentLinkedHashMap.Builder<IrisObject, KList<IrisObject>>()
             .initialCapacity(64)
             .maximumWeightedCapacity(1024)
             .concurrencyLevel(32)
             .build();
+    @MinNumber(1)
+    @MaxNumber(32)
+    @Desc("Iris Objects are scaled and cached to speed up placements. Because of this extra memory is used, so we evenly distribute variations across the defined scale range, then pick one randomly. If the differences is small, use a lower number. For more possibilities on the scale spectrum, increase this at the cost of memory.")
+    private int variations = 7;
+    @MinNumber(0.01)
+    @MaxNumber(50)
+    @Desc("The minimum scale")
+    private double minimumScale = 1;
+    @MinNumber(0.01)
+    @MaxNumber(50)
+    @Desc("The maximum height for placement (top of object)")
+    private double maximumScale = 1;
+    @Desc("If this object is scaled up beyond its origin size, specify a 3D interpolator")
+    private IrisObjectPlacementScaleInterpolator interpolation = IrisObjectPlacementScaleInterpolator.NONE;
 
     public boolean shouldScale() {
         return ((minimumScale == maximumScale) && maximumScale == 1) || variations <= 0;

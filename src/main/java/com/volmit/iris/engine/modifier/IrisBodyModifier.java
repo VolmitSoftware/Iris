@@ -16,32 +16,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.events;
+package com.volmit.iris.engine.modifier;
 
 import com.volmit.iris.engine.framework.Engine;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import org.bukkit.event.Event;
-import org.bukkit.event.HandlerList;
+import com.volmit.iris.engine.framework.EngineAssignedModifier;
+import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.math.RNG;
+import org.bukkit.Material;
+import org.bukkit.block.data.BlockData;
 
-@EqualsAndHashCode(callSuper = true)
-@Data
-@AllArgsConstructor
-public class IrisEngineEvent extends Event {
-    private static final HandlerList handlers = new HandlerList();
-    private Engine engine;
+public class IrisBodyModifier extends EngineAssignedModifier<BlockData> {
+    private final RNG rng;
+    private final BlockData AIR = Material.CAVE_AIR.createBlockData();
+    private final BlockData WATER = Material.WATER.createBlockData();
+    private final BlockData LAVA = Material.LAVA.createBlockData();
 
-    public IrisEngineEvent() {
-        super(true);
-    }
-
-    public static HandlerList getHandlerList() {
-        return handlers;
+    public IrisBodyModifier(Engine engine) {
+        super(engine, "Bodies");
+        rng = new RNG(getEngine().getSeedManager().getBodies());
     }
 
     @Override
-    public HandlerList getHandlers() {
-        return handlers;
+    public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore) {
+
     }
 }

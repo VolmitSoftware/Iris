@@ -26,12 +26,9 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class PalettedContainer<T> implements PaletteResize<T> {
-    private static final int SIZE = 4096;
-
     public static final int GLOBAL_PALETTE_BITS = 9;
-
     public static final int MIN_PALETTE_SIZE = 4;
-
+    private static final int SIZE = 4096;
     private final Palette<T> globalPalette;
 
     private final PaletteResize<T> dummyPaletteResize = (var0, var1) -> 0;

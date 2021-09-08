@@ -23,7 +23,11 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.MantleWriter;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -39,19 +43,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Desc("Translate objects")
 @Data
 public class IrisRavinePlacer implements IRare {
+    private transient final AtomicCache<IrisRavine> ravineCache = new AtomicCache<>();
+    private transient final AtomicBoolean fail = new AtomicBoolean(false);
     @Required
     @Desc("Typically a 1 in RARITY on a per chunk/fork basis")
     @MinNumber(1)
     private int rarity = 15;
-
     @MinNumber(1)
     @Required
     @Desc("The ravine to place")
     @RegistryListResource(IrisRavine.class)
     private String ravine;
-
-    private transient final AtomicCache<IrisRavine> ravineCache = new AtomicCache<>();
-    private transient final AtomicBoolean fail = new AtomicBoolean(false);
 
     public IrisRavine getRealRavine(IrisData data) {
         return ravineCache.aquire(() -> data.getRavineLoader().load(getRavine()));

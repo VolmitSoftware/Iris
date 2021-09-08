@@ -20,8 +20,8 @@ package com.volmit.iris.util.math;
 
 @SuppressWarnings("ALL")
 public class CDou {
-    private double number;
     private final double max;
+    private double number;
 
     public CDou(double max) {
         number = 0;

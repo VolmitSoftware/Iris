@@ -59,33 +59,28 @@ import java.io.Writer;
  */
 public class JSONWriter {
     private static final int maxdepth = 200;
-
     /**
-     * The comma flag determines if a comma should be output before the next
-     * value.
+     * The writer that will receive the output.
      */
-    private boolean comma;
-
+    protected final Writer writer;
+    /**
+     * The object/array stack.
+     */
+    private final JSONObject[] stack;
     /**
      * The current mode. Values: 'a' (array), 'd' (done), 'i' (initial), 'k'
      * (key), 'o' (object).
      */
     protected char mode;
-
     /**
-     * The object/array stack.
+     * The comma flag determines if a comma should be output before the next
+     * value.
      */
-    private final JSONObject[] stack;
-
+    private boolean comma;
     /**
      * The stack top index. A value of 0 indicates that the stack is empty.
      */
     private int top;
-
-    /**
-     * The writer that will receive the output.
-     */
-    protected final Writer writer;
 
     /**
      * Make a fresh JSONWriter. It can be used to build one JSON text.

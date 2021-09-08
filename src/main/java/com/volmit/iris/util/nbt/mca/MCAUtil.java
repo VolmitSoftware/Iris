@@ -35,6 +35,8 @@ import java.util.regex.Pattern;
  */
 public final class MCAUtil {
 
+    private static final Pattern mcaFilePattern = Pattern.compile("^.*r\\.(?<regionX>-?\\d+)\\.(?<regionZ>-?\\d+)\\.mca$");
+
     private MCAUtil() {
     }
 
@@ -258,8 +260,6 @@ public final class MCAUtil {
     public static int chunkToBlock(int chunk) {
         return chunk << 4;
     }
-
-    private static final Pattern mcaFilePattern = Pattern.compile("^.*r\\.(?<regionX>-?\\d+)\\.(?<regionZ>-?\\d+)\\.mca$");
 
     public static MCAFile newMCAFile(File file) {
         Matcher m = mcaFilePattern.matcher(file.getName());

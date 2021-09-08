@@ -253,14 +253,9 @@ public enum C {
      * need to dynamically convert colour codes from your custom format.
      */
     public static final char COLOR_CHAR = '\u00A7';
-    private static final Pattern STRIP_COLOR_PATTERN = Pattern.compile("(?i)" + COLOR_CHAR + "[0-9A-FK-OR]");
     public final static C[] COLORCYCLE = new C[]{C.GOLD, C.YELLOW, C.GREEN, C.AQUA, C.LIGHT_PURPLE, C.AQUA, C.GREEN, C.YELLOW, C.GOLD, C.RED};
+    private static final Pattern STRIP_COLOR_PATTERN = Pattern.compile("(?i)" + COLOR_CHAR + "[0-9A-FK-OR]");
     private final static C[] COLORS = new C[]{C.BLACK, C.DARK_BLUE, C.DARK_GREEN, C.DARK_AQUA, C.DARK_RED, C.DARK_PURPLE, C.GOLD, C.GRAY, C.DARK_GRAY, C.BLUE, C.GREEN, C.AQUA, C.RED, C.LIGHT_PURPLE, C.YELLOW, C.WHITE};
-    private final int intCode;
-    private final char code;
-    private final String token;
-    private final boolean isFormat;
-    private final String toString;
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private final static Map<Integer, C> BY_ID = new HashMap<>();
     private final static Map<Character, C> BY_CHAR = new HashMap<>();
@@ -319,6 +314,19 @@ public enum C {
         dyeHexMap.put(DyeColor.WHITE, "#a4a4a4");
         dyeHexMap.put(DyeColor.YELLOW, "#c2b51c");
     }
+
+    static {
+        for (C color : values()) {
+            BY_ID.put(color.intCode, color);
+            BY_CHAR.put(color.code, color);
+        }
+    }
+
+    private final int intCode;
+    private final char code;
+    private final String token;
+    private final boolean isFormat;
+    private final String toString;
 
     C(char code, int intCode) {
         this("^", code, intCode, false);
@@ -413,57 +421,6 @@ public enum C {
 
     public static String compress(String c) {
         return BaseComponent.toLegacyText(TextComponent.fromLegacyText(c));
-    }
-
-    public net.md_5.bungee.api.ChatColor asBungee() {
-        return net.md_5.bungee.api.ChatColor.RESET;
-    }
-
-    /**
-     * Gets the char value associated with this color
-     *
-     * @return A char value of this color code
-     */
-    public char getChar() {
-        return code;
-    }
-
-    @Override
-    public String toString() {
-        return intCode == -1 ? token : toString;
-    }
-
-    /**
-     * get the dye color for the chatcolor
-     */
-    public DyeColor dye() {
-        return chatToDye(chatColor());
-    }
-
-    public String hex() {
-        return chatToHex(this);
-    }
-
-    public java.awt.Color awtColor() {
-        return java.awt.Color.decode(hex());
-    }
-
-    /**
-     * Checks if this code is a format code as opposed to a color code.
-     *
-     * @return whether this ChatColor is a format code
-     */
-    public boolean isFormat() {
-        return isFormat;
-    }
-
-    /**
-     * Checks if this code is a color code as opposed to a format code.
-     *
-     * @return whether this ChatColor is a color code
-     */
-    public boolean isColor() {
-        return !isFormat && this != RESET;
     }
 
     /**
@@ -614,13 +571,6 @@ public enum C {
     }
 
     /**
-     * Get the ChatColor enum instance instead of C
-     */
-    public ChatColor chatColor() {
-        return ChatColor.getByChar(code);
-    }
-
-    /**
      * Translates a string using an alternate color code character into a string
      * that uses the internal ChatColor.COLOR_CODE color code character. The
      * alternate color code character will only be replaced if it is immediately
@@ -653,6 +603,99 @@ public enum C {
         }
 
         return null;
+    }
+
+    public static C randomColor() {
+        return COLORS[(int) (Math.random() * (COLORS.length - 1))];
+    }
+
+    /**
+     * Gets the ChatColors used at the end of the given input string.
+     *
+     * @param input Input string to retrieve the colors from.
+     * @return Any remaining ChatColors to pass onto the next line.
+     */
+    public static String getLastColors(String input) {
+        StringBuilder result = new StringBuilder();
+        int length = input.length();
+
+        // Search backwards from the end as it is faster
+        for (int index = length - 1; index > -1; index--) {
+            char section = input.charAt(index);
+            if (section == COLOR_CHAR && index < length - 1) {
+                char c = input.charAt(index + 1);
+                C color = getByChar(c);
+
+                if (color != null) {
+                    result.insert(0, color);
+
+                    // Once we find a color or reset we can stop searching
+                    if (color.isColor() || color.equals(RESET)) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        return result.toString();
+    }
+
+    public net.md_5.bungee.api.ChatColor asBungee() {
+        return net.md_5.bungee.api.ChatColor.RESET;
+    }
+
+    /**
+     * Gets the char value associated with this color
+     *
+     * @return A char value of this color code
+     */
+    public char getChar() {
+        return code;
+    }
+
+    @Override
+    public String toString() {
+        return intCode == -1 ? token : toString;
+    }
+
+    /**
+     * get the dye color for the chatcolor
+     */
+    public DyeColor dye() {
+        return chatToDye(chatColor());
+    }
+
+    public String hex() {
+        return chatToHex(this);
+    }
+
+    public java.awt.Color awtColor() {
+        return java.awt.Color.decode(hex());
+    }
+
+    /**
+     * Checks if this code is a format code as opposed to a color code.
+     *
+     * @return whether this ChatColor is a format code
+     */
+    public boolean isFormat() {
+        return isFormat;
+    }
+
+    /**
+     * Checks if this code is a color code as opposed to a format code.
+     *
+     * @return whether this ChatColor is a color code
+     */
+    public boolean isColor() {
+        return !isFormat && this != RESET;
+    }
+
+    /**
+     * Get the ChatColor enum instance instead of C
+     */
+    public ChatColor chatColor() {
+        return ChatColor.getByChar(code);
     }
 
     public byte getMeta() {
@@ -695,47 +738,5 @@ public enum C {
             case WHITE -> (byte) 0;
             default -> (byte) 15;
         };
-    }
-
-    public static C randomColor() {
-        return COLORS[(int) (Math.random() * (COLORS.length - 1))];
-    }
-
-    /**
-     * Gets the ChatColors used at the end of the given input string.
-     *
-     * @param input Input string to retrieve the colors from.
-     * @return Any remaining ChatColors to pass onto the next line.
-     */
-    public static String getLastColors(String input) {
-        StringBuilder result = new StringBuilder();
-        int length = input.length();
-
-        // Search backwards from the end as it is faster
-        for (int index = length - 1; index > -1; index--) {
-            char section = input.charAt(index);
-            if (section == COLOR_CHAR && index < length - 1) {
-                char c = input.charAt(index + 1);
-                C color = getByChar(c);
-
-                if (color != null) {
-                    result.insert(0, color);
-
-                    // Once we find a color or reset we can stop searching
-                    if (color.isColor() || color.equals(RESET)) {
-                        break;
-                    }
-                }
-            }
-        }
-
-        return result.toString();
-    }
-
-    static {
-        for (C color : values()) {
-            BY_ID.put(color.intCode, color);
-            BY_CHAR.put(color.code, color);
-        }
     }
 }

@@ -55,6 +55,18 @@ public class Section {
     }
 
     /**
+     * Creates an empty Section with base values.
+     *
+     * @return An empty Section
+     */
+    public static Section newSection() {
+        Section s = new Section();
+        s.data = new CompoundTag();
+        s.palette = INMS.get().createPalette();
+        return s;
+    }
+
+    /**
      * Checks whether the data of this Section is empty.
      *
      * @return true if empty
@@ -139,18 +151,6 @@ public class Section {
             throw new IllegalArgumentException("SkyLight array must have a length of 2048");
         }
         this.skyLight = skyLight;
-    }
-
-    /**
-     * Creates an empty Section with base values.
-     *
-     * @return An empty Section
-     */
-    public static Section newSection() {
-        Section s = new Section();
-        s.data = new CompoundTag();
-        s.palette = INMS.get().createPalette();
-        return s;
     }
 
     /**

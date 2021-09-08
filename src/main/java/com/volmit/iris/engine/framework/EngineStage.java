@@ -16,16 +16,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.object.annotations;
+package com.volmit.iris.engine.framework;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
+import com.volmit.iris.util.documentation.BlockCoordinates;
+import com.volmit.iris.util.hunk.Hunk;
+import org.bukkit.block.Biome;
+import org.bukkit.block.data.BlockData;
 
-import static java.lang.annotation.ElementType.*;
-import static java.lang.annotation.RetentionPolicy.*;
+public interface EngineStage {
+    @BlockCoordinates
+    void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes, boolean multicore);
 
-@Retention(RUNTIME)
-@Target({PARAMETER, TYPE, FIELD})
-public @interface RegistryListBiomeDownfallType {
-
+    default void close() {
+        if (this instanceof EngineComponent c) {
+            c.close();
+        }
+    }
 }

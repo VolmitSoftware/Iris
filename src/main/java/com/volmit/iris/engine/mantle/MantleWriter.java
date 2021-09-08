@@ -65,6 +65,62 @@ public class MantleWriter implements IObjectPlacer {
         }
     }
 
+    private static Set<IrisPosition> getBallooned(Set<IrisPosition> vset, double radius) {
+        Set<IrisPosition> returnset = new HashSet<>();
+        int ceilrad = (int) Math.ceil(radius);
+
+        for (IrisPosition v : vset) {
+            int tipx = v.getX();
+            int tipy = v.getY();
+            int tipz = v.getZ();
+
+            for (int loopx = tipx - ceilrad; loopx <= tipx + ceilrad; loopx++) {
+                for (int loopy = tipy - ceilrad; loopy <= tipy + ceilrad; loopy++) {
+                    for (int loopz = tipz - ceilrad; loopz <= tipz + ceilrad; loopz++) {
+                        if (hypot(loopx - tipx, loopy - tipy, loopz - tipz) <= radius) {
+                            returnset.add(new IrisPosition(loopx, loopy, loopz));
+                        }
+                    }
+                }
+            }
+        }
+        return returnset;
+    }
+
+    private static Set<IrisPosition> getHollowed(Set<IrisPosition> vset) {
+        Set<IrisPosition> returnset = new KSet<>();
+        for (IrisPosition v : vset) {
+            double x = v.getX();
+            double y = v.getY();
+            double z = v.getZ();
+            if (!(vset.contains(new IrisPosition(x + 1, y, z))
+                    && vset.contains(new IrisPosition(x - 1, y, z))
+                    && vset.contains(new IrisPosition(x, y + 1, z))
+                    && vset.contains(new IrisPosition(x, y - 1, z))
+                    && vset.contains(new IrisPosition(x, y, z + 1))
+                    && vset.contains(new IrisPosition(x, y, z - 1)))) {
+                returnset.add(v);
+            }
+        }
+        return returnset;
+    }
+
+    private static double hypot(double... pars) {
+        double sum = 0;
+        for (double d : pars) {
+            sum += Math.pow(d, 2);
+        }
+        return Math.sqrt(sum);
+    }
+
+    private static double lengthSq(double x, double y, double z) {
+        return (x * x) + (y * y) + (z * z);
+    }
+
+    private static double lengthSq(double x, double z) {
+        return (x * x) + (z * z);
+    }
+
     public <T> void setData(int x, int y, int z, T t) {
         if (t == null) {
             return;
@@ -307,7 +363,6 @@ public class MantleWriter implements IObjectPlacer {
         setLine(ImmutableList.of(a, b), radius, filled, data);
     }
 
-
     public <T> void setLine(List<IrisPosition> vectors, double radius, boolean filled, T data) {
         setLineConsumer(vectors, radius, filled, (_x, _y, _z) -> data);
     }
@@ -487,62 +542,6 @@ public class MantleWriter implements IObjectPlacer {
         for (IrisPosition i : positions) {
             set(i, data.apply(i.getX(), i.getY(), i.getZ()));
         }
-    }
-
-    private static Set<IrisPosition> getBallooned(Set<IrisPosition> vset, double radius) {
-        Set<IrisPosition> returnset = new HashSet<>();
-        int ceilrad = (int) Math.ceil(radius);
-
-        for (IrisPosition v : vset) {
-            int tipx = v.getX();
-            int tipy = v.getY();
-            int tipz = v.getZ();
-
-            for (int loopx = tipx - ceilrad; loopx <= tipx + ceilrad; loopx++) {
-                for (int loopy = tipy - ceilrad; loopy <= tipy + ceilrad; loopy++) {
-                    for (int loopz = tipz - ceilrad; loopz <= tipz + ceilrad; loopz++) {
-                        if (hypot(loopx - tipx, loopy - tipy, loopz - tipz) <= radius) {
-                            returnset.add(new IrisPosition(loopx, loopy, loopz));
-                        }
-                    }
-                }
-            }
-        }
-        return returnset;
-    }
-
-    private static Set<IrisPosition> getHollowed(Set<IrisPosition> vset) {
-        Set<IrisPosition> returnset = new KSet<>();
-        for (IrisPosition v : vset) {
-            double x = v.getX();
-            double y = v.getY();
-            double z = v.getZ();
-            if (!(vset.contains(new IrisPosition(x + 1, y, z))
-                    && vset.contains(new IrisPosition(x - 1, y, z))
-                    && vset.contains(new IrisPosition(x, y + 1, z))
-                    && vset.contains(new IrisPosition(x, y - 1, z))
-                    && vset.contains(new IrisPosition(x, y, z + 1))
-                    && vset.contains(new IrisPosition(x, y, z - 1)))) {
-                returnset.add(v);
-            }
-        }
-        return returnset;
-    }
-
-    private static double hypot(double... pars) {
-        double sum = 0;
-        for (double d : pars) {
-            sum += Math.pow(d, 2);
-        }
-        return Math.sqrt(sum);
-    }
-
-    private static double lengthSq(double x, double y, double z) {
-        return (x * x) + (y * y) + (z * z);
-    }
-
-    private static double lengthSq(double x, double z) {
-        return (x * x) + (z * z);
     }
 
     public boolean isWithin(Vector pos) {

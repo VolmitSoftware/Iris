@@ -37,23 +37,23 @@ public interface Element {
 
     String getName();
 
-    Element setProgress(double progress);
+    Element setName(String name);
 
     double getProgress();
 
+    Element setProgress(double progress);
+
     short getEffectiveDurability();
 
-    Element setCount(int c);
-
     int getCount();
+
+    Element setCount(int c);
 
     ItemStack computeItemStack();
 
     Element setBackground(boolean bg);
 
     boolean isBackgrond();
-
-    Element setName(String name);
 
     Element addLore(String loreLine);
 

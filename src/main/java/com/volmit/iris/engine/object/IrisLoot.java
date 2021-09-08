@@ -20,7 +20,13 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.RegistryListItemType;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.format.C;
@@ -40,7 +46,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.material.Colorable;
 
-import java.awt.*;
+import java.awt.Color;
 
 @Snippet("loot")
 @Accessors(chain = true)
@@ -49,69 +55,53 @@ import java.awt.*;
 @Desc("Represents a loot entry")
 @Data
 public class IrisLoot {
+    private final transient AtomicCache<CNG> chance = new AtomicCache<>();
     @Desc("The target inventory slot types to fill this loot with")
     private InventorySlotType slotTypes = InventorySlotType.STORAGE;
-
     @MinNumber(1)
     @Desc("The sub rarity of this loot. Calculated after this loot table has been picked.")
     private int rarity = 1;
-
     @MinNumber(1)
     @Desc("Minimum amount of this loot")
     private int minAmount = 1;
-
     @MinNumber(1)
     @Desc("Maximum amount of this loot")
     private int maxAmount = 1;
-
     @MinNumber(1)
     @Desc("The display name of this item")
     private String displayName = null;
-
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("Minimum durability percent")
     private double minDurability = 0;
-
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("Maximum durability percent")
     private double maxDurability = 1;
-
     @Desc("Define a custom model identifier 1.14+ only")
     private Integer customModel = null;
-
     @Desc("Set this to true to prevent it from being broken")
     private boolean unbreakable = false;
-
     @ArrayType(min = 1, type = ItemFlag.class)
     @Desc("The item flags to add")
     private KList<ItemFlag> itemFlags = new KList<>();
-
     @Desc("Apply enchantments to this item")
     @ArrayType(min = 1, type = IrisEnchantment.class)
     private KList<IrisEnchantment> enchantments = new KList<>();
-
     @Desc("Apply attribute modifiers to this item")
     @ArrayType(min = 1, type = IrisAttributeModifier.class)
     private KList<IrisAttributeModifier> attributes = new KList<>();
-
     @ArrayType(min = 1, type = String.class)
     @Desc("Add lore to this item")
     private KList<String> lore = new KList<>();
-
     @RegistryListItemType
     @Required
     @Desc("This is the item or block type. Does not accept minecraft:*. Only materials such as DIAMOND_SWORD or DIRT.")
     private String type = "";
-
     @Desc("The dye color")
     private DyeColor dyeColor = null;
-
     @Desc("The leather armor color")
     private String leatherColor = null;
-
-    private final transient AtomicCache<CNG> chance = new AtomicCache<>();
 
     public Material getType() {
         return B.getMaterial(type);

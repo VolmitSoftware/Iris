@@ -21,7 +21,12 @@ package com.volmit.iris.util.json;
 
 import com.volmit.iris.Iris;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
 
 /**
  * A JSONTokener takes a source string and extracts characters and tokens from
@@ -34,12 +39,12 @@ import java.io.*;
 @SuppressWarnings("ALL")
 public class JSONTokener {
 
+    private final Reader reader;
     private long character;
     private boolean eof;
     private long index;
     private long line;
     private char previous;
-    private final Reader reader;
     private boolean usePrevious;
 
     /**
@@ -76,21 +81,6 @@ public class JSONTokener {
     }
 
     /**
-     * Back up one character. This provides a sort of lookahead capability, so
-     * that you can test for a digit or letter before attempting to parse the
-     * next number or identifier.
-     */
-    public void back() throws JSONException {
-        if (this.usePrevious || this.index <= 0) {
-            throw new JSONException("Stepping back two steps is not supported");
-        }
-        this.index -= 1;
-        this.character -= 1;
-        this.usePrevious = true;
-        this.eof = false;
-    }
-
-    /**
      * Get the hex value of a character (base16).
      *
      * @param c A character between '0' and '9' or between 'A' and 'F' or
@@ -108,6 +98,21 @@ public class JSONTokener {
             return c - ('a' - 10);
         }
         return -1;
+    }
+
+    /**
+     * Back up one character. This provides a sort of lookahead capability, so
+     * that you can test for a digit or letter before attempting to parse the
+     * next number or identifier.
+     */
+    public void back() throws JSONException {
+        if (this.usePrevious || this.index <= 0) {
+            throw new JSONException("Stepping back two steps is not supported");
+        }
+        this.index -= 1;
+        this.character -= 1;
+        this.usePrevious = true;
+        this.eof = false;
     }
 
     public boolean end() {

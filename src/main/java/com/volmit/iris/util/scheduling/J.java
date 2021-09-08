@@ -38,6 +38,9 @@ import java.util.function.Supplier;
 @SuppressWarnings("ALL")
 public class J {
     private static int tid = 0;
+    private static KList<Runnable> afterStartup = new KList<>();
+    private static KList<Runnable> afterStartupAsync = new KList<>();
+    private static boolean started = false;
 
     public static void dofor(int a, Function<Integer, Boolean> c, int ch, Consumer<Integer> d) {
         for (int i = a; c.apply(i); i += ch) {
@@ -152,10 +155,6 @@ public class J {
             return i;
         }
     }
-
-    private static KList<Runnable> afterStartup = new KList<>();
-    private static KList<Runnable> afterStartupAsync = new KList<>();
-    private static boolean started = false;
 
     /**
      * Dont call this unless you know what you are doing!

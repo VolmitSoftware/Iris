@@ -24,7 +24,14 @@ import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.pregenerator.syndicate.SyndicateClient;
-import com.volmit.iris.core.pregenerator.syndicate.command.*;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateBusy;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateClose;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateGenerate;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateGetProgress;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateInstallFirst;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateInstallPack;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateOK;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateSendProgress;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.scheduling.J;
@@ -39,14 +46,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SyndicatePregenMethod implements PregeneratorMethod {
     @Getter
     private final String address;
-    private String nickname;
     private final int port;
     private final String password;
     private final IrisDimension dimension;
-    private boolean ready = false;
     private final File worldFolder;
     private final UUID pack = UUID.randomUUID();
     private final long seed;
+    private String nickname;
+    private boolean ready = false;
 
     public SyndicatePregenMethod(String nickname, File worldFolder, String address, int port, String password, IrisDimension dimension, long seed) {
         this.seed = seed;

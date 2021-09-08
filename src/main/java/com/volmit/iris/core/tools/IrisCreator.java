@@ -28,18 +28,22 @@ import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
 import lombok.Data;
 import lombok.experimental.Accessors;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.GameRule;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.WorldCreator;
 
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 /**
  * Makes it a lot easier to setup an engine, world, studio or whatever
@@ -119,9 +123,15 @@ public class IrisCreator {
         J.a(() ->
         {
             int req = 441;
-
-            while (finalAccess1.getEngine().getGenerated() < req) {
-                double v = (double) finalAccess1.getEngine().getGenerated() / (double) req;
+            Supplier<Integer> g = () -> {
+                try {
+                    return finalAccess1.getEngine().getGenerated();
+                } catch (Throwable e) {
+                    return 0;
+                }
+            };
+            while (g.get() < req) {
+                double v = (double) g.get() / (double) req;
 
                 if (sender.isPlayer()) {
                     sender.sendProgress(v, "Generating");

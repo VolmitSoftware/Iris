@@ -19,7 +19,20 @@
 package com.volmit.iris.util.nbt.io;
 
 import com.volmit.iris.engine.data.io.MaxDepthIO;
-import com.volmit.iris.util.nbt.tag.*;
+import com.volmit.iris.util.nbt.tag.ByteArrayTag;
+import com.volmit.iris.util.nbt.tag.ByteTag;
+import com.volmit.iris.util.nbt.tag.CompoundTag;
+import com.volmit.iris.util.nbt.tag.DoubleTag;
+import com.volmit.iris.util.nbt.tag.EndTag;
+import com.volmit.iris.util.nbt.tag.FloatTag;
+import com.volmit.iris.util.nbt.tag.IntArrayTag;
+import com.volmit.iris.util.nbt.tag.IntTag;
+import com.volmit.iris.util.nbt.tag.ListTag;
+import com.volmit.iris.util.nbt.tag.LongArrayTag;
+import com.volmit.iris.util.nbt.tag.LongTag;
+import com.volmit.iris.util.nbt.tag.ShortTag;
+import com.volmit.iris.util.nbt.tag.StringTag;
+import com.volmit.iris.util.nbt.tag.Tag;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -47,6 +60,23 @@ public final class SNBTWriter implements MaxDepthIO {
 
     public static void write(Tag<?> tag, Writer writer) throws IOException {
         write(tag, writer, Tag.DEFAULT_MAX_DEPTH);
+    }
+
+    public static String escapeString(String s) {
+        if (!NON_QUOTE_PATTERN.matcher(s).matches()) {
+            StringBuilder sb = new StringBuilder();
+            sb.append('"');
+            for (int i = 0; i < s.length(); i++) {
+                char c = s.charAt(i);
+                if (c == '\\' || c == '"') {
+                    sb.append('\\');
+                }
+                sb.append(c);
+            }
+            sb.append('"');
+            return sb.toString();
+        }
+        return s;
     }
 
     private void writeAnything(Tag<?> tag, int maxDepth) throws IOException {
@@ -114,22 +144,5 @@ public final class SNBTWriter implements MaxDepthIO {
             writer.append(i == 0 ? "" : ",").write(Array.get(array, i).toString());
         }
         writer.write(']');
-    }
-
-    public static String escapeString(String s) {
-        if (!NON_QUOTE_PATTERN.matcher(s).matches()) {
-            StringBuilder sb = new StringBuilder();
-            sb.append('"');
-            for (int i = 0; i < s.length(); i++) {
-                char c = s.charAt(i);
-                if (c == '\\' || c == '"') {
-                    sb.append('\\');
-                }
-                sb.append(c);
-            }
-            sb.append('"');
-            return sb.toString();
-        }
-        return s;
     }
 }

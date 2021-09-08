@@ -20,7 +20,21 @@ package com.volmit.iris.util.nbt.io;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.io.MaxDepthIO;
-import com.volmit.iris.util.nbt.tag.*;
+import com.volmit.iris.util.nbt.tag.ArrayTag;
+import com.volmit.iris.util.nbt.tag.ByteArrayTag;
+import com.volmit.iris.util.nbt.tag.ByteTag;
+import com.volmit.iris.util.nbt.tag.CompoundTag;
+import com.volmit.iris.util.nbt.tag.DoubleTag;
+import com.volmit.iris.util.nbt.tag.EndTag;
+import com.volmit.iris.util.nbt.tag.FloatTag;
+import com.volmit.iris.util.nbt.tag.IntArrayTag;
+import com.volmit.iris.util.nbt.tag.IntTag;
+import com.volmit.iris.util.nbt.tag.ListTag;
+import com.volmit.iris.util.nbt.tag.LongArrayTag;
+import com.volmit.iris.util.nbt.tag.LongTag;
+import com.volmit.iris.util.nbt.tag.ShortTag;
+import com.volmit.iris.util.nbt.tag.StringTag;
+import com.volmit.iris.util.nbt.tag.Tag;
 
 import java.util.ArrayList;
 import java.util.List;

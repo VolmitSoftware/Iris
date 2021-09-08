@@ -21,7 +21,13 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.DependsOn;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
@@ -38,70 +44,57 @@ import org.bukkit.block.data.BlockData;
 @Desc("A biome decorator is used for placing flowers, grass, cacti and so on")
 @Data
 public class IrisDecorator {
+    private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
+    private final transient AtomicCache<CNG> varianceGenerator = new AtomicCache<>();
+    private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
+    private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
+    private final transient AtomicCache<KList<BlockData>> blockDataTops = new AtomicCache<>();
     @Desc("The varience dispersion is used when multiple blocks are put in the palette. Scatter scrambles them, Wispy shows streak-looking varience")
     private IrisGeneratorStyle variance = NoiseStyle.STATIC.style();
-
     @Desc("Forcefully place this decorant anywhere it is supposed to go even if it should not go on a specific surface block. For example, you could force tallgrass to place on top of stone by using this.")
     private boolean forcePlace = false;
-
     @DependsOn({"scaleStack", "stackMin", "stackMax"})
     @Desc("If stackMax is set to true, use this to limit its max height for large caverns")
     private int absoluteMaxStack = 30;
-
     @Desc("Dispersion is used to pick places to spawn. Scatter randomly places them (vanilla) or Wispy for a streak like patch system.")
     private IrisGeneratorStyle style = NoiseStyle.STATIC.style();
-
     @DependsOn({"stackMin", "stackMax"})
     @Desc("If this decorator has a height more than 1 this changes how it picks the height between your maxes. Scatter = random, Wispy = wavy heights")
     private IrisGeneratorStyle heightVariance = NoiseStyle.STATIC.style();
-
     @Desc("Tells iris where this decoration is a part of. I.e. SHORE_LINE or SEA_SURFACE")
     private IrisDecorationPart partOf = IrisDecorationPart.NONE;
-
     @DependsOn({"stackMin", "stackMax"})
     @MinNumber(1)
     @MaxNumber(256) // TODO: WARNING HEIGHT
     @Desc("The minimum repeat stack height (setting to 3 would stack 3 of <block> on top of each other")
     private int stackMin = 1;
-
     @DependsOn({"stackMin", "stackMax"})
     @MinNumber(1)
     @MaxNumber(256) // TODO: WARNING HEIGHT
     @Desc("The maximum repeat stack height")
     private int stackMax = 1;
-
     @DependsOn({"stackMin", "stackMax"})
     @Desc("Changes stackMin and stackMin from being absolute block heights and instead uses them as a percentage to scale the stack based on the cave height" +
             "\n\nWithin a cave, setting them stackMin/max to 50 would make the stack 50% of the cave height")
     private boolean scaleStack = false;
-
     @Required
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The chance for this decorator to decorate at a given X,Y coordinate. This is hit 256 times per chunk (per surface block)")
     // TODO: WARNING HEIGHT
     private double chance = 0.1;
-
     @Required
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The palette of blocks to pick from when this decorator needs to place.")
     private KList<IrisBlockData> palette = new KList<IrisBlockData>().qadd(new IrisBlockData("grass"));
-
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The palette of blocks used at the very top of a 'stackMax' of higher than 1. For example, bamboo tops.")
     private KList<IrisBlockData> topPalette = new KList<>();
-
     @DependsOn("topPalette")
     @MinNumber(0.01)
     @MaxNumber(1.0)
     @Desc("When the stack passes the top threshold, the top palette will start being used instead of the normal palette.")
     private double topThreshold = 1.0;
-
-    private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
-    private final transient AtomicCache<CNG> varianceGenerator = new AtomicCache<>();
-    private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
-    private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
-    private final transient AtomicCache<KList<BlockData>> blockDataTops = new AtomicCache<>();
 
     public int getHeight(RNG rng, double x, double z, IrisData data) {
         if (stackMin == stackMax) {

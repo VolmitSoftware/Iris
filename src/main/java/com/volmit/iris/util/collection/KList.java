@@ -23,7 +23,13 @@ import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Random;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -53,6 +59,26 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     public KList(Enumeration<T> e) {
         super();
         add(e);
+    }
+
+    public static KList<String> fromJSONAny(JSONArray oo) {
+        KList<String> s = new KList<String>();
+
+        for (int i = 0; i < oo.length(); i++) {
+            s.add(oo.get(i).toString());
+        }
+
+        return s;
+    }
+
+    public static KList<String> asStringList(List<?> oo) {
+        KList<String> s = new KList<String>();
+
+        for (Object i : oo) {
+            s.add(i.toString());
+        }
+
+        return s;
     }
 
     public int indexOfAddIfNeeded(T v) {
@@ -202,7 +228,6 @@ public class KList<T> extends ArrayList<T> implements List<T> {
         Collections.shuffle(this);
         return this;
     }
-
 
     public KList<T> shuffle(Random rng) {
         Collections.shuffle(this, rng);
@@ -484,16 +509,6 @@ public class KList<T> extends ArrayList<T> implements List<T> {
         return remove(rng.i(0, last()));
     }
 
-    public static KList<String> fromJSONAny(JSONArray oo) {
-        KList<String> s = new KList<String>();
-
-        for (int i = 0; i < oo.length(); i++) {
-            s.add(oo.get(i).toString());
-        }
-
-        return s;
-    }
-
     public KList<T> sub(int f, int t) {
         KList<T> g = new KList<>();
 
@@ -512,16 +527,6 @@ public class KList<T> extends ArrayList<T> implements List<T> {
         }
 
         return j;
-    }
-
-    public static KList<String> asStringList(List<?> oo) {
-        KList<String> s = new KList<String>();
-
-        for (Object i : oo) {
-            s.add(i.toString());
-        }
-
-        return s;
     }
 
     @SuppressWarnings("unchecked")

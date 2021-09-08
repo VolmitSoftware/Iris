@@ -50,6 +50,11 @@ public class CloverNoise implements NoiseGenerator {
      * Java implementation of 2D Clover Noise. See https://github.com/ValgoBoi/clover-noise
      */
     public static class Noise2D {
+        private static final long HASH_A = 25214903917L;
+        private static final long HASH_C = 11L;
+        private static final long HASH_M = 0x1000000000000L;
+        private static final double POINT_SPREAD = 0.3;
+        private static final double CURL_DX = 0.0001;
         private final long seed;
 
         /**
@@ -67,10 +72,6 @@ public class CloverNoise implements NoiseGenerator {
         public Noise2D() {
             this(System.currentTimeMillis());
         }
-
-        private static final long HASH_A = 25214903917L;
-        private static final long HASH_C = 11L;
-        private static final long HASH_M = 0x1000000000000L;
 
         private long doHash(long input, long seed) {
             input += seed;
@@ -96,8 +97,6 @@ public class CloverNoise implements NoiseGenerator {
 
             return (double) hash / HASH_M;
         }
-
-        private static final double POINT_SPREAD = 0.3;
 
         private Vector2 offset(Vector2 position) {
             double hash = hash(position);
@@ -248,8 +247,6 @@ public class CloverNoise implements NoiseGenerator {
             return fractalNoise(new Vector2(x, y), iterations);
         }
 
-        private static final double CURL_DX = 0.0001;
-
         /**
          * Generates curl 2D Clover Noise at a specific point.
          *
@@ -366,6 +363,11 @@ public class CloverNoise implements NoiseGenerator {
     }
 
     public static class Noise3D {
+        private static final long HASH_A = 25214903917L;
+        private static final long HASH_C = 11L;
+        private static final long HASH_M = 0x1000000000000L;
+        private static final double POINT_SPREAD = 0.2;
+        private static final double CURL_DX = 0.0001;
         private final long seed;
 
         public Noise3D(long seed) {
@@ -375,10 +377,6 @@ public class CloverNoise implements NoiseGenerator {
         public Noise3D() {
             this(System.currentTimeMillis());
         }
-
-        private static final long HASH_A = 25214903917L;
-        private static final long HASH_C = 11L;
-        private static final long HASH_M = 0x1000000000000L;
 
         private long doHash(long input, long seed) {
             input += seed;
@@ -405,8 +403,6 @@ public class CloverNoise implements NoiseGenerator {
 
             return (double) hash / HASH_M;
         }
-
-        private static final double POINT_SPREAD = 0.2;
 
         private Vector3 offset(Vector3 position) {
             double hash = hash(position);
@@ -719,8 +715,6 @@ public class CloverNoise implements NoiseGenerator {
         public double fractalNoise(double x, double y, double z, int iterations) {
             return fractalNoise(new Vector3(x, y, z), iterations);
         }
-
-        private static final double CURL_DX = 0.0001;
 
         /**
          * Generates curl 3D Clover Noise at a specific point.

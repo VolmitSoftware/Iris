@@ -24,41 +24,49 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class Mth {
-    private static final int BIG_ENOUGH_INT = 1024;
-
-    private static final float BIG_ENOUGH_FLOAT = 1024.0F;
-
-    private static final long UUID_VERSION = 61440L;
-
-    private static final long UUID_VERSION_TYPE_4 = 16384L;
-
-    private static final long UUID_VARIANT = -4611686018427387904L;
-
-    private static final long UUID_VARIANT_2 = -9223372036854775808L;
-
     public static final float PI = 3.1415927F;
-
     public static final float HALF_PI = 1.5707964F;
-
     public static final float TWO_PI = 6.2831855F;
-
     public static final float DEG_TO_RAD = 0.017453292F;
-
     public static final float RAD_TO_DEG = 57.295776F;
-
     public static final float EPSILON = 1.0E-5F;
-
     public static final float SQRT_OF_TWO = sqrt(2.0F);
-
+    private static final int BIG_ENOUGH_INT = 1024;
+    private static final float BIG_ENOUGH_FLOAT = 1024.0F;
+    private static final long UUID_VERSION = 61440L;
+    private static final long UUID_VERSION_TYPE_4 = 16384L;
+    private static final long UUID_VARIANT = -4611686018427387904L;
+    private static final long UUID_VARIANT_2 = -9223372036854775808L;
     private static final float SIN_SCALE = 10430.378F;
 
     private static final float[] SIN;
+    private static final Random RANDOM = new Random();
+    private static final int[] MULTIPLY_DE_BRUIJN_BIT_POSITION = new int[]{
+            0, 1, 28, 2, 29, 14, 24, 3, 30, 22,
+            20, 15, 25, 17, 4, 8, 31, 27, 13, 23,
+            21, 19, 16, 7, 26, 12, 18, 6, 11, 5,
+            10, 9};
+    private static final double ONE_SIXTH = 0.16666666666666666D;
+    private static final int FRAC_EXP = 8;
+    private static final int LUT_SIZE = 257;
+    private static final double FRAC_BIAS = Double.longBitsToDouble(4805340802404319232L);
+    private static final double[] ASIN_TAB = new double[257];
+    private static final double[] COS_TAB = new double[257];
 
     static {
         SIN = make(new float[65536], var0 -> {
             for (int var1 = 0; var1 < var0.length; var1++)
                 var0[var1] = (float) Math.sin(var1 * Math.PI * 2.0D / 65536.0D);
         });
+    }
+
+    static {
+        for (int var0 = 0; var0 < 257; var0++) {
+            double var1 = var0 / 256.0D;
+            double var3 = Math.asin(var1);
+            COS_TAB[var0] = Math.cos(var3);
+            ASIN_TAB[var0] = var3;
+        }
     }
 
     public static <T> T make(Supplier<T> var0) {
@@ -69,8 +77,6 @@ public class Mth {
         var1.accept(var0);
         return var0;
     }
-
-    private static final Random RANDOM = new Random();
 
     public static float sin(float var0) {
         return SIN[(int) (var0 * 10430.378F) & 0xFFFF];
@@ -325,18 +331,6 @@ public class Mth {
         return (var0 != 0 && (var0 & var0 - 1) == 0);
     }
 
-    private static final int[] MULTIPLY_DE_BRUIJN_BIT_POSITION = new int[]{
-            0, 1, 28, 2, 29, 14, 24, 3, 30, 22,
-            20, 15, 25, 17, 4, 8, 31, 27, 13, 23,
-            21, 19, 16, 7, 26, 12, 18, 6, 11, 5,
-            10, 9};
-
-    private static final double ONE_SIXTH = 0.16666666666666666D;
-
-    private static final int FRAC_EXP = 8;
-
-    private static final int LUT_SIZE = 257;
-
     public static int ceillog2(int var0) {
         var0 = isPowerOfTwo(var0) ? var0 : smallestEncompassingPowerOfTwo(var0);
         return MULTIPLY_DE_BRUIJN_BIT_POSITION[(int) (var0 * 125613361L >> 27L) & 0x1F];
@@ -469,21 +463,6 @@ public class Mth {
         var2 = 0.6666667F * var2 + 1.0F / 3.0F * var2 * var2 * var0;
         var2 = 0.6666667F * var2 + 1.0F / 3.0F * var2 * var2 * var0;
         return var2;
-    }
-
-    private static final double FRAC_BIAS = Double.longBitsToDouble(4805340802404319232L);
-
-    private static final double[] ASIN_TAB = new double[257];
-
-    private static final double[] COS_TAB = new double[257];
-
-    static {
-        for (int var0 = 0; var0 < 257; var0++) {
-            double var1 = var0 / 256.0D;
-            double var3 = Math.asin(var1);
-            COS_TAB[var0] = Math.cos(var3);
-            ASIN_TAB[var0] = var3;
-        }
     }
 
     public static int hsvToRgb(float var0, float var1, float var2) {

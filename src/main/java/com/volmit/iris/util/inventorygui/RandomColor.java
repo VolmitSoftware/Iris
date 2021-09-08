@@ -29,112 +29,7 @@ import java.util.Random;
 public class RandomColor {
 
     public static int hueOffset = 0;
-
-    public static class ColorInfo {
-        Range hueRange;
-        Range saturationRange;
-        Range brightnessRange;
-        List<Range> lowerBounds;
-
-        public ColorInfo(Range hueRange, Range saturationRange, Range brightnessRange, List<Range> lowerBounds) {
-            this.hueRange = hueRange;
-            this.saturationRange = saturationRange;
-            this.brightnessRange = brightnessRange;
-            this.lowerBounds = lowerBounds;
-        }
-
-        public Range getHueRange() {
-            return hueRange;
-        }
-
-        public void setHueRange(Range hueRange) {
-            this.hueRange = hueRange;
-        }
-
-        public Range getSaturationRange() {
-            return saturationRange;
-        }
-
-        public void setSaturationRange(Range saturationRange) {
-            this.saturationRange = saturationRange;
-        }
-
-        public Range getBrightnessRange() {
-            return brightnessRange;
-        }
-
-        public void setBrightnessRange(Range brightnessRange) {
-            this.brightnessRange = brightnessRange;
-        }
-
-        public List<Range> getLowerBounds() {
-            return lowerBounds;
-        }
-
-        public void setLowerBounds(List<Range> lowerBounds) {
-            this.lowerBounds = lowerBounds;
-        }
-    }
-
-    public static class Range {
-        int start;
-        int end;
-
-        public Range(int start, int end) {
-            this.start = start;
-            this.end = end;
-        }
-
-        public boolean contain(int value) {
-            return value >= start && value <= end;
-        }
-
-        @Override
-        public String toString() {
-            return "start: " + start + " end: " + end;
-        }
-    }
-
     private final Random random;
-
-    public enum SaturationType {
-        RANDOM, MONOCHROME, HIGH, LOW, MEDIUM
-    }
-
-    public enum Luminosity {
-        BRIGHT, LIGHT, DARK, RANDOM
-    }
-
-    public static class Options {
-        int hue;
-        SaturationType saturationType;
-        Luminosity luminosity;
-
-        public int getHue() {
-            return hue;
-        }
-
-        public void setHue(int hue) {
-            this.hue = hue;
-        }
-
-        public SaturationType getSaturationType() {
-            return saturationType;
-        }
-
-        public void setSaturationType(SaturationType saturationType) {
-            this.saturationType = saturationType;
-        }
-
-        public Luminosity getLuminosity() {
-            return luminosity;
-        }
-
-        public void setLuminosity(Luminosity luminosity) {
-            this.luminosity = luminosity;
-        }
-    }
-
     private final HashMap<String, ColorInfo> colors = new HashMap<>();
 
     public RandomColor() {
@@ -520,8 +415,111 @@ public class RandomColor {
         );
     }
 
+    public enum SaturationType {
+        RANDOM, MONOCHROME, HIGH, LOW, MEDIUM
+    }
+
+    public enum Luminosity {
+        BRIGHT, LIGHT, DARK, RANDOM
+    }
+
     public enum Color {
         MONOCHROME, RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, PINK
+    }
+
+    public static class ColorInfo {
+        Range hueRange;
+        Range saturationRange;
+        Range brightnessRange;
+        List<Range> lowerBounds;
+
+        public ColorInfo(Range hueRange, Range saturationRange, Range brightnessRange, List<Range> lowerBounds) {
+            this.hueRange = hueRange;
+            this.saturationRange = saturationRange;
+            this.brightnessRange = brightnessRange;
+            this.lowerBounds = lowerBounds;
+        }
+
+        public Range getHueRange() {
+            return hueRange;
+        }
+
+        public void setHueRange(Range hueRange) {
+            this.hueRange = hueRange;
+        }
+
+        public Range getSaturationRange() {
+            return saturationRange;
+        }
+
+        public void setSaturationRange(Range saturationRange) {
+            this.saturationRange = saturationRange;
+        }
+
+        public Range getBrightnessRange() {
+            return brightnessRange;
+        }
+
+        public void setBrightnessRange(Range brightnessRange) {
+            this.brightnessRange = brightnessRange;
+        }
+
+        public List<Range> getLowerBounds() {
+            return lowerBounds;
+        }
+
+        public void setLowerBounds(List<Range> lowerBounds) {
+            this.lowerBounds = lowerBounds;
+        }
+    }
+
+    public static class Range {
+        int start;
+        int end;
+
+        public Range(int start, int end) {
+            this.start = start;
+            this.end = end;
+        }
+
+        public boolean contain(int value) {
+            return value >= start && value <= end;
+        }
+
+        @Override
+        public String toString() {
+            return "start: " + start + " end: " + end;
+        }
+    }
+
+    public static class Options {
+        int hue;
+        SaturationType saturationType;
+        Luminosity luminosity;
+
+        public int getHue() {
+            return hue;
+        }
+
+        public void setHue(int hue) {
+            this.hue = hue;
+        }
+
+        public SaturationType getSaturationType() {
+            return saturationType;
+        }
+
+        public void setSaturationType(SaturationType saturationType) {
+            this.saturationType = saturationType;
+        }
+
+        public Luminosity getLuminosity() {
+            return luminosity;
+        }
+
+        public void setLuminosity(Luminosity luminosity) {
+            this.luminosity = luminosity;
+        }
     }
 
 }

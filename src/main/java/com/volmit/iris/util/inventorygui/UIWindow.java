@@ -35,11 +35,11 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 public class UIWindow implements Window, Listener {
-    private WindowDecorator decorator;
     private final Player viewer;
+    private final KMap<Integer, Element> elements;
+    private WindowDecorator decorator;
     private Callback<Window> eClose;
     private WindowResolution resolution;
-    private final KMap<Integer, Element> elements;
     private String title;
     private boolean visible;
     private int viewportPosition;
@@ -195,14 +195,14 @@ public class UIWindow implements Window, Listener {
     }
 
     @Override
-    public UIWindow setDecorator(WindowDecorator decorator) {
-        this.decorator = decorator;
-        return this;
+    public WindowDecorator getDecorator() {
+        return decorator;
     }
 
     @Override
-    public WindowDecorator getDecorator() {
-        return decorator;
+    public UIWindow setDecorator(WindowDecorator decorator) {
+        this.decorator = decorator;
+        return this;
     }
 
     @Override
@@ -215,6 +215,11 @@ public class UIWindow implements Window, Listener {
     public UIWindow open() {
         setVisible(true);
         return this;
+    }
+
+    @Override
+    public boolean isVisible() {
+        return visible;
     }
 
     @Override
@@ -243,11 +248,6 @@ public class UIWindow implements Window, Listener {
 
         this.visible = visible;
         return this;
-    }
-
-    @Override
-    public boolean isVisible() {
-        return visible;
     }
 
     @Override

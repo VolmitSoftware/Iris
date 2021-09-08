@@ -32,38 +32,6 @@ public class VanillaBiomeMap {
     private static final KMap<Biome, SaturationType> BIOME_SATURATION = new KMap<>();
     private static final KMap<Biome, Short> BIOME_IDs = new KMap<>();
 
-    private static void add(Biome biome, int color, short id, Color randomColor, Luminosity luminosity, SaturationType saturation) {
-        BIOME_HEX.put(biome, color);
-        BIOME_COLOR.put(biome, randomColor);
-        if (luminosity != null) BIOME_LUMINOSITY.put(biome, luminosity);
-        if (saturation != null) BIOME_SATURATION.put(biome, saturation);
-        BIOME_IDs.put(biome, id);
-    }
-
-    private static void add(Biome biome, int color, short id, Color randomColor, Luminosity luminosity) {
-        add(biome, color, id, randomColor, luminosity, null);
-    }
-
-    public static int getColor(Biome biome) {
-        return BIOME_HEX.get(biome);
-    }
-
-    public static Color getColorType(Biome biome) {
-        return BIOME_COLOR.get(biome);
-    }
-
-    public static Luminosity getColorLuminosity(Biome biome) {
-        return BIOME_LUMINOSITY.get(biome);
-    }
-
-    public static SaturationType getColorSaturatiom(Biome biome) {
-        return BIOME_SATURATION.get(biome);
-    }
-
-    public static short getId(Biome biome) {
-        return BIOME_IDs.get(biome);
-    }
-
     static {
         add(Biome.OCEAN, 0x000070, (short) 0, Color.BLUE, Luminosity.BRIGHT, SaturationType.MEDIUM);
         add(Biome.PLAINS, 0x8DB360, (short) 1, Color.GREEN, Luminosity.LIGHT, SaturationType.MEDIUM);
@@ -143,5 +111,37 @@ public class VanillaBiomeMap {
         add(Biome.CRIMSON_FOREST, 0xDD0808, (short) 171, Color.RED, Luminosity.DARK, SaturationType.HIGH);
         add(Biome.WARPED_FOREST, 0x49907B, (short) 172, Color.BLUE, Luminosity.BRIGHT);
         add(Biome.BASALT_DELTAS, 0x403636, (short) 173, Color.MONOCHROME, Luminosity.DARK);
+    }
+
+    private static void add(Biome biome, int color, short id, Color randomColor, Luminosity luminosity, SaturationType saturation) {
+        BIOME_HEX.put(biome, color);
+        BIOME_COLOR.put(biome, randomColor);
+        if (luminosity != null) BIOME_LUMINOSITY.put(biome, luminosity);
+        if (saturation != null) BIOME_SATURATION.put(biome, saturation);
+        BIOME_IDs.put(biome, id);
+    }
+
+    private static void add(Biome biome, int color, short id, Color randomColor, Luminosity luminosity) {
+        add(biome, color, id, randomColor, luminosity, null);
+    }
+
+    public static int getColor(Biome biome) {
+        return BIOME_HEX.get(biome);
+    }
+
+    public static Color getColorType(Biome biome) {
+        return BIOME_COLOR.get(biome);
+    }
+
+    public static Luminosity getColorLuminosity(Biome biome) {
+        return BIOME_LUMINOSITY.get(biome);
+    }
+
+    public static SaturationType getColorSaturatiom(Biome biome) {
+        return BIOME_SATURATION.get(biome);
+    }
+
+    public static short getId(Biome biome) {
+        return BIOME_IDs.get(biome);
     }
 }

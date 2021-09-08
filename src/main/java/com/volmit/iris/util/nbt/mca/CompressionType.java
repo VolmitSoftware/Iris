@@ -44,6 +44,15 @@ public enum CompressionType {
         this.decompressor = decompressor;
     }
 
+    public static CompressionType getFromID(byte id) {
+        for (CompressionType c : CompressionType.values()) {
+            if (c.id == id) {
+                return c;
+            }
+        }
+        return null;
+    }
+
     public byte getID() {
         return id;
     }
@@ -54,14 +63,5 @@ public enum CompressionType {
 
     public InputStream decompress(InputStream in) throws IOException {
         return decompressor.accept(in);
-    }
-
-    public static CompressionType getFromID(byte id) {
-        for (CompressionType c : CompressionType.values()) {
-            if (c.id == id) {
-                return c;
-            }
-        }
-        return null;
     }
 }

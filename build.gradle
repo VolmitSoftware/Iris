@@ -22,7 +22,7 @@ plugins {
 }
 
 group 'com.volmit.iris'
-version '1.8.6'
+version '1.8.7'
 def apiVersion = '1.17'
 def name = getRootProject().getName() // Defined in settings.gradle
 def main = 'com.volmit.iris.Iris'
@@ -141,6 +141,7 @@ shadowJar {
     append("plugin.yml")
     relocate 'com.dfsek.paralithic', 'com.volmit.iris.util.paralithic'
     relocate 'io.papermc.lib', 'com.volmit.iris.util.paper'
+    relocate 'net.kyori', 'com.volmit.iris.util.kyori'
     dependencies {
         include(dependency('io.papermc:paperlib'))
         include(dependency('com.dfsek:Paralithic'))
@@ -177,9 +178,9 @@ dependencies {
     // Shaded
     implementation 'com.dfsek:Paralithic:0.4.0'
     implementation 'io.papermc:paperlib:1.0.5'
-    implementation "net.kyori:adventure-text-minimessage:4.1.0-SNAPSHOT"
+    implementation "net.kyori:adventure-text-minimessage:4.2.0-SNAPSHOT"
     implementation "net.kyori:adventure-platform-bukkit:4.0.0-SNAPSHOT"
-    implementation 'net.kyori:adventure-api:4.8.1'
+    implementation 'net.kyori:adventure-api:4.9.1'
 
     // Dynamically Loaded
     implementation 'io.timeandspace:smoothie-map:2.0.2'

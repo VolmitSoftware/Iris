@@ -20,12 +20,36 @@ package com.volmit.iris.util.io;
 
 import com.volmit.iris.Iris;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.CharArrayWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collection;
+import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
@@ -63,6 +87,14 @@ public class IO {
      */
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 4;
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
+
+    static {
+        // avoid security issues
+        StringWriter buf = new StringWriter(4);
+        PrintWriter out = new PrintWriter(buf);
+        out.println();
+        LINE_SEPARATOR = buf.toString();
+    }
 
     public static String decompress(String gz) throws IOException {
         ByteArrayInputStream bin = new ByteArrayInputStream(Base64.getUrlDecoder().decode(gz));
@@ -451,6 +483,8 @@ public class IO {
         doCopyFile(srcFile, destFile, preserveFileDate);
     }
 
+    // -----------------------------------------------------------------------
+
     /**
      * Internal copy file method.
      *
@@ -483,8 +517,6 @@ public class IO {
             destFile.setLastModified(srcFile.lastModified());
         }
     }
-
-    // -----------------------------------------------------------------------
 
     /**
      * Unconditionally close an <code>Reader</code>.
@@ -543,6 +575,9 @@ public class IO {
         }
     }
 
+    // read toByteArray
+    // -----------------------------------------------------------------------
+
     /**
      * Unconditionally close an <code>OutputStream</code>.
      * <p>
@@ -561,9 +596,6 @@ public class IO {
             // ignore
         }
     }
-
-    // read toByteArray
-    // -----------------------------------------------------------------------
 
     /**
      * Get the contents of an <code>InputStream</code> as a <code>byte[]</code>.
@@ -623,6 +655,9 @@ public class IO {
         return output.toByteArray();
     }
 
+    // read char[]
+    // -----------------------------------------------------------------------
+
     /**
      * Get the contents of a <code>String</code> as a <code>byte[]</code> using the
      * default character encoding of the platform.
@@ -637,9 +672,6 @@ public class IO {
     public static byte[] toByteArray(String input) {
         return input.getBytes();
     }
-
-    // read char[]
-    // -----------------------------------------------------------------------
 
     /**
      * Get the contents of an <code>InputStream</code> as a character array using
@@ -683,6 +715,9 @@ public class IO {
         return output.toCharArray();
     }
 
+    // read toString
+    // -----------------------------------------------------------------------
+
     /**
      * Get the contents of a <code>Reader</code> as a character array.
      * <p>
@@ -700,9 +735,6 @@ public class IO {
         copy(input, sw);
         return sw.toCharArray();
     }
-
-    // read toString
-    // -----------------------------------------------------------------------
 
     /**
      * Get the contents of an <code>InputStream</code> as a String using the default
@@ -774,6 +806,9 @@ public class IO {
         return new String(input);
     }
 
+    // readLines
+    // -----------------------------------------------------------------------
+
     /**
      * Get the contents of a <code>byte[]</code> as a String using the specified
      * character encoding.
@@ -796,9 +831,6 @@ public class IO {
             return new String(input, encoding);
         }
     }
-
-    // readLines
-    // -----------------------------------------------------------------------
 
     /**
      * Get the contents of an <code>InputStream</code> as a list of Strings, one
@@ -844,6 +876,8 @@ public class IO {
         }
     }
 
+    // -----------------------------------------------------------------------
+
     /**
      * Get the contents of a <code>Reader</code> as a list of Strings, one entry per
      * line.
@@ -868,8 +902,6 @@ public class IO {
         return list;
     }
 
-    // -----------------------------------------------------------------------
-
     /**
      * Convert the specified string to an input stream, encoded as bytes using the
      * default character encoding of the platform.
@@ -882,6 +914,9 @@ public class IO {
         byte[] bytes = input.getBytes();
         return new ByteArrayInputStream(bytes);
     }
+
+    // write byte[]
+    // -----------------------------------------------------------------------
 
     /**
      * Convert the specified string to an input stream, encoded as bytes using the
@@ -900,9 +935,6 @@ public class IO {
         byte[] bytes = encoding != null ? input.getBytes(encoding) : input.getBytes();
         return new ByteArrayInputStream(bytes);
     }
-
-    // write byte[]
-    // -----------------------------------------------------------------------
 
     /**
      * Writes bytes from a <code>byte[]</code> to an <code>OutputStream</code>.
@@ -937,6 +969,9 @@ public class IO {
         }
     }
 
+    // write char[]
+    // -----------------------------------------------------------------------
+
     /**
      * Writes bytes from a <code>byte[]</code> to chars on a <code>Writer</code>
      * using the specified character encoding.
@@ -962,9 +997,6 @@ public class IO {
             }
         }
     }
-
-    // write char[]
-    // -----------------------------------------------------------------------
 
     /**
      * Writes chars from a <code>char[]</code> to a <code>Writer</code> using the
@@ -1000,6 +1032,9 @@ public class IO {
         }
     }
 
+    // write String
+    // -----------------------------------------------------------------------
+
     /**
      * Writes chars from a <code>char[]</code> to bytes on an
      * <code>OutputStream</code> using the specified character encoding.
@@ -1026,9 +1061,6 @@ public class IO {
             }
         }
     }
-
-    // write String
-    // -----------------------------------------------------------------------
 
     /**
      * Writes chars from a <code>String</code> to a <code>Writer</code>.
@@ -1064,6 +1096,9 @@ public class IO {
         }
     }
 
+    // write StringBuffer
+    // -----------------------------------------------------------------------
+
     /**
      * Writes chars from a <code>String</code> to bytes on an
      * <code>OutputStream</code> using the specified character encoding.
@@ -1089,9 +1124,6 @@ public class IO {
             }
         }
     }
-
-    // write StringBuffer
-    // -----------------------------------------------------------------------
 
     /**
      * Writes chars from a <code>StringBuffer</code> to a <code>Writer</code>.
@@ -1127,6 +1159,9 @@ public class IO {
         }
     }
 
+    // writeLines
+    // -----------------------------------------------------------------------
+
     /**
      * Writes chars from a <code>StringBuffer</code> to bytes on an
      * <code>OutputStream</code> using the specified character encoding.
@@ -1152,9 +1187,6 @@ public class IO {
             }
         }
     }
-
-    // writeLines
-    // -----------------------------------------------------------------------
 
     /**
      * Writes the <code>toString()</code> value of each item in a collection to an
@@ -1220,6 +1252,9 @@ public class IO {
         }
     }
 
+    // copy from InputStream
+    // -----------------------------------------------------------------------
+
     /**
      * Writes the <code>toString()</code> value of each item in a collection to a
      * <code>Writer</code> line by line, using the specified line ending.
@@ -1246,9 +1281,6 @@ public class IO {
             writer.write(lineEnding);
         }
     }
-
-    // copy from InputStream
-    // -----------------------------------------------------------------------
 
     /**
      * Copy bytes from an <code>InputStream</code> to an <code>OutputStream</code>.
@@ -1322,6 +1354,9 @@ public class IO {
         copy(in, output);
     }
 
+    // copy from Reader
+    // -----------------------------------------------------------------------
+
     /**
      * Copy bytes from an <code>InputStream</code> to chars on a <code>Writer</code>
      * using the specified character encoding.
@@ -1349,9 +1384,6 @@ public class IO {
             copy(in, output);
         }
     }
-
-    // copy from Reader
-    // -----------------------------------------------------------------------
 
     /**
      * Copy chars from a <code>Reader</code> to a <code>Writer</code>.
@@ -1431,6 +1463,9 @@ public class IO {
         out.flush();
     }
 
+    // content equals
+    // -----------------------------------------------------------------------
+
     /**
      * Copy chars from a <code>Reader</code> to bytes on an
      * <code>OutputStream</code> using the specified character encoding, and calling
@@ -1464,9 +1499,6 @@ public class IO {
             out.flush();
         }
     }
-
-    // content equals
-    // -----------------------------------------------------------------------
 
     /**
      * Compare the contents of two Streams to determine if they are equal or not.
@@ -1535,13 +1567,5 @@ public class IO {
 
         int ch2 = input2.read();
         return (ch2 == -1);
-    }
-
-    static {
-        // avoid security issues
-        StringWriter buf = new StringWriter(4);
-        PrintWriter out = new PrintWriter(buf);
-        out.println();
-        LINE_SEPARATOR = buf.toString();
     }
 }

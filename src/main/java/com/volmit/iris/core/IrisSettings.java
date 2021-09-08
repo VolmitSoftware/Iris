@@ -33,6 +33,7 @@ import java.io.IOException;
 @Data
 public class IrisSettings {
     public static transient IrisSettings settings;
+    public int configurationVersion = 3;
     private IrisSettingsCache cache = new IrisSettingsCache();
     private IrisSettingsConcurrency concurrency = new IrisSettingsConcurrency();
     private IrisSettingsParallax parallax = new IrisSettingsParallax();
@@ -40,7 +41,71 @@ public class IrisSettings {
     private IrisSettingsGUI gui = new IrisSettingsGUI();
     private IrisSettingsGenerator generator = new IrisSettingsGenerator();
     private IrisSettingsStudio studio = new IrisSettingsStudio();
-    public int configurationVersion = 3;
+
+    public static int getPriority(int c) {
+        return Math.max(Math.min(c, Thread.MAX_PRIORITY), Thread.MIN_PRIORITY);
+    }
+
+    public static int getThreadCount(int c) {
+        if (c < 2 && c >= 0) {
+            return 2;
+        }
+
+        return Math.max(2, c < 0 ? Runtime.getRuntime().availableProcessors() / -c : c);
+    }
+
+    public static IrisSettings get() {
+        if (settings != null) {
+            return settings;
+        }
+
+        IrisSettings defaults = new IrisSettings();
+        JSONObject def = new JSONObject(new Gson().toJson(defaults));
+        if (settings == null) {
+            settings = new IrisSettings();
+
+            File s = Iris.instance.getDataFile("settings.json");
+
+            if (!s.exists()) {
+                try {
+                    IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
+                } catch (JSONException | IOException e) {
+                    e.printStackTrace();
+                    Iris.reportError(e);
+                }
+            } else {
+                try {
+                    String ss = IO.readAll(s);
+                    settings = new Gson().fromJson(ss, IrisSettings.class);
+                    try {
+                        IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                } catch (Throwable ee) {
+                    Iris.reportError(ee);
+                    Iris.error("Configuration Error in settings.json! " + ee.getClass().getSimpleName() + ": " + ee.getMessage());
+                }
+            }
+
+            if (!s.exists()) {
+                try {
+                    IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
+                } catch (JSONException | IOException e) {
+                    Iris.reportError(e);
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return settings;
+    }
+
+    public static void invalidate() {
+        synchronized (settings) {
+            settings = null;
+        }
+    }
 
     public boolean isStudio() {
         return getStudio().isStudio();
@@ -53,18 +118,6 @@ public class IrisSettings {
 
     public long getParallaxRegionEvictionMS() {
         return getParallax().getParallaxRegionEvictionMS();
-    }
-
-    public static int getPriority(int c) {
-        return Math.max(Math.min(c, Thread.MAX_PRIORITY), Thread.MIN_PRIORITY);
-    }
-
-    public static int getThreadCount(int c) {
-        if (c < 2 && c >= 0) {
-            return 2;
-        }
-
-        return Math.max(2, c < 0 ? Runtime.getRuntime().availableProcessors() / -c : c);
     }
 
     public void forceSave() {
@@ -137,58 +190,5 @@ public class IrisSettings {
         public boolean studio = true;
         public boolean openVSCode = true;
         public boolean disableTimeAndWeather = true;
-    }
-
-    public static IrisSettings get() {
-        if (settings != null) {
-            return settings;
-        }
-
-        IrisSettings defaults = new IrisSettings();
-        JSONObject def = new JSONObject(new Gson().toJson(defaults));
-        if (settings == null) {
-            settings = new IrisSettings();
-
-            File s = Iris.instance.getDataFile("settings.json");
-
-            if (!s.exists()) {
-                try {
-                    IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
-                } catch (JSONException | IOException e) {
-                    e.printStackTrace();
-                    Iris.reportError(e);
-                }
-            } else {
-                try {
-                    String ss = IO.readAll(s);
-                    settings = new Gson().fromJson(ss, IrisSettings.class);
-                    try {
-                        IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                } catch (Throwable ee) {
-                    Iris.reportError(ee);
-                    Iris.error("Configuration Error in settings.json! " + ee.getClass().getSimpleName() + ": " + ee.getMessage());
-                }
-            }
-
-            if (!s.exists()) {
-                try {
-                    IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
-                } catch (JSONException | IOException e) {
-                    Iris.reportError(e);
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        return settings;
-    }
-
-    public static void invalidate() {
-        synchronized (settings) {
-            settings = null;
-        }
     }
 }

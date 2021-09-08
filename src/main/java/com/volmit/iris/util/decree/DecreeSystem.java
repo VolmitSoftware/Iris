@@ -40,63 +40,6 @@ import java.util.List;
 public interface DecreeSystem extends CommandExecutor, TabCompleter {
     KList<DecreeParameterHandler<?>> handlers = Iris.initialize("com.volmit.iris.util.decree.handlers", null).convert((i) -> (DecreeParameterHandler<?>) i);
 
-    /**
-     * The root class to start command searching from
-     *
-     * @return
-     */
-    VirtualDecreeCommand getRoot();
-
-    default boolean call(VolmitSender sender, String[] args) {
-        DecreeContext.touch(sender);
-        return getRoot().invoke(sender, enhanceArgs(args));
-    }
-
-    @Nullable
-    @Override
-    default List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
-        KList<String> enhanced = new KList<>(args);
-        KList<String> v = getRoot().tabComplete(enhanced, enhanced.toString(" "));
-        v.removeDuplicates();
-
-        if (sender instanceof Player) {
-            if (IrisSettings.get().getGeneral().isCommandSounds()) {
-                ((Player) sender).playSound(((Player) sender).getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.25f, RNG.r.f(0.125f, 1.95f));
-            }
-        }
-
-        return v;
-    }
-
-    @Override
-    default boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (!sender.hasPermission("iris.all")) {
-            sender.sendMessage("You lack the Permission 'iris.all'");
-        }
-
-        J.aBukkit(() -> {
-            if (!call(new VolmitSender(sender), args)) {
-
-                if (IrisSettings.get().getGeneral().isCommandSounds()) {
-                    if (sender instanceof Player) {
-                        ((Player) sender).playSound(((Player) sender).getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.77f, 0.25f);
-                        ((Player) sender).playSound(((Player) sender).getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.2f, 0.45f);
-                    }
-                }
-
-                sender.sendMessage(C.RED + "Unknown Iris Command");
-            } else {
-                if (IrisSettings.get().getGeneral().isCommandSounds()) {
-                    if (sender instanceof Player) {
-                        ((Player) sender).playSound(((Player) sender).getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.77f, 1.65f);
-                        ((Player) sender).playSound(((Player) sender).getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 0.125f, 2.99f);
-                    }
-                }
-            }
-        });
-        return true;
-    }
-
     static KList<String> enhanceArgs(String[] args) {
         return enhanceArgs(args, true);
     }
@@ -181,5 +124,63 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
         }
         Iris.error("Unhandled type in Decree Parameter: " + type.getName() + ". This is bad!");
         return null;
+    }
+
+    /**
+     * The root class to start command searching from
+     *
+     * @return
+     */
+    VirtualDecreeCommand getRoot();
+
+    default boolean call(VolmitSender sender, String[] args) {
+        DecreeContext.touch(sender);
+        return getRoot().invoke(sender, enhanceArgs(args));
+    }
+
+    @Nullable
+    @Override
+    default List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        KList<String> enhanced = new KList<>(args);
+        KList<String> v = getRoot().tabComplete(enhanced, enhanced.toString(" "));
+        v.removeDuplicates();
+
+        if (sender instanceof Player) {
+            if (IrisSettings.get().getGeneral().isCommandSounds()) {
+                ((Player) sender).playSound(((Player) sender).getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.25f, RNG.r.f(0.125f, 1.95f));
+            }
+        }
+
+        return v;
+    }
+
+    @Override
+    default boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        if (!sender.hasPermission("iris.all")) {
+            sender.sendMessage("You lack the Permission 'iris.all'");
+            return true;
+        }
+
+        J.aBukkit(() -> {
+            if (!call(new VolmitSender(sender), args)) {
+
+                if (IrisSettings.get().getGeneral().isCommandSounds()) {
+                    if (sender instanceof Player) {
+                        ((Player) sender).playSound(((Player) sender).getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.77f, 0.25f);
+                        ((Player) sender).playSound(((Player) sender).getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.2f, 0.45f);
+                    }
+                }
+
+                sender.sendMessage(C.RED + "Unknown Iris Command");
+            } else {
+                if (IrisSettings.get().getGeneral().isCommandSounds()) {
+                    if (sender instanceof Player) {
+                        ((Player) sender).playSound(((Player) sender).getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.77f, 1.65f);
+                        ((Player) sender).playSound(((Player) sender).getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 0.125f, 2.99f);
+                    }
+                }
+            }
+        });
+        return true;
     }
 }

@@ -23,19 +23,14 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import lombok.AccessLevel;
 import lombok.Data;
-import lombok.Getter;
 import lombok.Setter;
 
 @Data
-public class SeedManager
-{
+public class SeedManager {
     ////////////////////////////////////////////////////////////////////
     private static final String IRIS_SIGNATURE = "Iris World Generator";
     private static final long IRIS_TERRAIN_VERSION = 1;
     ////////////////////////////////////////////////////////////////////
-
-    @Setter(AccessLevel.NONE)
-    private long fullMixedSeed;
     private final RNG rlock;
     private final CNG soup;
     private final long seed;
@@ -55,9 +50,11 @@ public class SeedManager
     private final long carve;
     private final long deposit;
     private final long post;
+    private final long bodies;
+    @Setter(AccessLevel.NONE)
+    private long fullMixedSeed;
 
-    public SeedManager(long seed)
-    {
+    public SeedManager(long seed) {
         soup = createSoup(seed);
         rlock = new RNG(Double.doubleToLongBits(soup.fitDouble(Double.MIN_VALUE, Double.MAX_VALUE, seed + 1337, seed * 69, seed)));
         this.seed = seed;
@@ -77,10 +74,10 @@ public class SeedManager
         carve = of("carve");
         deposit = of("deposit");
         post = of("post");
+        bodies = of("bodies");
     }
 
-    private long of(String name)
-    {
+    private long of(String name) {
         RNG rng = new RNG(name + IRIS_SIGNATURE + "::" + IRIS_TERRAIN_VERSION + ((seed + rlock.imax()) * rlock.lmax()));
         long f = rlock.imax() * ((rlock.chance(0.5) ? 1 : -1) * (name.hashCode() + Double.doubleToLongBits(soup.fitDouble(Double.MIN_VALUE, Double.MAX_VALUE, rng.imax(), rng.imax(), rng.imax()))));
         fullMixedSeed += (f * rlock.imax());
@@ -95,8 +92,7 @@ public class SeedManager
         RNG e = new RNG((IRIS_TERRAIN_VERSION * 42) + IRIS_SIGNATURE);
         double gsoup = 0;
         int gk = a.i(1_000, 10_000);
-        for(char i : (a.s(4) + b.s(4) + c.s(4) + d.s(4) + e.s(4)).toCharArray())
-        {
+        for (char i : (a.s(4) + b.s(4) + c.s(4) + d.s(4) + e.s(4)).toCharArray()) {
             gsoup += ((gk * b.d(3, Math.PI)) / c.d(10, 18 * Math.E)) + 6_549;
             gsoup *= d.d(90.5, 1_234_567);
             gsoup += e.d(39.95, 99.25);

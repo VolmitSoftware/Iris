@@ -34,6 +34,31 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class BlockSignal {
     public static final AtomicInteger active = new AtomicInteger(0);
 
+    public BlockSignal(Block block, int ticks) {
+        active.incrementAndGet();
+        Location tg = block.getLocation().clone().add(0.5, 0, 0.5).clone();
+        FallingBlock e = block.getWorld().spawnFallingBlock(tg.clone(), block.getBlockData());
+        e.setGravity(false);
+        e.setInvulnerable(true);
+        e.setGlowing(true);
+        e.teleport(tg.clone());
+        e.setDropItem(false);
+        e.setHurtEntities(false);
+        e.setSilent(true);
+        e.setTicksLived(1);
+        e.setVelocity(new Vector(0, 0, 0));
+        J.s(() -> {
+            e.remove();
+            active.decrementAndGet();
+            BlockData type = block.getBlockData();
+            MultiBurst.burst.lazy(() -> {
+                for (Player i : block.getWorld().getPlayers()) {
+                    i.sendBlockChange(block.getLocation(), block.getBlockData());
+                }
+            });
+        }, ticks);
+    }
+
     public static void of(Block block, int ticks) {
         new BlockSignal(block, ticks);
     }
@@ -79,30 +104,5 @@ public class BlockSignal {
                 }
             });
         };
-    }
-
-    public BlockSignal(Block block, int ticks) {
-        active.incrementAndGet();
-        Location tg = block.getLocation().clone().add(0.5, 0, 0.5).clone();
-        FallingBlock e = block.getWorld().spawnFallingBlock(tg.clone(), block.getBlockData());
-        e.setGravity(false);
-        e.setInvulnerable(true);
-        e.setGlowing(true);
-        e.teleport(tg.clone());
-        e.setDropItem(false);
-        e.setHurtEntities(false);
-        e.setSilent(true);
-        e.setTicksLived(1);
-        e.setVelocity(new Vector(0, 0, 0));
-        J.s(() -> {
-            e.remove();
-            active.decrementAndGet();
-            BlockData type = block.getBlockData();
-            MultiBurst.burst.lazy(() -> {
-                for (Player i : block.getWorld().getPlayers()) {
-                    i.sendBlockChange(block.getLocation(), block.getBlockData());
-                }
-            });
-        }, ticks);
     }
 }

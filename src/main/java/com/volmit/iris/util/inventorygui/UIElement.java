@@ -28,13 +28,13 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 public class UIElement implements Element {
+    private final String id;
+    private final KList<String> lore;
     private MaterialBlock material;
     private boolean enchanted;
-    private final String id;
     private String name;
     private double progress;
     private boolean bg;
-    private final KList<String> lore;
     private Callback<Element> eLeft;
     private Callback<Element> eRight;
     private Callback<Element> eShiftLeft;
@@ -56,14 +56,14 @@ public class UIElement implements Element {
         return material;
     }
 
-    public Double clip(double value, double min, double max) {
-        return Math.min(max, Math.max(min, value));
-    }
-
     @Override
     public UIElement setMaterial(MaterialBlock material) {
         this.material = material;
         return this;
+    }
+
+    public Double clip(double value, double min, double max) {
+        return Math.min(max, Math.max(min, value));
     }
 
     @Override

@@ -24,12 +24,11 @@ import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.jetbrains.annotations.NotNull;
 
 public class IrisBiomeStorage implements BiomeGrid {
-    private static final int e;
-    private static final int f;
     public static final int a;
     public static final int b;
     public static final int c;
-    private final Biome[] g;
+    private static final int e;
+    private static final int f;
 
     static {
         e = (int) Math.round(Math.log(16.0) / Math.log(2.0)) - 2;
@@ -38,6 +37,8 @@ public class IrisBiomeStorage implements BiomeGrid {
         b = (1 << IrisBiomeStorage.e) - 1;
         c = (1 << IrisBiomeStorage.f) - 1;
     }
+
+    private final Biome[] g;
 
     public IrisBiomeStorage(final Biome[] aBiome) {
         this.g = aBiome;

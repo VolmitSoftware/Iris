@@ -29,10 +29,10 @@ import com.volmit.iris.util.data.DoubleArrayUtils;
  */
 public class Average {
     protected final double[] values;
+    protected int cursor;
     private double average;
     private double lastSum;
     private boolean dirty;
-    protected int cursor;
     private boolean brandNew;
 
     /**

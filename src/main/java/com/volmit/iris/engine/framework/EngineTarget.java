@@ -27,9 +27,9 @@ import lombok.Data;
 @Data
 public class EngineTarget {
     private final MultiBurst burster;
+    private final IrisData data;
     private IrisDimension dimension;
     private IrisWorld world;
-    private final IrisData data;
 
     public EngineTarget(IrisWorld world, IrisDimension dimension, IrisData data) {
         this.world = world;

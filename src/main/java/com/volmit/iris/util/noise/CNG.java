@@ -33,8 +33,6 @@ import java.util.List;
 
 @Data
 public class CNG {
-    public static long hits = 0;
-    public static long creates = 0;
     public static final NoiseInjector ADD = (s, v) -> new double[]{s + v, 1};
     public static final NoiseInjector SRC_SUBTRACT = (s, v) -> new double[]{s - v < 0 ? 0 : s - v, -1};
     public static final NoiseInjector DST_SUBTRACT = (s, v) -> new double[]{v - s < 0 ? 0 : s - v, -1};
@@ -45,6 +43,9 @@ public class CNG {
     public static final NoiseInjector SRC_POW = (s, v) -> new double[]{Math.pow(s, v), 0};
     public static final NoiseInjector DST_MOD = (s, v) -> new double[]{v % s, 0};
     public static final NoiseInjector DST_POW = (s, v) -> new double[]{Math.pow(v, s), 0};
+    public static long hits = 0;
+    public static long creates = 0;
+    private final double opacity;
     private double scale;
     private double bakedScale;
     private double fscale;
@@ -52,7 +53,6 @@ public class CNG {
     private KList<CNG> children;
     private CNG fracture;
     private NoiseGenerator generator;
-    private final double opacity;
     private NoiseInjector injector;
     private RNG rng;
     private boolean noscale;
@@ -63,16 +63,43 @@ public class CNG {
     private double power;
     private ProceduralStream<Double> customGenerator;
 
-    public NoiseGenerator getGen() {
-        return generator;
+    public CNG(RNG random) {
+        this(random, 1);
     }
 
-    public ProceduralStream<Double> stream() {
-        return new CNGStream(this);
+    public CNG(RNG random, int octaves) {
+        this(random, 1D, octaves);
     }
 
-    public ProceduralStream<Double> stream(double min, double max) {
-        return new FittedStream<>(stream(), min, max);
+    public CNG(RNG random, double opacity, int octaves) {
+        this(random, NoiseType.SIMPLEX, opacity, octaves);
+    }
+
+    public CNG(RNG random, NoiseType type, double opacity, int octaves) {
+        this(random, type.create(random.nextParallelRNG((long) ((1113334944L * opacity) + 12922 + octaves)).lmax()), opacity, octaves);
+    }
+
+    public CNG(RNG random, NoiseGenerator generator, double opacity, int octaves) {
+        customGenerator = null;
+        creates++;
+        noscale = generator.isNoScale();
+        this.oct = octaves;
+        this.rng = random;
+        power = 1;
+        scale = 1;
+        patch = 1;
+        bakedScale = 1;
+        fscale = 1;
+        down = 0;
+        up = 0;
+        fracture = null;
+        this.generator = generator;
+        this.opacity = opacity;
+        this.injector = ADD;
+
+        if (generator instanceof OctaveNoise) {
+            ((OctaveNoise) generator).setOctaves(octaves);
+        }
     }
 
     public static CNG signature(RNG rng) {
@@ -94,7 +121,6 @@ public class CNG {
     public static CNG signatureDouble(RNG rng, NoiseType t) {
         return signatureThick(rng, t).fractureWith(signature(rng.nextParallelRNG(4956)), 93);
     }
-
 
     public static CNG signatureDoubleFast(RNG rng, NoiseType t, NoiseType f) {
         return signatureThickFast(rng, t, f)
@@ -162,43 +188,16 @@ public class CNG {
         // @done
     }
 
-    public CNG(RNG random) {
-        this(random, 1);
+    public NoiseGenerator getGen() {
+        return generator;
     }
 
-    public CNG(RNG random, int octaves) {
-        this(random, 1D, octaves);
+    public ProceduralStream<Double> stream() {
+        return new CNGStream(this);
     }
 
-    public CNG(RNG random, double opacity, int octaves) {
-        this(random, NoiseType.SIMPLEX, opacity, octaves);
-    }
-
-    public CNG(RNG random, NoiseType type, double opacity, int octaves) {
-        this(random, type.create(random.nextParallelRNG((long) ((1113334944L * opacity) + 12922 + octaves)).lmax()), opacity, octaves);
-    }
-
-    public CNG(RNG random, NoiseGenerator generator, double opacity, int octaves) {
-        customGenerator = null;
-        creates++;
-        noscale = generator.isNoScale();
-        this.oct = octaves;
-        this.rng = random;
-        power = 1;
-        scale = 1;
-        patch = 1;
-        bakedScale = 1;
-        fscale = 1;
-        down = 0;
-        up = 0;
-        fracture = null;
-        this.generator = generator;
-        this.opacity = opacity;
-        this.injector = ADD;
-
-        if (generator instanceof OctaveNoise) {
-            ((OctaveNoise) generator).setOctaves(octaves);
-        }
+    public ProceduralStream<Double> stream(double min, double max) {
+        return new FittedStream<>(stream(), min, max);
     }
 
     public CNG bake() {

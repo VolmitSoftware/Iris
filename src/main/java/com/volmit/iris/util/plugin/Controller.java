@@ -21,8 +21,8 @@ package com.volmit.iris.util.plugin;
 import com.volmit.iris.Iris;
 
 public abstract class Controller implements IController {
-    private int tickRate;
     private final String name;
+    private int tickRate;
 
     public Controller() {
         name = getClass().getSimpleName().replaceAll("Controller", "") + " Controller";

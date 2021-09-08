@@ -53,6 +53,18 @@ public class MCAFile {
     }
 
     /**
+     * Calculates the index of a chunk from its x- and z-coordinates in this region.
+     * This works with absolute and relative coordinates.
+     *
+     * @param chunkX The x-coordinate of the chunk.
+     * @param chunkZ The z-coordinate of the chunk.
+     * @return The index of this chunk.
+     */
+    public static int getChunkIndex(int chunkX, int chunkZ) {
+        return (chunkX & 0x1F) + (chunkZ & 0x1F) * 32;
+    }
+
+    /**
      * Reads an .mca file from a {@code RandomAccessFile} into this object.
      * This method does not perform any cleanups on the data.
      *
@@ -243,18 +255,6 @@ public class MCAFile {
 
     public boolean hasChunk(int chunkX, int chunkZ) {
         return getChunk(chunkX, chunkZ) != null;
-    }
-
-    /**
-     * Calculates the index of a chunk from its x- and z-coordinates in this region.
-     * This works with absolute and relative coordinates.
-     *
-     * @param chunkX The x-coordinate of the chunk.
-     * @param chunkZ The z-coordinate of the chunk.
-     * @return The index of this chunk.
-     */
-    public static int getChunkIndex(int chunkX, int chunkZ) {
-        return (chunkX & 0x1F) + (chunkZ & 0x1F) * 32;
     }
 
     private int checkIndex(int index) {

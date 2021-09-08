@@ -41,50 +41,6 @@ public class ProfiledStream<T> extends BasicStream<T> {
         this.id = ids.getAndAdd(1);
     }
 
-    public int getId() {
-        return id;
-    }
-
-    @Override
-    public double toDouble(T t) {
-        return getTypedSource().toDouble(t);
-    }
-
-    @Override
-    public T fromDouble(double d) {
-        return getTypedSource().fromDouble(d);
-    }
-
-    @Override
-    public T get(double x, double z) {
-        PrecisionStopwatch p = PrecisionStopwatch.start();
-        T t = getTypedSource().get(x, z);
-        try {
-            metrics.put(p.getMilliseconds());
-        } catch (Throwable e) {
-            Iris.reportError(e);
-        }
-
-        return t;
-    }
-
-    @Override
-    public T get(double x, double y, double z) {
-        PrecisionStopwatch p = PrecisionStopwatch.start();
-        T t = getTypedSource().get(x, y, z);
-        try {
-            metrics.put(p.getMilliseconds());
-        } catch (Throwable e) {
-            Iris.reportError(e);
-        }
-
-        return t;
-    }
-
-    public RollingSequence getMetrics() {
-        return metrics;
-    }
-
     public static void print(Consumer<String> printer, ProceduralStream<?> stream) {
         KList<ProfiledTail> tails = getTails(stream);
         int ind = tails.size();
@@ -154,12 +110,56 @@ public class ProfiledStream<T> extends BasicStream<T> {
         return tailx;
     }
 
+    public int getId() {
+        return id;
+    }
+
+    @Override
+    public double toDouble(T t) {
+        return getTypedSource().toDouble(t);
+    }
+
+    @Override
+    public T fromDouble(double d) {
+        return getTypedSource().fromDouble(d);
+    }
+
+    @Override
+    public T get(double x, double z) {
+        PrecisionStopwatch p = PrecisionStopwatch.start();
+        T t = getTypedSource().get(x, z);
+        try {
+            metrics.put(p.getMilliseconds());
+        } catch (Throwable e) {
+            Iris.reportError(e);
+        }
+
+        return t;
+    }
+
+    @Override
+    public T get(double x, double y, double z) {
+        PrecisionStopwatch p = PrecisionStopwatch.start();
+        T t = getTypedSource().get(x, y, z);
+        try {
+            metrics.put(p.getMilliseconds());
+        } catch (Throwable e) {
+            Iris.reportError(e);
+        }
+
+        return t;
+    }
+
+    public RollingSequence getMetrics() {
+        return metrics;
+    }
+
     @Data
     private static class ProfiledTail {
         private final int id;
         private final RollingSequence metrics;
-        private ProfiledTail child;
         private final String name;
+        private ProfiledTail child;
 
         public ProfiledTail(int id, RollingSequence metrics, String name) {
             this.id = id;

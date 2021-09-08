@@ -36,42 +36,6 @@ public enum NMSVersion {
     R1_9_2,
     R1_8;
 
-    public List<NMSVersion> getAboveInclusive() {
-        List<NMSVersion> n = new ArrayList<>();
-
-        for (NMSVersion i : values()) {
-            if (i.ordinal() >= ordinal()) {
-                n.add(i);
-            }
-        }
-
-        return n;
-    }
-
-    public List<NMSVersion> betweenInclusive(NMSVersion other) {
-        List<NMSVersion> n = new ArrayList<>();
-
-        for (NMSVersion i : values()) {
-            if (i.ordinal() <= Math.max(other.ordinal(), ordinal()) && i.ordinal() >= Math.min(ordinal(), other.ordinal())) {
-                n.add(i);
-            }
-        }
-
-        return n;
-    }
-
-    public List<NMSVersion> getBelowInclusive() {
-        List<NMSVersion> n = new ArrayList<>();
-
-        for (NMSVersion i : values()) {
-            if (i.ordinal() <= ordinal()) {
-                n.add(i);
-            }
-        }
-
-        return n;
-    }
-
     public static NMSVersion getMinimum() {
         return values()[values().length - 1];
     }
@@ -137,5 +101,41 @@ public enum NMSVersion {
         }
 
         return false;
+    }
+
+    public List<NMSVersion> getAboveInclusive() {
+        List<NMSVersion> n = new ArrayList<>();
+
+        for (NMSVersion i : values()) {
+            if (i.ordinal() >= ordinal()) {
+                n.add(i);
+            }
+        }
+
+        return n;
+    }
+
+    public List<NMSVersion> betweenInclusive(NMSVersion other) {
+        List<NMSVersion> n = new ArrayList<>();
+
+        for (NMSVersion i : values()) {
+            if (i.ordinal() <= Math.max(other.ordinal(), ordinal()) && i.ordinal() >= Math.min(ordinal(), other.ordinal())) {
+                n.add(i);
+            }
+        }
+
+        return n;
+    }
+
+    public List<NMSVersion> getBelowInclusive() {
+        List<NMSVersion> n = new ArrayList<>();
+
+        for (NMSVersion i : values()) {
+            if (i.ordinal() <= ordinal()) {
+                n.add(i);
+            }
+        }
+
+        return n;
     }
 }

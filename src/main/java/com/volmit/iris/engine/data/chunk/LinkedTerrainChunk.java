@@ -34,8 +34,8 @@ import org.bukkit.material.MaterialData;
 @SuppressWarnings("deprecation")
 public class LinkedTerrainChunk implements TerrainChunk {
     private final IrisBiomeStorage biome3D;
-    private ChunkData rawChunkData;
     private final BiomeGrid storage;
+    private ChunkData rawChunkData;
     @Setter
     private boolean unsafe = false;
 

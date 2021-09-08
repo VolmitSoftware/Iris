@@ -22,6 +22,15 @@ import com.volmit.iris.util.collection.KList;
 
 @SuppressWarnings("ALL")
 public interface Queue<T> {
+    static <T> Queue<T> create(KList<T> t) {
+        return new ShurikenQueue<T>().queue(t);
+    }
+
+    @SuppressWarnings("unchecked")
+    static <T> Queue<T> create(T... t) {
+        return new ShurikenQueue<T>().queue(new KList<T>().add(t));
+    }
+
     Queue<T> queue(T t);
 
     Queue<T> queue(KList<T> t);
@@ -37,15 +46,6 @@ public interface Queue<T> {
     Queue<T> clear();
 
     int size();
-
-    static <T> Queue<T> create(KList<T> t) {
-        return new ShurikenQueue<T>().queue(t);
-    }
-
-    @SuppressWarnings("unchecked")
-    static <T> Queue<T> create(T... t) {
-        return new ShurikenQueue<T>().queue(new KList<T>().add(t));
-    }
 
     boolean contains(T p);
 }

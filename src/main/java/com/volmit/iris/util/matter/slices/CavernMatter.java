@@ -27,16 +27,16 @@ import java.io.IOException;
 
 @Sliced
 public class CavernMatter extends RawMatter<MatterCavern> {
-    public static MatterCavern get(String customBiome, int liquid) {
-        return new MatterCavern(true, customBiome, (byte) liquid);
-    }
-
     public CavernMatter() {
         this(1, 1, 1);
     }
 
     public CavernMatter(int width, int height, int depth) {
         super(width, height, depth, MatterCavern.class);
+    }
+
+    public static MatterCavern get(String customBiome, int liquid) {
+        return new MatterCavern(true, customBiome, (byte) liquid);
     }
 
     @Override

@@ -26,7 +26,18 @@ import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.mantle.EngineMantle;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.InventorySlotType;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisColor;
+import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisEngineData;
+import com.volmit.iris.engine.object.IrisLootMode;
+import com.volmit.iris.engine.object.IrisLootReference;
+import com.volmit.iris.engine.object.IrisLootTable;
+import com.volmit.iris.engine.object.IrisObjectPlacement;
+import com.volmit.iris.engine.object.IrisPosition;
+import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -63,7 +74,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
-import java.awt.*;
+import java.awt.Color;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -73,6 +84,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdater, Renderer, Hotloadable {
+    KList<EngineStage> getStages();
+
+    void registerStage(EngineStage stage);
+
     IrisComplex getComplex();
 
     int getBlockUpdatesPerSecond();
@@ -103,21 +118,21 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     EngineWorldManager getWorldManager();
 
-    void setParallelism(int parallelism);
-
     default UUID getBiomeID(int x, int z) {
         return getComplex().getBaseBiomeIDStream().get(x, z);
     }
 
     int getParallelism();
 
-    EngineTarget getTarget();
+    void setParallelism(int parallelism);
 
-    void setMinHeight(int min);
+    EngineTarget getTarget();
 
     default int getMinHeight() {
         return getTarget().getWorld().minHeight();
     }
+
+    void setMinHeight(int min);
 
     @BlockCoordinates
     double modifyX(double x);

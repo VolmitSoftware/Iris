@@ -23,7 +23,11 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.MantleWriter;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -39,25 +43,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Desc("Translate objects")
 @Data
 public class IrisCavePlacer implements IRare {
+    private transient final AtomicCache<IrisCave> caveCache = new AtomicCache<>();
+    private transient final AtomicBoolean fail = new AtomicBoolean(false);
     @Required
     @Desc("Typically a 1 in RARITY on a per chunk/fork basis")
     @MinNumber(1)
     private int rarity = 15;
-
     @MinNumber(1)
     @Required
     @Desc("The cave to place")
     @RegistryListResource(IrisCave.class)
     private String cave;
-
     @Desc("If set to true, this cave is allowed to break the surface")
     private boolean breakSurface = true;
-
     @Desc("The height range this cave can spawn at. If breakSurface is false, the output of this range will be clamped by the current world height to prevent surface breaking.")
     private IrisStyledRange caveStartHeight = new IrisStyledRange(13, 120, new IrisGeneratorStyle(NoiseStyle.STATIC));
-
-    private transient final AtomicCache<IrisCave> caveCache = new AtomicCache<>();
-    private transient final AtomicBoolean fail = new AtomicBoolean(false);
 
     public IrisCave getRealCave(IrisData data) {
         return caveCache.aquire(() -> data.getCaveLoader().load(getCave()));

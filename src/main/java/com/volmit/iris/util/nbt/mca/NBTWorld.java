@@ -89,6 +89,49 @@ public class NBTWorld {
         });
     }
 
+    public static BlockData getBlockData(CompoundTag tag) {
+        if (tag == null) {
+            return B.getAir();
+        }
+
+        StringBuilder p = new StringBuilder(tag.getString("Name"));
+
+        if (tag.containsKey("Properties")) {
+            CompoundTag props = tag.getCompoundTag("Properties");
+            p.append('[');
+
+            for (String i : props.keySet()) {
+                p.append(i).append('=').append(props.getString(i)).append(',');
+            }
+
+            p.deleteCharAt(p.length() - 1).append(']');
+        }
+
+        BlockData b = B.getOrNull(p.toString());
+
+        if (b == null) {
+            return B.getAir();
+        }
+
+        return b;
+    }
+
+    public static CompoundTag getCompound(BlockData bd) {
+        return blockDataCache.computeIfAbsent(bd, BLOCK_DATA_COMPUTE).clone();
+    }
+
+    private static Map<Biome, Integer> computeBiomeIDs() {
+        Map<Biome, Integer> biomeIds = new KMap<>();
+
+        for (Biome biome : Biome.values()) {
+            if (!biome.name().equals("CUSTOM")) {
+                biomeIds.put(biome, INMS.get().getBiomeId(biome));
+            }
+        }
+
+        return biomeIds;
+    }
+
     public void close() {
 
         for (Long i : loadedRegions.k()) {
@@ -182,37 +225,6 @@ public class NBTWorld {
 
     public File getRegionFile(int x, int z) {
         return new File(worldFolder, "region/r." + x + "." + z + ".mca");
-    }
-
-    public static BlockData getBlockData(CompoundTag tag) {
-        if (tag == null) {
-            return B.getAir();
-        }
-
-        StringBuilder p = new StringBuilder(tag.getString("Name"));
-
-        if (tag.containsKey("Properties")) {
-            CompoundTag props = tag.getCompoundTag("Properties");
-            p.append('[');
-
-            for (String i : props.keySet()) {
-                p.append(i).append('=').append(props.getString(i)).append(',');
-            }
-
-            p.deleteCharAt(p.length() - 1).append(']');
-        }
-
-        BlockData b = B.getOrNull(p.toString());
-
-        if (b == null) {
-            return B.getAir();
-        }
-
-        return b;
-    }
-
-    public static CompoundTag getCompound(BlockData bd) {
-        return blockDataCache.computeIfAbsent(bd, BLOCK_DATA_COMPUTE).clone();
     }
 
     public BlockData getBlockData(int x, int y, int z) {
@@ -316,17 +328,5 @@ public class NBTWorld {
 
     public int size() {
         return loadedRegions.size();
-    }
-
-    private static Map<Biome, Integer> computeBiomeIDs() {
-        Map<Biome, Integer> biomeIds = new KMap<>();
-
-        for (Biome biome : Biome.values()) {
-            if (!biome.name().equals("CUSTOM")) {
-                biomeIds.put(biome, INMS.get().getBiomeId(biome));
-            }
-        }
-
-        return biomeIds;
     }
 }

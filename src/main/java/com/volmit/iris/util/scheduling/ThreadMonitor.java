@@ -30,12 +30,12 @@ import com.volmit.iris.util.math.RollingSequence;
  */
 public class ThreadMonitor extends Thread {
     private final Thread monitor;
+    private final ChronoLatch cl;
+    private final RollingSequence sq = new RollingSequence(3);
+    int cycles = 0;
     private boolean running;
     private State lastState;
-    private final ChronoLatch cl;
     private PrecisionStopwatch st;
-    int cycles = 0;
-    private final RollingSequence sq = new RollingSequence(3);
 
     private ThreadMonitor(Thread monitor) {
         running = true;
@@ -44,6 +44,10 @@ public class ThreadMonitor extends Thread {
         lastState = State.NEW;
         cl = new ChronoLatch(1000);
         start();
+    }
+
+    public static ThreadMonitor bind(Thread monitor) {
+        return new ThreadMonitor(monitor);
     }
 
     public void run() {
@@ -83,9 +87,5 @@ public class ThreadMonitor extends Thread {
 
     public void unbind() {
         running = false;
-    }
-
-    public static ThreadMonitor bind(Thread monitor) {
-        return new ThreadMonitor(monitor);
     }
 }

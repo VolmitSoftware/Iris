@@ -31,10 +31,10 @@ import com.volmit.iris.util.data.DoubleArrayUtils;
  */
 public class AtomicAverage {
     protected final AtomicDoubleArray values;
+    protected int cursor;
     private double average;
     private double lastSum;
     private boolean dirty;
-    protected int cursor;
     private boolean brandNew;
 
     /**

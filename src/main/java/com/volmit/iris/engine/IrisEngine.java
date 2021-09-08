@@ -34,6 +34,7 @@ import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.modifier.IrisBodyModifier;
 import com.volmit.iris.engine.modifier.IrisCarveModifier;
 import com.volmit.iris.engine.modifier.IrisDepositModifier;
+import com.volmit.iris.engine.modifier.IrisPerfectionModifier;
 import com.volmit.iris.engine.modifier.IrisPostModifier;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
@@ -186,6 +187,7 @@ public class IrisEngine implements Engine {
         var post = new IrisPostModifier(this);
         var deposit = new IrisDepositModifier(this);
         var bodies = new IrisBodyModifier(this);
+        var perfection = new IrisPerfectionModifier(this);
 
         registerStage((x, z, k, p, m) -> getMantle().generateMatter(x >> 4, z >> 4, m));
         registerStage((x, z, k, p, m) -> terrain.actuate(x, z, k, m));
@@ -196,6 +198,7 @@ public class IrisEngine implements Engine {
         registerStage((x, z, k, p, m) -> post.modify(x, z, k, m));
         registerStage((x, z, k, p, m) -> deposit.modify(x, z, k, m));
         registerStage((x, z, K, p, m) -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, K, m));
+        registerStage((x, z, k, p, m) -> perfection.modify(x, z, k, m));
     }
 
     @Override

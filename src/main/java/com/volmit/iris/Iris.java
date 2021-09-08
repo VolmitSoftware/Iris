@@ -377,7 +377,7 @@ public class Iris extends VolmitPlugin implements Listener {
                                 IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
 
                                 if (dim == null) {
-                                    Iris.error("Failed to load " + j.getPath());
+                                    Iris.error("Failed to load " + j.getPath() + " ");
                                     continue;
                                 }
 

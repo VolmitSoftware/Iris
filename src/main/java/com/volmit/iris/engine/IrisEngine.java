@@ -37,6 +37,7 @@ import com.volmit.iris.engine.modifier.IrisPostModifier;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.atomics.AtomicRollingSequence;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
@@ -85,6 +86,7 @@ public class IrisEngine implements Engine {
     private boolean failing;
     private boolean closed;
     private int cacheId;
+    private final KList<EngineStage> stages;
     private final AtomicRollingSequence wallClock;
     private final int art;
     private double maxBiomeObjectDensity;
@@ -105,6 +107,7 @@ public class IrisEngine implements Engine {
     public IrisEngine(EngineTarget target, boolean studio) {
         this.studio = studio;
         this.target = target;
+        stages = new KList<>();
         getEngineData();
         verifySeed();
         this.seedManager = new SeedManager(target.getWorld().getRawWorldSeed());
@@ -180,6 +183,7 @@ public class IrisEngine implements Engine {
             postModifier = new IrisPostModifier(this);
             caveModifier = new IrisCarveModifier(this);
             effects = new IrisEngineEffects(this);
+            setupStages();
             J.a(this::computeBiomeMaxes);
         } catch (Throwable e) {
             Iris.error("FAILED TO SETUP ENGINE!");
@@ -187,6 +191,17 @@ public class IrisEngine implements Engine {
         }
 
         Iris.debug("Engine Setup Complete " + getCacheID());
+    }
+
+    private void setupStages() {
+        registerStage((x, z, k, p, m) -> getMantle().generateMatter(x >> 4, z >> 4, m));
+        registerStage((x, z, k, p, m) -> getTerrainActuator().actuate(x, z, k, m));
+        registerStage((x, z, k, p, m) -> getBiomeActuator().actuate(x, z, p, m));
+        registerStage((x, z, k, p, m) -> getDecorantActuator().actuate(x, z, k, m));
+        registerStage((x, z, k, p, m) -> getCaveModifier().modify(x >> 4, z >> 4, k, m));
+        registerStage((x, z, k, p, m) -> getPostModifier().modify(x, z, k, m));
+        registerStage((x, z, k, p, m) -> getDepositModifier().modify(x, z, k, m));
+        registerStage((x, z, K, p, m) -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, K, m));
     }
 
     @Override
@@ -287,6 +302,11 @@ public class IrisEngine implements Engine {
 
             maxBiomeLayerDensity = Math.max(maxBiomeLayerDensity, density);
         }
+    }
+
+    @Override
+    public void registerStage(EngineStage stage) {
+        stages.add(stage);
     }
 
     @Override
@@ -434,15 +454,12 @@ public class IrisEngine implements Engine {
                     }
                 }
             } else {
-                getMantle().generateMatter(x >> 4, z >> 4, multicore);
-                getTerrainActuator().actuate(x, z, blocks, multicore);
-                getBiomeActuator().actuate(x, z, vbiomes, multicore);
-                getDecorantActuator().actuate(x, z, blocks, multicore);
-                getCaveModifier().modify(x >> 4, z >> 4, blocks, multicore);
-                getPostModifier().modify(x, z, blocks, multicore);
-                getDepositModifier().modify(x, z, blocks, multicore);
-                getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, blocks, multicore);
+                for(EngineStage i : stages)
+                {
+                    i.generate(x, z, blocks, vbiomes, multicore);
+                }
             }
+
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();
             recycle();

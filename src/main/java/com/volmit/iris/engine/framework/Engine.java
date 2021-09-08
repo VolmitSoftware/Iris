@@ -73,6 +73,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdater, Renderer, Hotloadable {
+    KList<EngineStage> getStages();
+
+    public void registerStage(EngineStage stage);
+
     IrisComplex getComplex();
 
     int getBlockUpdatesPerSecond();

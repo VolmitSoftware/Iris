@@ -21,14 +21,8 @@ package com.volmit.iris.core.service;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.object.IObjectPlacer;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisObject;
-import com.volmit.iris.engine.object.IrisObjectPlacement;
-import com.volmit.iris.engine.object.IrisRegion;
-import com.volmit.iris.engine.object.IrisTreeModes;
-import com.volmit.iris.engine.object.IrisTreeSize;
-import com.volmit.iris.engine.object.TileData;
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -87,7 +81,7 @@ public class TreeSVC implements IrisService {
         Iris.debug(this.getClass().getName() + " received a structure grow event");
 
         if (!IrisToolbelt.isIrisWorld(event.getWorld())) {
-            Iris.debug(this.getClass().getName() + " passed it off to vanilla since not an Iris world");
+            Iris.debug(this.getClass().getName() + " passed grow event off to vanilla since not an Iris world");
             return;
         }
 
@@ -98,7 +92,23 @@ public class TreeSVC implements IrisService {
             return;
         }
 
-        if (!worldAccess.getEngine().getDimension().getTreeSettings().isEnabled()) {
+        Engine engine = worldAccess.getEngine();
+
+        if (engine == null) {
+            Iris.debug(this.getClass().getName() + " passed it off to vanilla because could not get Engine for this world");
+            Iris.reportError(new NullPointerException(event.getWorld().getName() + " could not be accessed despite being an Iris world"));
+            return;
+        }
+
+        IrisDimension dimension = engine.getDimension();
+
+        if (dimension == null) {
+            Iris.debug(this.getClass().getName() + " passed it off to vanilla because could not get Dimension for this world");
+            Iris.reportError(new NullPointerException(event.getWorld().getName() + " could not be accessed despite being an Iris world"));
+            return;
+        }
+
+        if (!dimension.getTreeSettings().isEnabled()) {
             Iris.debug(this.getClass().getName() + " cancelled because tree overrides are disabled");
             return;
         }

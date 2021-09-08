@@ -55,6 +55,7 @@ public class SeedManager
     private final long carve;
     private final long deposit;
     private final long post;
+    private final long bodies;
 
     public SeedManager(long seed)
     {
@@ -77,6 +78,7 @@ public class SeedManager
         carve = of("carve");
         deposit = of("deposit");
         post = of("post");
+        bodies = of("bodies");
     }
 
     private long of(String name)

@@ -25,7 +25,6 @@ import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
-import com.volmit.iris.engine.framework.WrongEngineBroException;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.object.StudioMode;
@@ -67,20 +66,19 @@ import java.util.function.Consumer;
 public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChunkGenerator {
     private static final int LOAD_LOCKS = 1_000_000;
     private final Semaphore loadLock;
-    private Engine engine;
     private final IrisWorld world;
     private final File dataLocation;
     private final String dimensionKey;
     private final ReactiveFolder folder;
     private final KList<BlockPopulator> populators;
     private final ChronoLatch hotloadChecker;
-    private Looper hotloader;
     private final AtomicBoolean setup;
+    private final boolean studio;
+    private Engine engine;
+    private Looper hotloader;
     private StudioMode lastMode;
-
     @Setter
     private StudioGenerator studioGenerator;
-    private final boolean studio;
 
     public BukkitChunkGenerator(IrisWorld world, boolean studio, File dataLocation, String dimensionKey) {
         setup = new AtomicBoolean(false);
@@ -197,15 +195,12 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         }
     }
 
-    private Engine getEngine(World world)
-    {
-        if(setup.get())
-        {
+    private Engine getEngine(World world) {
+        if (setup.get()) {
             return getEngine();
         }
 
-        synchronized (this)
-        {
+        synchronized (this) {
             getWorld().setRawWorldSeed(world.getSeed());
             setupEngine();
             this.hotloader = studio ? new Looper() {

@@ -24,7 +24,11 @@ import com.volmit.iris.core.service.CommandSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.decree.*;
+import com.volmit.iris.util.decree.DecreeContext;
+import com.volmit.iris.util.decree.DecreeContextHandler;
+import com.volmit.iris.util.decree.DecreeNode;
+import com.volmit.iris.util.decree.DecreeParameter;
+import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
@@ -53,6 +57,15 @@ public class VirtualDecreeCommand {
     private final VirtualDecreeCommand parent;
     private final KList<VirtualDecreeCommand> nodes;
     private final DecreeNode node;
+    String[] gradients = new String[]{
+            "<gradient:#f5bc42:#45b32d>",
+            "<gradient:#1ed43f:#1ecbd4>",
+            "<gradient:#1e2ad4:#821ed4>",
+            "<gradient:#d41ea7:#611ed4>",
+            "<gradient:#1ed473:#1e55d4>",
+            "<gradient:#6ad41e:#9a1ed4>"
+    };
+    private ChronoLatch cl = new ChronoLatch(1000);
 
     private VirtualDecreeCommand(Class<?> type, VirtualDecreeCommand parent, KList<VirtualDecreeCommand> nodes, DecreeNode node) {
         this.parent = parent;
@@ -102,8 +115,6 @@ public class VirtualDecreeCommand {
 
         return c;
     }
-
-    private ChronoLatch cl = new ChronoLatch(1000);
 
     public void cacheAll() {
         VolmitSender sender = new VolmitSender(new CommandDummy());
@@ -503,15 +514,6 @@ public class VirtualDecreeCommand {
 
         return true;
     }
-
-    String[] gradients = new String[]{
-            "<gradient:#f5bc42:#45b32d>",
-            "<gradient:#1ed43f:#1ecbd4>",
-            "<gradient:#1e2ad4:#821ed4>",
-            "<gradient:#d41ea7:#611ed4>",
-            "<gradient:#1ed473:#1e55d4>",
-            "<gradient:#6ad41e:#9a1ed4>"
-    };
 
     private String pickValidOption(VolmitSender sender, KList<?> validOptions, DecreeParameterHandler<?> handler, String name, String type) {
         sender.sendHeader("Pick a " + name + " (" + type + ")");

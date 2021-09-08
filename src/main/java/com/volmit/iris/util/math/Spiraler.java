@@ -20,9 +20,9 @@ package com.volmit.iris.util.math;
 
 @SuppressWarnings("EmptyMethod")
 public class Spiraler {
+    private final Spiraled spiraled;
     int x, z, dx, dz, sizeX, sizeZ, t, maxI, i;
     int ox, oz;
-    private final Spiraled spiraled;
 
     public Spiraler(int sizeX, int sizeZ, Spiraled spiraled) {
         ox = 0;
@@ -31,14 +31,14 @@ public class Spiraler {
         retarget(sizeX, sizeZ);
     }
 
+    static void Spiral(int X, int Y) {
+
+    }
+
     public void drain() {
         while (hasNext()) {
             next();
         }
-    }
-
-    static void Spiral(int X, int Y) {
-
     }
 
     public Spiraler setOffset(int ox, int oz) {

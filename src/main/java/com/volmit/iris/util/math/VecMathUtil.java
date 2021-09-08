@@ -24,6 +24,12 @@ package com.volmit.iris.util.math;
  */
 class VecMathUtil {
     /**
+     * Do not construct an instance of this class.
+     */
+    private VecMathUtil() {
+    }
+
+    /**
      * Returns the representation of the specified floating-point
      * value according to the IEEE 754 floating-point "single format"
      * bit layout, after first mapping -0.0 to 0.0. This method is
@@ -77,12 +83,5 @@ class VecMathUtil {
         } else {
             return Double.doubleToLongBits(d);
         }
-    }
-
-
-    /**
-     * Do not construct an instance of this class.
-     */
-    private VecMathUtil() {
     }
 }

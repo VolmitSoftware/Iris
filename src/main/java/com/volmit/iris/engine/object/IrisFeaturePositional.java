@@ -42,12 +42,7 @@ import java.io.IOException;
 @NoArgsConstructor
 @Desc("Represents an Iris zone")
 public class IrisFeaturePositional {
-    public IrisFeaturePositional(int x, int z, IrisFeature feature) {
-        this.x = x;
-        this.z = z;
-        this.feature = feature;
-    }
-
+    private static double BLOCK = 1D / 256D; // TODO: WARNING HEIGHT
     @Required
     @Desc("The x coordinate of this zone")
     private int x;
@@ -61,7 +56,11 @@ public class IrisFeaturePositional {
     private IrisFeature feature;
 
     private transient AtomicCache<NoiseProvider> provider = new AtomicCache<>();
-    private static double BLOCK = 1D / 256D; // TODO: WARNING HEIGHT
+    public IrisFeaturePositional(int x, int z, IrisFeature feature) {
+        this.x = x;
+        this.z = z;
+        this.feature = feature;
+    }
 
     public static IrisFeaturePositional read(DataInputStream s) throws IOException {
         String sx = s.readUTF();

@@ -28,7 +28,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-import java.awt.*;
+import java.awt.Color;
 
 @Snippet("color")
 @Accessors(chain = true)
@@ -36,47 +36,23 @@ import java.awt.*;
 @Desc("Represents a color")
 @Data
 public class IrisColor {
+    private final transient AtomicCache<Color> color = new AtomicCache<>();
     @MaxNumber(7)
     @MinNumber(6)
     @Desc("Pass in a 6 digit hexadecimal color to fill R G and B values. You can also include the # symbol, but it's not required.")
     private String hex = null;
-
     @MaxNumber(255)
     @MinNumber(0)
     @Desc("Represents the red channel. Only define this if you are not defining the hex value.")
     private int red = 0;
-
     @MaxNumber(255)
     @MinNumber(0)
     @Desc("Represents the green channel. Only define this if you are not defining the hex value.")
     private int green = 0;
-
     @MaxNumber(255)
     @MinNumber(0)
     @Desc("Represents the blue channel. Only define this if you are not defining the hex value.")
     private int blue = 0;
-
-    private final transient AtomicCache<Color> color = new AtomicCache<>();
-
-    public Color getColor() {
-        return color.aquire(() -> {
-            if (hex != null) {
-                String v = (hex.startsWith("#") ? hex : "#" + hex).trim();
-                try {
-                    return Color.decode(v);
-                } catch (Throwable e) {
-                    Iris.reportError(e);
-
-                }
-            }
-
-            return new Color(red, green, blue);
-        });
-    }
-
-    public org.bukkit.Color getBukkitColor() {
-        return org.bukkit.Color.fromRGB(getColor().getRGB());
-    }
 
     public static Color blend(Color... c) {
         if (c == null || c.length <= 0) {
@@ -102,6 +78,26 @@ public class IrisColor {
         }
 
         return new Color(a << 24 | r << 16 | g << 8 | b);
+    }
+
+    public Color getColor() {
+        return color.aquire(() -> {
+            if (hex != null) {
+                String v = (hex.startsWith("#") ? hex : "#" + hex).trim();
+                try {
+                    return Color.decode(v);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
+
+                }
+            }
+
+            return new Color(red, green, blue);
+        });
+    }
+
+    public org.bukkit.Color getBukkitColor() {
+        return org.bukkit.Color.fromRGB(getColor().getRGB());
     }
 
     public int getAsRGB() {

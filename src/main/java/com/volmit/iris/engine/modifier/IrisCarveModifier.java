@@ -18,12 +18,15 @@
 
 package com.volmit.iris.engine.modifier;
 
-import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.actuator.IrisDecorantActuator;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.InferredType;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisDecorationPart;
+import com.volmit.iris.engine.object.IrisDecorator;
+import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;

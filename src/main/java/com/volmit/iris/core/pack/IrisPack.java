@@ -80,15 +80,6 @@ public class IrisPack {
     }
 
     /**
-     * Delete this pack. This invalidates this pack and you should
-     * probably no longer use this instance after deleting this pack
-     */
-    public void delete() {
-        IO.delete(folder);
-        folder.delete();
-    }
-
-    /**
      * Create a new pack from the input url
      *
      * @param sender the sender
@@ -107,6 +98,85 @@ public class IrisPack {
         } catch (MalformedURLException e) {
             throw new IrisException("Malformed URL " + e.getMessage());
         }
+    }
+
+    /**
+     * Create a pack from a repo
+     *
+     * @param sender the sender
+     * @param repo   the repo
+     * @return the pack
+     * @throws MalformedURLException shit happens
+     */
+    public static Future<IrisPack> from(VolmitSender sender, IrisPackRepository repo) throws MalformedURLException {
+        CompletableFuture<IrisPack> pack = new CompletableFuture<>();
+        repo.install(sender, () -> {
+            pack.complete(new IrisPack(repo.getRepo()));
+        });
+        return pack;
+    }
+
+    /**
+     * Create a blank pack with a given name
+     *
+     * @param name the name of the pack
+     * @return the pack
+     * @throws IrisException if the pack already exists or another error
+     */
+    public static IrisPack blank(String name) throws IrisException {
+        File f = packsPack(name);
+
+        if (f.exists()) {
+            throw new IrisException("Already exists");
+        }
+
+        File fd = new File(f, "dimensions/" + name + ".json");
+        fd.getParentFile().mkdirs();
+        try {
+            IO.writeAll(fd, "{\n" +
+                    "    \"name\": \"" + Form.capitalize(name) + "\",\n" +
+                    "    \"version\": 1\n" +
+                    "}\n");
+        } catch (IOException e) {
+            throw new IrisException(e.getMessage(), e);
+        }
+
+        IrisPack pack = new IrisPack(f);
+        pack.updateWorkspace();
+        return pack;
+    }
+
+    /**
+     * Get a packs pack folder for a name. Such that overworld would resolve as Iris/packs/overworld
+     *
+     * @param name the name
+     * @return the file path
+     */
+    public static File packsPack(String name) {
+        return Iris.instance.getDataFolderNoCreate(StudioSVC.WORKSPACE_NAME, name);
+    }
+
+    private static KList<File> collectFiles(File f, String fileExtension) {
+        KList<File> l = new KList<>();
+
+        if (f.isDirectory()) {
+            for (File i : f.listFiles()) {
+                l.addAll(collectFiles(i, fileExtension));
+            }
+        } else if (f.getName().endsWith("." + fileExtension)) {
+            l.add(f);
+        }
+
+        return l;
+    }
+
+    /**
+     * Delete this pack. This invalidates this pack and you should
+     * probably no longer use this instance after deleting this pack
+     */
+    public void delete() {
+        IO.delete(folder);
+        folder.delete();
     }
 
     /**
@@ -310,75 +380,5 @@ public class IrisPack {
         ws.put("settings", settings);
 
         return ws;
-    }
-
-    /**
-     * Create a pack from a repo
-     *
-     * @param sender the sender
-     * @param repo   the repo
-     * @return the pack
-     * @throws MalformedURLException shit happens
-     */
-    public static Future<IrisPack> from(VolmitSender sender, IrisPackRepository repo) throws MalformedURLException {
-        CompletableFuture<IrisPack> pack = new CompletableFuture<>();
-        repo.install(sender, () -> {
-            pack.complete(new IrisPack(repo.getRepo()));
-        });
-        return pack;
-    }
-
-    /**
-     * Create a blank pack with a given name
-     *
-     * @param name the name of the pack
-     * @return the pack
-     * @throws IrisException if the pack already exists or another error
-     */
-    public static IrisPack blank(String name) throws IrisException {
-        File f = packsPack(name);
-
-        if (f.exists()) {
-            throw new IrisException("Already exists");
-        }
-
-        File fd = new File(f, "dimensions/" + name + ".json");
-        fd.getParentFile().mkdirs();
-        try {
-            IO.writeAll(fd, "{\n" +
-                    "    \"name\": \"" + Form.capitalize(name) + "\",\n" +
-                    "    \"version\": 1\n" +
-                    "}\n");
-        } catch (IOException e) {
-            throw new IrisException(e.getMessage(), e);
-        }
-
-        IrisPack pack = new IrisPack(f);
-        pack.updateWorkspace();
-        return pack;
-    }
-
-    /**
-     * Get a packs pack folder for a name. Such that overworld would resolve as Iris/packs/overworld
-     *
-     * @param name the name
-     * @return the file path
-     */
-    public static File packsPack(String name) {
-        return Iris.instance.getDataFolderNoCreate(StudioSVC.WORKSPACE_NAME, name);
-    }
-
-    private static KList<File> collectFiles(File f, String fileExtension) {
-        KList<File> l = new KList<>();
-
-        if (f.isDirectory()) {
-            for (File i : f.listFiles()) {
-                l.addAll(collectFiles(i, fileExtension));
-            }
-        } else if (f.getName().endsWith("." + fileExtension)) {
-            l.add(f);
-        }
-
-        return l;
     }
 }

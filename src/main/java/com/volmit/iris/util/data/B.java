@@ -22,7 +22,11 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.scheduling.ChronoLatch;
-import it.unimi.dsi.fastutil.ints.*;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.ints.IntSets;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -32,7 +36,6 @@ import org.bukkit.block.data.type.PointedDripstone;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -434,45 +437,30 @@ public class B {
             }
 
             if (bx == null) {
-                try
-                {
+                try {
                     bx = Bukkit.createBlockData(ix.toLowerCase());
-                }
-
-                catch(Throwable e)
-                {
+                } catch (Throwable e) {
 
                 }
             }
 
-            if(bx == null)
-            {
-                try
-                {
+            if (bx == null) {
+                try {
                     bx = Bukkit.createBlockData("minecraft:" + ix.toLowerCase());
-                }
-
-                catch(Throwable e)
-                {
+                } catch (Throwable e) {
 
                 }
             }
 
-            if(bx == null)
-            {
-                try
-                {
+            if (bx == null) {
+                try {
                     bx = Material.valueOf(ix.toUpperCase()).createBlockData();
-                }
-
-                catch(Throwable e)
-                {
+                } catch (Throwable e) {
 
                 }
             }
 
-            if(bx == null)
-            {
+            if (bx == null) {
                 return null;
             }
 

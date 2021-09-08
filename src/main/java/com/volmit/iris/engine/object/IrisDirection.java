@@ -59,6 +59,13 @@ public enum IrisDirection {
     private final int z;
     private final CuboidDirection f;
 
+    IrisDirection(int x, int y, int z, CuboidDirection f) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.f = f;
+    }
+
     public static IrisDirection getDirection(BlockFace f) {
         return switch (f) {
             case DOWN -> DOWN_NEGATIVE_Y;
@@ -90,23 +97,6 @@ public enum IrisDirection {
             case DOWN_WEST, UP_WEST, WEST_UP -> WEST_NEGATIVE_X;
         };
 
-    }
-
-    @Override
-    public String toString() {
-        return switch (this) {
-            case DOWN_NEGATIVE_Y -> "Down";
-            case EAST_POSITIVE_X -> "East";
-            case NORTH_NEGATIVE_Z -> "North";
-            case SOUTH_POSITIVE_Z -> "South";
-            case UP_POSITIVE_Y -> "Up";
-            case WEST_NEGATIVE_X -> "West";
-        };
-
-    }
-
-    public boolean isVertical() {
-        return equals(DOWN_NEGATIVE_Y) || equals(UP_POSITIVE_Y);
     }
 
     public static IrisDirection closest(Vector v) {
@@ -160,75 +150,6 @@ public enum IrisDirection {
         return s;
     }
 
-    public Vector toVector() {
-        return new Vector(x, y, z);
-    }
-
-    public boolean isCrooked(IrisDirection to) {
-        if (equals(to.reverse())) {
-            return false;
-        }
-
-        return !equals(to);
-    }
-
-    IrisDirection(int x, int y, int z, CuboidDirection f) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-        this.f = f;
-    }
-
-    public Vector angle(Vector initial, IrisDirection d) {
-        calculatePermutations();
-
-        for (Map.Entry<GBiset<IrisDirection, IrisDirection>, DOP> entry : permute.entrySet()) {
-            GBiset<IrisDirection, IrisDirection> i = entry.getKey();
-            if (i.getA().equals(this) && i.getB().equals(d)) {
-                return entry.getValue().op(initial);
-            }
-        }
-
-        return initial;
-    }
-
-    public IrisDirection reverse() {
-        switch (this) {
-            case DOWN_NEGATIVE_Y:
-                return UP_POSITIVE_Y;
-            case EAST_POSITIVE_X:
-                return WEST_NEGATIVE_X;
-            case NORTH_NEGATIVE_Z:
-                return SOUTH_POSITIVE_Z;
-            case SOUTH_POSITIVE_Z:
-                return NORTH_NEGATIVE_Z;
-            case UP_POSITIVE_Y:
-                return DOWN_NEGATIVE_Y;
-            case WEST_NEGATIVE_X:
-                return EAST_POSITIVE_X;
-            default:
-                break;
-        }
-
-        return EAST_POSITIVE_X;
-    }
-
-    public int x() {
-        return x;
-    }
-
-    public int y() {
-        return y;
-    }
-
-    public int z() {
-        return z;
-    }
-
-    public CuboidDirection f() {
-        return f;
-    }
-
     public static KList<IrisDirection> news() {
         return new KList<IrisDirection>().add(NORTH_NEGATIVE_Z, EAST_POSITIVE_X, WEST_NEGATIVE_X, SOUTH_POSITIVE_Z);
     }
@@ -275,32 +196,6 @@ public enum IrisDirection {
         } else {
             return EAST_POSITIVE_X;
         }
-    }
-
-    /**
-     * Get the byte value represented in some directional blocks
-     *
-     * @return the byte value
-     */
-    public byte byteValue() {
-        switch (this) {
-            case DOWN_NEGATIVE_Y:
-                return 0;
-            case EAST_POSITIVE_X:
-                return 5;
-            case NORTH_NEGATIVE_Z:
-                return 2;
-            case SOUTH_POSITIVE_Z:
-                return 3;
-            case UP_POSITIVE_Y:
-                return 1;
-            case WEST_NEGATIVE_X:
-                return 4;
-            default:
-                break;
-        }
-
-        return -1;
     }
 
     public static void calculatePermutations() {
@@ -389,6 +284,111 @@ public enum IrisDirection {
                 }
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return switch (this) {
+            case DOWN_NEGATIVE_Y -> "Down";
+            case EAST_POSITIVE_X -> "East";
+            case NORTH_NEGATIVE_Z -> "North";
+            case SOUTH_POSITIVE_Z -> "South";
+            case UP_POSITIVE_Y -> "Up";
+            case WEST_NEGATIVE_X -> "West";
+        };
+
+    }
+
+    public boolean isVertical() {
+        return equals(DOWN_NEGATIVE_Y) || equals(UP_POSITIVE_Y);
+    }
+
+    public Vector toVector() {
+        return new Vector(x, y, z);
+    }
+
+    public boolean isCrooked(IrisDirection to) {
+        if (equals(to.reverse())) {
+            return false;
+        }
+
+        return !equals(to);
+    }
+
+    public Vector angle(Vector initial, IrisDirection d) {
+        calculatePermutations();
+
+        for (Map.Entry<GBiset<IrisDirection, IrisDirection>, DOP> entry : permute.entrySet()) {
+            GBiset<IrisDirection, IrisDirection> i = entry.getKey();
+            if (i.getA().equals(this) && i.getB().equals(d)) {
+                return entry.getValue().op(initial);
+            }
+        }
+
+        return initial;
+    }
+
+    public IrisDirection reverse() {
+        switch (this) {
+            case DOWN_NEGATIVE_Y:
+                return UP_POSITIVE_Y;
+            case EAST_POSITIVE_X:
+                return WEST_NEGATIVE_X;
+            case NORTH_NEGATIVE_Z:
+                return SOUTH_POSITIVE_Z;
+            case SOUTH_POSITIVE_Z:
+                return NORTH_NEGATIVE_Z;
+            case UP_POSITIVE_Y:
+                return DOWN_NEGATIVE_Y;
+            case WEST_NEGATIVE_X:
+                return EAST_POSITIVE_X;
+            default:
+                break;
+        }
+
+        return EAST_POSITIVE_X;
+    }
+
+    public int x() {
+        return x;
+    }
+
+    public int y() {
+        return y;
+    }
+
+    public int z() {
+        return z;
+    }
+
+    public CuboidDirection f() {
+        return f;
+    }
+
+    /**
+     * Get the byte value represented in some directional blocks
+     *
+     * @return the byte value
+     */
+    public byte byteValue() {
+        switch (this) {
+            case DOWN_NEGATIVE_Y:
+                return 0;
+            case EAST_POSITIVE_X:
+                return 5;
+            case NORTH_NEGATIVE_Z:
+                return 2;
+            case SOUTH_POSITIVE_Z:
+                return 3;
+            case UP_POSITIVE_Y:
+                return 1;
+            case WEST_NEGATIVE_X:
+                return 4;
+            default:
+                break;
+        }
+
+        return -1;
     }
 
     public BlockFace getFace() {

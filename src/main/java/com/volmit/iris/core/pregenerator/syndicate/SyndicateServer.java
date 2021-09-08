@@ -19,14 +19,26 @@
 package com.volmit.iris.core.pregenerator.syndicate;
 
 import com.volmit.iris.core.pregenerator.PregenListener;
-import com.volmit.iris.core.pregenerator.syndicate.command.*;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateBusy;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateClose;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateCommand;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateGenerate;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateGetProgress;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateInstallFirst;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateInstallPack;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateOK;
+import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateSendProgress;
 import com.volmit.iris.engine.object.HeadlessWorld;
 import com.volmit.iris.engine.platform.HeadlessGenerator;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.scheduling.J;
 import org.zeroturnaround.zip.ZipUtil;
 
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
@@ -37,13 +49,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SyndicateServer extends Thread implements PregenListener {
     private final int port;
     private final String password;
-    private boolean busy;
     private final int tc;
-    private HeadlessGenerator generator;
     private final ServerSocket server;
     private final File cache;
-    private UUID currentId = null;
     private final AtomicInteger g = new AtomicInteger(0);
+    private boolean busy;
+    private HeadlessGenerator generator;
+    private UUID currentId = null;
     private File lastGeneratedRegion = null;
 
     public SyndicateServer(File cache, int port, String password, int tc) throws IOException {

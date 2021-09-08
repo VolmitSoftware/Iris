@@ -20,7 +20,20 @@ package com.volmit.iris.util.nbt.io;
 
 import com.volmit.iris.engine.data.io.ExceptionBiFunction;
 import com.volmit.iris.engine.data.io.MaxDepthIO;
-import com.volmit.iris.util.nbt.tag.*;
+import com.volmit.iris.util.nbt.tag.ByteArrayTag;
+import com.volmit.iris.util.nbt.tag.ByteTag;
+import com.volmit.iris.util.nbt.tag.CompoundTag;
+import com.volmit.iris.util.nbt.tag.DoubleTag;
+import com.volmit.iris.util.nbt.tag.EndTag;
+import com.volmit.iris.util.nbt.tag.FloatTag;
+import com.volmit.iris.util.nbt.tag.IntArrayTag;
+import com.volmit.iris.util.nbt.tag.IntTag;
+import com.volmit.iris.util.nbt.tag.ListTag;
+import com.volmit.iris.util.nbt.tag.LongArrayTag;
+import com.volmit.iris.util.nbt.tag.LongTag;
+import com.volmit.iris.util.nbt.tag.ShortTag;
+import com.volmit.iris.util.nbt.tag.StringTag;
+import com.volmit.iris.util.nbt.tag.Tag;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -49,31 +62,13 @@ public class NBTInputStream extends DataInputStream implements MaxDepthIO {
         put(LongArrayTag.ID, (i, d) -> readLongArray(i), LongArrayTag.class);
     }
 
-    private static void put(byte id, ExceptionBiFunction<NBTInputStream, Integer, ? extends Tag<?>, IOException> reader, Class<?> clazz) {
-        readers.put(id, reader);
-        idClassMapping.put(id, clazz);
-    }
-
     public NBTInputStream(InputStream in) {
         super(in);
     }
 
-    public NamedTag readTag(int maxDepth) throws IOException {
-        byte id = readByte();
-        return new NamedTag(readUTF(), readTag(id, maxDepth));
-    }
-
-    public Tag<?> readRawTag(int maxDepth) throws IOException {
-        byte id = readByte();
-        return readTag(id, maxDepth);
-    }
-
-    private Tag<?> readTag(byte type, int maxDepth) throws IOException {
-        ExceptionBiFunction<NBTInputStream, Integer, ? extends Tag<?>, IOException> f;
-        if ((f = readers.get(type)) == null) {
-            throw new IOException("invalid tag id \"" + type + "\"");
-        }
-        return f.accept(this, maxDepth);
+    private static void put(byte id, ExceptionBiFunction<NBTInputStream, Integer, ? extends Tag<?>, IOException> reader, Class<?> clazz) {
+        readers.put(id, reader);
+        idClassMapping.put(id, clazz);
     }
 
     private static ByteTag readByte(NBTInputStream in) throws IOException {
@@ -151,5 +146,23 @@ public class NBTInputStream extends DataInputStream implements MaxDepthIO {
             comp.put(key, element);
         }
         return comp;
+    }
+
+    public NamedTag readTag(int maxDepth) throws IOException {
+        byte id = readByte();
+        return new NamedTag(readUTF(), readTag(id, maxDepth));
+    }
+
+    public Tag<?> readRawTag(int maxDepth) throws IOException {
+        byte id = readByte();
+        return readTag(id, maxDepth);
+    }
+
+    private Tag<?> readTag(byte type, int maxDepth) throws IOException {
+        ExceptionBiFunction<NBTInputStream, Integer, ? extends Tag<?>, IOException> f;
+        if ((f = readers.get(type)) == null) {
+            throw new IOException("invalid tag id \"" + type + "\"");
+        }
+        return f.accept(this, maxDepth);
     }
 }

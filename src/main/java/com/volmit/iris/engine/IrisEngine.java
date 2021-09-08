@@ -29,14 +29,25 @@ import com.volmit.iris.engine.actuator.IrisBiomeActuator;
 import com.volmit.iris.engine.actuator.IrisDecorantActuator;
 import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.framework.*;
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.framework.EngineEffects;
+import com.volmit.iris.engine.framework.EngineMetrics;
+import com.volmit.iris.engine.framework.EngineStage;
+import com.volmit.iris.engine.framework.EngineTarget;
+import com.volmit.iris.engine.framework.EngineWorldManager;
+import com.volmit.iris.engine.framework.SeedManager;
+import com.volmit.iris.engine.framework.WrongEngineBroException;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.modifier.IrisBodyModifier;
 import com.volmit.iris.engine.modifier.IrisCarveModifier;
 import com.volmit.iris.engine.modifier.IrisDepositModifier;
 import com.volmit.iris.engine.modifier.IrisPerfectionModifier;
 import com.volmit.iris.engine.modifier.IrisPostModifier;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
+import com.volmit.iris.engine.object.IrisDecorator;
+import com.volmit.iris.engine.object.IrisEngineData;
+import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.atomics.AtomicRollingSequence;
 import com.volmit.iris.util.collection.KList;
@@ -75,30 +86,30 @@ public class IrisEngine implements Engine {
     private final AtomicLong lastGPS;
     private final EngineTarget target;
     private final IrisContext context;
-    private EngineEffects effects;
     private final EngineMantle mantle;
     private final ChronoLatch perSecondLatch;
     private final ChronoLatch perSecondBudLatch;
-    private EngineExecutionEnvironment execution;
-    private EngineWorldManager worldManager;
-    private volatile int parallelism;
     private final EngineMetrics metrics;
-    private volatile int minHeight;
     private final boolean studio;
-    private boolean failing;
-    private boolean closed;
-    private int cacheId;
     private final KList<EngineStage> stages;
     private final AtomicRollingSequence wallClock;
     private final int art;
-    private double maxBiomeObjectDensity;
-    private double maxBiomeLayerDensity;
-    private double maxBiomeDecoratorDensity;
-    private IrisComplex complex;
     private final AtomicCache<IrisEngineData> engineData = new AtomicCache<>();
     private final AtomicBoolean cleaning;
     private final ChronoLatch cleanLatch;
     private final SeedManager seedManager;
+    private EngineEffects effects;
+    private EngineExecutionEnvironment execution;
+    private EngineWorldManager worldManager;
+    private volatile int parallelism;
+    private volatile int minHeight;
+    private boolean failing;
+    private boolean closed;
+    private int cacheId;
+    private double maxBiomeObjectDensity;
+    private double maxBiomeLayerDensity;
+    private double maxBiomeDecoratorDensity;
+    private IrisComplex complex;
 
     public IrisEngine(EngineTarget target, boolean studio) {
         this.studio = studio;
@@ -134,8 +145,7 @@ public class IrisEngine implements Engine {
     }
 
     private void verifySeed() {
-        if(getEngineData().getSeed() != null && getEngineData().getSeed() != target.getWorld().getRawWorldSeed())
-        {
+        if (getEngineData().getSeed() != null && getEngineData().getSeed() != target.getWorld().getRawWorldSeed()) {
             target.getWorld().setRawWorldSeed(getEngineData().getSeed());
         }
     }
@@ -447,8 +457,7 @@ public class IrisEngine implements Engine {
                     }
                 }
             } else {
-                for(EngineStage i : stages)
-                {
+                for (EngineStage i : stages) {
                     i.generate(x, z, blocks, vbiomes, multicore);
                 }
             }

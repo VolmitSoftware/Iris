@@ -31,7 +31,11 @@ import com.volmit.iris.util.matter.WorldMatter;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -52,6 +56,205 @@ import java.util.Objects;
 public class WandSVC implements IrisService {
     private static ItemStack wand;
     private static ItemStack dust;
+
+    public static void pasteSchematic(IrisObject s, Location at) {
+        s.place(at);
+    }
+
+    /**
+     * Creates an Iris Object from the 2 coordinates selected with a wand
+     *
+     * @param wand The wand itemstack
+     * @return The new object
+     */
+    public static IrisObject createSchematic(ItemStack wand) {
+        if (!isWand(wand)) {
+            return null;
+        }
+
+        try {
+            Location[] f = getCuboid(wand);
+            Cuboid c = new Cuboid(f[0], f[1]);
+            IrisObject s = new IrisObject(c.getSizeX(), c.getSizeY(), c.getSizeZ());
+            for (Block b : c) {
+                if (b.getType().equals(Material.AIR)) {
+                    continue;
+                }
+
+                BlockVector bv = b.getLocation().subtract(c.getLowerNE().toVector()).toVector().toBlockVector();
+                s.setUnsigned(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(), b);
+            }
+
+            return s;
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Iris.reportError(e);
+        }
+
+        return null;
+    }
+
+    /**
+     * Creates an Iris Object from the 2 coordinates selected with a wand
+     *
+     * @param wand The wand itemstack
+     * @return The new object
+     */
+    public static Matter createMatterSchem(Player p, ItemStack wand) {
+        if (!isWand(wand)) {
+            return null;
+        }
+
+        try {
+            Location[] f = getCuboid(wand);
+
+            return WorldMatter.createMatter(p.getName(), f[0], f[1]);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Iris.reportError(e);
+        }
+
+        return null;
+    }
+
+    /**
+     * Converts a user friendly location string to an actual Location
+     *
+     * @param s The string
+     * @return The location
+     */
+    public static Location stringToLocation(String s) {
+        try {
+            String[] f = s.split("\\Q in \\E");
+            String[] g = f[0].split("\\Q,\\E");
+            return new Location(Bukkit.getWorld(f[1]), Integer.parseInt(g[0]), Integer.parseInt(g[1]), Integer.parseInt(g[2]));
+        } catch (Throwable e) {
+            Iris.reportError(e);
+            return null;
+        }
+    }
+
+    /**
+     * Get a user friendly string of a location
+     *
+     * @param loc The location
+     * @return The string
+     */
+    public static String locationToString(Location loc) {
+        if (loc == null) {
+            return "<#>";
+        }
+
+        return loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + " in " + loc.getWorld().getName();
+    }
+
+    /**
+     * Create a new blank Iris wand
+     *
+     * @return The wand itemstack
+     */
+    public static ItemStack createWand() {
+        return createWand(null, null);
+    }
+
+    /**
+     * Create a new dust itemstack
+     *
+     * @return The stack
+     */
+    public static ItemStack createDust() {
+        ItemStack is = new ItemStack(Material.GLOWSTONE_DUST);
+        is.addUnsafeEnchantment(Enchantment.ARROW_INFINITE, 1);
+        ItemMeta im = is.getItemMeta();
+        im.setDisplayName(C.BOLD + "" + C.YELLOW + "Dust of Revealing");
+        im.setUnbreakable(true);
+        im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_PLACED_ON, ItemFlag.HIDE_POTION_EFFECTS, ItemFlag.HIDE_DESTROYS, ItemFlag.HIDE_ENCHANTS);
+        im.setLore(new KList<String>().qadd("Right click on a block to reveal it's placement structure!"));
+        is.setItemMeta(im);
+
+        return is;
+    }
+
+    /**
+     * Finds an existing wand in a users inventory
+     *
+     * @param inventory The inventory to search
+     * @return The slot number the wand is in. Or -1 if none are found
+     */
+    public static int findWand(Inventory inventory) {
+        ItemStack wand = createWand(); //Create blank wand
+        ItemMeta meta = wand.getItemMeta();
+        meta.setLore(new ArrayList<>()); //We are resetting the lore as the lore differs between wands
+        wand.setItemMeta(meta);
+
+        for (int s = 0; s < inventory.getSize(); s++) {
+            ItemStack stack = inventory.getItem(s);
+            if (stack == null) continue;
+            meta = stack.getItemMeta();
+            meta.setLore(new ArrayList<>()); //Reset the lore on this too so we can compare them
+            stack.setItemMeta(meta);         //We dont need to clone the item as items from .get are cloned
+
+            if (wand.isSimilar(stack)) return s; //If the name, material and NBT is the same
+        }
+        return -1;
+    }
+
+    /**
+     * Creates an Iris wand. The locations should be the currently selected locations, or null
+     *
+     * @param a Location A
+     * @param b Location B
+     * @return A new wand
+     */
+    public static ItemStack createWand(Location a, Location b) {
+        ItemStack is = new ItemStack(Material.BLAZE_ROD);
+        is.addUnsafeEnchantment(Enchantment.ARROW_INFINITE, 1);
+        ItemMeta im = is.getItemMeta();
+        im.setDisplayName(C.BOLD + "" + C.GOLD + "Wand of Iris");
+        im.setUnbreakable(true);
+        im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_PLACED_ON, ItemFlag.HIDE_POTION_EFFECTS, ItemFlag.HIDE_DESTROYS, ItemFlag.HIDE_ENCHANTS);
+        im.setLore(new KList<String>().add(locationToString(a), locationToString(b)));
+        is.setItemMeta(im);
+
+        return is;
+    }
+
+    /**
+     * Get a pair of locations that are selected in an Iris wand
+     *
+     * @param is The wand item
+     * @return An array with the 2 locations
+     */
+    public static Location[] getCuboid(ItemStack is) {
+        ItemMeta im = is.getItemMeta();
+        return new Location[]{stringToLocation(im.getLore().get(0)), stringToLocation(im.getLore().get(1))};
+    }
+
+    /**
+     * Is a player holding an Iris wand
+     *
+     * @param p The player
+     * @return True if they are
+     */
+    public static boolean isHoldingWand(Player p) {
+        ItemStack is = p.getInventory().getItemInMainHand();
+        return is != null && isWand(is);
+    }
+
+    /**
+     * Is the itemstack passed an Iris wand
+     *
+     * @param is The itemstack
+     * @return True if it is
+     */
+    public static boolean isWand(ItemStack is) {
+        ItemStack wand = createWand();
+        if (is.getItemMeta() == null) return false;
+        return is.getType().equals(wand.getType()) &&
+                is.getItemMeta().getDisplayName().equals(wand.getItemMeta().getDisplayName()) &&
+                is.getItemMeta().getEnchants().equals(wand.getItemMeta().getEnchants()) &&
+                is.getItemMeta().getItemFlags().equals(wand.getItemMeta().getItemFlags());
+    }
 
     @Override
     public void onEnable() {
@@ -200,124 +403,6 @@ public class WandSVC implements IrisService {
         }
     }
 
-    public static void pasteSchematic(IrisObject s, Location at) {
-        s.place(at);
-    }
-
-    /**
-     * Creates an Iris Object from the 2 coordinates selected with a wand
-     *
-     * @param wand The wand itemstack
-     * @return The new object
-     */
-    public static IrisObject createSchematic(ItemStack wand) {
-        if (!isWand(wand)) {
-            return null;
-        }
-
-        try {
-            Location[] f = getCuboid(wand);
-            Cuboid c = new Cuboid(f[0], f[1]);
-            IrisObject s = new IrisObject(c.getSizeX(), c.getSizeY(), c.getSizeZ());
-            for (Block b : c) {
-                if (b.getType().equals(Material.AIR)) {
-                    continue;
-                }
-
-                BlockVector bv = b.getLocation().subtract(c.getLowerNE().toVector()).toVector().toBlockVector();
-                s.setUnsigned(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(), b);
-            }
-
-            return s;
-        } catch (Throwable e) {
-            e.printStackTrace();
-            Iris.reportError(e);
-        }
-
-        return null;
-    }
-
-    /**
-     * Creates an Iris Object from the 2 coordinates selected with a wand
-     *
-     * @param wand The wand itemstack
-     * @return The new object
-     */
-    public static Matter createMatterSchem(Player p, ItemStack wand) {
-        if (!isWand(wand)) {
-            return null;
-        }
-
-        try {
-            Location[] f = getCuboid(wand);
-
-            return WorldMatter.createMatter(p.getName(), f[0], f[1]);
-        } catch (Throwable e) {
-            e.printStackTrace();
-            Iris.reportError(e);
-        }
-
-        return null;
-    }
-
-    /**
-     * Converts a user friendly location string to an actual Location
-     *
-     * @param s The string
-     * @return The location
-     */
-    public static Location stringToLocation(String s) {
-        try {
-            String[] f = s.split("\\Q in \\E");
-            String[] g = f[0].split("\\Q,\\E");
-            return new Location(Bukkit.getWorld(f[1]), Integer.parseInt(g[0]), Integer.parseInt(g[1]), Integer.parseInt(g[2]));
-        } catch (Throwable e) {
-            Iris.reportError(e);
-            return null;
-        }
-    }
-
-    /**
-     * Get a user friendly string of a location
-     *
-     * @param loc The location
-     * @return The string
-     */
-    public static String locationToString(Location loc) {
-        if (loc == null) {
-            return "<#>";
-        }
-
-        return loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + " in " + loc.getWorld().getName();
-    }
-
-    /**
-     * Create a new blank Iris wand
-     *
-     * @return The wand itemstack
-     */
-    public static ItemStack createWand() {
-        return createWand(null, null);
-    }
-
-    /**
-     * Create a new dust itemstack
-     *
-     * @return The stack
-     */
-    public static ItemStack createDust() {
-        ItemStack is = new ItemStack(Material.GLOWSTONE_DUST);
-        is.addUnsafeEnchantment(Enchantment.ARROW_INFINITE, 1);
-        ItemMeta im = is.getItemMeta();
-        im.setDisplayName(C.BOLD + "" + C.YELLOW + "Dust of Revealing");
-        im.setUnbreakable(true);
-        im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_PLACED_ON, ItemFlag.HIDE_POTION_EFFECTS, ItemFlag.HIDE_DESTROYS, ItemFlag.HIDE_ENCHANTS);
-        im.setLore(new KList<String>().qadd("Right click on a block to reveal it's placement structure!"));
-        is.setItemMeta(im);
-
-        return is;
-    }
-
     /**
      * Is the player holding Dust?
      *
@@ -360,86 +445,5 @@ public class WandSVC implements IrisService {
         }
 
         return createWand(left ? a : other, left ? other : a);
-    }
-
-    /**
-     * Finds an existing wand in a users inventory
-     *
-     * @param inventory The inventory to search
-     * @return The slot number the wand is in. Or -1 if none are found
-     */
-    public static int findWand(Inventory inventory) {
-        ItemStack wand = createWand(); //Create blank wand
-        ItemMeta meta = wand.getItemMeta();
-        meta.setLore(new ArrayList<>()); //We are resetting the lore as the lore differs between wands
-        wand.setItemMeta(meta);
-
-        for (int s = 0; s < inventory.getSize(); s++) {
-            ItemStack stack = inventory.getItem(s);
-            if (stack == null) continue;
-            meta = stack.getItemMeta();
-            meta.setLore(new ArrayList<>()); //Reset the lore on this too so we can compare them
-            stack.setItemMeta(meta);         //We dont need to clone the item as items from .get are cloned
-
-            if (wand.isSimilar(stack)) return s; //If the name, material and NBT is the same
-        }
-        return -1;
-    }
-
-    /**
-     * Creates an Iris wand. The locations should be the currently selected locations, or null
-     *
-     * @param a Location A
-     * @param b Location B
-     * @return A new wand
-     */
-    public static ItemStack createWand(Location a, Location b) {
-        ItemStack is = new ItemStack(Material.BLAZE_ROD);
-        is.addUnsafeEnchantment(Enchantment.ARROW_INFINITE, 1);
-        ItemMeta im = is.getItemMeta();
-        im.setDisplayName(C.BOLD + "" + C.GOLD + "Wand of Iris");
-        im.setUnbreakable(true);
-        im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_PLACED_ON, ItemFlag.HIDE_POTION_EFFECTS, ItemFlag.HIDE_DESTROYS, ItemFlag.HIDE_ENCHANTS);
-        im.setLore(new KList<String>().add(locationToString(a), locationToString(b)));
-        is.setItemMeta(im);
-
-        return is;
-    }
-
-    /**
-     * Get a pair of locations that are selected in an Iris wand
-     *
-     * @param is The wand item
-     * @return An array with the 2 locations
-     */
-    public static Location[] getCuboid(ItemStack is) {
-        ItemMeta im = is.getItemMeta();
-        return new Location[]{stringToLocation(im.getLore().get(0)), stringToLocation(im.getLore().get(1))};
-    }
-
-    /**
-     * Is a player holding an Iris wand
-     *
-     * @param p The player
-     * @return True if they are
-     */
-    public static boolean isHoldingWand(Player p) {
-        ItemStack is = p.getInventory().getItemInMainHand();
-        return is != null && isWand(is);
-    }
-
-    /**
-     * Is the itemstack passed an Iris wand
-     *
-     * @param is The itemstack
-     * @return True if it is
-     */
-    public static boolean isWand(ItemStack is) {
-        ItemStack wand = createWand();
-        if (is.getItemMeta() == null) return false;
-        return is.getType().equals(wand.getType()) &&
-                is.getItemMeta().getDisplayName().equals(wand.getItemMeta().getDisplayName()) &&
-                is.getItemMeta().getEnchants().equals(wand.getItemMeta().getEnchants()) &&
-                is.getItemMeta().getItemFlags().equals(wand.getItemMeta().getItemFlags());
     }
 }

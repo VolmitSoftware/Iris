@@ -27,7 +27,14 @@ import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -49,6 +56,51 @@ import java.util.function.Function;
  */
 public interface Matter {
     int VERSION = 1;
+
+    static Matter read(File f) throws IOException, ClassNotFoundException {
+        FileInputStream in = new FileInputStream(f);
+        Matter m = read(in);
+        in.close();
+        return m;
+    }
+
+    static Matter read(InputStream in) throws IOException, ClassNotFoundException {
+        return read(in, (b) -> new IrisMatter(b.getX(), b.getY(), b.getZ()));
+    }
+
+    /**
+     * Reads the input stream into a matter object using a matter factory.
+     * Does not close the input stream. Be a man, close it yourself.
+     *
+     * @param in            the input stream
+     * @param matterFactory the matter factory (size) -> new MatterImpl(size);
+     * @return the matter object
+     * @throws IOException shit happens yo
+     */
+    static Matter read(InputStream in, Function<BlockPosition, Matter> matterFactory) throws IOException, ClassNotFoundException {
+        DataInputStream din = new DataInputStream(in);
+        Matter matter = matterFactory.apply(new BlockPosition(
+                Varint.readUnsignedVarInt(din),
+                Varint.readUnsignedVarInt(din),
+                Varint.readUnsignedVarInt(din)));
+        int sliceCount = din.readByte();
+        matter.getHeader().read(din);
+
+        while (sliceCount-- > 0) {
+            String cn = din.readUTF();
+            try {
+                Class<?> type = Class.forName(cn);
+                MatterSlice<?> slice = matter.createSlice(type, matter);
+                slice.read(din);
+                matter.putSlice(type, slice);
+            } catch (Throwable e) {
+                e.printStackTrace();
+                throw new IOException("Can't read class '" + cn + "' (slice count reverse at " + sliceCount + ")");
+            }
+        }
+
+        return matter;
+    }
 
     /**
      * Get the header information
@@ -311,51 +363,6 @@ public interface Matter {
         for (Class<?> i : getSliceTypes()) {
             getSlice(i).write(dos);
         }
-    }
-
-    static Matter read(File f) throws IOException, ClassNotFoundException {
-        FileInputStream in = new FileInputStream(f);
-        Matter m = read(in);
-        in.close();
-        return m;
-    }
-
-    static Matter read(InputStream in) throws IOException, ClassNotFoundException {
-        return read(in, (b) -> new IrisMatter(b.getX(), b.getY(), b.getZ()));
-    }
-
-    /**
-     * Reads the input stream into a matter object using a matter factory.
-     * Does not close the input stream. Be a man, close it yourself.
-     *
-     * @param in            the input stream
-     * @param matterFactory the matter factory (size) -> new MatterImpl(size);
-     * @return the matter object
-     * @throws IOException shit happens yo
-     */
-    static Matter read(InputStream in, Function<BlockPosition, Matter> matterFactory) throws IOException, ClassNotFoundException {
-        DataInputStream din = new DataInputStream(in);
-        Matter matter = matterFactory.apply(new BlockPosition(
-                Varint.readUnsignedVarInt(din),
-                Varint.readUnsignedVarInt(din),
-                Varint.readUnsignedVarInt(din)));
-        int sliceCount = din.readByte();
-        matter.getHeader().read(din);
-
-        while (sliceCount-- > 0) {
-            String cn = din.readUTF();
-            try {
-                Class<?> type = Class.forName(cn);
-                MatterSlice<?> slice = matter.createSlice(type, matter);
-                slice.read(din);
-                matter.putSlice(type, slice);
-            } catch (Throwable e) {
-                e.printStackTrace();
-                throw new IOException("Can't read class '" + cn + "' (slice count reverse at " + sliceCount + ")");
-            }
-        }
-
-        return matter;
     }
 
     default int getTotalCount() {

@@ -27,6 +27,16 @@ public class StringPointer {
         this.value = value;
     }
 
+    private static boolean isSimpleChar(char c) {
+        return c >= 'a' && c <= 'z'
+                || c >= 'A' && c <= 'Z'
+                || c >= '0' && c <= '9'
+                || c == '-'
+                || c == '+'
+                || c == '.'
+                || c == '_';
+    }
+
     public String parseSimpleString() {
         int oldIndex = index;
         while (hasNext() && isSimpleChar(currentChar())) {
@@ -115,16 +125,6 @@ public class StringPointer {
 
     public char lookAhead(int offset) {
         return value.charAt(index + offset);
-    }
-
-    private static boolean isSimpleChar(char c) {
-        return c >= 'a' && c <= 'z'
-                || c >= 'A' && c <= 'Z'
-                || c >= '0' && c <= '9'
-                || c == '-'
-                || c == '+'
-                || c == '.'
-                || c == '_';
     }
 
     public ParseException parseException(String msg) {

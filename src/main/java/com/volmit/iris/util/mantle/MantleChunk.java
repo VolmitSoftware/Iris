@@ -40,11 +40,11 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
  * Mantle Chunks are fully atomic & thread safe
  */
 public class MantleChunk {
+    private static final ZoneMatter zm = new ZoneMatter();
     @Getter
     private final int x;
     @Getter
     private final int z;
-    private static final ZoneMatter zm = new ZoneMatter();
     private final AtomicIntegerArray flags;
     private final AtomicReferenceArray<Matter> sections;
     private final CopyOnWriteArrayList<IrisFeaturePositional> features;

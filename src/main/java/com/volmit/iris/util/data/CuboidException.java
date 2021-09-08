@@ -24,9 +24,9 @@ package com.volmit.iris.util.data;
  * @author cyberpwn
  */
 public class CuboidException extends Exception {
+    private static final long serialVersionUID = 1L;
+
     public CuboidException(String string) {
         super(string);
     }
-
-    private static final long serialVersionUID = 1L;
 }

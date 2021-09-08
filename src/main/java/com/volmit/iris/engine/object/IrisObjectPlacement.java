@@ -21,7 +21,13 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
@@ -47,114 +53,88 @@ import org.bukkit.block.data.BlockData;
 @Desc("Represents an iris object placer. It places objects.")
 @Data
 public class IrisObjectPlacement {
+    private final transient AtomicCache<CNG> surfaceWarp = new AtomicCache<>();
     @RegistryListResource(IrisObject.class)
     @Required
     @ArrayType(min = 1, type = String.class)
     @Desc("List of objects to place")
     private KList<String> place = new KList<>();
-
     @Desc("Rotate this objects placement")
     private IrisObjectRotation rotation = new IrisObjectRotation();
-
     @Desc("Limit the max height or min height of placement.")
     private IrisObjectLimit clamp = new IrisObjectLimit();
-
     @ArrayType(min = 1, type = IrisFeaturePotential.class)
     @Desc("Place additional noise features in the object's place location")
     private KList<IrisFeaturePotential> addFeatures = new KList<>();
-
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The maximum layer level of a snow filter overtop of this placement. Set to 0 to disable. Max of 1.")
     private double snow = 0;
-
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The chance for this to place in a chunk. If you need multiple per chunk, set this to 1 and use density.")
     private double chance = 1;
-
     @MinNumber(1)
     @Desc("If the chance check passes, place this many in a single chunk")
     private int density = 1;
-
     @MaxNumber(64)
     @MinNumber(0)
     @Desc("If the place mode is set to stilt, you can over-stilt it even further into the ground. Especially useful when using fast stilt due to inaccuracies.")
     private int overStilt = 0;
-
     @MaxNumber(64)
     @MinNumber(0)
     @Desc("When bore is enabled, expand max-y of the cuboid it removes")
     private int boreExtendMaxY = 0;
-
     @MaxNumber(64)
     @MinNumber(-1)
     @Desc("When bore is enabled, lower min-y of the cuboid it removes")
     private int boreExtendMinY = 0;
-
     @MaxNumber(64)
     @MinNumber(4)
     @Desc("When vacuum is enabled, define the interpolation radius")
     private int vacuumInterpolationRadius = 16;
-
     @MaxNumber(64)
     @MinNumber(4)
     @Desc("When vacuum is enabled, define the interpolation method")
     private InterpolationMethod vacuumInterpolationMethod = InterpolationMethod.BILINEAR_STARCAST_9;
-
     @Desc("If set to true, objects will place on the terrain height, ignoring the water surface.")
     private boolean underwater = false;
-
     @Desc("If set to true, objects will place in carvings (such as underground) or under an overhang.")
     private CarvingMode carvingSupport = CarvingMode.SURFACE_ONLY;
-
     @Desc("If this is defined, this object wont place on the terrain heightmap, but instead on this virtual heightmap")
     private IrisNoiseGenerator heightmap;
-
     @Desc("If set to true, Iris will try to fill the insides of 'rooms' and 'pockets' where air should fit based off of raytrace checks. This prevents a village house placing in an area where a tree already exists, and instead replaces the parts of the tree where the interior of the structure is. \n\nThis operation does not affect warmed-up generation speed however it does slow down loading objects.")
     private boolean smartBore = false;
-
     @Desc("If set to true, Blocks placed underwater that could be waterlogged are waterlogged.")
     private boolean waterloggable = false;
-
     @Desc("If set to true, objects will place on the fluid height level Such as boats.")
     private boolean onwater = false;
-
     @Desc("If set to true, this object will only place parts of itself where blocks already exist. Warning: Melding is very performance intensive!")
     private boolean meld = false;
-
     @Desc("If set to true, this object will place from the ground up instead of height checks when not y locked to the surface. This is not compatable with X and Z axis rotations (it may look off)")
     private boolean bottom = false;
-
     @Desc("If set to true, air will be placed before the schematic places.")
     private boolean bore = false;
-
     @Desc("Use a generator to warp the field of coordinates. Using simplex for example would make a square placement warp like a flag")
     private IrisGeneratorStyle warp = new IrisGeneratorStyle(NoiseStyle.FLAT);
-
     @Desc("If the place mode is set to CENTER_HEIGHT_RIGID and you have an X/Z translation, Turning on translate center will also translate the center height check.")
     private boolean translateCenter = false;
-
     @Desc("The placement mode")
     private ObjectPlaceMode mode = ObjectPlaceMode.CENTER_HEIGHT;
-
     @ArrayType(min = 1, type = IrisObjectReplace.class)
     @Desc("Find and replace blocks")
     private KList<IrisObjectReplace> edit = new KList<>();
-
     @Desc("Translate this object's placement")
     private IrisObjectTranslate translate = new IrisObjectTranslate();
-
     @Desc("Scale Objects")
     private IrisObjectScale scale = new IrisObjectScale();
-
     @ArrayType(min = 1, type = IrisObjectLoot.class)
     @Desc("The loot tables to apply to these objects")
     private KList<IrisObjectLoot> loot = new KList<>();
-
     @Desc("This object / these objects override the following trees when they grow...")
     @ArrayType(min = 1, type = IrisTree.class)
     private KList<IrisTree> trees = new KList<>();
+    private transient AtomicCache<TableCache> cache = new AtomicCache<>();
 
     public IrisObjectPlacement toPlacement(String... place) {
         IrisObjectPlacement p = new IrisObjectPlacement();
@@ -183,8 +163,6 @@ public class IrisObjectPlacement {
         p.setLoot(loot);
         return p;
     }
-
-    private final transient AtomicCache<CNG> surfaceWarp = new AtomicCache<>();
 
     public CNG getSurfaceWarp(RNG rng, IrisData data) {
         return surfaceWarp.aquire(() ->
@@ -223,8 +201,6 @@ public class IrisObjectPlacement {
         return isVacuum() || getAddFeatures().isNotEmpty();
     }
 
-    private transient AtomicCache<TableCache> cache = new AtomicCache<>();
-
     public boolean matches(IrisTreeSize size, TreeType type) {
         for (IrisTree i : getTrees()) {
             if (i.matches(size, type)) {
@@ -233,12 +209,6 @@ public class IrisObjectPlacement {
         }
 
         return false;
-    }
-
-    private static class TableCache {
-        final transient WeightedRandom<IrisLootTable> global = new WeightedRandom<>();
-        final transient KMap<Material, WeightedRandom<IrisLootTable>> basic = new KMap<>();
-        final transient KMap<Material, KMap<BlockData, WeightedRandom<IrisLootTable>>> exact = new KMap<>();
     }
 
     private TableCache getCache(IrisData manager) {
@@ -307,5 +277,11 @@ public class IrisObjectPlacement {
         }
 
         return null;
+    }
+
+    private static class TableCache {
+        final transient WeightedRandom<IrisLootTable> global = new WeightedRandom<>();
+        final transient KMap<Material, WeightedRandom<IrisLootTable>> basic = new KMap<>();
+        final transient KMap<Material, KMap<BlockData, WeightedRandom<IrisLootTable>>> exact = new KMap<>();
     }
 }

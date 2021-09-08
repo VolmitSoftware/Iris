@@ -30,10 +30,10 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 public abstract class RawMatter<T> extends MappedHunk<T> implements MatterSlice<T> {
-    @Getter
-    private final Class<T> type;
     protected final KMap<Class<?>, MatterWriter<?, T>> writers;
     protected final KMap<Class<?>, MatterReader<?, T>> readers;
+    @Getter
+    private final Class<T> type;
 
     public RawMatter(int width, int height, int depth, Class<T> type) {
         super(width, height, depth);

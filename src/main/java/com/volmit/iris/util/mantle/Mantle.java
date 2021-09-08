@@ -83,6 +83,44 @@ public class Mantle {
     }
 
     /**
+     * Get the file for a region
+     *
+     * @param folder the folder
+     * @param x      the x coord
+     * @param z      the z coord
+     * @return the file
+     */
+    public static File fileForRegion(File folder, int x, int z) {
+        return fileForRegion(folder, key(x, z));
+    }
+
+    /**
+     * Get the file for the given region
+     *
+     * @param folder the data folder
+     * @param key    the region key
+     * @return the file
+     */
+    public static File fileForRegion(File folder, Long key) {
+        File f = new File(folder, "p." + key + ".ttp");
+        if (!f.getParentFile().exists()) {
+            f.getParentFile().mkdirs();
+        }
+        return f;
+    }
+
+    /**
+     * Get the long value representing a chunk or region coordinate
+     *
+     * @param x the x
+     * @param z the z
+     * @return the value
+     */
+    public static Long key(int x, int z) {
+        return Cache.key(x, z);
+    }
+
+    /**
      * Raise a flag if it is lowered currently, If the flag was raised, execute the runnable
      *
      * @param x    the chunk x
@@ -391,7 +429,6 @@ public class Mantle {
         return get(x, z);
     }
 
-
     /**
      * This retreives a future of the Tectonic Plate at the given coordinates.
      * All methods accessing tectonic plates should go through this method
@@ -447,44 +484,6 @@ public class Mantle {
             Iris.debug("Created new Tectonic Plate " + C.DARK_GREEN + x + " " + z);
             return region;
         }));
-    }
-
-    /**
-     * Get the file for a region
-     *
-     * @param folder the folder
-     * @param x      the x coord
-     * @param z      the z coord
-     * @return the file
-     */
-    public static File fileForRegion(File folder, int x, int z) {
-        return fileForRegion(folder, key(x, z));
-    }
-
-    /**
-     * Get the file for the given region
-     *
-     * @param folder the data folder
-     * @param key    the region key
-     * @return the file
-     */
-    public static File fileForRegion(File folder, Long key) {
-        File f = new File(folder, "p." + key + ".ttp");
-        if (!f.getParentFile().exists()) {
-            f.getParentFile().mkdirs();
-        }
-        return f;
-    }
-
-    /**
-     * Get the long value representing a chunk or region coordinate
-     *
-     * @param x the x
-     * @param z the z
-     * @return the value
-     */
-    public static Long key(int x, int z) {
-        return Cache.key(x, z);
     }
 
     public void saveAll() {

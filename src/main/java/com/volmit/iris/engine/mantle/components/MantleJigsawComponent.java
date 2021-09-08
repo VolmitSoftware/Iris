@@ -23,7 +23,13 @@ import com.volmit.iris.engine.jigsaw.PlannedStructure;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.IrisMantleComponent;
 import com.volmit.iris.engine.mantle.MantleWriter;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisFeaturePositional;
+import com.volmit.iris.engine.object.IrisJigsawStructure;
+import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
+import com.volmit.iris.engine.object.IrisPosition;
+import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.engine.object.NoiseStyle;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.MantleFlag;
@@ -112,8 +118,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
             writer.setData(position.getX(), 0, position.getZ(),
                     new IrisFeaturePositional(position.getX(), position.getZ(), structure.getFeature()));
 
-            if(structure.getFeature().getEntitySpawners().isNotEmpty())
-            {
+            if (structure.getFeature().getEntitySpawners().isNotEmpty()) {
                 Iris.info("Placed Structure  MAIN SPAWN " + structure.getFeature().getEntitySpawners().get(0) + " @R " + structure.getFeature().getBlockRadius());
             }
         }

@@ -22,7 +22,17 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.loader.ResourceLoader;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.RegistryListBlockType;
+import com.volmit.iris.engine.object.annotations.RegistryListFont;
+import com.volmit.iris.engine.object.annotations.RegistryListItemType;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
+import com.volmit.iris.engine.object.annotations.RegistryListSpecialEntity;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
@@ -31,7 +41,7 @@ import com.volmit.iris.util.json.JSONObject;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.potion.PotionEffectType;
 
-import java.awt.*;
+import java.awt.GraphicsEnvironment;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.List;
@@ -55,6 +65,26 @@ public class SchemaBuilder {
         warnings = new KList<>();
         this.definitions = new KMap<>();
         this.root = root;
+    }
+
+    private static JSONArray getEnchantmentTypes() {
+        JSONArray a = new JSONArray();
+
+        for (Field gg : Enchantment.class.getDeclaredFields()) {
+            a.put(gg.getName());
+        }
+
+        return a;
+    }
+
+    private static JSONArray getPotionTypes() {
+        JSONArray a = new JSONArray();
+
+        for (PotionEffectType gg : PotionEffectType.values()) {
+            a.put(gg.getName().toUpperCase().replaceAll("\\Q \\E", "_"));
+        }
+
+        return a;
     }
 
     public JSONObject compute() {
@@ -648,25 +678,5 @@ public class SchemaBuilder {
             warnings.addIfMissing("Missing @Desc on " + r.getSimpleName() + " in " + r.getDeclaringClass().getCanonicalName());
         }
         return "";
-    }
-
-    private static JSONArray getEnchantmentTypes() {
-        JSONArray a = new JSONArray();
-
-        for (Field gg : Enchantment.class.getDeclaredFields()) {
-            a.put(gg.getName());
-        }
-
-        return a;
-    }
-
-    private static JSONArray getPotionTypes() {
-        JSONArray a = new JSONArray();
-
-        for (PotionEffectType gg : PotionEffectType.values()) {
-            a.put(gg.getName().toUpperCase().replaceAll("\\Q \\E", "_"));
-        }
-
-        return a;
     }
 }

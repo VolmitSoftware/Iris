@@ -29,7 +29,7 @@ import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.Data;
 
-import java.awt.*;
+import java.awt.Desktop;
 import java.io.File;
 
 @Data

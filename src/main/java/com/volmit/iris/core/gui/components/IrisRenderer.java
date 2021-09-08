@@ -21,7 +21,7 @@ package com.volmit.iris.core.gui.components;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
 
-import java.awt.*;
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.util.function.BiFunction;
 

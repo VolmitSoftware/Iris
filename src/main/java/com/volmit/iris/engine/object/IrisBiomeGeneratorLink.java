@@ -19,7 +19,13 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.DependsOn;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
 import lombok.AllArgsConstructor;
@@ -35,25 +41,22 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisBiomeGeneratorLink {
 
+    private final transient AtomicCache<IrisGenerator> gen = new AtomicCache<>();
     @RegistryListResource(IrisGenerator.class)
     @Desc("The generator id")
     private String generator = "default";
-
     @DependsOn({"min", "max"})
     @Required
     @MinNumber(-256) // TODO: WARNING HEIGHT
     @MaxNumber(256) // TODO: WARNING HEIGHT
     @Desc("The min block value (value + fluidHeight)")
     private int min = 0;
-
     @DependsOn({"min", "max"})
     @Required
     @MinNumber(-256) // TODO: WARNING HEIGHT
     @MaxNumber(256) // TODO: WARNING HEIGHT
     @Desc("The max block value (value + fluidHeight)")
     private int max = 0;
-
-    private final transient AtomicCache<IrisGenerator> gen = new AtomicCache<>();
 
     public IrisGenerator getCachedGenerator(DataProvider g) {
         return gen.aquire(() ->

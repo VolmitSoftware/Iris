@@ -46,12 +46,12 @@ public class RollingSequence extends Average {
         return f;
     }
 
-    public void setPrecision(boolean p) {
-        this.precision = p;
-    }
-
     public boolean isPrecision() {
         return precision;
+    }
+
+    public void setPrecision(boolean p) {
+        this.precision = p;
     }
 
     public double getMin() {

@@ -20,7 +20,13 @@ package com.volmit.iris.engine.object;
 
 import com.google.gson.Gson;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
@@ -89,6 +95,10 @@ public class IrisFeature {
 
     private transient AtomicCache<Double> actualRadius = new AtomicCache<>();
 
+    public static IrisFeature read(DataInputStream s) throws IOException {
+        return new Gson().fromJson(s.readUTF(), IrisFeature.class);
+    }
+
     public double getActualRadius() {
         return actualRadius.aquire(() -> {
             double o = 0;
@@ -99,10 +109,6 @@ public class IrisFeature {
 
             return o + IrisInterpolation.getRealRadius(getInterpolator(), getInterpolationRadius());
         });
-    }
-
-    public static IrisFeature read(DataInputStream s) throws IOException {
-        return new Gson().fromJson(s.readUTF(), IrisFeature.class);
     }
 
     public void write(DataOutputStream s) throws IOException {

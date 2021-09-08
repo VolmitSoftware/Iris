@@ -5,7 +5,13 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.service.ObjectSVC;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.service.WandSVC;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.IObjectPlacer;
+import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisObject;
+import com.volmit.iris.engine.object.IrisObjectPlacement;
+import com.volmit.iris.engine.object.IrisObjectPlacementScaleInterpolator;
+import com.volmit.iris.engine.object.IrisObjectRotation;
+import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
@@ -16,7 +22,12 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.Direction;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.Queue;
-import org.bukkit.*;
+import org.bukkit.ChatColor;
+import org.bukkit.HeightMap;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
@@ -27,11 +38,90 @@ import org.bukkit.util.Vector;
 import java.io.File;
 import java.io.IOException;
 import java.text.NumberFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 @Decree(name = "object", aliases = "o", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris object manipulation")
 public class CommandObject implements DecreeExecutor {
+
+    private static final Set<Material> skipBlocks = Set.of(Material.GRASS, Material.SNOW, Material.VINE, Material.TORCH, Material.DEAD_BUSH,
+            Material.POPPY, Material.DANDELION);
+
+    public static IObjectPlacer createPlacer(World world, Map<Block, BlockData> futureBlockChanges) {
+
+        return new IObjectPlacer() {
+            @Override
+            public int getHighest(int x, int z, IrisData data) {
+                return world.getHighestBlockYAt(x, z);
+            }
+
+            @Override
+            public int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
+                return world.getHighestBlockYAt(x, z, ignoreFluid ? HeightMap.OCEAN_FLOOR : HeightMap.MOTION_BLOCKING);
+            }
+
+            @Override
+            public void set(int x, int y, int z, BlockData d) {
+                Block block = world.getBlockAt(x, y, z);
+
+                //Prevent blocks being set in or bellow bedrock
+                if (y <= world.getMinHeight() || block.getType() == Material.BEDROCK) return;
+
+                futureBlockChanges.put(block, block.getBlockData());
+
+                block.setBlockData(d);
+            }
+
+            @Override
+            public BlockData get(int x, int y, int z) {
+                return world.getBlockAt(x, y, z).getBlockData();
+            }
+
+            @Override
+            public boolean isPreventingDecay() {
+                return false;
+            }
+
+            @Override
+            public boolean isCarved(int x, int y, int z) {
+                return false;
+            }
+
+            @Override
+            public boolean isSolid(int x, int y, int z) {
+                return world.getBlockAt(x, y, z).getType().isSolid();
+            }
+
+            @Override
+            public boolean isUnderwater(int x, int z) {
+                return false;
+            }
+
+            @Override
+            public int getFluidHeight() {
+                return 63;
+            }
+
+            @Override
+            public boolean isDebugSmartBore() {
+                return false;
+            }
+
+            @Override
+            public void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile) {
+                BlockState state = world.getBlockAt(xx, yy, zz).getState();
+                tile.toBukkitTry(state);
+                state.update();
+            }
+        };
+    }
 
     @Decree(description = "Check the composition of an object")
     public void analyze(
@@ -182,9 +272,6 @@ public class CommandObject implements DecreeExecutor {
         }
     }
 
-    private static final Set<Material> skipBlocks = Set.of(Material.GRASS, Material.SNOW, Material.VINE, Material.TORCH, Material.DEAD_BUSH,
-            Material.POPPY, Material.DANDELION);
-
     @Decree(description = "Paste an object", sync = true)
     public void paste(
             @Param(description = "The object to paste", customHandler = ObjectHandler.class)
@@ -241,75 +328,6 @@ public class CommandObject implements DecreeExecutor {
         } else {
             sender().sendMessage("Placed " + object);
         }
-    }
-
-    public static IObjectPlacer createPlacer(World world, Map<Block, BlockData> futureBlockChanges) {
-
-        return new IObjectPlacer() {
-            @Override
-            public int getHighest(int x, int z, IrisData data) {
-                return world.getHighestBlockYAt(x, z);
-            }
-
-            @Override
-            public int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
-                return world.getHighestBlockYAt(x, z, ignoreFluid ? HeightMap.OCEAN_FLOOR : HeightMap.MOTION_BLOCKING);
-            }
-
-            @Override
-            public void set(int x, int y, int z, BlockData d) {
-                Block block = world.getBlockAt(x, y, z);
-
-                //Prevent blocks being set in or bellow bedrock
-                if (y <= world.getMinHeight() || block.getType() == Material.BEDROCK) return;
-
-                futureBlockChanges.put(block, block.getBlockData());
-
-                block.setBlockData(d);
-            }
-
-            @Override
-            public BlockData get(int x, int y, int z) {
-                return world.getBlockAt(x, y, z).getBlockData();
-            }
-
-            @Override
-            public boolean isPreventingDecay() {
-                return false;
-            }
-
-            @Override
-            public boolean isCarved(int x, int y, int z) {
-                return false;
-            }
-
-            @Override
-            public boolean isSolid(int x, int y, int z) {
-                return world.getBlockAt(x, y, z).getType().isSolid();
-            }
-
-            @Override
-            public boolean isUnderwater(int x, int z) {
-                return false;
-            }
-
-            @Override
-            public int getFluidHeight() {
-                return 63;
-            }
-
-            @Override
-            public boolean isDebugSmartBore() {
-                return false;
-            }
-
-            @Override
-            public void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile) {
-                BlockState state = world.getBlockAt(xx, yy, zz).getState();
-                tile.toBukkitTry(state);
-                state.update();
-            }
-        };
     }
 
     @Decree(description = "Save an object")

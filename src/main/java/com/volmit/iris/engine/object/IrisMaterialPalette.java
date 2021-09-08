@@ -20,7 +20,11 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
@@ -37,21 +41,18 @@ import org.bukkit.block.data.BlockData;
 @Desc("A palette of materials")
 @Data
 public class IrisMaterialPalette {
+    private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
+    private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
+    private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
     @Desc("The style of noise")
     private IrisGeneratorStyle style = NoiseStyle.STATIC.style();
-
     @MinNumber(0.0001)
     @Desc("The terrain zoom mostly for zooming in on a wispy palette")
     private double zoom = 5;
-
     @Required
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The palette of blocks to be used in this layer")
     private KList<IrisBlockData> palette = new KList<IrisBlockData>().qadd(new IrisBlockData("STONE"));
-
-    private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
-    private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
-    private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
 
     public BlockData get(RNG rng, double x, double y, double z, IrisData rdata) {
         if (getBlockData(rdata).isEmpty()) {

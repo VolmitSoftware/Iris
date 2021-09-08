@@ -50,9 +50,9 @@ import java.util.function.Consumer;
 public class StudioSVC implements IrisService {
     public static final String LISTING = "https://raw.githubusercontent.com/IrisDimensions/_listing/main/listing-v2.json";
     public static final String WORKSPACE_NAME = "packs";
+    private static final AtomicCache<Integer> counter = new AtomicCache<>();
     private final KMap<String, String> cacheListing = null;
     private IrisProject activeProject;
-    private static final AtomicCache<Integer> counter = new AtomicCache<>();
 
     @Override
     public void onEnable() {

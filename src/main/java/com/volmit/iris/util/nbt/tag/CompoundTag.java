@@ -21,7 +21,11 @@ package com.volmit.iris.util.nbt.tag;
 import com.volmit.iris.engine.data.io.MaxDepthIO;
 import com.volmit.iris.util.collection.KMap;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.function.BiConsumer;
 
 @SuppressWarnings("ALL")
@@ -33,13 +37,13 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>> implements Iterable<Ma
         super(createEmptyValue());
     }
 
+    private static Map<String, Tag<?>> createEmptyValue() {
+        return new KMap<>();
+    }
+
     @Override
     public byte getID() {
         return ID;
-    }
-
-    private static Map<String, Tag<?>> createEmptyValue() {
-        return new KMap<>();
     }
 
     public int size() {

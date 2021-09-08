@@ -30,6 +30,21 @@ public class IrisMathHelper {
     private static final double[] f;
     private static final double[] g;
 
+    static {
+        a = c(2.0f);
+        c = new Random();
+        d = new int[]{0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9};
+        e = Double.longBitsToDouble(4805340802404319232L);
+        f = new double[257];
+        g = new double[257];
+        for (int var2 = 0; var2 < 257; ++var2) {
+            final double var3 = var2 / 256.0;
+            final double var4 = Math.asin(var3);
+            IrisMathHelper.g[var2] = Math.cos(var4);
+            IrisMathHelper.f[var2] = var4;
+        }
+    }
+
     public static float c(final float var0) {
         return (float) Math.sqrt(var0);
     }
@@ -435,20 +450,5 @@ public class IrisMathHelper {
 
     public static float k(final float var0) {
         return var0 * var0;
-    }
-
-    static {
-        a = c(2.0f);
-        c = new Random();
-        d = new int[]{0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9};
-        e = Double.longBitsToDouble(4805340802404319232L);
-        f = new double[257];
-        g = new double[257];
-        for (int var2 = 0; var2 < 257; ++var2) {
-            final double var3 = var2 / 256.0;
-            final double var4 = Math.asin(var3);
-            IrisMathHelper.g[var2] = Math.cos(var4);
-            IrisMathHelper.f[var2] = var4;
-        }
     }
 }

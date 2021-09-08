@@ -21,7 +21,11 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.collection.KList;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -63,13 +67,11 @@ public class IrisWorld {
                 .environment(world.getEnvironment());
     }
 
-    public long getRawWorldSeed()
-    {
+    public long getRawWorldSeed() {
         return seed;
     }
 
-    public void setRawWorldSeed(long seed)
-    {
+    public void setRawWorldSeed(long seed) {
         this.seed = seed;
     }
 

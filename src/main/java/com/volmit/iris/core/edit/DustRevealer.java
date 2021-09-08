@@ -41,24 +41,6 @@ public class DustRevealer {
     private final String key;
     private final KList<BlockPosition> hits;
 
-    public static void spawn(Block block, VolmitSender sender) {
-        World world = block.getWorld();
-        Engine access = IrisToolbelt.access(world).getEngine();
-
-        if (access != null) {
-            String a = access.getObjectPlacementKey(block.getX(), block.getY(), block.getZ());
-
-            if (a != null) {
-                world.playSound(block.getLocation(), Sound.ITEM_LODESTONE_COMPASS_LOCK, 1f, 0.1f);
-
-                sender.sendMessage("Found object " + a);
-                J.a(() -> {
-                    new DustRevealer(access, world, new BlockPosition(block.getX(), block.getY(), block.getZ()), a, new KList<>());
-                });
-            }
-        }
-    }
-
     public DustRevealer(Engine engine, World world, BlockPosition block, String key, KList<BlockPosition> hits) {
         this.engine = engine;
         this.world = world;
@@ -109,6 +91,24 @@ public class DustRevealer {
                 }
             });
         }, RNG.r.i(2, 8));
+    }
+
+    public static void spawn(Block block, VolmitSender sender) {
+        World world = block.getWorld();
+        Engine access = IrisToolbelt.access(world).getEngine();
+
+        if (access != null) {
+            String a = access.getObjectPlacementKey(block.getX(), block.getY(), block.getZ());
+
+            if (a != null) {
+                world.playSound(block.getLocation(), Sound.ITEM_LODESTONE_COMPASS_LOCK, 1f, 0.1f);
+
+                sender.sendMessage("Found object " + a);
+                J.a(() -> {
+                    new DustRevealer(access, world, new BlockPosition(block.getX(), block.getY(), block.getZ()), a, new KList<>());
+                });
+            }
+        }
     }
 
     private boolean is(BlockPosition a) {

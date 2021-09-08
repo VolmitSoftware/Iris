@@ -18,7 +18,12 @@
 
 package com.volmit.iris.core.loader;
 
-import com.google.gson.*;
+import com.google.gson.ExclusionStrategy;
+import com.google.gson.FieldAttributes;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
+import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -26,7 +31,23 @@ import com.google.gson.stream.JsonWriter;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisBlockData;
+import com.volmit.iris.engine.object.IrisCave;
+import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisEntity;
+import com.volmit.iris.engine.object.IrisExpression;
+import com.volmit.iris.engine.object.IrisGenerator;
+import com.volmit.iris.engine.object.IrisJigsawPiece;
+import com.volmit.iris.engine.object.IrisJigsawPool;
+import com.volmit.iris.engine.object.IrisJigsawStructure;
+import com.volmit.iris.engine.object.IrisLootTable;
+import com.volmit.iris.engine.object.IrisMod;
+import com.volmit.iris.engine.object.IrisObject;
+import com.volmit.iris.engine.object.IrisRavine;
+import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.engine.object.IrisScript;
+import com.volmit.iris.engine.object.IrisSpawner;
 import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -46,6 +67,8 @@ import java.util.function.Function;
 @Data
 public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private static final KMap<File, IrisData> dataLoaders = new KMap<>();
+    private final File dataFolder;
+    private final int id;
     private ResourceLoader<IrisBiome> biomeLoader;
     private ResourceLoader<IrisLootTable> lootLoader;
     private ResourceLoader<IrisRegion> regionLoader;
@@ -68,13 +91,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private Gson snippetLoader;
     private GsonBuilder builder;
     private KMap<Class<? extends IrisRegistrant>, ResourceLoader<? extends IrisRegistrant>> loaders = new KMap<>();
-    private final File dataFolder;
     private Engine engine;
-    private final int id;
-
-    public static IrisData get(File dataFolder) {
-        return dataLoaders.compute(dataFolder, (k, v) -> v == null ? new IrisData(dataFolder) : v);
-    }
 
     private IrisData(File dataFolder) {
         this.engine = null;
@@ -83,29 +100,12 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         hotloaded();
     }
 
+    public static IrisData get(File dataFolder) {
+        return dataLoaders.compute(dataFolder, (k, v) -> v == null ? new IrisData(dataFolder) : v);
+    }
+
     public static void dereference() {
         dataLoaders.v().forEach(IrisData::cleanupEngine);
-    }
-
-    public ResourceLoader<?> getTypedLoaderFor(File f) {
-        String[] k = f.getPath().split("\\Q" + File.separator + "\\E");
-
-        for (String i : k) {
-            for (ResourceLoader<?> j : loaders.values()) {
-                if (j.getFolderName().equals(i)) {
-                    return j;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    public void cleanupEngine() {
-        if (engine != null && engine.isClosed()) {
-            engine = null;
-            Iris.debug("Dereferenced Data<Engine> " + getId() + " " + getDataFolder());
-        }
     }
 
     public static int cacheSize() {
@@ -119,117 +119,8 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         return m;
     }
 
-    public void preprocessObject(IrisRegistrant t) {
-        try {
-            IrisContext ctx = IrisContext.get();
-            Engine engine = this.engine;
-
-            if (engine == null && ctx != null && ctx.getEngine() != null) {
-                engine = ctx.getEngine();
-            }
-
-            if (engine == null && t.getPreprocessors().isNotEmpty()) {
-                Iris.error("Failed to preprocess object " + t.getLoadKey() + " because there is no engine context here. (See stack below)");
-                try {
-                    throw new RuntimeException();
-                } catch (Throwable ex) {
-                    ex.printStackTrace();
-                }
-            }
-
-            if (engine != null && t.getPreprocessors().isNotEmpty()) {
-                synchronized (this) {
-                    engine.getExecution().getAPI().setPreprocessorObject(t);
-
-                    for (String i : t.getPreprocessors()) {
-                        engine.getExecution().execute(i);
-                        Iris.debug("Loader<" + C.GREEN + t.getTypeName() + C.LIGHT_PURPLE + "> iprocess " + C.YELLOW + t.getLoadKey() + C.LIGHT_PURPLE + " in <rainbow>" + i);
-                    }
-                }
-            }
-        } catch (Throwable e) {
-            Iris.error("Failed to preprocess object!");
-            e.printStackTrace();
-        }
-    }
-
-    public void close() {
-        dump();
-    }
-
     private static void printData(ResourceLoader<?> rl) {
         Iris.warn("  " + rl.getResourceTypeName() + " @ /" + rl.getFolderName() + ": Cache=" + rl.getLoadCache().size() + " Folders=" + rl.getFolders().size());
-    }
-
-    public IrisData copy() {
-        return IrisData.get(dataFolder);
-    }
-
-    private <T extends IrisRegistrant> ResourceLoader<T> registerLoader(Class<T> registrant) {
-        try {
-            IrisRegistrant rr = registrant.getConstructor().newInstance();
-            ResourceLoader<T> r = null;
-            if (registrant.equals(IrisObject.class)) {
-                r = (ResourceLoader<T>) new ObjectResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
-            } else if (registrant.equals(IrisScript.class)) {
-                r = (ResourceLoader<T>) new ScriptResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
-            } else {
-                J.attempt(() -> registrant.getConstructor().newInstance().registerTypeAdapters(builder));
-                r = new ResourceLoader<>(dataFolder, this, rr.getFolderName(), rr.getTypeName(), registrant);
-            }
-
-            loaders.put(registrant, r);
-
-            return r;
-        } catch (Throwable e) {
-            e.printStackTrace();
-            Iris.error("Failed to create loader! " + registrant.getCanonicalName());
-        }
-
-        return null;
-    }
-
-    public synchronized void hotloaded() {
-        possibleSnippets = new KMap<>();
-        builder = new GsonBuilder()
-                .addDeserializationExclusionStrategy(this)
-                .addSerializationExclusionStrategy(this)
-                .setLenient()
-                .registerTypeAdapterFactory(this)
-                .setPrettyPrinting();
-        loaders.clear();
-        File packs = dataFolder;
-        packs.mkdirs();
-        this.lootLoader = registerLoader(IrisLootTable.class);
-        this.spawnerLoader = registerLoader(IrisSpawner.class);
-        this.entityLoader = registerLoader(IrisEntity.class);
-        this.regionLoader = registerLoader(IrisRegion.class);
-        this.biomeLoader = registerLoader(IrisBiome.class);
-        this.modLoader = registerLoader(IrisMod.class);
-        this.dimensionLoader = registerLoader(IrisDimension.class);
-        this.jigsawPoolLoader = registerLoader(IrisJigsawPool.class);
-        this.jigsawStructureLoader = registerLoader(IrisJigsawStructure.class);
-        this.jigsawPieceLoader = registerLoader(IrisJigsawPiece.class);
-        this.generatorLoader = registerLoader(IrisGenerator.class);
-        this.caveLoader = registerLoader(IrisCave.class);
-        this.ravineLoader = registerLoader(IrisRavine.class);
-        this.blockLoader = registerLoader(IrisBlockData.class);
-        this.expressionLoader = registerLoader(IrisExpression.class);
-        this.objectLoader = registerLoader(IrisObject.class);
-        this.scriptLoader = registerLoader(IrisScript.class);
-        gson = builder.create();
-    }
-
-    public void dump() {
-        for (ResourceLoader<?> i : loaders.values()) {
-            i.clearCache();
-        }
-    }
-
-    public void clearLists() {
-        for (ResourceLoader<?> i : loaders.values()) {
-            i.clearList();
-        }
     }
 
     public static IrisObject loadAnyObject(String key) {
@@ -318,6 +209,136 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         }
 
         return null;
+    }
+
+    public ResourceLoader<?> getTypedLoaderFor(File f) {
+        String[] k = f.getPath().split("\\Q" + File.separator + "\\E");
+
+        for (String i : k) {
+            for (ResourceLoader<?> j : loaders.values()) {
+                if (j.getFolderName().equals(i)) {
+                    return j;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public void cleanupEngine() {
+        if (engine != null && engine.isClosed()) {
+            engine = null;
+            Iris.debug("Dereferenced Data<Engine> " + getId() + " " + getDataFolder());
+        }
+    }
+
+    public void preprocessObject(IrisRegistrant t) {
+        try {
+            IrisContext ctx = IrisContext.get();
+            Engine engine = this.engine;
+
+            if (engine == null && ctx != null && ctx.getEngine() != null) {
+                engine = ctx.getEngine();
+            }
+
+            if (engine == null && t.getPreprocessors().isNotEmpty()) {
+                Iris.error("Failed to preprocess object " + t.getLoadKey() + " because there is no engine context here. (See stack below)");
+                try {
+                    throw new RuntimeException();
+                } catch (Throwable ex) {
+                    ex.printStackTrace();
+                }
+            }
+
+            if (engine != null && t.getPreprocessors().isNotEmpty()) {
+                synchronized (this) {
+                    engine.getExecution().getAPI().setPreprocessorObject(t);
+
+                    for (String i : t.getPreprocessors()) {
+                        engine.getExecution().execute(i);
+                        Iris.debug("Loader<" + C.GREEN + t.getTypeName() + C.LIGHT_PURPLE + "> iprocess " + C.YELLOW + t.getLoadKey() + C.LIGHT_PURPLE + " in <rainbow>" + i);
+                    }
+                }
+            }
+        } catch (Throwable e) {
+            Iris.error("Failed to preprocess object!");
+            e.printStackTrace();
+        }
+    }
+
+    public void close() {
+        dump();
+    }
+
+    public IrisData copy() {
+        return IrisData.get(dataFolder);
+    }
+
+    private <T extends IrisRegistrant> ResourceLoader<T> registerLoader(Class<T> registrant) {
+        try {
+            IrisRegistrant rr = registrant.getConstructor().newInstance();
+            ResourceLoader<T> r = null;
+            if (registrant.equals(IrisObject.class)) {
+                r = (ResourceLoader<T>) new ObjectResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
+            } else if (registrant.equals(IrisScript.class)) {
+                r = (ResourceLoader<T>) new ScriptResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
+            } else {
+                J.attempt(() -> registrant.getConstructor().newInstance().registerTypeAdapters(builder));
+                r = new ResourceLoader<>(dataFolder, this, rr.getFolderName(), rr.getTypeName(), registrant);
+            }
+
+            loaders.put(registrant, r);
+
+            return r;
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Iris.error("Failed to create loader! " + registrant.getCanonicalName());
+        }
+
+        return null;
+    }
+
+    public synchronized void hotloaded() {
+        possibleSnippets = new KMap<>();
+        builder = new GsonBuilder()
+                .addDeserializationExclusionStrategy(this)
+                .addSerializationExclusionStrategy(this)
+                .setLenient()
+                .registerTypeAdapterFactory(this)
+                .setPrettyPrinting();
+        loaders.clear();
+        File packs = dataFolder;
+        packs.mkdirs();
+        this.lootLoader = registerLoader(IrisLootTable.class);
+        this.spawnerLoader = registerLoader(IrisSpawner.class);
+        this.entityLoader = registerLoader(IrisEntity.class);
+        this.regionLoader = registerLoader(IrisRegion.class);
+        this.biomeLoader = registerLoader(IrisBiome.class);
+        this.modLoader = registerLoader(IrisMod.class);
+        this.dimensionLoader = registerLoader(IrisDimension.class);
+        this.jigsawPoolLoader = registerLoader(IrisJigsawPool.class);
+        this.jigsawStructureLoader = registerLoader(IrisJigsawStructure.class);
+        this.jigsawPieceLoader = registerLoader(IrisJigsawPiece.class);
+        this.generatorLoader = registerLoader(IrisGenerator.class);
+        this.caveLoader = registerLoader(IrisCave.class);
+        this.ravineLoader = registerLoader(IrisRavine.class);
+        this.blockLoader = registerLoader(IrisBlockData.class);
+        this.expressionLoader = registerLoader(IrisExpression.class);
+        this.objectLoader = registerLoader(IrisObject.class);
+        this.scriptLoader = registerLoader(IrisScript.class);
+        gson = builder.create();
+    }
+
+    public void dump() {
+        for (ResourceLoader<?> i : loaders.values()) {
+            i.clearCache();
+        }
+    }
+
+    public void clearLists() {
+        for (ResourceLoader<?> i : loaders.values()) {
+            i.clearList();
+        }
     }
 
     public String toLoadKey(File f) {

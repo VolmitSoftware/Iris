@@ -22,7 +22,11 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.RegistryListBlockType;
+import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
@@ -45,30 +49,75 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisBlockData extends IrisRegistrant {
+    private final transient AtomicCache<BlockData> blockdata = new AtomicCache<>();
+    private final transient AtomicCache<String> realProperties = new AtomicCache<>();
     @RegistryListBlockType
     @Required
     @Desc("The block to use")
     private String block = "air";
-
     @Desc("Debug this block by printing it to the console when it's used. Must have debug turned on in settings.")
     private boolean debug = false;
-
     @MinNumber(1)
     @MaxNumber(1000)
     @Desc("The weight is used when this block data is inside of a list of blockdata. A weight of two is just as if you placed two of the same block data values in the same list making it more common when randomly picked.")
     private int weight = 1;
-
     @Desc("If the block cannot be created on this version, Iris will attempt to use this backup block data instead.")
     private IrisBlockData backup = null;
-
     @Desc("Optional properties for this block data such as 'waterlogged': true")
     private KMap<String, Object> data = new KMap<>();
 
-    private final transient AtomicCache<BlockData> blockdata = new AtomicCache<>();
-    private final transient AtomicCache<String> realProperties = new AtomicCache<>();
-
     public IrisBlockData(String b) {
         this.block = b;
+    }
+
+    public static IrisBlockData from(String j) {
+        IrisBlockData b = new IrisBlockData();
+        String v = j.toLowerCase().trim();
+
+        if (v.contains("[")) {
+            KList<String> props = new KList<>();
+            String rp = v.split("\\Q[\\E")[1].replaceAll("\\Q]\\E", "");
+            b.setBlock(v.split("\\Q[\\E")[0]);
+
+            if (rp.contains(",")) {
+                props.add(rp.split("\\Q,\\E"));
+            } else {
+                props.add(rp);
+            }
+
+            for (String i : props) {
+                Object kg = filter(i.split("\\Q=\\E")[1]);
+                b.data.put(i.split("\\Q=\\E")[0], kg);
+            }
+        } else {
+            b.setBlock(v);
+        }
+
+        return b;
+    }
+
+    private static Object filter(String string) {
+        if (string.equals("true")) {
+            return true;
+        }
+
+        if (string.equals("false")) {
+            return false;
+        }
+
+        try {
+            return Integer.parseInt(string);
+        } catch (Throwable ignored) {
+            // Checks
+        }
+
+        try {
+            return Double.valueOf(string).intValue();
+        } catch (Throwable ignored) {
+            // Checks
+        }
+
+        return string;
     }
 
     public String computeProperties(KMap<String, Object> data) {
@@ -157,56 +206,6 @@ public class IrisBlockData extends IrisRegistrant {
         }
 
         return "minecraft:" + dat;
-    }
-
-    public static IrisBlockData from(String j) {
-        IrisBlockData b = new IrisBlockData();
-        String v = j.toLowerCase().trim();
-
-        if (v.contains("[")) {
-            KList<String> props = new KList<>();
-            String rp = v.split("\\Q[\\E")[1].replaceAll("\\Q]\\E", "");
-            b.setBlock(v.split("\\Q[\\E")[0]);
-
-            if (rp.contains(",")) {
-                props.add(rp.split("\\Q,\\E"));
-            } else {
-                props.add(rp);
-            }
-
-            for (String i : props) {
-                Object kg = filter(i.split("\\Q=\\E")[1]);
-                b.data.put(i.split("\\Q=\\E")[0], kg);
-            }
-        } else {
-            b.setBlock(v);
-        }
-
-        return b;
-    }
-
-    private static Object filter(String string) {
-        if (string.equals("true")) {
-            return true;
-        }
-
-        if (string.equals("false")) {
-            return false;
-        }
-
-        try {
-            return Integer.parseInt(string);
-        } catch (Throwable ignored) {
-            // Checks
-        }
-
-        try {
-            return Double.valueOf(string).intValue();
-        } catch (Throwable ignored) {
-            // Checks
-        }
-
-        return string;
     }
 
     @Override

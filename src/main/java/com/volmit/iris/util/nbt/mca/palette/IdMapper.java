@@ -28,12 +28,9 @@ import java.util.List;
 
 public class IdMapper<T> implements IdMap<T> {
     public static final int DEFAULT = -1;
-
-    private int nextId;
-
     private final IdentityHashMap<T, Integer> tToId;
-
     private final List<T> idToT;
+    private int nextId;
 
     public IdMapper(IdentityHashMap<T, Integer> tToId, List<T> idToT, int nextId) {
         this.tToId = tToId;

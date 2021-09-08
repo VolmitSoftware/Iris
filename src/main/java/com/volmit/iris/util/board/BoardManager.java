@@ -33,15 +33,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class BoardManager {
 
     private final JavaPlugin plugin;
-
-
-    private BoardSettings boardSettings;
-
-
     private final Map<UUID, Board> scoreboards;
-
-
     private final BukkitTask updateTask;
+    private BoardSettings boardSettings;
 
 
     public BoardManager(JavaPlugin plugin, BoardSettings boardSettings) {

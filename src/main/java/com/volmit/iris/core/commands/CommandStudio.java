@@ -29,7 +29,22 @@ import com.volmit.iris.core.service.ConversionSVC;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.InventorySlotType;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
+import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisEntity;
+import com.volmit.iris.engine.object.IrisFeaturePositional;
+import com.volmit.iris.engine.object.IrisGenerator;
+import com.volmit.iris.engine.object.IrisInterpolator;
+import com.volmit.iris.engine.object.IrisLootTable;
+import com.volmit.iris.engine.object.IrisNoiseGenerator;
+import com.volmit.iris.engine.object.IrisObject;
+import com.volmit.iris.engine.object.IrisObjectPlacement;
+import com.volmit.iris.engine.object.IrisPosition;
+import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.engine.object.IrisScript;
+import com.volmit.iris.engine.object.NoiseStyle;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -58,13 +73,18 @@ import com.volmit.iris.util.scheduling.jobs.JobCollection;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import com.volmit.iris.util.scheduling.jobs.SingleJob;
 import io.papermc.lib.PaperLib;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
+import org.bukkit.FluidCollisionMode;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
-import java.awt.*;
+import java.awt.Desktop;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -81,6 +101,10 @@ import java.util.function.Supplier;
 
 @Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
 public class CommandStudio implements DecreeExecutor {
+    public static String hrf(Duration duration) {
+        return duration.toString().substring(2).replaceAll("(\\d[HMS])(?!$)", "$1 ").toLowerCase();
+    }
+
     @Decree(description = "Open a new studio world", aliases = "o", sync = true)
     public void open(
             @Param(defaultValue = "overworld", description = "The dimension to open a studio for", aliases = "dim")
@@ -260,7 +284,6 @@ public class CommandStudio implements DecreeExecutor {
     public void convert() {
         Iris.service(ConversionSVC.class).check(sender());
     }
-
 
     @Decree(description = "Edit the biome you are currently in", aliases = {"ebiome", "eb"}, origin = DecreeOrigin.PLAYER)
     public void editbiome(
@@ -880,10 +903,6 @@ public class CommandStudio implements DecreeExecutor {
                 });
             }
         }
-    }
-
-    public static String hrf(Duration duration) {
-        return duration.toString().substring(2).replaceAll("(\\d[HMS])(?!$)", "$1 ").toLowerCase();
     }
 
     /**

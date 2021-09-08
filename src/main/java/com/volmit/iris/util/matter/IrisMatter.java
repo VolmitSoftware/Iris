@@ -48,6 +48,16 @@ public class IrisMatter implements Matter {
         this.sliceMap = new KMap<>();
     }
 
+    private static KMap<Class<?>, MatterSlice<?>> buildSlicers() {
+        KMap<Class<?>, MatterSlice<?>> c = new KMap<>();
+        for (Object i : Iris.initialize("com.volmit.iris.util.matter.slices", Sliced.class)) {
+            MatterSlice<?> s = (MatterSlice<?>) i;
+            c.put(s.getType(), s);
+        }
+
+        return c;
+    }
+
     @Override
     public <T> MatterSlice<T> createSlice(Class<T> type, Matter m) {
         MatterSlice<?> slice = slicers.get(type);
@@ -63,15 +73,5 @@ public class IrisMatter implements Matter {
         }
 
         return null;
-    }
-
-    private static KMap<Class<?>, MatterSlice<?>> buildSlicers() {
-        KMap<Class<?>, MatterSlice<?>> c = new KMap<>();
-        for (Object i : Iris.initialize("com.volmit.iris.util.matter.slices", Sliced.class)) {
-            MatterSlice<?> s = (MatterSlice<?>) i;
-            c.put(s.getType(), s);
-        }
-
-        return c;
     }
 }

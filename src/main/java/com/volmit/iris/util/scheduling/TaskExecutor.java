@@ -33,8 +33,8 @@ import java.util.concurrent.ForkJoinPool.ForkJoinWorkerThreadFactory;
 import java.util.concurrent.ForkJoinWorkerThread;
 
 public class TaskExecutor {
-    private int xc;
     private final ExecutorService service;
+    private int xc;
 
     public TaskExecutor(int threadLimit, int priority, String name) {
         xc = 1;
@@ -83,6 +83,13 @@ public class TaskExecutor {
 
     public void closeNow() {
         service.shutdown();
+    }
+
+    public enum TaskState {
+        QUEUED,
+        RUNNING,
+        COMPLETED,
+        FAILED
     }
 
     public static class TaskGroup {
@@ -155,33 +162,24 @@ public class TaskExecutor {
     @SuppressWarnings("ClassCanBeRecord")
     @ToString
     public static class TaskResult {
+        public final double timeElapsed;
+        public final int tasksExecuted;
+        public final int tasksFailed;
+        public final int tasksCompleted;
         public TaskResult(double timeElapsed, int tasksExecuted, int tasksFailed, int tasksCompleted) {
             this.timeElapsed = timeElapsed;
             this.tasksExecuted = tasksExecuted;
             this.tasksFailed = tasksFailed;
             this.tasksCompleted = tasksCompleted;
         }
-
-        public final double timeElapsed;
-        public final int tasksExecuted;
-        public final int tasksFailed;
-        public final int tasksCompleted;
-    }
-
-    public enum TaskState {
-        QUEUED,
-        RUNNING,
-        COMPLETED,
-        FAILED
     }
 
     public static class AssignedTask {
         @Getter
+        private final NastyRunnable task;
+        @Getter
         @Setter
         private TaskState state;
-
-        @Getter
-        private final NastyRunnable task;
 
         public AssignedTask(NastyRunnable task) {
             this.task = task;

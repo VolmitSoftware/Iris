@@ -38,18 +38,6 @@ public interface Interpolated<T> {
     Interpolated<Long> LONG = of(Double::valueOf, Double::longValue);
     Interpolated<UUID> UUID = of((i) -> Double.longBitsToDouble(i.getMostSignificantBits()), (i) -> new UUID(Double.doubleToLongBits(i), i.longValue()));
 
-    double toDouble(T t);
-
-    T fromDouble(double d);
-
-    default InterpolatorFactory<T> interpolate() {
-        if (this instanceof ProceduralStream) {
-            return new InterpolatorFactory<>((ProceduralStream<T>) this);
-        }
-
-        return null;
-    }
-
     static <T> Interpolated<T> of(Function<T, Double> a, Function<Double, T> b) {
         return new Interpolated<>() {
             @Override
@@ -62,5 +50,17 @@ public interface Interpolated<T> {
                 return b.apply(d);
             }
         };
+    }
+
+    double toDouble(T t);
+
+    T fromDouble(double d);
+
+    default InterpolatorFactory<T> interpolate() {
+        if (this instanceof ProceduralStream) {
+            return new InterpolatorFactory<>((ProceduralStream<T>) this);
+        }
+
+        return null;
     }
 }

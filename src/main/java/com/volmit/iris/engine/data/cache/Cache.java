@@ -25,10 +25,6 @@ public interface Cache<V> {
         return key(chunk.getX(), chunk.getZ());
     }
 
-    int getId();
-
-    V get(int x, int z);
-
     static long key(int x, int z) {
         return (((long) x) << 32) | (z & 0xffffffffL);
     }
@@ -52,4 +48,8 @@ public interface Cache<V> {
         final int x = idx % w;
         return new int[]{x, y, z};
     }
+
+    int getId();
+
+    V get(int x, int z);
 }

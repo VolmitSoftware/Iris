@@ -30,31 +30,18 @@ import java.util.Comparator;
 @Builder
 @Data
 public class PregenTask {
+    private static final KList<Position2> order = computeChunkOrder();
     @Builder.Default
     private Position2 center = new Position2(0, 0);
-
     @Builder.Default
     private int width = 1;
-
     @Builder.Default
     private int height = 1;
-
-    private static final KList<Position2> order = computeChunkOrder();
-
-    public void iterateRegions(Spiraled s) {
-        new Spiraler(getWidth() * 2, getHeight() * 2, s)
-                .setOffset(center.getX(), center.getZ()).drain();
-    }
 
     public static void iterateRegion(int xr, int zr, Spiraled s) {
         for (Position2 i : order) {
             s.on(i.getX() + (xr << 5), i.getZ() + (zr << 5));
         }
-    }
-
-    public void iterateAllChunks(Spiraled s) {
-        new Spiraler(getWidth() * 2, getHeight() * 2, (x, z) -> iterateRegion(x, z, s))
-                .setOffset(center.getX(), center.getZ()).drain();
     }
 
     private static KList<Position2> computeChunkOrder() {
@@ -71,5 +58,15 @@ public class PregenTask {
         }).drain();
         p.sort(Comparator.comparing((i) -> i.distance(center)));
         return p;
+    }
+
+    public void iterateRegions(Spiraled s) {
+        new Spiraler(getWidth() * 2, getHeight() * 2, s)
+                .setOffset(center.getX(), center.getZ()).drain();
+    }
+
+    public void iterateAllChunks(Spiraled s) {
+        new Spiraler(getWidth() * 2, getHeight() * 2, (x, z) -> iterateRegion(x, z, s))
+                .setOffset(center.getX(), center.getZ()).drain();
     }
 }

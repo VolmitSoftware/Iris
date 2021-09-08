@@ -27,16 +27,16 @@ import java.io.IOException;
 
 @Sliced
 public class FluidBodyMatter extends RawMatter<MatterFluidBody> {
-    public static MatterFluidBody get(String customBiome, boolean lava) {
-        return new MatterFluidBody(true, customBiome, lava);
-    }
-
     public FluidBodyMatter() {
         this(1, 1, 1);
     }
 
     public FluidBodyMatter(int width, int height, int depth) {
         super(width, height, depth, MatterFluidBody.class);
+    }
+
+    public static MatterFluidBody get(String customBiome, boolean lava) {
+        return new MatterFluidBody(true, customBiome, lava);
     }
 
     @Override

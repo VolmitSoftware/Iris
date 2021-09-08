@@ -20,7 +20,20 @@ package com.volmit.iris.util.nbt.io;
 
 import com.volmit.iris.engine.data.io.ExceptionTriConsumer;
 import com.volmit.iris.engine.data.io.MaxDepthIO;
-import com.volmit.iris.util.nbt.tag.*;
+import com.volmit.iris.util.nbt.tag.ByteArrayTag;
+import com.volmit.iris.util.nbt.tag.ByteTag;
+import com.volmit.iris.util.nbt.tag.CompoundTag;
+import com.volmit.iris.util.nbt.tag.DoubleTag;
+import com.volmit.iris.util.nbt.tag.EndTag;
+import com.volmit.iris.util.nbt.tag.FloatTag;
+import com.volmit.iris.util.nbt.tag.IntArrayTag;
+import com.volmit.iris.util.nbt.tag.IntTag;
+import com.volmit.iris.util.nbt.tag.ListTag;
+import com.volmit.iris.util.nbt.tag.LongArrayTag;
+import com.volmit.iris.util.nbt.tag.LongTag;
+import com.volmit.iris.util.nbt.tag.ShortTag;
+import com.volmit.iris.util.nbt.tag.StringTag;
+import com.volmit.iris.util.nbt.tag.Tag;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -50,37 +63,13 @@ public class NBTOutputStream extends DataOutputStream implements MaxDepthIO {
         put(LongArrayTag.ID, (o, t, d) -> writeLongArray(o, t), LongArrayTag.class);
     }
 
-    private static void put(byte id, ExceptionTriConsumer<NBTOutputStream, Tag<?>, Integer, IOException> f, Class<?> clazz) {
-        writers.put(id, f);
-        classIdMapping.put(clazz, id);
-    }
-
     public NBTOutputStream(OutputStream out) {
         super(out);
     }
 
-    public void writeTag(NamedTag tag, int maxDepth) throws IOException {
-        writeByte(tag.getTag().getID());
-        if (tag.getTag().getID() != 0) {
-            writeUTF(tag.getName() == null ? "" : tag.getName());
-        }
-        writeRawTag(tag.getTag(), maxDepth);
-    }
-
-    public void writeTag(Tag<?> tag, int maxDepth) throws IOException {
-        writeByte(tag.getID());
-        if (tag.getID() != 0) {
-            writeUTF("");
-        }
-        writeRawTag(tag, maxDepth);
-    }
-
-    public void writeRawTag(Tag<?> tag, int maxDepth) throws IOException {
-        ExceptionTriConsumer<NBTOutputStream, Tag<?>, Integer, IOException> f;
-        if ((f = writers.get(tag.getID())) == null) {
-            throw new IOException("invalid tag \"" + tag.getID() + "\"");
-        }
-        f.accept(this, tag, maxDepth);
+    private static void put(byte id, ExceptionTriConsumer<NBTOutputStream, Tag<?>, Integer, IOException> f, Class<?> clazz) {
+        writers.put(id, f);
+        classIdMapping.put(clazz, id);
     }
 
     static byte idFromClass(Class<?> clazz) {
@@ -156,5 +145,29 @@ public class NBTOutputStream extends DataOutputStream implements MaxDepthIO {
             out.writeRawTag(entry.getValue(), out.decrementMaxDepth(maxDepth));
         }
         out.writeByte(0);
+    }
+
+    public void writeTag(NamedTag tag, int maxDepth) throws IOException {
+        writeByte(tag.getTag().getID());
+        if (tag.getTag().getID() != 0) {
+            writeUTF(tag.getName() == null ? "" : tag.getName());
+        }
+        writeRawTag(tag.getTag(), maxDepth);
+    }
+
+    public void writeTag(Tag<?> tag, int maxDepth) throws IOException {
+        writeByte(tag.getID());
+        if (tag.getID() != 0) {
+            writeUTF("");
+        }
+        writeRawTag(tag, maxDepth);
+    }
+
+    public void writeRawTag(Tag<?> tag, int maxDepth) throws IOException {
+        ExceptionTriConsumer<NBTOutputStream, Tag<?>, Integer, IOException> f;
+        if ((f = writers.get(tag.getID())) == null) {
+            throw new IOException("invalid tag \"" + tag.getID() + "\"");
+        }
+        f.accept(this, tag, maxDepth);
     }
 }

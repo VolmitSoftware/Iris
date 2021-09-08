@@ -21,7 +21,11 @@ package com.volmit.iris.util.nbt.tag;
 import com.volmit.iris.engine.data.io.MaxDepthIO;
 import com.volmit.iris.util.collection.KList;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
@@ -43,14 +47,17 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
         super(createEmptyValue(3));
     }
 
-    public ListTag<T> makeAtomic() {
-        setValue(new CopyOnWriteArrayList<>(getValue()));
-        return this;
-    }
-
-    @Override
-    public byte getID() {
-        return ID;
+    /**
+     * @param typeClass The exact class of the elements
+     * @throws IllegalArgumentException When {@code typeClass} is {@link EndTag}{@code .class}
+     * @throws NullPointerException     When {@code typeClass} is {@code null}
+     */
+    public ListTag(Class<? super T> typeClass) throws IllegalArgumentException, NullPointerException {
+        super(createEmptyValue(3));
+        if (typeClass == EndTag.class) {
+            throw new IllegalArgumentException("cannot create ListTag with EndTag elements");
+        }
+        this.typeClass = Objects.requireNonNull(typeClass);
     }
 
     /**
@@ -79,17 +86,14 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
         return new KList<>(initialCapacity);
     }
 
-    /**
-     * @param typeClass The exact class of the elements
-     * @throws IllegalArgumentException When {@code typeClass} is {@link EndTag}{@code .class}
-     * @throws NullPointerException     When {@code typeClass} is {@code null}
-     */
-    public ListTag(Class<? super T> typeClass) throws IllegalArgumentException, NullPointerException {
-        super(createEmptyValue(3));
-        if (typeClass == EndTag.class) {
-            throw new IllegalArgumentException("cannot create ListTag with EndTag elements");
-        }
-        this.typeClass = Objects.requireNonNull(typeClass);
+    public ListTag<T> makeAtomic() {
+        setValue(new CopyOnWriteArrayList<>(getValue()));
+        return this;
+    }
+
+    @Override
+    public byte getID() {
+        return ID;
     }
 
     public Class<?> getTypeClass() {

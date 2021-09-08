@@ -19,7 +19,11 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -49,10 +53,6 @@ public class IrisShapedGeneratorStyle {
     @Desc("The max block value")
     private int max = 0;
 
-    public double get(RNG rng, IrisData data, double... dim) {
-        return generator.create(rng, data).fitDouble(min, max, dim);
-    }
-
     public IrisShapedGeneratorStyle(NoiseStyle style, int min, int max) {
         this(style);
         this.min = min;
@@ -61,6 +61,10 @@ public class IrisShapedGeneratorStyle {
 
     public IrisShapedGeneratorStyle(NoiseStyle style) {
         this.generator = new IrisGeneratorStyle(style);
+    }
+
+    public double get(RNG rng, IrisData data, double... dim) {
+        return generator.create(rng, data).fitDouble(min, max, dim);
     }
 
     public boolean isFlat() {

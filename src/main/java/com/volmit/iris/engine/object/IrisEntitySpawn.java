@@ -21,7 +21,11 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.slices.MarkerMatter;
@@ -40,29 +44,24 @@ import org.bukkit.entity.Entity;
 @Desc("Represents an entity spawn during initial chunk generation")
 @Data
 public class IrisEntitySpawn implements IRare {
+    private final transient AtomicCache<RNG> rng = new AtomicCache<>();
+    private final transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
     @RegistryListResource(IrisEntity.class)
     @Required
     @Desc("The entity")
     private String entity = "";
-
     @Desc("The energy multiplier when calculating spawn energy usage")
     private double energyMultiplier = 1;
-
     @MinNumber(1)
     @Desc("The 1 in RARITY chance for this entity to spawn")
     private int rarity = 1;
-
     @MinNumber(1)
     @Desc("The minumum of this entity to spawn")
     private int minSpawns = 1;
-
     @MinNumber(1)
     @Desc("The max of this entity to spawn")
     private int maxSpawns = 1;
-
     private transient IrisSpawner referenceSpawner;
-    private final transient AtomicCache<RNG> rng = new AtomicCache<>();
-    private final transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
 
     public int spawn(Engine gen, Chunk c, RNG rng) {
         int spawns = minSpawns == maxSpawns ? minSpawns : rng.i(Math.min(minSpawns, maxSpawns), Math.max(minSpawns, maxSpawns));

@@ -28,9 +28,9 @@ import java.io.IOException;
 
 @Sliced
 public class MarkerMatter extends RawMatter<MatterMarker> {
-    private static final KMap<String, MatterMarker> markers = new KMap<>();
     public static final MatterMarker CAVE_FLOOR = new MatterMarker("cave_floor");
     public static final MatterMarker CAVE_CEILING = new MatterMarker("cave_ceiling");
+    private static final KMap<String, MatterMarker> markers = new KMap<>();
 
     public MarkerMatter() {
         this(1, 1, 1);

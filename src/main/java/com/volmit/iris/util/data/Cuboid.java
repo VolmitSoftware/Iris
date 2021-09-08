@@ -20,12 +20,20 @@ package com.volmit.iris.util.data;
 
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.Direction;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.entity.Entity;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Cuboids
@@ -50,35 +58,6 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
         }
 
         worldName = l1.getWorld().getName();
-        x1 = Math.min(l1.getBlockX(), l2.getBlockX());
-        y1 = Math.min(l1.getBlockY(), l2.getBlockY());
-        z1 = Math.min(l1.getBlockZ(), l2.getBlockZ());
-        x2 = Math.max(l1.getBlockX(), l2.getBlockX());
-        y2 = Math.max(l1.getBlockY(), l2.getBlockY());
-        z2 = Math.max(l1.getBlockZ(), l2.getBlockZ());
-    }
-
-    public KList<Entity> getEntities() {
-        KList<Entity> en = new KList<>();
-
-        for (Chunk i : getChunks()) {
-            for (Entity j : i.getEntities()) {
-                if (contains(j.getLocation())) {
-                    en.add(j);
-                }
-            }
-        }
-
-        return en;
-    }
-
-    /**
-     * Set the locations
-     *
-     * @param l1 a
-     * @param l2 b
-     */
-    public void set(Location l1, Location l2) {
         x1 = Math.min(l1.getBlockX(), l2.getBlockX());
         y1 = Math.min(l1.getBlockY(), l2.getBlockY());
         z1 = Math.min(l1.getBlockZ(), l2.getBlockZ());
@@ -155,6 +134,35 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
         y2 = (Integer) map.get("y2");
         z1 = (Integer) map.get("z1");
         z2 = (Integer) map.get("z2");
+    }
+
+    public KList<Entity> getEntities() {
+        KList<Entity> en = new KList<>();
+
+        for (Chunk i : getChunks()) {
+            for (Entity j : i.getEntities()) {
+                if (contains(j.getLocation())) {
+                    en.add(j);
+                }
+            }
+        }
+
+        return en;
+    }
+
+    /**
+     * Set the locations
+     *
+     * @param l1 a
+     * @param l2 b
+     */
+    public void set(Location l1, Location l2) {
+        x1 = Math.min(l1.getBlockX(), l2.getBlockX());
+        y1 = Math.min(l1.getBlockY(), l2.getBlockY());
+        z1 = Math.min(l1.getBlockZ(), l2.getBlockZ());
+        x2 = Math.max(l1.getBlockX(), l2.getBlockX());
+        y2 = Math.max(l1.getBlockY(), l2.getBlockY());
+        z2 = Math.max(l1.getBlockZ(), l2.getBlockZ());
     }
 
     @Override
@@ -671,15 +679,44 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
         return "Cuboid: " + worldName + "," + x1 + "," + y1 + "," + z1 + "=>" + x2 + "," + y2 + "," + z2;
     }
 
+    public enum CuboidDirection {
+
+        North,
+        East,
+        South,
+        West,
+        Up,
+        Down,
+        Horizontal,
+        Vertical,
+        Both,
+        Unknown;
+
+        public CuboidDirection opposite() {
+            return switch (this) {
+                case North -> South;
+                case East -> West;
+                case South -> North;
+                case West -> East;
+                case Horizontal -> Vertical;
+                case Vertical -> Horizontal;
+                case Up -> Down;
+                case Down -> Up;
+                case Both -> Both;
+                default -> Unknown;
+            };
+        }
+    }
+
     public static class CuboidIterator implements Iterator<Block> {
         private final World w;
         private final int baseX;
         private final int baseY;
         private final int baseZ;
-        private int x, y, z;
         private final int sizeX;
         private final int sizeY;
         private final int sizeZ;
+        private int x, y, z;
 
         public CuboidIterator(World w, int x1, int y1, int z1, int x2, int y2, int z2) {
             this.w = w;
@@ -713,35 +750,6 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
         @Override
         public void remove() {
             // nop
-        }
-    }
-
-    public enum CuboidDirection {
-
-        North,
-        East,
-        South,
-        West,
-        Up,
-        Down,
-        Horizontal,
-        Vertical,
-        Both,
-        Unknown;
-
-        public CuboidDirection opposite() {
-            return switch (this) {
-                case North -> South;
-                case East -> West;
-                case South -> North;
-                case West -> East;
-                case Horizontal -> Vertical;
-                case Vertical -> Horizontal;
-                case Up -> Down;
-                case Down -> Up;
-                case Both -> Both;
-                default -> Unknown;
-            };
         }
     }
 

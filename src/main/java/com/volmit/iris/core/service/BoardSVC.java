@@ -42,8 +42,8 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import java.util.List;
 
 public class BoardSVC implements IrisService, BoardProvider {
-    private com.volmit.iris.util.board.BoardManager manager;
     private final KMap<Player, PlayerBoard> boards = new KMap<>();
+    private com.volmit.iris.util.board.BoardManager manager;
 
     @Override
     public void onEnable() {

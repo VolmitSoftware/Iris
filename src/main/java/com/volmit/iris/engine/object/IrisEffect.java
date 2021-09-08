@@ -21,7 +21,12 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.DependsOn;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
@@ -45,131 +50,107 @@ import org.bukkit.util.Vector;
 @Desc("An iris effect")
 @Data
 public class IrisEffect {
+    private final transient AtomicCache<PotionEffectType> pt = new AtomicCache<>();
+    private final transient AtomicCache<ChronoLatch> latch = new AtomicCache<>();
     @Desc("The potion effect to apply in this area")
     private String potionEffect = "";
-
     @Desc("The particle effect to apply in the area")
     private Particle particleEffect = null;
-
     @DependsOn({"particleEffect"})
     @MinNumber(-32)
     @MaxNumber(32)
     @Desc("Randomly offset from the surface to this surface+value")
     private int particleOffset = 0;
-
     @DependsOn({"particleEffect"})
     @MinNumber(-8)
     @MaxNumber(8)
     @Desc("The alt x, usually represents motion if the particle count is zero. Otherwise an offset.")
     private double particleAltX = 0;
-
     @DependsOn({"particleEffect"})
     @MinNumber(-8)
     @MaxNumber(8)
     @Desc("The alt y, usually represents motion if the particle count is zero. Otherwise an offset.")
     private double particleAltY = 0;
-
     @DependsOn({"particleEffect"})
     @MinNumber(-8)
     @MaxNumber(8)
     @Desc("The alt z, usually represents motion if the particle count is zero. Otherwise an offset.")
     private double particleAltZ = 0;
-
     @DependsOn({"particleEffect"})
     @Desc("Randomize the altX by -altX to altX")
     private boolean randomAltX = true;
-
     @DependsOn({"particleEffect"})
     @Desc("Randomize the altY by -altY to altY")
     private boolean randomAltY = false;
-
     @DependsOn({"particleEffect"})
     @Desc("Randomize the altZ by -altZ to altZ")
     private boolean randomAltZ = true;
-
     @Desc("The sound to play")
     private Sound sound = null;
-
     @DependsOn({"sound"})
     @MinNumber(0)
     @MaxNumber(512)
     @Desc("The max distance from the player the sound will play")
     private int soundDistance = 12;
-
     @DependsOn({"sound", "maxPitch"})
     @MinNumber(0.01)
     @MaxNumber(1.99)
     @Desc("The minimum sound pitch")
     private double minPitch = 0.5D;
-
     @DependsOn({"sound", "minVolume"})
     @MinNumber(0.01)
     @MaxNumber(1.99)
     @Desc("The max sound pitch")
     private double maxPitch = 1.5D;
-
     @DependsOn({"sound"})
     @MinNumber(0.001)
     @MaxNumber(512)
     @Desc("The sound volume.")
     private double volume = 1.5D;
-
     @DependsOn({"particleEffect"})
     @MinNumber(0)
     @MaxNumber(512)
     @Desc("The particle count. Try setting to zero for using the alt xyz to a motion value instead of an offset")
     private int particleCount = 0;
-
     @DependsOn({"particleEffect"})
     @MinNumber(0)
     @MaxNumber(64)
     @Desc("How far away from the player particles can play")
     private int particleDistance = 20;
-
     @DependsOn({"particleEffect"})
     @MinNumber(0)
     @MaxNumber(128)
     @Desc("How wide the particles can play (player's view left and right) RADIUS")
     private int particleDistanceWidth = 24;
-
     @DependsOn({"particleEffect"})
     @Desc("An extra value for some particles... Which bukkit doesn't even document.")
     private double extra = 0;
-
     @DependsOn({"potionEffect"})
     @MinNumber(-1)
     @MaxNumber(1024)
     @Desc("The Potion Strength or -1 to disable")
     private int potionStrength = -1;
-
     @DependsOn({"potionEffect", "potionTicksMin"})
     @MinNumber(1)
     @Desc("The max time the potion will last for")
     private int potionTicksMax = 155;
-
     @DependsOn({"potionEffect", "potionTicksMax"})
     @MinNumber(1)
     @Desc("The min time the potion will last for")
     private int potionTicksMin = 75;
-
     @Required
     @MinNumber(0)
     @Desc("The effect interval in milliseconds")
     private int interval = 150;
-
     @DependsOn({"particleEffect"})
     @MinNumber(0)
     @MaxNumber(16)
     @Desc("The effect distance start away")
     private int particleAway = 5;
-
     @Required
     @MinNumber(1)
     @Desc("The chance is 1 in CHANCE per interval")
     private int chance = 50;
-
-    private final transient AtomicCache<PotionEffectType> pt = new AtomicCache<>();
-    private final transient AtomicCache<ChronoLatch> latch = new AtomicCache<>();
 
     public boolean canTick() {
         return latch.aquire(() -> new ChronoLatch(interval)).flip();

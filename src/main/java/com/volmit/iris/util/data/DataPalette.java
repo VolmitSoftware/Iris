@@ -35,6 +35,17 @@ public class DataPalette<T> {
         this.palette = palette;
     }
 
+    public static <T> DataPalette<T> getPalette(IOAdapter<T> adapter, DataInputStream din) throws IOException {
+        KList<T> palette = new KList<>();
+        int s = din.readShort() - Short.MIN_VALUE;
+
+        for (int i = 0; i < s; i++) {
+            palette.add(adapter.read(din));
+        }
+
+        return new DataPalette<>(palette);
+    }
+
     public KList<T> getPalette() {
         return palette;
     }
@@ -72,16 +83,5 @@ public class DataPalette<T> {
                 adapter.write(t, dos);
             }
         }
-    }
-
-    public static <T> DataPalette<T> getPalette(IOAdapter<T> adapter, DataInputStream din) throws IOException {
-        KList<T> palette = new KList<>();
-        int s = din.readShort() - Short.MIN_VALUE;
-
-        for (int i = 0; i < s; i++) {
-            palette.add(adapter.read(din));
-        }
-
-        return new DataPalette<>(palette);
     }
 }

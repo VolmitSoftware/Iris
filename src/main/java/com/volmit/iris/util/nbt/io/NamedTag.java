@@ -30,19 +30,19 @@ public class NamedTag {
         this.tag = tag;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public void setTag(Tag<?> tag) {
-        this.tag = tag;
-    }
-
     public String getName() {
         return name;
     }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public Tag<?> getTag() {
         return tag;
+    }
+
+    public void setTag(Tag<?> tag) {
+        this.tag = tag;
     }
 }

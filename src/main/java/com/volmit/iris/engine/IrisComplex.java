@@ -23,7 +23,13 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.InferredType;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisDecorationPart;
+import com.volmit.iris.engine.object.IrisDecorator;
+import com.volmit.iris.engine.object.IrisFeaturePositional;
+import com.volmit.iris.engine.object.IrisGenerator;
+import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.DataProvider;
@@ -41,11 +47,11 @@ import java.util.UUID;
 
 @Data
 public class IrisComplex implements DataProvider {
+    private static final BlockData AIR = Material.AIR.createBlockData();
     private RNG rng;
     private double fluidHeight;
     private IrisData data;
     private KList<IrisGenerator> generators;
-    private static final BlockData AIR = Material.AIR.createBlockData();
     private ProceduralStream<IrisRegion> regionStream;
     private ProceduralStream<Double> regionStyleStream;
     private ProceduralStream<Double> regionIdentityStream;
@@ -80,24 +86,6 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<BlockData> rockStream;
     private ProceduralStream<BlockData> fluidStream;
     private IrisBiome focus;
-
-    public ProceduralStream<IrisBiome> getBiomeStream(InferredType type) {
-        switch (type) {
-            case CAVE:
-                return caveBiomeStream;
-            case LAND:
-                return landBiomeStream;
-            case SEA:
-                return seaBiomeStream;
-            case SHORE:
-                return shoreBiomeStream;
-            case DEFER:
-            default:
-                break;
-        }
-
-        return null;
-    }
 
     public IrisComplex(Engine engine) {
         this(engine, false);
@@ -316,6 +304,24 @@ public class IrisComplex implements DataProvider {
         //@done
     }
 
+    public ProceduralStream<IrisBiome> getBiomeStream(InferredType type) {
+        switch (type) {
+            case CAVE:
+                return caveBiomeStream;
+            case LAND:
+                return landBiomeStream;
+            case SEA:
+                return seaBiomeStream;
+            case SHORE:
+                return shoreBiomeStream;
+            case DEFER:
+            default:
+                break;
+        }
+
+        return null;
+    }
+
     private IrisRegion findRegion(IrisBiome focus, Engine engine) {
         for (IrisRegion i : engine.getDimension().getAllRegions(engine)) {
             if (i.getAllBiomeIds().contains(focus.getLoadKey())) {
@@ -327,7 +333,7 @@ public class IrisComplex implements DataProvider {
     }
 
     private IrisDecorator decorateFor(IrisBiome b, double x, double z, IrisDecorationPart part) {
-        RNG rngc = new RNG(Cache.key(((int)x), ((int)z)));
+        RNG rngc = new RNG(Cache.key(((int) x), ((int) z)));
 
         for (IrisDecorator i : b.getDecorators()) {
             if (!i.getPartOf().equals(part)) {

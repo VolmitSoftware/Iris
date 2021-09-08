@@ -31,8 +31,12 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.scheduling.J;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
@@ -40,22 +44,22 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 public class PregeneratorJob implements PregenListener {
-    public static PregeneratorJob instance;
     private static final Color COLOR_EXISTS = parseColor("#4d7d5b");
     private static final Color COLOR_GENERATING = parseColor("#0062ff");
     private static final Color COLOR_NETWORK = parseColor("#a863c2");
     private static final Color COLOR_NETWORK_GENERATING = parseColor("#836b8c");
     private static final Color COLOR_GENERATED = parseColor("#34eb93");
-    private JFrame frame;
+    public static PregeneratorJob instance;
     private final PregenTask task;
     private final boolean saving;
     private final KList<Consumer<Double>> onProgress = new KList<>();
     private final KList<Runnable> whenDone = new KList<>();
     private final IrisPregenerator pregenerator;
-    private PregenRenderer renderer;
-    private String[] info;
     private final Position2 min;
     private final Position2 max;
+    private JFrame frame;
+    private PregenRenderer renderer;
+    private String[] info;
 
     public PregeneratorJob(PregenTask task, PregeneratorMethod method) {
         instance = this;
@@ -78,16 +82,6 @@ public class PregeneratorJob implements PregenListener {
         }
 
         J.a(this.pregenerator::start, 20);
-    }
-
-    public PregeneratorJob onProgress(Consumer<Double> c) {
-        onProgress.add(c);
-        return this;
-    }
-
-    public PregeneratorJob whenDone(Runnable r) {
-        whenDone.add(r);
-        return this;
     }
 
     public static boolean shutdownInstance() {
@@ -122,6 +116,28 @@ public class PregeneratorJob implements PregenListener {
         }
 
         return instance.paused();
+    }
+
+    private static Color parseColor(String c) {
+        String v = (c.startsWith("#") ? c : "#" + c).trim();
+        try {
+            return Color.decode(v);
+        } catch (Throwable e) {
+            Iris.reportError(e);
+            Iris.error("Error Parsing 'color', (" + c + ")");
+        }
+
+        return Color.RED;
+    }
+
+    public PregeneratorJob onProgress(Consumer<Double> c) {
+        onProgress.add(c);
+        return this;
+    }
+
+    public PregeneratorJob whenDone(Runnable r) {
+        whenDone.add(r);
+        return this;
     }
 
     public void drawRegion(int x, int z, Color color) {
@@ -284,13 +300,13 @@ public class PregeneratorJob implements PregenListener {
     }
 
     public static class PregenRenderer extends JPanel implements KeyListener {
-        private PregeneratorJob job;
         private static final long serialVersionUID = 2094606939770332040L;
         private final KList<Runnable> order = new KList<>();
         private final int res = 512;
-        Graphics2D bg;
-        private ReentrantLock l;
         private final BufferedImage image = new BufferedImage(res, res, BufferedImage.TYPE_INT_RGB);
+        Graphics2D bg;
+        private PregeneratorJob job;
+        private ReentrantLock l;
         private Consumer2<Position2, Color> func;
         private JFrame frame;
 
@@ -374,17 +390,5 @@ public class PregeneratorJob implements PregenListener {
         public void close() {
             frame.setVisible(false);
         }
-    }
-
-    private static Color parseColor(String c) {
-        String v = (c.startsWith("#") ? c : "#" + c).trim();
-        try {
-            return Color.decode(v);
-        } catch (Throwable e) {
-            Iris.reportError(e);
-            Iris.error("Error Parsing 'color', (" + c + ")");
-        }
-
-        return Color.RED;
     }
 }

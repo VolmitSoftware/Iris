@@ -18,7 +18,7 @@
 
 package com.volmit.iris.core.gui.components;
 
-import java.awt.*;
+import java.awt.Color;
 
 @FunctionalInterface
 public interface Renderer {

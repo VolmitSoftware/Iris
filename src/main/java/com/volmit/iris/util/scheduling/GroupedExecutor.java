@@ -29,9 +29,9 @@ import java.util.concurrent.ForkJoinPool.ForkJoinWorkerThreadFactory;
 import java.util.concurrent.ForkJoinWorkerThread;
 
 public class GroupedExecutor {
-    private int xc;
     private final ExecutorService service;
     private final KMap<String, Integer> mirror;
+    private int xc;
 
     public GroupedExecutor(int threadLimit, int priority, String name) {
         xc = 1;

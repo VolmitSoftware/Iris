@@ -18,34 +18,12 @@
 
 package com.volmit.iris.engine.modifier;
 
-import com.volmit.iris.engine.IrisEngine;
-import com.volmit.iris.engine.actuator.IrisDecorantActuator;
-import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
-import com.volmit.iris.engine.object.InferredType;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisDecorationPart;
-import com.volmit.iris.engine.object.IrisDecorator;
-import com.volmit.iris.engine.object.IrisPosition;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.data.B;
-import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.mantle.Mantle;
-import com.volmit.iris.util.mantle.MantleChunk;
-import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.matter.MatterCavern;
-import com.volmit.iris.util.matter.slices.MarkerMatter;
-import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
-
-import java.util.Objects;
-import java.util.function.Supplier;
 
 public class IrisBodyModifier extends EngineAssignedModifier<BlockData> {
     private final RNG rng;

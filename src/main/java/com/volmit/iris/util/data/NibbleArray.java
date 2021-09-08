@@ -26,11 +26,20 @@ import java.util.Arrays;
 import java.util.StringJoiner;
 
 public class NibbleArray implements Writable {
+    private static final int[] MASKS = new int[8];
+
+    static {
+        for (int i = 0; i < MASKS.length; i++) {
+            MASKS[i] = maskFor(i);
+        }
+    }
+
+    private final int size;
+    private final Object lock = new Object();
     private byte[] data;
     private int depth;
-    private final int size;
     private byte mask;
-    private final Object lock = new Object();
+    private transient int bitIndex, byteIndex, bitInByte;
 
     public NibbleArray(int capacity, DataInputStream in) throws IOException {
         size = capacity;
@@ -64,6 +73,30 @@ public class NibbleArray implements Writable {
         for (int i = 0; i < Math.min(size, existing.size()); i++) {
             set(i, existing.get(i));
         }
+    }
+
+    public static int maskFor(int amountOfBits) {
+        return powerOfTwo(amountOfBits) - 1;
+    }
+
+    public static int powerOfTwo(int power) {
+        int result = 1;
+
+        for (int i = 0; i < power; i++) {
+            result *= 2;
+        }
+
+        return result;
+    }
+
+    public static String binaryString(byte b, ByteOrder byteOrder) {
+        String str = String.format("%8s", Integer.toBinaryString(b & 0xff)).replace(' ', '0');
+
+        return byteOrder.equals(ByteOrder.BIG_ENDIAN) ? str : reverse(str);
+    }
+
+    public static String reverse(String str) {
+        return new StringBuilder(str).reverse().toString();
     }
 
     @Override
@@ -107,8 +140,6 @@ public class NibbleArray implements Writable {
     public int index(int x, int y, int z) {
         return y << 8 | z << 4 | x;
     }
-
-    private transient int bitIndex, byteIndex, bitInByte;
 
     public void set(int x, int y, int z, int nibble) {
         set(index(x, y, z), nibble);
@@ -159,37 +190,5 @@ public class NibbleArray implements Writable {
         for (int i = 0; i < size; i++) {
             set(i, (byte) nibble);
         }
-    }
-
-    public static int maskFor(int amountOfBits) {
-        return powerOfTwo(amountOfBits) - 1;
-    }
-
-    public static int powerOfTwo(int power) {
-        int result = 1;
-
-        for (int i = 0; i < power; i++) {
-            result *= 2;
-        }
-
-        return result;
-    }
-
-    private static final int[] MASKS = new int[8];
-
-    static {
-        for (int i = 0; i < MASKS.length; i++) {
-            MASKS[i] = maskFor(i);
-        }
-    }
-
-    public static String binaryString(byte b, ByteOrder byteOrder) {
-        String str = String.format("%8s", Integer.toBinaryString(b & 0xff)).replace(' ', '0');
-
-        return byteOrder.equals(ByteOrder.BIG_ENDIAN) ? str : reverse(str);
-    }
-
-    public static String reverse(String str) {
-        return new StringBuilder(str).reverse().toString();
     }
 }

@@ -42,114 +42,6 @@ public class IrisCompat {
         itemFilters = getDefaultItemCompatabilityFilters();
     }
 
-    public BlockData getBlock(String n) {
-        String buf = n;
-        int err = 16;
-
-        BlockData tx = B.getOrNull(buf);
-
-        if (tx != null) {
-            return tx;
-        }
-
-        searching:
-        while (true) {
-            if (err-- <= 0) {
-                return B.get("STONE");
-            }
-
-            for (IrisCompatabilityBlockFilter i : blockFilters) {
-                if (i.getWhen().equalsIgnoreCase(buf)) {
-                    BlockData b = i.getReplace();
-
-                    if (b != null) {
-                        return b;
-                    }
-
-                    buf = i.getSupplement();
-                    continue searching;
-                }
-            }
-
-            return B.get("STONE");
-        }
-    }
-
-    public Material getItem(String n) {
-        String buf = n;
-        int err = 16;
-        Material txf = B.getMaterialOrNull(buf);
-
-        if (txf != null) {
-            return txf;
-        }
-
-        int nomore = 64;
-
-        searching:
-        while (true) {
-            if (nomore < 0) {
-                return B.getMaterial("STONE");
-            }
-
-            nomore--;
-            if (err-- <= 0) {
-                break;
-            }
-
-            for (IrisCompatabilityItemFilter i : itemFilters) {
-                if (i.getWhen().equalsIgnoreCase(buf)) {
-                    Material b = i.getReplace();
-
-                    if (b != null) {
-                        return b;
-                    }
-
-                    buf = i.getSupplement();
-                    continue searching;
-                }
-            }
-
-            break;
-        }
-
-        buf = n;
-        BlockData tx = B.getOrNull(buf);
-
-        if (tx != null) {
-            return tx.getMaterial();
-        }
-        nomore = 64;
-
-        searching:
-        while (true) {
-            if (nomore < 0) {
-                return B.getMaterial("STONE");
-            }
-
-            nomore--;
-
-            if (err-- <= 0) {
-                return B.getMaterial("STONE");
-            }
-
-            for (IrisCompatabilityBlockFilter i : blockFilters) {
-                if (i.getWhen().equalsIgnoreCase(buf)) {
-                    BlockData b = i.getReplace();
-
-                    if (b != null) {
-                        return b.getMaterial();
-                    }
-
-                    buf = i.getSupplement();
-                    continue searching;
-                }
-            }
-
-            return B.getMaterial("STONE");
-        }
-    }
-
     public static IrisCompat configured(File f) {
         IrisCompat def = new IrisCompat();
         String defa = new JSONObject(new Gson().toJson(def)).toString(4);
@@ -364,5 +256,113 @@ public class IrisCompat {
         filters.add(new IrisCompatabilityBlockFilter("POTTED_BAMBOO", "POTTED_BIRCH_SAPLING"));
 
         return filters;
+    }
+
+    public BlockData getBlock(String n) {
+        String buf = n;
+        int err = 16;
+
+        BlockData tx = B.getOrNull(buf);
+
+        if (tx != null) {
+            return tx;
+        }
+
+        searching:
+        while (true) {
+            if (err-- <= 0) {
+                return B.get("STONE");
+            }
+
+            for (IrisCompatabilityBlockFilter i : blockFilters) {
+                if (i.getWhen().equalsIgnoreCase(buf)) {
+                    BlockData b = i.getReplace();
+
+                    if (b != null) {
+                        return b;
+                    }
+
+                    buf = i.getSupplement();
+                    continue searching;
+                }
+            }
+
+            return B.get("STONE");
+        }
+    }
+
+    public Material getItem(String n) {
+        String buf = n;
+        int err = 16;
+        Material txf = B.getMaterialOrNull(buf);
+
+        if (txf != null) {
+            return txf;
+        }
+
+        int nomore = 64;
+
+        searching:
+        while (true) {
+            if (nomore < 0) {
+                return B.getMaterial("STONE");
+            }
+
+            nomore--;
+            if (err-- <= 0) {
+                break;
+            }
+
+            for (IrisCompatabilityItemFilter i : itemFilters) {
+                if (i.getWhen().equalsIgnoreCase(buf)) {
+                    Material b = i.getReplace();
+
+                    if (b != null) {
+                        return b;
+                    }
+
+                    buf = i.getSupplement();
+                    continue searching;
+                }
+            }
+
+            break;
+        }
+
+        buf = n;
+        BlockData tx = B.getOrNull(buf);
+
+        if (tx != null) {
+            return tx.getMaterial();
+        }
+        nomore = 64;
+
+        searching:
+        while (true) {
+            if (nomore < 0) {
+                return B.getMaterial("STONE");
+            }
+
+            nomore--;
+
+            if (err-- <= 0) {
+                return B.getMaterial("STONE");
+            }
+
+            for (IrisCompatabilityBlockFilter i : blockFilters) {
+                if (i.getWhen().equalsIgnoreCase(buf)) {
+                    BlockData b = i.getReplace();
+
+                    if (b != null) {
+                        return b.getMaterial();
+                    }
+
+                    buf = i.getSupplement();
+                    continue searching;
+                }
+            }
+
+            return B.getMaterial("STONE");
+        }
     }
 }

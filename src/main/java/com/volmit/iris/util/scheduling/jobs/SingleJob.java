@@ -19,9 +19,9 @@
 package com.volmit.iris.util.scheduling.jobs;
 
 public class SingleJob implements Job {
-    private boolean done;
     private final String name;
     private final Runnable runnable;
+    private boolean done;
 
     public SingleJob(String name, Runnable runnable) {
         this.name = name;

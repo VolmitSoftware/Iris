@@ -33,16 +33,14 @@ import org.bukkit.Material;
 @Desc("Find and replace object items for compatability")
 @Data
 public class IrisCompatabilityItemFilter {
+    private final transient AtomicCache<Material> findData = new AtomicCache<>(true);
+    private final transient AtomicCache<Material> replaceData = new AtomicCache<>(true);
     @Required
     @Desc("When iris sees this block, and it's not reconized")
     private String when = "";
-
     @Required
     @Desc("Replace it with this block. Dont worry if this block is also not reconized, iris repeat this compat check.")
     private String supplement = "";
-
-    private final transient AtomicCache<Material> findData = new AtomicCache<>(true);
-    private final transient AtomicCache<Material> replaceData = new AtomicCache<>(true);
 
     public IrisCompatabilityItemFilter(String when, String supplement) {
         this.when = when;

@@ -29,12 +29,6 @@ import java.util.UUID;
 import java.util.function.IntPredicate;
 
 public class MathHelper {
-    private static final int h = 1024;
-    private static final float i = 1024.0F;
-    private static final long j = 61440L;
-    private static final long k = 16384L;
-    private static final long l = -4611686018427387904L;
-    private static final long m = -9223372036854775808L;
     public static final float a = 3.1415927F;
     public static final float b = 1.5707964F;
     public static final float c = 6.2831855F;
@@ -42,6 +36,12 @@ public class MathHelper {
     public static final float e = 57.295776F;
     public static final float f = 1.0E-5F;
     public static final float g = c(2.0F);
+    private static final int h = 1024;
+    private static final float i = 1024.0F;
+    private static final long j = 61440L;
+    private static final long k = 16384L;
+    private static final long l = -4611686018427387904L;
+    private static final long m = -9223372036854775808L;
     private static final float n = 10430.378F;
     private static final float[] o = SystemUtils.a(new float[65536], (var0x) -> {
         for (int var1 = 0; var1 < var0x.length; ++var1) {
@@ -57,6 +57,16 @@ public class MathHelper {
     private static final double u = Double.longBitsToDouble(4805340802404319232L);
     private static final double[] v = new double[257];
     private static final double[] w = new double[257];
+
+    static {
+        for (int var0 = 0; var0 < 257; ++var0) {
+            double var1 = (double) var0 / 256.0D;
+            double var3 = Math.asin(var1);
+            w[var0] = Math.cos(var3);
+            v[var0] = var3;
+        }
+
+    }
 
     public MathHelper() {
     }
@@ -793,15 +803,5 @@ public class MathHelper {
 
     public static double a(int var0, double var1, int var3) {
         return Math.sqrt((double) (var0 * var0) + var1 * var1 + (double) (var3 * var3));
-    }
-
-    static {
-        for (int var0 = 0; var0 < 257; ++var0) {
-            double var1 = (double) var0 / 256.0D;
-            double var3 = Math.asin(var1);
-            w[var0] = Math.cos(var3);
-            v[var0] = var3;
-        }
-
     }
 }

@@ -32,6 +32,7 @@ import org.bukkit.block.data.type.PointedDripstone;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -344,6 +345,13 @@ public class B {
     public static boolean isFoliagePlantable(Material d) {
         return d.equals(Material.GRASS_BLOCK)
                 || d.equals(Material.DIRT)
+                || d.equals(TALL_GRASS)
+                || d.equals(TALL_SEAGRASS)
+                || d.equals(LARGE_FERN)
+                || d.equals(SUNFLOWER)
+                || d.equals(PEONY)
+                || d.equals(LILAC)
+                || d.equals(ROSE_BUSH)
                 || d.equals(Material.ROOTED_DIRT)
                 || d.equals(Material.COARSE_DIRT)
                 || d.equals(Material.PODZOL);
@@ -426,7 +434,46 @@ public class B {
             }
 
             if (bx == null) {
-                bx = Bukkit.createBlockData(ix);
+                try
+                {
+                    bx = Bukkit.createBlockData(ix.toLowerCase());
+                }
+
+                catch(Throwable e)
+                {
+
+                }
+            }
+
+            if(bx == null)
+            {
+                try
+                {
+                    bx = Bukkit.createBlockData("minecraft:" + ix.toLowerCase());
+                }
+
+                catch(Throwable e)
+                {
+
+                }
+            }
+
+            if(bx == null)
+            {
+                try
+                {
+                    bx = Material.valueOf(ix.toUpperCase()).createBlockData();
+                }
+
+                catch(Throwable e)
+                {
+
+                }
+            }
+
+            if(bx == null)
+            {
+                return null;
             }
 
             if (bx instanceof Leaves && IrisSettings.get().getGenerator().preventLeafDecay) {

@@ -16,6 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-rootProject.name = 'Iris'
-include 'api'
+package com.volmit.iris.api;
 
+public interface IrisAPI
+{
+
+}

@@ -18,7 +18,98 @@
 
 package com.volmit.iris.api;
 
-public interface IrisAPI
-{
+import com.volmit.iris.Iris;
+import com.volmit.iris.core.service.RegistrySVC;
+import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.util.plugin.PluginRegistryGroup;
+import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
 
+import java.util.List;
+import java.util.function.Supplier;
+
+public class IrisAPI
+{
+    private static final AtomicCache<RegistryHolder<BlockData>> customBlock = new AtomicCache<>();
+
+    /**
+     * Checks if the given world is an Iris World
+     *
+     * @param world the world
+     * @return true if it is an Iris world
+     */
+    public static boolean isIrisWorld(World world) {
+        return IrisToolbelt.isIrisWorld(world);
+    }
+
+    /**
+     * Checks if the given world is an Iris World with studio mode
+     * @param world the world
+     * @return true if it is an Iris World & is in Studio Mode
+     */
+    public static boolean isIrisStudioWorld(World world) {
+        return IrisToolbelt.isIrisStudioWorld(world);
+    }
+
+    /**
+     * Used for registering ids into custom blocks
+     * @return the registry
+     */
+    public static RegistryHolder<BlockData> getCustomBlockRegistry()
+    {
+        return customBlock.aquire(RegistryHolder::new);
+    }
+
+    public static class RegistryHolder<T>
+    {
+        private Supplier<PluginRegistryGroup<T>> registry;
+
+        /**
+         * Unregister a node
+         * @param namespace the namespace (your plugin id or something)
+         * @param id the identifier for the node
+         */
+        public void unregister(String namespace, String id)
+        {
+            Iris.service(RegistrySVC.class).getCustomBlockRegistry()
+                    .getRegistry(namespace).unregister(id);
+        }
+
+        /**
+         * Unregister all nodes by namespace
+         * @param namespace the namespace (such as your plugin)
+         */
+        public void unregisterAll(String namespace)
+        {
+            Iris.service(RegistrySVC.class).getCustomBlockRegistry()
+                    .getRegistry(namespace).unregisterAll();
+        }
+
+        /**
+         * Register a node under a namespace & id
+         * such as myplugin:ruby_ore which should resolve to an object that
+         * could be used by the generator.
+         *
+         * @param namespace the namespace (of this plugin) (myplugin)
+         * @param id the identifier for this node (ruby_ore)
+         * @param block the provider for this node data (always return a new instance!)
+         */
+        public void register(String namespace, String id, Supplier<BlockData> block)
+        {
+            Iris.service(RegistrySVC.class).getCustomBlockRegistry()
+                    .getRegistry(namespace).register(id, block);
+        }
+
+        /**
+         * Get all registered nodes under a namespace
+         * @param namespace the namespace such as your plugin
+         * @return the registry list (ids)
+         */
+        public List<String> getRegsitries(String namespace)
+        {
+            return Iris.service(RegistrySVC.class).getCustomBlockRegistry()
+                    .getRegistry(namespace).getRegistries();
+        }
+    }
 }

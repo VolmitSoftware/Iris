@@ -40,6 +40,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static org.bukkit.Material.*;
@@ -448,7 +449,12 @@ public class B {
                        if(ix.contains(":"))
                        {
                            String[] v = ix.toLowerCase().split("\\Q:\\E");
-                           bx = Iris.service(RegistrySVC.class).getCustomBlockRegistry().resolve(v[0], v[1]);
+                           Supplier<BlockData> b = Iris.service(RegistrySVC.class).getCustomBlockRegistry().resolve(v[0], v[1]);
+
+                           if(b != null)
+                           {
+                               bx = b.get();
+                           }
                        }
                    }
 

@@ -31,7 +31,7 @@ import java.util.function.Supplier;
 
 public class IrisAPI
 {
-    private static final AtomicCache<RegistryHolder<BlockData>> customBlock = new AtomicCache<>();
+    private static final AtomicCache<RegistryHolder<Supplier<BlockData>>> customBlock = new AtomicCache<>();
 
     /**
      * Checks if the given world is an Iris World
@@ -56,14 +56,19 @@ public class IrisAPI
      * Used for registering ids into custom blocks
      * @return the registry
      */
-    public static RegistryHolder<BlockData> getCustomBlockRegistry()
+    public static RegistryHolder<Supplier<BlockData>> getCustomBlockRegistry()
     {
-        return customBlock.aquire(RegistryHolder::new);
+        return customBlock.aquire(() -> new RegistryHolder<>(() -> Iris.service(RegistrySVC.class).getCustomBlockRegistry()));
     }
 
     public static class RegistryHolder<T>
     {
-        private Supplier<PluginRegistryGroup<T>> registry;
+        private final Supplier<PluginRegistryGroup<T>> registry;
+
+        public RegistryHolder(Supplier<PluginRegistryGroup<T>> registry)
+        {
+            this.registry = registry;
+        }
 
         /**
          * Unregister a node
@@ -72,8 +77,7 @@ public class IrisAPI
          */
         public void unregister(String namespace, String id)
         {
-            Iris.service(RegistrySVC.class).getCustomBlockRegistry()
-                    .getRegistry(namespace).unregister(id);
+            registry.get().getRegistry(namespace).unregister(id);
         }
 
         /**
@@ -82,8 +86,7 @@ public class IrisAPI
          */
         public void unregisterAll(String namespace)
         {
-            Iris.service(RegistrySVC.class).getCustomBlockRegistry()
-                    .getRegistry(namespace).unregisterAll();
+            registry.get().getRegistry(namespace).unregisterAll();
         }
 
         /**
@@ -95,10 +98,9 @@ public class IrisAPI
          * @param id the identifier for this node (ruby_ore)
          * @param block the provider for this node data (always return a new instance!)
          */
-        public void register(String namespace, String id, Supplier<BlockData> block)
+        public void register(String namespace, String id, T block)
         {
-            Iris.service(RegistrySVC.class).getCustomBlockRegistry()
-                    .getRegistry(namespace).register(id, block);
+            registry.get().getRegistry(namespace).register(id, block);
         }
 
         /**
@@ -108,8 +110,7 @@ public class IrisAPI
          */
         public List<String> getRegsitries(String namespace)
         {
-            return Iris.service(RegistrySVC.class).getCustomBlockRegistry()
-                    .getRegistry(namespace).getRegistries();
+            return registry.get().getRegistry(namespace).getRegistries();
         }
     }
 }

@@ -23,9 +23,11 @@ import com.volmit.iris.util.plugin.PluginRegistryGroup;
 import lombok.Data;
 import org.bukkit.block.data.BlockData;
 
+import java.util.function.Supplier;
+
 @Data
 public class RegistrySVC implements IrisService {
-    private PluginRegistryGroup<BlockData> customBlockRegistry;
+    private PluginRegistryGroup<Supplier<BlockData>> customBlockRegistry;
 
     @Override
     public void onEnable() {

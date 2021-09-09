@@ -18,18 +18,14 @@
 
 package com.volmit.iris.util.plugin;
 
-import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.bukkit.plugin.Plugin;
-
-import java.util.function.Supplier;
 
 @RequiredArgsConstructor
 public class PluginRegistry<T> {
-    private final KMap<String, Supplier<T>> registry = new KMap<>();
+    private final KMap<String, T> registry = new KMap<>();
     @Getter
     private final String namespace;
 
@@ -50,10 +46,10 @@ public class PluginRegistry<T> {
             return null;
         }
 
-        return registry.get(s).get();
+        return registry.get(s);
     }
 
-    public void register(String s, Supplier<T> t)
+    public void register(String s, T t)
     {
         registry.put(s, t);
     }
@@ -69,13 +65,6 @@ public class PluginRegistry<T> {
             return null;
         }
 
-        Supplier<T> m = registry.get(id);
-
-        if(m == null)
-        {
-            return null;
-        }
-
-        return m.get();
+        return registry.get(id);
     }
 }

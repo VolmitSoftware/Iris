@@ -62,4 +62,20 @@ public class PluginRegistry<T> {
     {
         registry.remove(s);
     }
+
+    public T resolve(String id) {
+        if(registry.isEmpty())
+        {
+            return null;
+        }
+
+        Supplier<T> m = registry.get(id);
+
+        if(m == null)
+        {
+            return null;
+        }
+
+        return m.get();
+    }
 }

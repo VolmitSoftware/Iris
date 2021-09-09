@@ -144,7 +144,6 @@ public class IrisSettings {
         public boolean disableNMS = false;
         public boolean pluginMetrics = true;
         public boolean splashLogoStartup = true;
-        public boolean autoStartDefaultStudio = false;
         public boolean useConsoleCustomColors = true;
         public boolean useCustomColorsIngame = true;
         public String forceMainWorld = "";
@@ -176,5 +175,6 @@ public class IrisSettings {
         public boolean studio = true;
         public boolean openVSCode = true;
         public boolean disableTimeAndWeather = true;
+        public boolean autoStartDefaultStudio = false;
     }
 }

@@ -511,7 +511,7 @@ public class Iris extends VolmitPlugin implements Listener {
         J.a(this::verifyDataPacksPost, 20);
         splash();
 
-        if (IrisSettings.get().getGeneral().isAutoStartDefaultStudio()) {
+        if (IrisSettings.get().getStudio().isAutoStartDefaultStudio()) {
             Iris.info("Starting up auto Studio!");
             try {
                 Player r = new KList<>(getServer().getOnlinePlayers()).getRandom();

@@ -493,7 +493,7 @@ public class B {
                 return null;
             }
 
-            if (bx instanceof Leaves && IrisSettings.get().getGenerator().preventLeafDecay) {
+            if (bx instanceof Leaves && IrisSettings.get().getGenerator().isPreventLeafDecay()) {
                 ((Leaves) bx).setPersistent(true);
             } else if (bx instanceof Leaves) {
                 ((Leaves) bx).setPersistent(false);

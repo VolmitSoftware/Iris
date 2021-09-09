@@ -36,7 +36,6 @@ public class IrisSettings {
     public int configurationVersion = 3;
     private IrisSettingsCache cache = new IrisSettingsCache();
     private IrisSettingsConcurrency concurrency = new IrisSettingsConcurrency();
-    private IrisSettingsParallax parallax = new IrisSettingsParallax();
     private IrisSettingsGeneral general = new IrisSettingsGeneral();
     private IrisSettingsGUI gui = new IrisSettingsGUI();
     private IrisSettingsGenerator generator = new IrisSettingsGenerator();
@@ -116,10 +115,6 @@ public class IrisSettings {
         return getGui().isUseServerLaunchedGuis();
     }
 
-    public long getParallaxRegionEvictionMS() {
-        return getParallax().getParallaxRegionEvictionMS();
-    }
-
     public void forceSave() {
         File s = Iris.instance.getDataFile("settings.json");
 
@@ -139,21 +134,14 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsConcurrency {
         public int parallelism = -1;
-    }
-
-    @Data
-    public static class IrisSettingsParallax {
-        public int parallaxRegionEvictionMS = 15000;
-        public int parallaxChunkEvictionMS = 5000;
+        public int parallaxEvictionMS = 10000;
     }
 
     @Data
     public static class IrisSettingsGeneral {
         public boolean commandSounds = true;
         public boolean debug = false;
-        public boolean ignoreWorldEdit = false;
         public boolean disableNMS = false;
-        public boolean keepProductionOnReload = false;
         public boolean pluginMetrics = true;
         public boolean splashLogoStartup = true;
         public boolean autoStartDefaultStudio = false;
@@ -165,7 +153,7 @@ public class IrisSettings {
         public int spinb = 8;
 
         public boolean canUseCustomColors(VolmitSender volmitSender) {
-            return (volmitSender.isPlayer() && useCustomColorsIngame) || (!volmitSender.isPlayer() && useConsoleCustomColors);
+            return volmitSender.isPlayer() ? useCustomColorsIngame : useConsoleCustomColors;
         }
     }
 
@@ -173,14 +161,12 @@ public class IrisSettings {
     public static class IrisSettingsGUI {
         public boolean useServerLaunchedGuis = true;
         public boolean maximumPregenGuiFPS = false;
-        public boolean localPregenGui = true;
     }
 
     @Data
     public static class IrisSettingsGenerator {
         public String defaultWorldType = "overworld";
         public boolean headlessPregeneration = false;
-        public boolean systemEffects = true;
         public int maxBiomeChildDepth = 4;
         public boolean preventLeafDecay = true;
     }

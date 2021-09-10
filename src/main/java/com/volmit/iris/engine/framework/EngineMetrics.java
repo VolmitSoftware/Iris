@@ -32,6 +32,7 @@ public class EngineMetrics {
     private final AtomicRollingSequence parallaxInsert;
     private final AtomicRollingSequence post;
     private final AtomicRollingSequence perfection;
+    private final AtomicRollingSequence api;
     private final AtomicRollingSequence decoration;
     private final AtomicRollingSequence cave;
     private final AtomicRollingSequence ravine;
@@ -40,6 +41,7 @@ public class EngineMetrics {
     public EngineMetrics(int mem) {
         this.total = new AtomicRollingSequence(mem);
         this.terrain = new AtomicRollingSequence(mem);
+        this.api = new AtomicRollingSequence(mem);
         this.biome = new AtomicRollingSequence(mem);
         this.perfection = new AtomicRollingSequence(mem);
         this.parallax = new AtomicRollingSequence(mem);
@@ -62,6 +64,7 @@ public class EngineMetrics {
         v.put("post", post.getAverage());
         v.put("perfection", perfection.getAverage());
         v.put("decoration", decoration.getAverage());
+        v.put("api", api.getAverage());
         v.put("updates", updates.getAverage());
         v.put("cave", cave.getAverage());
         v.put("ravine", ravine.getAverage());

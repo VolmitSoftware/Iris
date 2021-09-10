@@ -22,8 +22,11 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.service.RegistrySVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.util.api.APIAwareBlock;
+import com.volmit.iris.util.api.APIWorldBlock;
 import com.volmit.iris.util.plugin.PluginRegistryGroup;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 
 import java.util.List;
@@ -32,6 +35,8 @@ import java.util.function.Supplier;
 public class IrisAPI
 {
     private static final AtomicCache<RegistryHolder<Supplier<BlockData>>> customBlock = new AtomicCache<>();
+    private static final AtomicCache<RegistryHolder<AwareBlockMirror>> customAwareBlock = new AtomicCache<>();
+    private static final AtomicCache<RegistryHolder<APIWorldBlock>> customWorldBlock = new AtomicCache<>();
 
     /**
      * Checks if the given world is an Iris World
@@ -111,6 +116,28 @@ public class IrisAPI
         public List<String> getRegsitries(String namespace)
         {
             return registry.get().getRegistry(namespace).getRegistries();
+        }
+    }
+
+    @FunctionalInterface
+    public interface AwareBlockMirror
+    {
+        void onPlaced(BlockData block, String namespace, String key, int x, int y, int z);
+
+        default APIAwareBlock map()
+        {
+            return this::onPlaced;
+        }
+    }
+
+    @FunctionalInterface
+    public interface WorldBlockMirror
+    {
+        void onWorldPlaced(Block block, String namespace, String key);
+
+        default APIWorldBlock map()
+        {
+            return this::onWorldPlaced;
         }
     }
 }

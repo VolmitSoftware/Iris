@@ -909,7 +909,7 @@ public class CommandStudio implements DecreeExecutor {
      * @return true if server GUIs are not enabled
      */
     private boolean noGUI() {
-        if (!IrisSettings.get().isUseServerLaunchedGuis()) {
+        if (!IrisSettings.get().getGui().isUseServerLaunchedGuis()) {
             sender().sendMessage(C.RED + "You must have server launched GUIs enabled in the settings!");
             return true;
         }

@@ -189,7 +189,7 @@ public class VirtualDecreeCommand {
     }
 
     private boolean invokeTabComplete(KList<String> args, KList<Integer> skip, KList<String> tabs, String raw) {
-        if (isStudio() && !IrisSettings.get().isStudio()) {
+        if (isStudio() && !IrisSettings.get().getStudio().isStudio()) {
             return false;
         }
 
@@ -388,7 +388,7 @@ public class VirtualDecreeCommand {
     }
 
     public boolean invoke(VolmitSender sender, KList<String> args, KList<Integer> skip) {
-        if (isStudio() && !IrisSettings.get().isStudio()) {
+        if (isStudio() && !IrisSettings.get().getStudio().isStudio()) {
             sender.sendMessage(C.RED + "To use Iris Studio Commands, please enable studio in Iris/settings.json (settings auto-reload)");
             return false;
         }

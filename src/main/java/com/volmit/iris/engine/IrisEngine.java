@@ -417,8 +417,7 @@ public class IrisEngine implements Engine {
                 getData().getObjectLoader().clean();
             } catch (Throwable e) {
                 Iris.reportError(e);
-                Iris.error("Cleanup failed!");
-                e.printStackTrace();
+                Iris.error("Cleanup failed! Enable debug to see stacktrace.");
             }
 
             cleaning.lazySet(false);

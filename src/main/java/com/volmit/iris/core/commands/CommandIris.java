@@ -144,6 +144,7 @@ public class CommandIris implements DecreeExecutor {
     ) {
         boolean to = on == null ? !IrisSettings.get().getGeneral().isDebug() : on;
         IrisSettings.get().getGeneral().setDebug(to);
+        IrisSettings.get().forceSave();
         sender().sendMessage(C.GREEN + "Set debug to: " + to);
     }
 

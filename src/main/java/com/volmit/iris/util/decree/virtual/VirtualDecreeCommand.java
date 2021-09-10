@@ -161,8 +161,9 @@ public class VirtualDecreeCommand {
             return getNode().getNames();
         }
 
-        KList<String> d = new KList<>();
         Decree dc = getType().getDeclaredAnnotation(Decree.class);
+        KList<String> d = new KList<>();
+        d.add(dc.name());
         for (String i : dc.aliases()) {
             if (i.isEmpty()) {
                 continue;
@@ -171,7 +172,6 @@ public class VirtualDecreeCommand {
             d.add(i);
         }
 
-        d.add(dc.name());
         d.removeDuplicates();
 
         return d;
@@ -461,24 +461,25 @@ public class VirtualDecreeCommand {
             }
 
             if (sender.isPlayer() && i.isContextual() && value == null) {
+                Iris.debug("Contextual!");
                 DecreeContextHandler<?> ch = DecreeContextHandler.contextHandlers.get(i.getType());
 
                 if (ch != null) {
                     value = ch.handle(sender);
 
                     if (value != null) {
-                        Iris.debug("Null Parameter " + i.getName() + " derived a value of " + i.getHandler().toStringForce(value) + " from " + ch.getClass().getSimpleName());
+                        Iris.debug("Parameter \"" + i.getName() + "\" derived a value of \"" + i.getHandler().toStringForce(value) + "\" from " + ch.getClass().getSimpleName());
                     } else {
-                        Iris.debug("Null Parameter " + i.getName() + " could not derive a value from " + ch.getClass().getSimpleName());
+                        Iris.debug("Parameter \"" + i.getName() + "\" could not derive a value from \"" + ch.getClass().getSimpleName());
                     }
                 } else {
-                    Iris.debug("Null Parameter " + i.getName() + " is contextual but has no context handler for " + i.getType().getCanonicalName());
+                    Iris.debug("Parameter \"" + i.getName() + "\" is contextual but has no context handler for \"" + i.getType().getCanonicalName() + "\"");
                 }
             }
 
             if (i.hasDefault() && value == null) {
                 try {
-                    Iris.debug("Null Parameter " + i.getName() + " is using default value " + i.getParam().defaultValue());
+                    Iris.debug("Parameter \"" + i.getName() + "\" is using default value \"" + i.getParam().defaultValue() + "\"");
                     value = i.getDefaultValue();
                 } catch (Throwable e) {
                     e.printStackTrace();
@@ -486,7 +487,8 @@ public class VirtualDecreeCommand {
             }
 
             if (i.isRequired() && value == null) {
-                sender.sendMessage("Missing: " + i.getName() + " (" + i.getType().getSimpleName() + ") as the " + Form.getNumberSuffixThStRd(vm + 1) + " argument.");
+                sender.sendMessage(C.RED + "Missing argument \"" + i.getName() + "\" (" + i.getType().getSimpleName() + ") as the " + Form.getNumberSuffixThStRd(vm + 1) + " argument.");
+                sender.sendDecreeHelpNode(this);
                 return false;
             }
 

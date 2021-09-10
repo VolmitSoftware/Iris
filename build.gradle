@@ -22,7 +22,7 @@ plugins {
 }
 
 group 'com.volmit.iris'
-version '1.8.7'
+version '1.8.8'
 def apiVersion = '1.17'
 def name = getRootProject().getName() // Defined in settings.gradle
 def main = 'com.volmit.iris.Iris'

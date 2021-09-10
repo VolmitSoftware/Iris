@@ -63,6 +63,7 @@ import org.bukkit.util.Vector;
 
 import java.util.Collection;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -183,12 +184,23 @@ public class IrisEntity extends IrisRegistrant {
         if (!Chunks.isSafe(at)) {
             return null;
         }
-
         if (isSpawnEffectRiseOutOfGround()) {
-            Location b = at.clone();
-            double sy = b.getY() - 5;
-            Location start = new Location(b.getWorld(), b.getX(), sy, b.getZ());
-            at = start;
+            AtomicReference<Location> f = new AtomicReference<>(at);
+            try {
+                J.sfut(() -> {
+                    if(Chunks.hasPlayersNearby(f.get()))
+                    {
+                        Location b = f.get().clone();
+                        Location start = new Location(b.getWorld(), b.getX(), b.getY() - 5, b.getZ());
+                        f.set(start);
+                    }
+                }).get();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
+            at = f.get();
         }
 
         Entity ee = doSpawn(at);
@@ -347,6 +359,7 @@ public class IrisEntity extends IrisRegistrant {
         }
 
         Location finalAt1 = at;
+
         J.s(() -> {
             if (isSpawnEffectRiseOutOfGround() && e instanceof LivingEntity && Chunks.hasPlayersNearby(finalAt1)) {
                 Location start = finalAt1.clone();
@@ -380,6 +393,7 @@ public class IrisEntity extends IrisRegistrant {
                 }, 0));
             }
         });
+
 
         return e;
     }

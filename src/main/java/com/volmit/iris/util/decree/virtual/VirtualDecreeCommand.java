@@ -162,7 +162,8 @@ public class VirtualDecreeCommand {
         }
 
         Decree dc = getType().getDeclaredAnnotation(Decree.class);
-        KList<String> d = new KList<>(dc.name());
+        KList<String> d = new KList<>();
+        d.add(dc.name());
         for (String i : dc.aliases()) {
             if (i.isEmpty()) {
                 continue;

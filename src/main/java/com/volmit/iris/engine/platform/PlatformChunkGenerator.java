@@ -46,4 +46,6 @@ public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
     void close();
 
     boolean isStudio();
+
+    void touch(World world);
 }

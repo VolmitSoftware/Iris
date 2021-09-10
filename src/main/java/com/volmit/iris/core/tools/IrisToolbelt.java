@@ -87,7 +87,13 @@ public class IrisToolbelt {
             return false;
         }
 
-        return world.getGenerator() instanceof PlatformChunkGenerator;
+        if(world.getGenerator() instanceof PlatformChunkGenerator f)
+        {
+            f.touch(world);
+            return true;
+        }
+
+        return false;
     }
 
     public static boolean isIrisStudioWorld(World world) {

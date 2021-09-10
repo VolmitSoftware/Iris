@@ -153,6 +153,11 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
         return false;
     }
 
+    @Override
+    public void touch(World world) {
+
+    }
+
     public KList<Position2> getChunksInRegion(int x, int z) {
         try {
             return MCAUtil.sampleChunkPositions(writer.getRegionFile(x, z));

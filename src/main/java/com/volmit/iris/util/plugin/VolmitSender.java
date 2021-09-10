@@ -544,7 +544,8 @@ public class VolmitSender implements CommandSender {
                         String nDescription = "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + p.getDescription();
                         String nUsage;
                         String fullTitle;
-                        if (p.isContextual() && isPlayer()) {
+                        Iris.debug("Contextual: " + p.isContextual() + " / player: " + isPlayer());
+                        if (p.isContextual() && (isPlayer() || s instanceof CommandDummy)) {
                             fullTitle = "<#ffcc00>[" + nTitle + "<#ffcc00>] ";
                             nUsage = "<#ff9900>➱ <#ffcc00><font:minecraft:uniform>The value may be derived from environment context.";
                         } else if (p.isRequired()) {

@@ -78,6 +78,7 @@ public class DecreeNode {
 
     public KList<String> getNames() {
         KList<String> d = new KList<>();
+        d.add(getName());
 
         for (String i : decree.aliases()) {
             if (i.isEmpty()) {
@@ -88,7 +89,6 @@ public class DecreeNode {
         }
 
 
-        d.add(getName());
         d.removeDuplicates();
         return d;
     }

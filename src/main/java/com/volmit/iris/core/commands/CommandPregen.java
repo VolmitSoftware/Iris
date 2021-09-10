@@ -34,10 +34,10 @@ import org.bukkit.util.Vector;
 public class CommandPregen implements DecreeExecutor {
     @Decree(description = "Pregenerate a world")
     public void start(
-            @Param(description = "The world to pregen", contextual = true)
-                    World world,
             @Param(description = "The radius of the pregen in blocks", aliases = "size")
                     int radius,
+            @Param(description = "The world to pregen", contextual = true)
+                    World world,
             @Param(aliases = "middle", description = "The center location of the pregen. Use \"me\" for your current location", defaultValue = "0,0")
                     Vector center
     ) {

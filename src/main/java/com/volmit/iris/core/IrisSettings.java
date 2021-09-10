@@ -129,8 +129,12 @@ public class IrisSettings {
 
         if (settings.getConfigurationVersion() != new IrisSettings().getConfigurationVersion()) {
             Iris.error("Existing configuration's version does not match current configuration version! Resetting...");
+            if (s.renameTo(new File(s.getParentFile().getAbsolutePath() + "/settings-old.json"))) {
+                Iris.info("Renamed settings.json to settings-old.json");
+            }
             settings = new IrisSettings();
             settings.forceSave();
+            Iris.info("Created a new settings file");
         }
 
         return settings;

@@ -33,7 +33,7 @@ import java.io.IOException;
 @Data
 public class IrisSettings {
     public static transient IrisSettings settings;
-    public int configurationVersion = 3;
+    public int configurationVersion = 4;
     private IrisSettingsConcurrency concurrency = new IrisSettingsConcurrency();
     private IrisSettingsGeneral general = new IrisSettingsGeneral();
     private IrisSettingsGUI gui = new IrisSettingsGUI();

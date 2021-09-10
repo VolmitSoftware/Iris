@@ -22,7 +22,6 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
@@ -33,11 +32,9 @@ import java.util.List;
 public class IrisPerfectionModifier extends EngineAssignedModifier<BlockData> {
     private static final BlockData AIR = B.get("AIR");
     private static final BlockData WATER = B.get("WATER");
-    private final RNG rng;
 
     public IrisPerfectionModifier(Engine engine) {
         super(engine, "Perfection");
-        rng = new RNG(getEngine().getSeedManager().getPost());
     }
 
     @Override

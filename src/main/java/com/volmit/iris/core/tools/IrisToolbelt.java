@@ -87,8 +87,7 @@ public class IrisToolbelt {
             return false;
         }
 
-        if(world.getGenerator() instanceof PlatformChunkGenerator f)
-        {
+        if (world.getGenerator() instanceof PlatformChunkGenerator f) {
             f.touch(world);
             return true;
         }

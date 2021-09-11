@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine.mantle.components;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.engine.jigsaw.PlannedStructure;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.IrisMantleComponent;

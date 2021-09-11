@@ -56,6 +56,7 @@ public class IrisFeaturePositional {
     private IrisFeature feature;
 
     private transient AtomicCache<NoiseProvider> provider = new AtomicCache<>();
+
     public IrisFeaturePositional(int x, int z, IrisFeature feature) {
         this.x = x;
         this.z = z;

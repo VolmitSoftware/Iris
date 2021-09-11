@@ -21,9 +21,7 @@ package com.volmit.iris.util.matter;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.Varint;
-import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.BlockPosition;
 import org.bukkit.World;
@@ -40,7 +38,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -62,8 +59,7 @@ import java.util.function.Function;
 public interface Matter {
     int VERSION = 1;
 
-    static Matter from(IrisObject object)
-    {
+    static Matter from(IrisObject object) {
         object.clean();
         object.shrinkwrap();
         BlockVector min = new BlockVector();
@@ -89,10 +85,9 @@ public interface Matter {
         return m;
     }
 
-    default Matter copy()
-    {
+    default Matter copy() {
         Matter m = new IrisMatter(getWidth(), getHeight(), getDepth());
-        getSliceMap().forEach((k,v) -> m.slice(k).forceInject(v));
+        getSliceMap().forEach((k, v) -> m.slice(k).forceInject(v));
         return m;
     }
 

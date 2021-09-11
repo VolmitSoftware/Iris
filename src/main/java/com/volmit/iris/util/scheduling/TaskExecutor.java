@@ -166,6 +166,7 @@ public class TaskExecutor {
         public final int tasksExecuted;
         public final int tasksFailed;
         public final int tasksCompleted;
+
         public TaskResult(double timeElapsed, int tasksExecuted, int tasksFailed, int tasksCompleted) {
             this.timeElapsed = timeElapsed;
             this.tasksExecuted = tasksExecuted;

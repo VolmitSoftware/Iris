@@ -29,39 +29,32 @@ public class PluginRegistry<T> {
     @Getter
     private final String namespace;
 
-    public void unregisterAll()
-    {
+    public void unregisterAll() {
         registry.clear();
     }
 
-    public KList<String> getRegistries()
-    {
+    public KList<String> getRegistries() {
         return registry.k();
     }
 
-    public T get(String s)
-    {
-        if(!registry.containsKey(s))
-        {
+    public T get(String s) {
+        if (!registry.containsKey(s)) {
             return null;
         }
 
         return registry.get(s);
     }
 
-    public void register(String s, T t)
-    {
+    public void register(String s, T t) {
         registry.put(s, t);
     }
 
-    public void unregister(String s)
-    {
+    public void unregister(String s) {
         registry.remove(s);
     }
 
     public T resolve(String id) {
-        if(registry.isEmpty())
-        {
+        if (registry.isEmpty()) {
             return null;
         }
 

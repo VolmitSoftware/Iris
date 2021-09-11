@@ -20,39 +20,32 @@ package com.volmit.iris.util.plugin;
 
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
-import org.bukkit.Material;
 
 public class PluginRegistryGroup<T> {
     private final KMap<String, PluginRegistry<T>> registries = new KMap<>();
 
-    public T resolve(String namespace, String id)
-    {
-        if(registries.isEmpty())
-        {
+    public T resolve(String namespace, String id) {
+        if (registries.isEmpty()) {
             return null;
         }
 
         PluginRegistry<T> r = registries.get(namespace);
-        if(r == null)
-        {
+        if (r == null) {
             return null;
         }
 
         return r.resolve(id);
     }
 
-    public void clearRegistries()
-    {
+    public void clearRegistries() {
         registries.clear();
     }
 
-    public void removeRegistry(String namespace)
-    {
+    public void removeRegistry(String namespace) {
         registries.remove(namespace);
     }
 
-    public PluginRegistry<T> getRegistry(String namespace)
-    {
+    public PluginRegistry<T> getRegistry(String namespace) {
         return registries.computeIfAbsent(namespace, PluginRegistry::new);
     }
 

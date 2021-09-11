@@ -25,36 +25,29 @@ public interface MatterPlacer {
 
     Mantle getMantle();
 
-    default <T> void set(int x, int y, int z, T t)
-    {
-        getMantle().set(x,y,z,t);
+    default <T> void set(int x, int y, int z, T t) {
+        getMantle().set(x, y, z, t);
     }
 
-    default <T> T get(int x, int y, int z, Class<T> t)
-    {
+    default <T> T get(int x, int y, int z, Class<T> t) {
         return getMantle().get(x, y, z, t);
     }
 
-    default void set(int x, int y, int z, Matter matter)
-    {
-        for(MatterSlice<?> i : matter.getSliceMap().values())
-        {
+    default void set(int x, int y, int z, Matter matter) {
+        for (MatterSlice<?> i : matter.getSliceMap().values()) {
             set(x, y, z, i);
         }
     }
 
-    default <T> void set(int x, int y, int z, MatterSlice<T> slice)
-    {
+    default <T> void set(int x, int y, int z, MatterSlice<T> slice) {
         getMantle().set(x, y, z, slice);
     }
 
-    default int getHeight(int x, int z)
-    {
+    default int getHeight(int x, int z) {
         return getHeight(x, z, true);
     }
 
-    default int getHeightOrFluid(int x, int z)
-    {
+    default int getHeightOrFluid(int x, int z) {
         return getHeight(x, z, false);
     }
 }

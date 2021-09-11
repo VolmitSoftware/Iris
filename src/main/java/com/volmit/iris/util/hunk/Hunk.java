@@ -754,7 +754,7 @@ public interface Hunk<T> {
         for (int i = 0; i < getWidth(); i++) {
             for (int j = 0; j < getHeight(); j++) {
                 for (int k = 0; k < getDepth(); k++) {
-                    set(i,j,k,c.apply(i, j, k, get(i, j, k)));
+                    set(i, j, k, c.apply(i, j, k, get(i, j, k)));
                 }
             }
         }

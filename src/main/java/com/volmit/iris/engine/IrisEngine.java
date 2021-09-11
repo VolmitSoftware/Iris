@@ -21,7 +21,6 @@ package com.volmit.iris.engine;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.service.PreservationSVC;

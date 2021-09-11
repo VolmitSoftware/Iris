@@ -35,10 +35,8 @@ import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.block.data.type.PointedDripstone;
 
-import javax.imageio.spi.RegisterableService;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -436,34 +434,26 @@ public class B {
         try {
             BlockData bx = null;
 
-           if(!ix.startsWith("minecraft:"))
-           {
-               if (ix.startsWith("oraxen:") && Iris.linkOraxen.supported()) {
-                   bx = Iris.linkOraxen.getBlockDataFor(ix.split("\\Q:\\E")[1]);
-               }
+            if (!ix.startsWith("minecraft:")) {
+                if (ix.startsWith("oraxen:") && Iris.linkOraxen.supported()) {
+                    bx = Iris.linkOraxen.getBlockDataFor(ix.split("\\Q:\\E")[1]);
+                }
 
-               if(bx == null)
-               {
-                   try
-                   {
-                       if(ix.contains(":"))
-                       {
-                           String[] v = ix.toLowerCase().split("\\Q:\\E");
-                           Supplier<BlockData> b = Iris.service(RegistrySVC.class).getCustomBlockRegistry().resolve(v[0], v[1]);
+                if (bx == null) {
+                    try {
+                        if (ix.contains(":")) {
+                            String[] v = ix.toLowerCase().split("\\Q:\\E");
+                            Supplier<BlockData> b = Iris.service(RegistrySVC.class).getCustomBlockRegistry().resolve(v[0], v[1]);
 
-                           if(b != null)
-                           {
-                               bx = b.get();
-                           }
-                       }
-                   }
-
-                   catch(Throwable e)
-                   {
-                       e.printStackTrace();// TODO: REMOVE
-                   }
-               }
-           }
+                            if (b != null) {
+                                bx = b.get();
+                            }
+                        }
+                    } catch (Throwable e) {
+                        e.printStackTrace();// TODO: REMOVE
+                    }
+                }
+            }
 
             if (bx == null) {
                 try {

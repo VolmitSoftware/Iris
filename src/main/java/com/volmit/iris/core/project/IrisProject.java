@@ -187,7 +187,7 @@ public class IrisProject {
                         e1.printStackTrace();
                     }
                     updateWorkspace();
-                    if (!doOpenVSCode(f)){
+                    if (!doOpenVSCode(f)) {
                         Iris.warn("Tried creating code workspace but failed a second time. Your project is likely corrupt.");
                     }
                 }

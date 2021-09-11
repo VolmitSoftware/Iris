@@ -188,8 +188,7 @@ public class IrisEntity extends IrisRegistrant {
             AtomicReference<Location> f = new AtomicReference<>(at);
             try {
                 J.sfut(() -> {
-                    if(Chunks.hasPlayersNearby(f.get()))
-                    {
+                    if (Chunks.hasPlayersNearby(f.get())) {
                         Location b = f.get().clone();
                         Location start = new Location(b.getWorld(), b.getX(), b.getY() - 5, b.getZ());
                         f.set(start);

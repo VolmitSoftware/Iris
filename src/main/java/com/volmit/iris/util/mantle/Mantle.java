@@ -31,8 +31,10 @@ import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer4;
+import com.volmit.iris.util.math.AxisAlignedBB;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.matter.Matter;
+import com.volmit.iris.util.matter.MatterSlice;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.HyperLock;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -503,5 +505,14 @@ public class Mantle {
 
     public int getLoadedRegionCount() {
         return loadedRegions.size();
+    }
+
+    public <T> void set(int x, int y, int z, MatterSlice<T> slice) {
+        if(slice.isEmpty())
+        {
+            return;
+        }
+
+        slice.iterateSync((xx,yy,zz,t) -> set(x+xx,y+yy,z+zz,t));
     }
 }

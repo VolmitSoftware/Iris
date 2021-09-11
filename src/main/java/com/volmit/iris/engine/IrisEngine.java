@@ -121,7 +121,7 @@ public class IrisEngine implements Engine {
         bud = new AtomicInteger(0);
         buds = new AtomicInteger(0);
         metrics = new EngineMetrics(32);
-        cleanLatch = new ChronoLatch(Math.max(10000, IrisSettings.get().getConcurrency().getParallaxEvictionMS()));
+        cleanLatch = new ChronoLatch(10000);
         generatedLast = new AtomicInteger(0);
         perSecond = new AtomicDouble(0);
         perSecondLatch = new ChronoLatch(1000, false);

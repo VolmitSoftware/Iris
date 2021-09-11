@@ -33,11 +33,12 @@ import java.io.IOException;
 @Data
 public class IrisSettings {
     public static transient IrisSettings settings;
-    private IrisSettingsConcurrency concurrency = new IrisSettingsConcurrency();
     private IrisSettingsGeneral general = new IrisSettingsGeneral();
     private IrisSettingsGUI gui = new IrisSettingsGUI();
     private IrisSettingsGenerator generator = new IrisSettingsGenerator();
+    private IrisSettingsConcurrency concurrency = new IrisSettingsConcurrency();
     private IrisSettingsStudio studio = new IrisSettingsStudio();
+    private IrisSettingsPerformance performance = new IrisSettingsPerformance();
 
     public static int getThreadCount(int c) {
         return switch (c) {
@@ -50,7 +51,12 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsConcurrency {
         public int parallelism = -1;
-        public int parallaxEvictionMS = 10000;
+    }
+
+    @Data
+    public static class IrisSettingsPerformance {
+        public int mantleKeepAliveSeconds = 60;
+        public int cacheSize = 131072;
     }
 
     @Data

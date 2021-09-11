@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.mantle;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
@@ -47,6 +48,7 @@ import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 // TODO: MOVE PLACER OUT OF MATTER INTO ITS OWN THING
@@ -180,7 +182,7 @@ public interface EngineMantle extends IObjectPlacer {
     }
 
     default void trim() {
-        getMantle().trim(60000);
+        getMantle().trim(TimeUnit.SECONDS.toMillis(IrisSettings.get().getPerformance().getMantleKeepAliveSeconds()));
     }
 
     default MultiBurst burst() {

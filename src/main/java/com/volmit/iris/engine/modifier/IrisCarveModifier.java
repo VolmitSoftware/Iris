@@ -169,13 +169,13 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     }
 
     private void processZone(Hunk<BlockData> output, MantleChunk mc, Mantle mantle, CaveZone zone, int rx, int rz, int xx, int zz) {
-        boolean decFloor = B.isSolid(output.get(rx, zone.floor - 1, rz));
-        boolean decCeiling = B.isSolid(output.get(rx, zone.ceiling + 1, rz));
+        boolean decFloor = B.isSolid(output.getClosest(rx, zone.floor - 1, rz));
+        boolean decCeiling = B.isSolid(output.getClosest(rx, zone.ceiling + 1, rz));
         int center = (zone.floor + zone.ceiling) / 2;
         int thickness = zone.airThickness();
         String customBiome = "";
 
-        if (B.isDecorant(output.get(rx, zone.ceiling + 1, rz))) {
+        if (B.isDecorant(output.getClosest(rx, zone.ceiling + 1, rz))) {
             output.set(rx, zone.ceiling + 1, rz, AIR);
         }
 

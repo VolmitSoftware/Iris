@@ -445,8 +445,8 @@ public class VirtualDecreeCommand {
                     value = i.getDefaultValue();
                 }
             } catch (DecreeParsingException e) {
-                Iris.debug("Can't parse parameter value for " + i.getName() + "=" + i + " in " + getPath() + " using handler " + i.getHandler().getClass().getSimpleName());
-                sender.sendMessage(C.RED + "Cannot convert \"" + i + "\" into a " + i.getType().getSimpleName());
+                Iris.debug("Can't parse parameter value for " + i.getName() + "=" + i.getParam().defaultValue() + " in " + getPath() + " using handler " + i.getHandler().getClass().getSimpleName());
+                sender.sendMessage(C.RED + "Cannot convert \"" + i.getParam().defaultValue() + "\" into a " + i.getType().getSimpleName());
                 return false;
             } catch (DecreeWhichException e) {
                 KList<?> validOptions = i.getHandler().getPossibilities(i.getParam().defaultValue());

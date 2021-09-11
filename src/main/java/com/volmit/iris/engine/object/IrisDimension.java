@@ -181,10 +181,6 @@ public class IrisDimension extends IrisRegistrant {
     @MaxNumber(360)
     @Desc("You can rotate the input coordinates by an angle. This can make terrain appear more natural (less sharp corners and lines). This literally rotates the entire dimension by an angle. Hint: Try 12 degrees or something not on a 90 or 45 degree angle.")
     private double dimensionAngleDeg = 0;
-
-    @Desc("Use noise mods from features such as vacuum")
-    private boolean noiseModificationFromFeatures = true;
-
     @MinNumber(0)
     @MaxNumber(8192)
     @Desc("Coordinate fracturing applies noise to the input coordinates. This creates the 'iris swirls' and wavy features. The distance pushes these waves further into places they shouldnt be. This is a block value multiplier.")

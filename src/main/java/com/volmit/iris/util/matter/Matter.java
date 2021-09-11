@@ -23,6 +23,7 @@ import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.Varint;
+import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.BlockPosition;
 import org.bukkit.World;
@@ -85,6 +86,13 @@ public interface Matter {
         FileInputStream in = new FileInputStream(f);
         Matter m = read(in);
         in.close();
+        return m;
+    }
+
+    default Matter copy()
+    {
+        Matter m = new IrisMatter(getWidth(), getHeight(), getDepth());
+        getSliceMap().forEach((k,v) -> m.slice(k).forceInject(v));
         return m;
     }
 

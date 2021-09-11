@@ -190,22 +190,31 @@ public class IrisComplex implements DataProvider {
         slopeStream = heightStream.slope(3).cache2D(cacheSize);
         objectChanceStream = ProceduralStream.ofDouble((x, z) -> {
             AtomicDouble str = new AtomicDouble(1D);
-            for (IrisFeaturePositional i : engine.getMantle().forEachFeature(x, z)) {
-                str.set(Math.min(str.get(), i.getObjectChanceModifier(x, z, rng, getData())));
+
+            if(engine.getDimension().isNoiseModificationFromFeatures())
+            {
+                for (IrisFeaturePositional i : engine.getMantle().forEachFeature(x, z)) {
+                    str.set(Math.min(str.get(), i.getObjectChanceModifier(x, z, rng, getData())));
+                }
             }
 
             return str.get();
         });
         trueBiomeStream = focus != null ? ProceduralStream.of((x, y) -> focus, Interpolated.of(a -> 0D,
                         b -> focus)).convertAware2D((b, x, z) -> {
-                    for (IrisFeaturePositional i : engine.getMantle().forEachFeature(x, z)) {
-                        IrisBiome bx = i.filter(x, z, b, rng);
 
-                        if (bx != null) {
-                            bx.setInferredType(b.getInferredType());
-                            return bx;
-                        }
+                    if(engine.getDimension().isNoiseModificationFromFeatures())
+                    {
+                for (IrisFeaturePositional i : engine.getMantle().forEachFeature(x, z)) {
+                    IrisBiome bx = i.filter(x, z, b, rng);
+
+                    if (bx != null) {
+                        bx.setInferredType(b.getInferredType());
+                        return bx;
                     }
+                }
+            }
+
 
                     return b;
                 })
@@ -214,28 +223,39 @@ public class IrisComplex implements DataProvider {
                         fixBiomeType(h, baseBiomeStream.get(x, z),
                                 regionStream.get(x, z), x, z, fluidHeight))
                 .convertAware2D((b, x, z) -> {
-                    for (IrisFeaturePositional i : engine.getMantle().forEachFeature(x, z)) {
-                        IrisBiome bx = i.filter(x, z, b, rng);
 
-                        if (bx != null) {
-                            bx.setInferredType(b.getInferredType());
-                            return bx;
+                    if(engine.getDimension().isNoiseModificationFromFeatures())
+                    {
+                        for (IrisFeaturePositional i : engine.getMantle().forEachFeature(x, z)) {
+                            IrisBiome bx = i.filter(x, z, b, rng);
+
+                            if (bx != null) {
+                                bx.setInferredType(b.getInferredType());
+                                return bx;
+                            }
                         }
                     }
+
+
 
                     return b;
                 })
                 .cache2D(cacheSize);
         trueBiomeStream = focus != null ? ProceduralStream.of((x, y) -> focus, Interpolated.of(a -> 0D,
                         b -> focus)).convertAware2D((b, x, z) -> {
-                    for (IrisFeaturePositional i : engine.getMantle().forEachFeature(x, z)) {
-                        IrisBiome bx = i.filter(x, z, b, rng);
 
-                        if (bx != null) {
-                            bx.setInferredType(b.getInferredType());
-                            return bx;
-                        }
+
+            if(engine.getDimension().isNoiseModificationFromFeatures())
+            {
+                for (IrisFeaturePositional i : engine.getMantle().forEachFeature(x, z)) {
+                    IrisBiome bx = i.filter(x, z, b, rng);
+
+                    if (bx != null) {
+                        bx.setInferredType(b.getInferredType());
+                        return bx;
                     }
+                }
+            }
 
                     return b;
                 })
@@ -244,13 +264,18 @@ public class IrisComplex implements DataProvider {
                         fixBiomeType(h, baseBiomeStream.get(x, z),
                                 regionStream.get(x, z), x, z, fluidHeight))
                 .convertAware2D((b, x, z) -> {
-                    for (IrisFeaturePositional i : engine.getMantle().forEachFeature(x, z)) {
-                        IrisBiome bx = i.filter(x, z, b, rng);
 
-                        if (bx != null) {
-                            bx.setInferredType(b.getInferredType());
-                            return bx;
+                    if(engine.getDimension().isNoiseModificationFromFeatures())
+                    {
+                        for (IrisFeaturePositional i : engine.getMantle().forEachFeature(x, z)) {
+                            IrisBiome bx = i.filter(x, z, b, rng);
+
+                            if (bx != null) {
+                                bx.setInferredType(b.getInferredType());
+                                return bx;
+                            }
                         }
+
                     }
 
                     return b;
@@ -397,8 +422,11 @@ public class IrisComplex implements DataProvider {
         AtomicDouble noise = new AtomicDouble(h + fluidHeight + overlayStream.get(x, z));
 
         if (features) {
-            for (IrisFeaturePositional i : engine.getMantle().forEachFeature(x, z)) {
-                noise.set(i.filter(x, z, noise.get(), rng, getData()));
+            if(engine.getDimension().isNoiseModificationFromFeatures())
+            {
+                for (IrisFeaturePositional i : engine.getMantle().forEachFeature(x, z)) {
+                    noise.set(i.filter(x, z, noise.get(), rng, getData()));
+                }
             }
         }
 

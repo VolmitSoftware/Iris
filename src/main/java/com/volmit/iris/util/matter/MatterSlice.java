@@ -34,6 +34,21 @@ import java.io.IOException;
 public interface MatterSlice<T> extends Hunk<T> {
     Class<T> getType();
 
+    default void applyFilter(MatterFilter<T> filter)
+    {
+        updateSync(filter::update);
+    }
+
+    default void inject(MatterSlice<T> slice)
+    {
+        iterateSync(slice::set);
+    }
+
+    default void forceInject(MatterSlice<?> slice)
+    {
+        inject((MatterSlice<T>) slice);
+    }
+
     void writeNode(T b, DataOutputStream dos) throws IOException;
 
     T readNode(DataInputStream din) throws IOException;

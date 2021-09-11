@@ -28,6 +28,7 @@ import com.volmit.iris.util.function.Consumer5;
 import com.volmit.iris.util.function.Consumer6;
 import com.volmit.iris.util.function.Consumer8;
 import com.volmit.iris.util.function.Function3;
+import com.volmit.iris.util.function.Function4;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.function.NoiseProvider3;
 import com.volmit.iris.util.function.Supplier3R;
@@ -742,6 +743,18 @@ public interface Hunk<T> {
             for (int j = 0; j < getHeight(); j++) {
                 for (int k = 0; k < getDepth(); k++) {
                     c.accept(i, j, k, get(i, j, k));
+                }
+            }
+        }
+
+        return this;
+    }
+
+    default Hunk<T> updateSync(Function4<Integer, Integer, Integer, T, T> c) {
+        for (int i = 0; i < getWidth(); i++) {
+            for (int j = 0; j < getHeight(); j++) {
+                for (int k = 0; k < getDepth(); k++) {
+                    set(i,j,k,c.apply(i, j, k, get(i, j, k)));
                 }
             }
         }

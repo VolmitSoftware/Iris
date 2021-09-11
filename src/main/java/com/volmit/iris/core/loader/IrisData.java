@@ -54,6 +54,7 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
@@ -84,6 +85,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private ResourceLoader<IrisExpression> expressionLoader;
     private ResourceLoader<IrisObject> objectLoader;
     private ResourceLoader<IrisScript> scriptLoader;
+    private ResourceLoader<IrisMatter> matterLoader;
     private ResourceLoader<IrisCave> caveLoader;
     private ResourceLoader<IrisRavine> ravineLoader;
     private KMap<String, KList<String>> possibleSnippets;
@@ -165,6 +167,10 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     public static IrisScript loadAnyScript(String key) {
         return loadAny(key, (dm) -> dm.getScriptLoader().load(key, false));
+    }
+
+    public static IrisMatter loadAnyMatter(String key) {
+        return loadAny(key, (dm) -> dm.getMatterLoader().load(key, false));
     }
 
     public static IrisRavine loadAnyRavine(String key) {
@@ -280,6 +286,8 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
             ResourceLoader<T> r = null;
             if (registrant.equals(IrisObject.class)) {
                 r = (ResourceLoader<T>) new ObjectResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
+            } else if (registrant.equals(IrisMatter.class)) {
+                r = (ResourceLoader<T>) new MatterResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
             } else if (registrant.equals(IrisScript.class)) {
                 r = (ResourceLoader<T>) new ScriptResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
             } else {
@@ -325,6 +333,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.blockLoader = registerLoader(IrisBlockData.class);
         this.expressionLoader = registerLoader(IrisExpression.class);
         this.objectLoader = registerLoader(IrisObject.class);
+        this.matterLoader = registerLoader(IrisMatter.class);
         this.scriptLoader = registerLoader(IrisScript.class);
         gson = builder.create();
     }

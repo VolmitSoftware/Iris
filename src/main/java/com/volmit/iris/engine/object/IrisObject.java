@@ -392,6 +392,24 @@ public class IrisObject extends IrisRegistrant {
         out.close();
     }
 
+    public void shrinkwrap() {
+        BlockVector min = new BlockVector();
+        BlockVector max = new BlockVector();
+
+        for (BlockVector i : getBlocks().keySet()) {
+            min.setX(Math.min(min.getX(), i.getX()));
+            min.setY(Math.min(min.getY(), i.getY()));
+            min.setZ(Math.min(min.getZ(), i.getZ()));
+            max.setX(Math.max(max.getX(), i.getX()));
+            max.setY(Math.max(max.getY(), i.getY()));
+            max.setZ(Math.max(max.getZ(), i.getZ()));
+        }
+
+        w = max.getBlockX() - min.getBlockX();
+        h = max.getBlockY() - min.getBlockY();
+        d = max.getBlockZ() - min.getBlockZ();
+    }
+
     public void clean() {
         KMap<BlockVector, BlockData> d = new KMap<>();
 

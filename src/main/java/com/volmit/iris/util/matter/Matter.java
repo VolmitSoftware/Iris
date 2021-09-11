@@ -18,14 +18,17 @@
 
 package com.volmit.iris.util.matter;
 
+import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.BlockPosition;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
+import org.bukkit.util.BlockVector;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -36,6 +39,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -56,6 +60,26 @@ import java.util.function.Function;
  */
 public interface Matter {
     int VERSION = 1;
+
+    static Matter from(IrisObject object)
+    {
+        object.clean();
+        object.shrinkwrap();
+        BlockVector min = new BlockVector();
+        Matter m = new IrisMatter(object.getW(), object.getH(), object.getD());
+
+        for (BlockVector i : object.getBlocks().keySet()) {
+            min.setX(Math.min(min.getX(), i.getX()));
+            min.setY(Math.min(min.getY(), i.getY()));
+            min.setZ(Math.min(min.getZ(), i.getZ()));
+        }
+
+        for (BlockVector i : object.getBlocks().keySet()) {
+            m.slice(BlockData.class).set(i.getBlockX() - min.getBlockX(), i.getBlockY() - min.getBlockY(), i.getBlockZ() - min.getBlockZ(), object.getBlocks().get(i));
+        }
+
+        return m;
+    }
 
     static Matter read(File f) throws IOException, ClassNotFoundException {
         FileInputStream in = new FileInputStream(f);
@@ -164,7 +188,7 @@ public interface Matter {
      * @return the center X
      */
     default int getCenterX() {
-        return Math.round(getWidth() / 2);
+        return (int) Math.round(getWidth() / 2D);
     }
 
     /**
@@ -173,7 +197,7 @@ public interface Matter {
      * @return the center Y
      */
     default int getCenterY() {
-        return Math.round(getHeight() / 2);
+        return (int) Math.round(getHeight() / 2D);
     }
 
     /**
@@ -182,7 +206,7 @@ public interface Matter {
      * @return the center Z
      */
     default int getCenterZ() {
-        return Math.round(getDepth() / 2);
+        return (int) Math.round(getDepth() / 2D);
     }
 
     /**

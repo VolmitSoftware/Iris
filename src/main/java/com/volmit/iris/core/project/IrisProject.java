@@ -175,28 +175,8 @@ public class IrisProject {
                     return;
                 }
                 File f = d.getLoader().getDataFolder();
-                boolean foundWork = false;
-                for (File i : Objects.requireNonNull(f.listFiles())) {
-                    if (i.getName().endsWith(".code-workspace")) {
-                        foundWork = true;
-                        J.a(() ->
-                        {
-                            updateWorkspace();
-                        });
 
-                        if (IrisSettings.get().getStudio().isOpenVSCode()) {
-                            if (!GraphicsEnvironment.isHeadless()) {
-                                Iris.msg("Opening VSCode. You may see the output from VSCode.");
-                                Iris.msg("VSCode output always starts with: '(node:#####) electron'");
-                                Desktop.getDesktop().open(i);
-                            }
-                        }
-
-                        break;
-                    }
-                }
-
-                if (!foundWork) {
+                if (!doOpenVSCode(f)) {
                     File ff = new File(d.getLoader().getDataFolder(), d.getLoadKey() + ".code-workspace");
                     Iris.warn("Project missing code-workspace: " + ff.getAbsolutePath() + " Re-creating code workspace.");
 
@@ -207,12 +187,39 @@ public class IrisProject {
                         e1.printStackTrace();
                     }
                     updateWorkspace();
+                    if (!doOpenVSCode(f)){
+                        Iris.warn("Tried creating code workspace but failed a second time. Your project is likely corrupt.");
+                    }
                 }
             } catch (Throwable e) {
                 Iris.reportError(e);
                 e.printStackTrace();
             }
         });
+    }
+
+    private boolean doOpenVSCode(File f) throws IOException {
+        boolean foundWork = false;
+        for (File i : Objects.requireNonNull(f.listFiles())) {
+            if (i.getName().endsWith(".code-workspace")) {
+                foundWork = true;
+                J.a(() ->
+                {
+                    updateWorkspace();
+                });
+
+                if (IrisSettings.get().getStudio().isOpenVSCode()) {
+                    if (!GraphicsEnvironment.isHeadless()) {
+                        Iris.msg("Opening VSCode. You may see the output from VSCode.");
+                        Iris.msg("VSCode output always starts with: '(node:#####) electron'");
+                        Desktop.getDesktop().open(i);
+                    }
+                }
+
+                break;
+            }
+        }
+        return foundWork;
     }
 
     public void open(VolmitSender sender, long seed, Consumer<World> onDone) throws IrisException {

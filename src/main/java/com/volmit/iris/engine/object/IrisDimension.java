@@ -150,6 +150,8 @@ public class IrisDimension extends IrisRegistrant {
     private IrisFluidBodies fluidBodies = new IrisFluidBodies();
     @Desc("The world environment")
     private Environment environment = Environment.NORMAL;
+    @Desc("Disable the initial dragon fight in this world (only for the end)")
+    private IrisEndSettings endSettings = new IrisEndSettings();
     @RegistryListResource(IrisRegion.class)
     @Required
     @ArrayType(min = 1, type = String.class)

@@ -46,6 +46,7 @@ public class CommandPregen implements DecreeExecutor {
                 sender().sendMessage(C.RED + "The engine access for this world is null!");
                 sender().sendMessage(C.RED + "Please make sure the world is loaded & the engine is initialized. Generate a new chunk, for example.");
             }
+            radius = Math.max(radius, 1024);
             IrisToolbelt.pregenerate(PregenTask
                     .builder()
                     .center(new Position2(center))

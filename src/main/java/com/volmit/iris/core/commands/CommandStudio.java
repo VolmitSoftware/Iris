@@ -34,7 +34,6 @@ import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisEntity;
-import com.volmit.iris.engine.object.IrisFeaturePositional;
 import com.volmit.iris.engine.object.IrisGenerator;
 import com.volmit.iris.engine.object.IrisInterpolator;
 import com.volmit.iris.engine.object.IrisLootTable;

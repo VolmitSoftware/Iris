@@ -26,7 +26,6 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.object.IObjectPlacer;
 import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisFeaturePositional;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.collection.KList;
@@ -246,56 +245,6 @@ public interface EngineMantle extends IObjectPlacer {
         if (matter != null) {
             matter.slice(MatterCavern.class).set(x & 15, y & 15, z & 15, null);
         }
-    }
-
-    @ChunkCoordinates
-    default List<IrisFeaturePositional> getFeaturesInChunk(Chunk c) {
-        return getFeaturesInChunk(c.getX(), c.getZ());
-    }
-
-    @ChunkCoordinates
-    default List<IrisFeaturePositional> getFeaturesInChunk(int x, int z) {
-        return getMantle().getChunk(x, z).getFeatures();
-    }
-
-
-    @ChunkCoordinates
-    default KList<IrisFeaturePositional> forEachFeature(Chunk c) {
-        return forEachFeature((c.getX() << 4) + 8, (c.getZ() << 4) + 8);
-    }
-
-    @BlockCoordinates
-    default KList<IrisFeaturePositional> forEachFeature(double x, double z) {
-        KList<IrisFeaturePositional> pos = new KList<>();
-
-        for (IrisFeaturePositional i : getEngine().getDimension().getSpecificFeatures()) {
-            if (i.shouldFilter(x, z, getEngine().getComplex().getRng(), getData())) {
-                pos.add(i);
-            }
-        }
-
-        int s = getRealRadius();
-        int i, j;
-        int cx = (int) x >> 4;
-        int cz = (int) z >> 4;
-
-        for (i = -s; i <= s; i++) {
-            for (j = -s; j <= s; j++) {
-                try {
-                    for (IrisFeaturePositional k : getFeaturesInChunk(i + cx, j + cz)) {
-                        if (k.shouldFilter(x, z, getEngine().getComplex().getRng(), getData())) {
-                            pos.add(k);
-                        }
-                    }
-                } catch (Throwable e) {
-                    Iris.error("FILTER ERROR" + " AT " + (cx + i) + " " + (j + cz));
-                    e.printStackTrace();
-                    Iris.reportError(e);
-                }
-            }
-        }
-
-        return pos;
     }
 
     default boolean queueRegenerate(int x, int z) {

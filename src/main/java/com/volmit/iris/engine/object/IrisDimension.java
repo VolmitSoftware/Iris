@@ -102,12 +102,6 @@ public class IrisDimension extends IrisRegistrant {
     @ArrayType(min = 1, type = String.class)
     @RegistryListResource(IrisSpawner.class)
     private KList<String> entitySpawners = new KList<>();
-    @Desc("Add specific features in exact positions")
-    @ArrayType(min = 1, type = IrisFeaturePositional.class)
-    private KList<IrisFeaturePositional> specificFeatures = new KList<>();
-    @Desc("Add random chances for terrain features")
-    @ArrayType(min = 1, type = IrisFeaturePotential.class)
-    private KList<IrisFeaturePotential> features = new KList<>();
     @Desc("Reference loot tables in this area")
     private IrisLootReference loot = new IrisLootReference();
     @MinNumber(0)

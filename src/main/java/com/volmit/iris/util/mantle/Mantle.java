@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.MantleWriter;
-import com.volmit.iris.engine.object.IrisFeaturePositional;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.documentation.BlockCoordinates;
@@ -261,16 +260,11 @@ public class Mantle {
             return;
         }
 
-        if (t instanceof IrisFeaturePositional) {
-            get((x >> 4) >> 5, (z >> 4) >> 5)
-                    .getOrCreate((x >> 4) & 31, (z >> 4) & 31).addFeature((IrisFeaturePositional) t);
-        } else {
-            Matter matter = get((x >> 4) >> 5, (z >> 4) >> 5)
-                    .getOrCreate((x >> 4) & 31, (z >> 4) & 31)
-                    .getOrCreate(y >> 4);
-            matter.slice(matter.getClass(t))
-                    .set(x & 15, y & 15, z & 15, t);
-        }
+        Matter matter = get((x >> 4) >> 5, (z >> 4) >> 5)
+                .getOrCreate((x >> 4) & 31, (z >> 4) & 31)
+                .getOrCreate(y >> 4);
+        matter.slice(matter.getClass(t))
+                .set(x & 15, y & 15, z & 15, t);
     }
 
     /**

@@ -51,9 +51,21 @@ public class IrisInterpolator {
     @Desc("The range checked horizontally. Smaller ranges yeild more detail but are not as smooth.")
     private double horizontalScale = 7;
 
+    @Override
     public int hashCode()
     {
         return Objects.hash(horizontalScale, function);
+    }
+
+    @Override
+    public boolean equals(Object o)
+    {
+        if(o instanceof IrisInterpolator i)
+        {
+            return i.getFunction().equals(function) && i.getHorizontalScale() == horizontalScale;
+        }
+
+        return false;
     }
 
     public double interpolate(double x, double z, NoiseProvider provider) {

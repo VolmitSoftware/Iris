@@ -20,7 +20,6 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Snippet;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -30,7 +29,6 @@ import lombok.experimental.Accessors;
 @EqualsAndHashCode()
 @Accessors(chain = true)
 @NoArgsConstructor
-@AllArgsConstructor
 @Desc("Represents an iris object placer. It places objects.")
 @Data
 public class IrisMatterPlacement {

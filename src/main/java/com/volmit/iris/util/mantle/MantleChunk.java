@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.mantle;
 
-import com.volmit.iris.engine.object.IrisFeaturePositional;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.matter.IrisMatter;
@@ -47,7 +46,6 @@ public class MantleChunk {
     private final int z;
     private final AtomicIntegerArray flags;
     private final AtomicReferenceArray<Matter> sections;
-    private final CopyOnWriteArrayList<IrisFeaturePositional> features;
 
     /**
      * Create a mantle chunk
@@ -58,7 +56,6 @@ public class MantleChunk {
     public MantleChunk(int sectionHeight, int x, int z) {
         sections = new AtomicReferenceArray<>(sectionHeight);
         flags = new AtomicIntegerArray(MantleFlag.values().length);
-        features = new CopyOnWriteArrayList<>();
         this.x = x;
         this.z = z;
 
@@ -87,12 +84,6 @@ public class MantleChunk {
             if (din.readBoolean()) {
                 sections.set(i, Matter.read(din));
             }
-        }
-
-        short v = din.readShort();
-
-        for (int i = 0; i < v; i++) {
-            features.add(zm.readNode(din));
         }
     }
 
@@ -196,12 +187,6 @@ public class MantleChunk {
                 dos.writeBoolean(false);
             }
         }
-
-        dos.writeShort(features.size());
-
-        for (IrisFeaturePositional i : features) {
-            zm.writeNode(i, dos);
-        }
     }
 
     private void trimSlice(int i) {
@@ -232,14 +217,6 @@ public class MantleChunk {
                 }
             }
         }
-    }
-
-    public void addFeature(IrisFeaturePositional t) {
-        features.add(t);
-    }
-
-    public List<IrisFeaturePositional> getFeatures() {
-        return features;
     }
 
     public void deleteSlices(Class<?> c) {

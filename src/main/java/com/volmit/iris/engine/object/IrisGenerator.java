@@ -211,7 +211,6 @@ public class IrisGenerator extends IrisRegistrant {
 
     public double getHeight(double rx, double ry, double rz, long superSeed, boolean no3d) {
         if (composite.isEmpty()) {
-            Iris.warn("Useless Generator: Composite is empty in " + getLoadKey());
             return 0;
         }
 
@@ -219,12 +218,25 @@ public class IrisGenerator extends IrisRegistrant {
         double h = multiplicitive ? 1 : 0;
         double tp = 0;
 
-        for (IrisNoiseGenerator i : composite) {
+        if(composite.size() == 1)
+        {
             if (multiplicitive) {
-                h *= i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
+                h *= composite.get(0).getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
             } else {
-                tp += i.getOpacity();
-                h += i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
+                tp += composite.get(0).getOpacity();
+                h += composite.get(0).getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
+            }
+        }
+
+        else
+        {
+            for (IrisNoiseGenerator i : composite) {
+                if (multiplicitive) {
+                    h *= i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
+                } else {
+                    tp += i.getOpacity();
+                    h += i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
+                }
             }
         }
 

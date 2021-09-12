@@ -116,6 +116,7 @@ public class IrisComplex implements DataProvider {
                 .getAllBiomes(this).forEach((b) -> b
                         .getGenerators()
                         .forEach((c) -> registerGenerator(c.getCachedGenerator(this)))));
+        Iris.info("Interpolators: " + generators.size());
         overlayStream = ProceduralStream.ofDouble((x, z) -> 0D);
         engine.getDimension().getOverlayNoise().forEach((i) -> overlayStream.add((x, z) -> i.get(rng, getData(), x, z)));
         rockStream = engine.getDimension().getRockPalette().getLayerGenerator(rng.nextParallelRNG(45), data).stream()

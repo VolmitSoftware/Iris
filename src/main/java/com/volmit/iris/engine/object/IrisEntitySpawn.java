@@ -111,19 +111,16 @@ public class IrisEntitySpawn implements IRare {
         World world = gen.getWorld().realWorld();
         if (spawns > 0) {
             for (int id = 0; id < spawns; id++) {
-                int x = c.getX();
-                int z = c.getZ();
-                int h = c.getY();
                 Location l = c.toLocation(world).add(0, 1, 0);
 
                 if (referenceSpawner.getAllowedLightLevels().getMin() > 0 || referenceSpawner.getAllowedLightLevels().getMax() < 15) {
                     if (referenceSpawner.getAllowedLightLevels().contains(l.getBlock().getLightLevel())) {
-                        if (spawn100(gen, l) != null) {
+                        if (spawn100(gen, l, true) != null) {
                             s++;
                         }
                     }
                 } else {
-                    if (spawn100(gen, l) != null) {
+                    if (spawn100(gen, l, true) != null) {
                         s++;
                     }
                 }
@@ -150,11 +147,16 @@ public class IrisEntitySpawn implements IRare {
     }
 
     private Entity spawn100(Engine g, Location at) {
+        return spawn100(g, at, false);
+    }
+
+        private Entity spawn100(Engine g, Location at, boolean ignoreSurfaces) {
         try {
             IrisEntity irisEntity = getRealEntity(g);
 
-            if (!irisEntity.getSurface().matches(at.clone().subtract(0, 1, 0).getBlock()))
-                return null; //Make sure it can spawn on the block
+            if (!ignoreSurfaces && !irisEntity.getSurface().matches(at.clone().subtract(0, 1, 0).getBlock())) {
+                return null;
+            }
 
             Entity e = irisEntity.spawn(g, at.add(0.5, 0, 0.5), rng.aquire(() -> new RNG(g.getSeedManager().getEntity())));
             if (e != null) {

@@ -171,13 +171,28 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     private void updateChunks() {
         for (Player i : getEngine().getWorld().realWorld().getPlayers()) {
-            int r = 1;
+            int r = 2;
 
             Chunk c = i.getLocation().getChunk();
             for (int x = -r; x <= r; x++) {
                 for (int z = -r; z <= r; z++) {
-                    if (c.getWorld().isChunkLoaded(c.getX() + x, c.getZ() + z)) {
+                    if (c.getWorld().isChunkLoaded(c.getX() + x, c.getZ() + z) && Chunks.isSafe(getEngine().getWorld().realWorld(), c.getX() + x, c.getZ() + z)) {
                         getEngine().updateChunk(c.getWorld().getChunkAt(c.getX() + x, c.getZ() + z));
+                        Chunk cx = getEngine().getWorld().realWorld().getChunkAt(c.getX() + x, c.getZ() + z);
+                        int finalX = c.getX() + x;
+                        int finalZ = c.getZ() + z;
+                        J.a(() -> getMantle().raiseFlag(finalX, finalZ, MantleFlag.INITIAL_SPAWNED_MARKER,
+                                () -> {
+                                    J.a(() -> spawnIn(cx, true), RNG.r.i(5, 200));
+                                    getSpawnersFromMarkers(cx).forEach((block, spawners) -> {
+                                        if (spawners.isEmpty()) {
+                                            return;
+                                        }
+
+                                        IrisSpawner s = new KList<>(spawners).getRandom();
+                                        spawn(block, s, true);
+                                    });
+                                }));
                     }
                 }
             }
@@ -438,18 +453,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     @Override
     public void onChunkLoad(Chunk e, boolean generated) {
-        J.a(() -> getMantle().raiseFlag(e.getX(), e.getZ(), MantleFlag.INITIAL_SPAWNED,
-                () -> {
-                    J.a(() -> spawnIn(e, true), RNG.r.i(5, 200));
-                    getSpawnersFromMarkers(e).forEach((block, spawners) -> {
-                        if (spawners.isEmpty()) {
-                            return;
-                        }
-
-                        IrisSpawner s = new KList<>(spawners).getRandom();
-                        spawn(block, s, true);
-                    });
-                }));
         energy += 0.3;
         fixEnergy();
     }
@@ -464,7 +467,9 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             return;
         }
 
-        spawn(block, spawnRandomly(s).getRandom());
+        IrisEntitySpawn ss = spawnRandomly(s).getRandom();
+        ss.setReferenceSpawner(spawner);
+        spawn(block, ss);
     }
 
     public Mantle getMantle() {

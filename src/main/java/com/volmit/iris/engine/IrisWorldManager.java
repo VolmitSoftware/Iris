@@ -478,6 +478,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         Map<IrisPosition, KSet<IrisSpawner>> p = new KMap<>();
 
         getMantle().iterateChunk(c.getX(), c.getZ(), MatterMarker.class, (x, y, z, t) -> {
+            if(t.getTag().equals("cave_floor") || t.getTag().equals("cave_ceiling"))
+            {
+                return;
+            }
+
             IrisMarker mark = getData().getMarkerLoader().load(t.getTag());
             IrisPosition pos = new IrisPosition((c.getX() << 4) + x, y, (c.getZ() << 4) + z);
             for (String i : mark.getSpawners()) {
@@ -500,6 +505,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 MatterMarker marker = getMantle().get(e.getBlock().getX(), e.getBlock().getY(), e.getBlock().getZ(), MatterMarker.class);
 
                 if (marker != null) {
+                    if(marker.getTag().equals("cave_floor") || marker.getTag().equals("cave_ceiling"))
+                    {
+                        return;
+                    }
+
                     IrisMarker mark = getData().getMarkerLoader().load(marker.getTag());
 
                     if (mark == null || mark.isRemoveOnChange()) {

@@ -391,41 +391,12 @@ public class IrisProject {
             blocks.add(dm.getBlockLoader().load(i));
         }
 
-        //TODO: EXPORT JIGSAW PIECES FROM STRUCTURES
-        dimension.getFeatures().forEach((i) -> {
-            if (i.getZone().getCustomBiome() != null) {
-                biomes.add(dm.getBiomeLoader().load(i.getZone().getCustomBiome()));
-            }
-        });
-        dimension.getSpecificFeatures().forEach((i) -> {
-            if (i.getFeature().getCustomBiome() != null) {
-                biomes.add(dm.getBiomeLoader().load(i.getFeature().getCustomBiome()));
-            }
-        });
         dimension.getRegions().forEach((i) -> regions.add(dm.getRegionLoader().load(i)));
-        regions.forEach((r) -> {
-            r.getFeatures().forEach((i) -> {
-                if (i.getZone().getCustomBiome() != null) {
-                    biomes.add(dm.getBiomeLoader().load(i.getZone().getCustomBiome()));
-                }
-            });
-        });
         dimension.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i)));
         regions.forEach((i) -> biomes.addAll(i.getAllBiomes(null)));
         regions.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i))));
         regions.forEach((r) -> r.getEntitySpawners().forEach((sp) -> spawners.add(dm.getSpawnerLoader().load(sp))));
         dimension.getEntitySpawners().forEach((sp) -> spawners.add(dm.getSpawnerLoader().load(sp)));
-
-        for (int f = 0; f < IrisSettings.get().getGenerator().getMaxBiomeChildDepth(); f++) {
-            biomes.copy().forEach((r) -> {
-                r.getFeatures().forEach((i) -> {
-                    if (i.getZone().getCustomBiome() != null) {
-                        biomes.add(dm.getBiomeLoader().load(i.getZone().getCustomBiome()));
-                    }
-                });
-            });
-        }
-
         biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator(null))));
         biomes.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i))));
         biomes.forEach((r) -> r.getEntitySpawners().forEach((sp) -> spawners.add(dm.getSpawnerLoader().load(sp))));

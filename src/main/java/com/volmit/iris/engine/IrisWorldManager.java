@@ -171,7 +171,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     private void updateChunks() {
         for (Player i : getEngine().getWorld().realWorld().getPlayers()) {
-            int r = 2;
+            int r = 1;
 
             Chunk c = i.getLocation().getChunk();
             for (int x = -r; x <= r; x++) {
@@ -299,6 +299,8 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
             IrisSpawner s = new KList<>(spawners).getRandom();
             spawn(block, s, false);
+            J.a(() -> getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.INITIAL_SPAWNED_MARKER,
+                () -> spawn(block, s, true)));
         });
 
         if (v != null && v.getReferenceSpawner() != null) {

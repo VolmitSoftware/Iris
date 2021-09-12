@@ -90,11 +90,7 @@ public class PlannedStructure {
         int startHeight = pieces.get(0).getPosition().getY();
 
         for (PlannedPiece i : pieces) {
-            if (i.getPiece().getPlacementOptions().usesFeatures()) {
-                place(i, startHeight, options, placer, e);
-            } else {
-                post.accept(() -> place(i, startHeight, options, placer, e));
-            }
+            place(i, startHeight, options, placer, e);
         }
     }
 
@@ -130,32 +126,13 @@ public class PlannedStructure {
 
         height += offset + (v.getH() / 2);
 
-        if (options.getMode().equals(ObjectPlaceMode.PAINT) || options.isVacuum()) {
+        if (options.getMode().equals(ObjectPlaceMode.PAINT)) {
             height = -1;
         }
 
         int id = rng.i(0, Integer.MAX_VALUE);
-        int h = vo.place(xx, height, zz, placer, options, rng, (b)
+        vo.place(xx, height, zz, placer, options, rng, (b)
                 -> e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id), null, getData());
-
-        if (options.isVacuum()) {
-            double a = Math.max(v.getW(), v.getD());
-            IrisFeature f = new IrisFeature();
-            f.setConvergeToHeight(h - (v.getH() >> 1) - 1);
-            f.setBlockRadius(a);
-            f.setInterpolationRadius(a / 4);
-            f.setInterpolator(InterpolationMethod.BILINEAR_STARCAST_9);
-            f.setStrength(1D);
-            e.set(xx, 0, zz, new IrisFeaturePositional(xx, zz, f));
-        }
-
-        if (options.getAddFeatures().isNotEmpty()) {
-            for (IrisFeaturePotential j : options.getAddFeatures()) {
-                if (rngf.nextInt(j.getRarity()) == 0) {
-                    e.set(xx, 0, zz, new IrisFeaturePositional(xx, zz, j.getZone()));
-                }
-            }
-        }
     }
 
     public void place(World world) {

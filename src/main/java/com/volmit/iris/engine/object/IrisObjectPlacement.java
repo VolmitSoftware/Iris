@@ -63,9 +63,7 @@ public class IrisObjectPlacement {
     private IrisObjectRotation rotation = new IrisObjectRotation();
     @Desc("Limit the max height or min height of placement.")
     private IrisObjectLimit clamp = new IrisObjectLimit();
-    @ArrayType(min = 1, type = IrisFeaturePotential.class)
-    @Desc("Place additional noise features in the object's place location")
-    private KList<IrisFeaturePotential> addFeatures = new KList<>();
+
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The maximum layer level of a snow filter overtop of this placement. Set to 0 to disable. Max of 1.")
@@ -89,15 +87,7 @@ public class IrisObjectPlacement {
     @MinNumber(-1)
     @Desc("When bore is enabled, lower min-y of the cuboid it removes")
     private int boreExtendMinY = 0;
-    @MaxNumber(64)
-    @MinNumber(4)
-    @Desc("When vacuum is enabled, define the interpolation radius")
-    private int vacuumInterpolationRadius = 16;
-    @MaxNumber(64)
-    @MinNumber(4)
-    @Desc("When vacuum is enabled, define the interpolation method")
-    private InterpolationMethod vacuumInterpolationMethod = InterpolationMethod.BILINEAR_STARCAST_9;
-    @Desc("If set to true, objects will place on the terrain height, ignoring the water surface.")
+     @Desc("If set to true, objects will place on the terrain height, ignoring the water surface.")
     private boolean underwater = false;
     @Desc("If set to true, objects will place in carvings (such as underground) or under an overhang.")
     private CarvingMode carvingSupport = CarvingMode.SURFACE_ONLY;
@@ -146,7 +136,6 @@ public class IrisObjectPlacement {
         p.setWarp(warp);
         p.setBore(bore);
         p.setMeld(meld);
-        p.setAddFeatures(addFeatures.copy());
         p.setWaterloggable(waterloggable);
         p.setOnwater(onwater);
         p.setSmartBore(smartBore);
@@ -191,14 +180,6 @@ public class IrisObjectPlacement {
         }
 
         return g.getData().getObjectLoader().load(place.get(random.nextInt(place.size())));
-    }
-
-    public boolean isVacuum() {
-        return getMode().equals(ObjectPlaceMode.VACUUM);
-    }
-
-    public boolean usesFeatures() {
-        return isVacuum() || getAddFeatures().isNotEmpty();
     }
 
     public boolean matches(IrisTreeSize size, TreeType type) {

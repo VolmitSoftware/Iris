@@ -27,7 +27,6 @@ import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.slices.MarkerMatter;
 import lombok.AllArgsConstructor;
@@ -105,8 +104,7 @@ public class IrisEntitySpawn implements IRare {
         int spawns = minSpawns == maxSpawns ? minSpawns : rng.i(Math.min(minSpawns, maxSpawns), Math.max(minSpawns, maxSpawns));
         int s = 0;
 
-        if(!gen.getWorld().tryGetRealWorld())
-        {
+        if (!gen.getWorld().tryGetRealWorld()) {
             return 0;
         }
 

@@ -18,8 +18,6 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.util.collection.KList;
-
 public interface IRare {
     static int get(Object v) {
         return v instanceof IRare ? Math.max(1, ((IRare) v).getRarity()) : 1;

@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.IrisFeaturePositional;
 import com.volmit.iris.util.board.BoardManager;
 import com.volmit.iris.util.board.BoardProvider;
 import com.volmit.iris.util.board.BoardSettings;
@@ -120,8 +119,6 @@ public class BoardSVC implements IrisService, BoardProvider {
                 int x = player.getLocation().getBlockX();
                 int y = player.getLocation().getBlockY();
                 int z = player.getLocation().getBlockZ();
-                KList<IrisFeaturePositional> f = new KList<>();
-                f.add(engine.getMantle().forEachFeature(x, z));
 
                 lines.add("&7&m                   ");
                 lines.add(C.GREEN + "Speed" + C.GRAY + ":  " + Form.f(engine.getGeneratedPerSecond(), 0) + "/s " + Form.duration(1000D / engine.getGeneratedPerSecond(), 0));
@@ -132,7 +129,6 @@ public class BoardSVC implements IrisService, BoardProvider {
                 lines.add(C.AQUA + "Biome" + C.GRAY + ":  " + engine.getBiomeOrMantle(x, y, z).getName());
                 lines.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z)));
                 lines.add(C.AQUA + "Slope" + C.GRAY + ":  " + Form.f(engine.getComplex().getSlopeStream().get(x, z), 2));
-                lines.add(C.AQUA + "Features" + C.GRAY + ": " + Form.f(f.size()));
                 lines.add(C.AQUA + "BUD/s" + C.GRAY + ": " + Form.f(engine.getBlockUpdatesPerSecond()));
                 lines.add("&7&m                   ");
             }

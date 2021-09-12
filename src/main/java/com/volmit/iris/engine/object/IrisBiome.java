@@ -92,9 +92,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @ArrayType(min = 1, type = String.class)
     @RegistryListResource(IrisSpawner.class)
     private KList<String> entitySpawners = new KList<>();
-    @Desc("Add random chances for terrain features")
-    @ArrayType(min = 1, type = IrisFeaturePotential.class)
-    private KList<IrisFeaturePotential> features = new KList<>();
     @ArrayType(min = 1, type = IrisEffect.class)
     @Desc("Effects are ambient effects such as potion effects, random sounds, or even particles around each player. All of these effects are played via packets so two players won't see/hear each others effects.\nDue to performance reasons, effects will play around the player even if where the effect was played is no longer in the biome the player is in.")
     private KList<IrisEffect> effects = new KList<>();

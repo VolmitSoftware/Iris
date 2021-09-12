@@ -6,7 +6,6 @@ import com.volmit.iris.core.edit.BlockSignal;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisFeaturePositional;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
@@ -109,20 +108,6 @@ public class CommandWhat implements DecreeExecutor {
             if (B.isSolid(bd)) {
                 sender().sendMessage(C.YELLOW + "* Solid Block");
             }
-        }
-    }
-
-    @Decree(description = "What features am i near?", origin = DecreeOrigin.PLAYER)
-    public void features() {
-        Chunk c = player().getLocation().getChunk();
-
-        if (IrisToolbelt.isIrisWorld(c.getWorld())) {
-            int m = 1;
-            for (IrisFeaturePositional i : IrisToolbelt.access(c.getWorld()).getEngine().getMantle().forEachFeature(c)) {
-                sender().sendMessage("#" + m++ + " " + new JSONObject(new Gson().toJson(i)).toString(4));
-            }
-        } else {
-            sender().sendMessage("Iris worlds only.");
         }
     }
 

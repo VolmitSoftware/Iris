@@ -171,7 +171,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     private void updateChunks() {
         for (Player i : getEngine().getWorld().realWorld().getPlayers()) {
-            int r = 2;
+            int r = 1;
 
             Chunk c = i.getLocation().getChunk();
             for (int x = -r; x <= r; x++) {

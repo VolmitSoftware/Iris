@@ -95,7 +95,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     public IrisWorldManager(Engine engine) {
         super(engine);
-        chunkUpdater = new ChronoLatch(1000);
+        chunkUpdater = new ChronoLatch(3000);
         cln = new ChronoLatch(60000);
         cl = new ChronoLatch(3000);
         ecl = new ChronoLatch(250);
@@ -115,6 +115,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 }
 
                 if (getEngine().getWorld().hasRealWorld()) {
+                    if(getEngine().getWorld().getPlayers().isEmpty())
+                    {
+                        return 5000;
+                    }
+
                     if (chunkUpdater.flip()) {
                         updateChunks();
                     }
@@ -156,7 +161,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                     onAsyncTick();
                 }
 
-                return 250;
+                return 700;
             }
         };
         looper.setPriority(Thread.MIN_PRIORITY);
@@ -447,9 +452,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 }));
         energy += 0.3;
         fixEnergy();
-        if (!getMantle().hasFlag(e.getX(), e.getZ(), MantleFlag.UPDATE)) {
-            J.a(() -> getEngine().updateChunk(e), 20);
-        }
     }
 
     private void spawn(IrisPosition block, IrisSpawner spawner, boolean initial) {

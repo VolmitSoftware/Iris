@@ -28,6 +28,7 @@ import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
@@ -203,6 +204,7 @@ public interface EngineMantle extends IObjectPlacer {
                 int xx = i + x;
                 int zz = j + z;
                 burst.queue(() -> {
+                    IrisContext.touch(getEngine().getContext());
                     MantleChunk mc = getMantle().getChunk(xx, zz);
 
                     for (MantleComponent k : getComponents()) {

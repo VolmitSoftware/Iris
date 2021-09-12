@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IObjectPlacer;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.TileData;
@@ -199,6 +200,11 @@ public class MantleWriter implements IObjectPlacer {
     @Override
     public void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile) {
         getEngineMantle().setTile(xx, yy, zz, tile);
+    }
+
+    @Override
+    public Engine getEngine() {
+        return getEngineMantle().getEngine();
     }
 
     /**

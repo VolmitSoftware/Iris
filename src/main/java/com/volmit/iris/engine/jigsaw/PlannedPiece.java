@@ -33,6 +33,7 @@ import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.math.AxisAlignedBB;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.RNG;
@@ -238,6 +239,11 @@ public class PlannedPiece {
                 BlockState state = world.getBlockAt(xx, yy, zz).getState();
                 tile.toBukkitTry(state);
                 state.update();
+            }
+
+            @Override
+            public Engine getEngine() {
+                return IrisContext.get().getEngine();
             }
         }, piece.getPlacementOptions(), rng, getData());
     }

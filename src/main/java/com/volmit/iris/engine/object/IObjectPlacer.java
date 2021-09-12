@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.framework.Engine;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
@@ -44,4 +45,6 @@ public interface IObjectPlacer {
     boolean isDebugSmartBore();
 
     void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile);
+
+    Engine getEngine();
 }

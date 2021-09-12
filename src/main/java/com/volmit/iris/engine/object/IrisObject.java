@@ -22,9 +22,11 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.placer.HeightmapObjectPlacer;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.json.JSONObject;
@@ -32,6 +34,7 @@ import com.volmit.iris.util.math.AxisAlignedBB;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.MatterMarker;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.IrisLock;
 import lombok.EqualsAndHashCode;
@@ -484,7 +487,7 @@ public class IrisObject extends IrisRegistrant {
     }
 
     public int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener, CarveResult c, IrisData rdata) {
-        IObjectPlacer placer = (config.getHeightmap() != null) ? new HeightmapObjectPlacer(rng, x, yv, z, config, oplacer) : oplacer;
+        IObjectPlacer placer = (config.getHeightmap() != null) ? new HeightmapObjectPlacer(IrisContext.get().getEngine(), rng, x, yv, z, config, oplacer) : oplacer;
 
         if (config.isSmartBore()) {
             ensureSmartBored(placer.isDebugSmartBore());
@@ -634,7 +637,36 @@ public class IrisObject extends IrisRegistrant {
         int lowest = Integer.MAX_VALUE;
         y += yrand;
         readLock.lock();
+
+        KMap<BlockVector, String> markers = null;
+
         try {
+            if(config.getMarkers().isNotEmpty() && placer.getEngine() != null)
+            {
+                markers = new KMap<>();
+                for(IrisObjectMarker j : config.getMarkers())
+                {
+                    int max = j.getMaximumMarkers();
+
+                    for(BlockVector i : getBlocks().k().shuffle())
+                    {
+                        BlockData data = getBlocks().get(i);
+
+                        for (BlockData k : j.getMark(rdata)) {
+                            if (j.isExact() ? k.matches(data) : k.getMaterial().equals(data.getMaterial())) {
+                                boolean a = !blocks.containsKey(new BlockVector(i.clone().add(new BlockVector(0, 1, 0))));
+                                boolean fff = !blocks.containsKey(new BlockVector(i.clone().add(new BlockVector(0, 2, 0))));
+
+                                if((j.isEmptyAbove() && a && fff) || !j.isEmptyAbove())
+                                {
+                                    markers.put(i, j.getMarker());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             for (BlockVector g : getBlocks().keySet()) {
                 BlockData d;
                 TileData<? extends TileState> tile = null;
@@ -718,6 +750,11 @@ public class IrisObject extends IrisRegistrant {
 
                 if (listener != null) {
                     listener.accept(new BlockPosition(xx, yy, zz));
+                }
+
+                if(markers != null && markers.containsKey(g))
+                {
+                    placer.getEngine().getMantle().getMantle().set(xx,yy,zz,new MatterMarker(markers.get(g)));
                 }
 
                 if (!data.getMaterial().equals(Material.AIR) && !data.getMaterial().equals(Material.CAVE_AIR)) {

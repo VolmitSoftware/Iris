@@ -44,12 +44,6 @@ public enum IrisEngineStreamType {
     @Desc("Represents the overlay noise generators summed (dimension setting)")
     OVERLAY_NOISE((f) -> f.getComplex().getOverlayStream()),
 
-    @Desc("Represents the overlay noise generators summed (dimension setting)")
-    HEIGHT_NO_FEATURES((f) -> f.getComplex().getHeightStreamNoFeatures()),
-
-    @Desc("Represents the object chance clip. If a noise feature alters the object chance in this area this number will drop below 1. (100%)")
-    OBJECT_CHANCE_CLIP((f) -> f.getComplex().getObjectChanceStream()),
-
     @Desc("Represents the noise style of regions")
     REGION_STYLE((f) -> f.getComplex().getRegionStyleStream()),
 

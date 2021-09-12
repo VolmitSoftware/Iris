@@ -52,45 +52,7 @@ public class CommandIris implements DecreeExecutor {
     private CommandObject object;
     private CommandJigsaw jigsaw;
     private CommandWhat what;
-
-    @Decree(description = "Create a new world", aliases = {"+", "c"})
-    public void create(
-            @Param(aliases = "world-name", description = "The name of the world to create")
-                    String name,
-            @Param(aliases = "dimension", description = "The dimension type to create the world with", defaultValue = "overworld")
-                    IrisDimension type,
-            @Param(description = "The seed to generate the world with", defaultValue = "1337")
-                    long seed
-    ) {
-        if (name.equals("iris")) {
-            sender().sendMessage(C.RED + "You cannot use the world name \"iris\" for creating worlds as Iris uses this directory for studio worlds.");
-            sender().sendMessage(C.RED + "May we suggest the name \"IrisWorld\" instead?");
-            return;
-        }
-
-        if (new File(name).exists()) {
-            sender().sendMessage(C.RED + "That folder already exists!");
-            return;
-        }
-
-        try {
-            IrisToolbelt.createWorld()
-                    .dimension(type.getLoadKey())
-                    .name(name)
-                    .seed(seed)
-                    .sender(sender())
-                    .studio(false)
-                    .create();
-        } catch (Throwable e) {
-            sender().sendMessage(C.RED + "Exception raised during creation. See the console for more details.");
-            Iris.error("Exception raised during world creation: " + e.getMessage());
-            Iris.reportError(e);
-            return;
-        }
-
-        sender().sendMessage(C.GREEN + "Successfully created your world!");
-    }
-
+    
     @Decree(description = "Print version information")
     public void version() {
         sender().sendMessage(C.GREEN + "Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");

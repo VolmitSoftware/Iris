@@ -30,7 +30,6 @@ import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
 import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDepositGenerator;
-import com.volmit.iris.engine.object.IrisFeaturePotential;
 import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
@@ -85,14 +84,6 @@ public class IrisEngineMantle implements EngineMantle {
         return r;
     }
 
-    private KList<IrisFeaturePotential> getAllFeatures() {
-        KList<IrisFeaturePotential> r = new KList<>();
-        r.addAll(getEngine().getDimension().getFeatures());
-        getAllRegions().forEach((i) -> r.addAll(i.getFeatures()));
-        getAllBiomes().forEach((i) -> r.addAll(i.getFeatures()));
-        return r;
-    }
-
     private KList<IrisBiome> getAllBiomes() {
         KList<IrisBiome> r = new KList<>();
 
@@ -113,16 +104,6 @@ public class IrisEngineMantle implements EngineMantle {
         if (Math.max(bv.getBlockX(), bv.getBlockZ()) > 128) {
             Iris.warn("Object " + ob + " has a large size (" + bv + ") and may increase memory usage! (Object scaled up to " + Form.pc(ms, 2) + ")");
         }
-    }
-
-    private int computeFeatureRange() {
-        int m = 0;
-
-        for (IrisFeaturePotential i : getAllFeatures()) {
-            m = Math.max(m, i.getZone().getRealSize());
-        }
-
-        return m;
     }
 
     private int computeParallaxSize() {
@@ -296,17 +277,14 @@ public class IrisEngineMantle implements EngineMantle {
 
         x = Math.max(z, x);
         int u = x;
-        int v = computeFeatureRange();
         int c = Math.max(computeCarvingRange(), computeBodyRange());
         x = Math.max(jig, x);
-        x = Math.max(x, v);
         x = Math.max(x, c);
         x = (Math.max(x, 16) + 16) >> 4;
         x = x % 2 == 0 ? x + 1 : x;
-        Iris.info("Parallax Size: " + x + " Chunks");
+        Iris.info("Mantle Size: " + x + " Chunks");
         Iris.info("  Object Mantle Size: " + u + " (" + ((Math.max(u, 16) + 16) >> 4) + ")");
         Iris.info("  Jigsaw Mantle Size: " + jig + " (" + ((Math.max(jig, 16) + 16) >> 4) + ")");
-        Iris.info("  Feature Mantle Size: " + v + " (" + ((Math.max(v, 16) + 16) >> 4) + ")");
         Iris.info("  Carving Mantle Size: " + c + " (" + ((Math.max(c, 16) + 16) >> 4) + ")");
 
         return x;

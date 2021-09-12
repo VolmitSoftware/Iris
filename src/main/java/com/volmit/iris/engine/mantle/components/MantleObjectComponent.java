@@ -24,9 +24,6 @@ import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.IrisMantleComponent;
 import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisFeature;
-import com.volmit.iris.engine.object.IrisFeaturePositional;
-import com.volmit.iris.engine.object.IrisFeaturePotential;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.object.IrisRegion;
@@ -48,14 +45,14 @@ public class MantleObjectComponent extends IrisMantleComponent {
         int xxx = 8 + (x << 4);
         int zzz = 8 + (z << 4);
         IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
-        IrisBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xxx, zzz);
+        IrisBiome biome = getComplex().getTrueBiomeStream().get(xxx, zzz);
         placeObjects(writer, rng, x, z, biome, region);
     }
 
     @ChunkCoordinates
     private void placeObjects(MantleWriter writer, RNG rng, int x, int z, IrisBiome biome, IrisRegion region) {
         for (IrisObjectPlacement i : biome.getSurfaceObjects()) {
-            if (rng.chance(i.getChance() + rng.d(-0.005, 0.005)) && rng.chance(getComplex().getObjectChanceStream().get(x << 4, z << 4))) {
+            if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
                 try {
                     placeObject(writer, rng, x << 4, z << 4, i);
                 } catch (Throwable e) {
@@ -69,7 +66,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
         }
 
         for (IrisObjectPlacement i : region.getSurfaceObjects()) {
-            if (rng.chance(i.getChance() + rng.d(-0.005, 0.005)) && rng.chance(getComplex().getObjectChanceStream().get(x << 4, z << 4))) {
+            if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
                 try {
                     placeObject(writer, rng, x << 4, z << 4, i);
                 } catch (Throwable e) {

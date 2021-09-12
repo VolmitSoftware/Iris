@@ -250,15 +250,10 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         IrisBiome biome = getEngine().getSurfaceBiome(c);
         IrisRegion region = getEngine().getRegion(c);
         //@builder
-        IrisEntitySpawn v = spawnRandomly(Stream.concat(Stream.concat(
-                                        getData().getSpawnerLoader()
-                                                .loadAll(getDimension().getEntitySpawners())
-                                                .shuffleCopy(RNG.r).stream()
-                                                .filter(this::canSpawn),
-                                        getData().getSpawnerLoader().streamAll(getEngine().getMantle()
-                                                        .forEachFeature(c).stream()
-                                                        .flatMap((o) -> o.getFeature().getEntitySpawners().stream()))
-                                                .filter(this::canSpawn))
+        IrisEntitySpawn v = spawnRandomly(Stream.concat(getData().getSpawnerLoader()
+                                .loadAll(getDimension().getEntitySpawners())
+                                .shuffleCopy(RNG.r).stream()
+                                .filter(this::canSpawn)
                                 .filter((i) -> i.isValid(biome))
                                 .flatMap((i) -> stream(i, initial)),
                         Stream.concat(getData().getSpawnerLoader()

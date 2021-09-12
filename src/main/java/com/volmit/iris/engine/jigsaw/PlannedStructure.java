@@ -84,7 +84,7 @@ public class PlannedStructure {
         }
     }
 
-    public void place(IObjectPlacer placer, Mantle e, Consumer<Runnable> post) {
+    public void place(IObjectPlacer placer, Mantle e) {
         IrisObjectPlacement options = new IrisObjectPlacement();
         options.getRotation().setEnabled(false);
         int startHeight = pieces.get(0).getPosition().getY();

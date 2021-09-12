@@ -37,7 +37,7 @@ public class MantleFluidBodyComponent extends IrisMantleComponent {
     }
 
     @Override
-    public void generateLayer(MantleWriter writer, int x, int z, Consumer<Runnable> post) {
+    public void generateLayer(MantleWriter writer, int x, int z) {
         RNG rng = new RNG(Cache.key(x, z) + seed() + 405666);
         int xxx = 8 + (x << 4);
         int zzz = 8 + (z << 4);

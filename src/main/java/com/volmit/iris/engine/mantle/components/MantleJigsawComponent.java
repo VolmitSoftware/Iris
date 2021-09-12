@@ -48,17 +48,17 @@ public class MantleJigsawComponent extends IrisMantleComponent {
     }
 
     @Override
-    public void generateLayer(MantleWriter writer, int x, int z, Consumer<Runnable> post) {
+    public void generateLayer(MantleWriter writer, int x, int z) {
         RNG rng = new RNG(cng.fit(-Integer.MAX_VALUE, Integer.MAX_VALUE, x, z));
         int xxx = 8 + (x << 4);
         int zzz = 8 + (z << 4);
         IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
         IrisBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xxx, zzz);
-        generateJigsaw(writer, rng, x, z, biome, region, post);
+        generateJigsaw(writer, rng, x, z, biome, region);
     }
 
     @ChunkCoordinates
-    private void generateJigsaw(MantleWriter writer, RNG rng, int x, int z, IrisBiome biome, IrisRegion region, Consumer<Runnable> post) {
+    private void generateJigsaw(MantleWriter writer, RNG rng, int x, int z, IrisBiome biome, IrisRegion region) {
         boolean placed = false;
 
         if (getDimension().getStronghold() != null) {
@@ -68,7 +68,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
                 for (Position2 pos : poss) {
                     if (x == pos.getX() >> 4 && z == pos.getZ() >> 4) {
                         IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(getDimension().getStronghold());
-                        place(writer, pos.toIris(), structure, rng, post);
+                        place(writer, pos.toIris(), structure, rng);
                         placed = true;
                     }
                 }
@@ -80,7 +80,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
                 if (rng.nextInt(i.getRarity()) == 0) {
                     IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
                     IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
-                    place(writer, position, structure, rng, post);
+                    place(writer, position, structure, rng);
                     placed = true;
                 }
             }
@@ -91,7 +91,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
                 if (rng.nextInt(i.getRarity()) == 0) {
                     IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
                     IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
-                    place(writer, position, structure, rng, post);
+                    place(writer, position, structure, rng);
                     placed = true;
                 }
             }
@@ -102,14 +102,14 @@ public class MantleJigsawComponent extends IrisMantleComponent {
                 if (rng.nextInt(i.getRarity()) == 0) {
                     IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
                     IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
-                    place(writer, position, structure, rng, post);
+                    place(writer, position, structure, rng);
                 }
             }
         }
     }
 
     @BlockCoordinates
-    private void place(MantleWriter writer, IrisPosition position, IrisJigsawStructure structure, RNG rng, Consumer<Runnable> post) {
+    private void place(MantleWriter writer, IrisPosition position, IrisJigsawStructure structure, RNG rng) {
         if (structure.getFeature() != null) {
             if (structure.getFeature().getBlockRadius() == 32) {
                 structure.getFeature().setBlockRadius((double) structure.getMaxDimension() / 3);
@@ -118,6 +118,6 @@ public class MantleJigsawComponent extends IrisMantleComponent {
                     new IrisFeaturePositional(position.getX(), position.getZ(), structure.getFeature()));
         }
 
-        new PlannedStructure(structure, position, rng).place(writer, getMantle(), post);
+        new PlannedStructure(structure, position, rng).place(writer, getMantle());
     }
 }

@@ -200,12 +200,6 @@ public interface EngineMantle extends IObjectPlacer {
             return;
         }
 
-        KList<Runnable> post = new KList<>();
-        Consumer<Runnable> c = (i) -> {
-            synchronized (post) {
-                post.add(i);
-            }
-        };
         int s = getRealRadius();
         BurstExecutor burst = burst().burst(multicore);
         MantleWriter writer = getMantle().write(this, x, z, s * 2);
@@ -217,25 +211,18 @@ public interface EngineMantle extends IObjectPlacer {
                     MantleChunk mc = getMantle().getChunk(xx, zz);
 
                     for (MantleComponent k : getComponents()) {
-                        generateMantleComponent(writer, xx, zz, k, c, mc);
+                        generateMantleComponent(writer, xx, zz, k, mc);
                     }
                 });
             }
         }
 
         burst.complete();
-
-        while (!post.isEmpty()) {
-            KList<Runnable> px = post.copy();
-            post.clear();
-            burst().burst(multicore, px);
-        }
-
         getMantle().flag(x, z, MantleFlag.REAL, true);
     }
 
-    default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, Consumer<Runnable> post, MantleChunk mc) {
-        mc.raiseFlag(c.getFlag(), () -> c.generateLayer(writer, x, z, post));
+    default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, MantleChunk mc) {
+        mc.raiseFlag(c.getFlag(), () -> c.generateLayer(writer, x, z));
     }
 
     @ChunkCoordinates

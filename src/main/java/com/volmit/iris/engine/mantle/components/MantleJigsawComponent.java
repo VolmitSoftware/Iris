@@ -23,7 +23,6 @@ import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.IrisMantleComponent;
 import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisFeaturePositional;
 import com.volmit.iris.engine.object.IrisJigsawStructure;
 import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
 import com.volmit.iris.engine.object.IrisPosition;
@@ -53,7 +52,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
         int xxx = 8 + (x << 4);
         int zzz = 8 + (z << 4);
         IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
-        IrisBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xxx, zzz);
+        IrisBiome biome = getComplex().getTrueBiomeStream().get(xxx, zzz);
         generateJigsaw(writer, rng, x, z, biome, region);
     }
 
@@ -110,14 +109,6 @@ public class MantleJigsawComponent extends IrisMantleComponent {
 
     @BlockCoordinates
     private void place(MantleWriter writer, IrisPosition position, IrisJigsawStructure structure, RNG rng) {
-        if (structure.getFeature() != null) {
-            if (structure.getFeature().getBlockRadius() == 32) {
-                structure.getFeature().setBlockRadius((double) structure.getMaxDimension() / 3);
-            }
-            writer.setData(position.getX(), 0, position.getZ(),
-                    new IrisFeaturePositional(position.getX(), position.getZ(), structure.getFeature()));
-        }
-
         new PlannedStructure(structure, position, rng).place(writer, getMantle());
     }
 }

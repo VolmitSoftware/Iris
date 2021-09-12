@@ -23,14 +23,11 @@ import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterSlice;
-import com.volmit.iris.util.matter.slices.ZoneMatter;
 import lombok.Getter;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
@@ -39,7 +36,6 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
  * Mantle Chunks are fully atomic & thread safe
  */
 public class MantleChunk {
-    private static final ZoneMatter zm = new ZoneMatter();
     @Getter
     private final int x;
     @Getter

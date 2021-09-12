@@ -267,6 +267,23 @@ public class Mantle {
                 .set(x & 15, y & 15, z & 15, t);
     }
 
+    @BlockCoordinates
+    public <T> void remove(int x, int y, int z, Class<T> t) {
+        if (closed.get()) {
+            throw new RuntimeException("The Mantle is closed");
+        }
+
+        if (y < 0 || y >= worldHeight) {
+            return;
+        }
+
+        Matter matter = get((x >> 4) >> 5, (z >> 4) >> 5)
+                .getOrCreate((x >> 4) & 31, (z >> 4) & 31)
+                .getOrCreate(y >> 4);
+        matter.slice(t)
+                .set(x & 15, y & 15, z & 15, null);
+    }
+
     /**
      * Gets the data tat the current block position This method will attempt to find a
      * Tectonic Plate either by loading it or creating a new one. This method uses

@@ -41,10 +41,13 @@ import lombok.experimental.Accessors;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisMarker extends IrisRegistrant {
-    @Desc("A list of spawners to add to anywhere this marker is. Note markers can only support initial spawns!")
+    @Desc("A list of spawners to add to anywhere this marker is.")
     @RegistryListResource(IrisSpawner.class)
     @ArrayType(type = String.class, min = 1)
     private KList<String> spawners = new KList<>();
+
+    @Desc("Remove this marker when the block it's assigned to is changed.")
+    private boolean removeOnChange = true;
 
     @Override
     public String getFolderName() {

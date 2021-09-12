@@ -27,6 +27,7 @@ import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.slices.MarkerMatter;
 import lombok.AllArgsConstructor;
@@ -35,6 +36,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
 
 @Snippet("entity-spawn")
@@ -91,6 +93,40 @@ public class IrisEntitySpawn implements IRare {
                         if (spawn100(gen, l) != null) {
                             s++;
                         }
+                    }
+                }
+            }
+        }
+
+        return s;
+    }
+
+    public int spawn(Engine gen, IrisPosition c, RNG rng) {
+        int spawns = minSpawns == maxSpawns ? minSpawns : rng.i(Math.min(minSpawns, maxSpawns), Math.max(minSpawns, maxSpawns));
+        int s = 0;
+
+        if(!gen.getWorld().tryGetRealWorld())
+        {
+            return 0;
+        }
+
+        World world = gen.getWorld().realWorld();
+        if (spawns > 0) {
+            for (int id = 0; id < spawns; id++) {
+                int x = c.getX();
+                int z = c.getZ();
+                int h = c.getY();
+                Location l = c.toLocation(world).add(0, 1, 0);
+
+                if (referenceSpawner.getAllowedLightLevels().getMin() > 0 || referenceSpawner.getAllowedLightLevels().getMax() < 15) {
+                    if (referenceSpawner.getAllowedLightLevels().contains(l.getBlock().getLightLevel())) {
+                        if (spawn100(gen, l) != null) {
+                            s++;
+                        }
+                    }
+                } else {
+                    if (spawn100(gen, l) != null) {
+                        s++;
                     }
                 }
             }

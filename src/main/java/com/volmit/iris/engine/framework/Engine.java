@@ -67,6 +67,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
 import org.bukkit.generator.ChunkGenerator;
@@ -271,17 +272,45 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 KMap<Long, Integer> updates = new KMap<>();
                 RNG r = new RNG(Cache.key(c.getX(), c.getZ()));
                 getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, y, z, v) -> {
-                    if (B.isAir(c.getBlock(x & 15, y, z & 15).getBlockData())) {
+                    if (!B.isFluid(c.getBlock(x & 15, y, z & 15).getBlockData())) {
                         return;
                     }
+boolean u = false;
+                    if(B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.DOWN).getBlockData()))
+                    {
+                        u = true;
+                    }
 
-                    updates.compute(Cache.key(x & 15, z & 15), (k, vv) -> {
-                        if (vv != null) {
-                            return Math.max(vv, y);
-                        }
+                    else if(B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.WEST).getBlockData()))
+                    {
+                        u = true;
+                    }
 
-                        return y;
-                    });
+                    else if(B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.EAST).getBlockData()))
+                    {
+                        u = true;
+                    }
+
+                    else if(B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.SOUTH).getBlockData()))
+                    {
+                        u = true;
+                    }
+
+                    else if(B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.NORTH).getBlockData()))
+                    {
+                        u = true;
+                    }
+
+                    if(u)
+                    {
+                        updates.compute(Cache.key(x & 15, z & 15), (k, vv) -> {
+                            if (vv != null) {
+                                return Math.max(vv, y);
+                            }
+
+                            return y;
+                        });
+                    }
                 });
 
                 updates.forEach((k, v) -> update(Cache.keyX(k), v, Cache.keyZ(k), c, r));

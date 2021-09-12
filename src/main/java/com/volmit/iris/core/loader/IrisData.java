@@ -42,6 +42,7 @@ import com.volmit.iris.engine.object.IrisJigsawPiece;
 import com.volmit.iris.engine.object.IrisJigsawPool;
 import com.volmit.iris.engine.object.IrisJigsawStructure;
 import com.volmit.iris.engine.object.IrisLootTable;
+import com.volmit.iris.engine.object.IrisMarker;
 import com.volmit.iris.engine.object.IrisMod;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisRavine;
@@ -79,6 +80,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private ResourceLoader<IrisJigsawPool> jigsawPoolLoader;
     private ResourceLoader<IrisJigsawStructure> jigsawStructureLoader;
     private ResourceLoader<IrisEntity> entityLoader;
+    private ResourceLoader<IrisMarker> markerLoader;
     private ResourceLoader<IrisSpawner> spawnerLoader;
     private ResourceLoader<IrisMod> modLoader;
     private ResourceLoader<IrisBlockData> blockLoader;
@@ -174,6 +176,10 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     public static IrisRegion loadAnyRegion(String key) {
         return loadAny(key, (dm) -> dm.getRegionLoader().load(key, false));
+    }
+
+    public static IrisMarker loadAnyMarker(String key) {
+        return loadAny(key, (dm) -> dm.getMarkerLoader().load(key, false));
     }
 
     public static IrisCave loadAnyCave(String key) {
@@ -324,6 +330,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.jigsawPieceLoader = registerLoader(IrisJigsawPiece.class);
         this.generatorLoader = registerLoader(IrisGenerator.class);
         this.caveLoader = registerLoader(IrisCave.class);
+        this.markerLoader = registerLoader(IrisMarker.class);
         this.ravineLoader = registerLoader(IrisRavine.class);
         this.blockLoader = registerLoader(IrisBlockData.class);
         this.expressionLoader = registerLoader(IrisExpression.class);

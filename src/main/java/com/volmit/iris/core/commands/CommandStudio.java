@@ -727,21 +727,6 @@ public class CommandStudio implements DecreeExecutor {
         }
     }
 
-    @Decree(aliases = {"find-features", "nf"}, description = "Get the noise feature data in your chunk")
-    public void features() {
-
-        if (!IrisToolbelt.isIrisWorld(player().getWorld())) {
-            sender().sendMessage(C.RED + "Iris worlds only");
-            return;
-        }
-
-        int n = 0;
-
-        for (IrisFeaturePositional irisFeaturePositional : engine().getMantle().getFeaturesInChunk(player().getLocation().getChunk())) {
-            sender().sendMessage("#" + n++ + " " + new JSONObject(new Gson().toJson(irisFeaturePositional)).toString(4));
-        }
-    }
-
     @Decree(aliases = "find-objects", description = "Get information about nearby structures")
     public void objects() {
         if (!IrisToolbelt.isIrisWorld(player().getWorld())) {

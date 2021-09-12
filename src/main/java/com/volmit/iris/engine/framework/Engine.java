@@ -266,7 +266,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 && c.getWorld().isChunkLoaded(c.getX(), c.getZ() - 1)
                 && c.getWorld().isChunkLoaded(c.getX() - 1, c.getZ())
                 && c.getWorld().isChunkLoaded(c.getX() + 1, c.getZ() - 1)
-                && c.getWorld().isChunkLoaded(c.getX() - 1, c.getZ() + 1)) {
+                && c.getWorld().isChunkLoaded(c.getX() - 1, c.getZ() + 1) && getMantle().getMantle().isLoaded(c)) {
             getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.UPDATE, () -> J.s(() -> {
                 PrecisionStopwatch p = PrecisionStopwatch.start();
                 KMap<Long, Integer> updates = new KMap<>();

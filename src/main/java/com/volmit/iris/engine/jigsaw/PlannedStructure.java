@@ -33,14 +33,11 @@ import com.volmit.iris.engine.object.IrisObjectRotation;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.ObjectPlaceMode;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.RNG;
 import lombok.Data;
 import org.bukkit.Axis;
 import org.bukkit.World;
-
-import java.util.function.Consumer;
 
 @Data
 public class PlannedStructure {

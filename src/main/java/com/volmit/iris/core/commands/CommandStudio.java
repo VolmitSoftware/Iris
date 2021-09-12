@@ -18,7 +18,6 @@
 
 package com.volmit.iris.core.commands;
 
-import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;

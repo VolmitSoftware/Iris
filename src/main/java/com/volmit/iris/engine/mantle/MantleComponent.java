@@ -26,8 +26,6 @@ import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.parallel.BurstExecutor;
 
-import java.util.function.Consumer;
-
 public interface MantleComponent {
     default int getRadius() {
         return getEngineMantle().getRealRadius();

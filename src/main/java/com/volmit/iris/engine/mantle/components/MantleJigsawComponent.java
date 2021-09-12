@@ -36,7 +36,6 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 public class MantleJigsawComponent extends IrisMantleComponent {
     private final CNG cng;

@@ -22,7 +22,6 @@ import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.Required;
-import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
@@ -52,16 +51,13 @@ public class IrisInterpolator {
     private double horizontalScale = 7;
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return Objects.hash(horizontalScale, function);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
-        if(o instanceof IrisInterpolator i)
-        {
+    public boolean equals(Object o) {
+        if (o instanceof IrisInterpolator i) {
             return i.getFunction().equals(function) && i.getHorizontalScale() == horizontalScale;
         }
 

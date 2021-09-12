@@ -29,8 +29,6 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.RNG;
 
-import java.util.function.Consumer;
-
 public class MantleCarvingComponent extends IrisMantleComponent {
     public MantleCarvingComponent(EngineMantle engineMantle) {
         super(engineMantle, MantleFlag.CARVED);

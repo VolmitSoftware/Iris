@@ -33,7 +33,6 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.data.WeightedRandom;
-import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import lombok.AllArgsConstructor;
@@ -87,7 +86,7 @@ public class IrisObjectPlacement {
     @MinNumber(-1)
     @Desc("When bore is enabled, lower min-y of the cuboid it removes")
     private int boreExtendMinY = 0;
-     @Desc("If set to true, objects will place on the terrain height, ignoring the water surface.")
+    @Desc("If set to true, objects will place on the terrain height, ignoring the water surface.")
     private boolean underwater = false;
     @Desc("If set to true, objects will place in carvings (such as underground) or under an overhang.")
     private CarvingMode carvingSupport = CarvingMode.SURFACE_ONLY;

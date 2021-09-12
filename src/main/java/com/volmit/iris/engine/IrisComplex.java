@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine;
 
-import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
@@ -296,8 +295,7 @@ public class IrisComplex implements DataProvider {
         return biome;
     }
 
-    private double getInterpolatedHeight(Engine engine, double x, double z, long seed)
-    {
+    private double getInterpolatedHeight(Engine engine, double x, double z, long seed) {
         double h = 0;
 
         for (IrisInterpolator i : generators.keySet()) {
@@ -307,8 +305,7 @@ public class IrisComplex implements DataProvider {
                     IrisBiome bx = baseBiomeStream.get(xx, zz);
                     double b = 0;
 
-                    for(IrisGenerator gen : generators.get(i))
-                    {
+                    for (IrisGenerator gen : generators.get(i)) {
                         b += M.lerp(bx.getGenLinkMin(gen.getLoadKey()),
                                 bx.getGenLinkMax(gen.getLoadKey()),
                                 gen.getHeight(x, z, seed + 239945));

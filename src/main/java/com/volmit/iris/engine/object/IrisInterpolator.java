@@ -31,7 +31,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-@Snippet("interpolator")
+import java.util.Objects;
+
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -49,6 +50,11 @@ public class IrisInterpolator {
     @MaxNumber(8192)
     @Desc("The range checked horizontally. Smaller ranges yeild more detail but are not as smooth.")
     private double horizontalScale = 7;
+
+    public int hashCode()
+    {
+        return Objects.hash(horizontalScale, function);
+    }
 
     public double interpolate(double x, double z, NoiseProvider provider) {
         return interpolate((int) Math.round(x), (int) Math.round(z), provider);

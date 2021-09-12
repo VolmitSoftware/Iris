@@ -30,9 +30,11 @@ import com.volmit.iris.engine.object.IrisDecorationPart;
 import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.engine.object.IrisFeaturePositional;
 import com.volmit.iris.engine.object.IrisGenerator;
+import com.volmit.iris.engine.object.IrisInterpolator;
 import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
@@ -52,7 +54,7 @@ public class IrisComplex implements DataProvider {
     private RNG rng;
     private double fluidHeight;
     private IrisData data;
-    private KList<IrisGenerator> generators;
+    private KMap<IrisInterpolator, KSet<IrisGenerator>> generators;
     private ProceduralStream<IrisRegion> regionStream;
     private ProceduralStream<Double> regionStyleStream;
     private ProceduralStream<Double> regionIdentityStream;
@@ -100,7 +102,7 @@ public class IrisComplex implements DataProvider {
         this.data = engine.getData();
         double height = engine.getHeight();
         fluidHeight = engine.getDimension().getFluidHeight();
-        generators = new KList<>();
+        generators = new KMap<>();
         focus = engine.getFocus();
         KMap<InferredType, ProceduralStream<IrisBiome>> inferredStreams = new KMap<>();
 
@@ -373,27 +375,40 @@ public class IrisComplex implements DataProvider {
         return biome;
     }
 
-    private double getHeight(Engine engine, IrisBiome b, double x, double z, long seed, boolean features) {
+    private double getInterpolatedHeight(Engine engine, double x, double z, long seed)
+    {
         double h = 0;
 
-        for (IrisGenerator gen : generators) {
-            h += gen.getInterpolator().interpolate(x, z, (xx, zz) ->
+        for (IrisInterpolator i : generators.keySet()) {
+            h += i.interpolate(x, z, (xx, zz) ->
             {
                 try {
                     IrisBiome bx = baseBiomeStream.get(xx, zz);
+                    double b = 0;
 
-                    return M.lerp(bx.getGenLinkMin(gen.getLoadKey()),
-                            bx.getGenLinkMax(gen.getLoadKey()),
-                            gen.getHeight(x, z, seed + 239945));
+                    for(IrisGenerator gen : generators.get(i))
+                    {
+                        b += M.lerp(bx.getGenLinkMin(gen.getLoadKey()),
+                                bx.getGenLinkMax(gen.getLoadKey()),
+                                gen.getHeight(x, z, seed + 239945));
+                    }
+
+                    return b;
                 } catch (Throwable e) {
                     Iris.reportError(e);
                     e.printStackTrace();
-                    Iris.warn("Failed to sample hi biome at " + xx + " " + zz + " using the generator " + gen.getLoadKey());
+                    Iris.error("Failed to sample hi biome at " + xx + " " + zz + "...");
                 }
 
                 return 0;
             });
         }
+
+        return h;
+    }
+
+    private double getHeight(Engine engine, IrisBiome b, double x, double z, long seed, boolean features) {
+        double h = getInterpolatedHeight(engine, x, z, seed);
 
         AtomicDouble noise = new AtomicDouble(h + fluidHeight + overlayStream.get(x, z));
 
@@ -407,13 +422,7 @@ public class IrisComplex implements DataProvider {
     }
 
     private void registerGenerator(IrisGenerator cachedGenerator) {
-        for (IrisGenerator i : generators) {
-            if (i.getLoadKey().equals(cachedGenerator.getLoadKey())) {
-                return;
-            }
-        }
-
-        generators.add(cachedGenerator);
+        generators.computeIfAbsent(cachedGenerator.getInterpolator(), (k) -> new KSet<>()).add(cachedGenerator);
     }
 
     private IrisBiome implode(IrisBiome b, Double x, Double z) {

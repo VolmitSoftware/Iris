@@ -35,8 +35,6 @@ import java.util.function.Supplier;
 public class IrisAPI
 {
     private static final AtomicCache<RegistryHolder<Supplier<BlockData>>> customBlock = new AtomicCache<>();
-    private static final AtomicCache<RegistryHolder<AwareBlockMirror>> customAwareBlock = new AtomicCache<>();
-    private static final AtomicCache<RegistryHolder<APIWorldBlock>> customWorldBlock = new AtomicCache<>();
 
     /**
      * Checks if the given world is an Iris World

@@ -744,9 +744,9 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
             if (player != null) {
                 int xx = (int) getWorldX(hx);
                 int zz = (int) getWorldZ(hz);
-                double h = engine.getComplex().getTrueHeightStream().get(xx, zz);
+                int h = engine.getComplex().getRoundedHeighteightStream().get(xx, zz);
                 player.teleport(new Location(player.getWorld(), xx, h, zz));
-                notify("Teleporting to " + xx + ", " + (int) h + ", " + zz);
+                notify("Teleporting to " + xx + ", " + h + ", " + zz);
             } else {
                 notify("No player in world, can't teleport.");
             }

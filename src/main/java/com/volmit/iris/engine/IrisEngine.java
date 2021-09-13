@@ -46,6 +46,8 @@ import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.engine.object.IrisEngineData;
+import com.volmit.iris.engine.object.IrisJigsawStructure;
+import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.atomics.AtomicRollingSequence;
@@ -71,6 +73,7 @@ import org.bukkit.command.CommandSender;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -198,7 +201,7 @@ public class IrisEngine implements Engine {
         var perfection = new IrisPerfectionModifier(this);
 
         registerStage((x, z, k, p, m) -> warmupChunk(x>>4, z>>4));
-        registerStage((x, z, k, p, m) -> getMantle().generateMatter(x >> 4, z >> 4, m));
+        registerStage((x, z, k, p, m) -> generateMatter(x >> 4, z >> 4, m));
         registerStage((x, z, k, p, m) -> terrain.actuate(x, z, k, m));
         registerStage((x, z, k, p, m) -> biome.actuate(x, z, p, m));
         registerStage((x, z, k, p, m) -> cave.modify(x >> 4, z >> 4, k, m));
@@ -208,6 +211,21 @@ public class IrisEngine implements Engine {
         registerStage((x, z, k, p, m) -> deposit.modify(x, z, k, m));
         registerStage((x, z, K, p, m) -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, K, m));
         registerStage((x, z, k, p, m) -> perfection.modify(x, z, k, m));
+    }
+
+    @Override
+    public void generateMatter(int x, int z, boolean multicore) {
+        getMantle().generateMatter(x, z, multicore);
+    }
+
+    @Override
+    public Set<String> getObjectsAt(int x, int z) {
+        return getMantle().getObjectComponent().guess(x, z);
+    }
+
+    @Override
+    public IrisJigsawStructure getStructureAt(int x, int z) {
+        return getMantle().getJigsawComponent().guess(x, z);
     }
 
     private void warmupChunk(int x, int z) {

@@ -29,6 +29,7 @@ import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
 import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDepositGenerator;
+import com.volmit.iris.engine.object.IrisJigsawStructure;
 import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
@@ -55,6 +56,8 @@ public class IrisEngineMantle implements EngineMantle {
     private final KList<MantleComponent> components;
     private final int radius;
     private final AtomicCache<Integer> radCache = new AtomicCache<>();
+    private final MantleObjectComponent object;
+    private final MantleJigsawComponent jigsaw;
 
     public IrisEngineMantle(Engine engine) {
         this.engine = engine;
@@ -63,13 +66,25 @@ public class IrisEngineMantle implements EngineMantle {
         components = new KList<>();
         registerComponent(new MantleCarvingComponent(this));
         registerComponent(new MantleFluidBodyComponent(this));
-        registerComponent(new MantleJigsawComponent(this));
-        registerComponent(new MantleObjectComponent(this));
+        jigsaw = new MantleJigsawComponent(this);
+        registerComponent(jigsaw);
+        object = new MantleObjectComponent(this);
+        registerComponent(object);
     }
 
     @Override
     public void registerComponent(MantleComponent c) {
         components.add(c);
+    }
+
+    @Override
+    public MantleJigsawComponent getJigsawComponent() {
+        return jigsaw;
+    }
+
+    @Override
+    public MantleObjectComponent getObjectComponent() {
+        return object;
     }
 
     private KList<IrisRegion> getAllRegions() {

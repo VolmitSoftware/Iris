@@ -31,9 +31,11 @@ import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisColor;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisEngineData;
+import com.volmit.iris.engine.object.IrisJigsawStructure;
 import com.volmit.iris.engine.object.IrisLootMode;
 import com.volmit.iris.engine.object.IrisLootReference;
 import com.volmit.iris.engine.object.IrisLootTable;
+import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.IrisRegion;
@@ -77,6 +79,8 @@ import org.bukkit.inventory.ItemStack;
 
 import java.awt.Color;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -196,6 +200,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return getComplex().getRegionStream().get(x, z);
     }
 
+    void generateMatter(int x, int z, boolean multicore);
+
     @BlockCoordinates
     default IrisBiome getCaveOrMantleBiome(int x, int y, int z) {
         MatterCavern m = getMantle().getMantle().get(x, y, z, MatterCavern.class);
@@ -210,6 +216,12 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
         return getCaveBiome(x, z);
     }
+
+    @ChunkCoordinates
+    Set<String> getObjectsAt(int x, int z);
+
+    @ChunkCoordinates
+    IrisJigsawStructure getStructureAt(int x, int z);
 
     @BlockCoordinates
     default IrisBiome getCaveBiome(int x, int z) {

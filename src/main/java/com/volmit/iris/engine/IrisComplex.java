@@ -67,10 +67,10 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<IrisBiome> trueBiomeStream;
     private ProceduralStream<Biome> trueBiomeDerivativeStream;
     private ProceduralStream<Double> heightStream;
+    private ProceduralStream<Integer> roundedHeighteightStream;
     private ProceduralStream<Double> maxHeightStream;
     private ProceduralStream<Double> overlayStream;
     private ProceduralStream<Double> heightFluidStream;
-    private ProceduralStream<Integer> trueHeightStream;
     private ProceduralStream<Double> slopeStream;
     private ProceduralStream<Integer> topSurfaceStream;
     private ProceduralStream<IrisDecorator> terrainSurfaceDecoration;
@@ -181,6 +181,7 @@ public class IrisComplex implements DataProvider {
             IrisBiome b = focus != null ? focus : baseBiomeStream.get(x, z);
             return getHeight(engine, b, x, z, engine.getSeedManager().getHeight());
         }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D(cacheSize);
+        roundedHeighteightStream = heightStream.round();
         slopeStream = heightStream.slope(3).cache2D(cacheSize);
         trueBiomeStream = focus != null ? ProceduralStream.of((x, y) -> focus, Interpolated.of(a -> 0D,
                         b -> focus))
@@ -213,11 +214,6 @@ public class IrisComplex implements DataProvider {
                 .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.SEA_SURFACE)).cache2D(cacheSize);
         seaFloorDecoration = trueBiomeStream
                 .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.SEA_FLOOR)).cache2D(cacheSize);
-        trueHeightStream = ProceduralStream.of((x, z) -> {
-            int rx = (int) Math.round(engine.modifyX(x));
-            int rz = (int) Math.round(engine.modifyZ(z));
-            return (int) Math.round(getHeightStream().get(rx, rz));
-        }, Interpolated.INT).cache2D(cacheSize);
         baseBiomeIDStream = trueBiomeStream.convertAware2D((b, x, z) -> {
                     UUID d = regionIDStream.get(x, z);
                     return new UUID(b.getLoadKey().hashCode() * 818223L,

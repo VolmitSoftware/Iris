@@ -39,6 +39,7 @@ import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterMarker;
@@ -58,7 +59,10 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -487,7 +491,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     public Map<IrisPosition, KSet<IrisSpawner>> getSpawnersFromMarkers(Chunk c) {
         Map<IrisPosition, KSet<IrisSpawner>> p = new KMap<>();
-
+        Set<IrisPosition> b = new KSet<>();
         getMantle().iterateChunk(c.getX(), c.getZ(), MatterMarker.class, (x, y, z, t) -> {
             if(t.getTag().equals("cave_floor") || t.getTag().equals("cave_ceiling"))
             {
@@ -496,15 +500,45 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
             IrisMarker mark = getData().getMarkerLoader().load(t.getTag());
             IrisPosition pos = new IrisPosition((c.getX() << 4) + x, y, (c.getZ() << 4) + z);
+
+            if(mark.isEmptyAbove())
+            {
+                AtomicBoolean remove = new AtomicBoolean(false);
+
+                try {
+                    J.sfut(() -> {
+                        if(c.getBlock(x, y+1, z).getBlockData().getMaterial().isSolid() || c.getBlock(x, y+2, z).getBlockData().getMaterial().isSolid())
+                        {
+                            remove.set(true);
+                        }
+                    }).get();
+                } catch (InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                }
+
+                if(remove.get())
+                {
+                    b.add(pos);
+                    return;
+                }
+            }
+
             for (String i : mark.getSpawners()) {
                 IrisSpawner m = getData().getSpawnerLoader().load(i);
                 m.setReferenceMarker(mark);
 
+                // This is so fucking incorrect its a joke
+                //noinspection ConstantConditions
                 if (m != null) {
                     p.computeIfAbsent(pos, (k) -> new KSet<>()).add(m);
                 }
             }
         });
+
+        for(IrisPosition i : b)
+        {
+            getEngine().getMantle().getMantle().remove(i.getX(), i.getY(), i.getZ(), MatterMarker.class);
+        }
 
         return p;
     }

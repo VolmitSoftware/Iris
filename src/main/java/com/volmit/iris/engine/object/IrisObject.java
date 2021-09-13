@@ -663,6 +663,13 @@ public class IrisObject extends IrisRegistrant {
                 markers = new KMap<>();
                 for(IrisObjectMarker j : config.getMarkers())
                 {
+                    IrisMarker marker = getLoader().getMarkerLoader().load(j.getMarker());
+
+                    if(marker == null)
+                    {
+                        continue;
+                    }
+
                     int max = j.getMaximumMarkers();
 
                     for(BlockVector i : getBlocks().k().shuffle())
@@ -684,7 +691,7 @@ public class IrisObject extends IrisRegistrant {
                                 boolean a = !blocks.containsKey(new BlockVector(i.clone().add(new BlockVector(0, 1, 0))));
                                 boolean fff = !blocks.containsKey(new BlockVector(i.clone().add(new BlockVector(0, 2, 0))));
 
-                                if((j.isEmptyAbove() && a && fff) || !j.isEmptyAbove())
+                                if((marker.isEmptyAbove() && a && fff) || !marker.isEmptyAbove())
                                 {
                                     markers.put(i, j.getMarker());
                                     max--;

@@ -51,9 +51,6 @@ public class IrisObjectMarker {
     @Desc("The maximum amount of markers to place. Use these sparingly!")
     private int maximumMarkers = 8;
 
-    @Desc("If true, markers will only be placed here if there is 2 air blocks above it.")
-    private boolean emptyAbove = true;
-
     @Desc("If true, markers will only be placed if the block matches the mark list perfectly.")
     private boolean exact = false;
 

@@ -28,6 +28,7 @@ import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.MatterMarker;
 import com.volmit.iris.util.matter.slices.MarkerMatter;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -63,6 +64,7 @@ public class IrisEntitySpawn implements IRare {
     @Desc("The max of this entity to spawn")
     private int maxSpawns = 1;
     private transient IrisSpawner referenceSpawner;
+    private transient IrisMarker referenceMarker;
 
     public int spawn(Engine gen, Chunk c, RNG rng) {
         int spawns = minSpawns == maxSpawns ? minSpawns : rng.i(Math.min(minSpawns, maxSpawns), Math.max(minSpawns, maxSpawns));
@@ -110,6 +112,12 @@ public class IrisEntitySpawn implements IRare {
 
         World world = gen.getWorld().realWorld();
         if (spawns > 0) {
+
+            if(referenceMarker != null)
+            {
+                gen.getMantle().getMantle().remove(c.getX(), c.getY(), c.getZ(), MatterMarker.class);
+            }
+
             for (int id = 0; id < spawns; id++) {
                 Location l = c.toLocation(world).add(0, 1, 0);
 

@@ -504,7 +504,7 @@ public class IrisObject extends IrisRegistrant {
     }
 
     public int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener, CarveResult c, IrisData rdata) {
-        IObjectPlacer placer = (config.getHeightmap() != null) ? new HeightmapObjectPlacer(IrisContext.get().getEngine(), rng, x, yv, z, config, oplacer) : oplacer;
+        IObjectPlacer placer = (config.getHeightmap() != null) ? new HeightmapObjectPlacer(oplacer.getEngine() == null ? IrisContext.get().getEngine() : oplacer.getEngine(), rng, x, yv, z, config, oplacer) : oplacer;
 
         if (config.isSmartBore()) {
             ensureSmartBored(placer.isDebugSmartBore());
@@ -667,9 +667,19 @@ public class IrisObject extends IrisRegistrant {
 
                     for(BlockVector i : getBlocks().k().shuffle())
                     {
+                        if(max <= 0)
+                        {
+                            break;
+                        }
+
                         BlockData data = getBlocks().get(i);
 
                         for (BlockData k : j.getMark(rdata)) {
+                            if(max <= 0)
+                            {
+                                break;
+                            }
+
                             if (j.isExact() ? k.matches(data) : k.getMaterial().equals(data.getMaterial())) {
                                 boolean a = !blocks.containsKey(new BlockVector(i.clone().add(new BlockVector(0, 1, 0))));
                                 boolean fff = !blocks.containsKey(new BlockVector(i.clone().add(new BlockVector(0, 2, 0))));
@@ -677,6 +687,7 @@ public class IrisObject extends IrisRegistrant {
                                 if((j.isEmptyAbove() && a && fff) || !j.isEmptyAbove())
                                 {
                                     markers.put(i, j.getMarker());
+                                    max--;
                                 }
                             }
                         }

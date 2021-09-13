@@ -243,6 +243,11 @@ public class PlannedPiece {
 
             @Override
             public Engine getEngine() {
+                if(IrisToolbelt.isIrisWorld(world))
+                {
+                    return IrisToolbelt.access(world).getEngine();
+                }
+
                 return IrisContext.get().getEngine();
             }
         }, piece.getPlacementOptions(), rng, getData());

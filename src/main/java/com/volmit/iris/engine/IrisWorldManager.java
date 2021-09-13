@@ -398,6 +398,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     private Stream<IrisEntitySpawn> stream(IrisSpawner s, boolean initial) {
         for (IrisEntitySpawn i : initial ? s.getInitialSpawns() : s.getSpawns()) {
             i.setReferenceSpawner(s);
+            i.setReferenceMarker(s.getReferenceMarker());
         }
 
         return (initial ? s.getInitialSpawns() : s.getSpawns()).stream();
@@ -471,6 +472,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
         IrisEntitySpawn ss = spawnRandomly(s).getRandom();
         ss.setReferenceSpawner(spawner);
+        ss.setReferenceMarker(spawner.getReferenceMarker());
         spawn(block, ss);
     }
 
@@ -496,6 +498,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             IrisPosition pos = new IrisPosition((c.getX() << 4) + x, y, (c.getZ() << 4) + z);
             for (String i : mark.getSpawners()) {
                 IrisSpawner m = getData().getSpawnerLoader().load(i);
+                m.setReferenceMarker(mark);
 
                 if (m != null) {
                     p.computeIfAbsent(pos, (k) -> new KSet<>()).add(m);

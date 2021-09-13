@@ -136,12 +136,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     void setMinHeight(int min);
 
     @BlockCoordinates
-    double modifyX(double x);
-
-    @BlockCoordinates
-    double modifyZ(double z);
-
-    @BlockCoordinates
     default void generate(int x, int z, TerrainChunk tc, boolean multicore) throws WrongEngineBroException {
         generate(x, z, Hunk.view((ChunkGenerator.ChunkData) tc), Hunk.view((ChunkGenerator.BiomeGrid) tc), multicore);
     }

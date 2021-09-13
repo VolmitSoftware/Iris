@@ -48,14 +48,6 @@ public interface EngineComponent {
         }
     }
 
-    default double modX(double x) {
-        return getEngine().modifyX(x);
-    }
-
-    default double modZ(double z) {
-        return getEngine().modifyZ(z);
-    }
-
     default IrisData getData() {
         return getEngine().getData();
     }

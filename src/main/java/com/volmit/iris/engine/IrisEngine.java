@@ -197,6 +197,7 @@ public class IrisEngine implements Engine {
         var bodies = new IrisBodyModifier(this);
         var perfection = new IrisPerfectionModifier(this);
 
+        registerStage((x, z, k, p, m) -> warmupChunk(x>>4, z>>4));
         registerStage((x, z, k, p, m) -> getMantle().generateMatter(x >> 4, z >> 4, m));
         registerStage((x, z, k, p, m) -> terrain.actuate(x, z, k, m));
         registerStage((x, z, k, p, m) -> biome.actuate(x, z, p, m));
@@ -207,6 +208,19 @@ public class IrisEngine implements Engine {
         registerStage((x, z, k, p, m) -> deposit.modify(x, z, k, m));
         registerStage((x, z, K, p, m) -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, K, m));
         registerStage((x, z, k, p, m) -> perfection.modify(x, z, k, m));
+    }
+
+    private void warmupChunk(int x, int z) {
+        for(int i = 0; i < 16; i++)
+        {
+            for(int j = 0; j < 16; j++)
+            {
+                int xx = x + (i << 4);
+                int zz = z + (z << 4);
+                getComplex().getTrueBiomeStream().get(xx,zz);
+                getComplex().getTrueHeightStream().get(xx,zz);
+            }
+        }
     }
 
     @Override
@@ -420,18 +434,6 @@ public class IrisEngine implements Engine {
 
             cleaning.lazySet(false);
         });
-    }
-
-    @BlockCoordinates
-    @Override
-    public double modifyX(double x) {
-        return x / getDimension().getTerrainZoom();
-    }
-
-    @BlockCoordinates
-    @Override
-    public double modifyZ(double z) {
-        return z / getDimension().getTerrainZoom();
     }
 
     @BlockCoordinates

@@ -275,7 +275,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     if (!B.isFluid(c.getBlock(x & 15, y, z & 15).getBlockData())) {
                         return;
                     }
-boolean u = false;
+                    boolean u = false;
                     if(B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.DOWN).getBlockData()))
                     {
                         u = true;

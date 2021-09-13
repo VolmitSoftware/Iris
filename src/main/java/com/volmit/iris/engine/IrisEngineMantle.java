@@ -167,11 +167,7 @@ public class IrisEngineMantle implements EngineMantle {
             for (String i : objects) {
                 e.queue(() -> {
                     try {
-                        BlockVector bv = sizeCache.compute(i, (k, v) -> {
-                            if (v != null) {
-                                return v;
-                            }
-
+                        BlockVector bv = sizeCache.computeIfAbsent(i, (k) -> {
                             try {
                                 return IrisObject.sampleSize(getData().getObjectLoader().findFile(i));
                             } catch (IOException ex) {
@@ -207,11 +203,7 @@ public class IrisEngineMantle implements EngineMantle {
                 for (String j : entry.getValue()) {
                     e.queue(() -> {
                         try {
-                            BlockVector bv = sizeCache.compute(j, (k, v) -> {
-                                if (v != null) {
-                                    return v;
-                                }
-
+                            BlockVector bv = sizeCache.computeIfAbsent(j, (k) -> {
                                 try {
                                     return IrisObject.sampleSize(getData().getObjectLoader().findFile(j));
                                 } catch (IOException ioException) {

@@ -880,24 +880,8 @@ public class CommandStudio implements DecreeExecutor {
                 }
 
                 String n3 = nn3;
-
-                objects.compute(n1, (k1, v1) ->
-                {
-                    //noinspection ReplaceNullCheck
-                    if (v1 == null) {
-                        return new KMap<>();
-                    }
-
-                    return v1;
-                }).compute(n2, (k, v) ->
-                {
-                    if (v == null) {
-                        return new KList<String>().qaddIfMissing(n3);
-                    }
-
-                    v.addIfMissing(n3);
-                    return v;
-                });
+                objects.computeIfAbsent(n1, (k1) -> new KMap<>())
+                        .computeIfAbsent(n2, (k) -> new KList<>()).addIfMissing(n3);
             }
         }
     }

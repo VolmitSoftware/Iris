@@ -892,7 +892,7 @@ public class IrisInterpolation {
                 int fj = j;
                 for (k = 0; k < d; k++) {
                     int fk = k;
-                    hunk.set(i, j, k, cache.compute((k * w * h) + (j * w) + i, (p, v)
+                    hunk.set(i, j, k, cache.computeIfAbsent((k * w * h) + (j * w) + i, (p)
                             -> getNoise3D(method, fi + xo, fj + yo, fk + zo,
                             radX, radY, radZ, n)));
                 }

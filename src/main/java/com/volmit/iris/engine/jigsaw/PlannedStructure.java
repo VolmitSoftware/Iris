@@ -329,12 +329,6 @@ public class PlannedStructure {
     public IrisObject rotated(IrisJigsawPiece piece, IrisObjectRotation rotation) {
         String key = piece.getObject() + "-" + rotation.hashCode();
 
-        return objectRotationCache.compute(key, (k, v) -> {
-            if (v == null) {
-                return rotation.rotateCopy(data.getObjectLoader().load(piece.getObject()));
-            }
-
-            return v;
-        });
+        return objectRotationCache.computeIfAbsent(key, (k) -> rotation.rotateCopy(data.getObjectLoader().load(piece.getObject())));
     }
 }

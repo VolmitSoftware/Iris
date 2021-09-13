@@ -356,7 +356,7 @@ public class IrisProject {
                 File a = new File(dm.getDataFolder(), ".iris/schema/snippet/" + snipType + "-schema.json");
                 J.attemptAsync(() -> {
                     try {
-                        IO.writeAll(a, new SchemaBuilder(i, dm).compute().toString(4));
+                        IO.writeAll(a, new SchemaBuilder(i, dm).construct().toString(4));
                     } catch (Throwable e) {
                         e.printStackTrace();
                     }

@@ -87,7 +87,7 @@ public class SchemaBuilder {
         return a;
     }
 
-    public JSONObject compute() {
+    public JSONObject construct() {
         JSONObject schema = new JSONObject();
         schema.put("$schema", "http://json-schema.org/draft-07/schema#");
         schema.put("$id", "http://volmit.com/iris-schema/" + root.getSimpleName().toLowerCase() + ".json");

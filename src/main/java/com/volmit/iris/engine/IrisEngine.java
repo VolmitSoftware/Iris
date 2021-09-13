@@ -218,7 +218,7 @@ public class IrisEngine implements Engine {
                 int xx = x + (i << 4);
                 int zz = z + (z << 4);
                 getComplex().getTrueBiomeStream().get(xx,zz);
-                getComplex().getTrueHeightStream().get(xx,zz);
+                getComplex().getHeightStream().get(xx,zz);
             }
         }
     }

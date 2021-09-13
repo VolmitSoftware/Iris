@@ -106,6 +106,45 @@ public class MantleJigsawComponent extends IrisMantleComponent {
         }
     }
 
+    @ChunkCoordinates
+    public IrisJigsawStructure guess(int x, int z) {
+        RNG rng = new RNG(cng.fit(-Integer.MAX_VALUE, Integer.MAX_VALUE, x, z));
+        IrisBiome biome = getEngineMantle().getEngine().getSurfaceBiome((x << 4) + 8, (z << 4) + 8);
+        IrisRegion region = getEngineMantle().getEngine().getRegion((x << 4) + 8, (z << 4) + 8);
+
+        if (getDimension().getStronghold() != null) {
+            List<Position2> poss = getDimension().getStrongholds(seed());
+
+            if (poss != null) {
+                for (Position2 pos : poss) {
+                    if (x == pos.getX() >> 4 && z == pos.getZ() >> 4) {
+                        return getData().getJigsawStructureLoader().load(getDimension().getStronghold());
+                    }
+                }
+            }
+        }
+
+        for (IrisJigsawStructurePlacement i : biome.getJigsawStructures()) {
+            if (rng.nextInt(i.getRarity()) == 0) {
+                return getData().getJigsawStructureLoader().load(i.getStructure());
+            }
+        }
+
+        for (IrisJigsawStructurePlacement i : region.getJigsawStructures()) {
+            if (rng.nextInt(i.getRarity()) == 0) {
+                return getData().getJigsawStructureLoader().load(i.getStructure());
+            }
+        }
+
+        for (IrisJigsawStructurePlacement i : getDimension().getJigsawStructures()) {
+            if (rng.nextInt(i.getRarity()) == 0) {
+                return getData().getJigsawStructureLoader().load(i.getStructure());
+            }
+        }
+
+        return null;
+    }
+
     @BlockCoordinates
     private void place(MantleWriter writer, IrisPosition position, IrisJigsawStructure structure, RNG rng) {
         new PlannedStructure(structure, position, rng).place(writer, getMantle());

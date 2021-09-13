@@ -22,12 +22,12 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.placer.HeightmapObjectPlacer;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.AxisAlignedBB;
@@ -35,8 +35,11 @@ import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterMarker;
+import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.IrisLock;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -65,6 +68,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 @SuppressWarnings("DefaultAnnotationParam")
@@ -160,8 +164,10 @@ public class IrisObject extends IrisRegistrant {
             return;
         }
 
+        PrecisionStopwatch p = PrecisionStopwatch.start();
+        BlockData vair = debug ? VAIR_DEBUG : VAIR;
         lock.lock();
-        int applied = 0;
+        AtomicInteger applied = new AtomicInteger();
         if (getBlocks().isEmpty()) {
             lock.unlock();
             Iris.warn("Cannot Smart Bore " + getLoadKey() + " because it has 0 blocks in it.");
@@ -181,88 +187,99 @@ public class IrisObject extends IrisRegistrant {
             min.setZ(Math.min(i.getZ(), min.getZ()));
         }
 
+        BurstExecutor burst = MultiBurst.burst.burst();
+
         // Smash X
         for (int rayY = min.getBlockY(); rayY <= max.getBlockY(); rayY++) {
-            for (int rayZ = min.getBlockZ(); rayZ <= max.getBlockZ(); rayZ++) {
-                int start = Integer.MAX_VALUE;
-                int end = Integer.MIN_VALUE;
+            int finalRayY = rayY;
+            burst.queue(() -> {
+                for (int rayZ = min.getBlockZ(); rayZ <= max.getBlockZ(); rayZ++) {
+                    int start = Integer.MAX_VALUE;
+                    int end = Integer.MIN_VALUE;
 
-                for (int ray = min.getBlockX(); ray <= max.getBlockX(); ray++) {
-                    if (getBlocks().containsKey(new BlockVector(ray, rayY, rayZ))) {
-                        start = Math.min(ray, start);
-                        end = Math.max(ray, end);
+                    for (int ray = min.getBlockX(); ray <= max.getBlockX(); ray++) {
+                        if (getBlocks().containsKey(new BlockVector(ray, finalRayY, rayZ))) {
+                            start = Math.min(ray, start);
+                            end = Math.max(ray, end);
+                        }
                     }
-                }
 
-                if (start != Integer.MAX_VALUE && end != Integer.MIN_VALUE) {
-                    for (int i = start; i <= end; i++) {
-                        BlockVector v = new BlockVector(i, rayY, rayZ);
+                    if (start != Integer.MAX_VALUE && end != Integer.MIN_VALUE) {
+                        for (int i = start; i <= end; i++) {
+                            BlockVector v = new BlockVector(i, finalRayY, rayZ);
 
-                        if (!getBlocks().containsKey(v) || B.isAir(getBlocks().get(v))) {
-                            getBlocks().put(v, debug ? VAIR_DEBUG : VAIR);
-                            applied++;
+                            if (!B.isAir(getBlocks().get(v))) {
+                                getBlocks().computeIfAbsent(v, (vv) -> vair);
+                                applied.getAndIncrement();
+                            }
                         }
                     }
                 }
-            }
+            });
         }
 
         // Smash Y
         for (int rayX = min.getBlockX(); rayX <= max.getBlockX(); rayX++) {
-            for (int rayZ = min.getBlockZ(); rayZ <= max.getBlockZ(); rayZ++) {
-                int start = Integer.MAX_VALUE;
-                int end = Integer.MIN_VALUE;
+            int finalRayX = rayX;
+            burst.queue(() -> {
+                for (int rayZ = min.getBlockZ(); rayZ <= max.getBlockZ(); rayZ++) {
+                    int start = Integer.MAX_VALUE;
+                    int end = Integer.MIN_VALUE;
 
-                for (int ray = min.getBlockY(); ray <= max.getBlockY(); ray++) {
-                    if (getBlocks().containsKey(new BlockVector(rayX, ray, rayZ))) {
-                        start = Math.min(ray, start);
-                        end = Math.max(ray, end);
+                    for (int ray = min.getBlockY(); ray <= max.getBlockY(); ray++) {
+                        if (getBlocks().containsKey(new BlockVector(finalRayX, ray, rayZ))) {
+                            start = Math.min(ray, start);
+                            end = Math.max(ray, end);
+                        }
                     }
-                }
 
-                if (start != Integer.MAX_VALUE && end != Integer.MIN_VALUE) {
-                    for (int i = start; i <= end; i++) {
-                        BlockVector v = new BlockVector(rayX, i, rayZ);
+                    if (start != Integer.MAX_VALUE && end != Integer.MIN_VALUE) {
+                        for (int i = start; i <= end; i++) {
+                            BlockVector v = new BlockVector(finalRayX, i, rayZ);
 
-                        if (!getBlocks().containsKey(v) || B.isAir(getBlocks().get(v))) {
-                            getBlocks().put(v, debug ? VAIR_DEBUG : VAIR);
-                            applied++;
+                            if (!B.isAir(getBlocks().get(v))) {
+                                getBlocks().computeIfAbsent(v, (vv) -> vair);
+                                applied.getAndIncrement();
+                            }
                         }
                     }
                 }
-            }
+            });
         }
 
         // Smash Z
         for (int rayX = min.getBlockX(); rayX <= max.getBlockX(); rayX++) {
-            for (int rayY = min.getBlockY(); rayY <= max.getBlockY(); rayY++) {
-                int start = Integer.MAX_VALUE;
-                int end = Integer.MIN_VALUE;
+            int finalRayX = rayX;
+            burst.queue(() -> {
+                for (int rayY = min.getBlockY(); rayY <= max.getBlockY(); rayY++) {
+                    int start = Integer.MAX_VALUE;
+                    int end = Integer.MIN_VALUE;
 
-                for (int ray = min.getBlockZ(); ray <= max.getBlockZ(); ray++) {
-                    if (getBlocks().containsKey(new BlockVector(rayX, rayY, ray))) {
-                        start = Math.min(ray, start);
-                        end = Math.max(ray, end);
+                    for (int ray = min.getBlockZ(); ray <= max.getBlockZ(); ray++) {
+                        if (getBlocks().containsKey(new BlockVector(finalRayX, rayY, ray))) {
+                            start = Math.min(ray, start);
+                            end = Math.max(ray, end);
+                        }
                     }
-                }
 
-                if (start != Integer.MAX_VALUE && end != Integer.MIN_VALUE) {
-                    for (int i = start; i <= end; i++) {
-                        BlockVector v = new BlockVector(rayX, rayY, i);
+                    if (start != Integer.MAX_VALUE && end != Integer.MIN_VALUE) {
+                        for (int i = start; i <= end; i++) {
+                            BlockVector v = new BlockVector(finalRayX, rayY, i);
 
-                        if (!getBlocks().containsKey(v) || B.isAir(getBlocks().get(v))) {
-                            getBlocks().put(v, debug ? VAIR_DEBUG : VAIR);
-                            applied++;
+                            if (!B.isAir(getBlocks().get(v))) {
+                                getBlocks().computeIfAbsent(v, (vv) -> vair);
+                                applied.getAndIncrement();
+                            }
                         }
                     }
                 }
-            }
+            });
         }
 
-        Iris.verbose("- Applied Smart Bore to " + getLoadKey() + " Filled with " + applied + " VOID_AIR blocks.");
-
+        burst.complete();
         smartBored = true;
         lock.unlock();
+        Iris.debug("Smart Bore: " + getLoadKey() + " in " + Form.duration(p.getMilliseconds(), 2) + " (" + Form.f(applied.get()) + ")");
     }
 
     public synchronized IrisObject copy() {

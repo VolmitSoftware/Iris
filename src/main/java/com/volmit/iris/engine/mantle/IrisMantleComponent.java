@@ -18,8 +18,11 @@
 
 package com.volmit.iris.engine.mantle;
 
+import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.util.mantle.MantleFlag;
 import lombok.Data;
+
+import java.util.Set;
 
 @Data
 public abstract class IrisMantleComponent implements MantleComponent {

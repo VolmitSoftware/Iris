@@ -23,8 +23,11 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
+import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
+import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
 import com.volmit.iris.engine.object.IObjectPlacer;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisJigsawStructure;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.collection.KList;
@@ -256,4 +259,7 @@ public interface EngineMantle extends IObjectPlacer {
     default int getLoadedRegionCount() {
         return getMantle().getLoadedRegionCount();
     }
+
+    MantleJigsawComponent getJigsawComponent();
+    MantleObjectComponent getObjectComponent();
 }

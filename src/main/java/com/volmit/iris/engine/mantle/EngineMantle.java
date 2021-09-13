@@ -92,7 +92,7 @@ public interface EngineMantle extends IObjectPlacer {
     }
 
     default int trueHeight(int x, int z) {
-        return getComplex().getTrueHeightStream().get(x, z);
+        return getComplex().getRoundedHeighteightStream().get(x, z);
     }
 
     default boolean isCarved(int x, int h, int z) {

@@ -19,6 +19,8 @@
 package com.volmit.iris.util.math;
 
 import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
@@ -26,7 +28,12 @@ import java.util.Iterator;
 /**
  * Represents a spiraler which can start from any point within Long.MAX_VALUE by Long.MAX_VALUE and iterate anywhere.
  */
-public record Spiral(Position2 start, long max) implements Iterable<Position2> {
+@Data
+@RequiredArgsConstructor
+public class Spiral implements Iterable<Position2> {
+    private final Position2 start;
+    private final long max;
+
     @SuppressWarnings("ConstantConditions")
     public static Position2 next(Position2 p) {
         int x = p.getX();
@@ -88,7 +95,7 @@ public record Spiral(Position2 start, long max) implements Iterable<Position2> {
 
         @Override
         public boolean hasNext() {
-            return itr < s.max();
+            return itr < s.getMax();
         }
 
         @Override

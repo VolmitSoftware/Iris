@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.core.gui.components.Renderer;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
@@ -32,6 +33,7 @@ import com.volmit.iris.engine.object.IrisColor;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisEngineData;
 import com.volmit.iris.engine.object.IrisJigsawStructure;
+import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
 import com.volmit.iris.engine.object.IrisLootMode;
 import com.volmit.iris.engine.object.IrisLootReference;
 import com.volmit.iris.engine.object.IrisLootTable;
@@ -46,8 +48,10 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
+import com.volmit.iris.util.decree.handlers.JigsawStructureHandler;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.MantleFlag;
@@ -72,6 +76,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -79,7 +84,6 @@ import org.bukkit.inventory.ItemStack;
 
 import java.awt.Color;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -87,6 +91,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdater, Renderer, Hotloadable {
     KList<EngineStage> getStages();
@@ -779,5 +784,128 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     default IrisBiome getBiomeOrMantle(Location l) {
         return getBiomeOrMantle(l.getBlockX(), l.getBlockY(), l.getBlockZ());
+    }
+
+    default void gotoBiome(IrisBiome biome, Player player)
+    {
+        Set<String> regionKeys = getDimension()
+                .getAllRegions(this).stream()
+                .filter((i) -> i.getAllBiomes(this).contains(biome))
+                .map(IrisRegistrant::getLoadKey)
+                .collect(Collectors.toSet());
+        Locator<IrisBiome> lb = Locator.surfaceBiome(biome.getLoadKey());
+        Locator<IrisBiome> locator = (engine, chunk)
+                -> regionKeys.contains(getRegion((chunk.getX()<< 4) + 8, (chunk.getZ() << 4) + 8).getLoadKey())
+                && lb.matches(engine, chunk);
+
+        if(!regionKeys.isEmpty())
+        {
+            locator.find(player);
+        }
+
+        else
+        {
+            player.sendMessage(C.RED + biome.getName() + " is not in any defined regions!");
+        }
+    }
+
+    default void gotoJigsaw(IrisJigsawStructure s, Player player)
+    {
+        if(getDimension().getJigsawStructures().stream()
+                .map(IrisJigsawStructurePlacement::getStructure)
+                .collect(Collectors.toSet()).contains(s.getLoadKey()))
+        {
+            Locator.jigsawStructure(s.getLoadKey()).find(player);
+        }
+
+        else
+        {
+            Set<String> biomeKeys = getDimension().getAllBiomes(this).stream()
+                    .filter((i) -> i.getJigsawStructures()
+                            .stream()
+                            .anyMatch((j) -> j.getStructure().equals(s.getLoadKey())))
+                    .map(IrisRegistrant::getLoadKey)
+                    .collect(Collectors.toSet());
+            Set<String> regionKeys = getDimension().getAllRegions(this).stream()
+                    .filter((i) -> i.getAllBiomeIds().stream().anyMatch(biomeKeys::contains)
+                            || i.getJigsawStructures()
+                            .stream()
+                            .anyMatch((j) -> j.getStructure().equals(s.getLoadKey())))
+                    .map(IrisRegistrant::getLoadKey)
+                    .collect(Collectors.toSet());
+
+            Locator<IrisJigsawStructure> sl = Locator.jigsawStructure(s.getLoadKey());
+            Locator<IrisBiome> locator = (engine, chunk) -> {
+                if(biomeKeys.contains(getSurfaceBiome((chunk.getX()<< 4) + 8, (chunk.getZ() << 4) + 8).getLoadKey()))
+                {
+                    return sl.matches(engine, chunk);
+                }
+
+                else if(regionKeys.contains(getRegion((chunk.getX()<< 4) + 8, (chunk.getZ() << 4) + 8).getLoadKey()))
+                {
+                    return sl.matches(engine, chunk);
+                }
+                return false;
+            };
+
+            if(!regionKeys.isEmpty())
+            {
+                locator.find(player);
+            }
+
+            else
+            {
+                player.sendMessage(C.RED + s.getLoadKey() + " is not in any defined regions, biomes or dimensions!");
+            }
+        }
+
+    }
+
+    default void gotoObject(String s, Player player)
+    {
+        Set<String> biomeKeys = getDimension().getAllBiomes(this).stream()
+                .filter((i) -> i.getObjects().stream().anyMatch((f) -> f.getPlace().contains(s)))
+                .map(IrisRegistrant::getLoadKey)
+                .collect(Collectors.toSet());
+        Set<String> regionKeys = getDimension().getAllRegions(this).stream()
+                .filter((i) -> i.getAllBiomeIds().stream().anyMatch(biomeKeys::contains)
+                        || i.getObjects().stream().anyMatch((f) -> f.getPlace().contains(s)))
+                .map(IrisRegistrant::getLoadKey)
+                .collect(Collectors.toSet());
+
+        Locator<IrisObject> sl = Locator.object(s);
+        Locator<IrisBiome> locator = (engine, chunk) -> {
+            if(biomeKeys.contains(getSurfaceBiome((chunk.getX()<< 4) + 8, (chunk.getZ() << 4) + 8).getLoadKey()))
+            {
+                return sl.matches(engine, chunk);
+            }
+
+            else if(regionKeys.contains(getRegion((chunk.getX()<< 4) + 8, (chunk.getZ() << 4) + 8).getLoadKey()))
+            {
+                return sl.matches(engine, chunk);
+            }
+            return false;
+        };
+
+        if(!regionKeys.isEmpty())
+        {
+            locator.find(player);
+        }
+
+        else
+        {
+            player.sendMessage(C.RED + s + " is not in any defined regions or biomes!");
+        }
+    }
+
+    default void gotoRegion(IrisRegion r, Player player)
+    {
+        if(!getDimension().getAllRegions(this).contains(r))
+        {
+            player.sendMessage(C.RED + r.getName() + " is not defined in the dimension!");
+            return;
+        }
+
+        Locator.region(r.getLoadKey()).find(player);
     }
 }

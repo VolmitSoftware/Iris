@@ -52,6 +52,7 @@ public class CommandIris implements DecreeExecutor {
     private CommandObject object;
     private CommandJigsaw jigsaw;
     private CommandWhat what;
+    private CommandFind find;
 
     @Decree(description = "Create a new world", aliases = {"+", "c"})
     public void create(

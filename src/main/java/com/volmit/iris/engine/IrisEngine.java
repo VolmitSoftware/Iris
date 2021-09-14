@@ -47,7 +47,6 @@ import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.engine.object.IrisEngineData;
 import com.volmit.iris.engine.object.IrisJigsawStructure;
-import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.atomics.AtomicRollingSequence;

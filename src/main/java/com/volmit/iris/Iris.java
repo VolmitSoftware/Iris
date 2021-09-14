@@ -433,67 +433,9 @@ public class Iris extends VolmitPlugin implements Listener {
             audiences = BukkitAudiences.create(this);
         } catch (Throwable e) {
             e.printStackTrace();
-            Audience dummy = new Audience() {
-            };
             IrisSettings.get().getGeneral().setUseConsoleCustomColors(false);
             IrisSettings.get().getGeneral().setUseCustomColorsIngame(false);
             Iris.error("Failed to setup Adventure API... No custom colors :(");
-            audiences = new BukkitAudiences() {
-                @Override
-                public @NotNull Audience sender(@NotNull CommandSender sender) {
-                    return dummy;
-                }
-
-                @Override
-                public @NotNull Audience player(@NotNull Player player) {
-                    return dummy;
-                }
-
-                @Override
-                public @NotNull Audience filter(@NotNull Predicate<CommandSender> filter) {
-                    return dummy;
-                }
-
-                @Override
-                public @NotNull Audience all() {
-                    return dummy;
-                }
-
-                @Override
-                public @NotNull Audience console() {
-                    return dummy;
-                }
-
-                @Override
-                public @NotNull Audience players() {
-                    return dummy;
-                }
-
-                @Override
-                public @NotNull Audience player(@NotNull UUID playerId) {
-                    return dummy;
-                }
-
-                @Override
-                public @NotNull Audience permission(@NotNull String permission) {
-                    return dummy;
-                }
-
-                @Override
-                public @NotNull Audience world(@NotNull Key world) {
-                    return dummy;
-                }
-
-                @Override
-                public @NotNull Audience server(@NotNull String serverName) {
-                    return dummy;
-                }
-
-                @Override
-                public void close() {
-
-                }
-            };
         }
     }
 

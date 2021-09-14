@@ -114,7 +114,7 @@ public interface Locator<T> {
 
         return MultiBurst.burst.completeValue(() -> {
             int tc = IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism()) * 17;
-            MultiBurst burst = new MultiBurst("Iris Locator", Thread.MIN_PRIORITY);
+            MultiBurst burst = MultiBurst.burst;
             AtomicBoolean found = new AtomicBoolean(false);
             Position2 cursor = pos;
             AtomicInteger searched = new AtomicInteger();
@@ -153,7 +153,6 @@ public interface Locator<T> {
             }
 
             LocatorCanceller.cancel = null;
-            burst.close();
 
             if(found.get() && foundPos.get() != null)
             {

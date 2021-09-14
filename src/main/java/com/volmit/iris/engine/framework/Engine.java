@@ -884,6 +884,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             {
                 return sl.matches(engine, chunk);
             }
+
             return false;
         };
 

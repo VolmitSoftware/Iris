@@ -420,6 +420,7 @@ public class IrisEngine implements Engine {
         getData().clearLists();
         Iris.service(PreservationSVC.class).dereference();
         Iris.debug("Engine Fully Shutdown!");
+        complex = null;
     }
 
     @Override

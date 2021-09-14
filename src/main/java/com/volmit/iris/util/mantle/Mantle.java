@@ -358,6 +358,7 @@ public class Mantle {
             Iris.reportError(e);
         }
 
+        loadedRegions.clear();
         Iris.debug("The Mantle has Closed " + C.DARK_AQUA + dataFolder.getAbsolutePath());
     }
 

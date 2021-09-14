@@ -40,7 +40,7 @@ import java.io.File;
 
 @Decree(name = "jigsaw", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris jigsaw commands")
 public class CommandJigsaw implements DecreeExecutor {
-    @Decree(description = "Edit a jigsaw piece")
+    @Decree(description = "Edit a jigsaw piece", sync = true)
     public void edit(
             @Param(description = "The jigsaw piece to edit")
                     IrisJigsawPiece piece
@@ -49,7 +49,7 @@ public class CommandJigsaw implements DecreeExecutor {
         new JigsawEditor(player(), piece, IrisData.loadAnyObject(piece.getObject()), dest);
     }
 
-    @Decree(description = "Place a jigsaw structure")
+    @Decree(description = "Place a jigsaw structure", sync = true)
     public void place(
             @Param(description = "The jigsaw structure to place")
                     IrisJigsawStructure structure
@@ -60,7 +60,7 @@ public class CommandJigsaw implements DecreeExecutor {
         ps.place(world());
     }
 
-    @Decree(description = "Create a jigsaw piece")
+    @Decree(description = "Create a jigsaw piece", sync = true)
     public void create(
             @Param(description = "The name of the jigsaw piece")
                     String piece,
@@ -84,7 +84,7 @@ public class CommandJigsaw implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Remember to use /iris jigsaw save");
     }
 
-    @Decree(description = "Exit the current jigsaw editor")
+    @Decree(description = "Exit the current jigsaw editor", sync = true)
     public void exit() {
         JigsawEditor editor = JigsawEditor.editors.get(player());
 
@@ -97,7 +97,7 @@ public class CommandJigsaw implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Exited Jigsaw Editor");
     }
 
-    @Decree(description = "Save & Exit the current jigsaw editor")
+    @Decree(description = "Save & Exit the current jigsaw editor", sync = true)
     public void save() {
         JigsawEditor editor = JigsawEditor.editors.get(player());
 

@@ -34,6 +34,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.DataProvider;
+import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
@@ -290,31 +291,66 @@ public class IrisComplex implements DataProvider {
         return biome;
     }
 
+    private double interpolateGenerators(Engine engine, IrisInterpolator interpolator, KSet<IrisGenerator> generators, double x, double z, long seed)
+    {
+        if(generators.isEmpty())
+        {
+            return 0;
+        }
+
+        double hi = interpolator.interpolate(x, z, (xx,zz) -> {
+            try {
+                IrisBiome bx = baseBiomeStream.get(xx, zz);
+                double b = 0;
+
+                for (IrisGenerator gen : generators) {
+                    b += bx.getGenLinkMax(gen.getLoadKey());
+                }
+
+                return b;
+            } catch (Throwable e) {
+                Iris.reportError(e);
+                e.printStackTrace();
+                Iris.error("Failed to sample hi biome at " + xx + " " + zz + "...");
+            }
+
+            return 0;
+        });
+
+        double lo = interpolator.interpolate(x, z, (xx,zz) -> {
+            try {
+                IrisBiome bx = baseBiomeStream.get(xx, zz);
+                double b = 0;
+
+                for (IrisGenerator gen : generators) {
+                    b += bx.getGenLinkMin(gen.getLoadKey());
+                }
+
+                return b;
+            } catch (Throwable e) {
+                Iris.reportError(e);
+                e.printStackTrace();
+                Iris.error("Failed to sample lo biome at " + xx + " " + zz + "...");
+            }
+
+            return 0;
+        });
+
+        double d = 0;
+
+        for(IrisGenerator i : generators)
+        {
+            d += M.lerp(lo, hi, i.getHeight(x, z, seed + 239945));
+        }
+
+        return d / generators.size();
+    }
+
     private double getInterpolatedHeight(Engine engine, double x, double z, long seed) {
         double h = 0;
 
         for (IrisInterpolator i : generators.keySet()) {
-            h += i.interpolate(x, z, (xx, zz) ->
-            {
-                try {
-                    IrisBiome bx = baseBiomeStream.get(xx, zz);
-                    double b = 0;
-
-                    for (IrisGenerator gen : generators.get(i)) {
-                        b += M.lerp(bx.getGenLinkMin(gen.getLoadKey()),
-                                bx.getGenLinkMax(gen.getLoadKey()),
-                                gen.getHeight(x, z, seed + 239945));
-                    }
-
-                    return b;
-                } catch (Throwable e) {
-                    Iris.reportError(e);
-                    e.printStackTrace();
-                    Iris.error("Failed to sample hi biome at " + xx + " " + zz + "...");
-                }
-
-                return 0;
-            });
+            h += interpolateGenerators(engine, i, generators.get(i), x, z, seed);
         }
 
         return h;

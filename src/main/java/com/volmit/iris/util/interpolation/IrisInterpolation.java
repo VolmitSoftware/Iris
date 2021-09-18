@@ -19,13 +19,20 @@
 package com.volmit.iris.util.interpolation;
 
 import com.google.common.util.concurrent.AtomicDouble;
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.NoiseStyle;
+import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.function.Consumer2;
+import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.function.NoiseProvider3;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
+import com.volmit.iris.util.noise.SimplexNoise;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 
 public class IrisInterpolation {
@@ -300,25 +307,68 @@ public class IrisInterpolation {
         //@done
     }
 
-    public static double getStarcast(int x, int z, double rad, double checks, NoiseProvider n) {
-        double m = (360 / checks);
-        double v = 0;
+    public static void test(String m, Consumer2<Integer, Integer> f)
+    {
+        PrecisionStopwatch p = PrecisionStopwatch.start();
 
+        for(int i = 0; i < 8192; i++)
+        {
+            f.accept(i, -i * 234);
+        }
+
+        p.end();
+
+        System.out.println(m + ": " + Form.duration(p.getMilliseconds(), 8));
+    }
+
+    public static void main(String[] args) {
+        CNG cng = new CNG(new RNG());
+        NoiseProvider n = cng::noise;
+        System.out.println(generateOptimizedStarcast(3));
+        System.out.println(generateOptimizedStarcast(5));
+        System.out.println(generateOptimizedStarcast(6));
+        System.out.println(generateOptimizedStarcast(7));
+        System.out.println(generateOptimizedStarcast(9));
+        System.out.println(generateOptimizedStarcast(12));
+        System.out.println(generateOptimizedStarcast(24));
+        System.out.println(generateOptimizedStarcast(32));
+        System.out.println(generateOptimizedStarcast(48));
+        System.out.println(generateOptimizedStarcast(64));
+        System.out.println(generateOptimizedStarcast(72));
+        System.out.println(generateOptimizedStarcast(96));
+        System.out.println(generateOptimizedStarcast(128));
+        System.out.println(generateOptimizedStarcast(186));
+        System.out.println(generateOptimizedStarcast(256));
+    }
+
+    public static String generateOptimizedStarcast(double checks) {
+        double m = (360 / checks);
+        int ig = 0;
+        int igx = 0;
+        StringBuilder fb = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
+        fb.append("private static final double[] F"+(int)checks+"A = {");
+        sb.append("private static double sc"+(int)checks+"(int x, int z, double r, NoiseProvider n) {\n    return (");
         for (int i = 0; i < 360; i += m) {
             double sin = Math.sin(Math.toRadians(i));
             double cos = Math.cos(Math.toRadians(i));
-            double cx = x + ((rad * cos) - (rad * sin));
-            double cz = z + ((rad * sin) + (rad * cos));
-            v += n.noise(cx, cz);
+            String cof = new BigDecimal(cos).toPlainString();
+            String sif = new BigDecimal(sin).toPlainString();
+            String cc = "F"+(int)checks+"A["+(igx++)+"]";
+            String ss = "F"+(int)checks+"A["+(igx++)+"]";
+            fb.append((ig > 0 ? (ig % 3 == 0 ? ",\n" : ",") : "") + cof + "," + sif);
+            sb.append( (ig > 0 ? "\n    +" : "") + "n.noise(x + ((r * "+ cc +") - (r * "+ss+")), z + ((r * "+ss+") + (r * "+cc+")))");
+            ig++;
         }
-
-        return v / checks;
+        fb.append("};");
+        sb.append(")/"+checks+"D;\n}");
+        return fb + "\n" + sb;
     }
 
     public static double getStarcast3D(int x, int y, int z, double rad, double checks, NoiseProvider3 n) {
-        return (getStarcast(x, z, rad, checks, (xx, zz) -> n.noise(xx, y, zz))
-                + getStarcast(x, y, rad, checks, (xx, yy) -> n.noise(xx, yy, z))
-                + getStarcast(y, z, rad, checks, (yy, zz) -> n.noise(x, yy, zz))) / 3D;
+        return (Starcast.starcast(x, z, rad, checks, (xx, zz) -> n.noise(xx, y, zz))
+                + Starcast.starcast(x, y, rad, checks, (xx, yy) -> n.noise(xx, yy, z))
+                + Starcast.starcast(y, z, rad, checks, (yy, zz) -> n.noise(x, yy, zz))) / 3D;
     }
 
     public static double getBilinearBezierNoise(int x, int z, double rad, NoiseProvider n) {
@@ -910,29 +960,29 @@ public class IrisInterpolation {
         if (method.equals(InterpolationMethod.BILINEAR)) {
             return getBilinearNoise(x, z, h, n);
         } else if (method.equals(InterpolationMethod.STARCAST_3)) {
-            return getStarcast(x, z, h, 3D, n);
+            return Starcast.starcast(x, z, h, 3D, n);
         } else if (method.equals(InterpolationMethod.STARCAST_6)) {
-            return getStarcast(x, z, h, 6D, n);
+            return Starcast.starcast(x, z, h, 6D, n);
         } else if (method.equals(InterpolationMethod.STARCAST_9)) {
-            return getStarcast(x, z, h, 9D, n);
+            return Starcast.starcast(x, z, h, 9D, n);
         } else if (method.equals(InterpolationMethod.STARCAST_12)) {
-            return getStarcast(x, z, h, 12D, n);
+            return Starcast.starcast(x, z, h, 12D, n);
         } else if (method.equals(InterpolationMethod.BILINEAR_STARCAST_3)) {
-            return getStarcast(x, z, h, 3D, (xx, zz) -> getBilinearNoise((int) xx, (int) zz, h, n));
+            return Starcast.starcast(x, z, h, 3D, (xx, zz) -> getBilinearNoise((int) xx, (int) zz, h, n));
         } else if (method.equals(InterpolationMethod.BILINEAR_STARCAST_6)) {
-            return getStarcast(x, z, h, 6D, (xx, zz) -> getBilinearNoise((int) xx, (int) zz, h, n));
+            return Starcast.starcast(x, z, h, 6D, (xx, zz) -> getBilinearNoise((int) xx, (int) zz, h, n));
         } else if (method.equals(InterpolationMethod.BILINEAR_STARCAST_9)) {
-            return getStarcast(x, z, h, 9D, (xx, zz) -> getBilinearNoise((int) xx, (int) zz, h, n));
+            return Starcast.starcast(x, z, h, 9D, (xx, zz) -> getBilinearNoise((int) xx, (int) zz, h, n));
         } else if (method.equals(InterpolationMethod.BILINEAR_STARCAST_12)) {
-            return getStarcast(x, z, h, 12D, (xx, zz) -> getBilinearNoise((int) xx, (int) zz, h, n));
+            return Starcast.starcast(x, z, h, 12D, (xx, zz) -> getBilinearNoise((int) xx, (int) zz, h, n));
         } else if (method.equals(InterpolationMethod.HERMITE_STARCAST_3)) {
-            return getStarcast(x, z, h, 3D, (xx, zz) -> getHermiteNoise((int) xx, (int) zz, h, n, 0D, 0D));
+            return Starcast.starcast(x, z, h, 3D, (xx, zz) -> getHermiteNoise((int) xx, (int) zz, h, n, 0D, 0D));
         } else if (method.equals(InterpolationMethod.HERMITE_STARCAST_6)) {
-            return getStarcast(x, z, h, 6D, (xx, zz) -> getHermiteNoise((int) xx, (int) zz, h, n, 0D, 0D));
+            return Starcast.starcast(x, z, h, 6D, (xx, zz) -> getHermiteNoise((int) xx, (int) zz, h, n, 0D, 0D));
         } else if (method.equals(InterpolationMethod.HERMITE_STARCAST_9)) {
-            return getStarcast(x, z, h, 9D, (xx, zz) -> getHermiteNoise((int) xx, (int) zz, h, n, 0D, 0D));
+            return Starcast.starcast(x, z, h, 9D, (xx, zz) -> getHermiteNoise((int) xx, (int) zz, h, n, 0D, 0D));
         } else if (method.equals(InterpolationMethod.HERMITE_STARCAST_12)) {
-            return getStarcast(x, z, h, 12D, (xx, zz) -> getHermiteNoise((int) xx, (int) zz, h, n, 0D, 0D));
+            return Starcast.starcast(x, z, h, 12D, (xx, zz) -> getHermiteNoise((int) xx, (int) zz, h, n, 0D, 0D));
         } else if (method.equals(InterpolationMethod.BILINEAR_BEZIER)) {
             return getBilinearBezierNoise(x, z, h, n);
         } else if (method.equals(InterpolationMethod.BILINEAR_PARAMETRIC_2)) {

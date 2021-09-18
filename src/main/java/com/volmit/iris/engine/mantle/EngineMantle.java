@@ -260,5 +260,6 @@ public interface EngineMantle extends IObjectPlacer {
     }
 
     MantleJigsawComponent getJigsawComponent();
+
     MantleObjectComponent getObjectComponent();
 }

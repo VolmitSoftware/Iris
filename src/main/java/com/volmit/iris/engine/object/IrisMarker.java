@@ -53,8 +53,7 @@ public class IrisMarker extends IrisRegistrant {
     @Desc("If this marker is used, what is the chance it removes itself. For example 25% (0.25) would mean that on average 4 uses will remove a specific marker. Set this below 0 (-1) to never exhaust & set this to 1 or higher to always exhaust on first use.")
     private double exhaustionChance = 0.33;
 
-    public boolean shouldExhaust()
-    {
+    public boolean shouldExhaust() {
         return RNG.r.chance(exhaustionChance);
     }
 

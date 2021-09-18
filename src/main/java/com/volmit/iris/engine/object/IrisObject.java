@@ -658,32 +658,26 @@ public class IrisObject extends IrisRegistrant {
         KMap<BlockVector, String> markers = null;
 
         try {
-            if(config.getMarkers().isNotEmpty() && placer.getEngine() != null)
-            {
+            if (config.getMarkers().isNotEmpty() && placer.getEngine() != null) {
                 markers = new KMap<>();
-                for(IrisObjectMarker j : config.getMarkers())
-                {
+                for (IrisObjectMarker j : config.getMarkers()) {
                     IrisMarker marker = getLoader().getMarkerLoader().load(j.getMarker());
 
-                    if(marker == null)
-                    {
+                    if (marker == null) {
                         continue;
                     }
 
                     int max = j.getMaximumMarkers();
 
-                    for(BlockVector i : getBlocks().k().shuffle())
-                    {
-                        if(max <= 0)
-                        {
+                    for (BlockVector i : getBlocks().k().shuffle()) {
+                        if (max <= 0) {
                             break;
                         }
 
                         BlockData data = getBlocks().get(i);
 
                         for (BlockData k : j.getMark(rdata)) {
-                            if(max <= 0)
-                            {
+                            if (max <= 0) {
                                 break;
                             }
 
@@ -691,8 +685,7 @@ public class IrisObject extends IrisRegistrant {
                                 boolean a = !blocks.containsKey(new BlockVector(i.clone().add(new BlockVector(0, 1, 0))));
                                 boolean fff = !blocks.containsKey(new BlockVector(i.clone().add(new BlockVector(0, 2, 0))));
 
-                                if((marker.isEmptyAbove() && a && fff) || !marker.isEmptyAbove())
-                                {
+                                if ((marker.isEmptyAbove() && a && fff) || !marker.isEmptyAbove()) {
                                     markers.put(i, j.getMarker());
                                     max--;
                                 }
@@ -787,9 +780,8 @@ public class IrisObject extends IrisRegistrant {
                     listener.accept(new BlockPosition(xx, yy, zz));
                 }
 
-                if(markers != null && markers.containsKey(g))
-                {
-                    placer.getEngine().getMantle().getMantle().set(xx,yy,zz,new MatterMarker(markers.get(g)));
+                if (markers != null && markers.containsKey(g)) {
+                    placer.getEngine().getMantle().getMantle().set(xx, yy, zz, new MatterMarker(markers.get(g)));
                 }
 
                 if (!data.getMaterial().equals(Material.AIR) && !data.getMaterial().equals(Material.CAVE_AIR)) {

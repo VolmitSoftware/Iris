@@ -19,17 +19,14 @@
 package com.volmit.iris.util.interpolation;
 
 import com.google.common.util.concurrent.AtomicDouble;
-import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.NoiseStyle;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer2;
-import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.function.NoiseProvider3;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
-import com.volmit.iris.util.noise.SimplexNoise;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
 import java.math.BigDecimal;
@@ -307,12 +304,10 @@ public class IrisInterpolation {
         //@done
     }
 
-    public static void test(String m, Consumer2<Integer, Integer> f)
-    {
+    public static void test(String m, Consumer2<Integer, Integer> f) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
 
-        for(int i = 0; i < 8192; i++)
-        {
+        for (int i = 0; i < 8192; i++) {
             f.accept(i, -i * 234);
         }
 
@@ -322,46 +317,59 @@ public class IrisInterpolation {
     }
 
     public static void main(String[] args) {
-        CNG cng = new CNG(new RNG());
-        NoiseProvider n = cng::noise;
-        System.out.println(generateOptimizedStarcast(3));
-        System.out.println(generateOptimizedStarcast(5));
-        System.out.println(generateOptimizedStarcast(6));
-        System.out.println(generateOptimizedStarcast(7));
-        System.out.println(generateOptimizedStarcast(9));
-        System.out.println(generateOptimizedStarcast(12));
-        System.out.println(generateOptimizedStarcast(24));
-        System.out.println(generateOptimizedStarcast(32));
-        System.out.println(generateOptimizedStarcast(48));
-        System.out.println(generateOptimizedStarcast(64));
-        System.out.println(generateOptimizedStarcast(72));
-        System.out.println(generateOptimizedStarcast(96));
-        System.out.println(generateOptimizedStarcast(128));
-        System.out.println(generateOptimizedStarcast(186));
-        System.out.println(generateOptimizedStarcast(256));
+        printOptimizedSrc(false);
+
     }
 
-    public static String generateOptimizedStarcast(double checks) {
+    public static void printOptimizedSrc(boolean arrays) {
+        System.out.println(generateOptimizedStarcast(3, arrays));
+        System.out.println(generateOptimizedStarcast(5, arrays));
+        System.out.println(generateOptimizedStarcast(6, arrays));
+        System.out.println(generateOptimizedStarcast(7, arrays));
+        System.out.println(generateOptimizedStarcast(9, arrays));
+        System.out.println(generateOptimizedStarcast(12, arrays));
+        System.out.println(generateOptimizedStarcast(24, arrays));
+        System.out.println(generateOptimizedStarcast(32, arrays));
+        System.out.println(generateOptimizedStarcast(48, arrays));
+        System.out.println(generateOptimizedStarcast(64, arrays));
+    }
+
+    public static String generateOptimizedStarcast(double checks, boolean array) {
         double m = (360 / checks);
         int ig = 0;
         int igx = 0;
         StringBuilder fb = new StringBuilder();
         StringBuilder sb = new StringBuilder();
-        fb.append("private static final double[] F"+(int)checks+"A = {");
-        sb.append("private static double sc"+(int)checks+"(int x, int z, double r, NoiseProvider n) {\n    return (");
+
+        if (array) {
+            fb.append("private static final double[] F" + (int) checks + "A = {");
+        }
+
+        sb.append("private static double sc" + (int) checks + "(int x, int z, double r, NoiseProvider n) {\n    return (");
         for (int i = 0; i < 360; i += m) {
             double sin = Math.sin(Math.toRadians(i));
             double cos = Math.cos(Math.toRadians(i));
             String cof = new BigDecimal(cos).toPlainString();
             String sif = new BigDecimal(sin).toPlainString();
-            String cc = "F"+(int)checks+"A["+(igx++)+"]";
-            String ss = "F"+(int)checks+"A["+(igx++)+"]";
-            fb.append((ig > 0 ? (ig % 3 == 0 ? ",\n" : ",") : "") + cof + "," + sif);
-            sb.append( (ig > 0 ? "\n    +" : "") + "n.noise(x + ((r * "+ cc +") - (r * "+ss+")), z + ((r * "+ss+") + (r * "+cc+")))");
+            String cc = array ? "F" + (int) checks + "A[" + (igx++) + "]" : "F" + (int) checks + "C" + ig;
+            String ss = array ? "F" + (int) checks + "A[" + (igx++) + "]" : "F" + (int) checks + "S" + ig;
+
+            if (array) {
+                fb.append((ig > 0 ? (ig % 6 == 0 ? ",\n" : ",") : "") + cof + "," + sif);
+            } else {
+                fb.append("private static final double " + cc + " = " + cof + ";\n");
+                fb.append("private static final double " + ss + " = " + sif + ";\n");
+            }
+
+            sb.append((ig > 0 ? "\n    +" : "") + "n.noise(x + ((r * " + cc + ") - (r * " + ss + ")), z + ((r * " + ss + ") + (r * " + cc + ")))");
             ig++;
         }
-        fb.append("};");
-        sb.append(")/"+checks+"D;\n}");
+
+        if (array) {
+            fb.append("};");
+        }
+
+        sb.append(")/" + checks + "D;\n}");
         return fb + "\n" + sb;
     }
 

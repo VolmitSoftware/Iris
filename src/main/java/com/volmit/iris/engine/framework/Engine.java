@@ -286,33 +286,19 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                         return;
                     }
                     boolean u = false;
-                    if(B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.DOWN).getBlockData()))
-                    {
+                    if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.DOWN).getBlockData())) {
+                        u = true;
+                    } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.WEST).getBlockData())) {
+                        u = true;
+                    } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.EAST).getBlockData())) {
+                        u = true;
+                    } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.SOUTH).getBlockData())) {
+                        u = true;
+                    } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.NORTH).getBlockData())) {
                         u = true;
                     }
 
-                    else if(B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.WEST).getBlockData()))
-                    {
-                        u = true;
-                    }
-
-                    else if(B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.EAST).getBlockData()))
-                    {
-                        u = true;
-                    }
-
-                    else if(B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.SOUTH).getBlockData()))
-                    {
-                        u = true;
-                    }
-
-                    else if(B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.NORTH).getBlockData()))
-                    {
-                        u = true;
-                    }
-
-                    if(u)
-                    {
+                    if (u) {
                         updates.compute(Cache.key(x & 15, z & 15), (k, vv) -> {
                             if (vv != null) {
                                 return Math.max(vv, y);
@@ -785,8 +771,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return getBiomeOrMantle(l.getBlockX(), l.getBlockY(), l.getBlockZ());
     }
 
-    default void gotoBiome(IrisBiome biome, Player player)
-    {
+    default void gotoBiome(IrisBiome biome, Player player) {
         Set<String> regionKeys = getDimension()
                 .getAllRegions(this).stream()
                 .filter((i) -> i.getAllBiomes(this).contains(biome))
@@ -794,31 +779,22 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 .collect(Collectors.toSet());
         Locator<IrisBiome> lb = Locator.surfaceBiome(biome.getLoadKey());
         Locator<IrisBiome> locator = (engine, chunk)
-                -> regionKeys.contains(getRegion((chunk.getX()<< 4) + 8, (chunk.getZ() << 4) + 8).getLoadKey())
+                -> regionKeys.contains(getRegion((chunk.getX() << 4) + 8, (chunk.getZ() << 4) + 8).getLoadKey())
                 && lb.matches(engine, chunk);
 
-        if(!regionKeys.isEmpty())
-        {
+        if (!regionKeys.isEmpty()) {
             locator.find(player);
-        }
-
-        else
-        {
+        } else {
             player.sendMessage(C.RED + biome.getName() + " is not in any defined regions!");
         }
     }
 
-    default void gotoJigsaw(IrisJigsawStructure s, Player player)
-    {
-        if(getDimension().getJigsawStructures().stream()
+    default void gotoJigsaw(IrisJigsawStructure s, Player player) {
+        if (getDimension().getJigsawStructures().stream()
                 .map(IrisJigsawStructurePlacement::getStructure)
-                .collect(Collectors.toSet()).contains(s.getLoadKey()))
-        {
+                .collect(Collectors.toSet()).contains(s.getLoadKey())) {
             Locator.jigsawStructure(s.getLoadKey()).find(player);
-        }
-
-        else
-        {
+        } else {
             Set<String> biomeKeys = getDimension().getAllBiomes(this).stream()
                     .filter((i) -> i.getJigsawStructures()
                             .stream()
@@ -835,33 +811,24 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
             Locator<IrisJigsawStructure> sl = Locator.jigsawStructure(s.getLoadKey());
             Locator<IrisBiome> locator = (engine, chunk) -> {
-                if(biomeKeys.contains(getSurfaceBiome((chunk.getX()<< 4) + 8, (chunk.getZ() << 4) + 8).getLoadKey()))
-                {
+                if (biomeKeys.contains(getSurfaceBiome((chunk.getX() << 4) + 8, (chunk.getZ() << 4) + 8).getLoadKey())) {
                     return sl.matches(engine, chunk);
-                }
-
-                else if(regionKeys.contains(getRegion((chunk.getX()<< 4) + 8, (chunk.getZ() << 4) + 8).getLoadKey()))
-                {
+                } else if (regionKeys.contains(getRegion((chunk.getX() << 4) + 8, (chunk.getZ() << 4) + 8).getLoadKey())) {
                     return sl.matches(engine, chunk);
                 }
                 return false;
             };
 
-            if(!regionKeys.isEmpty())
-            {
+            if (!regionKeys.isEmpty()) {
                 locator.find(player);
-            }
-
-            else
-            {
+            } else {
                 player.sendMessage(C.RED + s.getLoadKey() + " is not in any defined regions, biomes or dimensions!");
             }
         }
 
     }
 
-    default void gotoObject(String s, Player player)
-    {
+    default void gotoObject(String s, Player player) {
         Set<String> biomeKeys = getDimension().getAllBiomes(this).stream()
                 .filter((i) -> i.getObjects().stream().anyMatch((f) -> f.getPlace().contains(s)))
                 .map(IrisRegistrant::getLoadKey)
@@ -874,34 +841,24 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
         Locator<IrisObject> sl = Locator.object(s);
         Locator<IrisBiome> locator = (engine, chunk) -> {
-            if(biomeKeys.contains(getSurfaceBiome((chunk.getX()<< 4) + 8, (chunk.getZ() << 4) + 8).getLoadKey()))
-            {
+            if (biomeKeys.contains(getSurfaceBiome((chunk.getX() << 4) + 8, (chunk.getZ() << 4) + 8).getLoadKey())) {
                 return sl.matches(engine, chunk);
-            }
-
-            else if(regionKeys.contains(getRegion((chunk.getX()<< 4) + 8, (chunk.getZ() << 4) + 8).getLoadKey()))
-            {
+            } else if (regionKeys.contains(getRegion((chunk.getX() << 4) + 8, (chunk.getZ() << 4) + 8).getLoadKey())) {
                 return sl.matches(engine, chunk);
             }
 
             return false;
         };
 
-        if(!regionKeys.isEmpty())
-        {
+        if (!regionKeys.isEmpty()) {
             locator.find(player);
-        }
-
-        else
-        {
+        } else {
             player.sendMessage(C.RED + s + " is not in any defined regions or biomes!");
         }
     }
 
-    default void gotoRegion(IrisRegion r, Player player)
-    {
-        if(!getDimension().getAllRegions(this).contains(r))
-        {
+    default void gotoRegion(IrisRegion r, Player player) {
+        if (!getDimension().getAllRegions(this).contains(r)) {
             player.sendMessage(C.RED + r.getName() + " is not defined in the dimension!");
             return;
         }

@@ -34,7 +34,6 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.DataProvider;
-import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
@@ -291,14 +290,12 @@ public class IrisComplex implements DataProvider {
         return biome;
     }
 
-    private double interpolateGenerators(Engine engine, IrisInterpolator interpolator, KSet<IrisGenerator> generators, double x, double z, long seed)
-    {
-        if(generators.isEmpty())
-        {
+    private double interpolateGenerators(Engine engine, IrisInterpolator interpolator, KSet<IrisGenerator> generators, double x, double z, long seed) {
+        if (generators.isEmpty()) {
             return 0;
         }
 
-        double hi = interpolator.interpolate(x, z, (xx,zz) -> {
+        double hi = interpolator.interpolate(x, z, (xx, zz) -> {
             try {
                 IrisBiome bx = baseBiomeStream.get(xx, zz);
                 double b = 0;
@@ -317,7 +314,7 @@ public class IrisComplex implements DataProvider {
             return 0;
         });
 
-        double lo = interpolator.interpolate(x, z, (xx,zz) -> {
+        double lo = interpolator.interpolate(x, z, (xx, zz) -> {
             try {
                 IrisBiome bx = baseBiomeStream.get(xx, zz);
                 double b = 0;
@@ -338,8 +335,7 @@ public class IrisComplex implements DataProvider {
 
         double d = 0;
 
-        for(IrisGenerator i : generators)
-        {
+        for (IrisGenerator i : generators) {
             d += M.lerp(lo, hi, i.getHeight(x, z, seed + 239945));
         }
 

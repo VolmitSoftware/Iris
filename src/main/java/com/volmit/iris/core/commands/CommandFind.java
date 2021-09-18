@@ -38,8 +38,7 @@ public class CommandFind implements DecreeExecutor {
     ) {
         Engine e = engine();
 
-        if(e == null)
-        {
+        if (e == null) {
             sender().sendMessage(C.GOLD + "Not in an Iris World!");
             return;
         }
@@ -54,8 +53,7 @@ public class CommandFind implements DecreeExecutor {
     ) {
         Engine e = engine();
 
-        if(e == null)
-        {
+        if (e == null) {
             sender().sendMessage(C.GOLD + "Not in an Iris World!");
             return;
         }
@@ -70,8 +68,7 @@ public class CommandFind implements DecreeExecutor {
     ) {
         Engine e = engine();
 
-        if(e == null)
-        {
+        if (e == null) {
             sender().sendMessage(C.GOLD + "Not in an Iris World!");
             return;
         }
@@ -86,8 +83,7 @@ public class CommandFind implements DecreeExecutor {
     ) {
         Engine e = engine();
 
-        if(e == null)
-        {
+        if (e == null) {
             sender().sendMessage(C.GOLD + "Not in an Iris World!");
             return;
         }

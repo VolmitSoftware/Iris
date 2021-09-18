@@ -60,8 +60,7 @@ public class Spiral implements Iterable<Position2> {
         return p;
     }
 
-    public static Spiral from(Position2 p, long iterations)
-    {
+    public static Spiral from(Position2 p, long iterations) {
         return new Spiral(p, iterations);
     }
 

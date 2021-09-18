@@ -113,8 +113,7 @@ public class IrisEntitySpawn implements IRare {
         World world = gen.getWorld().realWorld();
         if (spawns > 0) {
 
-            if(referenceMarker != null)
-            {
+            if (referenceMarker != null) {
                 gen.getMantle().getMantle().remove(c.getX(), c.getY(), c.getZ(), MatterMarker.class);
             }
 
@@ -158,7 +157,7 @@ public class IrisEntitySpawn implements IRare {
         return spawn100(g, at, false);
     }
 
-        private Entity spawn100(Engine g, Location at, boolean ignoreSurfaces) {
+    private Entity spawn100(Engine g, Location at, boolean ignoreSurfaces) {
         try {
             IrisEntity irisEntity = getRealEntity(g);
 

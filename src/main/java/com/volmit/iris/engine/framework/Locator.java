@@ -50,30 +50,25 @@ import java.util.function.Consumer;
 public interface Locator<T> {
     boolean matches(Engine engine, Position2 chunk);
 
-    static void cancelSearch()
-    {
-        if(LocatorCanceller.cancel != null)
-        {
+    static void cancelSearch() {
+        if (LocatorCanceller.cancel != null) {
             LocatorCanceller.cancel.run();
             LocatorCanceller.cancel = null;
         }
     }
 
-    default void find(Player player)
-    {
+    default void find(Player player) {
         find(player, 30_000);
     }
 
-    default void find(Player player, long timeout)
-    {
+    default void find(Player player, long timeout) {
         AtomicLong checks = new AtomicLong();
         long ms = M.ms();
         new SingleJob("Searching", () -> {
             try {
                 Position2 at = find(IrisToolbelt.access(player.getWorld()).getEngine(), new Position2(player.getLocation().getBlockX() >> 4, player.getLocation().getBlockZ() >> 4), timeout, checks::set).get();
 
-                if(at != null)
-                {
+                if (at != null) {
                     J.s(() -> player.teleport(new Location(player.getWorld(), (at.getX() << 4) + 8,
                             IrisToolbelt.access(player.getWorld()).getEngine().getHeight(
                                     (at.getX() << 4) + 8,
@@ -83,7 +78,7 @@ public interface Locator<T> {
             } catch (WrongEngineBroException | InterruptedException | ExecutionException e) {
                 e.printStackTrace();
             }
-        }){
+        }) {
             @Override
             public String getName() {
                 return "Searched " + Form.f(checks.get()) + " Chunks";
@@ -96,14 +91,13 @@ public interface Locator<T> {
 
             @Override
             public int getWorkCompleted() {
-                return (int) Math.min(M.ms() - ms, timeout-1);
+                return (int) Math.min(M.ms() - ms, timeout - 1);
             }
         }.execute(new VolmitSender(player));
     }
 
     default Future<Position2> find(Engine engine, Position2 pos, long timeout, Consumer<Integer> checks) throws WrongEngineBroException {
-        if(engine.isClosed())
-        {
+        if (engine.isClosed()) {
             throw new WrongEngineBroException();
         }
 
@@ -123,19 +117,15 @@ public interface Locator<T> {
             Spiraler s = new Spiraler(100000, 100000, (x, z) -> next.set(new Position2(x, z)));
             s.setOffset(cursor.getX(), cursor.getZ());
             s.next();
-            while(!found.get() && !stop.get() && px.getMilliseconds() < timeout)
-            {
+            while (!found.get() && !stop.get() && px.getMilliseconds() < timeout) {
                 BurstExecutor e = burst.burst(tc);
 
-                for(int i = 0; i < tc; i++)
-                {
+                for (int i = 0; i < tc; i++) {
                     Position2 p = next.get();
                     s.next();
                     e.queue(() -> {
-                        if(matches(engine, p))
-                        {
-                            if(foundPos.get() == null)
-                            {
+                        if (matches(engine, p)) {
+                            if (foundPos.get() == null) {
                                 foundPos.set(p);
                             }
 
@@ -151,8 +141,7 @@ public interface Locator<T> {
 
             LocatorCanceller.cancel = null;
 
-            if(found.get() && foundPos.get() != null)
-            {
+            if (found.get() && foundPos.get() != null) {
                 return foundPos.get();
             }
 
@@ -160,47 +149,39 @@ public interface Locator<T> {
         });
     }
 
-    static Locator<IrisRegion> region(String loadKey)
-    {
+    static Locator<IrisRegion> region(String loadKey) {
         return (e, c) -> e.getRegion((c.getX() << 4) + 8, (c.getZ() << 4) + 8).getLoadKey().equals(loadKey);
     }
 
-    static Locator<IrisJigsawStructure> jigsawStructure(String loadKey)
-    {
+    static Locator<IrisJigsawStructure> jigsawStructure(String loadKey) {
         return (e, c) -> {
             IrisJigsawStructure s = e.getStructureAt(c.getX(), c.getZ());
             return s != null && s.getLoadKey().equals(loadKey);
         };
     }
 
-    static Locator<IrisObject> object(String loadKey)
-    {
+    static Locator<IrisObject> object(String loadKey) {
         return (e, c) -> e.getObjectsAt(c.getX(), c.getZ()).contains(loadKey);
     }
 
-    static Locator<IrisBiome> surfaceBiome(String loadKey)
-    {
+    static Locator<IrisBiome> surfaceBiome(String loadKey) {
         return (e, c) -> e.getSurfaceBiome((c.getX() << 4) + 8, (c.getZ() << 4) + 8).getLoadKey().equals(loadKey);
     }
 
-    static Locator<IrisBiome> caveBiome(String loadKey)
-    {
+    static Locator<IrisBiome> caveBiome(String loadKey) {
         return (e, c) -> e.getCaveBiome((c.getX() << 4) + 8, (c.getZ() << 4) + 8).getLoadKey().equals(loadKey);
     }
 
-    static Locator<IrisBiome> caveOrMantleBiome(String loadKey)
-    {
+    static Locator<IrisBiome> caveOrMantleBiome(String loadKey) {
         return (e, c) -> {
             AtomicBoolean found = new AtomicBoolean(false);
             e.generateMatter(c.getX(), c.getZ(), true);
-            e.getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x,y,z,t) ->{
-                if(found.get())
-                {
+            e.getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, y, z, t) -> {
+                if (found.get()) {
                     return;
                 }
 
-                if(t != null && t.getCustomBiome().equals(loadKey))
-                {
+                if (t != null && t.getCustomBiome().equals(loadKey)) {
                     found.set(true);
                 }
             });

@@ -199,7 +199,7 @@ public class IrisEngine implements Engine {
         var bodies = new IrisBodyModifier(this);
         var perfection = new IrisPerfectionModifier(this);
 
-        registerStage((x, z, k, p, m) -> warmupChunk(x>>4, z>>4));
+        registerStage((x, z, k, p, m) -> warmupChunk(x >> 4, z >> 4));
         registerStage((x, z, k, p, m) -> generateMatter(x >> 4, z >> 4, m));
         registerStage((x, z, k, p, m) -> terrain.actuate(x, z, k, m));
         registerStage((x, z, k, p, m) -> biome.actuate(x, z, p, m));
@@ -228,14 +228,12 @@ public class IrisEngine implements Engine {
     }
 
     private void warmupChunk(int x, int z) {
-        for(int i = 0; i < 16; i++)
-        {
-            for(int j = 0; j < 16; j++)
-            {
+        for (int i = 0; i < 16; i++) {
+            for (int j = 0; j < 16; j++) {
                 int xx = x + (i << 4);
                 int zz = z + (z << 4);
-                getComplex().getTrueBiomeStream().get(xx,zz);
-                getComplex().getHeightStream().get(xx,zz);
+                getComplex().getTrueBiomeStream().get(xx, zz);
+                getComplex().getHeightStream().get(xx, zz);
             }
         }
     }

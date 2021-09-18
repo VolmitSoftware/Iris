@@ -243,8 +243,7 @@ public class PlannedPiece {
 
             @Override
             public Engine getEngine() {
-                if(IrisToolbelt.isIrisWorld(world))
-                {
+                if (IrisToolbelt.isIrisWorld(world)) {
                     return IrisToolbelt.access(world).getEngine();
                 }
 

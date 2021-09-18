@@ -118,8 +118,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 }
 
                 if (getEngine().getWorld().hasRealWorld()) {
-                    if(getEngine().getWorld().getPlayers().isEmpty())
-                    {
+                    if (getEngine().getWorld().getPlayers().isEmpty()) {
                         return 5000;
                     }
 
@@ -303,7 +302,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             IrisSpawner s = new KList<>(spawners).getRandom();
             spawn(block, s, false);
             J.a(() -> getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.INITIAL_SPAWNED_MARKER,
-                () -> spawn(block, s, true)));
+                    () -> spawn(block, s, true)));
         });
 
         if (v != null && v.getReferenceSpawner() != null) {
@@ -492,22 +491,19 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         Map<IrisPosition, KSet<IrisSpawner>> p = new KMap<>();
         Set<IrisPosition> b = new KSet<>();
         getMantle().iterateChunk(c.getX(), c.getZ(), MatterMarker.class, (x, y, z, t) -> {
-            if(t.getTag().equals("cave_floor") || t.getTag().equals("cave_ceiling"))
-            {
+            if (t.getTag().equals("cave_floor") || t.getTag().equals("cave_ceiling")) {
                 return;
             }
 
             IrisMarker mark = getData().getMarkerLoader().load(t.getTag());
             IrisPosition pos = new IrisPosition((c.getX() << 4) + x, y, (c.getZ() << 4) + z);
 
-            if(mark.isEmptyAbove())
-            {
+            if (mark.isEmptyAbove()) {
                 AtomicBoolean remove = new AtomicBoolean(false);
 
                 try {
                     J.sfut(() -> {
-                        if(c.getBlock(x, y+1, z).getBlockData().getMaterial().isSolid() || c.getBlock(x, y+2, z).getBlockData().getMaterial().isSolid())
-                        {
+                        if (c.getBlock(x, y + 1, z).getBlockData().getMaterial().isSolid() || c.getBlock(x, y + 2, z).getBlockData().getMaterial().isSolid()) {
                             remove.set(true);
                         }
                     }).get();
@@ -515,8 +511,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                     e.printStackTrace();
                 }
 
-                if(remove.get())
-                {
+                if (remove.get()) {
                     b.add(pos);
                     return;
                 }
@@ -534,8 +529,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             }
         });
 
-        for(IrisPosition i : b)
-        {
+        for (IrisPosition i : b) {
             getEngine().getMantle().getMantle().remove(i.getX(), i.getY(), i.getZ(), MatterMarker.class);
         }
 
@@ -550,8 +544,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 MatterMarker marker = getMantle().get(e.getBlock().getX(), e.getBlock().getY(), e.getBlock().getZ(), MatterMarker.class);
 
                 if (marker != null) {
-                    if(marker.getTag().equals("cave_floor") || marker.getTag().equals("cave_ceiling"))
-                    {
+                    if (marker.getTag().equals("cave_floor") || marker.getTag().equals("cave_ceiling")) {
                         return;
                     }
 

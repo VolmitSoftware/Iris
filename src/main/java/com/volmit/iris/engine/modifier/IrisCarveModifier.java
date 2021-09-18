@@ -43,9 +43,6 @@ import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
-import java.util.Objects;
-import java.util.function.Supplier;
-
 public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     private final RNG rng;
     private final BlockData AIR = Material.CAVE_AIR.createBlockData();

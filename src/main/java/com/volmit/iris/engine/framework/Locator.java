@@ -18,10 +18,8 @@
 
 package com.volmit.iris.engine.framework;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisJigsawStructure;
 import com.volmit.iris.engine.object.IrisObject;
@@ -29,7 +27,6 @@ import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
-import com.volmit.iris.util.math.Spiral;
 import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.parallel.BurstExecutor;

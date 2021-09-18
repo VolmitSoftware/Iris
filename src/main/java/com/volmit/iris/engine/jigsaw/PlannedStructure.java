@@ -20,7 +20,6 @@ package com.volmit.iris.engine.jigsaw;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.edit.JigsawEditor;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.object.IObjectPlacer;

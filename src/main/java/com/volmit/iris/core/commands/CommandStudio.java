@@ -39,7 +39,6 @@ import com.volmit.iris.engine.object.IrisLootTable;
 import com.volmit.iris.engine.object.IrisNoiseGenerator;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
-import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.engine.object.IrisScript;
 import com.volmit.iris.engine.object.NoiseStyle;

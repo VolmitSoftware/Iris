@@ -18,16 +18,9 @@
 
 package com.volmit.iris.core.commands;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.core.edit.JigsawEditor;
-import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.jigsaw.PlannedStructure;
 import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisJigsawPiece;
 import com.volmit.iris.engine.object.IrisJigsawStructure;
-import com.volmit.iris.engine.object.IrisObject;
-import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;

@@ -27,7 +27,6 @@ import com.volmit.iris.util.io.IORunnable;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 public class HyperLock {

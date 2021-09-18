@@ -26,6 +26,7 @@ import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.MultipleOfNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
@@ -157,6 +158,11 @@ public class IrisDimension extends IrisRegistrant {
     @MaxNumber(255)
     @Desc("The fluid height for this dimension")
     private int fluidHeight = 63;
+    @MinNumber(-64)
+    @MaxNumber(320)
+    @MultipleOfNumber(16)
+    @Desc("The minimum y value that should be used to start generating the world.")
+    private int minY = 0;
     @RegistryListResource(IrisBiome.class)
     @Desc("Keep this either undefined or empty. Setting any biome name into this will force iris to only generate the specified biome. Great for testing.")
     private String focus = "";

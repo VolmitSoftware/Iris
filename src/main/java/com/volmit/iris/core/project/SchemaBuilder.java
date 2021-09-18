@@ -26,6 +26,7 @@ import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.MultipleOfNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListBlockType;
 import com.volmit.iris.engine.object.annotations.RegistryListFont;
 import com.volmit.iris.engine.object.annotations.RegistryListItemType;
@@ -198,6 +199,11 @@ public class SchemaBuilder {
                     prop.put("maximum", max);
                     description.add(SYMBOL_LIMIT__N + " Maximum allowed is " + max);
                 }
+                if (k.isAnnotationPresent(MultipleOfNumber.class)) {
+                    int mod = (int) k.getDeclaredAnnotation(MultipleOfNumber.class).value();
+                    prop.put("multipleOf", mod);
+                    description.add(SYMBOL_LIMIT__N + " Must be a multiple of " + mod);
+                }
             }
             case "number" -> {
                 fancyType = "Number";
@@ -210,6 +216,11 @@ public class SchemaBuilder {
                     double max = k.getDeclaredAnnotation(MaxNumber.class).value();
                     prop.put("maximum", max);
                     description.add(SYMBOL_LIMIT__N + " Maximum allowed is " + max);
+                }
+                if (k.isAnnotationPresent(MultipleOfNumber.class)) {
+                    double mod = (int) k.getDeclaredAnnotation(MultipleOfNumber.class).value();
+                    prop.put("multipleOf", mod);
+                    description.add(SYMBOL_LIMIT__N + " Must be a multiple of " + mod);
                 }
             }
             case "string" -> {

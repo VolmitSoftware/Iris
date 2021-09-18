@@ -53,8 +53,8 @@ public class HeadlessWorld {
                 .environment(dimension.getEnvironment())
                 .worldFolder(new File(worldName))
                 .seed(seed)
-                .maxHeight(256)
-                .minHeight(0)
+                .maxHeight(dimension.getMaxY())
+                .minHeight(dimension.getMinY())
                 .name(worldName)
                 .build();
         world.worldFolder().mkdirs();

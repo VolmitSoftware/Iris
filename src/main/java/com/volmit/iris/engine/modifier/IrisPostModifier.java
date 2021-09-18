@@ -71,7 +71,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         // Floating Nibs
         int g = 0;
 
-        if (h < 1) {
+        if (h < getEngine().getMinHeight()) {
             return;
         }
 
@@ -83,7 +83,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         if (g == 4 && isAir(x, h - 1, z, currentPostX, currentPostZ, currentData)) {
             setPostBlock(x, h, z, AIR, currentPostX, currentPostZ, currentData);
 
-            for (int i = h - 1; i > 0; i--) {
+            for (int i = h - 1; i > getEngine().getMinHeight(); i--) {
                 if (!isAir(x, i, z, currentPostX, currentPostZ, currentData)) {
                     h = i;
                     break;
@@ -283,12 +283,12 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
 
     public void setPostBlock(int x, int y, int z, BlockData d, int currentPostX, int currentPostZ, Hunk<BlockData> currentData) {
         if (y < currentData.getHeight()) {
-            currentData.set(x & 15, y, z & 15, d);
+            currentData.set(x & 15, y - getEngine().getMinHeight(), z & 15, d);
         }
     }
 
     public BlockData getPostBlock(int x, int y, int z, int cpx, int cpz, Hunk<BlockData> h) {
-        BlockData b = h.getClosest(x & 15, y, z & 15);
+        BlockData b = h.getClosest(x & 15, y - getEngine().getMinHeight(), z & 15);
 
         return b == null ? AIR : b;
     }

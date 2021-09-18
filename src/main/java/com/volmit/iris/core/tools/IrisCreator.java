@@ -112,6 +112,7 @@ public class IrisCreator {
         done.set(false);
         WorldCreator wc = new IrisWorldCreator()
                 .dimension(dimension)
+                .height(d.getMinY(), d.getMaxY())
                 .name(name)
                 .seed(seed)
                 .studio(studio)

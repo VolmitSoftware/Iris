@@ -68,14 +68,15 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 return;
             }
 
-            if (yy >= 256 || yy <= 0) { // Yes, skip bedrock
+            if (yy >= getEngine().getMaxHeight() || yy <= getEngine().getMinHeight()) { // Yes, skip bedrock
                 return;
             }
 
             int rx = xx & 15;
             int rz = zz & 15;
+            int ry = yy + getEngine().getMinHeight(); //Hunks start at 0 always because they arent real coords
 
-            BlockData current = output.get(rx, yy, rz);
+            BlockData current = output.get(rx, ry, rz);
 
             if (B.isFluid(current)) {
                 return;
@@ -83,20 +84,20 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
 
             positions.computeIfAbsent(Cache.key(rx, rz), (k) -> new KList<>()).qadd(yy);
 
-            if (rz < 15 && mantle.get(xx, yy, zz + 1, MatterCavern.class) == null) {
-                walls.put(new IrisPosition(rx, yy, rz + 1), c);
+            if (rz < 15 && mantle.get(xx, ry, zz + 1, MatterCavern.class) == null) {
+                walls.put(new IrisPosition(rx, ry, rz + 1), c);
             }
 
-            if (rx < 15 && mantle.get(xx + 1, yy, zz, MatterCavern.class) == null) {
-                walls.put(new IrisPosition(rx + 1, yy, rz), c);
+            if (rx < 15 && mantle.get(xx + 1, ry, zz, MatterCavern.class) == null) {
+                walls.put(new IrisPosition(rx + 1, ry, rz), c);
             }
 
-            if (rz > 0 && mantle.get(xx, yy, zz - 1, MatterCavern.class) == null) {
-                walls.put(new IrisPosition(rx, yy, rz - 1), c);
+            if (rz > 0 && mantle.get(xx, ry, zz - 1, MatterCavern.class) == null) {
+                walls.put(new IrisPosition(rx, ry, rz - 1), c);
             }
 
-            if (rx > 0 && mantle.get(xx - 1, yy, zz, MatterCavern.class) == null) {
-                walls.put(new IrisPosition(rx - 1, yy, rz), c);
+            if (rx > 0 && mantle.get(xx - 1, ry, zz, MatterCavern.class) == null) {
+                walls.put(new IrisPosition(rx - 1, ry, rz), c);
             }
 
             if (current.getMaterial().isAir()) {
@@ -104,11 +105,11 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             }
 
             if (c.isWater()) {
-                output.set(rx, yy, rz, WATER);
+                output.set(rx, ry, rz, WATER);
             } else if (c.isLava()) {
-                output.set(rx, yy, rz, LAVA);
+                output.set(rx, ry, rz, LAVA);
             } else {
-                output.set(rx, yy, rz, AIR);
+                output.set(rx, ry, rz, AIR);
             }
         };
 
@@ -142,7 +143,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             int buf = v.get(0) - 1;
 
             for (Integer i : v) {
-                if (i < 0 || i > 255) {
+                if (i < getEngine().getMinHeight() || i >= getEngine().getMaxHeight()) {
                     continue;
                 }
 

@@ -94,13 +94,13 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
                     getComplex().getHeightStream().get((cx << 4) + x, (cz << 4) + z)
             ))) - 7;
 
-            if (height <= 0) {
+            if (height <= getEngine().getMinHeight()) {
                 return;
             }
 
-            int i = Math.max(0, k.getMinHeight());
+            int i = Math.max(getEngine().getMinHeight(), k.getMinHeight());
             // TODO: WARNING HEIGHT
-            int a = Math.min(height, Math.min(256, k.getMaxHeight()));
+            int a = Math.min(height, Math.min(getEngine().getMaxHeight(), k.getMaxHeight()));
 
             if (i >= a) {
                 return;
@@ -117,7 +117,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
                 int ny = j.getBlockY() + h;
                 int nz = j.getBlockZ() + z;
 
-                if (ny > height || nx > 15 || nx < 0 || ny > 255 || ny < 0 || nz < 0 || nz > 15) {
+                if (ny > height || nx > 15 || nx < 0 || ny >= getEngine().getMaxHeight() || ny < getEngine().getMinHeight() || nz < 0 || nz > 15) {
                     continue;
                 }
 

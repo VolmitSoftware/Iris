@@ -144,7 +144,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             getEngine().generate(x << 4, z << 4, blocks, biomes, true);
             Iris.debug("Regenerated " + x + " " + z);
             int t = 0;
-            for (int i = getEngine().getHeight() >> 4; i >= 0; i--) {
+            for (int i = getEngine().getMaxHeight() >> 4; i >= getEngine().getMinHeight() >> 4; i--) {
                 if (!world.isChunkLoaded(x, z)) {
                     continue;
                 }
@@ -166,7 +166,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                     for (int xx = 0; xx < 16; xx++) {
                         for (int yy = 0; yy < 16; yy++) {
                             for (int zz = 0; zz < 16; zz++) {
-                                if (yy + (finalI << 4) >= engine.getHeight() || yy + (finalI << 4) < 0) {
+                                if (yy + (finalI << 4) >= engine.getMaxHeight() || yy + (finalI << 4) < engine.getMinHeight()) {
                                     continue;
                                 }
 

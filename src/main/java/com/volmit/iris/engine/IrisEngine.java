@@ -97,6 +97,7 @@ public class IrisEngine implements Engine {
     private EngineWorldManager worldManager;
     private volatile int parallelism;
     private volatile int minHeight;
+    private volatile int maxHeight;
     private boolean failing;
     private boolean closed;
     private int cacheId;
@@ -126,9 +127,10 @@ public class IrisEngine implements Engine {
         context = new IrisContext(this);
         cleaning = new AtomicBoolean(false);
         context.touch();
-        Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + 256 + " height) Seed: " + getSeedManager().getSeed());
+        minHeight = target.getDimension().getMinY();
+        maxHeight = target.getDimension().getMaxY();
+        Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + (maxHeight - minHeight) + " height) Seed: " + getSeedManager().getSeed());
         getData().setEngine(this);
-        minHeight = 0;
         failing = false;
         closed = false;
         art = J.ar(this::tickRandomPlayer, 0);

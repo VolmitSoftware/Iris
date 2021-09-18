@@ -83,8 +83,8 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
             realX = xf + x;
             realZ = zf + z;
             biome = getComplex().getTrueBiomeStream().get(realX, realZ);
-            he = (int) Math.round(Math.min(h.getHeight(), getComplex().getHeightStream().get(realX, realZ)));
-            hf = Math.round(Math.max(Math.min(h.getHeight(), getDimension().getFluidHeight()), he));
+            he = (int) Math.round(Math.min(h.getHeight(), getComplex().getHeightStream().get(realX, realZ) - getDimension().getMinY()));
+            hf = Math.round(Math.max(Math.min(h.getHeight(), getDimension().getFluidHeight() - getDimension().getMinY()), he));
 
             if (hf < 0) {
                 continue;
@@ -101,7 +101,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
 
                 if (i == 0) {
                     if (getDimension().isBedrock()) {
-                        h.set(xf, i, zf, BEDROCK);
+                        h.set(xf, i + getEngine().getMinHeight(), zf, BEDROCK);
                         lastBedrock = i;
                         continue;
                     }
@@ -115,11 +115,11 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                     }
 
                     if (fblocks.hasIndex(fdepth)) {
-                        h.set(xf, i, zf, fblocks.get(fdepth));
+                        h.set(xf, i + getEngine().getMinHeight(), zf, fblocks.get(fdepth));
                         continue;
                     }
 
-                    h.set(xf, i, zf, getComplex().getFluidStream().get(realX, +realZ));
+                    h.set(xf, i + getEngine().getMinHeight(), zf, getComplex().getFluidStream().get(realX, +realZ));
                     continue;
                 }
 
@@ -134,11 +134,11 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                     }
 
                     if (blocks.hasIndex(depth)) {
-                        h.set(xf, i, zf, blocks.get(depth));
+                        h.set(xf, i + getEngine().getMinHeight(), zf, blocks.get(depth));
                         continue;
                     }
 
-                    h.set(xf, i, zf, getComplex().getRockStream().get(realX, realZ));
+                    h.set(xf, i + getEngine().getMinHeight(), zf, getComplex().getRockStream().get(realX, realZ));
                 }
             }
         }

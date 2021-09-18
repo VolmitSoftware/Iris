@@ -163,6 +163,11 @@ public class IrisDimension extends IrisRegistrant {
     @MultipleOfNumber(16)
     @Desc("The minimum y value that should be used to start generating the world.")
     private int minY = 0;
+    @MinNumber(-64)
+    @MaxNumber(320)
+    @MultipleOfNumber(16)
+    @Desc("The minimum y value that should be used to start generating the world.")
+    private int maxY = 256;
     @RegistryListResource(IrisBiome.class)
     @Desc("Keep this either undefined or empty. Setting any biome name into this will force iris to only generate the specified biome. Great for testing.")
     private String focus = "";

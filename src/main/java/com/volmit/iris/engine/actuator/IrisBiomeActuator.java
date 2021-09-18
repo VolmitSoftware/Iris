@@ -84,19 +84,19 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
                             }
 
                             for (int i = 0; i < maxHeight; i++) {
-                                injectBiome(h, finalXf, i, zf, biomeBase);
+                                injectBiome(h, finalXf, i + getDimension().getMinY(), zf, biomeBase);
                             }
                         } catch (Throwable e) {
                             Iris.reportError(e);
                             Biome v = ib.getSkyBiome(rng, x, 0, z);
                             for (int i = 0; i < maxHeight; i++) {
-                                h.set(finalXf, i, zf, v);
+                                h.set(finalXf, i + getDimension().getMinY(), zf, v);
                             }
                         }
                     } else {
                         Biome v = ib.getSkyBiome(rng, x, 0, z);
                         for (int i = 0; i < maxHeight; i++) {
-                            h.set(finalXf, i, zf, v);
+                            h.set(finalXf, i + getDimension().getMinY(), zf, v);
                         }
                     }
                 }

@@ -143,6 +143,12 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     void setMinHeight(int min);
 
+    default int getMaxHeight() {
+        return getTarget().getWorld().maxHeight();
+    }
+
+    void setMaxHeight(int max);
+
     @BlockCoordinates
     default void generate(int x, int z, TerrainChunk tc, boolean multicore) throws WrongEngineBroException {
         generate(x, z, Hunk.view((ChunkGenerator.ChunkData) tc), Hunk.view((ChunkGenerator.BiomeGrid) tc), multicore);

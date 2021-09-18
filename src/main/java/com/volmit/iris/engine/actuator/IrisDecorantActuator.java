@@ -98,7 +98,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
                         getSeaSurfaceDecorator().decorate(finalI, j,
                                 realX, Math.round(+finalI + 1), Math.round(x + finalI - 1),
                                 realZ, Math.round(z + j + 1), Math.round(z + j - 1),
-                                output, biome, getDimension().getFluidHeight(), getEngine().getHeight());
+                                output, biome, getDimension().getFluidHeight(), getEngine().getMaxHeight());
                         getSeaFloorDecorator().decorate(finalI, j,
                                 realX, realZ, output, biome, height + 1,
                                 getDimension().getFluidHeight() + 1);
@@ -115,7 +115,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
 
 
                     if (cave != null && cave.getDecorators().isNotEmpty()) {
-                        for (int k = height; k > 0; k--) {
+                        for (int k = height; k > getDimension().getMinY(); k--) {
                             solid = PREDICATE_SOLID.test(output.get(finalI, k, j));
 
                             if (solid) {

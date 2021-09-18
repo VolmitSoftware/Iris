@@ -316,11 +316,6 @@ public class IrisInterpolation {
         System.out.println(m + ": " + Form.duration(p.getMilliseconds(), 8));
     }
 
-    public static void main(String[] args) {
-        printOptimizedSrc(false);
-
-    }
-
     public static void printOptimizedSrc(boolean arrays) {
         System.out.println(generateOptimizedStarcast(3, arrays));
         System.out.println(generateOptimizedStarcast(5, arrays));

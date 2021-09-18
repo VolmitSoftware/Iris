@@ -22,12 +22,15 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class IrisPerfectionModifier extends EngineAssignedModifier<BlockData> {
     private static final BlockData AIR = B.get("AIR");
@@ -40,76 +43,79 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<BlockData> {
     @Override
     public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        boolean changed = true;
+        AtomicBoolean changed = new AtomicBoolean(true);
         int passes = 0;
-        int changes = 0;
+        AtomicInteger changes = new AtomicInteger();
         List<Integer> surfaces = new ArrayList<>();
         List<Integer> ceilings = new ArrayList<>();
-
-        while (changed) {
+        BurstExecutor burst = burst().burst(multicore);
+        while (changed.get()) {
             passes++;
-            changed = false;
+            changed.set(false);
             for (int i = 0; i < 16; i++) {
-                for (int j = 0; j < 16; j++) {
-                    surfaces.clear();
-                    ceilings.clear();
-                    int top = getHeight(output, i, j);
-                    boolean inside = true;
-                    surfaces.add(top);
+                int finalI = i;
+                burst.queue(() -> {
+                    for (int j = 0; j < 16; j++) {
+                        surfaces.clear();
+                        ceilings.clear();
+                        int top = getHeight(output, finalI, j);
+                        boolean inside = true;
+                        surfaces.add(top);
 
-                    for (int k = top; k >= 0; k--) {
-                        BlockData b = output.get(i, k, j);
-                        boolean now = b != null && !(B.isAir(b) || B.isFluid(b));
+                        for (int k = top; k >= 0; k--) {
+                            BlockData b = output.get(finalI, k, j);
+                            boolean now = b != null && !(B.isAir(b) || B.isFluid(b));
 
-                        if (now != inside) {
-                            inside = now;
+                            if (now != inside) {
+                                inside = now;
 
-                            if (inside) {
-                                surfaces.add(k);
-                            } else {
-                                ceilings.add(k + 1);
+                                if (inside) {
+                                    surfaces.add(k);
+                                } else {
+                                    ceilings.add(k + 1);
+                                }
                             }
                         }
-                    }
 
-                    for (int k : surfaces) {
-                        BlockData tip = output.get(i, k, j);
+                        for (int k : surfaces) {
+                            BlockData tip = output.get(finalI, k, j);
 
-                        if (tip == null) {
-                            continue;
-                        }
+                            if (tip == null) {
+                                continue;
+                            }
 
-                        boolean remove = false;
-                        boolean remove2 = false;
+                            boolean remove = false;
+                            boolean remove2 = false;
 
-                        if (B.isDecorant(tip)) {
-                            BlockData bel = output.get(i, k - 1, j);
+                            if (B.isDecorant(tip)) {
+                                BlockData bel = output.get(finalI, k - 1, j);
 
-                            if (bel == null) {
-                                remove = true;
-                            } else if (!B.canPlaceOnto(tip.getMaterial(), bel.getMaterial())) {
-                                remove = true;
-                            } else if (bel instanceof Bisected) {
-                                BlockData bb = output.get(i, k - 2, j);
-                                if (bb == null || !B.canPlaceOnto(bel.getMaterial(), bb.getMaterial())) {
+                                if (bel == null) {
                                     remove = true;
-                                    remove2 = true;
+                                } else if (!B.canPlaceOnto(tip.getMaterial(), bel.getMaterial())) {
+                                    remove = true;
+                                } else if (bel instanceof Bisected) {
+                                    BlockData bb = output.get(finalI, k - 2, j);
+                                    if (bb == null || !B.canPlaceOnto(bel.getMaterial(), bb.getMaterial())) {
+                                        remove = true;
+                                        remove2 = true;
+                                    }
                                 }
-                            }
 
-                            if (remove) {
-                                changed = true;
-                                changes++;
-                                output.set(i, k, j, AIR);
+                                if (remove) {
+                                    changed.set(true);
+                                    changes.getAndIncrement();
+                                    output.set(finalI, k, j, AIR);
 
-                                if (remove2) {
-                                    changes++;
-                                    output.set(i, k - 1, j, AIR);
+                                    if (remove2) {
+                                        changes.getAndIncrement();
+                                        output.set(finalI, k - 1, j, AIR);
+                                    }
                                 }
                             }
                         }
                     }
-                }
+                });
             }
         }
 

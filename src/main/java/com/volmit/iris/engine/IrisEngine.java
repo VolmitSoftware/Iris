@@ -37,7 +37,6 @@ import com.volmit.iris.engine.framework.EngineWorldManager;
 import com.volmit.iris.engine.framework.SeedManager;
 import com.volmit.iris.engine.framework.WrongEngineBroException;
 import com.volmit.iris.engine.mantle.EngineMantle;
-import com.volmit.iris.engine.modifier.IrisBodyModifier;
 import com.volmit.iris.engine.modifier.IrisCarveModifier;
 import com.volmit.iris.engine.modifier.IrisDepositModifier;
 import com.volmit.iris.engine.modifier.IrisPerfectionModifier;
@@ -196,7 +195,6 @@ public class IrisEngine implements Engine {
         var cave = new IrisCarveModifier(this);
         var post = new IrisPostModifier(this);
         var deposit = new IrisDepositModifier(this);
-        var bodies = new IrisBodyModifier(this);
         var perfection = new IrisPerfectionModifier(this);
 
         registerStage((x, z, k, p, m) -> warmupChunk(x >> 4, z >> 4));
@@ -204,7 +202,6 @@ public class IrisEngine implements Engine {
         registerStage((x, z, k, p, m) -> terrain.actuate(x, z, k, m));
         registerStage((x, z, k, p, m) -> biome.actuate(x, z, p, m));
         registerStage((x, z, k, p, m) -> cave.modify(x >> 4, z >> 4, k, m));
-        registerStage((x, z, k, p, m) -> bodies.modify(x >> 4, z >> 4, k, m));
         registerStage((x, z, k, p, m) -> decorant.actuate(x, z, k, m));
         registerStage((x, z, k, p, m) -> post.modify(x, z, k, m));
         registerStage((x, z, k, p, m) -> deposit.modify(x, z, k, m));

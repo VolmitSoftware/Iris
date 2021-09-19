@@ -93,11 +93,9 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdater, Renderer, Hotloadable {
-    KList<EngineStage> getStages();
-
-    void registerStage(EngineStage stage);
-
     IrisComplex getComplex();
+
+    EngineMode getMode();
 
     int getBlockUpdatesPerSecond();
 

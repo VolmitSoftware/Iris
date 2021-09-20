@@ -24,6 +24,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.loader.ResourceLoader;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBlockData;
@@ -46,6 +47,7 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
@@ -227,12 +229,6 @@ public class IrisProject {
             close();
         }
 
-        boolean hasError = false;
-
-        if (hasError) {
-            return;
-        }
-
         IrisDimension d = IrisData.loadAnyDimension(getName());
         if (d == null) {
             sender.sendMessage("Can't find dimension: " + getName());
@@ -243,7 +239,7 @@ public class IrisProject {
 
         openVSCode(sender);
 
-
+        Iris.service(StudioSVC.class).setOpening(true);
         J.a(() -> {
             try {
                 activeProvider = (PlatformChunkGenerator) IrisToolbelt.createWorld()
@@ -254,6 +250,7 @@ public class IrisProject {
                         .dimension(d.getLoadKey())
                         .create().getGenerator();
                 onDone.accept(activeProvider.getTarget().getWorld().realWorld());
+                Iris.service(StudioSVC.class).setOpening(false);
             } catch (IrisException e) {
                 e.printStackTrace();
             }

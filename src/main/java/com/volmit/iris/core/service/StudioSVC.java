@@ -38,6 +38,8 @@ import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
+import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.zeroturnaround.zip.ZipUtil;
@@ -51,6 +53,9 @@ import java.util.function.Consumer;
 public class StudioSVC implements IrisService {
     public static final String LISTING = "https://raw.githubusercontent.com/IrisDimensions/_listing/main/listing-v2.json";
     public static final String WORKSPACE_NAME = "packs";
+    @Getter
+    @Setter
+    public static boolean isOpening = false;
     private static final AtomicCache<Integer> counter = new AtomicCache<>();
     private final KMap<String, String> cacheListing = null;
     private IrisProject activeProject;

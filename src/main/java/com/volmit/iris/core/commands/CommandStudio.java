@@ -122,6 +122,10 @@ public class CommandStudio implements DecreeExecutor {
                     IrisDimension dimension,
             @Param(defaultValue = "1337", description = "The seed to generate the studio with", aliases = "s")
                     long seed) {
+        if (StudioSVC.isOpening()){
+            sender().sendMessage(C.RED + "Already opening studio world. Please be patient.");
+            return;
+        }
         sender().sendMessage(C.GREEN + "Opening studio for the \"" + dimension.getName() + "\" pack (seed: " + seed + ")");
         Iris.service(StudioSVC.class).open(sender(), seed, dimension.getLoadKey());
     }

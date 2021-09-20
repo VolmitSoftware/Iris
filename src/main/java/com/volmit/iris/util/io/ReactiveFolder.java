@@ -89,4 +89,8 @@ public class ReactiveFolder {
 
         return fw.checkModified();
     }
+
+    public void clear() {
+        fw.clear();
+    }
 }

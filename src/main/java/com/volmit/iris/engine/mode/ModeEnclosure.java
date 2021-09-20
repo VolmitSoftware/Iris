@@ -16,28 +16,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.modifier;
+package com.volmit.iris.engine.mode;
 
+import com.volmit.iris.engine.actuator.IrisBiomeActuator;
+import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.EngineAssignedModifier;
-import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.math.RNG;
-import org.bukkit.Material;
-import org.bukkit.block.data.BlockData;
+import com.volmit.iris.engine.framework.EngineMode;
+import com.volmit.iris.engine.framework.IrisEngineMode;
 
-public class IrisBodyModifier extends EngineAssignedModifier<BlockData> {
-    private final RNG rng;
-    private final BlockData AIR = Material.CAVE_AIR.createBlockData();
-    private final BlockData WATER = Material.WATER.createBlockData();
-    private final BlockData LAVA = Material.LAVA.createBlockData();
+public class ModeEnclosure extends IrisEngineMode implements EngineMode {
+    public ModeEnclosure(Engine engine)
+    {
+        super(engine);
+        var terrain = new IrisTerrainNormalActuator(getEngine());
+        var biome = new IrisBiomeActuator(getEngine());
 
-    public IrisBodyModifier(Engine engine) {
-        super(engine, "Bodies");
-        rng = new RNG(getEngine().getSeedManager().getBodies());
-    }
-
-    @Override
-    public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore) {
-
+        registerStage(burst(
+            (x, z, k, p, m) -> terrain.actuate(x, z, k, m),
+            (x, z, k, p, m) -> biome.actuate(x, z, p, m)
+        ));
     }
 }

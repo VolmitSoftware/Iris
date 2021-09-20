@@ -27,10 +27,13 @@ import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.RNG;
+
+import java.util.Set;
 
 public class MantleObjectComponent extends IrisMantleComponent {
     public MantleObjectComponent(EngineMantle engineMantle) {
@@ -49,10 +52,13 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     @ChunkCoordinates
     private void placeObjects(MantleWriter writer, RNG rng, int x, int z, IrisBiome biome, IrisRegion region) {
+        long s = Cache.key(x, z) + seed();
+        RNG rnp = new RNG(s);
         for (IrisObjectPlacement i : biome.getSurfaceObjects()) {
             if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
                 try {
-                    placeObject(writer, rng, x << 4, z << 4, i);
+                    placeObject(writer, rnp, x << 4, z << 4, i);
+                    rnp.setSeed(s);
                 } catch (Throwable e) {
                     Iris.reportError(e);
                     Iris.error("Failed to place objects in the following biome: " + biome.getName());
@@ -66,7 +72,8 @@ public class MantleObjectComponent extends IrisMantleComponent {
         for (IrisObjectPlacement i : region.getSurfaceObjects()) {
             if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
                 try {
-                    placeObject(writer, rng, x << 4, z << 4, i);
+                    placeObject(writer, rnp, x << 4, z << 4, i);
+                    rnp.setSeed(s);
                 } catch (Throwable e) {
                     Iris.reportError(e);
                     Iris.error("Failed to place objects in the following region: " + region.getName());
@@ -92,5 +99,44 @@ public class MantleObjectComponent extends IrisMantleComponent {
                     (b) -> writer.setData(b.getX(), b.getY(), b.getZ(),
                             v.getLoadKey() + "@" + id), null, getData());
         }
+    }
+
+    @BlockCoordinates
+    private Set<String> guessPlacedKeys(RNG rng, int x, int z, IrisObjectPlacement objectPlacement) {
+        Set<String> f = new KSet<>();
+        for (int i = 0; i < objectPlacement.getDensity(); i++) {
+            IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(getComplex(), rng));
+            if (v == null) {
+                continue;
+            }
+
+            f.add(v.getLoadKey());
+        }
+
+        return f;
+    }
+
+    public Set<String> guess(int x, int z) {
+        RNG rng = new RNG(Cache.key(x, z) + seed());
+        long s = Cache.key(x, z) + seed();
+        RNG rngd = new RNG(s);
+        IrisBiome biome = getEngineMantle().getEngine().getSurfaceBiome((x << 4) + 8, (z << 4) + 8);
+        IrisRegion region = getEngineMantle().getEngine().getRegion((x << 4) + 8, (z << 4) + 8);
+        Set<String> v = new KSet<>();
+        for (IrisObjectPlacement i : biome.getSurfaceObjects()) {
+            if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
+                v.addAll(guessPlacedKeys(rngd, x, z, i));
+                rngd.setSeed(s);
+            }
+        }
+
+        for (IrisObjectPlacement i : region.getSurfaceObjects()) {
+            if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
+                v.addAll(guessPlacedKeys(rngd, x, z, i));
+                rngd.setSeed(s);
+            }
+        }
+
+        return v;
     }
 }

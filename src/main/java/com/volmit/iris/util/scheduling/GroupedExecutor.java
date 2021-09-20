@@ -85,7 +85,6 @@ public class GroupedExecutor {
 
     public void queue(String q, NastyRunnable r) {
         mirror.compute(q, (k, v) -> k == null || v == null ? 1 : v + 1);
-
         service.execute(() ->
         {
             try {
@@ -95,7 +94,7 @@ public class GroupedExecutor {
                 e.printStackTrace();
             }
 
-            mirror.compute(q, (k, v) -> v - 1);
+            mirror.computeIfPresent(q, (k, v) -> v - 1);
         });
     }
 

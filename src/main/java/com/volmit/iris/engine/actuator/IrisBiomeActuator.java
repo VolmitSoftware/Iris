@@ -72,7 +72,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
             burst.queue(() -> {
                 IrisBiome ib;
                 for (int zf = 0; zf < h.getDepth(); zf++) {
-                    ib = getComplex().getTrueBiomeStream().get(modX(finalXf + x), modZ(zf + z));
+                    ib = getComplex().getTrueBiomeStream().get(finalXf + x, zf + z);
                     int maxHeight = (int) (getComplex().getFluidHeight() + ib.getMaxWithObjectHeight(getData()));
                     if (ib.isCustom()) {
                         try {

@@ -82,6 +82,9 @@ public class IrisObjectPlacement {
     @MinNumber(0)
     @Desc("When bore is enabled, expand max-y of the cuboid it removes")
     private int boreExtendMaxY = 0;
+    @ArrayType(min = 1, type = IrisObjectMarker.class)
+    @Desc("Add markers to blocks in this object")
+    private KList<IrisObjectMarker> markers = new KList<>();
     @MaxNumber(64)
     @MinNumber(-1)
     @Desc("When bore is enabled, lower min-y of the cuboid it removes")

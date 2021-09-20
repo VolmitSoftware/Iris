@@ -136,4 +136,11 @@ public class FolderWatcher extends FileWatcher {
     public KList<File> getDeleted() {
         return deleted;
     }
+
+    public void clear() {
+        watchers.clear();
+        changed.clear();
+        deleted.clear();
+        created.clear();
+    }
 }

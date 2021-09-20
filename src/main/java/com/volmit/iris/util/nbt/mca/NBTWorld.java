@@ -117,7 +117,7 @@ public class NBTWorld {
     }
 
     public static CompoundTag getCompound(BlockData bd) {
-        return blockDataCache.computeIfAbsent(bd, BLOCK_DATA_COMPUTE).clone();
+        return blockDataCache.computeIfAbsent(bd, BLOCK_DATA_COMPUTE);
     }
 
     private static Map<Biome, Integer> computeBiomeIDs() {

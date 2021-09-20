@@ -38,6 +38,9 @@ import org.bukkit.World;
 @Desc("Represents an entity spawn during initial chunk generation")
 @Data
 public class IrisSpawner extends IrisRegistrant {
+
+    private transient IrisMarker referenceMarker;
+
     @ArrayType(min = 1, type = IrisEntitySpawn.class)
     @Desc("The entity spawns to add")
     private KList<IrisEntitySpawn> spawns = new KList<>();

@@ -49,11 +49,11 @@ public class CachedStream3D<T> extends BasicStream<T> implements ProceduralStrea
 
     @Override
     public T get(double x, double z) {
-        return cache.compute(new BlockPosition((int) x, -1, (int) z), (k, v) -> v != null ? v : stream.get((int) x, (int) z));
+        return cache.computeIfAbsent(new BlockPosition((int) x, -1, (int) z), (k) -> stream.get((int) x, (int) z));
     }
 
     @Override
     public T get(double x, double y, double z) {
-        return cache.compute(new BlockPosition((int) x, (int) y, (int) z), (k, v) -> v != null ? v : stream.get((int) x, (int) y, (int) z));
+        return cache.computeIfAbsent(new BlockPosition((int) x, (int) y, (int) z), (k) -> stream.get((int) x, (int) y, (int) z));
     }
 }

@@ -23,6 +23,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.service.ObjectSVC;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.service.WandSVC;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IObjectPlacer;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisObject;
@@ -137,6 +138,11 @@ public class CommandObject implements DecreeExecutor {
                 BlockState state = world.getBlockAt(xx, yy, zz).getState();
                 tile.toBukkitTry(state);
                 state.update();
+            }
+
+            @Override
+            public Engine getEngine() {
+                return null;
             }
         };
     }

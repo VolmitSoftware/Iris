@@ -55,6 +55,8 @@ public class IrisEngineMantle implements EngineMantle {
     private final KList<MantleComponent> components;
     private final int radius;
     private final AtomicCache<Integer> radCache = new AtomicCache<>();
+    private final MantleObjectComponent object;
+    private final MantleJigsawComponent jigsaw;
 
     public IrisEngineMantle(Engine engine) {
         this.engine = engine;
@@ -63,13 +65,25 @@ public class IrisEngineMantle implements EngineMantle {
         components = new KList<>();
         registerComponent(new MantleCarvingComponent(this));
         registerComponent(new MantleFluidBodyComponent(this));
-        registerComponent(new MantleJigsawComponent(this));
-        registerComponent(new MantleObjectComponent(this));
+        jigsaw = new MantleJigsawComponent(this);
+        registerComponent(jigsaw);
+        object = new MantleObjectComponent(this);
+        registerComponent(object);
     }
 
     @Override
     public void registerComponent(MantleComponent c) {
         components.add(c);
+    }
+
+    @Override
+    public MantleJigsawComponent getJigsawComponent() {
+        return jigsaw;
+    }
+
+    @Override
+    public MantleObjectComponent getObjectComponent() {
+        return object;
     }
 
     private KList<IrisRegion> getAllRegions() {
@@ -167,11 +181,7 @@ public class IrisEngineMantle implements EngineMantle {
             for (String i : objects) {
                 e.queue(() -> {
                     try {
-                        BlockVector bv = sizeCache.compute(i, (k, v) -> {
-                            if (v != null) {
-                                return v;
-                            }
-
+                        BlockVector bv = sizeCache.computeIfAbsent(i, (k) -> {
                             try {
                                 return IrisObject.sampleSize(getData().getObjectLoader().findFile(i));
                             } catch (IOException ex) {
@@ -207,11 +217,7 @@ public class IrisEngineMantle implements EngineMantle {
                 for (String j : entry.getValue()) {
                     e.queue(() -> {
                         try {
-                            BlockVector bv = sizeCache.compute(j, (k, v) -> {
-                                if (v != null) {
-                                    return v;
-                                }
-
+                            BlockVector bv = sizeCache.computeIfAbsent(j, (k) -> {
                                 try {
                                     return IrisObject.sampleSize(getData().getObjectLoader().findFile(j));
                                 } catch (IOException ioException) {

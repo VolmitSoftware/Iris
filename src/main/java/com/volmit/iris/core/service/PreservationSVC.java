@@ -48,6 +48,8 @@ public class PreservationSVC implements IrisService {
     public void dereference() {
         IrisContext.dereference();
         IrisData.dereference();
+        threads.removeWhere((i) -> !i.isAlive());
+        services.removeWhere(ExecutorService::isShutdown);
     }
 
     @Override

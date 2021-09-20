@@ -138,6 +138,7 @@ public class TreeSVC implements IrisService {
         List<BlockState> blockStateList = new KList<>();
         KMap<Location, BlockData> dataCache = new KMap<>();
         // TODO: REAL CLASSES!!!!
+
         IObjectPlacer placer = new IObjectPlacer() {
 
             @Override
@@ -197,6 +198,11 @@ public class TreeSVC implements IrisService {
             @Override
             public void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile) {
 
+            }
+
+            @Override
+            public Engine getEngine() {
+                return engine;
             }
         };
 

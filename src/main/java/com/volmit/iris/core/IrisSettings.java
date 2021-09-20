@@ -35,6 +35,7 @@ public class IrisSettings {
     public static transient IrisSettings settings;
     private IrisSettingsGeneral general = new IrisSettingsGeneral();
     private IrisSettingsGUI gui = new IrisSettingsGUI();
+    private IrisSettingsAutoconfiguration autoConfiguration = new IrisSettingsAutoconfiguration();
     private IrisSettingsGenerator generator = new IrisSettingsGenerator();
     private IrisSettingsConcurrency concurrency = new IrisSettingsConcurrency();
     private IrisSettingsStudio studio = new IrisSettingsStudio();
@@ -46,6 +47,13 @@ public class IrisSettings {
             case 0, 1, 2 -> 1;
             default -> Math.max(c, 2);
         };
+    }
+
+    @Data
+    public static class IrisSettingsAutoconfiguration {
+        public boolean configureSpigotTimeoutTime = true;
+        public boolean configurePaperWatchdogDelay = true;
+        public boolean autoRestartOnCustomBiomeInstall = true;
     }
 
     @Data

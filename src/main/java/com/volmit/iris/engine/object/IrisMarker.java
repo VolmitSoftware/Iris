@@ -24,6 +24,7 @@ import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -45,6 +46,16 @@ public class IrisMarker extends IrisRegistrant {
 
     @Desc("Remove this marker when the block it's assigned to is changed.")
     private boolean removeOnChange = true;
+
+    @Desc("If true, markers will only be placed here if there is 2 air blocks above it.")
+    private boolean emptyAbove = true;
+
+    @Desc("If this marker is used, what is the chance it removes itself. For example 25% (0.25) would mean that on average 4 uses will remove a specific marker. Set this below 0 (-1) to never exhaust & set this to 1 or higher to always exhaust on first use.")
+    private double exhaustionChance = 0.33;
+
+    public boolean shouldExhaust() {
+        return RNG.r.chance(exhaustionChance);
+    }
 
     @Override
     public String getFolderName() {

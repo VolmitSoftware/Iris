@@ -499,11 +499,7 @@ public class VolmitSender implements CommandSender {
 
     public void sendDecreeHelpNode(VirtualDecreeCommand i) {
         if (isPlayer() || s instanceof CommandDummy) {
-            sendMessageRaw(helpCache.compute(i.getPath(), (k, v) -> {
-                if (v != null) {
-                    return v;
-                }
-
+            sendMessageRaw(helpCache.computeIfAbsent(i.getPath(), (k) -> {
                 String newline = "<reset>\n";
 
                 /// Command

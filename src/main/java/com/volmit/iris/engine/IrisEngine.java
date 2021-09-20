@@ -31,13 +31,14 @@ import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineEffects;
 import com.volmit.iris.engine.framework.EngineMetrics;
+import com.volmit.iris.engine.framework.EngineMode;
 import com.volmit.iris.engine.framework.EngineStage;
 import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.framework.EngineWorldManager;
 import com.volmit.iris.engine.framework.SeedManager;
 import com.volmit.iris.engine.framework.WrongEngineBroException;
 import com.volmit.iris.engine.mantle.EngineMantle;
-import com.volmit.iris.engine.modifier.IrisBodyModifier;
+import com.volmit.iris.engine.mode.ModeOverworld;
 import com.volmit.iris.engine.modifier.IrisCarveModifier;
 import com.volmit.iris.engine.modifier.IrisDepositModifier;
 import com.volmit.iris.engine.modifier.IrisPerfectionModifier;
@@ -46,6 +47,7 @@ import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.engine.object.IrisEngineData;
+import com.volmit.iris.engine.object.IrisJigsawStructure;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.atomics.AtomicRollingSequence;
@@ -71,6 +73,7 @@ import org.bukkit.command.CommandSender;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -90,9 +93,9 @@ public class IrisEngine implements Engine {
     private final ChronoLatch perSecondBudLatch;
     private final EngineMetrics metrics;
     private final boolean studio;
-    private final KList<EngineStage> stages;
     private final AtomicRollingSequence wallClock;
     private final int art;
+    private EngineMode mode;
     private final AtomicCache<IrisEngineData> engineData = new AtomicCache<>();
     private final AtomicBoolean cleaning;
     private final ChronoLatch cleanLatch;
@@ -113,7 +116,6 @@ public class IrisEngine implements Engine {
     public IrisEngine(EngineTarget target, boolean studio) {
         this.studio = studio;
         this.target = target;
-        stages = new KList<>();
         getEngineData();
         verifySeed();
         this.seedManager = new SeedManager(target.getWorld().getRawWorldSeed());
@@ -163,9 +165,9 @@ public class IrisEngine implements Engine {
         worldManager.close();
         complex.close();
         execution.close();
-        stages.forEach(EngineStage::close);
-        stages.clear();
         effects.close();
+        mode.close();
+
         J.a(() -> new IrisProject(getData().getDataFolder()).updateWorkspace());
     }
 
@@ -177,7 +179,7 @@ public class IrisEngine implements Engine {
             complex = new IrisComplex(this);
             execution = new IrisExecutionEnvironment(this);
             effects = new IrisEngineEffects(this);
-            setupStages();
+            setupMode();
             J.a(this::computeBiomeMaxes);
         } catch (Throwable e) {
             Iris.error("FAILED TO SETUP ENGINE!");
@@ -187,26 +189,39 @@ public class IrisEngine implements Engine {
         Iris.debug("Engine Setup Complete " + getCacheID());
     }
 
-    private void setupStages() {
-        var terrain = new IrisTerrainNormalActuator(this);
-        var biome = new IrisBiomeActuator(this);
-        var decorant = new IrisDecorantActuator(this);
-        var cave = new IrisCarveModifier(this);
-        var post = new IrisPostModifier(this);
-        var deposit = new IrisDepositModifier(this);
-        var bodies = new IrisBodyModifier(this);
-        var perfection = new IrisPerfectionModifier(this);
+    private void setupMode() {
+        if(mode != null)
+        {
+            mode.close();
+        }
 
-        registerStage((x, z, k, p, m) -> getMantle().generateMatter(x >> 4, z >> 4, m));
-        registerStage((x, z, k, p, m) -> terrain.actuate(x, z, k, m));
-        registerStage((x, z, k, p, m) -> biome.actuate(x, z, p, m));
-        registerStage((x, z, k, p, m) -> cave.modify(x >> 4, z >> 4, k, m));
-        registerStage((x, z, k, p, m) -> bodies.modify(x >> 4, z >> 4, k, m));
-        registerStage((x, z, k, p, m) -> decorant.actuate(x, z, k, m));
-        registerStage((x, z, k, p, m) -> post.modify(x, z, k, m));
-        registerStage((x, z, k, p, m) -> deposit.modify(x, z, k, m));
-        registerStage((x, z, K, p, m) -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, K, m));
-        registerStage((x, z, k, p, m) -> perfection.modify(x, z, k, m));
+        mode = getDimension().getMode().getType().create(this);
+    }
+
+    @Override
+    public void generateMatter(int x, int z, boolean multicore) {
+        getMantle().generateMatter(x, z, multicore);
+    }
+
+    @Override
+    public Set<String> getObjectsAt(int x, int z) {
+        return getMantle().getObjectComponent().guess(x, z);
+    }
+
+    @Override
+    public IrisJigsawStructure getStructureAt(int x, int z) {
+        return getMantle().getJigsawComponent().guess(x, z);
+    }
+
+    private void warmupChunk(int x, int z) {
+        for (int i = 0; i < 16; i++) {
+            for (int j = 0; j < 16; j++) {
+                int xx = x + (i << 4);
+                int zz = z + (z << 4);
+                getComplex().getTrueBiomeStream().get(xx, zz);
+                getComplex().getHeightStream().get(xx, zz);
+            }
+        }
     }
 
     @Override
@@ -310,11 +325,6 @@ public class IrisEngine implements Engine {
     }
 
     @Override
-    public void registerStage(EngineStage stage) {
-        stages.add(stage);
-    }
-
-    @Override
     public int getBlockUpdatesPerSecond() {
         return buds.get();
     }
@@ -381,14 +391,14 @@ public class IrisEngine implements Engine {
         getWorldManager().close();
         getTarget().close();
         saveEngineData();
-        stages.forEach(EngineStage::close);
-        stages.clear();
         getMantle().close();
         getComplex().close();
+        mode.close();
         getData().dump();
         getData().clearLists();
         Iris.service(PreservationSVC.class).dereference();
         Iris.debug("Engine Fully Shutdown!");
+        complex = null;
     }
 
     @Override
@@ -424,18 +434,6 @@ public class IrisEngine implements Engine {
 
     @BlockCoordinates
     @Override
-    public double modifyX(double x) {
-        return x / getDimension().getTerrainZoom();
-    }
-
-    @BlockCoordinates
-    @Override
-    public double modifyZ(double z) {
-        return z / getDimension().getTerrainZoom();
-    }
-
-    @BlockCoordinates
-    @Override
     public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes, boolean multicore) throws WrongEngineBroException {
         if (closed) {
             throw new WrongEngineBroException();
@@ -454,9 +452,7 @@ public class IrisEngine implements Engine {
                     }
                 }
             } else {
-                for (EngineStage i : stages) {
-                    i.generate(x, z, blocks, vbiomes, multicore);
-                }
+                mode.generate(x, z, blocks, vbiomes, multicore);
             }
 
             getMetrics().getTotal().put(p.getMilliseconds());

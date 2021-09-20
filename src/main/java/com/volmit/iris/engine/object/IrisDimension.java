@@ -167,14 +167,13 @@ public class IrisDimension extends IrisRegistrant {
     @MaxNumber(512)
     @Desc("Zoom in or out the biome size. Higher = bigger biomes")
     private double biomeZoom = 5D;
-    @MinNumber(0.0001)
-    @MaxNumber(512)
-    @Desc("Zoom in or out the terrain. This stretches the terrain. Due to performance improvements, Higher than 2.0 may cause weird rounding artifacts. Lower = more terrain changes per block. Its a true zoom-out.")
-    private double terrainZoom = 1D;
     @MinNumber(0)
     @MaxNumber(360)
     @Desc("You can rotate the input coordinates by an angle. This can make terrain appear more natural (less sharp corners and lines). This literally rotates the entire dimension by an angle. Hint: Try 12 degrees or something not on a 90 or 45 degree angle.")
     private double dimensionAngleDeg = 0;
+    @Required
+    @Desc("Define the mode of this dimension (required!)")
+    private IrisDimensionMode mode = new IrisDimensionMode();
     @MinNumber(0)
     @MaxNumber(8192)
     @Desc("Coordinate fracturing applies noise to the input coordinates. This creates the 'iris swirls' and wavy features. The distance pushes these waves further into places they shouldnt be. This is a block value multiplier.")

@@ -104,7 +104,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public static IrisData get(File dataFolder) {
-        return dataLoaders.compute(dataFolder, (k, v) -> v == null ? new IrisData(dataFolder) : v);
+        return dataLoaders.computeIfAbsent(dataFolder, IrisData::new);
     }
 
     public static void dereference() {

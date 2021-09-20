@@ -103,8 +103,8 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
         entityCache = new KMap<>();
 
         for (Entity i : ((World) w).getNearbyEntities(new BoundingBox(x, y, z, x + getWidth(), y + getHeight(), z + getHeight()))) {
-            entityCache.compute(new IrisPosition(i.getLocation()),
-                    (k, v) -> v == null ? new KList<>() : v).add(i);
+            entityCache.computeIfAbsent(new IrisPosition(i.getLocation()),
+                    k -> new KList<>()).add(i);
         }
 
         for (IrisPosition i : entityCache.keySet()) {

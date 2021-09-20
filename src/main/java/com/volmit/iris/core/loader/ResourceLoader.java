@@ -84,7 +84,7 @@ public class ResourceLoader<T extends IrisRegistrant> {
         o.put("fileMatch", new JSONArray(fm.toArray()));
         o.put("url", "./.iris/schema/" + getFolderName() + "-schema.json");
         File a = new File(getManager().getDataFolder(), ".iris/schema/" + getFolderName() + "-schema.json");
-        J.attemptAsync(() -> IO.writeAll(a, new SchemaBuilder(objectClass, manager).compute().toString(4)));
+        J.attemptAsync(() -> IO.writeAll(a, new SchemaBuilder(objectClass, manager).construct().toString(4)));
 
         return o;
     }

@@ -43,9 +43,6 @@ import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
-import java.util.Objects;
-import java.util.function.Supplier;
-
 public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     private final RNG rng;
     private final BlockData AIR = Material.CAVE_AIR.createBlockData();
@@ -84,7 +81,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 return;
             }
 
-            positions.compute(Cache.key(rx, rz), (k, v) -> Objects.requireNonNullElseGet(v, (Supplier<KList<Integer>>) KList::new).qadd(yy));
+            positions.computeIfAbsent(Cache.key(rx, rz), (k) -> new KList<>()).qadd(yy);
 
             if (rz < 15 && mantle.get(xx, yy, zz + 1, MatterCavern.class) == null) {
                 walls.put(new IrisPosition(rx, yy, rz + 1), c);

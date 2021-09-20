@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.framework.placer;
 
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IObjectPlacer;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.object.TileData;
@@ -30,11 +31,13 @@ public class HeightmapObjectPlacer implements IObjectPlacer {
     private final long s;
     private final IrisObjectPlacement config;
     private final IObjectPlacer oplacer;
+    private final Engine engine;
 
-    public HeightmapObjectPlacer(RNG rng, int x, int yv, int z, IrisObjectPlacement config, IObjectPlacer oplacer) {
+    public HeightmapObjectPlacer(Engine engine, RNG rng, int x, int yv, int z, IrisObjectPlacement config, IObjectPlacer oplacer) {
         s = rng.nextLong() + yv + z - x;
         this.config = config;
         this.oplacer = oplacer;
+        this.engine = engine;
     }
 
     public int getHighest(int param1Int1, int param1Int2, IrisData data) {
@@ -80,5 +83,10 @@ public class HeightmapObjectPlacer implements IObjectPlacer {
 
     public void setTile(int param1Int1, int param1Int2, int param1Int3, TileData<? extends TileState> param1TileData) {
         oplacer.setTile(param1Int1, param1Int2, param1Int3, param1TileData);
+    }
+
+    @Override
+    public Engine getEngine() {
+        return null;
     }
 }

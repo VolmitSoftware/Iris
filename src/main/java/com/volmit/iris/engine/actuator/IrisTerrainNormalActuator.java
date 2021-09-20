@@ -80,8 +80,8 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
         IrisBiome biome;
 
         for (zf = 0; zf < h.getDepth(); zf++) {
-            realX = (int) modX(xf + x);
-            realZ = (int) modZ(zf + z);
+            realX = xf + x;
+            realZ = zf + z;
             biome = getComplex().getTrueBiomeStream().get(realX, realZ);
             he = (int) Math.round(Math.min(h.getHeight(), getComplex().getHeightStream().get(realX, realZ)));
             hf = Math.round(Math.max(Math.min(h.getHeight(), getDimension().getFluidHeight()), he));

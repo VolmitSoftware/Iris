@@ -18,10 +18,13 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
@@ -29,6 +32,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.block.data.BlockData;
 
 @Snippet("object-marker")
 @Accessors(chain = true)
@@ -47,11 +51,30 @@ public class IrisObjectMarker {
     @Desc("The maximum amount of markers to place. Use these sparingly!")
     private int maximumMarkers = 8;
 
-    @MinNumber(0.01)
-    @MaxNumber(1)
-    @Desc("The percentage of blocks in this object to check.")
-    private double checkRatio = 0.33;
+    @Desc("If true, markers will only be placed if the block matches the mark list perfectly.")
+    private boolean exact = false;
 
-    @Desc("If true, markers will only be placed here if there is 2 air blocks above it.")
-    private boolean emptyAbove = true;
+    @Required
+    @RegistryListResource(IrisMarker.class)
+    @Desc("The marker to add")
+    private String marker;
+
+    private final transient AtomicCache<KList<BlockData>> findData = new AtomicCache<>();
+
+    public KList<BlockData> getMark(IrisData rdata) {
+        return findData.aquire(() ->
+        {
+            KList<BlockData> b = new KList<>();
+
+            for (IrisBlockData i : mark) {
+                BlockData bx = i.getBlockData(rdata);
+
+                if (bx != null) {
+                    b.add(bx);
+                }
+            }
+
+            return b;
+        });
+    }
 }

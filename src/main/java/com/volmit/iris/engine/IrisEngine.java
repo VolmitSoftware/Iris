@@ -93,7 +93,6 @@ public class IrisEngine implements Engine {
     private final ChronoLatch perSecondBudLatch;
     private final EngineMetrics metrics;
     private final boolean studio;
-    private final KList<EngineStage> stages;
     private final AtomicRollingSequence wallClock;
     private final int art;
     private EngineMode mode;
@@ -117,7 +116,6 @@ public class IrisEngine implements Engine {
     public IrisEngine(EngineTarget target, boolean studio) {
         this.studio = studio;
         this.target = target;
-        stages = new KList<>();
         getEngineData();
         verifySeed();
         this.seedManager = new SeedManager(target.getWorld().getRawWorldSeed());
@@ -167,8 +165,6 @@ public class IrisEngine implements Engine {
         worldManager.close();
         complex.close();
         execution.close();
-        stages.forEach(EngineStage::close);
-        stages.clear();
         effects.close();
         mode.close();
 
@@ -395,10 +391,9 @@ public class IrisEngine implements Engine {
         getWorldManager().close();
         getTarget().close();
         saveEngineData();
-        stages.forEach(EngineStage::close);
-        stages.clear();
         getMantle().close();
         getComplex().close();
+        mode.close();
         getData().dump();
         getData().clearLists();
         Iris.service(PreservationSVC.class).dereference();
@@ -457,9 +452,7 @@ public class IrisEngine implements Engine {
                     }
                 }
             } else {
-                for (EngineStage i : stages) {
-                    i.generate(x, z, blocks, vbiomes, multicore);
-                }
+                mode.generate(x, z, blocks, vbiomes, multicore);
             }
 
             getMetrics().getTotal().put(p.getMilliseconds());

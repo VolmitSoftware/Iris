@@ -19,6 +19,7 @@
 package com.volmit.iris;
 
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.link.IrisPapiExpansion;
 import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.link.MythicMobsLink;
@@ -237,6 +238,8 @@ public class Iris extends VolmitPlugin implements Listener {
             while ((bytesRead = in.read(dataBuffer, 0, 1024)) != -1) {
                 fileOutputStream.write(dataBuffer, 0, bytesRead);
             }
+
+            fileOutputStream.flush();
         } catch (IOException e) {
             e.printStackTrace();
             Iris.reportError(e);
@@ -405,7 +408,6 @@ public class Iris extends VolmitPlugin implements Listener {
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
         INMS.get();
         IO.delete(new File("iris"));
-        installDataPacks();
         fixShading();
     }
 
@@ -445,7 +447,7 @@ public class Iris extends VolmitPlugin implements Listener {
         J.ar(this::checkConfigHotload, 60);
         J.sr(this::tickQueue, 0);
         J.s(this::setupPapi);
-        J.a(this::verifyDataPacksPost, 20);
+        J.a(ServerConfigurator::configure, 20);
         splash();
 
         if (IrisSettings.get().getStudio().isAutoStartDefaultStudio()) {
@@ -492,72 +494,6 @@ public class Iris extends VolmitPlugin implements Listener {
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new IrisPapiExpansion().register();
         }
-    }
-
-    public File getDatapacksFolder() {
-        if (!IrisSettings.get().getGeneral().forceMainWorld.isEmpty()) {
-            return new File(IrisSettings.get().getGeneral().forceMainWorld + "/datapacks");
-        }
-
-        File props = new File("server.properties");
-
-        if (props.exists()) {
-            try {
-                KList<String> m = new KList<>(IO.readAll(props).split("\\Q\n\\E"));
-
-                for (String i : m) {
-                    if (i.trim().startsWith("level-name=")) {
-                        return new File(i.trim().split("\\Q=\\E")[1] + "/datapacks");
-                    }
-                }
-            } catch (IOException e) {
-                Iris.reportError(e);
-                e.printStackTrace();
-            }
-        }
-
-        return null;
-    }
-
-    public void installDataPacks() {
-        Iris.info("Checking Data Packs...");
-        boolean reboot = false;
-        File packs = new File("plugins/Iris/packs");
-        File dpacks = getDatapacksFolder();
-
-        if (dpacks == null) {
-            Iris.error("Cannot find the datapacks folder! Please try generating a default world first maybe? Is this a new server?");
-            return;
-        }
-
-        if (packs.exists()) {
-            for (File i : packs.listFiles()) {
-                if (i.isDirectory()) {
-                    Iris.verbose("Checking Pack: " + i.getPath());
-                    IrisData data = IrisData.get(i);
-                    File dims = new File(i, "dimensions");
-
-                    if (dims.exists()) {
-                        for (File j : dims.listFiles()) {
-                            if (j.getName().endsWith(".json")) {
-                                IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
-
-                                if (dim == null) {
-                                    continue;
-                                }
-
-                                Iris.verbose("  Checking Dimension " + dim.getLoadFile().getPath());
-                                if (dim.installDataPack(() -> data, dpacks)) {
-                                    reboot = true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        Iris.info("Data Packs Setup!");
     }
 
     @Override
@@ -607,104 +543,6 @@ public class Iris extends VolmitPlugin implements Listener {
         if (IrisSettings.get().getGeneral().isPluginMetrics()) {
             J.s(() -> new Metrics(Iris.instance, 8757));
         }
-    }
-
-    public void verifyDataPacksPost() {
-        File packs = new File("plugins/Iris/packs");
-        File dpacks = getDatapacksFolder();
-
-        if (dpacks == null) {
-            Iris.error("Cannot find the datapacks folder! Please try generating a default world first maybe? Is this a new server?");
-            return;
-        }
-
-        boolean bad = false;
-        if (packs.exists()) {
-            for (File i : packs.listFiles()) {
-                if (i.isDirectory()) {
-                    Iris.verbose("Checking Pack: " + i.getPath());
-                    IrisData data = IrisData.get(i);
-                    File dims = new File(i, "dimensions");
-
-                    if (dims.exists()) {
-                        for (File j : dims.listFiles()) {
-                            if (j.getName().endsWith(".json")) {
-                                IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
-
-                                if (dim == null) {
-                                    Iris.error("Failed to load " + j.getPath() + " ");
-                                    continue;
-                                }
-
-                                if (!verifyDataPackInstalled(dim)) {
-                                    bad = true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if (bad && INMS.get().supportsDataPacks()) {
-            Iris.error("============================================================================");
-            Iris.error(C.ITALIC + "You need to restart your server to properly generate custom biomes.");
-            Iris.error(C.ITALIC + "By continuing, Iris will use backup biomes in place of the custom biomes.");
-            Iris.error("----------------------------------------------------------------------------");
-            Iris.error(C.UNDERLINE + "IT IS HIGHLY RECOMMENDED YOU RESTART THE SERVER BEFORE GENERATING!");
-            Iris.error("============================================================================");
-
-            for (Player i : Bukkit.getOnlinePlayers()) {
-                if (i.isOp() || i.hasPermission("iris.all")) {
-                    VolmitSender sender = new VolmitSender(i, getTag("WARNING"));
-                    sender.sendMessage("There are some Iris Packs that have custom biomes in them");
-                    sender.sendMessage("You need to restart your server to use these packs.");
-                }
-            }
-
-            J.sleep(3000);
-        }
-    }
-
-    public boolean verifyDataPackInstalled(IrisDimension dimension) {
-        IrisData idm = IrisData.get(getDataFolder("packs", dimension.getLoadKey()));
-        KSet<String> keys = new KSet<>();
-        boolean warn = false;
-
-        for (IrisBiome i : dimension.getAllBiomes(() -> idm)) {
-            if (i.isCustom()) {
-                for (IrisBiomeCustom j : i.getCustomDerivitives()) {
-                    keys.add(dimension.getLoadKey() + ":" + j.getId());
-                }
-            }
-        }
-
-        if (!INMS.get().supportsDataPacks()) {
-            if (!keys.isEmpty()) {
-                Iris.warn("===================================================================================");
-                Iris.warn("Pack " + dimension.getLoadKey() + " has " + keys.size() + " custom biome(s). ");
-                Iris.warn("Your server version does not yet support datapacks for iris.");
-                Iris.warn("The world will generate these biomes as backup biomes.");
-                Iris.warn("====================================================================================");
-            }
-
-            return true;
-        }
-
-        for (String i : keys) {
-            Object o = INMS.get().getCustomBiomeBaseFor(i);
-
-            if (o == null) {
-                Iris.warn("The Biome " + i + " is not registered on the server.");
-                warn = true;
-            }
-        }
-
-        if (warn) {
-            Iris.error("The Pack " + dimension.getLoadKey() + " is INCAPABLE of generating custom biomes, restart your server before generating with this pack!");
-        }
-
-        return !warn;
     }
 
     @Override

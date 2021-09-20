@@ -51,6 +51,7 @@ public class SeedManager {
     private final long deposit;
     private final long post;
     private final long bodies;
+    private final long mode;
     @Setter(AccessLevel.NONE)
     private long fullMixedSeed;
 
@@ -75,6 +76,7 @@ public class SeedManager {
         deposit = of("deposit");
         post = of("post");
         bodies = of("bodies");
+        mode = of("mode");
     }
 
     private long of(String name) {

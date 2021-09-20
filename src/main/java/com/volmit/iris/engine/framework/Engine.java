@@ -24,6 +24,7 @@ import com.volmit.iris.core.gui.components.Renderer;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.IrisComplex;
+import com.volmit.iris.engine.IrisWorldManager;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.mantle.EngineMantle;
@@ -56,6 +57,7 @@ import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.matter.MatterUpdate;
@@ -70,11 +72,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.EnderSignal;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.Inventory;
@@ -93,11 +97,9 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdater, Renderer, Hotloadable {
-    KList<EngineStage> getStages();
-
-    void registerStage(EngineStage stage);
-
     IrisComplex getComplex();
+
+    EngineMode getMode();
 
     int getBlockUpdatesPerSecond();
 
@@ -790,6 +792,41 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     default void gotoJigsaw(IrisJigsawStructure s, Player player) {
+        if(s.getLoadKey().equals(getDimension().getStronghold()))
+        {
+            KList<Position2> p = getDimension().getStrongholds(getSeedManager().getSpawn());
+
+            if(p.isEmpty())
+            {
+                player.sendMessage(C.GOLD + "No strongholds in world.");
+            }
+
+            Position2 px = new Position2(player.getLocation().getBlockX(), player.getLocation().getBlockZ());
+            Position2 pr = null;
+            double d = Double.MAX_VALUE;
+
+            Iris.debug("Ps: " + p.size());
+
+            for (Position2 i : p) {
+                Iris.debug("- " + i.getX() + " " + i.getZ());
+            }
+
+            for (Position2 i : p) {
+                double dx = i.distance(px);
+                if (dx < d) {
+                    d = dx;
+                    pr = i;
+                }
+            }
+
+            if (pr != null) {
+                Location ll = new Location(player.getWorld(), pr.getX(), 40, pr.getZ());
+                J.s(() -> player.teleport(ll));
+            }
+
+            return;
+        }
+
         if (getDimension().getJigsawStructures().stream()
                 .map(IrisJigsawStructurePlacement::getStructure)
                 .collect(Collectors.toSet()).contains(s.getLoadKey())) {

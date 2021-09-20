@@ -71,6 +71,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private static final KMap<File, IrisData> dataLoaders = new KMap<>();
     private final File dataFolder;
     private final int id;
+    private boolean closed = false;
     private ResourceLoader<IrisBiome> biomeLoader;
     private ResourceLoader<IrisLootTable> lootLoader;
     private ResourceLoader<IrisRegion> regionLoader;
@@ -115,7 +116,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         int m = 0;
         for (IrisData i : dataLoaders.values()) {
             for (ResourceLoader<?> j : i.getLoaders().values()) {
-                m += j.getLoadCache().size();
+                m += j.getLoadCache().getSize();
             }
         }
 
@@ -123,7 +124,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     private static void printData(ResourceLoader<?> rl) {
-        Iris.warn("  " + rl.getResourceTypeName() + " @ /" + rl.getFolderName() + ": Cache=" + rl.getLoadCache().size() + " Folders=" + rl.getFolders().size());
+        Iris.warn("  " + rl.getResourceTypeName() + " @ /" + rl.getFolderName() + ": Cache=" + rl.getLoadCache().getSize() + " Folders=" + rl.getFolders().size());
     }
 
     public static IrisObject loadAnyObject(String key) {
@@ -274,6 +275,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public void close() {
+        closed = true;
         dump();
     }
 
@@ -286,11 +288,11 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
             IrisRegistrant rr = registrant.getConstructor().newInstance();
             ResourceLoader<T> r = null;
             if (registrant.equals(IrisObject.class)) {
-                r = (ResourceLoader<T>) new ObjectResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
-            } else if (registrant.equals(IrisMatter.class)) {
-                r = (ResourceLoader<T>) new MatterResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
+                r = (ResourceLoader<T>) new ObjectResourceLoader(dataFolder, this, rr.getFolderName(),
+                        rr.getTypeName());
             } else if (registrant.equals(IrisScript.class)) {
-                r = (ResourceLoader<T>) new ScriptResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
+                r = (ResourceLoader<T>) new ScriptResourceLoader(dataFolder, this, rr.getFolderName(),
+                        rr.getTypeName());
             } else {
                 J.attempt(() -> registrant.getConstructor().newInstance().registerTypeAdapters(builder));
                 r = new ResourceLoader<>(dataFolder, this, rr.getFolderName(), rr.getTypeName(), registrant);
@@ -459,5 +461,9 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
             return l;
         });
+    }
+
+    public boolean isClosed() {
+        return closed;
     }
 }

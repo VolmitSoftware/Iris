@@ -20,10 +20,14 @@ package com.volmit.iris.core.loader;
 
 import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.SchemaBuilder;
+import com.volmit.iris.core.service.PreservationSVC;
+import com.volmit.iris.engine.framework.MeteredCache;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
@@ -42,13 +46,13 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 @Data
-public class ResourceLoader<T extends IrisRegistrant> {
+public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
     public static final AtomicDouble tlt = new AtomicDouble(0);
     private static final int CACHE_SIZE = 100000;
     protected File root;
     protected String folderName;
     protected String resourceTypeName;
-    protected KMap<String, T> loadCache;
+    protected KCache<String, T> loadCache;
     protected KList<File> folderCache;
     protected Class<? extends T> objectClass;
     protected String cname;
@@ -68,8 +72,9 @@ public class ResourceLoader<T extends IrisRegistrant> {
         this.resourceTypeName = resourceTypeName;
         this.root = root;
         this.folderName = folderName;
-        loadCache = new KMap<>();
+        loadCache = new KCache<>(this::loadRaw, IrisSettings.get().getPerformance().getMaxResourceLoaderCacheSize());
         Iris.debug("Loader<" + C.GREEN + resourceTypeName + C.LIGHT_PURPLE + "> created in " + C.RED + "IDM/" + manager.getId() + C.LIGHT_PURPLE + " on " + C.GRAY + manager.getDataFolder().getPath());
+        Iris.service(PreservationSVC.class).registerCache(this);
     }
 
     public JSONObject buildSchema() {
@@ -122,7 +127,7 @@ public class ResourceLoader<T extends IrisRegistrant> {
 
         if (sec.flip()) {
             J.a(() -> {
-                Iris.verbose("Loaded " + C.WHITE + loads.get() + " " + resourceTypeName + (loads.get() == 1 ? "" : "s") + C.GRAY + " (" + Form.f(getLoadCache().size()) + " " + resourceTypeName + (loadCache.size() == 1 ? "" : "s") + " Loaded)");
+                Iris.verbose("Loaded " + C.WHITE + loads.get() + " " + resourceTypeName + (loads.get() == 1 ? "" : "s") + C.GRAY + " (" + Form.f(getLoadCache().getSize()) + " " + resourceTypeName + (loadCache.getSize() == 1 ? "" : "s") + " Loaded)");
                 loads.set(0);
             });
         }
@@ -177,10 +182,10 @@ public class ResourceLoader<T extends IrisRegistrant> {
     }
 
     public long count() {
-        return loadCache.size();
+        return loadCache.getSize();
     }
 
-    protected T loadFile(File j, String key, String name) {
+    protected T loadFile(File j, String name) {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             T t = getManager().getGson()
@@ -189,7 +194,6 @@ public class ResourceLoader<T extends IrisRegistrant> {
             t.setLoadFile(j);
             t.setLoader(manager);
             getManager().preprocessObject(t);
-            loadCache.put(key, t);
             logLoad(j, t);
             lock.unlock();
             tlt.addAndGet(p.getMilliseconds());
@@ -242,6 +246,28 @@ public class ResourceLoader<T extends IrisRegistrant> {
         return load(name, true);
     }
 
+    private T loadRaw(String name)
+    {
+        lock.lock();
+        for (File i : getFolders(name)) {
+            //noinspection ConstantConditions
+            for (File j : i.listFiles()) {
+                if (j.isFile() && j.getName().endsWith(".json") && j.getName().split("\\Q.\\E")[0].equals(name)) {
+                    return loadFile(j, name);
+                }
+            }
+
+            File file = new File(i, name + ".json");
+
+            if (file.exists()) {
+                return loadFile(file, name);
+            }
+        }
+
+        lock.unlock();
+        return null;
+    }
+
     public T load(String name, boolean warn) {
         if (name == null) {
             return null;
@@ -251,33 +277,7 @@ public class ResourceLoader<T extends IrisRegistrant> {
             return null;
         }
 
-        String key = name + "-" + cname;
-
-        if (loadCache.containsKey(key)) {
-            return loadCache.get(key);
-        }
-
-        lock.lock();
-        for (File i : getFolders(name)) {
-            for (File j : i.listFiles()) {
-                if (j.isFile() && j.getName().endsWith(".json") && j.getName().split("\\Q.\\E")[0].equals(name)) {
-                    return loadFile(j, key, name);
-                }
-            }
-
-            File file = new File(i, name + ".json");
-
-            if (file.exists()) {
-                return loadFile(file, key, name);
-            }
-        }
-
-        if (warn && !resourceTypeName.equals("Dimension")) {
-            J.a(() -> Iris.warn("Couldn't find " + resourceTypeName + ": " + name));
-        }
-
-        lock.unlock();
-        return null;
+        return loadCache.get(name);
     }
 
     public KList<File> getFolders() {
@@ -323,7 +323,7 @@ public class ResourceLoader<T extends IrisRegistrant> {
     public void clearCache() {
         lock.lock();
         possibleKeys = null;
-        loadCache.clear();
+        loadCache.invalidate();
         folderCache = null;
         lock.unlock();
     }
@@ -347,7 +347,7 @@ public class ResourceLoader<T extends IrisRegistrant> {
     }
 
     public boolean isLoaded(String next) {
-        return loadCache.containsKey(next);
+        return loadCache.contains(next);
     }
 
     public void clearList() {
@@ -377,11 +377,21 @@ public class ResourceLoader<T extends IrisRegistrant> {
 
     }
 
-    public int getSize() {
-        return loadCache.size();
+    public long getSize() {
+        return loadCache.getSize();
     }
 
-    public int getTotalStorage() {
+    @Override
+    public long getMaxSize() {
+        return loadCache.getMaxSize();
+    }
+
+    @Override
+    public boolean isClosed() {
+        return getManager().isClosed();
+    }
+
+    public long getTotalStorage() {
         return getSize();
     }
 }

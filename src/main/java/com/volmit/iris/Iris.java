@@ -26,6 +26,7 @@ import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.link.OraxenLink;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
@@ -449,6 +450,8 @@ public class Iris extends VolmitPlugin implements Listener {
         J.s(this::setupPapi);
         J.a(ServerConfigurator::configure, 20);
         splash();
+
+        J.sr(() -> Iris.service(PreservationSVC.class).printCaches(), 20);
 
         if (IrisSettings.get().getStudio().isAutoStartDefaultStudio()) {
             Iris.info("Starting up auto Studio!");

@@ -19,34 +19,35 @@
 package com.volmit.iris.core.loader;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.object.IrisScript;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
 import java.io.File;
 
 public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
-
     public ScriptResourceLoader(File root, IrisData idm, String folderName, String resourceTypeName) {
         super(root, idm, folderName, resourceTypeName, IrisScript.class);
+        loadCache = new KCache<>(this::loadRaw, IrisSettings.get().getPerformance().getMaxScriptLoaderCacheSize());
     }
 
     public boolean supportsSchemas() {
         return false;
     }
 
-    public int getSize() {
-        return loadCache.size();
+    public long getSize() {
+        return loadCache.getSize();
     }
 
-    public IrisScript loadFile(File j, String key, String name) {
+    protected IrisScript loadFile(File j, String name) {
         lock.lock();
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             IrisScript t = new IrisScript(IO.readAll(j));
-            loadCache.put(key, t);
             t.setLoadKey(name);
             t.setLoader(manager);
             t.setLoadFile(j);
@@ -119,20 +120,14 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
         return null;
     }
 
-    public IrisScript load(String name, boolean warn) {
-        String key = name + "-" + objectClass.getCanonicalName();
-
-        if (loadCache.containsKey(key)) {
-            IrisScript t = loadCache.get(key);
-            return t;
-        }
-
+    private IrisScript loadRaw(String name)
+    {
         lock.lock();
         for (File i : getFolders(name)) {
             for (File j : i.listFiles()) {
                 if (j.isFile() && j.getName().endsWith(".js") && j.getName().split("\\Q.\\E")[0].equals(name)) {
                     lock.unlock();
-                    return loadFile(j, key, name);
+                    return loadFile(j, name);
                 }
             }
 
@@ -140,7 +135,7 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
 
             if (file.exists()) {
                 lock.unlock();
-                return loadFile(file, key, name);
+                return loadFile(file, name);
             }
         }
 
@@ -148,5 +143,9 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
 
         lock.unlock();
         return null;
+    }
+
+    public IrisScript load(String name, boolean warn) {
+        return loadCache.get(name);
     }
 }

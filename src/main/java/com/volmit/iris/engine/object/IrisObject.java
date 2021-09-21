@@ -71,7 +71,6 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @EqualsAndHashCode(callSuper = false)
 public class IrisObject extends IrisRegistrant {
@@ -487,23 +486,11 @@ public class IrisObject extends IrisRegistrant {
         }
     }
 
-    public int place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisData rdata) {
-        return place(x, -1, z, placer, config, rng, rdata);
+    public void place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisData rdata) {
+        place(x, yv, z, placer, config, rng, null, null, rdata);
     }
 
-    public int place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, CarveResult c, IrisData rdata) {
-        return place(x, -1, z, placer, config, rng, null, c, rdata);
-    }
-
-    public int place(int x, int yv, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisData rdata) {
-        return place(x, yv, z, placer, config, rng, null, null, rdata);
-    }
-
-    public int place(Location loc, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisData rdata) {
-        return place(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), placer, config, rng, rdata);
-    }
-
-    public int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener, CarveResult c, IrisData rdata) {
+    public void place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener, CarveResult c, IrisData rdata) {
         IObjectPlacer placer = (config.getHeightmap() != null) ? new HeightmapObjectPlacer(oplacer.getEngine() == null ? IrisContext.get().getEngine() : oplacer.getEngine(), rng, x, yv, z, config, oplacer) : oplacer;
 
         if (config.isSmartBore()) {
@@ -619,25 +606,25 @@ public class IrisObject extends IrisRegistrant {
         }
 
         if (bail) {
-            return -1;
+            return;
         }
 
         if (yv < 0) {
             if (!config.isUnderwater() && !config.isOnwater() && placer.isUnderwater(x, z)) {
-                return -1;
+                return;
             }
         }
 
         if (c != null && Math.max(0, h + yrand + ty) + 1 >= c.getHeight()) {
-            return -1;
+            return;
         }
 
         if (config.isUnderwater() && y + rty + ty >= placer.getFluidHeight()) {
-            return -1;
+            return;
         }
 
         if (!config.getClamp().canPlace(y + rty + ty, y - rty + ty)) {
-            return -1;
+            return;
         }
 
         if (config.isBore()) {
@@ -865,7 +852,12 @@ public class IrisObject extends IrisRegistrant {
             }
         }
 
-        return y;
+        if (config.getRawCommands().isNotEmpty()) {
+            Location l = new Location(rdata.getEngine().getWorld().realWorld(), x, y, z);
+            for (IrisCommand rawCommand : config.getRawCommands()) {
+                rawCommand.run(l);
+            }
+        }
     }
 
     public IrisObject rotateCopy(IrisObjectRotation rt) {
@@ -890,20 +882,6 @@ public class IrisObject extends IrisRegistrant {
 
         blocks = d;
         states = dx;
-    }
-
-    public void place(Location at) {
-        for (BlockVector i : getBlocks().keySet()) {
-            Block b = at.clone().add(0, getCenter().getY(), 0).add(i).getBlock();
-            b.setBlockData(Objects.requireNonNull(getBlocks().get(i)), false);
-
-            if (getStates().containsKey(i)) {
-                Iris.info(Objects.requireNonNull(states.get(i)).toString());
-                BlockState st = b.getState();
-                Objects.requireNonNull(getStates().get(i)).toBukkitTry(st);
-                st.update();
-            }
-        }
     }
 
     public void placeCenterY(Location at) {

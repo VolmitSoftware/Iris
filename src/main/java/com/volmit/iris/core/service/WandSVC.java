@@ -57,10 +57,6 @@ public class WandSVC implements IrisService {
     private static ItemStack wand;
     private static ItemStack dust;
 
-    public static void pasteSchematic(IrisObject s, Location at) {
-        s.place(at);
-    }
-
     /**
      * Creates an Iris Object from the 2 coordinates selected with a wand
      *

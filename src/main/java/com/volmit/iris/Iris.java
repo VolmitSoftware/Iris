@@ -450,9 +450,7 @@ public class Iris extends VolmitPlugin implements Listener {
         J.s(this::setupPapi);
         J.a(ServerConfigurator::configure, 20);
         splash();
-
-        J.sr(() -> Iris.service(PreservationSVC.class).printCaches(), 20);
-
+        
         if (IrisSettings.get().getStudio().isAutoStartDefaultStudio()) {
             Iris.info("Starting up auto Studio!");
             try {

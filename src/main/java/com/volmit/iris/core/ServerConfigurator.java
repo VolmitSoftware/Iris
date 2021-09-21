@@ -54,6 +54,11 @@ public class ServerConfigurator {
             J.attempt(ServerConfigurator::increasePaperWatchdog);
         }
 
+        if (s.isConfigureSpigotRestart())
+        {
+            J.attempt(ServerConfigurator::setSpigotRunBatch);
+        }
+
         installDataPacks(true);
     }
 
@@ -67,6 +72,20 @@ public class ServerConfigurator {
         {
             Iris.warn("Updating spigot.yml timeout-time: " + tt + " -> " + TimeUnit.MINUTES.toSeconds(5) + " (5 minutes). You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
             f.set("settings.timeout-time", TimeUnit.MINUTES.toSeconds(5));
+            f.save(spigotConfig);
+        }
+    }
+
+    private static void setSpigotRunBatch() throws IOException, InvalidConfigurationException {
+        File spigotConfig = new File("spigot.yml");
+        FileConfiguration f = new YamlConfiguration();
+        f.load(spigotConfig);
+        String tt = f.getString("settings.restart-script");
+        String to = IrisSettings.get().getAutoConfiguration().getConfigureSpigotRestartTo();
+        if(tt != null && tt.equalsIgnoreCase("./start.sh"))
+        {
+            Iris.warn("Updating spigot.yml startup batch: " + tt + " -> " + to + ". You can disable or change this change (autoconfigureServer) in Iris settings, then change back the value.");
+            f.set("settings.restart-script", to);
             f.save(spigotConfig);
         }
     }

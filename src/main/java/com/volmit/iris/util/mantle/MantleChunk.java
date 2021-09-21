@@ -223,4 +223,12 @@ public class MantleChunk {
             }
         }
     }
+
+    public void trimSlices() {
+        for (int i = 0; i < sections.length(); i++) {
+            if (exists(i)) {
+                trimSlice(i);
+            }
+        }
+    }
 }

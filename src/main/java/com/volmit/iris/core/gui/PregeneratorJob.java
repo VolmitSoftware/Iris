@@ -24,12 +24,15 @@ import com.volmit.iris.core.pregenerator.IrisPregenerator;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer2;
+import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.Looper;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -40,11 +43,14 @@ import java.awt.Graphics2D;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
+import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 public class PregeneratorJob implements PregenListener {
     private static final Color COLOR_EXISTS = parseColor("#4d7d5b");
+    private static final Color COLOR_BLACK = parseColor("#4d7d5b");
+    private static final Color COLOR_MANTLE = parseColor("#3c2773");
     private static final Color COLOR_GENERATING = parseColor("#0062ff");
     private static final Color COLOR_NETWORK = parseColor("#a863c2");
     private static final Color COLOR_NETWORK_GENERATING = parseColor("#836b8c");
@@ -82,6 +88,11 @@ public class PregeneratorJob implements PregenListener {
         }
 
         J.a(this.pregenerator::start, 20);
+    }
+
+    public Mantle getMantle()
+    {
+        return pregenerator.getMantle();
     }
 
     public static boolean shutdownInstance() {

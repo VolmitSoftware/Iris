@@ -1,6 +1,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Snippet;
@@ -18,6 +19,7 @@ import org.bukkit.Location;
 @Data
 public class IrisCommand {
 
+    @ArrayType(min = 1, type = String.class)
     @Desc("List of commands. Iris replaces {x} {y} and {z} with the location of the entity spawn")
     private KList<String> commands = new KList<>();
 

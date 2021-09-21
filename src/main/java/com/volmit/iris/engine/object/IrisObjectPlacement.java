@@ -126,10 +126,6 @@ public class IrisObjectPlacement {
     @Desc("This object / these objects override the following trees when they grow...")
     @ArrayType(min = 1, type = IrisTree.class)
     private KList<IrisTree> trees = new KList<>();
-    @Desc("Run raw commands at the location of this object")
-    @ArrayType(min = 1, type = IrisCommand.class)
-    private KList<IrisCommand> rawCommands = new KList<>();
-
     private transient AtomicCache<TableCache> cache = new AtomicCache<>();
 
     public IrisObjectPlacement toPlacement(String... place) {

@@ -34,6 +34,7 @@ import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateOK;
 import com.volmit.iris.core.pregenerator.syndicate.command.SyndicateSendProgress;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Getter;
 import org.zeroturnaround.zip.ZipUtil;
@@ -264,5 +265,10 @@ public class SyndicatePregenMethod implements PregeneratorMethod {
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
 
+    }
+
+    @Override
+    public Mantle getMantle() {
+        return null;
     }
 }

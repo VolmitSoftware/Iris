@@ -18,6 +18,8 @@
 
 package com.volmit.iris.core.pregenerator;
 
+import com.volmit.iris.util.mantle.Mantle;
+
 /**
  * Represents something that is capable of generating in chunks or regions, or both
  */
@@ -74,4 +76,6 @@ public interface PregeneratorMethod {
      * @param listener
      */
     void generateChunk(int x, int z, PregenListener listener);
+
+    Mantle getMantle();
 }

@@ -20,6 +20,7 @@ package com.volmit.iris.core.pregenerator.methods;
 
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
+import com.volmit.iris.util.mantle.Mantle;
 
 public class DummyPregenMethod implements PregeneratorMethod {
     @Override
@@ -55,5 +56,10 @@ public class DummyPregenMethod implements PregeneratorMethod {
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
 
+    }
+
+    @Override
+    public Mantle getMantle() {
+        return null;
     }
 }

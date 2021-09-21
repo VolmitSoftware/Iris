@@ -62,6 +62,7 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -364,11 +365,13 @@ public class CommandStudio implements DecreeExecutor {
         NoiseExplorerGUI.launch(l, "Custom Generator");
     }
 
-    @Decree(description = "Hotload a studio", aliases = "reload", origin = DecreeOrigin.PLAYER)
+    @Decree(description = "Hotload a studio", aliases = "reload")
     public void hotload() {
-        if (noStudio()) return;
-
-        access().hotload();
+        if (!Iris.service(StudioSVC.class).isProjectOpen()){
+            sender().sendMessage(C.RED + "No studio world open!");
+            return;
+        }
+        Iris.service(StudioSVC.class).getActiveProject().getActiveProvider().getEngine().hotload();
         sender().sendMessage(C.GREEN + "Hotloaded");
     }
 
@@ -846,7 +849,7 @@ public class CommandStudio implements DecreeExecutor {
      */
     private boolean noStudio() {
         if (!sender().isPlayer()) {
-            sender().sendMessage(C.RED + "Players only (this is a config error. Ask support to add DecreeOrigin.PLAYER to the command you tried to run)");
+            sender().sendMessage(C.RED + "Players only!");
             return true;
         }
         if (!Iris.service(StudioSVC.class).isProjectOpen()) {

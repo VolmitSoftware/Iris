@@ -176,6 +176,10 @@ public class IrisEntity extends IrisRegistrant {
     @RegistryListResource(IrisScript.class)
     private KList<String> postSpawnScripts = new KList<>();
 
+    @ArrayType(min = 1, type = String.class)
+    @Desc("Run raw commands when this entity is spawned. Use {x}, {y}, and {z} for location. /summon pig {x} {y} {z}")
+    private KList<String> rawCommands = new KList<>();
+
     public Entity spawn(Engine gen, Location at) {
         return spawn(gen, at, new RNG(at.hashCode()));
     }
@@ -353,6 +357,17 @@ public class IrisEntity extends IrisRegistrant {
 
                 for (String i : postSpawnScripts) {
                     gen.getExecution().execute(i);
+                }
+            }
+        }
+
+        if (rawCommands.isNotEmpty()) {
+            synchronized (this) {
+                for (String rawCommand : rawCommands) {
+                    rawCommand.replaceAll("\\Q{x}\\E", String.valueOf(at.getBlockX()));
+                    rawCommand.replaceAll("\\Q{y}\\E", String.valueOf(at.getBlockY()));
+                    rawCommand.replaceAll("\\Q{z}\\E", String.valueOf(at.getBlockZ()));
+                    Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), rawCommand);
                 }
             }
         }

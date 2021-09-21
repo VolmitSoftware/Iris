@@ -147,6 +147,6 @@ public class MantleJigsawComponent extends IrisMantleComponent {
 
     @BlockCoordinates
     private void place(MantleWriter writer, IrisPosition position, IrisJigsawStructure structure, RNG rng) {
-        new PlannedStructure(structure, position, rng).place(writer, getMantle());
+        new PlannedStructure(structure, position, rng).place(writer, getMantle(), writer.getEngine());
     }
 }

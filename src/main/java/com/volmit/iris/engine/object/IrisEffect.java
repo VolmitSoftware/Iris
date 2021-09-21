@@ -21,12 +21,8 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.annotations.DependsOn;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.Required;
-import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
@@ -151,6 +147,9 @@ public class IrisEffect {
     @MinNumber(1)
     @Desc("The chance is 1 in CHANCE per interval")
     private int chance = 50;
+    @ArrayType(min = 1, type = IrisCommand.class)
+    @Desc("Run commands, at the exact location of the player")
+    private KList<IrisCommand> rawCommands = new KList<>();
 
     public boolean canTick() {
         return latch.aquire(() -> new ChronoLatch(interval)).flip();
@@ -218,6 +217,14 @@ public class IrisEffect {
                         randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
                         randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY,
                         randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ));
+            }
+        }
+
+        if (rawCommands.isNotEmpty()) {
+            Location part = p.getLocation().clone();
+
+            for (IrisCommand rawCommand : rawCommands) {
+                rawCommand.run(part);
             }
         }
 

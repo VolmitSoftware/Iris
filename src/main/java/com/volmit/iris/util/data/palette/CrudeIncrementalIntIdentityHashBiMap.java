@@ -23,6 +23,7 @@ import com.google.common.collect.Iterators;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 
 public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
     public static final int NOT_FOUND = -1;
@@ -55,13 +56,17 @@ public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
 
     public K byId(int var0) {
         if (var0 < 0 || var0 >= this.byId.length)
+        {
             return null;
+        }
         return this.byId[var0];
     }
 
     private int getValue(int var0) {
         if (var0 == -1)
+        {
             return -1;
+        }
         return this.values[var0];
     }
 
@@ -95,7 +100,9 @@ public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
         this.size = 0;
         for (int var3 = 0; var3 < var1.length; var3++) {
             if (var1[var3] != null)
+            {
                 addMapping(var1[var3], var2[var3]);
+            }
         }
     }
 
@@ -123,13 +130,13 @@ public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
     private int indexOf(K var0, int var1) {
         int var2;
         for (var2 = var1; var2 < this.keys.length; var2++) {
-            if (this.keys[var2] == var0)
+            if (this.keys[var2].equals(var0))
                 return var2;
             if (this.keys[var2] == EMPTY_SLOT)
                 return -1;
         }
         for (var2 = 0; var2 < var1; var2++) {
-            if (this.keys[var2] == var0)
+            if (this.keys[var2].equals(var0))
                 return var2;
             if (this.keys[var2] == EMPTY_SLOT)
                 return -1;

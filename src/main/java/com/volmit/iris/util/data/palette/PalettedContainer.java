@@ -18,42 +18,23 @@
 
 package com.volmit.iris.util.data.palette;
 
-import com.volmit.iris.util.nbt.tag.CompoundTag;
-import com.volmit.iris.util.nbt.tag.ListTag;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
-
-import java.util.function.Function;
+import java.util.List;
 import java.util.function.Predicate;
 
+@SuppressWarnings("DuplicatedCode")
 public class PalettedContainer<T> implements PaletteResize<T> {
     public static final int GLOBAL_PALETTE_BITS = 9;
     public static final int MIN_PALETTE_SIZE = 4;
     private static final int SIZE = 4096;
-    private final Palette<T> globalPalette;
-
     private final PaletteResize<T> dummyPaletteResize = (var0, var1) -> 0;
-
-    private final IdMapper<T> registry;
-
-    private final Function<CompoundTag, T> reader;
-
-    private final Function<T, CompoundTag> writer;
-
-    private final T defaultValue;
-
     protected BitStorage storage;
-
     private Palette<T> palette;
-
     private int bits;
 
-    public PalettedContainer(Palette<T> var0, IdMapper<T> var1, Function<CompoundTag, T> var2, Function<T, CompoundTag> var3, T var4) {
-        this.globalPalette = var0;
-        this.registry = var1;
-        this.reader = var2;
-        this.writer = var3;
-        this.defaultValue = var4;
+    public PalettedContainer() {
         setBits(4);
+
     }
 
     private static int getIndex(int var0, int var1, int var2) {
@@ -62,18 +43,18 @@ public class PalettedContainer<T> implements PaletteResize<T> {
 
     private void setBits(int var0) {
         if (var0 == this.bits)
+        {
             return;
+        }
         this.bits = var0;
         if (this.bits <= 4) {
             this.bits = 4;
-            this.palette = new LinearPalette<>(this.registry, this.bits, this, this.reader);
-        } else if (this.bits < 9) {
-            this.palette = new HashMapPalette<>(this.registry, this.bits, this, this.reader, this.writer);
+            this.palette = new LinearPalette<>(this.bits, this);
         } else {
-            this.palette = this.globalPalette;
-            this.bits = Mth.ceillog2(this.registry.size());
+            this.palette = new HashMapPalette<>(this.bits, this);
         }
-        this.palette.idFor(this.defaultValue);
+
+        this.palette.idFor(null);
         this.storage = new BitStorage(this.bits, 4096);
     }
 
@@ -100,8 +81,7 @@ public class PalettedContainer<T> implements PaletteResize<T> {
     private T getAndSet(int var0, T var1) {
         int var2 = this.palette.idFor(var1);
         int var3 = this.storage.getAndSet(var0, var2);
-        T var4 = this.palette.valueFor(var3);
-        return (var4 == null) ? this.defaultValue : var4;
+        return this.palette.valueFor(var3);
     }
 
     public void set(int var0, int var1, int var2, T var3) {
@@ -118,35 +98,33 @@ public class PalettedContainer<T> implements PaletteResize<T> {
     }
 
     protected T get(int var0) {
-        T var1 = this.palette.valueFor(this.storage.get(var0));
-        return (var1 == null) ? this.defaultValue : var1;
+        return this.palette.valueFor(this.storage.get(var0));
     }
 
-    public void read(ListTag var0, long[] var1) {
-        int var2 = Math.max(4, Mth.ceillog2(var0.size()));
+    public void read(List<T> palette, long[] data) {
+        int var2 = Math.max(4, Mth.ceillog2(palette.size()));
         if (var2 != this.bits)
+        {
             setBits(var2);
-        this.palette.read(var0);
-        int var3 = var1.length * 64 / 4096;
-        if (this.palette == this.globalPalette) {
-            Palette<T> var4 = new HashMapPalette<>(this.registry, var2, this.dummyPaletteResize, this.reader, this.writer);
-            var4.read(var0);
-            BitStorage var5 = new BitStorage(var2, 4096, var1);
-            for (int var6 = 0; var6 < 4096; var6++)
-                this.storage.set(var6, this.globalPalette.idFor(var4.valueFor(var5.get(var6))));
-        } else if (var3 == this.bits) {
-            System.arraycopy(var1, 0, this.storage.getRaw(), 0, var1.length);
+        }
+
+        this.palette.read(palette);
+        int var3 = data.length * 64 / 4096;
+        if (var3 == this.bits) {
+            System.arraycopy(data, 0, this.storage.getRaw(), 0, data.length);
         } else {
-            BitStorage var4 = new BitStorage(var3, 4096, var1);
+            BitStorage var4 = new BitStorage(var3, 4096, data);
             for (int var5 = 0; var5 < 4096; var5++)
+            {
                 this.storage.set(var5, var4.get(var5));
+            }
         }
     }
 
-    public void write(CompoundTag var0, String var1, String var2) {
-        HashMapPalette<T> var3 = new HashMapPalette<>(this.registry, this.bits, this.dummyPaletteResize, this.reader, this.writer);
-        T var4 = this.defaultValue;
-        int var5 = var3.idFor(this.defaultValue);
+    public long[] write(List<T> toList) {
+        HashMapPalette<T> var3 = new HashMapPalette<>(this.bits, this.dummyPaletteResize);
+        T var4 = null;
+        int var5 = 0;
         int[] var6 = new int[4096];
         for (int i = 0; i < 4096; i++) {
             T t = get(i);
@@ -156,15 +134,14 @@ public class PalettedContainer<T> implements PaletteResize<T> {
             }
             var6[i] = var5;
         }
-        ListTag<CompoundTag> paletteList = (ListTag<CompoundTag>) ListTag.createUnchecked(CompoundTag.class);
-        var3.write(paletteList);
-        var0.put(var1, paletteList);
-        int var8 = Math.max(4, Mth.ceillog2(paletteList.size()));
+
+        var3.write(toList);
+        int var8 = Math.max(4, Mth.ceillog2(toList.size()));
         BitStorage var9 = new BitStorage(var8, 4096);
         for (int var10 = 0; var10 < var6.length; var10++) {
             var9.set(var10, var6[var10]);
         }
-        var0.putLongArray(var2, var9.getRaw());
+        return var9.getRaw();
     }
 
     public boolean maybeHas(Predicate<T> var0) {

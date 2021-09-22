@@ -19,37 +19,34 @@
 package com.volmit.iris.util.data.palette;
 
 import com.volmit.iris.util.nbt.tag.CompoundTag;
-import com.volmit.iris.util.nbt.tag.ListTag;
 
-import java.util.function.Function;
+import java.util.List;
 import java.util.function.Predicate;
 
 public class LinearPalette<T> implements Palette<T> {
-    private final IdMapper<T> registry;
-
     private final T[] values;
-
     private final PaletteResize<T> resizeHandler;
-
-    private final Function<CompoundTag, T> reader;
-
     private final int bits;
-
     private int size;
 
-    public LinearPalette(IdMapper<T> var0, int var1, PaletteResize<T> var2, Function<CompoundTag, T> var3) {
-        this.registry = var0;
+    public LinearPalette(int var1, PaletteResize<T> var2) {
         this.values = (T[]) new Object[1 << var1];
         this.bits = var1;
         this.resizeHandler = var2;
-        this.reader = var3;
     }
 
     public int idFor(T var0) {
         int var1;
         for (var1 = 0; var1 < this.size; var1++) {
-            if (this.values[var1] == var0)
+            if(this.values[var1] == null && var0 == null)
+            {
                 return var1;
+            }
+
+            if (this.values[var1].equals(var0))
+            {
+                return var1;
+            }
         }
         var1 = this.size;
         if (var1 < this.values.length) {
@@ -78,9 +75,22 @@ public class LinearPalette<T> implements Palette<T> {
         return this.size;
     }
 
-    public void read(ListTag var0) {
-        for (int var1 = 0; var1 < var0.size(); var1++)
-            this.values[var1] = this.reader.apply((CompoundTag) var0.get(var1));
-        this.size = var0.size();
+    @Override
+    public void read(List<T> fromList) {
+        for (int i = 0; i < fromList.size(); i++)
+        {
+            this.values[i] = fromList.get(i);
+        }
+
+        this.size = fromList.size();
+    }
+
+    @Override
+    public void write(List<T> toList) {
+        for (int i = 0; i < this.size; i++)
+        {
+            T v = values[i];
+            toList.add(v);
+        }
     }
 }

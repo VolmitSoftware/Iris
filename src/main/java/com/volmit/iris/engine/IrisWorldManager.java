@@ -19,6 +19,7 @@
 package com.volmit.iris.engine;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedWorldManager;
@@ -41,6 +42,8 @@ import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.MatterCavern;
+import com.volmit.iris.util.matter.MatterFluidBody;
 import com.volmit.iris.util.matter.MatterMarker;
 import com.volmit.iris.util.plugin.Chunks;
 import com.volmit.iris.util.scheduling.ChronoLatch;
@@ -49,6 +52,7 @@ import com.volmit.iris.util.scheduling.Looper;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.bukkit.Chunk;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -460,6 +464,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     public void onChunkLoad(Chunk e, boolean generated) {
         energy += 0.3;
         fixEnergy();
+        getEngine().cleanupMantleChunk(e.getX(), e.getZ());
     }
 
     private void spawn(IrisPosition block, IrisSpawner spawner, boolean initial) {

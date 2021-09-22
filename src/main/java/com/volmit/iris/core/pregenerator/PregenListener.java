@@ -29,6 +29,8 @@ public interface PregenListener {
 
     void onRegionGenerating(int x, int z);
 
+    void onChunkCleaned(int x, int z);
+
     void onRegionSkipped(int x, int z);
 
     void onNetworkStarted(int x, int z);

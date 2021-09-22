@@ -18,20 +18,30 @@
 
 package com.volmit.iris.core.pregenerator;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.math.Position2;
+import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.math.Spiraled;
 import com.volmit.iris.util.math.Spiraler;
 import lombok.Builder;
 import lombok.Data;
+import org.checkerframework.checker.units.qual.K;
 
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Set;
+import java.util.function.Function;
 
 @Builder
 @Data
 public class PregenTask {
-    private static final KList<Position2> order = computeChunkOrder();
+    private static final Position2 ZERO = new Position2(0,0);
+    private static final KList<Position2> ORDER_CENTER = computeChunkOrder();
+    private static final KMap<Position2, KList<Position2>> ORDERS = new KMap<>();
+
     @Builder.Default
     private Position2 center = new Position2(0, 0);
     @Builder.Default
@@ -39,10 +49,44 @@ public class PregenTask {
     @Builder.Default
     private int height = 1;
 
-    public static void iterateRegion(int xr, int zr, Spiraled s) {
-        for (Position2 i : order) {
+    public static void iterateRegion(int xr, int zr, Spiraled s, Position2 pull) {
+        for (Position2 i :  ORDERS.computeIfAbsent(pull, PregenTask::computeOrder)) {
             s.on(i.getX() + (xr << 5), i.getZ() + (zr << 5));
         }
+    }
+
+    public static void iterateRegion(int xr, int zr, Spiraled s) {
+        iterateRegion(xr, zr, s, new Position2(0,0));
+    }
+
+    private static Position2 avg(Position2... c)
+    {
+        double x = 0;
+        double z = 0;
+
+        for(Position2 i : c)
+        {
+            x += i.getX() * 15;
+            z += i.getZ() * 15;
+        }
+
+        return new Position2((int)(x / c.length), (int)(z / c.length));
+    }
+
+    private static KList<Position2> computeOrder(Position2 pull) {
+        KList<Position2> p = new KList<>();
+        new Spiraler(33, 33, (x, z) -> {
+            int xx = (x + 15);
+            int zz = (z + 15);
+            if (xx < 0 || xx > 31 || zz < 0 || zz > 31) {
+                return;
+            }
+
+            p.add(new Position2(xx, zz));
+        }).drain();
+        p.sort(Comparator.comparing((i) -> i.distance(pull)));
+
+        return p;
     }
 
     private static KList<Position2> computeChunkOrder() {

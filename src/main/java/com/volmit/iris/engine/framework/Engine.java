@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.core.gui.components.Renderer;
 import com.volmit.iris.core.loader.IrisData;
@@ -60,6 +61,7 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterCavern;
+import com.volmit.iris.util.matter.MatterFluidBody;
 import com.volmit.iris.util.matter.MatterUpdate;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -901,5 +903,13 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         }
 
         Locator.region(r.getLoadKey()).find(player);
+    }
+
+    default void cleanupMantleChunk(int x, int z)
+    {
+        if(IrisSettings.get().getPerformance().isTrimMantleInStudio() || !isStudio())
+        {
+            J.a(() -> getMantle().cleanupChunk(x, z));
+        }
     }
 }

@@ -224,6 +224,11 @@ public class IrisPregenerator {
             }
 
             @Override
+            public void onChunkCleaned(int x, int z) {
+                listener.onChunkCleaned(x, z);
+            }
+
+            @Override
             public void onRegionSkipped(int x, int z) {
                 listener.onRegionSkipped(x, z);
             }

@@ -152,7 +152,7 @@ public interface MatterSlice<T> extends Hunk<T>, PaletteType<T> {
 
     default void write(DataOutputStream dos) throws IOException {
         dos.writeUTF(getType().getCanonicalName());
-       if(IrisSettings.get().getPerformance().isUseExperimentalMantleMemoryCompression() && (this instanceof PaletteOrHunk f && f.isPalette()))
+       if((this instanceof PaletteOrHunk f && f.isPalette()))
        {
            PalettedContainer<T> c = f.palette();
            List<T> palette = new ArrayList<>();
@@ -192,7 +192,7 @@ public interface MatterSlice<T> extends Hunk<T>, PaletteType<T> {
     }
 
     default void read(DataInputStream din) throws IOException {
-        if(IrisSettings.get().getPerformance().isUseExperimentalMantleMemoryCompression() && (this instanceof PaletteOrHunk f && f.isPalette()))
+        if((this instanceof PaletteOrHunk f && f.isPalette()))
         {
             PalettedContainer<T> c = new PalettedContainer<>();
             List<T> palette = new ArrayList<>();

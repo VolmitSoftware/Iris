@@ -213,6 +213,11 @@ public class SyndicateServer extends Thread implements PregenListener {
     }
 
     @Override
+    public void onChunkCleaned(int x, int z) {
+
+    }
+
+    @Override
     public void onRegionSkipped(int x, int z) {
 
     }

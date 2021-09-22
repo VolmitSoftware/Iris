@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.nbt.mca.palette;
+package com.volmit.iris.util.data.palette;
 
 public interface BiomeContainer {
     int[] getData();

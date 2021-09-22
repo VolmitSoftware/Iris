@@ -663,6 +663,7 @@ public class CommandStudio implements DecreeExecutor {
             @Param(description = "The dimension to update the workspace of", contextual = true, defaultValue = "overworld")
                     IrisDimension dimension
     ) {
+        sender().sendMessage(C.GOLD + "Updating Code Workspace for " + dimension.getName() + "...");
         if (new IrisProject(dimension.getLoader().getDataFolder()).updateWorkspace()) {
             sender().sendMessage(C.GREEN + "Updated Code Workspace for " + dimension.getName());
         } else {

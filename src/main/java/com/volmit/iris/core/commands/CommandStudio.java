@@ -658,7 +658,7 @@ public class CommandStudio implements DecreeExecutor {
         player().setGameMode(GameMode.SPECTATOR);
     }
 
-    @Decree(description = "Update your dimension project")
+    @Decree(description = "Update your dimension projects VSCode workspace")
     public void update(
             @Param(description = "The dimension to update the workspace of", contextual = true, defaultValue = "overworld")
                     IrisDimension dimension

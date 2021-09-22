@@ -327,7 +327,7 @@ public class CommandStudio implements DecreeExecutor {
         engine().getExecution().execute(script.getLoadKey());
     }
 
-    @Decree(description = "Open the noise explorer (External GUI)", aliases = "nmap")
+    @Decree(description = "Open the noise explorer (External GUI)", aliases = {"nmap", "n"})
     public void noise() {
         if (noGUI()) return;
         sender().sendMessage(C.GREEN + "Opening Noise Explorer!");

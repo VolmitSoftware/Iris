@@ -152,6 +152,27 @@ public interface MatterSlice<T> extends Hunk<T>, PaletteType<T> {
 
     default void write(DataOutputStream dos) throws IOException {
         dos.writeUTF(getType().getCanonicalName());
+       if(IrisSettings.get().getPerformance().isUseExperimentalMantleMemoryCompression() && (this instanceof PaletteOrHunk f && f.isPalette()))
+       {
+           PalettedContainer<T> c = f.palette();
+           List<T> palette = new ArrayList<>();
+           long[] data = c.write(palette);
+
+           Varint.writeUnsignedVarInt(palette.size(), dos);
+           for(T i : palette)
+           {
+               writeNode(i, dos);
+           }
+
+           Varint.writeUnsignedVarInt(data.length, dos);
+           for(long i : data)
+           {
+               dos.writeLong(i);
+           }
+
+           return;
+       }
+
         int w = getWidth();
         int h = getHeight();
         MatterPalette<T> palette = new MatterPalette<T>(this);
@@ -171,6 +192,29 @@ public interface MatterSlice<T> extends Hunk<T>, PaletteType<T> {
     }
 
     default void read(DataInputStream din) throws IOException {
+        if(IrisSettings.get().getPerformance().isUseExperimentalMantleMemoryCompression() && (this instanceof PaletteOrHunk f && f.isPalette()))
+        {
+            PalettedContainer<T> c = new PalettedContainer<>();
+            List<T> palette = new ArrayList<>();
+            int ps = Varint.readUnsignedVarInt(din);
+
+            for(int i = 0; i < ps; i++)
+            {
+                palette.add(readNode(din));
+            }
+
+            int ds = Varint.readUnsignedVarInt(din);
+            long[] data = new long[ds];
+            for(int i = 0; i < ds; i++)
+            {
+                data[i] = din.readLong();
+            }
+
+            c.read(palette, data);
+
+            return;
+        }
+
         int w = getWidth();
         int h = getHeight();
         MatterPalette<T> palette = new MatterPalette<T>(this, din);

@@ -80,7 +80,9 @@ public class MCALinearPalette<T> implements MCAPalette<T> {
 
     public void read(ListTag var0) {
         for (int var1 = 0; var1 < var0.size(); var1++)
+        {
             this.values[var1] = this.reader.apply((CompoundTag) var0.get(var1));
+        }
         this.size = var0.size();
     }
 }

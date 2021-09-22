@@ -43,7 +43,7 @@ public class LinearPalette<T> implements Palette<T> {
                 return var1;
             }
 
-            if (this.values[var1].equals(var0))
+            if (this.values[var1] != null && this.values[var1].equals(var0))
             {
                 return var1;
             }

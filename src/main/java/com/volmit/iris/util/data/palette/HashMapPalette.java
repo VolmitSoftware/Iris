@@ -71,6 +71,11 @@ public class HashMapPalette<T> implements Palette<T> {
 
     @Override
     public void write(List<T> toList) {
-        this.values.iterator().forEachRemaining(toList::add);
+        this.values.iterator().forEachRemaining(i -> {
+            if(i != null)
+            {
+                toList.add(i);
+            }
+        });
     }
 }

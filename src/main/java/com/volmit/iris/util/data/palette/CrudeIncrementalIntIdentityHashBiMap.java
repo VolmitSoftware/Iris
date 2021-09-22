@@ -130,6 +130,10 @@ public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
     private int indexOf(K var0, int var1) {
         int var2;
         for (var2 = var1; var2 < this.keys.length; var2++) {
+            if (this.keys[var2] == null)
+            {
+                return 0;
+            }
             if (this.keys[var2].equals(var0))
                 return var2;
             if (this.keys[var2] == EMPTY_SLOT)

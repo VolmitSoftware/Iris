@@ -34,7 +34,6 @@ public class PalettedContainer<T> implements PaletteResize<T> {
 
     public PalettedContainer() {
         setBits(4);
-
     }
 
     private static int getIndex(int var0, int var1, int var2) {

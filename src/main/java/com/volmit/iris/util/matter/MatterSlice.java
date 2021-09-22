@@ -18,11 +18,15 @@
 
 package com.volmit.iris.util.matter;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.data.palette.PaletteType;
+import com.volmit.iris.util.data.palette.PalettedContainer;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.hunk.storage.PaletteOrHunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
@@ -32,6 +36,8 @@ import org.bukkit.util.BlockVector;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public interface MatterSlice<T> extends Hunk<T>, PaletteType<T> {
     Class<T> getType();
@@ -145,9 +151,30 @@ public interface MatterSlice<T> extends Hunk<T>, PaletteType<T> {
     }
 
     default void write(DataOutputStream dos) throws IOException {
+        dos.writeUTF(getType().getCanonicalName());
+       if(IrisSettings.get().getPerformance().isUseExperimentalMantleMemoryCompression() && (this instanceof PaletteOrHunk f && f.isPalette()))
+       {
+           PalettedContainer<T> c = f.palette();
+           List<T> palette = new ArrayList<>();
+           long[] data = c.write(palette);
+
+           Varint.writeUnsignedVarInt(palette.size(), dos);
+           for(T i : palette)
+           {
+               writeNode(i, dos);
+           }
+
+           Varint.writeUnsignedVarInt(data.length, dos);
+           for(long i : data)
+           {
+               dos.writeLong(i);
+           }
+
+           return;
+       }
+
         int w = getWidth();
         int h = getHeight();
-        dos.writeUTF(getType().getCanonicalName());
         MatterPalette<T> palette = new MatterPalette<T>(this);
         iterateSync((x, y, z, b) -> palette.assign(b));
         palette.writePalette(dos);
@@ -165,6 +192,29 @@ public interface MatterSlice<T> extends Hunk<T>, PaletteType<T> {
     }
 
     default void read(DataInputStream din) throws IOException {
+        if(IrisSettings.get().getPerformance().isUseExperimentalMantleMemoryCompression() && (this instanceof PaletteOrHunk f && f.isPalette()))
+        {
+            PalettedContainer<T> c = new PalettedContainer<>();
+            List<T> palette = new ArrayList<>();
+            int ps = Varint.readUnsignedVarInt(din);
+
+            for(int i = 0; i < ps; i++)
+            {
+                palette.add(readNode(din));
+            }
+
+            int ds = Varint.readUnsignedVarInt(din);
+            long[] data = new long[ds];
+            for(int i = 0; i < ds; i++)
+            {
+                data[i] = din.readLong();
+            }
+
+            c.read(palette, data);
+
+            return;
+        }
+
         int w = getWidth();
         int h = getHeight();
         MatterPalette<T> palette = new MatterPalette<T>(this, din);

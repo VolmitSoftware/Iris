@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.hunk.storage;
 
+import com.volmit.iris.util.data.palette.PalettedContainer;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.function.Consumer4IO;
 import com.volmit.iris.util.hunk.Hunk;
@@ -31,6 +32,23 @@ public class PaletteOrHunk<T> extends StorageHunk<T> implements Hunk<T> {
     public PaletteOrHunk(int width, int height, int depth, Supplier<Hunk<T>> factory) {
         super(width, height, depth);
         hunk = width == 16 && height == 16 && depth == 16 ? new PaletteHunk<>() : factory.get();
+    }
+
+    public PalettedContainer<T> palette()
+    {
+        return isPalette() ? ((PaletteHunk<T>)hunk).getData() : null;
+    }
+
+    public void palette(PalettedContainer<T> t)
+    {
+        if(isPalette()){
+            ((PaletteHunk<T>)hunk).setData(t);
+        }
+    }
+
+    public boolean isPalette()
+    {
+        return getWidth() == 16 && getHeight() == 16 && getDepth() == 16;
     }
 
     @Override

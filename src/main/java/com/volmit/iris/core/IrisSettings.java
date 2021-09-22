@@ -64,6 +64,7 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsPerformance {
         public boolean trimMantleInStudio = false;
+        public boolean useExperimentalMantleMemoryCompression = false;
         public int mantleKeepAliveSeconds = 20;
         public int maxStreamCacheSize = 750_000;
         public int maxResourceLoaderCacheSize = 1_000;

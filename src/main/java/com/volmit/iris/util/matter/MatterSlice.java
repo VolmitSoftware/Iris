@@ -20,6 +20,8 @@ package com.volmit.iris.util.matter;
 
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.data.Varint;
+import com.volmit.iris.util.data.palette.Palette;
+import com.volmit.iris.util.data.palette.PaletteType;
 import com.volmit.iris.util.hunk.Hunk;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -31,8 +33,20 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public interface MatterSlice<T> extends Hunk<T> {
+public interface MatterSlice<T> extends Hunk<T>, PaletteType<T> {
     Class<T> getType();
+
+    Palette<T> getGlobalPalette();
+
+    @Override
+    default void writePaletteNode(DataOutputStream dos, T s) throws IOException {
+        writeNode(s, dos);
+    }
+
+    @Override
+    default T readPaletteNode(DataInputStream din) throws IOException {
+        return readNode(din);
+    }
 
     default void applyFilter(MatterFilter<T> filter) {
         updateSync(filter::update);

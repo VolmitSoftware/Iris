@@ -18,8 +18,10 @@
 
 package com.volmit.iris.util.matter.slices;
 
+import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.MatterFluidBody;
 import com.volmit.iris.util.matter.Sliced;
+import org.bukkit.entity.Player;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -29,6 +31,11 @@ import java.io.IOException;
 public class FluidBodyMatter extends RawMatter<MatterFluidBody> {
     public FluidBodyMatter() {
         this(1, 1, 1);
+    }
+
+    @Override
+    public Palette<MatterFluidBody> getGlobalPalette() {
+        return null;
     }
 
     public FluidBodyMatter(int width, int height, int depth) {

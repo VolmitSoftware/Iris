@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.matter.slices;
 
+import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.Sliced;
 
 import java.io.DataInputStream;
@@ -32,6 +33,11 @@ public class StringMatter extends RawMatter<String> {
 
     public StringMatter(int width, int height, int depth) {
         super(width, height, depth, String.class);
+    }
+
+    @Override
+    public Palette<String> getGlobalPalette() {
+        return null;
     }
 
     @Override

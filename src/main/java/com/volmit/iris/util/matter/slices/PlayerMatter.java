@@ -19,6 +19,8 @@
 package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.util.data.Varint;
+import com.volmit.iris.util.data.palette.Palette;
+import com.volmit.iris.util.matter.MatterTile;
 import com.volmit.iris.util.matter.Sliced;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -32,6 +34,11 @@ import java.util.UUID;
 public class PlayerMatter extends RawMatter<Player> {
     public PlayerMatter() {
         this(1, 1, 1);
+    }
+
+    @Override
+    public Palette<Player> getGlobalPalette() {
+        return null;
     }
 
     public PlayerMatter(int width, int height, int depth) {

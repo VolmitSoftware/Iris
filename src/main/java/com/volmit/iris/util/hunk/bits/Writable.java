@@ -16,22 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.data.palette;
+package com.volmit.iris.util.hunk.bits;
 
-import com.volmit.iris.util.nbt.tag.CompoundTag;
-import com.volmit.iris.util.nbt.tag.ListTag;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 
-import java.util.List;
-import java.util.function.Predicate;
+public interface Writable<T> {
+    T readNodeData(DataInputStream din) throws IOException;
 
-public interface Palette<T> {
-    int idFor(T paramT);
-
-    T valueFor(int paramInt);
-
-    int getSize();
-
-    void read(List<T> fromList);
-
-    void write(List<T> toList);
+    void writeNodeData(DataOutputStream dos, T t) throws IOException;
 }

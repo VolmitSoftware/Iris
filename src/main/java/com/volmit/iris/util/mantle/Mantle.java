@@ -52,7 +52,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The mantle can store any type of data slice anywhere and manage regions & IO on it's own.
- * This class is fully thread safe read & write
+ * This class is fully thread safe read & writeNodeData
  */
 public class Mantle {
     private final File dataFolder;
@@ -335,7 +335,7 @@ public class Mantle {
     }
 
     /**
-     * Closes the Mantle. By closing the mantle, you can no longer read or write
+     * Closes the Mantle. By closing the mantle, you can no longer read or writeNodeData
      * any data to the mantle or it's Tectonic Plates. Closing will also flush any
      * loaded regions to the disk in parallel.
      */

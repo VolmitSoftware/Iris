@@ -23,6 +23,8 @@ import com.volmit.iris.util.data.palette.PalettedContainer;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.function.Consumer4IO;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.hunk.bits.DataContainer;
+import com.volmit.iris.util.hunk.bits.Writable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -33,15 +35,25 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class PaletteHunk<T> extends StorageHunk<T> implements Hunk<T> {
-    private PalettedContainer<T> data;
+    private DataContainer<T> data;
 
-    public PaletteHunk() {
-        super(16, 16, 16);
-        data = new PalettedContainer<>();
+    public PaletteHunk(int w, int h, int d, Writable<T> writer) {
+        super(w,h,d);
+        data = new DataContainer<>(writer, w * h * d);
     }
+
+
+    public void setPalette(DataContainer<T> c) {
+        data = c;
+    }
+
 
     public boolean isMapped() {
         return false;
+    }
+
+    private int index(int x, int y, int z) {
+        return (z * getWidth() * getHeight()) + (y * getWidth()) + x;
     }
 
     @Override
@@ -84,11 +96,11 @@ public class PaletteHunk<T> extends StorageHunk<T> implements Hunk<T> {
 
     @Override
     public void setRaw(int x, int y, int z, T t) {
-        data.set(x,y,z,t);
+        data.set(index(x, y, z), t);
     }
 
     @Override
     public T getRaw(int x, int y, int z) {
-        return data.get(x,y,z);
+        return data.get(index(x, y, z));
     }
 }

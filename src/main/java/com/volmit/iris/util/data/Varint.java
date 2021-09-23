@@ -45,7 +45,7 @@ public final class Varint {
      * {@link #writeUnsignedVarLong(long, DataOutput)} should be used.
      *
      * @param value value to encode
-     * @param out   to write bytes to
+     * @param out   to writeNodeData bytes to
      * @throws IOException if {@link DataOutput} throws {@link IOException}
      */
     public static void writeSignedVarLong(long value, DataOutput out) throws IOException {
@@ -61,7 +61,7 @@ public final class Varint {
      * instead. This method treats negative input as like a large unsigned value.
      *
      * @param value value to encode
-     * @param out   to write bytes to
+     * @param out   to writeNodeData bytes to
      * @throws IOException if {@link DataOutput} throws {@link IOException}
      */
     public static void writeUnsignedVarLong(long value, DataOutput out) throws IOException {

@@ -16,14 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.data.palette;
+package com.volmit.iris.util.hunk.bits;
 
+import com.volmit.iris.util.data.Varint;
 import org.apache.commons.lang3.Validate;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLongArray;
 import java.util.function.IntConsumer;
 
-public class BitStorage {
+public class DataBits {
     private static final int[] MAGIC = new int[]{
             -1, -1, 0, Integer.MIN_VALUE, 0, 0, 1431655765, 1431655765, 0, Integer.MIN_VALUE,
             0, 1, 858993459, 858993459, 0, 715827882, 715827882, 0, 613566756, 613566756,
@@ -55,57 +60,26 @@ public class BitStorage {
     private final int divideAdd;
     private final int divideShift;
 
-    public BitStorage(int bits, int length) {
+    public DataBits(int bits, int length) {
         this(bits, length, (AtomicLongArray) null);
     }
 
-    private static AtomicLongArray atomic(long[] data)
+    public DataBits(int bits, int length, DataInputStream din) throws IOException
     {
-        if(data == null)
-        {
-            return null;
-        }
-
-        AtomicLongArray d = new AtomicLongArray(data.length);
-        for(int i = 0; i < data.length; i++)
-        {
-            d.set(i, data[i]);
-        }
-
-        return d;
+        this(bits, length, longs(din, (length + ((char) (64 / bits)) - 1) / ((char) (64 / bits))));
     }
 
-    private static long[] atomic(AtomicLongArray data)
-    {
-        if(data == null)
-        {
-            return null;
-        }
-
-        long[] d = new long[data.length()];
-        for(int i = 0; i < data.length(); i++)
-        {
-            d[i] = data.get(i);
-        }
-
-        return d;
-    }
-
-    public BitStorage(int bits, int length, long[] data) {
-        this(bits, length, atomic(data));
-    }
-
-    public BitStorage(int bits, int length, AtomicLongArray data) {
+    public DataBits(int bits, int length, AtomicLongArray data) {
         Validate.inclusiveBetween(1L, 32L, bits);
         this.size = length;
         this.bits = bits;
         this.mask = (1L << bits) - 1L;
         this.valuesPerLong = (char) (64 / bits);
-        int var3 = 3 * (this.valuesPerLong - 1);
-        this.divideMul = MAGIC[var3 + 0];
+        int var3 = 3 * (valuesPerLong - 1);
+        this.divideMul = MAGIC[var3];
         this.divideAdd = MAGIC[var3 + 1];
         this.divideShift = MAGIC[var3 + 2];
-        int var4 = (length + this.valuesPerLong - 1) / this.valuesPerLong;
+        int var4 = (length + valuesPerLong - 1) / valuesPerLong;
         if (data != null) {
             if (data.length() != var4)
             {
@@ -117,12 +91,37 @@ public class BitStorage {
         }
     }
 
+    private static AtomicLongArray longs(DataInputStream din, int len) throws IOException{
+        AtomicLongArray a = new AtomicLongArray(len);
+
+        for(int i = 0; i < len; i++)
+        {
+            a.set(i, din.readLong());
+        }
+
+        return a;
+    }
+
+    public DataBits setBits(int newBits)
+    {
+        if(bits != newBits)
+        {
+            DataBits newData = new DataBits(newBits, size);
+            AtomicInteger c = new AtomicInteger(0);
+            getAll((i) -> newData.set(c.incrementAndGet(), i));
+            return newData;
+        }
+
+        return this;
+    }
+
     private int cellIndex(int var0) {
         long var1 = Integer.toUnsignedLong(this.divideMul);
         long var3 = Integer.toUnsignedLong(this.divideAdd);
         return (int) (var0 * var1 + var3 >> 32L >> this.divideShift);
     }
 
+    @SuppressWarnings("PointlessBitwiseExpression")
     public int getAndSet(int var0, int var1) {
         Validate.inclusiveBetween(0L, (this.size - 1), var0);
         Validate.inclusiveBetween(0L, this.mask, var1);
@@ -134,6 +133,7 @@ public class BitStorage {
         return var6;
     }
 
+    @SuppressWarnings("PointlessBitwiseExpression")
     public void set(int var0, int var1) {
         Validate.inclusiveBetween(0L, (this.size - 1), var0);
         Validate.inclusiveBetween(0L, this.mask, var1);
@@ -145,23 +145,23 @@ public class BitStorage {
     }
 
     public int get(int var0) {
-        Validate.inclusiveBetween(0L, (this.size - 1), var0);
+        Validate.inclusiveBetween(0L, (size - 1), var0);
         int var1 = cellIndex(var0);
         long var2 = this.data.get(var1);
-        int var4 = (var0 - var1 * this.valuesPerLong) * this.bits;
-        return (int) (var2 >> var4 & this.mask);
+        int var4 = (var0 - var1 * valuesPerLong) * this.bits;
+        return (int) (var2 >> var4 & mask);
     }
 
-    public long[] getRaw() {
-        return atomic(data);
+    public AtomicLongArray getRaw() {
+        return data;
     }
 
     public int getSize() {
-        return this.size;
+        return size;
     }
 
     public int getBits() {
-        return this.bits;
+        return bits;
     }
 
     public void getAll(IntConsumer var0) {
@@ -169,12 +169,23 @@ public class BitStorage {
         for(int i = 0; i < data.length(); i++)
         {
             long var5 = data.get(i);
-            for (int var7 = 0; var7 < this.valuesPerLong; var7++) {
-                var0.accept((int) (var5 & this.mask));
-                var5 >>= this.bits;
-                if (++var1 >= this.size)
+            for (int var7 = 0; var7 < valuesPerLong; var7++) {
+                var0.accept((int) (var5 & mask));
+                var5 >>= bits;
+                if (++var1 >= size)
+                {
                     return;
+                }
             }
+        }
+    }
+
+    public void write(DataOutputStream dos) throws IOException {
+        dos.writeByte(bits);
+
+        for(int i = 0; i < data.length(); i++)
+        {
+            dos.writeLong(data.get(i));
         }
     }
 }

@@ -26,6 +26,8 @@ import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.data.palette.PaletteType;
 import com.volmit.iris.util.data.palette.PalettedContainer;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.hunk.bits.DataContainer;
+import com.volmit.iris.util.hunk.bits.Writable;
 import com.volmit.iris.util.hunk.storage.PaletteOrHunk;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -39,7 +41,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public interface MatterSlice<T> extends Hunk<T>, PaletteType<T> {
+public interface MatterSlice<T> extends Hunk<T>, PaletteType<T>, Writable<T> {
     Class<T> getType();
 
     Palette<T> getGlobalPalette();
@@ -50,7 +52,17 @@ public interface MatterSlice<T> extends Hunk<T>, PaletteType<T> {
     }
 
     @Override
+    default void writeNodeData(DataOutputStream dos, T s) throws IOException {
+        writeNode(s, dos);
+    }
+
+    @Override
     default T readPaletteNode(DataInputStream din) throws IOException {
+        return readNode(din);
+    }
+
+    @Override
+    default T readNodeData(DataInputStream din) throws IOException {
         return readNode(din);
     }
 
@@ -154,22 +166,7 @@ public interface MatterSlice<T> extends Hunk<T>, PaletteType<T> {
         dos.writeUTF(getType().getCanonicalName());
        if((this instanceof PaletteOrHunk f && f.isPalette()))
        {
-           PalettedContainer<T> c = f.palette();
-           List<T> palette = new ArrayList<>();
-           long[] data = c.write(palette);
-
-           Varint.writeUnsignedVarInt(palette.size(), dos);
-           for(T i : palette)
-           {
-               writeNode(i, dos);
-           }
-
-           Varint.writeUnsignedVarInt(data.length, dos);
-           for(long i : data)
-           {
-               dos.writeLong(i);
-           }
-
+           f.palette().writeDos(dos);
            return;
        }
 
@@ -194,24 +191,7 @@ public interface MatterSlice<T> extends Hunk<T>, PaletteType<T> {
     default void read(DataInputStream din) throws IOException {
         if((this instanceof PaletteOrHunk f && f.isPalette()))
         {
-            PalettedContainer<T> c = new PalettedContainer<>();
-            List<T> palette = new ArrayList<>();
-            int ps = Varint.readUnsignedVarInt(din);
-
-            for(int i = 0; i < ps; i++)
-            {
-                palette.add(readNode(din));
-            }
-
-            int ds = Varint.readUnsignedVarInt(din);
-            long[] data = new long[ds];
-            for(int i = 0; i < ds; i++)
-            {
-                data[i] = din.readLong();
-            }
-
-            c.read(palette, data);
-
+            f.setPalette(DataContainer.readDin(din, this));
             return;
         }
 

@@ -163,7 +163,7 @@ public class TectonicPlate {
     /**
      * Write this tectonic plate to file
      *
-     * @param file the file to write it to
+     * @param file the file to writeNodeData it to
      * @throws IOException shit happens
      */
     public void write(File file) throws IOException {

@@ -22,6 +22,8 @@ import com.volmit.iris.util.data.palette.PalettedContainer;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.function.Consumer4IO;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.hunk.bits.DataContainer;
+import com.volmit.iris.util.hunk.bits.Writable;
 
 import java.io.IOException;
 import java.util.Map;
@@ -29,26 +31,26 @@ import java.util.function.Supplier;
 
 public class PaletteOrHunk<T> extends StorageHunk<T> implements Hunk<T> {
     private final Hunk<T> hunk;
-    public PaletteOrHunk(int width, int height, int depth, boolean allow, Supplier<Hunk<T>> factory) {
+    public PaletteOrHunk(int width, int height, int depth, boolean allow, Writable<T> writable, Supplier<Hunk<T>> factory) {
         super(width, height, depth);
-        hunk = (width == 16 && height == 16 && depth == 16 && allow) ? new PaletteHunk<>() : factory.get();
+        hunk = (allow) ? new PaletteHunk<>(width, height, depth, writable) : factory.get();
     }
 
-    public PalettedContainer<T> palette()
+    public DataContainer<T> palette()
     {
         return isPalette() ? ((PaletteHunk<T>)hunk).getData() : null;
     }
 
-    public void palette(PalettedContainer<T> t)
-    {
-        if(isPalette()){
-            ((PaletteHunk<T>)hunk).setData(t);
+    public void setPalette(DataContainer<T> c) {
+        if(isPalette())
+        {
+            ((PaletteHunk<T>)hunk).setPalette(c);
         }
     }
 
     public boolean isPalette()
     {
-        return getWidth() == 16 && getHeight() == 16 && getDepth() == 16;
+        return hunk instanceof PaletteHunk;
     }
 
     @Override

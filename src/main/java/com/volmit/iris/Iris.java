@@ -45,6 +45,7 @@ import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.io.JarScanner;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.MatterTest;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.Metrics;
@@ -447,6 +448,7 @@ public class Iris extends VolmitPlugin implements Listener {
         J.s(this::setupPapi);
         J.a(ServerConfigurator::configure, 20);
         splash();
+        J.a(MatterTest::test, 20);
         
         if (IrisSettings.get().getStudio().isAutoStartDefaultStudio()) {
             Iris.info("Starting up auto Studio!");

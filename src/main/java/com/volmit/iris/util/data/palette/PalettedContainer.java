@@ -18,6 +18,8 @@
 
 package com.volmit.iris.util.data.palette;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.util.math.M;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import java.util.List;
 import java.util.function.Predicate;
@@ -64,8 +66,11 @@ public class PalettedContainer<T> implements PaletteResize<T> {
         for (int var4 = 0; var4 < var2.getSize(); var4++) {
             T var5 = var3.valueFor(var2.get(var4));
             if (var5 != null)
+            {
                 set(var4, var5);
+            }
         }
+
         return this.palette.idFor(var1);
     }
 
@@ -89,6 +94,12 @@ public class PalettedContainer<T> implements PaletteResize<T> {
 
     private void set(int var0, T var1) {
         int var2 = this.palette.idFor(var1);
+
+        if(M.r(0.003))
+        {
+            Iris.info("ID for " + var1 + " is " + var2 + " Palette: " + palette.getSize());
+        }
+
         this.storage.set(var0, var2);
     }
 
@@ -141,10 +152,6 @@ public class PalettedContainer<T> implements PaletteResize<T> {
             var9.set(var10, var6[var10]);
         }
         return var9.getRaw();
-    }
-
-    public boolean maybeHas(Predicate<T> var0) {
-        return this.palette.maybeHas(var0);
     }
 
     public void count(CountConsumer<T> var0) {

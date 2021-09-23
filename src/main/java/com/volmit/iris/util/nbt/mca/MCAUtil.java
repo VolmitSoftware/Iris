@@ -30,7 +30,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Provides main and utility functions to read and write .mca files and
+ * Provides main and utility functions to read and writeNodeData .mca files and
  * to convert block, chunk and region coordinates.
  */
 public final class MCAUtil {
@@ -98,8 +98,8 @@ public final class MCAUtil {
     /**
      * Calls {@link MCAUtil#write(MCAFile, File, boolean)} without changing the timestamps.
      *
-     * @param file    The file to write to.
-     * @param mcaFile The data of the MCA file to write.
+     * @param file    The file to writeNodeData to.
+     * @param mcaFile The data of the MCA file to writeNodeData.
      * @return The amount of chunks written to the file.
      * @throws IOException If something goes wrong during serialization.
      * @see MCAUtil#write(MCAFile, File, boolean)
@@ -111,8 +111,8 @@ public final class MCAUtil {
     /**
      * Calls {@link MCAUtil#write(MCAFile, File, boolean)} without changing the timestamps.
      *
-     * @param file    The file to write to.
-     * @param mcaFile The data of the MCA file to write.
+     * @param file    The file to writeNodeData to.
+     * @param mcaFile The data of the MCA file to writeNodeData.
      * @return The amount of chunks written to the file.
      * @throws IOException If something goes wrong during serialization.
      * @see MCAUtil#write(MCAFile, File, boolean)
@@ -122,8 +122,8 @@ public final class MCAUtil {
     }
 
     /**
-     * @param file             The file to write to.
-     * @param mcaFile          The data of the MCA file to write.
+     * @param file             The file to writeNodeData to.
+     * @param mcaFile          The data of the MCA file to writeNodeData.
      * @param changeLastUpdate Whether to adjust the timestamps of when the file was saved.
      * @return The amount of chunks written to the file.
      * @throws IOException If something goes wrong during serialization.
@@ -139,8 +139,8 @@ public final class MCAUtil {
      * the value set by either loading an already existing MCA file or setting them manually.<br>
      * If the file already exists, it is completely overwritten by the new file (no modification).
      *
-     * @param file             The file to write to.
-     * @param mcaFile          The data of the MCA file to write.
+     * @param file             The file to writeNodeData to.
+     * @param mcaFile          The data of the MCA file to writeNodeData.
      * @param changeLastUpdate Whether to adjust the timestamps of when the file was saved.
      * @return The amount of chunks written to the file.
      * @throws IOException If something goes wrong during serialization.

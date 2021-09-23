@@ -56,17 +56,11 @@ public class LinearPalette<T> implements Palette<T> {
         return resizeHandler.onResize(bits + 1, var0);
     }
 
-    public boolean maybeHas(Predicate<T> var0) {
-        for (int var1 = 0; var1 < size; var1++) {
-            if (var0.test(values.get(var1)))
-                return true;
-        }
-        return false;
-    }
-
     public T valueFor(int var0) {
         if (var0 >= 0 && var0 < size)
+        {
             return this.values.get(var0);
+        }
         return null;
     }
 

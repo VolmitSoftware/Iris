@@ -19,6 +19,7 @@
 package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.hunk.bits.Writable;
 import com.volmit.iris.util.hunk.storage.MappedHunk;
 import com.volmit.iris.util.hunk.storage.PaletteOrHunk;
 import com.volmit.iris.util.matter.MatterReader;
@@ -37,7 +38,7 @@ public abstract class RawMatter<T> extends PaletteOrHunk<T> implements MatterSli
     private final Class<T> type;
 
     public RawMatter(int width, int height, int depth, Class<T> type) {
-        super(width, height, depth, false, this, () -> new MappedHunk<>(width, height, depth));
+        super(width, height, depth, false, () -> new MappedHunk<>(width, height, depth));
         writers = new KMap<>();
         readers = new KMap<>();
         this.type = type;

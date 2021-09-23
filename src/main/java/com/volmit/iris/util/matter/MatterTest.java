@@ -22,53 +22,64 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.NoiseStyle;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.palette.PalettedContainer;
+import com.volmit.iris.util.hunk.bits.DataContainer;
+import com.volmit.iris.util.hunk.bits.Writable;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import org.checkerframework.checker.units.qual.K;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
 public class MatterTest {
     public static void test()
     {
-        CNG cng = NoiseStyle.STATIC.create(new RNG(1337));
-        PalettedContainer<Integer> p = new PalettedContainer<>();
-
-        for(int i = 0; i < 16; i++)
+        try
         {
-            for(int j = 0; j < 16; j++)
-            {
-                for(int k = 0; k < 16; k++)
-                {
-                    p.set(i,j,k,cng.fit(1, 3, i,j,k));
+            CNG cng = NoiseStyle.STATIC.create(new RNG(1337));
+            Writable<Integer> ffs = new Writable<Integer>() {
+                @Override
+                public Integer readNodeData(DataInputStream din) throws IOException {
+                    return din.readInt();
                 }
+
+                @Override
+                public void writeNodeData(DataOutputStream dos, Integer integer) throws IOException {
+                    dos.writeInt(integer);
+                }
+            };
+            DataContainer<Integer> p = new DataContainer<>(ffs, 32);
+
+            for(int i = 0; i < 32; i++)
+            {
+                p.set(i,cng.fit(1, 7, i, i * 2));
+            }
+
+            byte[] dat = p.write();
+            Iris.info("RAW DATA: " + IO.bytesToHex(dat));
+
+            DataContainer<Integer> f = DataContainer.read(new ByteArrayInputStream(dat), ffs);
+            byte[] d2 = f.write();
+            if(Arrays.equals(dat, d2))
+            {
+                Iris.info("Correct! All data matches!");
+            }
+
+            else
+            {
+                Iris.warn("No match");
+                Iris.error("RAW DATA: " + IO.bytesToHex(d2));
             }
         }
 
-        KList<Integer> palette = new KList<>();
-        long[] data = p.write(palette);
-
-        Iris.info("RAW PALE: " + palette.toString(","));
-        Iris.info("RAW DATA: " + IO.longsToHex(data));
-
-        PalettedContainer<Integer> px = new PalettedContainer<>();
-        px.read(palette, data);
-
-        KList<Integer> palette2 = new KList<>();
-        long[] data2 = px.write(palette);
-
-        if(Arrays.equals(data, data2))
+        catch(Throwable e)
         {
-            Iris.info("Correct! All data matches!");
-        }
-
-        else
-        {
-            Iris.warn("No match");
-            Iris.error("RAW PALE: " + palette2.toString(","));
-            Iris.error("RAW DATA: " + IO.longsToHex(data2));
+            e.printStackTrace();
         }
     }
 }

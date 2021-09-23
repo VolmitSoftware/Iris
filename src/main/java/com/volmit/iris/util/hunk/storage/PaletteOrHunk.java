@@ -29,11 +29,11 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class PaletteOrHunk<T> extends StorageHunk<T> implements Hunk<T> {
+public abstract class PaletteOrHunk<T> extends StorageHunk<T> implements Hunk<T>, Writable<T> {
     private final Hunk<T> hunk;
-    public PaletteOrHunk(int width, int height, int depth, boolean allow, Writable<T> writable, Supplier<Hunk<T>> factory) {
+    public PaletteOrHunk(int width, int height, int depth, boolean allow, Supplier<Hunk<T>> factory) {
         super(width, height, depth);
-        hunk = (allow) ? new PaletteHunk<>(width, height, depth, writable) : factory.get();
+        hunk = (allow) ? new PaletteHunk<>(width, height, depth, this) : factory.get();
     }
 
     public DataContainer<T> palette()

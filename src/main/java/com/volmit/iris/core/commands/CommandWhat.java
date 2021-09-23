@@ -39,7 +39,7 @@ import org.bukkit.block.data.BlockData;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-@Decree(name = "what", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris What?")
+@Decree(name = "what", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris What?", aliases = "w")
 public class CommandWhat implements DecreeExecutor {
     @Decree(description = "What is in my hand?", origin = DecreeOrigin.PLAYER)
     public void hand() {
@@ -62,7 +62,7 @@ public class CommandWhat implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "What biome am i in?", origin = DecreeOrigin.PLAYER)
+    @Decree(description = "What biome am i in?", origin = DecreeOrigin.PLAYER, aliases = "b")
     public void biome() {
         try {
             IrisBiome b = engine().getBiome(player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ());

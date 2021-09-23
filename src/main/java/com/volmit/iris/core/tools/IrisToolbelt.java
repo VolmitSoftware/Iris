@@ -27,6 +27,7 @@ import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.pregenerator.methods.HeadlessPregenMethod;
 import com.volmit.iris.core.pregenerator.methods.HybridPregenMethod;
 import com.volmit.iris.core.service.StudioSVC;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.platform.HeadlessGenerator;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
@@ -120,8 +121,8 @@ public class IrisToolbelt {
      * @param method the method to execute the task
      * @return the pregenerator job (already started)
      */
-    public static PregeneratorJob pregenerate(PregenTask task, PregeneratorMethod method) {
-        return new PregeneratorJob(task, method);
+    public static PregeneratorJob pregenerate(PregenTask task, PregeneratorMethod method, Engine engine) {
+        return new PregeneratorJob(task, method, engine);
     }
 
     /**
@@ -134,11 +135,11 @@ public class IrisToolbelt {
      */
     public static PregeneratorJob pregenerate(PregenTask task, PlatformChunkGenerator gen) {
         if (gen.isHeadless()) {
-            return pregenerate(task, new HeadlessPregenMethod(((HeadlessGenerator) gen).getWorld(), (HeadlessGenerator) gen));
+            return pregenerate(task, new HeadlessPregenMethod(((HeadlessGenerator) gen).getWorld(), (HeadlessGenerator) gen), gen.getEngine());
         }
 
         return pregenerate(task, new HybridPregenMethod(gen.getEngine().getWorld().realWorld(),
-                IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())));
+                IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())), gen.getEngine());
     }
 
     /**
@@ -154,7 +155,7 @@ public class IrisToolbelt {
             return pregenerate(task, access(world));
         }
 
-        return pregenerate(task, new HybridPregenMethod(world, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())));
+        return pregenerate(task, new HybridPregenMethod(world, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())), null);
     }
 
     /**

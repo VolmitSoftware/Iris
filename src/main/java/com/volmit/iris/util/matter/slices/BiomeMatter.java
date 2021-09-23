@@ -19,12 +19,19 @@
 package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.Sliced;
+import org.bukkit.entity.Player;
 
 @Sliced
 public class BiomeMatter extends RegistryMatter<IrisBiome> {
     public BiomeMatter() {
         this(1, 1, 1);
+    }
+
+    @Override
+    public Palette<IrisBiome> getGlobalPalette() {
+        return null;
     }
 
     public BiomeMatter(int width, int height, int depth) {

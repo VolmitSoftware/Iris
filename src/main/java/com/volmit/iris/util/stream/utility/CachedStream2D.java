@@ -18,23 +18,30 @@
 
 package com.volmit.iris.util.stream.utility;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.framework.MeteredCache;
+import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.stream.BasicStream;
 import com.volmit.iris.util.stream.ProceduralStream;
 
-public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStream<T> {
+public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStream<T>, MeteredCache {
     private final ProceduralStream<T> stream;
-    private final ConcurrentLinkedHashMap<Long, T> cache;
+    private final KCache<Long, T> cache;
+    private final Engine engine;
 
-    public CachedStream2D(ProceduralStream<T> stream, int size) {
+    public CachedStream2D(Engine engine, ProceduralStream<T> stream, int size, boolean weak) {
         super();
         this.stream = stream;
-        cache = new ConcurrentLinkedHashMap.Builder<Long, T>()
-                .initialCapacity(size)
-                .maximumWeightedCapacity(size)
-                .concurrencyLevel(32)
-                .build();
+        this.engine = engine;
+        cache = new KCache<>(k -> stream.get(Cache.keyX(k), Cache.keyZ(k)), size);
+        Iris.service(PreservationSVC.class).registerCache(this);
     }
 
     @Override
@@ -49,11 +56,26 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
 
     @Override
     public T get(double x, double z) {
-        return cache.compute(Cache.key((int) x, (int) z), (k, v) -> v != null ? v : stream.get((int) x, (int) z));
+        return cache.get(Cache.key((int)x, (int)z));
     }
 
     @Override
     public T get(double x, double y, double z) {
         return stream.get(x, y, z);
+    }
+
+    @Override
+    public long getSize() {
+        return cache.getSize();
+    }
+
+    @Override
+    public long getMaxSize() {
+        return cache.getMaxSize();
+    }
+
+    @Override
+    public boolean isClosed() {
+        return engine.isClosed();
     }
 }

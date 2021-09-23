@@ -24,7 +24,7 @@ import com.google.common.collect.Iterators;
 import java.util.Arrays;
 import java.util.Iterator;
 
-public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
+public class MCACrudeIncrementalIntIdentityHashBiMap<K> implements MCAIdMap<K> {
     public static final int NOT_FOUND = -1;
 
     private static final Object EMPTY_SLOT = null;
@@ -41,7 +41,7 @@ public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
 
     private int size;
 
-    public CrudeIncrementalIntIdentityHashBiMap(int var0) {
+    public MCACrudeIncrementalIntIdentityHashBiMap(int var0) {
         var0 = (int) (var0 / 0.8F);
         this.keys = (K[]) new Object[var0];
         this.values = new int[var0];
@@ -117,7 +117,7 @@ public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
     }
 
     private int hash(K var0) {
-        return (Mth.murmurHash3Mixer(System.identityHashCode(var0)) & Integer.MAX_VALUE) % this.keys.length;
+        return (MCAMth.murmurHash3Mixer(System.identityHashCode(var0)) & Integer.MAX_VALUE) % this.keys.length;
     }
 
     private int indexOf(K var0, int var1) {

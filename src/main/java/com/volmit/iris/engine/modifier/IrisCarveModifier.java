@@ -39,6 +39,7 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.matter.slices.MarkerMatter;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import com.volmit.iris.util.stream.utility.CachedStream2D;
 import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;

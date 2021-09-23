@@ -20,6 +20,7 @@ package com.volmit.iris.core.pregenerator.methods;
 
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
+import com.volmit.iris.util.mantle.Mantle;
 import io.papermc.lib.PaperLib;
 import org.bukkit.World;
 
@@ -63,5 +64,10 @@ public class AsyncOrMedievalPregenMethod implements PregeneratorMethod {
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
         method.generateChunk(x, z, listener);
+    }
+
+    @Override
+    public Mantle getMantle() {
+        return method.getMantle();
     }
 }

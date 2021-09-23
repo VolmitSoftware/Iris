@@ -22,7 +22,7 @@ import org.apache.commons.lang3.Validate;
 
 import java.util.function.IntConsumer;
 
-public class BitStorage {
+public class MCABitStorage {
     private static final int[] MAGIC = new int[]{
             -1, -1, 0, Integer.MIN_VALUE, 0, 0, 1431655765, 1431655765, 0, Integer.MIN_VALUE,
             0, 1, 858993459, 858993459, 0, 715827882, 715827882, 0, 613566756, 613566756,
@@ -61,25 +61,25 @@ public class BitStorage {
 
     private final int divideShift;
 
-    public BitStorage(int var0, int var1) {
-        this(var0, var1, null);
+    public MCABitStorage(int bits, int length) {
+        this(bits, length, null);
     }
 
-    public BitStorage(int var0, int var1, long[] var2) {
-        Validate.inclusiveBetween(1L, 32L, var0);
-        this.size = var1;
-        this.bits = var0;
-        this.mask = (1L << var0) - 1L;
-        this.valuesPerLong = (char) (64 / var0);
+    public MCABitStorage(int bits, int length, long[] data) {
+        Validate.inclusiveBetween(1L, 32L, bits);
+        this.size = length;
+        this.bits = bits;
+        this.mask = (1L << bits) - 1L;
+        this.valuesPerLong = (char) (64 / bits);
         int var3 = 3 * (this.valuesPerLong - 1);
         this.divideMul = MAGIC[var3 + 0];
         this.divideAdd = MAGIC[var3 + 1];
         this.divideShift = MAGIC[var3 + 2];
-        int var4 = (var1 + this.valuesPerLong - 1) / this.valuesPerLong;
-        if (var2 != null) {
-            if (var2.length != var4)
+        int var4 = (length + this.valuesPerLong - 1) / this.valuesPerLong;
+        if (data != null) {
+            if (data.length != var4)
                 throw new RuntimeException("NO!");
-            this.data = var2;
+            this.data = data;
         } else {
             this.data = new long[var4];
         }

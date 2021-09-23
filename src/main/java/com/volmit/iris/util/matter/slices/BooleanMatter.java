@@ -18,7 +18,9 @@
 
 package com.volmit.iris.util.matter.slices;
 
+import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.Sliced;
+import org.bukkit.entity.Player;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -28,6 +30,11 @@ import java.io.IOException;
 public class BooleanMatter extends RawMatter<Boolean> {
     public BooleanMatter() {
         this(1, 1, 1);
+    }
+
+    @Override
+    public Palette<Boolean> getGlobalPalette() {
+        return null;
     }
 
     public BooleanMatter(int width, int height, int depth) {

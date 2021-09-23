@@ -22,6 +22,7 @@ import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.engine.object.HeadlessWorld;
 import com.volmit.iris.engine.platform.HeadlessGenerator;
+import com.volmit.iris.util.mantle.Mantle;
 import lombok.Getter;
 
 public class HeadlessPregenMethod implements PregeneratorMethod {
@@ -72,5 +73,10 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Mantle getMantle() {
+        return generator.getEngine().getMantle().getMantle();
     }
 }

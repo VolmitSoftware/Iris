@@ -19,7 +19,9 @@
 package com.volmit.iris.util.mantle;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.util.collection.KMap;
@@ -36,6 +38,8 @@ import com.volmit.iris.util.matter.MatterSlice;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.HyperLock;
 import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.scheduling.J;
+import lombok.Getter;
 import org.bukkit.Chunk;
 
 import java.io.File;
@@ -54,6 +58,7 @@ public class Mantle {
     private final File dataFolder;
     private final int worldHeight;
     private final Map<Long, Long> lastUse;
+    @Getter
     private final Map<Long, TectonicPlate> loadedRegions;
     private final HyperLock hyperLock;
     private final KSet<Long> unload;
@@ -528,5 +533,9 @@ public class Mantle {
 
     public boolean isLoaded(Chunk c) {
         return loadedRegions.containsKey(key(c.getX() >> 5, c.getZ() >> 5));
+    }
+
+    public boolean shouldReduce(Engine engine) {
+        return !engine.isStudio() || IrisSettings.get().getPerformance().isTrimMantleInStudio();
     }
 }

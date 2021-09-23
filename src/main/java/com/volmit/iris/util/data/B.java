@@ -399,6 +399,17 @@ public class B {
     public static BlockData getOrNull(String bdxf) {
         try {
             String bd = bdxf.trim();
+
+            if(bd.startsWith("minecraft:cauldron[level="))
+            {
+                bd = bd.replaceAll("\\Q:cauldron[\\E", ":water_cauldron[");
+            }
+
+            if(bd.equals("minecraft:grass_path"))
+            {
+                return DIRT_PATH.createBlockData();
+            }
+
             BlockData bdx = parseBlockData(bd);
 
             if (bdx == null) {

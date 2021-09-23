@@ -19,7 +19,9 @@
 package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.util.data.Varint;
+import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.Sliced;
+import org.bukkit.entity.Player;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -29,6 +31,11 @@ import java.io.IOException;
 public class IntMatter extends RawMatter<Integer> {
     public IntMatter() {
         this(1, 1, 1);
+    }
+
+    @Override
+    public Palette<Integer> getGlobalPalette() {
+        return null;
     }
 
     public IntMatter(int width, int height, int depth) {

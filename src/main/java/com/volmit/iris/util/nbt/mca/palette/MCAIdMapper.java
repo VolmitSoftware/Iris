@@ -26,23 +26,23 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 
-public class IdMapper<T> implements IdMap<T> {
+public class MCAIdMapper<T> implements MCAIdMap<T> {
     public static final int DEFAULT = -1;
     private final IdentityHashMap<T, Integer> tToId;
     private final List<T> idToT;
     private int nextId;
 
-    public IdMapper(IdentityHashMap<T, Integer> tToId, List<T> idToT, int nextId) {
+    public MCAIdMapper(IdentityHashMap<T, Integer> tToId, List<T> idToT, int nextId) {
         this.tToId = tToId;
         this.idToT = idToT;
         this.nextId = nextId;
     }
 
-    public IdMapper() {
+    public MCAIdMapper() {
         this(512);
     }
 
-    public IdMapper(int var0) {
+    public MCAIdMapper(int var0) {
         this.idToT = Lists.newArrayListWithExpectedSize(var0);
         this.tToId = new IdentityHashMap<>(var0);
     }

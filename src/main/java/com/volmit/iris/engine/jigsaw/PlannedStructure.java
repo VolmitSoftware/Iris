@@ -22,6 +22,7 @@ import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IObjectPlacer;
 import com.volmit.iris.engine.object.IrisDirection;
 import com.volmit.iris.engine.object.IrisJigsawPiece;
@@ -78,17 +79,17 @@ public class PlannedStructure {
         }
     }
 
-    public void place(IObjectPlacer placer, Mantle e) {
+    public void place(IObjectPlacer placer, Mantle e, Engine eng) {
         IrisObjectPlacement options = new IrisObjectPlacement();
         options.getRotation().setEnabled(false);
         int startHeight = pieces.get(0).getPosition().getY();
 
         for (PlannedPiece i : pieces) {
-            place(i, startHeight, options, placer, e);
+            place(i, startHeight, options, placer, e, eng);
         }
     }
 
-    public void place(PlannedPiece i, int startHeight, IrisObjectPlacement o, IObjectPlacer placer, Mantle e) {
+    public void place(PlannedPiece i, int startHeight, IrisObjectPlacement o, IObjectPlacer placer, Mantle e, Engine eng) {
         IrisObjectPlacement options = o;
 
         if (i.getPiece().getPlacementOptions() != null) {
@@ -125,7 +126,7 @@ public class PlannedStructure {
         }
 
         int id = rng.i(0, Integer.MAX_VALUE);
-        vo.place(xx, height, zz, placer, options, rng, (b)
+        vo.place(xx, height, zz, placer, options, rng, e.shouldReduce(eng) ? null : (b)
                 -> e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id), null, getData());
     }
 

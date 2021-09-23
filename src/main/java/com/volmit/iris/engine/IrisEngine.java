@@ -21,7 +21,9 @@ package com.volmit.iris.engine;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
+import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.engine.actuator.IrisBiomeActuator;
@@ -54,13 +56,17 @@ import com.volmit.iris.util.atomics.AtomicRollingSequence;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.MatterCavern;
+import com.volmit.iris.util.matter.MatterFluidBody;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -386,6 +392,7 @@ public class IrisEngine implements Engine {
 
     @Override
     public void close() {
+        PregeneratorJob.shutdownInstance();
         closed = true;
         J.car(art);
         getWorldManager().close();
@@ -455,6 +462,18 @@ public class IrisEngine implements Engine {
                 mode.generate(x, z, blocks, vbiomes, multicore);
             }
 
+            if(!multicore)
+            {
+                for(int i = 0; i < 16; i++)
+                {
+                    for(int j = 0; j < 16; j++)
+                    {
+                        blocks.set(i, 255, j, B.get("GLASS"));
+                    }
+                }
+            }
+
+            getMantle().getMantle().flag(x>>4, z>>4, MantleFlag.REAL, true);
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();
             recycle();

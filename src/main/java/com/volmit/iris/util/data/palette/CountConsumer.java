@@ -16,20 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.nbt.mca.palette;
+package com.volmit.iris.util.data.palette;
 
-import com.volmit.iris.util.nbt.tag.ListTag;
-
-import java.util.function.Predicate;
-
-public interface Palette<T> {
-    int idFor(T paramT);
-
-    boolean maybeHas(Predicate<T> paramPredicate);
-
-    T valueFor(int paramInt);
-
-    int getSize();
-
-    void read(ListTag paramListTag);
+@FunctionalInterface
+public interface CountConsumer<T> {
+    void accept(T paramT, int paramInt);
 }

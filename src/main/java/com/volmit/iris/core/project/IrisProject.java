@@ -522,9 +522,9 @@ public class IrisProject {
 
     public void compile(VolmitSender sender) {
         IrisData data = IrisData.get(getPath());
-        KList<Job> jobs = new KList<Job>();
-        KList<File> files = new KList<File>();
-        KList<File> objects = new KList<File>();
+        KList<Job> jobs = new KList<>();
+        KList<File> files = new KList<>();
+        KList<File> objects = new KList<>();
         files(getPath(), files);
         filesObjects(getPath(), objects);
 

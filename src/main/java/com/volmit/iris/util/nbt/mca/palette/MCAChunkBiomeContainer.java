@@ -23,16 +23,16 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.Arrays;
 
-public class ChunkBiomeContainer<T> {
+public class MCAChunkBiomeContainer<T> {
     private static final Logger LOGGER = LogManager.getLogger();
-    private static final int WIDTH_BITS = Mth.ceillog2(16) - 2;
+    private static final int WIDTH_BITS = MCAMth.ceillog2(16) - 2;
     private static final int HORIZONTAL_MASK = (1 << WIDTH_BITS) - 1;
-    private static final int PACKED_X_LENGTH = 1 + Mth.log2(Mth.smallestEncompassingPowerOfTwo(30000000));
+    private static final int PACKED_X_LENGTH = 1 + MCAMth.log2(MCAMth.smallestEncompassingPowerOfTwo(30000000));
     private static final int PACKED_Z_LENGTH = PACKED_X_LENGTH;
     public static final int PACKED_Y_LENGTH = 64 - PACKED_X_LENGTH - PACKED_Z_LENGTH;
     public static final int MAX_SIZE = 1 << WIDTH_BITS + WIDTH_BITS + PACKED_Y_LENGTH - 2;
 
-    public final IdMap<T> biomeRegistry;
+    public final MCAIdMap<T> biomeRegistry;
 
     private final T[] biomes;
 
@@ -40,18 +40,18 @@ public class ChunkBiomeContainer<T> {
 
     private final int quartHeight;
 
-    protected ChunkBiomeContainer(IdMap<T> registry, int minHeight, int maxHeight, T[] abiomebase) {
+    protected MCAChunkBiomeContainer(MCAIdMap<T> registry, int minHeight, int maxHeight, T[] abiomebase) {
         this.biomeRegistry = registry;
         this.biomes = abiomebase;
-        this.quartMinY = QuartPos.fromBlock(minHeight);
-        this.quartHeight = QuartPos.fromBlock(maxHeight) - 1;
+        this.quartMinY = MCAQuartPos.fromBlock(minHeight);
+        this.quartHeight = MCAQuartPos.fromBlock(maxHeight) - 1;
     }
 
-    public ChunkBiomeContainer(IdMap<T> registry, int min, int max) {
+    public MCAChunkBiomeContainer(MCAIdMap<T> registry, int min, int max) {
         this(registry, min, max, new int[(1 << WIDTH_BITS + WIDTH_BITS) * ceilDiv(max - min, 4)]);
     }
 
-    public ChunkBiomeContainer(IdMap<T> registry, int minHeight, int maxHeight, int[] aint) {
+    public MCAChunkBiomeContainer(MCAIdMap<T> registry, int minHeight, int maxHeight, int[] aint) {
         this(registry, minHeight, maxHeight, (T[]) new Object[aint.length]);
         int i = -1;
         for (int j = 0; j < this.biomes.length; j++) {
@@ -82,14 +82,14 @@ public class ChunkBiomeContainer<T> {
 
     public T getBiome(int i, int j, int k) {
         int l = i & HORIZONTAL_MASK;
-        int i1 = Mth.clamp(j - this.quartMinY, 0, this.quartHeight);
+        int i1 = MCAMth.clamp(j - this.quartMinY, 0, this.quartHeight);
         int j1 = k & HORIZONTAL_MASK;
         return this.biomes[i1 << WIDTH_BITS + WIDTH_BITS | j1 << WIDTH_BITS | l];
     }
 
     public void setBiome(int i, int j, int k, T biome) {
         int l = i & HORIZONTAL_MASK;
-        int i1 = Mth.clamp(j - this.quartMinY, 0, this.quartHeight);
+        int i1 = MCAMth.clamp(j - this.quartMinY, 0, this.quartHeight);
         int j1 = k & HORIZONTAL_MASK;
         this.biomes[i1 << WIDTH_BITS + WIDTH_BITS | j1 << WIDTH_BITS | l] = biome;
     }

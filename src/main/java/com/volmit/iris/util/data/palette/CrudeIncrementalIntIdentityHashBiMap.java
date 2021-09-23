@@ -18,12 +18,13 @@
 
 package com.volmit.iris.util.data.palette;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicIntegerArray;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
 public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
     public static final int NOT_FOUND = -1;
@@ -32,11 +33,11 @@ public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
 
     private static final float LOADFACTOR = 0.8F;
 
-    private K[] keys;
+    private AtomicReferenceArray<K> keys;
 
-    private int[] values;
+    private AtomicIntegerArray values;
 
-    private K[] byId;
+    private AtomicReferenceArray<K> byId;
 
     private int nextId;
 
@@ -44,9 +45,9 @@ public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
 
     public CrudeIncrementalIntIdentityHashBiMap(int var0) {
         var0 = (int) (var0 / 0.8F);
-        this.keys = (K[]) new Object[var0];
-        this.values = new int[var0];
-        this.byId = (K[]) new Object[var0];
+        this.keys = new AtomicReferenceArray<>(var0);
+        this.values = new AtomicIntegerArray(var0);
+        this.byId = new AtomicReferenceArray<>(var0);
     }
 
     public int getId(K var0) {
@@ -55,11 +56,11 @@ public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
 
 
     public K byId(int var0) {
-        if (var0 < 0 || var0 >= this.byId.length)
+        if (var0 < 0 || var0 >= this.byId.length())
         {
             return null;
         }
-        return this.byId[var0];
+        return this.byId.get(var0);
     }
 
     private int getValue(int var0) {
@@ -67,7 +68,7 @@ public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
         {
             return -1;
         }
-        return this.values[var0];
+        return this.values.get(var0);
     }
 
     public boolean contains(K var0) {
@@ -85,64 +86,66 @@ public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
     }
 
     private int nextId() {
-        while (this.nextId < this.byId.length && this.byId[this.nextId] != null)
-            this.nextId++;
-        return this.nextId;
+        while (nextId < byId.length() && byId.get(nextId) != null)
+        {
+            nextId++;
+        }
+        return nextId;
     }
 
     private void grow(int var0) {
-        K[] var1 = this.keys;
-        int[] var2 = this.values;
-        this.keys = (K[]) new Object[var0];
-        this.values = new int[var0];
-        this.byId = (K[]) new Object[var0];
+        AtomicReferenceArray<K> var1 = this.keys;
+        AtomicIntegerArray var2 = this.values;
+        this.keys = new AtomicReferenceArray<>(var0);
+        this.values = new AtomicIntegerArray(var0);
+        this.byId = new AtomicReferenceArray<>(var0);
         this.nextId = 0;
         this.size = 0;
-        for (int var3 = 0; var3 < var1.length; var3++) {
-            if (var1[var3] != null)
+        for (int var3 = 0; var3 < var1.length(); var3++) {
+            if (var1.get(var3) != null)
             {
-                addMapping(var1[var3], var2[var3]);
+                addMapping(var1.get(var3), var2.get(var3));
             }
         }
     }
 
     public void addMapping(K var0, int var1) {
         int var2 = Math.max(var1, this.size + 1);
-        if (var2 >= this.keys.length * 0.8F) {
-            int i = this.keys.length << 1;
+        if (var2 >= this.keys.length() * 0.8F) {
+            int i = this.keys.length() << 1;
             while (i < var1)
                 i <<= 1;
             grow(i);
         }
         int var3 = findEmpty(hash(var0));
-        this.keys[var3] = var0;
-        this.values[var3] = var1;
-        this.byId[var1] = var0;
+        this.keys.set(var3, var0);
+        this.values.set(var3, var1);
+        this.byId.set(var1, var0);
         this.size++;
         if (var1 == this.nextId)
             this.nextId++;
     }
 
     private int hash(K var0) {
-        return (Mth.murmurHash3Mixer(System.identityHashCode(var0)) & Integer.MAX_VALUE) % this.keys.length;
+        return (Mth.murmurHash3Mixer(System.identityHashCode(var0)) & Integer.MAX_VALUE) % this.keys.length();
     }
 
     private int indexOf(K var0, int var1) {
         int var2;
-        for (var2 = var1; var2 < this.keys.length; var2++) {
-            if (this.keys[var2] == null)
+        for (var2 = var1; var2 < this.keys.length(); var2++) {
+            if (this.keys.get(var2) == null)
             {
                 return 0;
             }
-            if (this.keys[var2].equals(var0))
+            if (this.keys.get(var2).equals(var0))
                 return var2;
-            if (this.keys[var2] == EMPTY_SLOT)
+            if (this.keys.get(var2) == EMPTY_SLOT)
                 return -1;
         }
         for (var2 = 0; var2 < var1; var2++) {
-            if (this.keys[var2].equals(var0))
+            if (this.keys.get(var2).equals(var0))
                 return var2;
-            if (this.keys[var2] == EMPTY_SLOT)
+            if (this.keys.get(var2) == EMPTY_SLOT)
                 return -1;
         }
         return -1;
@@ -150,24 +153,47 @@ public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
 
     private int findEmpty(int var0) {
         int var1;
-        for (var1 = var0; var1 < this.keys.length; var1++) {
-            if (this.keys[var1] == EMPTY_SLOT)
+        for (var1 = var0; var1 < this.keys.length(); var1++) {
+            if (this.keys.get(var1) == EMPTY_SLOT)
                 return var1;
         }
         for (var1 = 0; var1 < var0; var1++) {
-            if (this.keys[var1] == EMPTY_SLOT)
+            if (this.keys.get(var1) == EMPTY_SLOT)
                 return var1;
         }
         throw new RuntimeException("Overflowed :(");
     }
 
     public Iterator<K> iterator() {
-        return (Iterator<K>) Iterators.filter(Iterators.forArray((Object[]) this.byId), Predicates.notNull());
+        return Iterators.filter(new Iterator<K>(){
+            int i = 0;
+            @Override
+            public boolean hasNext() {
+                return i < byId.length()-1;
+            }
+
+            @Override
+            public K next() {
+                return byId.get(i++);
+            }
+        }, Objects::nonNull);
     }
 
     public void clear() {
-        Arrays.fill(this.keys, null);
-        Arrays.fill(this.byId, null);
+
+        for(int i = 0; i < Math.max(keys.length(), byId.length()); i++)
+        {
+            if(i < keys.length() - 1)
+            {
+                keys.set(i, null);
+            }
+
+            if(i < byId.length() - 1)
+            {
+                byId.set(i, null);
+            }
+        }
+
         this.nextId = 0;
         this.size = 0;
     }

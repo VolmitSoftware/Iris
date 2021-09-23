@@ -123,7 +123,7 @@ public class MCAFile {
             if (raf.readByte() == 0) {
                 continue;
             }
-            p2.add(new Position2(x & 31, (z / 32) & 31));
+            p2.add(new Position2(x & 31, (z / 31) & 31));
         }
         return p2;
     }

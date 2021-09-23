@@ -88,9 +88,9 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
                     .injector((xx, yy, zz, biomeBase) -> chunk.setBiomeAt(ox + xx, yy, oz + zz,
                             INMS.get().getTrueBiomeBaseId(biomeBase)))
                     .build();
-            getEngine().generate(x * 16, z * 16,
+            getEngine().generate(x << 4, z << 4,
                     Hunk.view((ChunkGenerator.ChunkData) tc), Hunk.view((ChunkGenerator.BiomeGrid) tc),
-                    false);
+                    true);
             chunk.cleanupPalettesAndBlockStates();
         } catch (Throwable e) {
             Iris.error("======================================");
@@ -131,15 +131,7 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
             }
         }), avgLast(x, z));
         last.add(new Position2(x, z));
-
         e.complete();
-
-        J.a(() -> PregenTask.iterateRegion(x, z, (ii, jj) -> {
-            getEngine().cleanupMantleChunk(ii, jj);
-            if (listener != null) {
-                listener.onChunkCleaned(ii, jj);
-            }
-        }));
     }
 
     private Position2 avgLast(int x, int z) {
@@ -153,8 +145,8 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
 
         for(Position2 i : last)
         {
-            xx += 7 * (i.getX() - x);
-            zz += 7 * (i.getZ() - z);
+            xx += 27 * (i.getX() - x);
+            zz += 27 * (i.getZ() - z);
         }
 
         return new Position2((int)xx, (int)zz);

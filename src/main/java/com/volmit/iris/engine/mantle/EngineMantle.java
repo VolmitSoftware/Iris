@@ -224,7 +224,6 @@ public interface EngineMantle extends IObjectPlacer {
         }
 
         burst.complete();
-        getMantle().flag(x, z, MantleFlag.REAL, true);
     }
 
     default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, MantleChunk mc) {
@@ -278,7 +277,7 @@ public interface EngineMantle extends IObjectPlacer {
             for (int j = -s; j <= s; j++) {
                 int xx = i + x;
                 int zz = j + z;
-                if(!getMantle().hasFlag(xx, zz, MantleFlag.PLANNED))
+                if(!getMantle().hasFlag(xx, zz, MantleFlag.REAL))
                 {
                     return false;
                 }

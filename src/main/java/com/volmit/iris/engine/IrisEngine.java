@@ -61,6 +61,7 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterCavern;
@@ -460,6 +461,7 @@ public class IrisEngine implements Engine {
                 mode.generate(x, z, blocks, vbiomes, multicore);
             }
 
+            getMantle().getMantle().flag(x>>4, z>>4, MantleFlag.REAL, true);
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();
             recycle();

@@ -60,20 +60,6 @@ public class PregenTask {
         iterateRegion(xr, zr, s, new Position2(0,0));
     }
 
-    private static Position2 avg(Position2... c)
-    {
-        double x = 0;
-        double z = 0;
-
-        for(Position2 i : c)
-        {
-            x += i.getX() * 15;
-            z += i.getZ() * 15;
-        }
-
-        return new Position2((int)(x / c.length), (int)(z / c.length));
-    }
-
     private static KList<Position2> computeOrder(Position2 pull) {
         KList<Position2> p = new KList<>();
         new Spiraler(33, 33, (x, z) -> {

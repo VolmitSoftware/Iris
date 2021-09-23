@@ -23,6 +23,7 @@ import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
+import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.engine.actuator.IrisBiomeActuator;
@@ -389,6 +390,7 @@ public class IrisEngine implements Engine {
 
     @Override
     public void close() {
+        PregeneratorJob.shutdownInstance();
         closed = true;
         J.car(art);
         getWorldManager().close();

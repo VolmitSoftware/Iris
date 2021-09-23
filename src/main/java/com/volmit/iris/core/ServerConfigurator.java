@@ -65,7 +65,8 @@ public class ServerConfigurator {
 
         if(tt < TimeUnit.MINUTES.toSeconds(5))
         {
-            Iris.warn("Updating spigot.yml timeout-time: " + tt + " -> " + TimeUnit.MINUTES.toSeconds(5) + " (5 minutes). You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
+            Iris.warn("Updating spigot.yml timeout-time: " + tt + " -> " + TimeUnit.MINUTES.toSeconds(5) + " (5 minutes)");
+            Iris.warn("You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
             f.set("settings.timeout-time", TimeUnit.MINUTES.toSeconds(5));
             f.save(spigotConfig);
         }
@@ -79,7 +80,8 @@ public class ServerConfigurator {
 
         if(tt < TimeUnit.MINUTES.toMillis(3))
         {
-            Iris.warn("Updating paper.yml watchdog early-warning-delay: " + tt + " -> " + TimeUnit.MINUTES.toMillis(3) + " (3 minutes). You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
+            Iris.warn("Updating paper.yml watchdog early-warning-delay: " + tt + " -> " + TimeUnit.MINUTES.toMillis(3) + " (3 minutes)");
+            Iris.warn("You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
             f.set("settings.watchdog.early-warning-delay", TimeUnit.MINUTES.toMillis(3));
             f.save(spigotConfig);
         }

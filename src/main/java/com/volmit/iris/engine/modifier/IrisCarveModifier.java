@@ -74,7 +74,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
 
             int rx = xx & 15;
             int rz = zz & 15;
-            int ry = yy + getEngine().getMinHeight(); //Hunks start at 0 always because they arent real coords
+            int ry = yy; //Hunks start at 0 always because they arent real coords
 
             BlockData current = output.get(rx, ry, rz);
 

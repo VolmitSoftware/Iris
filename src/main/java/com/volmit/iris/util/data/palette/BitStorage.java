@@ -20,6 +20,8 @@ package com.volmit.iris.util.data.palette;
 
 import org.apache.commons.lang3.Validate;
 
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicLongArray;
 import java.util.function.IntConsumer;
 
 public class BitStorage {
@@ -45,27 +47,56 @@ public class BitStorage {
             70409299, 70409299, 0, 69273666, 69273666, 0, 68174084, 68174084, 0, Integer.MIN_VALUE,
             0, 5};
 
-    private final long[] data;
-
+    private final AtomicLongArray data;
     private final int bits;
-
     private final long mask;
-
     private final int size;
-
     private final int valuesPerLong;
-
     private final int divideMul;
-
     private final int divideAdd;
-
     private final int divideShift;
 
     public BitStorage(int bits, int length) {
-        this(bits, length, null);
+        this(bits, length, (AtomicLongArray) null);
+    }
+
+    private static AtomicLongArray atomic(long[] data)
+    {
+        if(data == null)
+        {
+            return null;
+        }
+
+        AtomicLongArray d = new AtomicLongArray(data.length);
+        for(int i = 0; i < data.length; i++)
+        {
+            d.set(i, data[i]);
+        }
+
+        return d;
+    }
+
+    private static long[] atomic(AtomicLongArray data)
+    {
+        if(data == null)
+        {
+            return null;
+        }
+
+        long[] d = new long[data.length()];
+        for(int i = 0; i < data.length(); i++)
+        {
+            d[i] = data.get(i);
+        }
+
+        return d;
     }
 
     public BitStorage(int bits, int length, long[] data) {
+        this(bits, length, atomic(data));
+    }
+
+    public BitStorage(int bits, int length, AtomicLongArray data) {
         Validate.inclusiveBetween(1L, 32L, bits);
         this.size = length;
         this.bits = bits;
@@ -77,11 +108,13 @@ public class BitStorage {
         this.divideShift = MAGIC[var3 + 2];
         int var4 = (length + this.valuesPerLong - 1) / this.valuesPerLong;
         if (data != null) {
-            if (data.length != var4)
+            if (data.length() != var4)
+            {
                 throw new RuntimeException("NO!");
+            }
             this.data = data;
         } else {
-            this.data = new long[var4];
+            this.data = new AtomicLongArray(var4);
         }
     }
 
@@ -95,10 +128,10 @@ public class BitStorage {
         Validate.inclusiveBetween(0L, (this.size - 1), var0);
         Validate.inclusiveBetween(0L, this.mask, var1);
         int var2 = cellIndex(var0);
-        long var3 = this.data[var2];
+        long var3 = this.data.get(var2);
         int var5 = (var0 - var2 * this.valuesPerLong) * this.bits;
         int var6 = (int) (var3 >> var5 & this.mask);
-        this.data[var2] = var3 & (this.mask << var5 ^ 0xFFFFFFFFFFFFFFFFL) | (var1 & this.mask) << var5;
+        this.data.set(var2, var3 & (this.mask << var5 ^ 0xFFFFFFFFFFFFFFFFL) | (var1 & this.mask) << var5);
         return var6;
     }
 
@@ -106,21 +139,21 @@ public class BitStorage {
         Validate.inclusiveBetween(0L, (this.size - 1), var0);
         Validate.inclusiveBetween(0L, this.mask, var1);
         int var2 = cellIndex(var0);
-        long var3 = this.data[var2];
+        long var3 = this.data.get(var2);
         int var5 = (var0 - var2 * this.valuesPerLong) * this.bits;
-        this.data[var2] = var3 & (this.mask << var5 ^ 0xFFFFFFFFFFFFFFFFL) | (var1 & this.mask) << var5;
+        this.data.set(var2, var3 & (this.mask << var5 ^ 0xFFFFFFFFFFFFFFFFL) | (var1 & this.mask) << var5);
     }
 
     public int get(int var0) {
         Validate.inclusiveBetween(0L, (this.size - 1), var0);
         int var1 = cellIndex(var0);
-        long var2 = this.data[var1];
+        long var2 = this.data.get(var1);
         int var4 = (var0 - var1 * this.valuesPerLong) * this.bits;
         return (int) (var2 >> var4 & this.mask);
     }
 
     public long[] getRaw() {
-        return this.data;
+        return atomic(data);
     }
 
     public int getSize() {
@@ -133,7 +166,9 @@ public class BitStorage {
 
     public void getAll(IntConsumer var0) {
         int var1 = 0;
-        for (long var5 : this.data) {
+        for(int i = 0; i < data.length(); i++)
+        {
+            long var5 = data.get(i);
             for (int var7 = 0; var7 < this.valuesPerLong; var7++) {
                 var0.accept((int) (var5 & this.mask));
                 var5 >>= this.bits;

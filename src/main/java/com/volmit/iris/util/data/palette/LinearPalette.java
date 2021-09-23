@@ -18,78 +18,77 @@
 
 package com.volmit.iris.util.data.palette;
 
-import com.volmit.iris.util.nbt.tag.CompoundTag;
-
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.function.Predicate;
 
 public class LinearPalette<T> implements Palette<T> {
-    private final T[] values;
+    private final AtomicReferenceArray<T> values;
     private final PaletteResize<T> resizeHandler;
     private final int bits;
     private int size;
 
     public LinearPalette(int var1, PaletteResize<T> var2) {
-        this.values = (T[]) new Object[1 << var1];
+        this.values = new AtomicReferenceArray<>(1 << var1);
         this.bits = var1;
         this.resizeHandler = var2;
     }
 
     public int idFor(T var0) {
         int var1;
-        for (var1 = 0; var1 < this.size; var1++) {
-            if(this.values[var1] == null && var0 == null)
+        for (var1 = 0; var1 < size; var1++) {
+            if(values.get(var1) == null && var0 == null)
             {
                 return var1;
             }
 
-            if (this.values[var1] != null && this.values[var1].equals(var0))
+            if (values.get(var1) != null && values.get(var1).equals(var0))
             {
                 return var1;
             }
         }
-        var1 = this.size;
-        if (var1 < this.values.length) {
-            this.values[var1] = var0;
-            this.size++;
+        var1 = size;
+        if (var1 < values.length()) {
+            values.set(var1, var0);
+            size++;
             return var1;
         }
-        return this.resizeHandler.onResize(this.bits + 1, var0);
+        return resizeHandler.onResize(bits + 1, var0);
     }
 
     public boolean maybeHas(Predicate<T> var0) {
-        for (int var1 = 0; var1 < this.size; var1++) {
-            if (var0.test(this.values[var1]))
+        for (int var1 = 0; var1 < size; var1++) {
+            if (var0.test(values.get(var1)))
                 return true;
         }
         return false;
     }
 
     public T valueFor(int var0) {
-        if (var0 >= 0 && var0 < this.size)
-            return this.values[var0];
+        if (var0 >= 0 && var0 < size)
+            return this.values.get(var0);
         return null;
     }
 
     public int getSize() {
-        return this.size;
+        return size;
     }
 
     @Override
     public void read(List<T> fromList) {
         for (int i = 0; i < fromList.size(); i++)
         {
-            this.values[i] = fromList.get(i);
+            values.set(i, fromList.get(i));
         }
 
-        this.size = fromList.size();
+        size = fromList.size();
     }
 
     @Override
     public void write(List<T> toList) {
-        for (int i = 0; i < this.size; i++)
+        for (int i = 0; i < size; i++)
         {
-            T v = values[i];
+            T v = values.get(i);
             toList.add(v);
         }
     }

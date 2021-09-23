@@ -274,6 +274,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     }
 
     private void spawnIn(Chunk c, boolean initial) {
+        if(getEngine().isClosed())
+        {
+            return;
+        }
+
         if (initial) {
             energy += 1.2;
         }
@@ -462,12 +467,22 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     @Override
     public void onChunkLoad(Chunk e, boolean generated) {
+        if(getEngine().isClosed())
+        {
+            return;
+        }
+
         energy += 0.3;
         fixEnergy();
         getEngine().cleanupMantleChunk(e.getX(), e.getZ());
     }
 
     private void spawn(IrisPosition block, IrisSpawner spawner, boolean initial) {
+        if(getEngine().isClosed())
+        {
+            return;
+        }
+
         if (spawner == null) {
             return;
         }

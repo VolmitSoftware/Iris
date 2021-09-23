@@ -90,7 +90,7 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
                     .build();
             getEngine().generate(x << 4, z << 4,
                     Hunk.view((ChunkGenerator.ChunkData) tc), Hunk.view((ChunkGenerator.BiomeGrid) tc),
-                    true);
+                    false);
             chunk.cleanupPalettesAndBlockStates();
         } catch (Throwable e) {
             Iris.error("======================================");

@@ -56,6 +56,7 @@ import com.volmit.iris.util.atomics.AtomicRollingSequence;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -459,6 +460,17 @@ public class IrisEngine implements Engine {
                 }
             } else {
                 mode.generate(x, z, blocks, vbiomes, multicore);
+            }
+
+            if(!multicore)
+            {
+                for(int i = 0; i < 16; i++)
+                {
+                    for(int j = 0; j < 16; j++)
+                    {
+                        blocks.set(i, 255, j, B.get("GLASS"));
+                    }
+                }
             }
 
             getMantle().getMantle().flag(x>>4, z>>4, MantleFlag.REAL, true);

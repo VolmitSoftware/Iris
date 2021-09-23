@@ -23,7 +23,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class Mth {
+public class MCAMth {
     public static final float PI = 3.1415927F;
     public static final float HALF_PI = 1.5707964F;
     public static final float TWO_PI = 6.2831855F;

@@ -56,14 +56,12 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
     protected KList<File> folderCache;
     protected Class<? extends T> objectClass;
     protected String cname;
-    protected IrisLock lock;
     protected String[] possibleKeys = null;
     protected IrisData manager;
     protected AtomicInteger loads;
     protected ChronoLatch sec;
 
     public ResourceLoader(File root, IrisData manager, String folderName, String resourceTypeName, Class<? extends T> objectClass) {
-        lock = new IrisLock("Res");
         this.manager = manager;
         sec = new ChronoLatch(5000);
         loads = new AtomicInteger();
@@ -95,11 +93,9 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
     }
 
     public File findFile(String name) {
-        lock.lock();
         for (File i : getFolders(name)) {
             for (File j : i.listFiles()) {
                 if (j.isFile() && j.getName().endsWith(".json") && j.getName().split("\\Q.\\E")[0].equals(name)) {
-                    lock.unlock();
                     return j;
                 }
             }
@@ -107,14 +103,12 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
             File file = new File(i, name + ".json");
 
             if (file.exists()) {
-                lock.unlock();
                 return file;
             }
         }
 
         Iris.warn("Couldn't find " + resourceTypeName + ": " + name);
 
-        lock.unlock();
         return null;
     }
 
@@ -195,12 +189,10 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
             t.setLoader(manager);
             getManager().preprocessObject(t);
             logLoad(j, t);
-            lock.unlock();
             tlt.addAndGet(p.getMilliseconds());
             return t;
         } catch (Throwable e) {
             Iris.reportError(e);
-            lock.unlock();
             failLoad(j, e);
             return null;
         }
@@ -248,7 +240,6 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
 
     private T loadRaw(String name)
     {
-        lock.lock();
         for (File i : getFolders(name)) {
             //noinspection ConstantConditions
             for (File j : i.listFiles()) {
@@ -264,7 +255,6 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
             }
         }
 
-        lock.unlock();
         return null;
     }
 
@@ -281,7 +271,6 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
     }
 
     public KList<File> getFolders() {
-        lock.lock();
         if (folderCache == null) {
             folderCache = new KList<>();
 
@@ -294,8 +283,6 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
                 }
             }
         }
-
-        lock.unlock();
 
         if (folderCache == null) {
             synchronized (this) {
@@ -321,11 +308,9 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
     }
 
     public void clearCache() {
-        lock.lock();
         possibleKeys = null;
         loadCache.invalidate();
         folderCache = null;
-        lock.unlock();
     }
 
     public File fileFor(T b) {
@@ -351,10 +336,8 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
     }
 
     public void clearList() {
-        lock.lock();
         folderCache = null;
         possibleKeys = null;
-        lock.unlock();
     }
 
     public KList<String> getPossibleKeys(String arg) {

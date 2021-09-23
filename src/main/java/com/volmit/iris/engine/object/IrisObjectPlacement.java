@@ -62,7 +62,6 @@ public class IrisObjectPlacement {
     private IrisObjectRotation rotation = new IrisObjectRotation();
     @Desc("Limit the max height or min height of placement.")
     private IrisObjectLimit clamp = new IrisObjectLimit();
-
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The maximum layer level of a snow filter overtop of this placement. Set to 0 to disable. Max of 1.")
@@ -74,6 +73,8 @@ public class IrisObjectPlacement {
     @MinNumber(1)
     @Desc("If the chance check passes, place this many in a single chunk")
     private int density = 1;
+    @Desc("If the chance check passes, and you specify this, it picks a number in the range based on noise, and 'density' is ignored.")
+    private IrisStyledRange densityStyle = null;
     @MaxNumber(64)
     @MinNumber(0)
     @Desc("If the place mode is set to stilt, you can over-stilt it even further into the ground. Especially useful when using fast stilt due to inaccuracies.")
@@ -164,18 +165,6 @@ public class IrisObjectPlacement {
         return getSurfaceWarp(rng, data).fitDouble(-(getWarp().getMultiplier() / 2D), (getWarp().getMultiplier() / 2D), x, y, z);
     }
 
-    public int getTriesForChunk(RNG random) {
-        if (chance <= 0) {
-            return 0;
-        }
-
-        if (chance >= 1 || random.nextDouble() < chance) {
-            return density;
-        }
-
-        return 0;
-    }
-
     public IrisObject getObject(DataProvider g, RNG random) {
         if (place.isEmpty()) {
             return null;
@@ -192,6 +181,21 @@ public class IrisObjectPlacement {
         }
 
         return false;
+    }
+
+    public int getDensity() {
+        if (densityStyle == null) {
+            return density;
+        }
+        return densityStyle.getMid();
+    }
+
+    public int getDensity(RNG rng, double x, double z, IrisData data) {
+        if (densityStyle == null) {
+            return density;
+        }
+
+        return (int) Math.round(densityStyle.get(rng, x, z, data));
     }
 
     private TableCache getCache(IrisData manager) {

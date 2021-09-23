@@ -19,29 +19,13 @@
 package com.volmit.iris.util.nbt.mca.palette;
 
 import com.volmit.iris.util.nbt.tag.CompoundTag;
-import lombok.RequiredArgsConstructor;
 
-import java.util.function.Function;
+public interface MCAPaletteAccess {
+    void setBlock(int x, int y, int z, CompoundTag data);
 
-@RequiredArgsConstructor
-public class WrappedPalettedContainer<T> implements PaletteAccess {
-    private final PalettedContainer<T> container;
-    private final Function<T, CompoundTag> reader;
-    private final Function<CompoundTag, T> writer;
+    CompoundTag getBlock(int x, int y, int z);
 
-    public void setBlock(int x, int y, int z, CompoundTag data) {
-        container.set(x, y, z, writer.apply(data));
-    }
+    void writeToSection(CompoundTag tag);
 
-    public CompoundTag getBlock(int x, int y, int z) {
-        return reader.apply(container.get(x, y, z));
-    }
-
-    public void writeToSection(CompoundTag tag) {
-        container.write(tag, "Palette", "BlockStates");
-    }
-
-    public void readFromSection(CompoundTag tag) {
-        container.read(tag.getListTag("Palette"), tag.getLongArrayTag("BlockStates").getValue());
-    }
+    void readFromSection(CompoundTag tag);
 }

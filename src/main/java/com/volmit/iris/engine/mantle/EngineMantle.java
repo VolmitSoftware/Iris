@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.mantle;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
@@ -40,13 +41,17 @@ import com.volmit.iris.util.mantle.MantleChunk;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterCavern;
+import com.volmit.iris.util.matter.MatterFluidBody;
 import com.volmit.iris.util.matter.MatterMarker;
 import com.volmit.iris.util.matter.slices.UpdateMatter;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.scheduling.J;
+import io.papermc.lib.PaperLib;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 // TODO: MOVE PLACER OUT OF MATTER INTO ITS OWN THING
@@ -207,17 +212,18 @@ public interface EngineMantle extends IObjectPlacer {
                 int zz = j + z;
                 burst.queue(() -> {
                     IrisContext.touch(getEngine().getContext());
-                    MantleChunk mc = getMantle().getChunk(xx, zz);
+                    getMantle().raiseFlag(xx, zz, MantleFlag.PLANNED, () -> {
+                        MantleChunk mc = getMantle().getChunk(xx, zz);
 
-                    for (MantleComponent k : getComponents()) {
-                        generateMantleComponent(writer, xx, zz, k, mc);
-                    }
+                        for (MantleComponent k : getComponents()) {
+                            generateMantleComponent(writer, xx, zz, k, mc);
+                        }
+                    });
                 });
             }
         }
 
         burst.complete();
-        getMantle().flag(x, z, MantleFlag.REAL, true);
     }
 
     default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, MantleChunk mc) {
@@ -262,4 +268,35 @@ public interface EngineMantle extends IObjectPlacer {
     MantleJigsawComponent getJigsawComponent();
 
     MantleObjectComponent getObjectComponent();
+
+    default boolean isCovered(int x, int z)
+    {
+        int s = getRealRadius();
+
+        for (int i = -s; i <= s; i++) {
+            for (int j = -s; j <= s; j++) {
+                int xx = i + x;
+                int zz = j + z;
+                if(!getMantle().hasFlag(xx, zz, MantleFlag.REAL))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    default void cleanupChunk(int x, int z)
+    {
+        if(!getMantle().hasFlag(x, z, MantleFlag.CLEANED) && isCovered(x, z))
+        {
+            getMantle().raiseFlag(x, z, MantleFlag.CLEANED, () -> {
+                getMantle().deleteChunkSlice(x, z, BlockData.class);
+                getMantle().deleteChunkSlice(x, z, String.class);
+                getMantle().deleteChunkSlice(x, z, MatterCavern.class);
+                getMantle().deleteChunkSlice(x, z, MatterFluidBody.class);
+            });
+        }
+    }
 }

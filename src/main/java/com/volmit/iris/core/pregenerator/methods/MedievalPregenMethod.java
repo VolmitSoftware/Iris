@@ -105,6 +105,7 @@ public class MedievalPregenMethod implements PregeneratorMethod {
         futures.add(J.sfut(() -> {
             world.getChunkAt(x, z);
             listener.onChunkGenerated(x, z);
+            listener.onChunkCleaned(x, z);
         }));
     }
 

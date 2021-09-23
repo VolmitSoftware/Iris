@@ -329,4 +329,8 @@ public class NBTWorld {
     public int size() {
         return loadedRegions.size();
     }
+
+    public boolean isLoaded(int x, int z) {
+        return loadedRegions.containsKey(Cache.key(x, z));
+    }
 }

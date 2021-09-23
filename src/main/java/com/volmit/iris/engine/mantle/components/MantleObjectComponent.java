@@ -87,7 +87,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     @BlockCoordinates
     private void placeObject(MantleWriter writer, RNG rng, int x, int z, IrisObjectPlacement objectPlacement) {
-        for (int i = 0; i < objectPlacement.getDensity(); i++) {
+        for (int i = 0; i < objectPlacement.getDensity(rng, x, z, getData()); i++) {
             IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(getComplex(), rng));
             if (v == null) {
                 return;
@@ -104,7 +104,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
     @BlockCoordinates
     private Set<String> guessPlacedKeys(RNG rng, int x, int z, IrisObjectPlacement objectPlacement) {
         Set<String> f = new KSet<>();
-        for (int i = 0; i < objectPlacement.getDensity(); i++) {
+        for (int i = 0; i < objectPlacement.getDensity(rng, x, z, getData()); i++) {
             IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(getComplex(), rng));
             if (v == null) {
                 continue;

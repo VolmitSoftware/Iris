@@ -18,8 +18,7 @@
 
 package com.volmit.iris.util.nbt.mca.palette;
 
-public interface IdMap<T> extends Iterable<T> {
-    int getId(T paramT);
-
-    T byId(int paramInt);
+@FunctionalInterface
+public interface MCACountConsumer<T> {
+    void accept(T paramT, int paramInt);
 }

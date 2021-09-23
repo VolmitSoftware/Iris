@@ -15,7 +15,7 @@ import org.bukkit.Location;
 @Snippet("command")
 @Accessors(chain = true)
 @NoArgsConstructor
-@Desc("Represents a color")
+@Desc("Represents a set of Iris commands")
 @Data
 public class IrisCommand {
 

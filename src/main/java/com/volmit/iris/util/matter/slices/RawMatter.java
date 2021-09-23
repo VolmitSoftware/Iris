@@ -37,7 +37,7 @@ public abstract class RawMatter<T> extends PaletteOrHunk<T> implements MatterSli
     private final Class<T> type;
 
     public RawMatter(int width, int height, int depth, Class<T> type) {
-        super(width, height, depth, () -> new MappedHunk<>(width, height, depth));
+        super(width, height, depth, true, () -> new MappedHunk<>(width, height, depth));
         writers = new KMap<>();
         readers = new KMap<>();
         this.type = type;

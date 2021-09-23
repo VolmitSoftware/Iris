@@ -29,9 +29,9 @@ import java.util.function.Supplier;
 
 public class PaletteOrHunk<T> extends StorageHunk<T> implements Hunk<T> {
     private final Hunk<T> hunk;
-    public PaletteOrHunk(int width, int height, int depth, Supplier<Hunk<T>> factory) {
+    public PaletteOrHunk(int width, int height, int depth, boolean allow, Supplier<Hunk<T>> factory) {
         super(width, height, depth);
-        hunk = width == 16 && height == 16 && depth == 16 ? new PaletteHunk<>() : factory.get();
+        hunk = (width == 16 && height == 16 && depth == 16 && allow) ? new PaletteHunk<>() : factory.get();
     }
 
     public PalettedContainer<T> palette()

@@ -19,8 +19,10 @@
 package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.MatterMarker;
 import com.volmit.iris.util.matter.Sliced;
+import org.bukkit.entity.Player;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -34,6 +36,11 @@ public class MarkerMatter extends RawMatter<MatterMarker> {
 
     public MarkerMatter() {
         this(1, 1, 1);
+    }
+
+    @Override
+    public Palette<MatterMarker> getGlobalPalette() {
+        return null;
     }
 
     public MarkerMatter(int width, int height, int depth) {

@@ -44,7 +44,6 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
     }
 
     protected IrisScript loadFile(File j, String name) {
-        lock.lock();
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             IrisScript t = new IrisScript(IO.readAll(j));
@@ -52,12 +51,10 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
             t.setLoader(manager);
             t.setLoadFile(j);
             logLoad(j, t);
-            lock.unlock();
             tlt.addAndGet(p.getMilliseconds());
             return t;
         } catch (Throwable e) {
             Iris.reportError(e);
-            lock.unlock();
             Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
             return null;
         }
@@ -97,11 +94,9 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
     }
 
     public File findFile(String name) {
-        lock.lock();
         for (File i : getFolders(name)) {
             for (File j : i.listFiles()) {
                 if (j.isFile() && j.getName().endsWith(".js") && j.getName().split("\\Q.\\E")[0].equals(name)) {
-                    lock.unlock();
                     return j;
                 }
             }
@@ -109,24 +104,20 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
             File file = new File(i, name + ".js");
 
             if (file.exists()) {
-                lock.unlock();
                 return file;
             }
         }
 
         Iris.warn("Couldn't find " + resourceTypeName + ": " + name);
 
-        lock.unlock();
         return null;
     }
 
     private IrisScript loadRaw(String name)
     {
-        lock.lock();
         for (File i : getFolders(name)) {
             for (File j : i.listFiles()) {
                 if (j.isFile() && j.getName().endsWith(".js") && j.getName().split("\\Q.\\E")[0].equals(name)) {
-                    lock.unlock();
                     return loadFile(j, name);
                 }
             }
@@ -134,14 +125,12 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
             File file = new File(i, name + ".js");
 
             if (file.exists()) {
-                lock.unlock();
                 return loadFile(file, name);
             }
         }
 
         Iris.warn("Couldn't find " + resourceTypeName + ": " + name);
 
-        lock.unlock();
         return null;
     }
 

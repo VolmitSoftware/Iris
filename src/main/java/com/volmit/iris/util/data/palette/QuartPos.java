@@ -16,25 +16,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.matter.slices;
+package com.volmit.iris.util.data.palette;
 
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.util.data.palette.Palette;
-import com.volmit.iris.util.matter.Sliced;
-import org.bukkit.entity.Player;
+public final class QuartPos {
+    public static final int BITS = 2;
 
-@Sliced
-public class BiomeMatter extends RegistryMatter<IrisBiome> {
-    public BiomeMatter() {
-        this(1, 1, 1);
+    public static final int SIZE = 4;
+
+    private static final int SECTION_TO_QUARTS_BITS = 2;
+
+    public static int fromBlock(int var0) {
+        return var0 >> 2;
     }
 
-    @Override
-    public Palette<IrisBiome> getGlobalPalette() {
-        return null;
+    public static int toBlock(int var0) {
+        return var0 << 2;
     }
 
-    public BiomeMatter(int width, int height, int depth) {
-        super(width, height, depth, IrisBiome.class);
+    public static int fromSection(int var0) {
+        return var0 << 2;
+    }
+
+    public static int toSection(int var0) {
+        return var0 >> 2;
     }
 }

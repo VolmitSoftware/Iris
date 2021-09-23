@@ -54,7 +54,6 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
     }
 
     protected IrisObject loadFile(File j, String name) {
-        lock.lock();
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             IrisObject t = new IrisObject(0, 0, 0);
@@ -63,12 +62,10 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
             t.setLoader(manager);
             t.setLoadFile(j);
             logLoad(j, t);
-            lock.unlock();
             tlt.addAndGet(p.getMilliseconds());
             return t;
         } catch (Throwable e) {
             Iris.reportError(e);
-            lock.unlock();
             Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
             return null;
         }
@@ -108,11 +105,9 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
     }
 
     public File findFile(String name) {
-        lock.lock();
         for (File i : getFolders(name)) {
             for (File j : i.listFiles()) {
                 if (j.isFile() && j.getName().endsWith(".iob") && j.getName().split("\\Q.\\E")[0].equals(name)) {
-                    lock.unlock();
                     return j;
                 }
             }
@@ -120,14 +115,12 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
             File file = new File(i, name + ".iob");
 
             if (file.exists()) {
-                lock.unlock();
                 return file;
             }
         }
 
         Iris.warn("Couldn't find " + resourceTypeName + ": " + name);
 
-        lock.unlock();
         return null;
     }
 
@@ -136,11 +129,9 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
     }
 
     private IrisObject loadRaw(String name){
-        lock.lock();
         for (File i : getFolders(name)) {
             for (File j : i.listFiles()) {
                 if (j.isFile() && j.getName().endsWith(".iob") && j.getName().split("\\Q.\\E")[0].equals(name)) {
-                    lock.unlock();
                     return loadFile(j, name);
                 }
             }
@@ -148,14 +139,12 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
             File file = new File(i, name + ".iob");
 
             if (file.exists()) {
-                lock.unlock();
                 return loadFile(file, name);
             }
         }
 
         Iris.warn("Couldn't find " + resourceTypeName + ": " + name);
 
-        lock.unlock();
         return null;
     }
 

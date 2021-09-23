@@ -16,25 +16,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.matter.slices;
+package com.volmit.iris.util.nbt.mca.palette;
 
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.util.data.palette.Palette;
-import com.volmit.iris.util.matter.Sliced;
-import org.bukkit.entity.Player;
+import com.volmit.iris.util.nbt.tag.ListTag;
 
-@Sliced
-public class BiomeMatter extends RegistryMatter<IrisBiome> {
-    public BiomeMatter() {
-        this(1, 1, 1);
-    }
+import java.util.function.Predicate;
 
-    @Override
-    public Palette<IrisBiome> getGlobalPalette() {
-        return null;
-    }
+public interface MCAPalette<T> {
+    int idFor(T paramT);
 
-    public BiomeMatter(int width, int height, int depth) {
-        super(width, height, depth, IrisBiome.class);
-    }
+    boolean maybeHas(Predicate<T> paramPredicate);
+
+    T valueFor(int paramInt);
+
+    int getSize();
+
+    void read(ListTag paramListTag);
 }

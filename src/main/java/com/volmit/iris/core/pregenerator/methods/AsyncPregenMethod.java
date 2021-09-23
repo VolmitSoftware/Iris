@@ -70,6 +70,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         try {
             PaperLib.getChunkAtAsync(world, x, z, true).get();
             listener.onChunkGenerated(x, z);
+            listener.onChunkCleaned(x, z);
         } catch (Throwable e) {
             e.printStackTrace();
             J.sleep(5);

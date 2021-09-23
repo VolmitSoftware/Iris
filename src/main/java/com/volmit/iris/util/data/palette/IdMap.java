@@ -16,8 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.nbt.mca.palette;
+package com.volmit.iris.util.data.palette;
 
-interface PaletteResize<T> {
-    int onResize(int paramInt, T paramT);
+public interface IdMap<T> extends Iterable<T> {
+    int getId(T paramT);
+
+    T byId(int paramInt);
 }

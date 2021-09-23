@@ -18,12 +18,15 @@
 
 package com.volmit.iris.util.nbt.mca;
 
+import com.volmit.iris.core.pregenerator.syndicate.SyndicateServer;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
+import com.volmit.iris.util.scheduling.J;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
 @SuppressWarnings("ALL")
@@ -37,6 +40,7 @@ public class MCAFile {
     private final int regionX;
     private final int regionZ;
     private AtomicReferenceArray<Chunk> chunks;
+    private ConcurrentLinkedQueue<Runnable> afterSave;
 
     /**
      * MCAFile represents a world save file used by Minecraft to store world
@@ -50,6 +54,7 @@ public class MCAFile {
     public MCAFile(int regionX, int regionZ) {
         this.regionX = regionX;
         this.regionZ = regionZ;
+        afterSave = new ConcurrentLinkedQueue<>();
     }
 
     /**
@@ -118,7 +123,7 @@ public class MCAFile {
             if (raf.readByte() == 0) {
                 continue;
             }
-            p2.add(new Position2(x & 31, (z / 32) & 31));
+            p2.add(new Position2(x & 31, (z / 31) & 31));
         }
         return p2;
     }
@@ -198,6 +203,11 @@ public class MCAFile {
             raf.seek(globalOffset * 4096L - 1);
             raf.write(0);
         }
+
+        J.a(() -> {
+            afterSave.forEach(i -> i.run());
+        }, 20);
+
         return chunksWritten;
     }
 
@@ -325,5 +335,9 @@ public class MCAFile {
             return null;
         }
         return chunk.getBlockStateAt(blockX, blockY, blockZ);
+    }
+
+    public void afterSave(Runnable o) {
+        afterSave.add(o);
     }
 }

@@ -23,6 +23,7 @@ import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.Varint;
+import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.MatterEntity;
 import com.volmit.iris.util.matter.MatterEntityGroup;
 import com.volmit.iris.util.matter.MatterReader;
@@ -32,6 +33,7 @@ import com.volmit.iris.util.nbt.tag.CompoundTag;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.util.BoundingBox;
 
 import java.io.DataInputStream;
@@ -44,6 +46,11 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
 
     public EntityMatter() {
         this(1, 1, 1);
+    }
+
+    @Override
+    public Palette<MatterEntityGroup> getGlobalPalette() {
+        return null;
     }
 
     public EntityMatter(int width, int height, int depth) {

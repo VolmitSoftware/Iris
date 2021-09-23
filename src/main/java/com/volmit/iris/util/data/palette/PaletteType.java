@@ -16,34 +16,37 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.matter.slices;
+package com.volmit.iris.util.data.palette;
 
-import com.volmit.iris.util.data.palette.Palette;
-import com.volmit.iris.util.nbt.io.NBTUtil;
-import com.volmit.iris.util.nbt.tag.Tag;
-import org.bukkit.entity.Player;
+import com.volmit.iris.util.data.Varint;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-public class NBTMatter<T extends Tag<?>> extends RawMatter<T> {
-    public NBTMatter(int width, int height, int depth, Class<T> c) {
-        super(width, height, depth, c);
+public interface PaletteType<T> {
+    void writePaletteNode(DataOutputStream dos, T t) throws IOException;
+
+    T readPaletteNode(DataInputStream din) throws IOException;
+
+    default void writeList(DataOutputStream dos, List<T> list) throws IOException {
+        Varint.writeUnsignedVarInt(list.size(), dos);
+        for (T i : list) {
+            writePaletteNode(dos, i);
+        }
     }
 
-    @Override
-    public Palette<T> getGlobalPalette() {
-        return null;
-    }
+    default List<T> readList(DataInputStream din) throws IOException {
+        int v = Varint.readUnsignedVarInt(din);
+        List<T> t = new ArrayList<>();
 
-    @Override
-    public void writeNode(T b, DataOutputStream dos) throws IOException {
-        NBTUtil.write(b, dos, false);
-    }
+        for(int i = 0; i < v; i++)
+        {
+            t.add(readPaletteNode(din));
+        }
 
-    @Override
-    public T readNode(DataInputStream din) throws IOException {
-        return (T) NBTUtil.read(din, false).getTag();
+        return t;
     }
 }

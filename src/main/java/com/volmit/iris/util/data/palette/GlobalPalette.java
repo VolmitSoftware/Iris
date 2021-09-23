@@ -16,16 +16,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.nbt.mca.palette;
+package com.volmit.iris.util.data.palette;
 
 import com.volmit.iris.util.nbt.tag.ListTag;
 
+import java.util.List;
 import java.util.function.Predicate;
 
 public class GlobalPalette<T> implements Palette<T> {
     private final IdMapper<T> registry;
 
     private final T defaultValue;
+
+    public GlobalPalette(T... f)
+    {
+        IdMapper<T> mapper = new IdMapper<>();
+        for(T i : f)
+        {
+            mapper.add(i);
+        }
+        registry = mapper;
+        defaultValue = f[0];
+    }
 
     public GlobalPalette(IdMapper<T> var0, T var1) {
         this.registry = var0;
@@ -50,6 +62,13 @@ public class GlobalPalette<T> implements Palette<T> {
         return this.registry.size();
     }
 
-    public void read(ListTag var0) {
+    @Override
+    public void read(List<T> fromList) {
+
+    }
+
+    @Override
+    public void write(List<T> toList) {
+
     }
 }

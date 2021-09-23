@@ -29,7 +29,9 @@ public enum MantleFlag {
     REAL,
     CARVED,
     FLUID_BODIES,
-    INITIAL_SPAWNED_MARKER;
+    INITIAL_SPAWNED_MARKER,
+    CLEANED,
+    PLANNED;
 
     static StateList getStateList() {
         return new StateList(MantleFlag.values());

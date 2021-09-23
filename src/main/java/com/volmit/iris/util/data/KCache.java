@@ -27,20 +27,25 @@ import java.util.function.Function;
 
 public class KCache<K,V> implements MeteredCache {
     private long max;
-    private CacheLoader<? super K, ? extends V> loader;
+    private CacheLoader<K, V> loader;
     private LoadingCache<K, V> cache;
 
     public KCache(CacheLoader<K, V> loader, long max)
     {
         this.max = max;
         this.loader = loader;
-        this.cache = Caffeine
+        this.cache = create(loader);
+    }
+
+    private LoadingCache<K,V> create(CacheLoader<K,V> loader) {
+        return Caffeine
                 .newBuilder()
                 .maximumSize(max)
                 .build((k) -> loader == null ? null : loader.load(k));
     }
 
-    public void setLoader(CacheLoader<? super K, ? extends V> loader)
+
+    public void setLoader(CacheLoader<K, V> loader)
     {
         this.loader = loader;
     }
@@ -52,8 +57,9 @@ public class KCache<K,V> implements MeteredCache {
 
     public void invalidate()
     {
-        cache.invalidateAll();
-        cache.cleanUp();
+        LoadingCache<?,?> c = cache;
+        cache = create(loader);
+        c.invalidateAll();
     }
 
     public V get(K k)

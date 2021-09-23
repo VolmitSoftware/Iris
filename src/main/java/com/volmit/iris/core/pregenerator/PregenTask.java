@@ -19,6 +19,7 @@
 package com.volmit.iris.core.pregenerator;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;

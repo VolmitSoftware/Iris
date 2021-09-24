@@ -29,12 +29,6 @@ public enum IrisEngineStreamType {
     @Desc("Represents the given slope at the x, z coordinates")
     SLOPE((f) -> f.getComplex().getSlopeStream()),
 
-    @Desc("Represents the real terrain height ignoring fluid, this includes carving, caves & noise features into this stream.")
-    TRUE_HEIGHT((f) -> f.getComplex().getTrueHeightStream().forceDouble()),
-
-    @Desc("Represents the real terrain height including fluid, this includes carving, caves & noise features into this stream.")
-    TRUE_HEIGHT_OR_FLUID((f) -> f.getComplex().getTrueHeightStream().forceDouble().max(f.getComplex().getFluidHeight())),
-
     @Desc("Represents the base generator height at the given position. This includes only the biome generators / interpolation and noise features but does not include carving, caves.")
     HEIGHT((f) -> f.getComplex().getHeightStream()),
 
@@ -43,12 +37,6 @@ public enum IrisEngineStreamType {
 
     @Desc("Represents the overlay noise generators summed (dimension setting)")
     OVERLAY_NOISE((f) -> f.getComplex().getOverlayStream()),
-
-    @Desc("Represents the overlay noise generators summed (dimension setting)")
-    HEIGHT_NO_FEATURES((f) -> f.getComplex().getHeightStreamNoFeatures()),
-
-    @Desc("Represents the object chance clip. If a noise feature alters the object chance in this area this number will drop below 1. (100%)")
-    OBJECT_CHANCE_CLIP((f) -> f.getComplex().getObjectChanceStream()),
 
     @Desc("Represents the noise style of regions")
     REGION_STYLE((f) -> f.getComplex().getRegionStyleStream()),

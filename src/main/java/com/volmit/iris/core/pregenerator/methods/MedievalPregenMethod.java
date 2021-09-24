@@ -21,7 +21,9 @@ package com.volmit.iris.core.pregenerator.methods;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -103,6 +105,17 @@ public class MedievalPregenMethod implements PregeneratorMethod {
         futures.add(J.sfut(() -> {
             world.getChunkAt(x, z);
             listener.onChunkGenerated(x, z);
+            listener.onChunkCleaned(x, z);
         }));
+    }
+
+    @Override
+    public Mantle getMantle() {
+        if(IrisToolbelt.isIrisWorld(world))
+        {
+            return IrisToolbelt.access(world).getEngine().getMantle().getMantle();
+        }
+
+        return null;
     }
 }

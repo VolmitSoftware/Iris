@@ -24,12 +24,18 @@ import com.volmit.iris.core.pregenerator.IrisPregenerator;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
+import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.format.MemoryMonitor;
 import com.volmit.iris.util.function.Consumer2;
+import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
+import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.Looper;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -40,16 +46,22 @@ import java.awt.Graphics2D;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 public class PregeneratorJob implements PregenListener {
     private static final Color COLOR_EXISTS = parseColor("#4d7d5b");
-    private static final Color COLOR_GENERATING = parseColor("#0062ff");
+    private static final Color COLOR_BLACK = parseColor("#4d7d5b");
+    private static final Color COLOR_MANTLE = parseColor("#3c2773");
+    private static final Color COLOR_GENERATING = parseColor("#66967f");
     private static final Color COLOR_NETWORK = parseColor("#a863c2");
     private static final Color COLOR_NETWORK_GENERATING = parseColor("#836b8c");
-    private static final Color COLOR_GENERATED = parseColor("#34eb93");
+    private static final Color COLOR_GENERATED = parseColor("#65c295");
+    private static final Color COLOR_CLEANED = parseColor("#34eb93");
     public static PregeneratorJob instance;
+    private final MemoryMonitor monitor;
     private final PregenTask task;
     private final boolean saving;
     private final KList<Consumer<Double>> onProgress = new KList<>();
@@ -59,10 +71,15 @@ public class PregeneratorJob implements PregenListener {
     private final Position2 max;
     private JFrame frame;
     private PregenRenderer renderer;
+    private int rgc = 0;
+    private ChronoLatch cl = new ChronoLatch(TimeUnit.MINUTES.toMillis(1));
     private String[] info;
+    private Engine engine;
 
-    public PregeneratorJob(PregenTask task, PregeneratorMethod method) {
+    public PregeneratorJob(PregenTask task, PregeneratorMethod method, Engine engine) {
+        this.engine = engine;
         instance = this;
+        monitor = new MemoryMonitor(50);
         saving = false;
         info = new String[]{"Initializing..."};
         this.task = task;
@@ -82,6 +99,11 @@ public class PregeneratorJob implements PregenListener {
         }
 
         J.a(this.pregenerator::start, 20);
+    }
+
+    public Mantle getMantle()
+    {
+        return pregenerator.getMantle();
     }
 
     public static boolean shutdownInstance() {
@@ -170,6 +192,7 @@ public class PregeneratorJob implements PregenListener {
     public void close() {
         J.a(() -> {
             try {
+                monitor.close();
                 J.sleep(3000);
                 frame.setVisible(false);
             } catch (Throwable e) {
@@ -209,6 +232,8 @@ public class PregeneratorJob implements PregenListener {
                 "Speed: " + Form.f(chunksPerSecond, 0) + " Chunks/s, " + Form.f(regionsPerMinute, 1) + " Regions/m, " + Form.f(chunksPerMinute, 0) + " Chunks/m",
                 Form.duration(eta, 2) + " Remaining " + " (" + Form.duration(elapsed, 2) + " Elapsed)",
                 "Generation Method: " + method,
+                "Memory: " + Form.memSize(monitor.getUsedBytes(), 2) + " (" + Form.pc(monitor.getUsagePercent(), 0) + ") Pressure: " + Form.memSize(monitor.getPressure(), 0) + "/s",
+
         };
 
         for (Consumer<Double> i : onProgress) {
@@ -218,22 +243,46 @@ public class PregeneratorJob implements PregenListener {
 
     @Override
     public void onChunkGenerating(int x, int z) {
+        if(engine != null)
+        {
+            return;
+        }
+
         draw(x, z, COLOR_GENERATING);
     }
 
     @Override
     public void onChunkGenerated(int x, int z) {
+        if(engine != null)
+        {
+            draw(x, z, engine.draw((x << 4) + 8, (z << 4) + 8));
+            return;
+        }
+
         draw(x, z, COLOR_GENERATED);
     }
 
     @Override
     public void onRegionGenerated(int x, int z) {
+        shouldGc();
+        rgc++;
+    }
 
+    private void shouldGc() {
+        if(cl.flip() && rgc > 16)
+        {
+            System.gc();
+        }
     }
 
     @Override
     public void onRegionGenerating(int x, int z) {
 
+    }
+
+    @Override
+    public void onChunkCleaned(int x, int z) {
+        //draw(x, z, COLOR_CLEANED);
     }
 
     @Override
@@ -280,6 +329,12 @@ public class PregeneratorJob implements PregenListener {
 
     @Override
     public void onChunkExistsInRegionGen(int x, int z) {
+        if(engine != null)
+        {
+            draw(x, z, engine.draw((x << 4) + 8, (z << 4) + 8));
+            return;
+        }
+
         draw(x, z, COLOR_EXISTS);
     }
 
@@ -336,7 +391,7 @@ public class PregeneratorJob implements PregenListener {
             l.unlock();
             g.drawImage(image, 0, 0, getParent().getWidth(), getParent().getHeight(), (img, infoflags, x, y, width, height) -> true);
             g.setColor(Color.WHITE);
-            g.setFont(new Font("Hevetica", Font.BOLD, 28));
+            g.setFont(new Font("Hevetica", Font.BOLD, 13));
             String[] prog = job.getProgress();
             int h = g.getFontMetrics().getHeight() + 5;
             int hh = 20;

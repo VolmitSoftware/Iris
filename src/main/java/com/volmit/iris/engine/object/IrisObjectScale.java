@@ -81,11 +81,7 @@ public class IrisObjectScale {
             return origin;
         }
 
-        return cache.compute(origin, (k, v) -> {
-            if (v != null) {
-                return v;
-            }
-
+        return cache.computeIfAbsent(origin, (k) -> {
             KList<IrisObject> c = new KList<>();
             for (double i = minimumScale; i < maximumScale; i += (maximumScale - minimumScale) / (double) (Math.min(variations, 32))) {
                 c.add(origin.scaled(i, getInterpolation()));

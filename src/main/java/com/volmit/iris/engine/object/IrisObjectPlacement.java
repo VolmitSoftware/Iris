@@ -33,7 +33,6 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.data.WeightedRandom;
-import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import lombok.AllArgsConstructor;
@@ -63,9 +62,6 @@ public class IrisObjectPlacement {
     private IrisObjectRotation rotation = new IrisObjectRotation();
     @Desc("Limit the max height or min height of placement.")
     private IrisObjectLimit clamp = new IrisObjectLimit();
-    @ArrayType(min = 1, type = IrisFeaturePotential.class)
-    @Desc("Place additional noise features in the object's place location")
-    private KList<IrisFeaturePotential> addFeatures = new KList<>();
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The maximum layer level of a snow filter overtop of this placement. Set to 0 to disable. Max of 1.")
@@ -77,6 +73,8 @@ public class IrisObjectPlacement {
     @MinNumber(1)
     @Desc("If the chance check passes, place this many in a single chunk")
     private int density = 1;
+    @Desc("If the chance check passes, and you specify this, it picks a number in the range based on noise, and 'density' is ignored.")
+    private IrisStyledRange densityStyle = null;
     @MaxNumber(64)
     @MinNumber(0)
     @Desc("If the place mode is set to stilt, you can over-stilt it even further into the ground. Especially useful when using fast stilt due to inaccuracies.")
@@ -85,18 +83,13 @@ public class IrisObjectPlacement {
     @MinNumber(0)
     @Desc("When bore is enabled, expand max-y of the cuboid it removes")
     private int boreExtendMaxY = 0;
+    @ArrayType(min = 1, type = IrisObjectMarker.class)
+    @Desc("Add markers to blocks in this object")
+    private KList<IrisObjectMarker> markers = new KList<>();
     @MaxNumber(64)
     @MinNumber(-1)
     @Desc("When bore is enabled, lower min-y of the cuboid it removes")
     private int boreExtendMinY = 0;
-    @MaxNumber(64)
-    @MinNumber(4)
-    @Desc("When vacuum is enabled, define the interpolation radius")
-    private int vacuumInterpolationRadius = 16;
-    @MaxNumber(64)
-    @MinNumber(4)
-    @Desc("When vacuum is enabled, define the interpolation method")
-    private InterpolationMethod vacuumInterpolationMethod = InterpolationMethod.BILINEAR_STARCAST_9;
     @Desc("If set to true, objects will place on the terrain height, ignoring the water surface.")
     private boolean underwater = false;
     @Desc("If set to true, objects will place in carvings (such as underground) or under an overhang.")
@@ -146,7 +139,6 @@ public class IrisObjectPlacement {
         p.setWarp(warp);
         p.setBore(bore);
         p.setMeld(meld);
-        p.setAddFeatures(addFeatures.copy());
         p.setWaterloggable(waterloggable);
         p.setOnwater(onwater);
         p.setSmartBore(smartBore);
@@ -173,32 +165,12 @@ public class IrisObjectPlacement {
         return getSurfaceWarp(rng, data).fitDouble(-(getWarp().getMultiplier() / 2D), (getWarp().getMultiplier() / 2D), x, y, z);
     }
 
-    public int getTriesForChunk(RNG random) {
-        if (chance <= 0) {
-            return 0;
-        }
-
-        if (chance >= 1 || random.nextDouble() < chance) {
-            return density;
-        }
-
-        return 0;
-    }
-
     public IrisObject getObject(DataProvider g, RNG random) {
         if (place.isEmpty()) {
             return null;
         }
 
         return g.getData().getObjectLoader().load(place.get(random.nextInt(place.size())));
-    }
-
-    public boolean isVacuum() {
-        return getMode().equals(ObjectPlaceMode.VACUUM);
-    }
-
-    public boolean usesFeatures() {
-        return isVacuum() || getAddFeatures().isNotEmpty();
     }
 
     public boolean matches(IrisTreeSize size, TreeType type) {
@@ -209,6 +181,21 @@ public class IrisObjectPlacement {
         }
 
         return false;
+    }
+
+    public int getDensity() {
+        if (densityStyle == null) {
+            return density;
+        }
+        return densityStyle.getMid();
+    }
+
+    public int getDensity(RNG rng, double x, double z, IrisData data) {
+        if (densityStyle == null) {
+            return density;
+        }
+
+        return (int) Math.round(densityStyle.get(rng, x, z, data));
     }
 
     private TableCache getCache(IrisData manager) {

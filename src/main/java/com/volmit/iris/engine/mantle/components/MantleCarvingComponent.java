@@ -29,20 +29,18 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.RNG;
 
-import java.util.function.Consumer;
-
 public class MantleCarvingComponent extends IrisMantleComponent {
     public MantleCarvingComponent(EngineMantle engineMantle) {
         super(engineMantle, MantleFlag.CARVED);
     }
 
     @Override
-    public void generateLayer(MantleWriter writer, int x, int z, Consumer<Runnable> post) {
+    public void generateLayer(MantleWriter writer, int x, int z) {
         RNG rng = new RNG(Cache.key(x, z) + seed());
         int xxx = 8 + (x << 4);
         int zzz = 8 + (z << 4);
         IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
-        IrisBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xxx, zzz);
+        IrisBiome biome = getComplex().getTrueBiomeStream().get(xxx, zzz);
         carve(writer, rng, x, z, region, biome);
     }
 

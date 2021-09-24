@@ -18,6 +18,9 @@
 
 package com.volmit.iris.util.matter.slices;
 
+import com.volmit.iris.util.data.palette.GlobalPalette;
+import com.volmit.iris.util.data.palette.Palette;
+import com.volmit.iris.util.matter.MatterTile;
 import com.volmit.iris.util.matter.MatterUpdate;
 import com.volmit.iris.util.matter.Sliced;
 
@@ -29,13 +32,19 @@ import java.io.IOException;
 public class UpdateMatter extends RawMatter<MatterUpdate> {
     public static final MatterUpdate ON = new MatterUpdate(true);
     public static final MatterUpdate OFF = new MatterUpdate(false);
+    private static final Palette<MatterUpdate> GLOBAL = new GlobalPalette<>(OFF, ON);
 
     public UpdateMatter() {
         this(1, 1, 1);
     }
 
+    @Override
+    public Palette<MatterUpdate> getGlobalPalette() {
+        return GLOBAL;
+    }
+
     public UpdateMatter(int width, int height, int depth) {
-        super(width, height, depth, MatterUpdate.class);
+        super(width, height, depth, MatterUpdate.class, OFF);
     }
 
     @Override

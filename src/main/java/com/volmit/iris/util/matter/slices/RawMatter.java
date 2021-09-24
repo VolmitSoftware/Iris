@@ -19,7 +19,9 @@
 package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.hunk.bits.Writable;
 import com.volmit.iris.util.hunk.storage.MappedHunk;
+import com.volmit.iris.util.hunk.storage.PaletteOrHunk;
 import com.volmit.iris.util.matter.MatterReader;
 import com.volmit.iris.util.matter.MatterSlice;
 import com.volmit.iris.util.matter.MatterWriter;
@@ -29,14 +31,14 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public abstract class RawMatter<T> extends MappedHunk<T> implements MatterSlice<T> {
+public abstract class RawMatter<T> extends PaletteOrHunk<T> implements MatterSlice<T> {
     protected final KMap<Class<?>, MatterWriter<?, T>> writers;
     protected final KMap<Class<?>, MatterReader<?, T>> readers;
     @Getter
     private final Class<T> type;
 
-    public RawMatter(int width, int height, int depth, Class<T> type) {
-        super(width, height, depth);
+    public RawMatter(int width, int height, int depth, Class<T> type, T e) {
+        super(width, height, depth, false, () -> new MappedHunk<>(width, height, depth), e);
         writers = new KMap<>();
         readers = new KMap<>();
         this.type = type;

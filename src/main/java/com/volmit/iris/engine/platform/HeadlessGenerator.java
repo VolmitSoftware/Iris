@@ -29,6 +29,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.object.HeadlessWorld;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
@@ -40,6 +41,7 @@ import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -48,6 +50,8 @@ import org.bukkit.generator.ChunkGenerator;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 @Data
@@ -59,6 +63,7 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
     private final MultiBurst burst;
     private final Engine engine;
     private final long rkey = RNG.r.lmax();
+    private List<Position2> last = new KList<>();
 
     public HeadlessGenerator(HeadlessWorld world) {
         this(world, new IrisEngine(new EngineTarget(world.getWorld(), world.getDimension(), world.getDimension().getLoader()), world.isStudio()));
@@ -83,7 +88,7 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
                     .injector((xx, yy, zz, biomeBase) -> chunk.setBiomeAt(ox + xx, yy, oz + zz,
                             INMS.get().getTrueBiomeBaseId(biomeBase)))
                     .build();
-            getEngine().generate(x * 16, z * 16,
+            getEngine().generate(x << 4, z << 4,
                     Hunk.view((ChunkGenerator.ChunkData) tc), Hunk.view((ChunkGenerator.BiomeGrid) tc),
                     false);
             chunk.cleanupPalettesAndBlockStates();
@@ -124,9 +129,27 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
             if (listener != null) {
                 listener.onChunkGenerated(ii, jj);
             }
-        }));
-
+        }), avgLast(x, z));
+        last.add(new Position2(x, z));
         e.complete();
+    }
+
+    private Position2 avgLast(int x, int z) {
+        while(last.size() > 3)
+        {
+            last.remove(0);
+        }
+
+        double xx = 0;
+        double zz = 0;
+
+        for(Position2 i : last)
+        {
+            xx += 27 * (i.getX() - x);
+            zz += 27 * (i.getZ() - z);
+        }
+
+        return new Position2((int)xx, (int)zz);
     }
 
     @RegionCoordinates

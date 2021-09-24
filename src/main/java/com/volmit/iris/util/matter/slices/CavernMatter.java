@@ -18,8 +18,10 @@
 
 package com.volmit.iris.util.matter.slices;
 
+import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.matter.Sliced;
+import org.bukkit.entity.Player;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -27,12 +29,19 @@ import java.io.IOException;
 
 @Sliced
 public class CavernMatter extends RawMatter<MatterCavern> {
+    public static final MatterCavern EMPTY = new MatterCavern(false, "", (byte) 0);
+
     public CavernMatter() {
         this(1, 1, 1);
     }
 
+    @Override
+    public Palette<MatterCavern> getGlobalPalette() {
+        return null;
+    }
+
     public CavernMatter(int width, int height, int depth) {
-        super(width, height, depth, MatterCavern.class);
+        super(width, height, depth, MatterCavern.class, EMPTY);
     }
 
     public static MatterCavern get(String customBiome, int liquid) {

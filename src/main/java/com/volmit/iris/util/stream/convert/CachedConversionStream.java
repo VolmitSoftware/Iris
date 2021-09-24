@@ -58,11 +58,11 @@ public class CachedConversionStream<T, V> extends BasicLayer implements Procedur
 
     @Override
     public V get(double x, double z) {
-        return cache.compute(stream.get(x, z), (k, v) -> v != null ? v : converter.apply(k));
+        return cache.computeIfAbsent(stream.get(x, z), converter);
     }
 
     @Override
     public V get(double x, double y, double z) {
-        return cache.compute(stream.get(x, y, z), (k, v) -> v != null ? v : converter.apply(k));
+        return cache.computeIfAbsent(stream.get(x, y, z), converter);
     }
 }

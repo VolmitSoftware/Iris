@@ -144,7 +144,7 @@ public class IrisBiomeCustom {
             KMap<IrisBiomeCustomSpawnType, JSONArray> groups = new KMap<>();
 
             for (IrisBiomeCustomSpawn i : getSpawns()) {
-                JSONArray g = groups.compute(i.getGroup(), (k, v) -> v != null ? v : new JSONArray());
+                JSONArray g = groups.computeIfAbsent(i.getGroup(), (k) -> new JSONArray());
                 JSONObject o = new JSONObject();
                 o.put("type", "minecraft:" + i.getType().name().toLowerCase());
                 o.put("weight", i.getWeight());

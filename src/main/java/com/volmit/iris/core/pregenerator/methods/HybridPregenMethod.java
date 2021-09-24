@@ -24,6 +24,7 @@ import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.HeadlessWorld;
+import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.Position2;
 import org.bukkit.World;
 
@@ -97,5 +98,15 @@ public class HybridPregenMethod implements PregeneratorMethod {
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
         inWorld.generateChunk(x, z, listener);
+    }
+
+    @Override
+    public Mantle getMantle() {
+        if (headless == null)
+        {
+            return inWorld.getMantle();
+        }
+
+        return headless.getMantle();
     }
 }

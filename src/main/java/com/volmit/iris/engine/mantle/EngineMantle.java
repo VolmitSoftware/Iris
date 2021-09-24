@@ -24,12 +24,14 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
+import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
+import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
 import com.volmit.iris.engine.object.IObjectPlacer;
 import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisFeaturePositional;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
@@ -39,17 +41,18 @@ import com.volmit.iris.util.mantle.MantleChunk;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterCavern;
+import com.volmit.iris.util.matter.MatterFluidBody;
 import com.volmit.iris.util.matter.MatterMarker;
 import com.volmit.iris.util.matter.slices.UpdateMatter;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
-import org.bukkit.Chunk;
+import com.volmit.iris.util.scheduling.J;
+import io.papermc.lib.PaperLib;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
-import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 // TODO: MOVE PLACER OUT OF MATTER INTO ITS OWN THING
 public interface EngineMantle extends IObjectPlacer {
@@ -96,7 +99,7 @@ public interface EngineMantle extends IObjectPlacer {
     }
 
     default int trueHeight(int x, int z) {
-        return getComplex().getTrueHeightStream().get(x, z);
+        return getComplex().getRoundedHeighteightStream().get(x, z);
     }
 
     default boolean isCarved(int x, int h, int z) {
@@ -200,12 +203,6 @@ public interface EngineMantle extends IObjectPlacer {
             return;
         }
 
-        KList<Runnable> post = new KList<>();
-        Consumer<Runnable> c = (i) -> {
-            synchronized (post) {
-                post.add(i);
-            }
-        };
         int s = getRealRadius();
         BurstExecutor burst = burst().burst(multicore);
         MantleWriter writer = getMantle().write(this, x, z, s * 2);
@@ -214,28 +211,23 @@ public interface EngineMantle extends IObjectPlacer {
                 int xx = i + x;
                 int zz = j + z;
                 burst.queue(() -> {
-                    MantleChunk mc = getMantle().getChunk(xx, zz);
+                    IrisContext.touch(getEngine().getContext());
+                    getMantle().raiseFlag(xx, zz, MantleFlag.PLANNED, () -> {
+                        MantleChunk mc = getMantle().getChunk(xx, zz);
 
-                    for (MantleComponent k : getComponents()) {
-                        generateMantleComponent(writer, xx, zz, k, c, mc);
-                    }
+                        for (MantleComponent k : getComponents()) {
+                            generateMantleComponent(writer, xx, zz, k, mc);
+                        }
+                    });
                 });
             }
         }
 
         burst.complete();
-
-        while (!post.isEmpty()) {
-            KList<Runnable> px = post.copy();
-            post.clear();
-            burst().burst(multicore, px);
-        }
-
-        getMantle().flag(x, z, MantleFlag.REAL, true);
     }
 
-    default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, Consumer<Runnable> post, MantleChunk mc) {
-        mc.raiseFlag(c.getFlag(), () -> c.generateLayer(writer, x, z, post));
+    default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, MantleChunk mc) {
+        mc.raiseFlag(c.getFlag(), () -> c.generateLayer(writer, x, z));
     }
 
     @ChunkCoordinates
@@ -261,56 +253,6 @@ public interface EngineMantle extends IObjectPlacer {
         }
     }
 
-    @ChunkCoordinates
-    default List<IrisFeaturePositional> getFeaturesInChunk(Chunk c) {
-        return getFeaturesInChunk(c.getX(), c.getZ());
-    }
-
-    @ChunkCoordinates
-    default List<IrisFeaturePositional> getFeaturesInChunk(int x, int z) {
-        return getMantle().getChunk(x, z).getFeatures();
-    }
-
-
-    @ChunkCoordinates
-    default KList<IrisFeaturePositional> forEachFeature(Chunk c) {
-        return forEachFeature((c.getX() << 4) + 8, (c.getZ() << 4) + 8);
-    }
-
-    @BlockCoordinates
-    default KList<IrisFeaturePositional> forEachFeature(double x, double z) {
-        KList<IrisFeaturePositional> pos = new KList<>();
-
-        for (IrisFeaturePositional i : getEngine().getDimension().getSpecificFeatures()) {
-            if (i.shouldFilter(x, z, getEngine().getComplex().getRng(), getData())) {
-                pos.add(i);
-            }
-        }
-
-        int s = getRealRadius();
-        int i, j;
-        int cx = (int) x >> 4;
-        int cz = (int) z >> 4;
-
-        for (i = -s; i <= s; i++) {
-            for (j = -s; j <= s; j++) {
-                try {
-                    for (IrisFeaturePositional k : getFeaturesInChunk(i + cx, j + cz)) {
-                        if (k.shouldFilter(x, z, getEngine().getComplex().getRng(), getData())) {
-                            pos.add(k);
-                        }
-                    }
-                } catch (Throwable e) {
-                    Iris.error("FILTER ERROR" + " AT " + (cx + i) + " " + (j + cz));
-                    e.printStackTrace();
-                    Iris.reportError(e);
-                }
-            }
-        }
-
-        return pos;
-    }
-
     default boolean queueRegenerate(int x, int z) {
         return false; // TODO:
     }
@@ -321,5 +263,40 @@ public interface EngineMantle extends IObjectPlacer {
 
     default int getLoadedRegionCount() {
         return getMantle().getLoadedRegionCount();
+    }
+
+    MantleJigsawComponent getJigsawComponent();
+
+    MantleObjectComponent getObjectComponent();
+
+    default boolean isCovered(int x, int z)
+    {
+        int s = getRealRadius();
+
+        for (int i = -s; i <= s; i++) {
+            for (int j = -s; j <= s; j++) {
+                int xx = i + x;
+                int zz = j + z;
+                if(!getMantle().hasFlag(xx, zz, MantleFlag.REAL))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    default void cleanupChunk(int x, int z)
+    {
+        if(!getMantle().hasFlag(x, z, MantleFlag.CLEANED) && isCovered(x, z))
+        {
+            getMantle().raiseFlag(x, z, MantleFlag.CLEANED, () -> {
+                getMantle().deleteChunkSlice(x, z, BlockData.class);
+                getMantle().deleteChunkSlice(x, z, String.class);
+                getMantle().deleteChunkSlice(x, z, MatterCavern.class);
+                getMantle().deleteChunkSlice(x, z, MatterFluidBody.class);
+            });
+        }
     }
 }

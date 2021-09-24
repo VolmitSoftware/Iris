@@ -23,7 +23,7 @@ import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.util.nbt.io.NBTDeserializer;
 import com.volmit.iris.util.nbt.io.NBTSerializer;
 import com.volmit.iris.util.nbt.io.NamedTag;
-import com.volmit.iris.util.nbt.mca.palette.BiomeContainer;
+import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
 
@@ -46,7 +46,7 @@ public class Chunk {
     private int dataVersion;
     private long lastUpdate;
     private long inhabitedTime;
-    private BiomeContainer biomes;
+    private MCABiomeContainer biomes;
     private CompoundTag heightMaps;
     private CompoundTag carvingMasks;
     private ListTag<CompoundTag> entities;

@@ -24,15 +24,15 @@ import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
-import com.volmit.iris.util.nbt.mca.palette.BiomeContainer;
-import com.volmit.iris.util.nbt.mca.palette.ChunkBiomeContainer;
-import com.volmit.iris.util.nbt.mca.palette.GlobalPalette;
-import com.volmit.iris.util.nbt.mca.palette.IdMap;
-import com.volmit.iris.util.nbt.mca.palette.IdMapper;
-import com.volmit.iris.util.nbt.mca.palette.Palette;
-import com.volmit.iris.util.nbt.mca.palette.PaletteAccess;
-import com.volmit.iris.util.nbt.mca.palette.PalettedContainer;
-import com.volmit.iris.util.nbt.mca.palette.WrappedPalettedContainer;
+import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
+import com.volmit.iris.util.nbt.mca.palette.MCAChunkBiomeContainer;
+import com.volmit.iris.util.nbt.mca.palette.MCAGlobalPalette;
+import com.volmit.iris.util.nbt.mca.palette.MCAIdMap;
+import com.volmit.iris.util.nbt.mca.palette.MCAIdMapper;
+import com.volmit.iris.util.nbt.mca.palette.MCAPalette;
+import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
+import com.volmit.iris.util.nbt.mca.palette.MCAPalettedContainer;
+import com.volmit.iris.util.nbt.mca.palette.MCAWrappedPalettedContainer;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import net.minecraft.core.BlockPosition;
 import net.minecraft.core.IRegistry;
@@ -82,9 +82,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class NMSBinding17_1 implements INMSBinding {
     private final BlockData AIR = Material.AIR.createBlockData();
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
-    private final AtomicCache<IdMapper<IBlockData>> registryCache = new AtomicCache<>();
-    private final AtomicCache<Palette<IBlockData>> globalCache = new AtomicCache<>();
-    private final AtomicCache<IdMap<BiomeBase>> biomeMapCache = new AtomicCache<>();
+    private final AtomicCache<MCAIdMapper<IBlockData>> registryCache = new AtomicCache<>();
+    private final AtomicCache<MCAPalette<IBlockData>> globalCache = new AtomicCache<>();
+    private final AtomicCache<MCAIdMap<BiomeBase>> biomeMapCache = new AtomicCache<>();
     private Field biomeStorageCache = null;
 
     public boolean supportsDataPacks() {
@@ -92,8 +92,8 @@ public class NMSBinding17_1 implements INMSBinding {
     }
 
     @Override
-    public PaletteAccess createPalette() {
-        IdMapper<IBlockData> registry = registryCache.aquireNasty(() -> {
+    public MCAPaletteAccess createPalette() {
+        MCAIdMapper<IBlockData> registry = registryCache.aquireNasty(() -> {
             Field cf = net.minecraft.core.RegistryBlockID.class.getDeclaredField("c");
             Field df = net.minecraft.core.RegistryBlockID.class.getDeclaredField("d");
             Field bf = net.minecraft.core.RegistryBlockID.class.getDeclaredField("b");
@@ -104,14 +104,14 @@ public class NMSBinding17_1 implements INMSBinding {
             int b = bf.getInt(blockData);
             IdentityHashMap<IBlockData, Integer> c = (IdentityHashMap<IBlockData, Integer>) cf.get(blockData);
             List<IBlockData> d = (List<IBlockData>) df.get(blockData);
-            return new IdMapper<>(c, d, b);
+            return new MCAIdMapper<>(c, d, b);
         });
-        Palette<IBlockData> global = globalCache.aquireNasty(() -> new GlobalPalette<>(registry, ((CraftBlockData) AIR).getState()));
-        PalettedContainer<IBlockData> container = new PalettedContainer<>(global, registry,
+        MCAPalette<IBlockData> global = globalCache.aquireNasty(() -> new MCAGlobalPalette<>(registry, ((CraftBlockData) AIR).getState()));
+        MCAPalettedContainer<IBlockData> container = new MCAPalettedContainer<>(global, registry,
                 i -> ((CraftBlockData) NBTWorld.getBlockData(i)).getState(),
                 i -> NBTWorld.getCompound(CraftBlockData.fromData(i)),
                 ((CraftBlockData) AIR).getState());
-        return new WrappedPalettedContainer<>(container,
+        return new MCAWrappedPalettedContainer<>(container,
                 i -> NBTWorld.getCompound(CraftBlockData.fromData(i)),
                 i -> ((CraftBlockData) NBTWorld.getBlockData(i)).getState());
     }
@@ -399,8 +399,8 @@ public class NMSBinding17_1 implements INMSBinding {
         return biome.ordinal();
     }
 
-    private IdMap<BiomeBase> getBiomeMapping() {
-        return biomeMapCache.aquire(() -> new IdMap<>() {
+    private MCAIdMap<BiomeBase> getBiomeMapping() {
+        return biomeMapCache.aquire(() -> new MCAIdMap<>() {
             @NotNull
             @Override
             public Iterator<BiomeBase> iterator() {
@@ -420,20 +420,20 @@ public class NMSBinding17_1 implements INMSBinding {
     }
 
     @Override
-    public BiomeContainer newBiomeContainer(int min, int max) {
-        ChunkBiomeContainer<BiomeBase> base = new ChunkBiomeContainer<>(getBiomeMapping(), min, max);
+    public MCABiomeContainer newBiomeContainer(int min, int max) {
+        MCAChunkBiomeContainer<BiomeBase> base = new MCAChunkBiomeContainer<>(getBiomeMapping(), min, max);
         return getBiomeContainerInterface(getBiomeMapping(), base);
     }
 
     @Override
-    public BiomeContainer newBiomeContainer(int min, int max, int[] data) {
-        ChunkBiomeContainer<BiomeBase> base = new ChunkBiomeContainer<>(getBiomeMapping(), min, max, data);
+    public MCABiomeContainer newBiomeContainer(int min, int max, int[] data) {
+        MCAChunkBiomeContainer<BiomeBase> base = new MCAChunkBiomeContainer<>(getBiomeMapping(), min, max, data);
         return getBiomeContainerInterface(getBiomeMapping(), base);
     }
 
     @NotNull
-    private BiomeContainer getBiomeContainerInterface(IdMap<BiomeBase> biomeMapping, ChunkBiomeContainer<BiomeBase> base) {
-        return new BiomeContainer() {
+    private MCABiomeContainer getBiomeContainerInterface(MCAIdMap<BiomeBase> biomeMapping, MCAChunkBiomeContainer<BiomeBase> base) {
+        return new MCABiomeContainer() {
             @Override
             public int[] getData() {
                 return base.writeBiomes();

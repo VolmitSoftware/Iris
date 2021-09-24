@@ -19,19 +19,27 @@
 package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.framework.MeteredCache;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.context.IrisContext;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.scheduling.Looper;
+import com.volmit.iris.util.stream.utility.CachedStream2D;
 
+import java.util.Comparator;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 
 public class PreservationSVC implements IrisService {
     private final KList<Thread> threads = new KList<>();
     private final KList<ExecutorService> services = new KList<>();
     private Looper dereferencer;
+    private final KList<MeteredCache> caches = new KList<>();
 
     public void register(Thread t) {
         threads.add(t);
@@ -45,9 +53,35 @@ public class PreservationSVC implements IrisService {
         services.add(service);
     }
 
+    public void printCaches()
+    {
+        long s = caches.stream().filter(i -> !i.isClosed()).mapToLong(MeteredCache::getSize).sum();
+        long m = caches.stream().filter(i -> !i.isClosed()).mapToLong(MeteredCache::getMaxSize).sum();
+        double p = 0;
+        double mf = 0;
+
+        for(MeteredCache i : caches)
+        {
+            if(i.isClosed())
+            {
+                continue;
+            }
+
+            mf++;
+            p+= i.getUsage();
+        }
+
+        mf = mf == 0 ? 1 : mf;
+
+        Iris.info("Cached " + Form.f(s) + " / " + Form.f(m) + " (" + Form.pc(p/mf) + ") from " + caches.size() + " Caches");
+    }
+
     public void dereference() {
         IrisContext.dereference();
         IrisData.dereference();
+        threads.removeWhere((i) -> !i.isAlive());
+        services.removeWhere(ExecutorService::isShutdown);
+        updateCaches();
     }
 
     @Override
@@ -91,5 +125,14 @@ public class PreservationSVC implements IrisService {
                 }
             }
         });
+    }
+
+    public void updateCaches()
+    {
+        caches.removeWhere(MeteredCache::isClosed);
+    }
+
+    public void registerCache(MeteredCache cache) {
+        caches.add(cache);
     }
 }

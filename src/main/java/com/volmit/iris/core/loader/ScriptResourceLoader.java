@@ -19,44 +19,42 @@
 package com.volmit.iris.core.loader;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.object.IrisScript;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
 import java.io.File;
 
 public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
-
     public ScriptResourceLoader(File root, IrisData idm, String folderName, String resourceTypeName) {
         super(root, idm, folderName, resourceTypeName, IrisScript.class);
+        loadCache = new KCache<>(this::loadRaw, IrisSettings.get().getPerformance().getMaxScriptLoaderCacheSize());
     }
 
     public boolean supportsSchemas() {
         return false;
     }
 
-    public int getSize() {
-        return loadCache.size();
+    public long getSize() {
+        return loadCache.getSize();
     }
 
-    public IrisScript loadFile(File j, String key, String name) {
-        lock.lock();
+    protected IrisScript loadFile(File j, String name) {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             IrisScript t = new IrisScript(IO.readAll(j));
-            loadCache.put(key, t);
             t.setLoadKey(name);
             t.setLoader(manager);
             t.setLoadFile(j);
             logLoad(j, t);
-            lock.unlock();
             tlt.addAndGet(p.getMilliseconds());
             return t;
         } catch (Throwable e) {
             Iris.reportError(e);
-            lock.unlock();
             Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
             return null;
         }
@@ -96,11 +94,9 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
     }
 
     public File findFile(String name) {
-        lock.lock();
         for (File i : getFolders(name)) {
             for (File j : i.listFiles()) {
                 if (j.isFile() && j.getName().endsWith(".js") && j.getName().split("\\Q.\\E")[0].equals(name)) {
-                    lock.unlock();
                     return j;
                 }
             }
@@ -108,45 +104,37 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
             File file = new File(i, name + ".js");
 
             if (file.exists()) {
-                lock.unlock();
                 return file;
             }
         }
 
         Iris.warn("Couldn't find " + resourceTypeName + ": " + name);
 
-        lock.unlock();
         return null;
     }
 
-    public IrisScript load(String name, boolean warn) {
-        String key = name + "-" + objectClass.getCanonicalName();
-
-        if (loadCache.containsKey(key)) {
-            IrisScript t = loadCache.get(key);
-            return t;
-        }
-
-        lock.lock();
+    private IrisScript loadRaw(String name)
+    {
         for (File i : getFolders(name)) {
             for (File j : i.listFiles()) {
                 if (j.isFile() && j.getName().endsWith(".js") && j.getName().split("\\Q.\\E")[0].equals(name)) {
-                    lock.unlock();
-                    return loadFile(j, key, name);
+                    return loadFile(j, name);
                 }
             }
 
             File file = new File(i, name + ".js");
 
             if (file.exists()) {
-                lock.unlock();
-                return loadFile(file, key, name);
+                return loadFile(file, name);
             }
         }
 
         Iris.warn("Couldn't find " + resourceTypeName + ": " + name);
 
-        lock.unlock();
         return null;
+    }
+
+    public IrisScript load(String name, boolean warn) {
+        return loadCache.get(name);
     }
 }

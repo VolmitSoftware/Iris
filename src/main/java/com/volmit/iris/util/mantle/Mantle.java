@@ -19,10 +19,11 @@
 package com.volmit.iris.util.mantle;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.MantleWriter;
-import com.volmit.iris.engine.object.IrisFeaturePositional;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.documentation.BlockCoordinates;
@@ -37,6 +38,8 @@ import com.volmit.iris.util.matter.MatterSlice;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.HyperLock;
 import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.scheduling.J;
+import lombok.Getter;
 import org.bukkit.Chunk;
 
 import java.io.File;
@@ -49,12 +52,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The mantle can store any type of data slice anywhere and manage regions & IO on it's own.
- * This class is fully thread safe read & write
+ * This class is fully thread safe read & writeNodeData
  */
 public class Mantle {
     private final File dataFolder;
     private final int worldHeight;
     private final Map<Long, Long> lastUse;
+    @Getter
     private final Map<Long, TectonicPlate> loadedRegions;
     private final HyperLock hyperLock;
     private final KSet<Long> unload;
@@ -261,16 +265,28 @@ public class Mantle {
             return;
         }
 
-        if (t instanceof IrisFeaturePositional) {
-            get((x >> 4) >> 5, (z >> 4) >> 5)
-                    .getOrCreate((x >> 4) & 31, (z >> 4) & 31).addFeature((IrisFeaturePositional) t);
-        } else {
-            Matter matter = get((x >> 4) >> 5, (z >> 4) >> 5)
-                    .getOrCreate((x >> 4) & 31, (z >> 4) & 31)
-                    .getOrCreate(y >> 4);
-            matter.slice(matter.getClass(t))
-                    .set(x & 15, y & 15, z & 15, t);
+        Matter matter = get((x >> 4) >> 5, (z >> 4) >> 5)
+                .getOrCreate((x >> 4) & 31, (z >> 4) & 31)
+                .getOrCreate(y >> 4);
+        matter.slice(matter.getClass(t))
+                .set(x & 15, y & 15, z & 15, t);
+    }
+
+    @BlockCoordinates
+    public <T> void remove(int x, int y, int z, Class<T> t) {
+        if (closed.get()) {
+            throw new RuntimeException("The Mantle is closed");
         }
+
+        if (y < 0 || y >= worldHeight) {
+            return;
+        }
+
+        Matter matter = get((x >> 4) >> 5, (z >> 4) >> 5)
+                .getOrCreate((x >> 4) & 31, (z >> 4) & 31)
+                .getOrCreate(y >> 4);
+        matter.slice(t)
+                .set(x & 15, y & 15, z & 15, null);
     }
 
     /**
@@ -319,7 +335,7 @@ public class Mantle {
     }
 
     /**
-     * Closes the Mantle. By closing the mantle, you can no longer read or write
+     * Closes the Mantle. By closing the mantle, you can no longer read or writeNodeData
      * any data to the mantle or it's Tectonic Plates. Closing will also flush any
      * loaded regions to the disk in parallel.
      */
@@ -347,6 +363,7 @@ public class Mantle {
             Iris.reportError(e);
         }
 
+        loadedRegions.clear();
         Iris.debug("The Mantle has Closed " + C.DARK_AQUA + dataFolder.getAbsolutePath());
     }
 
@@ -512,5 +529,13 @@ public class Mantle {
         }
 
         slice.iterateSync((xx, yy, zz, t) -> set(x + xx, y + yy, z + zz, t));
+    }
+
+    public boolean isLoaded(Chunk c) {
+        return loadedRegions.containsKey(key(c.getX() >> 5, c.getZ() >> 5));
+    }
+
+    public boolean shouldReduce(Engine engine) {
+        return !engine.isStudio() || IrisSettings.get().getPerformance().isTrimMantleInStudio();
     }
 }

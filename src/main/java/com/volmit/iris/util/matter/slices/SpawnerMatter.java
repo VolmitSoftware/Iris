@@ -28,6 +28,6 @@ public class SpawnerMatter extends RegistryMatter<IrisSpawner> {
     }
 
     public SpawnerMatter(int width, int height, int depth) {
-        super(width, height, depth, IrisSpawner.class);
+        super(width, height, depth, IrisSpawner.class, new IrisSpawner());
     }
 }

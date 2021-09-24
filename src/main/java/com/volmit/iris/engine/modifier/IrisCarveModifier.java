@@ -39,12 +39,10 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.matter.slices.MarkerMatter;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import com.volmit.iris.util.stream.utility.CachedStream2D;
 import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
-
-import java.util.Objects;
-import java.util.function.Supplier;
 
 public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     private final RNG rng;
@@ -84,7 +82,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 return;
             }
 
-            positions.compute(Cache.key(rx, rz), (k, v) -> Objects.requireNonNullElseGet(v, (Supplier<KList<Integer>>) KList::new).qadd(yy));
+            positions.computeIfAbsent(Cache.key(rx, rz), (k) -> new KList<>()).qadd(yy);
 
             if (rz < 15 && mantle.get(xx, yy, zz + 1, MatterCavern.class) == null) {
                 walls.put(new IrisPosition(rx, yy, rz + 1), c);

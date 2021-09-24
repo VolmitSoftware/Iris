@@ -47,6 +47,7 @@ import org.bukkit.util.Vector;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 
 public class JigsawEditor implements Listener {
     public static final KMap<Player, JigsawEditor> editors = new KMap<>();
@@ -162,9 +163,15 @@ public class JigsawEditor implements Listener {
     public void exit() {
         J.car(ticker);
         Iris.instance.unregisterListener(this);
-        object.unplaceCenterY(origin);
+        try {
+            J.sfut(() -> {
+                object.unplaceCenterY(origin);
+                falling.v().forEach(Runnable::run);
+            }).get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
         editors.remove(player);
-        falling.v().forEach(Runnable::run);
     }
 
     public void onTick() {

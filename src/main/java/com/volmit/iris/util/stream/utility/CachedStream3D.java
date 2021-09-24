@@ -18,23 +18,26 @@
 
 package com.volmit.iris.util.stream.utility;
 
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import com.volmit.iris.Iris;
+import com.volmit.iris.core.service.PreservationSVC;
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.framework.MeteredCache;
+import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.stream.BasicStream;
 import com.volmit.iris.util.stream.ProceduralStream;
 
-public class CachedStream3D<T> extends BasicStream<T> implements ProceduralStream<T> {
+public class CachedStream3D<T> extends BasicStream<T> implements ProceduralStream<T>, MeteredCache {
     private final ProceduralStream<T> stream;
-    private final ConcurrentLinkedHashMap<BlockPosition, T> cache;
+    private final KCache<BlockPosition, T> cache;
+    private final Engine engine;
 
-    public CachedStream3D(ProceduralStream<T> stream, int size) {
+    public CachedStream3D(Engine engine, ProceduralStream<T> stream, int size) {
         super();
         this.stream = stream;
-        cache = new ConcurrentLinkedHashMap.Builder<BlockPosition, T>()
-                .initialCapacity(size)
-                .maximumWeightedCapacity(size)
-                .concurrencyLevel(32)
-                .build();
+        this.engine = engine;
+        cache = new KCache<>((k) -> stream.get(k.getX(), k.getY(), k.getZ()), size);
+        Iris.service(PreservationSVC.class).registerCache(this);
     }
 
     @Override
@@ -49,11 +52,26 @@ public class CachedStream3D<T> extends BasicStream<T> implements ProceduralStrea
 
     @Override
     public T get(double x, double z) {
-        return cache.compute(new BlockPosition((int) x, -1, (int) z), (k, v) -> v != null ? v : stream.get((int) x, (int) z));
+        return cache.get(new BlockPosition((int) x, 0, (int) z));
     }
 
     @Override
     public T get(double x, double y, double z) {
-        return cache.compute(new BlockPosition((int) x, (int) y, (int) z), (k, v) -> v != null ? v : stream.get((int) x, (int) y, (int) z));
+        return cache.get(new BlockPosition((int) x, (int) y, (int) z));
+    }
+
+    @Override
+    public long getSize() {
+        return cache.getSize();
+    }
+
+    @Override
+    public long getMaxSize() {
+        return cache.getMaxSize();
+    }
+
+    @Override
+    public boolean isClosed() {
+        return engine.isClosed();
     }
 }

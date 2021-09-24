@@ -35,6 +35,7 @@ public class IrisSettings {
     public static transient IrisSettings settings;
     private IrisSettingsGeneral general = new IrisSettingsGeneral();
     private IrisSettingsGUI gui = new IrisSettingsGUI();
+    private IrisSettingsAutoconfiguration autoConfiguration = new IrisSettingsAutoconfiguration();
     private IrisSettingsGenerator generator = new IrisSettingsGenerator();
     private IrisSettingsConcurrency concurrency = new IrisSettingsConcurrency();
     private IrisSettingsStudio studio = new IrisSettingsStudio();
@@ -49,14 +50,25 @@ public class IrisSettings {
     }
 
     @Data
+    public static class IrisSettingsAutoconfiguration {
+        public boolean configureSpigotTimeoutTime = true;
+        public boolean configurePaperWatchdogDelay = true;
+        public boolean autoRestartOnCustomBiomeInstall = true;
+    }
+
+    @Data
     public static class IrisSettingsConcurrency {
         public int parallelism = -1;
     }
 
     @Data
     public static class IrisSettingsPerformance {
-        public int mantleKeepAliveSeconds = 60;
-        public int cacheSize = 131072;
+        public boolean trimMantleInStudio = false;
+        public int mantleKeepAliveSeconds = 25;
+        public int maxStreamCacheSize = 256_000;
+        public int maxResourceLoaderCacheSize = 1_000;
+        public int maxObjectLoaderCacheSize = 3_000;
+        public int maxScriptLoaderCacheSize = 500;
     }
 
     @Data

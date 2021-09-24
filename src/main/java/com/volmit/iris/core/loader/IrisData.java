@@ -42,6 +42,7 @@ import com.volmit.iris.engine.object.IrisJigsawPiece;
 import com.volmit.iris.engine.object.IrisJigsawPool;
 import com.volmit.iris.engine.object.IrisJigsawStructure;
 import com.volmit.iris.engine.object.IrisLootTable;
+import com.volmit.iris.engine.object.IrisMarker;
 import com.volmit.iris.engine.object.IrisMod;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisRavine;
@@ -70,6 +71,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private static final KMap<File, IrisData> dataLoaders = new KMap<>();
     private final File dataFolder;
     private final int id;
+    private boolean closed = false;
     private ResourceLoader<IrisBiome> biomeLoader;
     private ResourceLoader<IrisLootTable> lootLoader;
     private ResourceLoader<IrisRegion> regionLoader;
@@ -79,13 +81,13 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private ResourceLoader<IrisJigsawPool> jigsawPoolLoader;
     private ResourceLoader<IrisJigsawStructure> jigsawStructureLoader;
     private ResourceLoader<IrisEntity> entityLoader;
+    private ResourceLoader<IrisMarker> markerLoader;
     private ResourceLoader<IrisSpawner> spawnerLoader;
     private ResourceLoader<IrisMod> modLoader;
     private ResourceLoader<IrisBlockData> blockLoader;
     private ResourceLoader<IrisExpression> expressionLoader;
     private ResourceLoader<IrisObject> objectLoader;
     private ResourceLoader<IrisScript> scriptLoader;
-    private ResourceLoader<IrisMatter> matterLoader;
     private ResourceLoader<IrisCave> caveLoader;
     private ResourceLoader<IrisRavine> ravineLoader;
     private KMap<String, KList<String>> possibleSnippets;
@@ -103,7 +105,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public static IrisData get(File dataFolder) {
-        return dataLoaders.compute(dataFolder, (k, v) -> v == null ? new IrisData(dataFolder) : v);
+        return dataLoaders.computeIfAbsent(dataFolder, IrisData::new);
     }
 
     public static void dereference() {
@@ -114,7 +116,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         int m = 0;
         for (IrisData i : dataLoaders.values()) {
             for (ResourceLoader<?> j : i.getLoaders().values()) {
-                m += j.getLoadCache().size();
+                m += j.getLoadCache().getSize();
             }
         }
 
@@ -122,7 +124,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     private static void printData(ResourceLoader<?> rl) {
-        Iris.warn("  " + rl.getResourceTypeName() + " @ /" + rl.getFolderName() + ": Cache=" + rl.getLoadCache().size() + " Folders=" + rl.getFolders().size());
+        Iris.warn("  " + rl.getResourceTypeName() + " @ /" + rl.getFolderName() + ": Cache=" + rl.getLoadCache().getSize() + " Folders=" + rl.getFolders().size());
     }
 
     public static IrisObject loadAnyObject(String key) {
@@ -169,16 +171,16 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         return loadAny(key, (dm) -> dm.getScriptLoader().load(key, false));
     }
 
-    public static IrisMatter loadAnyMatter(String key) {
-        return loadAny(key, (dm) -> dm.getMatterLoader().load(key, false));
-    }
-
     public static IrisRavine loadAnyRavine(String key) {
         return loadAny(key, (dm) -> dm.getRavineLoader().load(key, false));
     }
 
     public static IrisRegion loadAnyRegion(String key) {
         return loadAny(key, (dm) -> dm.getRegionLoader().load(key, false));
+    }
+
+    public static IrisMarker loadAnyMarker(String key) {
+        return loadAny(key, (dm) -> dm.getMarkerLoader().load(key, false));
     }
 
     public static IrisCave loadAnyCave(String key) {
@@ -273,6 +275,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public void close() {
+        closed = true;
         dump();
     }
 
@@ -285,11 +288,11 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
             IrisRegistrant rr = registrant.getConstructor().newInstance();
             ResourceLoader<T> r = null;
             if (registrant.equals(IrisObject.class)) {
-                r = (ResourceLoader<T>) new ObjectResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
-            } else if (registrant.equals(IrisMatter.class)) {
-                r = (ResourceLoader<T>) new MatterResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
+                r = (ResourceLoader<T>) new ObjectResourceLoader(dataFolder, this, rr.getFolderName(),
+                        rr.getTypeName());
             } else if (registrant.equals(IrisScript.class)) {
-                r = (ResourceLoader<T>) new ScriptResourceLoader(dataFolder, this, rr.getFolderName(), rr.getTypeName());
+                r = (ResourceLoader<T>) new ScriptResourceLoader(dataFolder, this, rr.getFolderName(),
+                        rr.getTypeName());
             } else {
                 J.attempt(() -> registrant.getConstructor().newInstance().registerTypeAdapters(builder));
                 r = new ResourceLoader<>(dataFolder, this, rr.getFolderName(), rr.getTypeName(), registrant);
@@ -329,11 +332,11 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.jigsawPieceLoader = registerLoader(IrisJigsawPiece.class);
         this.generatorLoader = registerLoader(IrisGenerator.class);
         this.caveLoader = registerLoader(IrisCave.class);
+        this.markerLoader = registerLoader(IrisMarker.class);
         this.ravineLoader = registerLoader(IrisRavine.class);
         this.blockLoader = registerLoader(IrisBlockData.class);
         this.expressionLoader = registerLoader(IrisExpression.class);
         this.objectLoader = registerLoader(IrisObject.class);
-        this.matterLoader = registerLoader(IrisMatter.class);
         this.scriptLoader = registerLoader(IrisScript.class);
         gson = builder.create();
     }
@@ -458,5 +461,9 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
             return l;
         });
+    }
+
+    public boolean isClosed() {
+        return closed;
     }
 }

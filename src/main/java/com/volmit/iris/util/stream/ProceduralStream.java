@@ -20,6 +20,7 @@ package com.volmit.iris.util.stream;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IRare;
 import com.volmit.iris.engine.object.IrisStyledRange;
 import com.volmit.iris.util.collection.KList;
@@ -287,12 +288,16 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         return new To3DStream<T>(this);
     }
 
-    default ProceduralStream<T> cache2D(int maxSize) {
-        return new CachedStream2D<T>(this, maxSize);
+    default ProceduralStream<T> cache2D(Engine engine, int maxSize) {
+        return cache2D(engine, maxSize, false);
     }
 
-    default ProceduralStream<T> cache3D(int maxSize) {
-        return new CachedStream3D<T>(this, maxSize);
+    default ProceduralStream<T> cache2D(Engine engine, int maxSize, boolean weak) {
+        return new CachedStream2D<T>(engine, this, maxSize, weak);
+    }
+
+    default ProceduralStream<T> cache3D(Engine engine, int maxSize) {
+        return new CachedStream3D<T>(engine, this, maxSize);
     }
 
     default <V> ProceduralStream<V> convert(Function<T, V> converter) {

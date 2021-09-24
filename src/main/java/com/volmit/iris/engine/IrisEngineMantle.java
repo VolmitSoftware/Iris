@@ -24,13 +24,11 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.MantleComponent;
 import com.volmit.iris.engine.mantle.components.MantleCarvingComponent;
-import com.volmit.iris.engine.mantle.components.MantleFeatureComponent;
 import com.volmit.iris.engine.mantle.components.MantleFluidBodyComponent;
 import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
 import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDepositGenerator;
-import com.volmit.iris.engine.object.IrisFeaturePotential;
 import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
@@ -57,6 +55,8 @@ public class IrisEngineMantle implements EngineMantle {
     private final KList<MantleComponent> components;
     private final int radius;
     private final AtomicCache<Integer> radCache = new AtomicCache<>();
+    private final MantleObjectComponent object;
+    private final MantleJigsawComponent jigsaw;
 
     public IrisEngineMantle(Engine engine) {
         this.engine = engine;
@@ -65,14 +65,25 @@ public class IrisEngineMantle implements EngineMantle {
         components = new KList<>();
         registerComponent(new MantleCarvingComponent(this));
         registerComponent(new MantleFluidBodyComponent(this));
-        registerComponent(new MantleFeatureComponent(this));
-        registerComponent(new MantleJigsawComponent(this));
-        registerComponent(new MantleObjectComponent(this));
+        jigsaw = new MantleJigsawComponent(this);
+        registerComponent(jigsaw);
+        object = new MantleObjectComponent(this);
+        registerComponent(object);
     }
 
     @Override
     public void registerComponent(MantleComponent c) {
         components.add(c);
+    }
+
+    @Override
+    public MantleJigsawComponent getJigsawComponent() {
+        return jigsaw;
+    }
+
+    @Override
+    public MantleObjectComponent getObjectComponent() {
+        return object;
     }
 
     private KList<IrisRegion> getAllRegions() {
@@ -82,14 +93,6 @@ public class IrisEngineMantle implements EngineMantle {
             r.add(getEngine().getData().getRegionLoader().load(i));
         }
 
-        return r;
-    }
-
-    private KList<IrisFeaturePotential> getAllFeatures() {
-        KList<IrisFeaturePotential> r = new KList<>();
-        r.addAll(getEngine().getDimension().getFeatures());
-        getAllRegions().forEach((i) -> r.addAll(i.getFeatures()));
-        getAllBiomes().forEach((i) -> r.addAll(i.getFeatures()));
         return r;
     }
 
@@ -113,16 +116,6 @@ public class IrisEngineMantle implements EngineMantle {
         if (Math.max(bv.getBlockX(), bv.getBlockZ()) > 128) {
             Iris.warn("Object " + ob + " has a large size (" + bv + ") and may increase memory usage! (Object scaled up to " + Form.pc(ms, 2) + ")");
         }
-    }
-
-    private int computeFeatureRange() {
-        int m = 0;
-
-        for (IrisFeaturePotential i : getAllFeatures()) {
-            m = Math.max(m, i.getZone().getRealSize());
-        }
-
-        return m;
     }
 
     private int computeParallaxSize() {
@@ -188,11 +181,7 @@ public class IrisEngineMantle implements EngineMantle {
             for (String i : objects) {
                 e.queue(() -> {
                     try {
-                        BlockVector bv = sizeCache.compute(i, (k, v) -> {
-                            if (v != null) {
-                                return v;
-                            }
-
+                        BlockVector bv = sizeCache.computeIfAbsent(i, (k) -> {
                             try {
                                 return IrisObject.sampleSize(getData().getObjectLoader().findFile(i));
                             } catch (IOException ex) {
@@ -228,11 +217,7 @@ public class IrisEngineMantle implements EngineMantle {
                 for (String j : entry.getValue()) {
                     e.queue(() -> {
                         try {
-                            BlockVector bv = sizeCache.compute(j, (k, v) -> {
-                                if (v != null) {
-                                    return v;
-                                }
-
+                            BlockVector bv = sizeCache.computeIfAbsent(j, (k) -> {
                                 try {
                                     return IrisObject.sampleSize(getData().getObjectLoader().findFile(j));
                                 } catch (IOException ioException) {
@@ -296,17 +281,14 @@ public class IrisEngineMantle implements EngineMantle {
 
         x = Math.max(z, x);
         int u = x;
-        int v = computeFeatureRange();
         int c = Math.max(computeCarvingRange(), computeBodyRange());
         x = Math.max(jig, x);
-        x = Math.max(x, v);
         x = Math.max(x, c);
         x = (Math.max(x, 16) + 16) >> 4;
         x = x % 2 == 0 ? x + 1 : x;
-        Iris.info("Parallax Size: " + x + " Chunks");
+        Iris.info("Mantle Size: " + x + " Chunks");
         Iris.info("  Object Mantle Size: " + u + " (" + ((Math.max(u, 16) + 16) >> 4) + ")");
         Iris.info("  Jigsaw Mantle Size: " + jig + " (" + ((Math.max(jig, 16) + 16) >> 4) + ")");
-        Iris.info("  Feature Mantle Size: " + v + " (" + ((Math.max(v, 16) + 16) >> 4) + ")");
         Iris.info("  Carving Mantle Size: " + c + " (" + ((Math.max(c, 16) + 16) >> 4) + ")");
 
         return x;

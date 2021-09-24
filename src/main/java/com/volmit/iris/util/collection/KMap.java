@@ -42,6 +42,19 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
         put(gMap);
     }
 
+    public K getKey(V value)
+    {
+        for(KeyPair<K,V> i : keypair())
+        {
+            if(i.getV().equals(value))
+            {
+                return i.getK();
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Puts a value into a map-value-list based on the key such that if GMap<K,
      * GList<S>> where V is GList<S>

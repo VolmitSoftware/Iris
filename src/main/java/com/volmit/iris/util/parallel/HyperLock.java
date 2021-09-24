@@ -27,13 +27,12 @@ import com.volmit.iris.util.io.IORunnable;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 public class HyperLock {
     private final ConcurrentLinkedHashMap<Long, ReentrantLock> locks;
-    private final BiFunction<? super Long, ? super ReentrantLock, ? extends ReentrantLock> accessor;
     private boolean enabled = true;
+    private boolean fair = false;
 
     public HyperLock() {
         this(1024, false);
@@ -44,6 +43,7 @@ public class HyperLock {
     }
 
     public HyperLock(int capacity, boolean fair) {
+        this.fair = fair;
         locks = new ConcurrentLinkedHashMap.Builder<Long, ReentrantLock>()
                 .initialCapacity(capacity)
                 .maximumWeightedCapacity(capacity)
@@ -54,7 +54,6 @@ public class HyperLock {
                 })
                 .concurrencyLevel(32)
                 .build();
-        accessor = (k, v) -> v == null ? new ReentrantLock(fair) : v;
     }
 
     public void with(int x, int z, Runnable r) {
@@ -123,7 +122,7 @@ public class HyperLock {
     }
 
     private ReentrantLock getLock(int x, int z) {
-        return locks.compute(Cache.key(x, z), accessor);
+        return locks.computeIfAbsent(Cache.key(x, z), k -> new ReentrantLock(fair));
     }
 
     public void lock(int x, int z) {

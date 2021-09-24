@@ -22,7 +22,9 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.J;
 import io.papermc.lib.PaperLib;
@@ -68,6 +70,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         try {
             PaperLib.getChunkAtAsync(world, x, z, true).get();
             listener.onChunkGenerated(x, z);
+            listener.onChunkCleaned(x, z);
         } catch (Throwable e) {
             e.printStackTrace();
             J.sleep(5);
@@ -126,5 +129,15 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
         listener.onChunkGenerating(x, z);
         future.add(burst.complete(() -> completeChunk(x, z, listener)));
+    }
+
+    @Override
+    public Mantle getMantle() {
+        if(IrisToolbelt.isIrisWorld(world))
+        {
+            return IrisToolbelt.access(world).getEngine().getMantle().getMantle();
+        }
+
+        return null;
     }
 }

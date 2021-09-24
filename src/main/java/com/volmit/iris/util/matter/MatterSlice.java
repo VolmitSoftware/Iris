@@ -18,9 +18,17 @@
 
 package com.volmit.iris.util.matter;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.data.Varint;
+import com.volmit.iris.util.data.palette.Palette;
+import com.volmit.iris.util.data.palette.PaletteType;
+import com.volmit.iris.util.data.palette.PalettedContainer;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.hunk.bits.DataContainer;
+import com.volmit.iris.util.hunk.bits.Writable;
+import com.volmit.iris.util.hunk.storage.PaletteOrHunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
@@ -30,9 +38,33 @@ import org.bukkit.util.BlockVector;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-public interface MatterSlice<T> extends Hunk<T> {
+public interface MatterSlice<T> extends Hunk<T>, PaletteType<T>, Writable<T> {
     Class<T> getType();
+
+    Palette<T> getGlobalPalette();
+
+    @Override
+    default void writePaletteNode(DataOutputStream dos, T s) throws IOException {
+        writeNode(s, dos);
+    }
+
+    @Override
+    default void writeNodeData(DataOutputStream dos, T s) throws IOException {
+        writeNode(s, dos);
+    }
+
+    @Override
+    default T readPaletteNode(DataInputStream din) throws IOException {
+        return readNode(din);
+    }
+
+    @Override
+    default T readNodeData(DataInputStream din) throws IOException {
+        return readNode(din);
+    }
 
     default void applyFilter(MatterFilter<T> filter) {
         updateSync(filter::update);
@@ -131,9 +163,15 @@ public interface MatterSlice<T> extends Hunk<T> {
     }
 
     default void write(DataOutputStream dos) throws IOException {
+        dos.writeUTF(getType().getCanonicalName());
+       if((this instanceof PaletteOrHunk f && f.isPalette()))
+       {
+           f.palette().writeDos(dos);
+           return;
+       }
+
         int w = getWidth();
         int h = getHeight();
-        dos.writeUTF(getType().getCanonicalName());
         MatterPalette<T> palette = new MatterPalette<T>(this);
         iterateSync((x, y, z, b) -> palette.assign(b));
         palette.writePalette(dos);
@@ -151,6 +189,12 @@ public interface MatterSlice<T> extends Hunk<T> {
     }
 
     default void read(DataInputStream din) throws IOException {
+        if((this instanceof PaletteOrHunk f && f.isPalette()))
+        {
+            f.setPalette(new DataContainer<>(din, this));
+            return;
+        }
+
         int w = getWidth();
         int h = getHeight();
         MatterPalette<T> palette = new MatterPalette<T>(this, din);

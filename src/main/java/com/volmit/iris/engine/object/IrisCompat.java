@@ -53,7 +53,7 @@ public class IrisCompat {
                 try {
                     IO.writeAll(f, defa);
                 } catch (IOException e) {
-                    Iris.error("Failed to write to compat file");
+                    Iris.error("Failed to writeNodeData to compat file");
                     Iris.reportError(e);
                 }
             });

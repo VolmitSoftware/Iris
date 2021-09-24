@@ -21,6 +21,7 @@ package com.volmit.iris.core.pregenerator;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
@@ -223,6 +224,11 @@ public class IrisPregenerator {
             }
 
             @Override
+            public void onChunkCleaned(int x, int z) {
+                listener.onChunkCleaned(x, z);
+            }
+
+            @Override
             public void onRegionSkipped(int x, int z) {
                 listener.onRegionSkipped(x, z);
             }
@@ -271,5 +277,9 @@ public class IrisPregenerator {
 
     public boolean paused() {
         return paused.get();
+    }
+
+    public Mantle getMantle() {
+        return generator.getMantle();
     }
 }

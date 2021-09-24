@@ -39,6 +39,7 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import org.bukkit.Chunk;
+import org.bukkit.World;
 
 import java.io.File;
 import java.util.concurrent.ExecutionException;
@@ -52,6 +53,7 @@ public class CommandIris implements DecreeExecutor {
     private CommandObject object;
     private CommandJigsaw jigsaw;
     private CommandWhat what;
+    private CommandFind find;
 
     @Decree(description = "Create a new world", aliases = {"+", "c"})
     public void create(
@@ -250,5 +252,41 @@ public class CommandIris implements DecreeExecutor {
         } else {
             sender().sendMessage(C.RED + "You must be in an Iris World to use regen!");
         }
+    }
+
+    @Decree(description = "Update the pack of a world (UNSAFE!)", name = "^world", aliases = "update-world")
+    public void updateWorld(
+            @Param(description = "The world to update", contextual = true)
+            World world,
+            @Param(description = "The pack to install into the world", contextual = true, aliases = "dimension")
+            IrisDimension pack,
+            @Param(description = "Make sure to make a backup & read the warnings first!", defaultValue = "false", aliases = "c")
+            boolean confirm,
+            @Param(description = "Should Iris download the pack again for you", defaultValue = "false", name = "fresh-download", aliases = {"fresh", "new"})
+            boolean freshDownload
+    ) {
+        if (!confirm) {
+            sender().sendMessage(new String[]{
+                    C.RED + "You should always make a backup before using this",
+                    C.YELLOW + "Issues caused by this can be, but are not limited to:",
+                    C.YELLOW + " - Broken chunks (cut-offs) between old and new chunks (before & after the update)",
+                    C.YELLOW + " - Regenerated chunks that do not fit in with the old chunks",
+                    C.YELLOW + " - Structures not spawning again when regenerating",
+                    C.YELLOW + " - Caves not lining up",
+                    C.YELLOW + " - Terrain layers not lining up",
+                    C.RED + "Now that you are aware of the risks, and have made a back-up:",
+                    C.RED + "/iris ^world <world> <pack> confirm=true"
+            });
+            return;
+        }
+
+        File folder = world.getWorldFolder();
+        folder.mkdirs();
+
+        if (freshDownload) {
+            Iris.service(StudioSVC.class).downloadSearch(sender(), pack.getLoadKey(), false, true);
+        }
+
+        Iris.service(StudioSVC.class).installIntoWorld(sender(), pack.getLoadKey(), folder);
     }
 }

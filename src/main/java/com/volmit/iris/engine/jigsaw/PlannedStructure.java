@@ -22,11 +22,9 @@ import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IObjectPlacer;
 import com.volmit.iris.engine.object.IrisDirection;
-import com.volmit.iris.engine.object.IrisFeature;
-import com.volmit.iris.engine.object.IrisFeaturePositional;
-import com.volmit.iris.engine.object.IrisFeaturePotential;
 import com.volmit.iris.engine.object.IrisJigsawPiece;
 import com.volmit.iris.engine.object.IrisJigsawPieceConnector;
 import com.volmit.iris.engine.object.IrisJigsawStructure;
@@ -36,14 +34,11 @@ import com.volmit.iris.engine.object.IrisObjectRotation;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.ObjectPlaceMode;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.RNG;
 import lombok.Data;
 import org.bukkit.Axis;
 import org.bukkit.World;
-
-import java.util.function.Consumer;
 
 @Data
 public class PlannedStructure {
@@ -84,21 +79,17 @@ public class PlannedStructure {
         }
     }
 
-    public void place(IObjectPlacer placer, Mantle e, Consumer<Runnable> post) {
+    public void place(IObjectPlacer placer, Mantle e, Engine eng) {
         IrisObjectPlacement options = new IrisObjectPlacement();
         options.getRotation().setEnabled(false);
         int startHeight = pieces.get(0).getPosition().getY();
 
         for (PlannedPiece i : pieces) {
-            if (i.getPiece().getPlacementOptions().usesFeatures()) {
-                place(i, startHeight, options, placer, e);
-            } else {
-                post.accept(() -> place(i, startHeight, options, placer, e));
-            }
+            place(i, startHeight, options, placer, e, eng);
         }
     }
 
-    public void place(PlannedPiece i, int startHeight, IrisObjectPlacement o, IObjectPlacer placer, Mantle e) {
+    public void place(PlannedPiece i, int startHeight, IrisObjectPlacement o, IObjectPlacer placer, Mantle e, Engine eng) {
         IrisObjectPlacement options = o;
 
         if (i.getPiece().getPlacementOptions() != null) {
@@ -130,32 +121,13 @@ public class PlannedStructure {
 
         height += offset + (v.getH() / 2);
 
-        if (options.getMode().equals(ObjectPlaceMode.PAINT) || options.isVacuum()) {
+        if (options.getMode().equals(ObjectPlaceMode.PAINT)) {
             height = -1;
         }
 
         int id = rng.i(0, Integer.MAX_VALUE);
-        int h = vo.place(xx, height, zz, placer, options, rng, (b)
+        vo.place(xx, height, zz, placer, options, rng, e.shouldReduce(eng) ? null : (b)
                 -> e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id), null, getData());
-
-        if (options.isVacuum()) {
-            double a = Math.max(v.getW(), v.getD());
-            IrisFeature f = new IrisFeature();
-            f.setConvergeToHeight(h - (v.getH() >> 1) - 1);
-            f.setBlockRadius(a);
-            f.setInterpolationRadius(a / 4);
-            f.setInterpolator(InterpolationMethod.BILINEAR_STARCAST_9);
-            f.setStrength(1D);
-            e.set(xx, 0, zz, new IrisFeaturePositional(xx, zz, f));
-        }
-
-        if (options.getAddFeatures().isNotEmpty()) {
-            for (IrisFeaturePotential j : options.getAddFeatures()) {
-                if (rngf.nextInt(j.getRarity()) == 0) {
-                    e.set(xx, 0, zz, new IrisFeaturePositional(xx, zz, j.getZone()));
-                }
-            }
-        }
     }
 
     public void place(World world) {
@@ -358,12 +330,6 @@ public class PlannedStructure {
     public IrisObject rotated(IrisJigsawPiece piece, IrisObjectRotation rotation) {
         String key = piece.getObject() + "-" + rotation.hashCode();
 
-        return objectRotationCache.compute(key, (k, v) -> {
-            if (v == null) {
-                return rotation.rotateCopy(data.getObjectLoader().load(piece.getObject()));
-            }
-
-            return v;
-        });
+        return objectRotationCache.computeIfAbsent(key, (k) -> rotation.rotateCopy(data.getObjectLoader().load(piece.getObject())));
     }
 }

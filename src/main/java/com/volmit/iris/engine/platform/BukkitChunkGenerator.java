@@ -234,6 +234,9 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             }
 
             getEngine().close();
+            folder.clear();
+            populators.clear();
+
         });
     }
 

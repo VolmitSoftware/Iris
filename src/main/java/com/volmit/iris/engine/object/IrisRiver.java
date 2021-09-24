@@ -29,7 +29,6 @@ import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterFluidBody;
-import com.volmit.iris.util.matter.slices.FluidBodyMatter;
 import com.volmit.iris.util.noise.CNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -69,46 +68,6 @@ public class IrisRiver implements IRare {
     }
 
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
-        KList<IrisPosition> pos = getWorm().generate(rng, engine.getData(), writer, null, x, y, z, (at) -> {
-        });
-        CNG dg = depthStyle.getGenerator().createNoCache(rng, engine.getData());
-        CNG bw = widthStyle.getGenerator().createNoCache(rng, engine.getData());
-        IrisPosition avg;
-        double ax = 0;
-        double ay = 0;
-        double az = 0;
-        double[] surfaces = new double[pos.size()];
-        int i = 0;
 
-        for (IrisPosition p : pos) {
-            surfaces[i] = engine.getComplex().getHeightStream().get(x, z);
-            ax += p.getX();
-            ay += surfaces[i];
-            az += p.getZ();
-            i++;
-        }
-
-        avg = new IrisPosition(ax / pos.size(), ay / pos.size(), az / pos.size());
-        MatterFluidBody body = FluidBodyMatter.get(customBiome, false);
-        i = 0;
-
-        for (IrisPosition p : pos) {
-
-            double surface = surfaces[i];
-            double depth = dg.fitDouble(depthStyle.getMin(), depthStyle.getMax(), p.getX(), p.getZ()) + (surface - avg.getY());
-            double width = bw.fitDouble(widthStyle.getMin(), widthStyle.getMax(), p.getX(), p.getZ());
-
-            if (depth > 1) {
-                writer.setElipsoidFunction(p.getX(), avg.getY(), p.getZ(), width, depth, width, true, (xx, yy, zz) -> {
-                    if (yy > avg.getY()) {
-                        return null;
-                    }
-
-                    return body;
-                });
-            }
-
-            i++;
-        }
     }
 }

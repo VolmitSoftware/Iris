@@ -19,10 +19,12 @@
 package com.volmit.iris.core.loader;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
@@ -34,104 +36,36 @@ import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
-    private final ChronoLatch useFlip = new ChronoLatch(2222);
-    private final KMap<String, Long> useCache = new KMap<>();
-    private final ChronoLatch cl;
-    private final AtomicInteger unload;
-
     public ObjectResourceLoader(File root, IrisData idm, String folderName, String resourceTypeName) {
         super(root, idm, folderName, resourceTypeName, IrisObject.class);
-        cl = new ChronoLatch(30000);
-        unload = new AtomicInteger(0);
+        loadCache = new KCache<>(this::loadRaw, IrisSettings.get().getPerformance().getMaxObjectLoaderCacheSize());
     }
 
     public boolean supportsSchemas() {
         return false;
     }
 
-    public int getSize() {
-        return loadCache.size();
+    public long getSize() {
+        return loadCache.getSize();
     }
 
-    public int getTotalStorage() {
-        int m = 0;
-
-        for (IrisObject i : loadCache.values()) {
-            m += i.getBlocks().size();
-        }
-
-        return m;
+    public long getTotalStorage() {
+        return getSize();
     }
 
-    public void clean() {
-        if (useFlip.flip()) {
-            unloadLast(30000);
-        }
-    }
-
-    public void unloadLast(long age) {
-        String v = getOldest();
-
-        if (v == null) {
-            return;
-        }
-
-        if (M.ms() - useCache.get(v) > age) {
-            unload(v);
-        }
-    }
-
-    private String getOldest() {
-        long min = M.ms();
-        String v = null;
-
-        for (String i : useCache.k()) {
-            long t = useCache.get(i);
-            if (t < min) {
-                min = t;
-                v = i;
-            }
-        }
-
-        return v;
-    }
-
-    private void unload(String v) {
-        lock.lock();
-        useCache.remove(v);
-        loadCache.remove(v);
-        lock.unlock();
-        unload.getAndIncrement();
-
-        if (unload.get() == 1) {
-            cl.flip();
-        }
-
-        if (cl.flip()) {
-            J.a(() -> {
-                Iris.verbose("Unloaded " + C.WHITE + unload.get() + " " + resourceTypeName + (unload.get() == 1 ? "" : "s") + C.GRAY + " to optimize memory usage." + " (" + Form.f(getLoadCache().size()) + " " + resourceTypeName + (loadCache.size() == 1 ? "" : "s") + " Loaded)");
-                unload.set(0);
-            });
-        }
-    }
-
-    public IrisObject loadFile(File j, String key, String name) {
-        lock.lock();
+    protected IrisObject loadFile(File j, String name) {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             IrisObject t = new IrisObject(0, 0, 0);
             t.read(j);
-            loadCache.put(key, t);
             t.setLoadKey(name);
             t.setLoader(manager);
             t.setLoadFile(j);
             logLoad(j, t);
-            lock.unlock();
             tlt.addAndGet(p.getMilliseconds());
             return t;
         } catch (Throwable e) {
             Iris.reportError(e);
-            lock.unlock();
             Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
             return null;
         }
@@ -171,11 +105,9 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
     }
 
     public File findFile(String name) {
-        lock.lock();
         for (File i : getFolders(name)) {
             for (File j : i.listFiles()) {
                 if (j.isFile() && j.getName().endsWith(".iob") && j.getName().split("\\Q.\\E")[0].equals(name)) {
-                    lock.unlock();
                     return j;
                 }
             }
@@ -183,14 +115,12 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
             File file = new File(i, name + ".iob");
 
             if (file.exists()) {
-                lock.unlock();
                 return file;
             }
         }
 
         Iris.warn("Couldn't find " + resourceTypeName + ": " + name);
 
-        lock.unlock();
         return null;
     }
 
@@ -198,37 +128,27 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
         return load(name, true);
     }
 
-    public IrisObject load(String name, boolean warn) {
-        String key = name + "-" + objectClass.getCanonicalName();
-
-        if (loadCache.containsKey(key)) {
-            IrisObject t = loadCache.get(key);
-            useCache.put(key, M.ms());
-            return t;
-        }
-
-        lock.lock();
+    private IrisObject loadRaw(String name){
         for (File i : getFolders(name)) {
             for (File j : i.listFiles()) {
                 if (j.isFile() && j.getName().endsWith(".iob") && j.getName().split("\\Q.\\E")[0].equals(name)) {
-                    useCache.put(key, M.ms());
-                    lock.unlock();
-                    return loadFile(j, key, name);
+                    return loadFile(j, name);
                 }
             }
 
             File file = new File(i, name + ".iob");
 
             if (file.exists()) {
-                useCache.put(key, M.ms());
-                lock.unlock();
-                return loadFile(file, key, name);
+                return loadFile(file, name);
             }
         }
 
         Iris.warn("Couldn't find " + resourceTypeName + ": " + name);
 
-        lock.unlock();
         return null;
+    }
+
+    public IrisObject load(String name, boolean warn) {
+        return loadCache.get(name);
     }
 }

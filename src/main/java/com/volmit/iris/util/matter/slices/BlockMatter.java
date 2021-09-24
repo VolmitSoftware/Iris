@@ -19,9 +19,12 @@
 package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.Sliced;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Player;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -29,12 +32,19 @@ import java.io.IOException;
 
 @Sliced
 public class BlockMatter extends RawMatter<BlockData> {
+    public static final BlockData AIR = Material.AIR.createBlockData();
+
     public BlockMatter() {
         this(1, 1, 1);
     }
 
+    @Override
+    public Palette<BlockData> getGlobalPalette() {
+        return null;
+    }
+
     public BlockMatter(int width, int height, int depth) {
-        super(width, height, depth, BlockData.class);
+        super(width, height, depth, BlockData.class, AIR);
         registerWriter(World.class, ((w, d, x, y, z) -> w.getBlockAt(x, y, z).setBlockData(d)));
         registerReader(World.class, (w, x, y, z) -> {
             BlockData d = w.getBlockAt(x, y, z).getBlockData();

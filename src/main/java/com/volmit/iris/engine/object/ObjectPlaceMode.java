@@ -52,9 +52,5 @@ public enum ObjectPlaceMode {
 
     @Desc("Samples the height of the terrain at every x,z position of your object and pushes it down to the surface. It's pretty much like a melt function over the terrain.")
 
-    PAINT,
-
-    @Desc("Applies multiple terrain features into the parallax layer before this object places to distort the height, essentially vacuuming the terrain's heightmap closer to the bottom of this object. Uses MAX_HEIGHT to place")
-
-    VACUUM
+    PAINT
 }

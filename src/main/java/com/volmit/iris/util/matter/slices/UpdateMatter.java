@@ -44,7 +44,7 @@ public class UpdateMatter extends RawMatter<MatterUpdate> {
     }
 
     public UpdateMatter(int width, int height, int depth) {
-        super(width, height, depth, MatterUpdate.class);
+        super(width, height, depth, MatterUpdate.class, OFF);
     }
 
     @Override

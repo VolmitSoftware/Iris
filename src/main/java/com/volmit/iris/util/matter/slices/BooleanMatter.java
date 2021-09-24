@@ -38,7 +38,7 @@ public class BooleanMatter extends RawMatter<Boolean> {
     }
 
     public BooleanMatter(int width, int height, int depth) {
-        super(width, height, depth, Boolean.class);
+        super(width, height, depth, Boolean.class, false);
     }
 
     @Override

@@ -18,20 +18,22 @@
 
 package com.volmit.iris.util.hunk.bits;
 
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.function.Consumer2;
 
+import java.util.LinkedHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class HashPalette<T> implements Palette<T> {
-    private final KMap<T, Integer> palette;
+    private final LinkedHashMap<T, Integer> palette;
     private final KMap<Integer, T> lookup;
     private final AtomicInteger size;
 
     public HashPalette()
     {
         this.size = new AtomicInteger(0);
-        this.palette = new KMap<>();
+        this.palette = new LinkedHashMap<>();
         this.lookup = new KMap<>();
     }
 
@@ -49,7 +51,12 @@ public class HashPalette<T> implements Palette<T> {
     public int add(T t) {
         int index = size.getAndIncrement();
         palette.put(t, index);
-        lookup.put(index, t);
+
+        if(t != null)
+        {
+            lookup.put(index, t);
+        }
+
         return index;
     }
 

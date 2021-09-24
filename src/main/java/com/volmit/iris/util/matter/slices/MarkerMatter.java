@@ -30,6 +30,7 @@ import java.io.IOException;
 
 @Sliced
 public class MarkerMatter extends RawMatter<MatterMarker> {
+    public static final MatterMarker NONE = new MatterMarker("none");
     public static final MatterMarker CAVE_FLOOR = new MatterMarker("cave_floor");
     public static final MatterMarker CAVE_CEILING = new MatterMarker("cave_ceiling");
     private static final KMap<String, MatterMarker> markers = new KMap<>();
@@ -44,7 +45,7 @@ public class MarkerMatter extends RawMatter<MatterMarker> {
     }
 
     public MarkerMatter(int width, int height, int depth) {
-        super(width, height, depth, MatterMarker.class);
+        super(width, height, depth, MatterMarker.class, NONE);
     }
 
     @Override

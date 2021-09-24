@@ -18,13 +18,13 @@
 
 package com.volmit.iris.util.hunk.bits;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.data.Varint;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -40,13 +40,27 @@ public class DataContainer<T> {
     private final int length;
     private final Writable<T> writer;
 
-    public DataContainer(Writable<T> writer, int length)
+    public DataContainer(Writable<T> writer, int length, T empty)
     {
         this.writer = writer;
         this.length = length;
-        this.palette = new AtomicReference<>(newPalette(INITIAL_BITS));
-        this.data = new AtomicReference<>(new DataBits(INITIAL_BITS, length));
         this.bits = new AtomicInteger(INITIAL_BITS);
+        this.data = new AtomicReference<>(new DataBits(INITIAL_BITS, length));
+        this.palette = new AtomicReference<>(newPalette(INITIAL_BITS));
+        this.ensurePaletted(empty);
+    }
+
+    public DataContainer(DataInputStream din, Writable<T> writer) throws IOException {
+        this.writer = writer;
+        this.length = din.readInt();
+        this.palette = new AtomicReference<>(newPalette(din));
+        this.data = new AtomicReference<>(new DataBits(palette.get().bits(), length, din));
+        this.bits = new AtomicInteger(palette.get().bits());
+    }
+
+    public String toString(){
+        return "DataContainer <" + length + " x " + bits + " bits> -> Palette<"+palette.get().getClass().getSimpleName().replaceAll("\\QPalette\\E", "")+">: " + palette.get().size() +
+                " " + data.get().toString() + " PalBit: " + palette.get().bits();
     }
 
     public byte[] write() throws IOException
@@ -56,33 +70,25 @@ public class DataContainer<T> {
         return boas.toByteArray();
     }
 
-    public static <T> DataContainer<T> read(InputStream in, Writable<T> writer) throws IOException {
-        DataInputStream din = new DataInputStream(in);
-        return readDin(din, writer);
-    }
-
-    public static <T> DataContainer<T> readDin(DataInputStream in, Writable<T> writer) throws IOException {
-        DataInputStream din = new DataInputStream(in);
-        DataContainer<T> container = new DataContainer<>(writer, Varint.readUnsignedVarInt(din));
-        int paletteSize = Varint.readUnsignedVarInt(din);
-        container.palette.set(container.newPalette(BIT[paletteSize]).from(paletteSize, writer, din));
-        container.data.set(new DataBits(container.palette.get().bits(), container.length, din));
-        return container;
-    }
-
     public void write(OutputStream out) throws IOException
     {
-        DataOutputStream dos = new DataOutputStream(out);
-        writeDos(dos);
+        writeDos(new DataOutputStream(out));
     }
 
-    public void writeDos(DataOutputStream out) throws IOException
+    public void writeDos(DataOutputStream dos) throws IOException
     {
-        DataOutputStream dos = new DataOutputStream(out);
-        Varint.writeUnsignedVarInt(length);
-        Varint.writeUnsignedVarInt(palette.get().size());
+        dos.writeInt(length);
+        dos.writeInt(palette.get().size());
         palette.get().iterateIO((data, __) -> writer.writeNodeData(dos, data));
         data.get().write(dos);
+        dos.flush();
+    }
+
+    private Palette<T> newPalette(DataInputStream din) throws IOException {
+        int paletteSize = din.readInt();
+        Palette<T> d = newPalette(bits(paletteSize));
+        d.from(paletteSize, writer, din);
+        return d;
     }
 
     private Palette<T> newPalette(int bits)
@@ -95,12 +101,29 @@ public class DataContainer<T> {
         return new HashPalette<>();
     }
 
+    private void checkBits()
+    {
+        if(palette.get().size() >= BIT[bits.get()])
+        {
+            setBits(bits.get() + 1);
+        }
+    }
+
+    public void ensurePaletted(T t)
+    {
+        if(palette.get().id(t) == -1)
+        {
+            checkBits();
+        }
+    }
+
     public void set(int position, T t)
     {
         int id = palette.get().id(t);
 
         if(id == -1)
         {
+            checkBits();
             id = palette.get().add(t);
         }
 
@@ -109,14 +132,14 @@ public class DataContainer<T> {
 
     public T get(int position)
     {
-        int id = data.get().get(position);
+        int id = data.get().get(position)+1;
 
         if(id <= 0)
         {
             return null;
         }
 
-        return palette.get().get(id - 1);
+        return palette.get().get(id-1);
     }
 
     public void setBits(int bits)
@@ -142,5 +165,23 @@ public class DataContainer<T> {
         }
 
         return m;
+    }
+
+    protected static int bits(int size)
+    {
+        if(DataContainer.BIT[INITIAL_BITS] >= size)
+        {
+            return INITIAL_BITS;
+        }
+
+        for(int i = 0; i <  DataContainer.BIT.length; i++)
+        {
+            if(DataContainer.BIT[i] >= size)
+            {
+                return i;
+            }
+        }
+
+        return DataContainer.BIT.length - 1;
     }
 }

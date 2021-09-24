@@ -42,6 +42,7 @@ import java.io.IOException;
 
 @Sliced
 public class EntityMatter extends RawMatter<MatterEntityGroup> {
+    public static final MatterEntityGroup EMPTY = new MatterEntityGroup();
     private transient KMap<IrisPosition, KList<Entity>> entityCache = new KMap<>();
 
     public EntityMatter() {
@@ -54,7 +55,7 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
     }
 
     public EntityMatter(int width, int height, int depth) {
-        super(width, height, depth, MatterEntityGroup.class);
+        super(width, height, depth, MatterEntityGroup.class, EMPTY);
         registerWriter(World.class, ((w, d, x, y, z) -> {
             for (MatterEntity i : d.getEntities()) {
                 Location realPosition = new Location(w, x + i.getXOff(), y + i.getYOff(), z + i.getZOff());

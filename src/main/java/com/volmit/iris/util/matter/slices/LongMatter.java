@@ -39,7 +39,7 @@ public class LongMatter extends RawMatter<Long> {
     }
 
     public LongMatter(int width, int height, int depth) {
-        super(width, height, depth, Long.class);
+        super(width, height, depth, Long.class, 0L);
     }
 
     @Override

@@ -191,7 +191,7 @@ public interface MatterSlice<T> extends Hunk<T>, PaletteType<T>, Writable<T> {
     default void read(DataInputStream din) throws IOException {
         if((this instanceof PaletteOrHunk f && f.isPalette()))
         {
-            f.setPalette(DataContainer.readDin(din, this));
+            f.setPalette(new DataContainer<>(din, this));
             return;
         }
 

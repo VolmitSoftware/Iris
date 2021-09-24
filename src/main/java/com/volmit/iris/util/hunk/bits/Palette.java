@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.hunk.bits;
 
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.function.Consumer2;
 import com.volmit.iris.util.function.Consumer2IO;
 
@@ -35,25 +36,7 @@ public interface Palette<T> {
 
     default int bits()
     {
-        return bits(DataContainer.INITIAL_BITS);
-    }
-
-    default int bits(int minBits)
-    {
-        if(size() <= DataContainer.BIT[minBits])
-        {
-            return minBits;
-        }
-
-        for(int i = 0; i <  DataContainer.BIT.length; i++)
-        {
-            if(DataContainer.BIT[i] >= size())
-            {
-                return i;
-            }
-        }
-
-        return DataContainer.BIT.length - 1;
+        return DataContainer.bits(size());
     }
 
     void iterate(Consumer2<T, Integer> c);
@@ -82,5 +65,12 @@ public interface Palette<T> {
     {
         oldPalette.iterate((k,v) -> add(k));
         return this;
+    }
+
+    default KList<T> list()
+    {
+        KList<T> t = new KList<>();
+        iterate((tx, __) -> t.add(tx));
+        return t;
     }
 }

@@ -70,7 +70,12 @@ public class LinearPalette<T> implements Palette<T> {
     public int id(T t) {
         for(int i = 0; i < size(); i++)
         {
-            if(t.equals(palette.get().get(i)))
+            if(t == null && palette.get().get(i) == null)
+            {
+                return i;
+            }
+
+            if(t != null && t.equals(palette.get().get(i)))
             {
                 return i;
             }

@@ -33,6 +33,8 @@ import java.io.IOException;
 
 @Sliced
 public class TileMatter extends RawMatter<MatterTile> {
+    public static final MatterTile EMPTY = new MatterTile(new CompoundTag());
+
     public TileMatter() {
         this(1, 1, 1);
     }
@@ -43,7 +45,7 @@ public class TileMatter extends RawMatter<MatterTile> {
     }
 
     public TileMatter(int width, int height, int depth) {
-        super(width, height, depth, MatterTile.class);
+        super(width, height, depth, MatterTile.class, EMPTY);
         registerWriter(World.class, ((w, d, x, y, z) -> INMS.get().deserializeTile(d.getTileData(), new Location(w, x, y, z))));
         registerReader(World.class, (w, x, y, z) -> {
             Location l = new Location(w, x, y, z);

@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.hunk.bits;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.data.Varint;
 import org.apache.commons.lang3.Validate;
 
@@ -66,7 +67,7 @@ public class DataBits {
 
     public DataBits(int bits, int length, DataInputStream din) throws IOException
     {
-        this(bits, length, longs(din, (length + ((char) (64 / bits)) - 1) / ((char) (64 / bits))));
+        this(bits, length, longs(din));
     }
 
     public DataBits(int bits, int length, AtomicLongArray data) {
@@ -80,10 +81,11 @@ public class DataBits {
         this.divideAdd = MAGIC[var3 + 1];
         this.divideShift = MAGIC[var3 + 2];
         int var4 = (length + valuesPerLong - 1) / valuesPerLong;
+
         if (data != null) {
             if (data.length() != var4)
             {
-                throw new RuntimeException("NO!");
+                throw new RuntimeException("NO! Trying to load " + data.length() + " into actual size of " + var4 + " because length: " + length + " (bits: " + bits + ")");
             }
             this.data = data;
         } else {
@@ -91,10 +93,20 @@ public class DataBits {
         }
     }
 
-    private static AtomicLongArray longs(DataInputStream din, int len) throws IOException{
-        AtomicLongArray a = new AtomicLongArray(len);
+    public String toString()
+    {
+        return "DBits: " + size + "/" + bits + "[" + data.length() + "]";
+    }
 
-        for(int i = 0; i < len; i++)
+    private static int dataLength(int bits, int length)
+    {
+        return (length + ((char) (64 / bits)) - 1) / ((char) (64 / bits));
+    }
+
+    private static AtomicLongArray longs(DataInputStream din) throws IOException{
+        AtomicLongArray a = new AtomicLongArray(din.readInt());
+
+        for(int i = 0; i < a.length(); i++)
         {
             a.set(i, din.readLong());
         }
@@ -108,7 +120,12 @@ public class DataBits {
         {
             DataBits newData = new DataBits(newBits, size);
             AtomicInteger c = new AtomicInteger(0);
-            getAll((i) -> newData.set(c.incrementAndGet(), i));
+
+            for(int i = 0; i < size; i++)
+            {
+                newData.set(i, get(i));
+            }
+
             return newData;
         }
 
@@ -181,7 +198,7 @@ public class DataBits {
     }
 
     public void write(DataOutputStream dos) throws IOException {
-        dos.writeByte(bits);
+        dos.writeInt(data.length());
 
         for(int i = 0; i < data.length(); i++)
         {

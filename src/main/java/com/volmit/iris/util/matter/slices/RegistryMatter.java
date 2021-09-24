@@ -28,8 +28,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 public class RegistryMatter<T extends IrisRegistrant> extends RawMatter<T> {
-    public RegistryMatter(int width, int height, int depth, Class<T> c) {
-        super(width, height, depth, c);
+    public RegistryMatter(int width, int height, int depth, Class<T> c, T e) {
+        super(width, height, depth, c, e);
     }
 
     @Override

@@ -37,11 +37,10 @@ import java.util.Map;
 public class PaletteHunk<T> extends StorageHunk<T> implements Hunk<T> {
     private DataContainer<T> data;
 
-    public PaletteHunk(int w, int h, int d, Writable<T> writer) {
+    public PaletteHunk(int w, int h, int d, Writable<T> writer, T e) {
         super(w,h,d);
-        data = new DataContainer<>(writer, w * h * d);
+        data = new DataContainer<>(writer, w * h * d, e);
     }
-
 
     public void setPalette(DataContainer<T> c) {
         data = c;

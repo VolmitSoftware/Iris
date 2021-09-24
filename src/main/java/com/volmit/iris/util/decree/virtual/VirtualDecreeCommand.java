@@ -34,6 +34,7 @@ import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.CommandDummy;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.ChronoLatch;
@@ -518,13 +519,6 @@ public class VirtualDecreeCommand {
     }
 
     private String pickValidOption(VolmitSender sender, KList<?> validOptions, DecreeParameterHandler<?> handler, String name, String type) {
-
-        if (!sender.isPlayer()) {
-            sender.sendMessage(C.YELLOW + "There were multiple (" + validOptions.size() + ") options for '" + name + "' (of type '" + type + "'), but we selected '" + handler.toStringForce(validOptions.get(0)) + "'");
-            return handler.toStringForce(validOptions.get(0));
-        }
-
-
         sender.sendHeader("Pick a " + name + " (" + type + ")");
         sender.sendMessageRaw("<gradient:#1ed497:#b39427>This query will expire in 15 seconds.</gradient>");
         String password = UUID.randomUUID().toString().replaceAll("\\Q-\\E", "");
@@ -535,18 +529,28 @@ public class VirtualDecreeCommand {
             m++;
         }
 
-        CompletableFuture<String> future = new CompletableFuture<>();
-        Iris.service(CommandSVC.class).post(password, future);
+        if (sender.isPlayer()) {
+            CompletableFuture<String> future = new CompletableFuture<>();
+            Iris.service(CommandSVC.class).post(password, future);
 
-        if (IrisSettings.get().getGeneral().isCommandSounds() && sender.isPlayer()) {
-            (sender.player()).playSound((sender.player()).getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.77f, 0.65f);
-            (sender.player()).playSound((sender.player()).getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.125f, 1.99f);
-        }
+            if (IrisSettings.get().getGeneral().isCommandSounds()) {
+                (sender.player()).playSound((sender.player()).getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.77f, 0.65f);
+                (sender.player()).playSound((sender.player()).getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.125f, 1.99f);
+            }
 
-        try {
-            return future.get(15, TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            try {
+                return future.get(15, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
 
+            }
+        } else {
+            CompletableFuture<String> future = new CompletableFuture<>();
+            Iris.service(CommandSVC.class).postConsole(future);
+            try {
+                return future.get(15, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
+
+            }
         }
 
         return null;

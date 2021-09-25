@@ -33,7 +33,6 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
 import java.io.File;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
     public ObjectResourceLoader(File root, IrisData idm, String folderName, String resourceTypeName) {

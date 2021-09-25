@@ -85,10 +85,10 @@ public class IrisSettings {
     public static class IrisSettingsPerformance {
         public boolean trimMantleInStudio = false;
         public int mantleKeepAliveSeconds = 25;
-        public int maxStreamCacheSize = 256_000;
-        public int maxResourceLoaderCacheSize = 1_000;
-        public int maxObjectLoaderCacheSize = 3_000;
-        public int maxScriptLoaderCacheSize = 500;
+        public int cacheSize = 4_096;
+        public int resourceLoaderCacheSize = 1_024;
+        public int objectLoaderCacheSize = 4_096;
+        public int scriptLoaderCacheSize = 512;
     }
 
     @Data

@@ -21,18 +21,29 @@ package com.volmit.iris.util.data;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.MeteredCache;
+import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.scheduling.J;
 
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 public class KCache<K,V> implements MeteredCache {
-    private long max;
+    private final long max;
     private CacheLoader<K, V> loader;
     private LoadingCache<K, V> cache;
+    private final boolean fastDump;
 
     public KCache(CacheLoader<K, V> loader, long max)
     {
+        this(loader, max, false);
+    }
+
+    public KCache(CacheLoader<K, V> loader, long max, boolean fastDump)
+    {
         this.max = max;
+        this.fastDump = fastDump;
         this.loader = loader;
         this.cache = create(loader);
     }
@@ -41,6 +52,9 @@ public class KCache<K,V> implements MeteredCache {
         return Caffeine
                 .newBuilder()
                 .maximumSize(max)
+                .initialCapacity((int) (max))
+                .softValues()
+                .expireAfterAccess(5, TimeUnit.MINUTES)
                 .build((k) -> loader == null ? null : loader.load(k));
     }
 
@@ -57,9 +71,7 @@ public class KCache<K,V> implements MeteredCache {
 
     public void invalidate()
     {
-        LoadingCache<?,?> c = cache;
-        cache = create(loader);
-        c.invalidateAll();
+        cache.invalidateAll();
     }
 
     public V get(K k)

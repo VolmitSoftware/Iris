@@ -462,17 +462,6 @@ public class IrisEngine implements Engine {
                 mode.generate(x, z, blocks, vbiomes, multicore);
             }
 
-            if(!multicore)
-            {
-                for(int i = 0; i < 16; i++)
-                {
-                    for(int j = 0; j < 16; j++)
-                    {
-                        blocks.set(i, 255, j, B.get("GLASS"));
-                    }
-                }
-            }
-
             getMantle().getMantle().flag(x>>4, z>>4, MantleFlag.REAL, true);
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();

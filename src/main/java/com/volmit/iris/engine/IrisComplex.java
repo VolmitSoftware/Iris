@@ -171,7 +171,8 @@ public class IrisComplex implements DataProvider {
                 Interpolated.of(a -> 0D, a -> focus.getInferredType())) :
                 engine.getDimension().getContinentalStyle().create(rng.nextParallelRNG(234234565), getData())
                         .bake().scale(1D / engine.getDimension().getContinentZoom()).bake().stream()
-                        .convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND).cache2D(engine, cacheSize);
+                        .convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND)
+                        .cache2D(engine, cacheSize);
         baseBiomeStream = focus != null ? ProceduralStream.of((x, z) -> focus,
                 Interpolated.of(a -> 0D, a -> focus)) :
                 bridgeStream.convertAware2D((t, x, z) -> inferredStreams.get(t).get(x, z))
@@ -179,7 +180,7 @@ public class IrisComplex implements DataProvider {
         heightStream = ProceduralStream.of((x, z) -> {
             IrisBiome b = focus != null ? focus : baseBiomeStream.get(x, z);
             return getHeight(engine, b, x, z, engine.getSeedManager().getHeight());
-        }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D(engine, cacheSize, true);
+        }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D(engine, cacheSize);
         roundedHeighteightStream = heightStream.round();
         slopeStream = heightStream.slope(3).cache2D(engine, cacheSize);
         trueBiomeStream = focus != null ? ProceduralStream.of((x, y) -> focus, Interpolated.of(a -> 0D,
@@ -189,15 +190,8 @@ public class IrisComplex implements DataProvider {
                         fixBiomeType(h, baseBiomeStream.get(x, z),
                                 regionStream.get(x, z), x, z, fluidHeight))
                 .cache2D(engine, cacheSize);
-        trueBiomeStream = focus != null ? ProceduralStream.of((x, y) -> focus, Interpolated.of(a -> 0D,
-                        b -> focus))
-                .cache2D(engine, cacheSize) : heightStream
-                .convertAware2D((h, x, z) ->
-                        fixBiomeType(h, baseBiomeStream.get(x, z),
-                                regionStream.get(x, z), x, z, fluidHeight))
-                .cache2D(engine, cacheSize);
         trueBiomeDerivativeStream = trueBiomeStream.convert(IrisBiome::getDerivative).cache2D(engine, cacheSize);
-        heightFluidStream = heightStream.max(fluidHeight).cache2D(engine, cacheSize, true);
+        heightFluidStream = heightStream.max(fluidHeight).cache2D(engine, cacheSize);
         maxHeightStream = ProceduralStream.ofDouble((x, z) -> height);
         terrainSurfaceDecoration = trueBiomeStream
                 .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.NONE)).cache2D(engine, cacheSize);

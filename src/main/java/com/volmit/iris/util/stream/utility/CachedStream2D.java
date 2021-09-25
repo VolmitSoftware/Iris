@@ -27,6 +27,7 @@ import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.MeteredCache;
+import com.volmit.iris.util.data.ComplexCache;
 import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.stream.BasicStream;
 import com.volmit.iris.util.stream.ProceduralStream;
@@ -36,7 +37,7 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
     private final KCache<Long, T> cache;
     private final Engine engine;
 
-    public CachedStream2D(Engine engine, ProceduralStream<T> stream, int size, boolean weak) {
+    public CachedStream2D(Engine engine, ProceduralStream<T> stream, int size) {
         super();
         this.stream = stream;
         this.engine = engine;

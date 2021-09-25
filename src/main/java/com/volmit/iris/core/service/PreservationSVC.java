@@ -25,6 +25,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.MeteredCache;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.context.IrisContext;
+import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.IrisService;
@@ -36,6 +37,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 public class PreservationSVC implements IrisService {
     private final List<Thread> threads = new CopyOnWriteArrayList<>();
@@ -136,5 +138,9 @@ public class PreservationSVC implements IrisService {
 
     public void registerCache(MeteredCache cache) {
         caches.add(cache);
+    }
+
+    public List<KCache<?, ?>> caches() {
+        return caches.stream().map(MeteredCache::getRawCache).collect(Collectors.toList());
     }
 }

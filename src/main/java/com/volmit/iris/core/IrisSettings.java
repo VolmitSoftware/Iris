@@ -60,7 +60,7 @@ public class IrisSettings {
 
     @Data
     public static class IrisAsyncTeleport {
-        public boolean enabled = true;
+        public boolean enabled = false;
         public int loadViewDistance = 2;
         public boolean urgent = false;
     }

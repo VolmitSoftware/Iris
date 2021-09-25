@@ -365,6 +365,11 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
     }
 
     @Override
+    public KCache<?, ?> getRawCache() {
+        return loadCache;
+    }
+
+    @Override
     public long getMaxSize() {
         return loadCache.getMaxSize();
     }

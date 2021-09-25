@@ -21,19 +21,15 @@ package com.volmit.iris.util.data;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.MeteredCache;
-import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.scheduling.J;
-
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import com.volmit.iris.util.math.RollingSequence;
 
 public class KCache<K,V> implements MeteredCache {
     private final long max;
     private CacheLoader<K, V> loader;
     private LoadingCache<K, V> cache;
     private final boolean fastDump;
+    private final RollingSequence msu = new RollingSequence(100);
 
     public KCache(CacheLoader<K, V> loader, long max)
     {
@@ -52,9 +48,8 @@ public class KCache<K,V> implements MeteredCache {
         return Caffeine
                 .newBuilder()
                 .maximumSize(max)
-                .initialCapacity((int) (max))
                 .softValues()
-                .expireAfterAccess(5, TimeUnit.MINUTES)
+                .initialCapacity((int) (max))
                 .build((k) -> loader == null ? null : loader.load(k));
     }
 
@@ -82,6 +77,11 @@ public class KCache<K,V> implements MeteredCache {
     @Override
     public long getSize() {
         return cache.estimatedSize();
+    }
+
+    @Override
+    public KCache<?, ?> getRawCache() {
+        return this;
     }
 
     @Override

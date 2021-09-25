@@ -25,6 +25,8 @@ import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.Data;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,13 +36,13 @@ import java.io.IOException;
 public class IrisSettings {
     public static transient IrisSettings settings;
     private IrisSettingsGeneral general = new IrisSettingsGeneral();
+    private IrisSettingsWorld world = new IrisSettingsWorld();
     private IrisSettingsGUI gui = new IrisSettingsGUI();
     private IrisSettingsAutoconfiguration autoConfiguration = new IrisSettingsAutoconfiguration();
     private IrisSettingsGenerator generator = new IrisSettingsGenerator();
     private IrisSettingsConcurrency concurrency = new IrisSettingsConcurrency();
     private IrisSettingsStudio studio = new IrisSettingsStudio();
     private IrisSettingsPerformance performance = new IrisSettingsPerformance();
-
     public static int getThreadCount(int c) {
         return switch (c) {
             case -1, -2, -4 -> Runtime.getRuntime().availableProcessors() / -c;
@@ -54,6 +56,24 @@ public class IrisSettings {
         public boolean configureSpigotTimeoutTime = true;
         public boolean configurePaperWatchdogDelay = true;
         public boolean autoRestartOnCustomBiomeInstall = true;
+    }
+
+    @Data
+    public static class IrisAsyncTeleport {
+        public boolean enabled = true;
+        public int loadViewDistance = 2;
+        public boolean urgent = false;
+    }
+
+    @Data
+    public static class IrisSettingsWorld {
+        public IrisAsyncTeleport asyncTeleport = new IrisAsyncTeleport();
+        public boolean postLoadBlockUpdates = true;
+        public boolean anbientEntitySpawningSystem = true;
+        public long asyncTickIntervalMS = 700;
+        public double targetSpawnEntitiesPerChunk = 0.95;
+        public boolean markerEntitySpawningSystem = true;
+        public boolean effectSystem = true;
     }
 
     @Data

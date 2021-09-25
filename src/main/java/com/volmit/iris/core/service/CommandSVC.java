@@ -31,11 +31,14 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.server.ServerCommandEvent;
 
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 public class CommandSVC implements IrisService, DecreeSystem {
     private final KMap<String, CompletableFuture<String>> futures = new KMap<>();
+    private CompletableFuture<String> consoleFuture = null;
     private final transient AtomicCache<VirtualDecreeCommand> commandCache = new AtomicCache<>();
 
     @Override
@@ -70,6 +73,17 @@ public class CommandSVC implements IrisService, DecreeSystem {
         }
     }
 
+    @EventHandler
+    public void on(ServerCommandEvent e) {
+        if (consoleFuture != null && !consoleFuture.isCancelled() && !consoleFuture.isDone()) {
+            if (!e.getCommand().contains(" ")) {
+                String pick = e.getCommand().trim().toLowerCase(Locale.ROOT);
+                consoleFuture.complete(pick);
+                e.setCancelled(true);
+            }
+        }
+    }
+
     @Override
     public VirtualDecreeCommand getRoot() {
         return commandCache.aquireNastyPrint(() -> VirtualDecreeCommand.createRoot(new CommandIris()));
@@ -77,5 +91,9 @@ public class CommandSVC implements IrisService, DecreeSystem {
 
     public void post(String password, CompletableFuture<String> future) {
         futures.put(password, future);
+    }
+
+    public void postConsole(CompletableFuture<String> future) {
+        consoleFuture = future;
     }
 }

@@ -24,9 +24,11 @@ import com.volmit.iris.util.math.RollingSequence;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -157,6 +159,40 @@ public class Form {
     public static String wrap(String s, int len, String newLineSep, boolean soft) {
         return wrap(s, len, newLineSep, soft, " ");
     }
+
+    public static String hardWrap(String s, int len) {
+        StringBuilder ss = new StringBuilder();
+
+        for(int i = 0; i < s.length(); i+= len)
+        {
+            if(i + len > s.length())
+            {
+                ss.append(s, i, s.length());
+                break;
+            }
+
+            ss.append(s, i, i + len).append("\n");
+        }
+
+        return ss.toString();
+    }
+
+    public static List<String> hardWrapList(String s, int len) {
+        List<String> l = new ArrayList<>();
+        for(int i = 0; i < s.length(); i+= len)
+        {
+            if(i + len > s.length())
+            {
+                l.add(s.substring(i));
+                break;
+            }
+
+            l.add(s.substring(i, i + len));
+        }
+
+        return l;
+    }
+
 
     /**
      * Wrap words

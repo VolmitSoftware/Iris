@@ -33,6 +33,7 @@ public class HashPalette<T> implements Palette<T> {
         this.size = new AtomicInteger(0);
         this.palette = new LinkedHashMap<>();
         this.lookup = new KMap<>();
+        add(null);
     }
 
     @Override
@@ -58,18 +59,28 @@ public class HashPalette<T> implements Palette<T> {
 
     @Override
     public int id(T t) {
+        if(t == null)
+        {
+            return 0;
+        }
+
         Integer v = palette.get(t);
         return v != null ? v : -1;
     }
 
     @Override
     public int size() {
-        return size.get();
+        return size.get() - 1;
     }
 
     @Override
     public void iterate(Consumer2<T, Integer> c) {
         for (T i : palette.keySet()) {
+            if(i == null)
+            {
+                continue;
+            }
+
             c.accept(i, id(i));
         }
     }

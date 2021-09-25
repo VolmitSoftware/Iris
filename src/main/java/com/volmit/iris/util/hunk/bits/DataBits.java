@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.hunk.bits;
 
+import com.volmit.iris.Iris;
 import org.apache.commons.lang3.Validate;
 
 import java.io.DataInputStream;

@@ -18,6 +18,8 @@
 
 package com.volmit.iris.util.hunk.bits;
 
+import com.volmit.iris.Iris;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -25,9 +27,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class DataContainer<T> {
-    protected static final int INITIAL_BITS = 3;
+    protected static final int INITIAL_BITS = 2;
     protected static final int LINEAR_BITS_LIMIT = 5;
     protected static final int LINEAR_INITIAL_LENGTH = (int) Math.pow(2, LINEAR_BITS_LIMIT) + 1;
     protected static final int[] BIT = computeBitLimits();
@@ -37,13 +40,12 @@ public class DataContainer<T> {
     private final int length;
     private final Writable<T> writer;
 
-    public DataContainer(Writable<T> writer, int length, T empty) {
+    public DataContainer(Writable<T> writer, int length) {
         this.writer = writer;
         this.length = length;
         this.bits = new AtomicInteger(INITIAL_BITS);
         this.data = new AtomicReference<>(new DataBits(INITIAL_BITS, length));
         this.palette = new AtomicReference<>(newPalette(INITIAL_BITS));
-        this.ensurePaletted(empty);
     }
 
     public DataContainer(DataInputStream din, Writable<T> writer) throws IOException {
@@ -52,6 +54,16 @@ public class DataContainer<T> {
         this.palette = new AtomicReference<>(newPalette(din));
         this.data = new AtomicReference<>(new DataBits(palette.get().bits(), length, din));
         this.bits = new AtomicInteger(palette.get().bits());
+    }
+
+    public DataBits getData()
+    {
+        return data.get();
+    }
+
+    public Palette<T> getPalette()
+    {
+        return palette.get();
     }
 
     public String toString() {
@@ -79,7 +91,7 @@ public class DataContainer<T> {
 
     private Palette<T> newPalette(DataInputStream din) throws IOException {
         int paletteSize = din.readInt();
-        Palette<T> d = newPalette(bits(paletteSize));
+        Palette<T> d = newPalette(bits(paletteSize+1));
         d.from(paletteSize, writer, din);
         return d;
     }
@@ -105,24 +117,36 @@ public class DataContainer<T> {
     }
 
     public void set(int position, T t) {
-        int id = palette.get().id(t);
+        synchronized (this)
+        {
+            int id = palette.get().id(t);
 
-        if (id == -1) {
-            checkBits();
-            id = palette.get().add(t);
+            if (id == -1) {
+                expandOne();
+                id = palette.get().add(t);
+            }
+
+            data.get().set(position, id);
         }
+    }
 
-        data.get().set(position, id);
+    private void expandOne() {
+        if (palette.get().size()+1 >= BIT[bits.get()]) {
+            setBits(bits.get() + 1);
+        }
     }
 
     public T get(int position) {
-        int id = data.get().get(position) + 1;
+        synchronized (this)
+        {
+            int id = data.get().get(position) + 1;
 
-        if (id <= 0) {
-            return null;
+            if (id <= 0) {
+                return null;
+            }
+
+            return palette.get().get(id - 1);
         }
-
-        return palette.get().get(id - 1);
     }
 
     public void setBits(int bits) {
@@ -158,5 +182,9 @@ public class DataContainer<T> {
         }
 
         return DataContainer.BIT.length - 1;
+    }
+
+    public int size() {
+        return getData().getSize();
     }
 }

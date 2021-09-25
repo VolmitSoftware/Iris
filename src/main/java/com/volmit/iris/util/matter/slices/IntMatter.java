@@ -38,7 +38,7 @@ public class IntMatter extends RawMatter<Integer> {
     }
 
     public IntMatter(int width, int height, int depth) {
-        super(width, height, depth, Integer.class, 0);
+        super(width, height, depth, Integer.class);
     }
 
     @Override

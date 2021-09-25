@@ -43,7 +43,7 @@ public class BlockMatter extends RawMatter<BlockData> {
     }
 
     public BlockMatter(int width, int height, int depth) {
-        super(width, height, depth, BlockData.class, AIR);
+        super(width, height, depth, BlockData.class);
         registerWriter(World.class, ((w, d, x, y, z) -> w.getBlockAt(x, y, z).setBlockData(d)));
         registerReader(World.class, (w, x, y, z) -> {
             BlockData d = w.getBlockAt(x, y, z).getBlockData();

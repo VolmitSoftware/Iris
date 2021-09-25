@@ -35,7 +35,7 @@ public interface Palette<T> {
     int size();
 
     default int bits() {
-        return DataContainer.bits(size());
+        return DataContainer.bits(size()+1);
     }
 
     void iterate(Consumer2<T, Integer> c);

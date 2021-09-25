@@ -16,34 +16,38 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.matter.slices;
+package com.volmit.iris.util.hunk.bits;
 
-import com.volmit.iris.core.loader.IrisRegistrant;
-import com.volmit.iris.util.context.IrisContext;
-import com.volmit.iris.util.data.palette.Palette;
+import com.volmit.iris.Iris;
+import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.math.RNG;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 
-public class RegistryMatter<T extends IrisRegistrant> extends RawMatter<T> {
-    public RegistryMatter(int width, int height, int depth, Class<T> c, T e) {
-        super(width, height, depth, c);
-    }
+public class TecTest {
+    public static void go()
+    {
+        Mantle m = new Mantle(new File("dummy"), 256);
 
-    @Override
-    public Palette<T> getGlobalPalette() {
-        return null;
-    }
+        int size = 255;
+        int mx = (int) Math.pow(size, 3);
 
-    @Override
-    public void writeNode(T b, DataOutputStream dos) throws IOException {
-        dos.writeUTF(b.getLoadKey());
-    }
+        for(int i = 0; i < mx; i++)
+        {
+            int[] p = Cache.to3D(i, size, size);
+            m.set(p[0], p[1], p[2], RNG.r.s(1));
+        }
 
-    @Override
-    public T readNode(DataInputStream din) throws IOException {
-        IrisContext context = IrisContext.get();
-        return (T) context.getData().getLoaders().get(getType()).load(din.readUTF());
+        m.close();
+
+        m = new Mantle(new File("dummy"), 256);
+        m.get(0,0,0, String.class);
     }
 }

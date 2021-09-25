@@ -31,6 +31,7 @@ public class LinearPalette<T> implements Palette<T> {
     public LinearPalette(int initialSize) {
         this.size = new AtomicInteger(0);
         this.palette = new AtomicReference<>(new AtomicReferenceArray<>(initialSize));
+        palette.get().set(size.getAndIncrement(), null);
     }
 
     @Override
@@ -64,12 +65,13 @@ public class LinearPalette<T> implements Palette<T> {
 
     @Override
     public int id(T t) {
-        for (int i = 0; i < size(); i++) {
-            if (t == null && palette.get().get(i) == null) {
-                return i;
-            }
+        if(t == null)
+        {
+            return 0;
+        }
 
-            if (t != null && t.equals(palette.get().get(i))) {
+        for (int i = 0; i < size(); i++) {
+            if (t.equals(palette.get().get(i))) {
                 return i;
             }
         }
@@ -79,12 +81,12 @@ public class LinearPalette<T> implements Palette<T> {
 
     @Override
     public int size() {
-        return size.get();
+        return size.get()-1;
     }
 
     @Override
     public void iterate(Consumer2<T, Integer> c) {
-        for (int i = 0; i < size(); i++) {
+        for (int i = 1; i < size()+1; i++) {
             c.accept(palette.get().get(i), i);
         }
     }

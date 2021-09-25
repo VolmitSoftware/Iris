@@ -27,6 +27,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.IOException;
+import java.util.concurrent.locks.ReentrantLock;
 
 @SuppressWarnings({"DefaultAnnotationParam", "Lombok"})
 @Data
@@ -34,15 +35,14 @@ import java.io.IOException;
 public class PaletteHunk<T> extends StorageHunk<T> implements Hunk<T> {
     private DataContainer<T> data;
 
-    public PaletteHunk(int w, int h, int d, Writable<T> writer, T e) {
+    public PaletteHunk(int w, int h, int d, Writable<T> writer) {
         super(w, h, d);
-        data = new DataContainer<>(writer, w * h * d, e);
+        data = new DataContainer<>(writer, w * h * d);
     }
 
     public void setPalette(DataContainer<T> c) {
         data = c;
     }
-
 
     public boolean isMapped() {
         return false;

@@ -54,7 +54,7 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
     }
 
     public EntityMatter(int width, int height, int depth) {
-        super(width, height, depth, MatterEntityGroup.class, EMPTY);
+        super(width, height, depth, MatterEntityGroup.class);
         registerWriter(World.class, ((w, d, x, y, z) -> {
             for (MatterEntity i : d.getEntities()) {
                 Location realPosition = new Location(w, x + i.getXOff(), y + i.getYOff(), z + i.getZOff());

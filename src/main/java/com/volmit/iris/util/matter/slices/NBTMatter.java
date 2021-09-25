@@ -28,7 +28,7 @@ import java.io.IOException;
 
 public class NBTMatter<T extends Tag<?>> extends RawMatter<T> {
     public NBTMatter(int width, int height, int depth, Class<T> c, T e) {
-        super(width, height, depth, c, e);
+        super(width, height, depth, c);
     }
 
     @Override

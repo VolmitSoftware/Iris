@@ -44,7 +44,7 @@ public class MarkerMatter extends RawMatter<MatterMarker> {
     }
 
     public MarkerMatter(int width, int height, int depth) {
-        super(width, height, depth, MatterMarker.class, NONE);
+        super(width, height, depth, MatterMarker.class);
     }
 
     @Override

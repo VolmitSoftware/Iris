@@ -40,7 +40,7 @@ public class CavernMatter extends RawMatter<MatterCavern> {
     }
 
     public CavernMatter(int width, int height, int depth) {
-        super(width, height, depth, MatterCavern.class, EMPTY);
+        super(width, height, depth, MatterCavern.class);
     }
 
     public static MatterCavern get(String customBiome, int liquid) {

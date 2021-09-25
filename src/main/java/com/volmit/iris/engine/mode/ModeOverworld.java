@@ -49,11 +49,9 @@ public class ModeOverworld extends IrisEngineMode implements EngineMode {
         ));
         registerStage((x, z, k, p, m) -> cave.modify(x >> 4, z >> 4, k, m));
         registerStage((x, z, k, p, m) -> deposit.modify(x, z, k, m));
-        registerStage(burst(
-            (x, z, k, p, m) -> decorant.actuate(x, z, k, m),
-            (x, z, k, p, m) -> post.modify(x, z, k, m),
-            (x, z, K, p, m) -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, K, m)
-        ));
+        registerStage((x, z, k, p, m) -> decorant.actuate(x, z, k, m));
+        registerStage((x, z, k, p, m) -> post.modify(x, z, k, m));
+        registerStage((x, z, K, p, m) -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, K, m));
         registerStage((x, z, k, p, m) -> perfection.modify(x, z, k, m));
     }
 }

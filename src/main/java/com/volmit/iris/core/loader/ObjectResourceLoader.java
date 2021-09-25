@@ -22,14 +22,8 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.KCache;
-import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.math.M;
-import com.volmit.iris.util.scheduling.ChronoLatch;
-import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
 import java.io.File;
@@ -127,7 +121,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
         return load(name, true);
     }
 
-    private IrisObject loadRaw(String name){
+    private IrisObject loadRaw(String name) {
         for (File i : getFolders(name)) {
             for (File j : i.listFiles()) {
                 if (j.isFile() && j.getName().endsWith(".iob") && j.getName().split("\\Q.\\E")[0].equals(name)) {

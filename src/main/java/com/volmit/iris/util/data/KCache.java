@@ -24,27 +24,25 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.volmit.iris.engine.framework.MeteredCache;
 import com.volmit.iris.util.math.RollingSequence;
 
-public class KCache<K,V> implements MeteredCache {
+public class KCache<K, V> implements MeteredCache {
     private final long max;
     private CacheLoader<K, V> loader;
-    private LoadingCache<K, V> cache;
+    private final LoadingCache<K, V> cache;
     private final boolean fastDump;
     private final RollingSequence msu = new RollingSequence(100);
 
-    public KCache(CacheLoader<K, V> loader, long max)
-    {
+    public KCache(CacheLoader<K, V> loader, long max) {
         this(loader, max, false);
     }
 
-    public KCache(CacheLoader<K, V> loader, long max, boolean fastDump)
-    {
+    public KCache(CacheLoader<K, V> loader, long max, boolean fastDump) {
         this.max = max;
         this.fastDump = fastDump;
         this.loader = loader;
         this.cache = create(loader);
     }
 
-    private LoadingCache<K,V> create(CacheLoader<K,V> loader) {
+    private LoadingCache<K, V> create(CacheLoader<K, V> loader) {
         return Caffeine
                 .newBuilder()
                 .maximumSize(max)
@@ -54,23 +52,19 @@ public class KCache<K,V> implements MeteredCache {
     }
 
 
-    public void setLoader(CacheLoader<K, V> loader)
-    {
+    public void setLoader(CacheLoader<K, V> loader) {
         this.loader = loader;
     }
 
-    public void invalidate(K k)
-    {
+    public void invalidate(K k) {
         cache.invalidate(k);
     }
 
-    public void invalidate()
-    {
+    public void invalidate() {
         cache.invalidateAll();
     }
 
-    public V get(K k)
-    {
+    public V get(K k) {
         return cache.get(k);
     }
 

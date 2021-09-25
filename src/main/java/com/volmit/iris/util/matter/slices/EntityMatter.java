@@ -33,7 +33,6 @@ import com.volmit.iris.util.nbt.tag.CompoundTag;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
 import org.bukkit.util.BoundingBox;
 
 import java.io.DataInputStream;

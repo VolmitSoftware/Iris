@@ -37,7 +37,6 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.format.MemoryMonitor;
 import com.volmit.iris.util.function.NastyRunnable;
 import com.volmit.iris.util.io.FileWatcher;
 import com.volmit.iris.util.io.IO;
@@ -449,7 +448,7 @@ public class Iris extends VolmitPlugin implements Listener {
         J.a(ServerConfigurator::configure, 20);
         splash();
         J.a(MatterTest::test, 20);
-        
+
         if (IrisSettings.get().getStudio().isAutoStartDefaultStudio()) {
             Iris.info("Starting up auto Studio!");
             try {

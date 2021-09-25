@@ -18,21 +18,8 @@
 
 package com.volmit.iris.util.matter;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.util.hunk.bits.DataContainer;
-import com.volmit.iris.util.hunk.bits.Writable;
-import com.volmit.iris.util.io.IO;
-import com.volmit.iris.util.math.RNG;
-
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.Arrays;
-
 public class MatterTest {
-    public static void test()
-    {
+    public static void test() {
 
     }
 }

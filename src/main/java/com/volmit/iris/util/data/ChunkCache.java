@@ -20,7 +20,6 @@ package com.volmit.iris.util.data;
 
 import com.volmit.iris.util.function.Function2;
 
-import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
 public class ChunkCache<T> {
@@ -30,14 +29,12 @@ public class ChunkCache<T> {
         cache = new AtomicReferenceArray<>(256);
     }
 
-    public T compute(int x, int z, Function2<Integer, Integer, T> function)
-    {
-        T t = get(x&15, z&15);
+    public T compute(int x, int z, Function2<Integer, Integer, T> function) {
+        T t = get(x & 15, z & 15);
 
-        if(t == null)
-        {
+        if (t == null) {
             t = function.apply(x, z);
-            set(x&15, z&15, t);
+            set(x & 15, z & 15, t);
         }
 
         return t;

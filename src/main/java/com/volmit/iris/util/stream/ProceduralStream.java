@@ -24,7 +24,6 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IRare;
 import com.volmit.iris.engine.object.IrisStyledRange;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.data.ComplexCache;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.function.Function3;
 import com.volmit.iris.util.function.Function4;

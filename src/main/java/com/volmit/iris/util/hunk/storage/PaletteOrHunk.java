@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.hunk.storage;
 
-import com.volmit.iris.util.data.palette.PalettedContainer;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.function.Consumer4IO;
 import com.volmit.iris.util.hunk.Hunk;
@@ -26,41 +25,38 @@ import com.volmit.iris.util.hunk.bits.DataContainer;
 import com.volmit.iris.util.hunk.bits.Writable;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.function.Supplier;
 
 public abstract class PaletteOrHunk<T> extends StorageHunk<T> implements Hunk<T>, Writable<T> {
     private final Hunk<T> hunk;
+
     public PaletteOrHunk(int width, int height, int depth, boolean allow, Supplier<Hunk<T>> factory, T e) {
         super(width, height, depth);
         hunk = (allow) ? new PaletteHunk<>(width, height, depth, this, e) : factory.get();
     }
 
-    public DataContainer<T> palette()
-    {
-        return isPalette() ? ((PaletteHunk<T>)hunk).getData() : null;
+    public DataContainer<T> palette() {
+        return isPalette() ? ((PaletteHunk<T>) hunk).getData() : null;
     }
 
     public void setPalette(DataContainer<T> c) {
-        if(isPalette())
-        {
-            ((PaletteHunk<T>)hunk).setPalette(c);
+        if (isPalette()) {
+            ((PaletteHunk<T>) hunk).setPalette(c);
         }
     }
 
-    public boolean isPalette()
-    {
+    public boolean isPalette() {
         return hunk instanceof PaletteHunk;
     }
 
     @Override
     public void setRaw(int x, int y, int z, T t) {
-        hunk.setRaw(x,y,z,t);
+        hunk.setRaw(x, y, z, t);
     }
 
     @Override
     public T getRaw(int x, int y, int z) {
-        return hunk.getRaw(x,y,z);
+        return hunk.getRaw(x, y, z);
     }
 
     public int getEntryCount() {

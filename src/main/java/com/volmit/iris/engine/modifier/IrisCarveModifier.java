@@ -39,7 +39,6 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.matter.slices.MarkerMatter;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import com.volmit.iris.util.stream.utility.CachedStream2D;
 import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -237,8 +236,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
 
         blocks = biome.generateCeilingLayers(getDimension(), xx, zz, rng, 3, zone.ceiling, getData(), getComplex());
 
-        if(zone.ceiling + 1 < mantle.getWorldHeight())
-        {
+        if (zone.ceiling + 1 < mantle.getWorldHeight()) {
             for (int i = 0; i < zone.ceiling + 1; i++) {
                 if (!blocks.hasIndex(i)) {
                     break;

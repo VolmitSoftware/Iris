@@ -72,8 +72,7 @@ public interface Job {
         }, sender.isPlayer() ? 0 : 20);
         f.whenComplete((fs, ff) -> {
             J.car(c);
-            if(!silentMsg)
-            {
+            if (!silentMsg) {
                 sender.sendMessage(C.AQUA + "Completed " + getName() + " in " + Form.duration(p.getMilliseconds(), 1));
             }
             whenComplete.run();

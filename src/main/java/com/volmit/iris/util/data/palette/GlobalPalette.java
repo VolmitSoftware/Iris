@@ -18,8 +18,6 @@
 
 package com.volmit.iris.util.data.palette;
 
-import com.volmit.iris.util.nbt.tag.ListTag;
-
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -28,11 +26,9 @@ public class GlobalPalette<T> implements Palette<T> {
 
     private final T defaultValue;
 
-    public GlobalPalette(T... f)
-    {
+    public GlobalPalette(T... f) {
         IdMapper<T> mapper = new IdMapper<>();
-        for(T i : f)
-        {
+        for (T i : f) {
             mapper.add(i);
         }
         registry = mapper;

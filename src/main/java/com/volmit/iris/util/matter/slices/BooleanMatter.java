@@ -20,7 +20,6 @@ package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.Sliced;
-import org.bukkit.entity.Player;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

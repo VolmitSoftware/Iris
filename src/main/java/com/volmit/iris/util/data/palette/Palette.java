@@ -18,11 +18,7 @@
 
 package com.volmit.iris.util.data.palette;
 
-import com.volmit.iris.util.nbt.tag.CompoundTag;
-import com.volmit.iris.util.nbt.tag.ListTag;
-
 import java.util.List;
-import java.util.function.Predicate;
 
 public interface Palette<T> {
     int idFor(T paramT);

@@ -38,7 +38,6 @@ import com.volmit.iris.util.matter.MatterSlice;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.HyperLock;
 import com.volmit.iris.util.parallel.MultiBurst;
-import com.volmit.iris.util.scheduling.J;
 import lombok.Getter;
 import org.bukkit.Chunk;
 

@@ -42,8 +42,7 @@ public interface PaletteType<T> {
         int v = Varint.readUnsignedVarInt(din);
         List<T> t = new ArrayList<>();
 
-        for(int i = 0; i < v; i++)
-        {
+        for (int i = 0; i < v; i++) {
             t.add(readPaletteNode(din));
         }
 

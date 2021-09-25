@@ -25,8 +25,6 @@ import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.Data;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,6 +41,7 @@ public class IrisSettings {
     private IrisSettingsConcurrency concurrency = new IrisSettingsConcurrency();
     private IrisSettingsStudio studio = new IrisSettingsStudio();
     private IrisSettingsPerformance performance = new IrisSettingsPerformance();
+
     public static int getThreadCount(int c) {
         return switch (c) {
             case -1, -2, -4 -> Runtime.getRuntime().availableProcessors() / -c;

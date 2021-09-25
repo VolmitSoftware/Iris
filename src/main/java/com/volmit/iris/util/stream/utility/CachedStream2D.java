@@ -18,16 +18,11 @@
 
 package com.volmit.iris.util.stream.utility;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.MeteredCache;
-import com.volmit.iris.util.data.ComplexCache;
 import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.stream.BasicStream;
 import com.volmit.iris.util.stream.ProceduralStream;
@@ -57,7 +52,7 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
 
     @Override
     public T get(double x, double z) {
-        return cache.get(Cache.key((int)x, (int)z));
+        return cache.get(Cache.key((int) x, (int) z));
     }
 
     @Override

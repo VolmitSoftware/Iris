@@ -22,7 +22,6 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.MatterMarker;
 import com.volmit.iris.util.matter.Sliced;
-import org.bukkit.entity.Player;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

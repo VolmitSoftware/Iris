@@ -156,17 +156,12 @@ public class MultiBurst {
             try {
                 while (!service.awaitTermination(1, TimeUnit.SECONDS)) {
                     Iris.info("Still waiting to shutdown burster...");
-                    if(p.getMilliseconds() > 7000)
-                    {
+                    if (p.getMilliseconds() > 7000) {
                         Iris.warn("Forcing Shutdown...");
 
-                        try
-                        {
+                        try {
                             service.shutdownNow();
-                        }
-
-                        catch(Throwable e)
-                        {
+                        } catch (Throwable e) {
 
                         }
 

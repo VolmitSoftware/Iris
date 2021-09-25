@@ -22,25 +22,21 @@ import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.collection.KMap;
 
 public class ComplexCache<T> {
-    private KMap<Long, ChunkCache<T>> chunks;
+    private final KMap<Long, ChunkCache<T>> chunks;
 
-    public ComplexCache()
-    {
+    public ComplexCache() {
         chunks = new KMap<>();
     }
 
-    public boolean has(int x, int z)
-    {
+    public boolean has(int x, int z) {
         return chunks.containsKey(Cache.key(x, z));
     }
 
-    public void invalidate(int x, int z)
-    {
+    public void invalidate(int x, int z) {
         chunks.remove(Cache.key(x, z));
     }
 
-    public ChunkCache<T> chunk(int x, int z)
-    {
+    public ChunkCache<T> chunk(int x, int z) {
         return chunks.computeIfAbsent(Cache.key(x, z), (f) -> new ChunkCache<>());
     }
 }

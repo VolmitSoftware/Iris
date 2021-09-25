@@ -102,8 +102,7 @@ public class HybridPregenMethod implements PregeneratorMethod {
 
     @Override
     public Mantle getMantle() {
-        if (headless == null)
-        {
+        if (headless == null) {
             return inWorld.getMantle();
         }
 

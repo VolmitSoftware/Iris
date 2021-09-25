@@ -20,15 +20,12 @@ package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.decree.DecreeContext;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
@@ -260,13 +257,13 @@ public class CommandIris implements DecreeExecutor {
     @Decree(description = "Update the pack of a world (UNSAFE!)", name = "^world", aliases = "update-world")
     public void updateWorld(
             @Param(description = "The world to update", contextual = true)
-            World world,
+                    World world,
             @Param(description = "The pack to install into the world", contextual = true, aliases = "dimension")
-            IrisDimension pack,
+                    IrisDimension pack,
             @Param(description = "Make sure to make a backup & read the warnings first!", defaultValue = "false", aliases = "c")
-            boolean confirm,
+                    boolean confirm,
             @Param(description = "Should Iris download the pack again for you", defaultValue = "false", name = "fresh-download", aliases = {"fresh", "new"})
-            boolean freshDownload
+                    boolean freshDownload
     ) {
         if (!confirm) {
             sender().sendMessage(new String[]{

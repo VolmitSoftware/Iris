@@ -25,7 +25,6 @@ import com.volmit.iris.core.project.SchemaBuilder;
 import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.engine.framework.MeteredCache;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.format.C;
@@ -34,7 +33,6 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.scheduling.ChronoLatch;
-import com.volmit.iris.util.scheduling.IrisLock;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
@@ -238,8 +236,7 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
         return load(name, true);
     }
 
-    private T loadRaw(String name)
-    {
+    private T loadRaw(String name) {
         for (File i : getFolders(name)) {
             //noinspection ConstantConditions
             for (File j : i.listFiles()) {

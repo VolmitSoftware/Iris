@@ -18,9 +18,6 @@
 
 package com.volmit.iris.util.hunk.bits;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.util.data.Varint;
-
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -40,8 +37,7 @@ public class DataContainer<T> {
     private final int length;
     private final Writable<T> writer;
 
-    public DataContainer(Writable<T> writer, int length, T empty)
-    {
+    public DataContainer(Writable<T> writer, int length, T empty) {
         this.writer = writer;
         this.length = length;
         this.bits = new AtomicInteger(INITIAL_BITS);
@@ -58,25 +54,22 @@ public class DataContainer<T> {
         this.bits = new AtomicInteger(palette.get().bits());
     }
 
-    public String toString(){
-        return "DataContainer <" + length + " x " + bits + " bits> -> Palette<"+palette.get().getClass().getSimpleName().replaceAll("\\QPalette\\E", "")+">: " + palette.get().size() +
+    public String toString() {
+        return "DataContainer <" + length + " x " + bits + " bits> -> Palette<" + palette.get().getClass().getSimpleName().replaceAll("\\QPalette\\E", "") + ">: " + palette.get().size() +
                 " " + data.get().toString() + " PalBit: " + palette.get().bits();
     }
 
-    public byte[] write() throws IOException
-    {
+    public byte[] write() throws IOException {
         ByteArrayOutputStream boas = new ByteArrayOutputStream();
         write(boas);
         return boas.toByteArray();
     }
 
-    public void write(OutputStream out) throws IOException
-    {
+    public void write(OutputStream out) throws IOException {
         writeDos(new DataOutputStream(out));
     }
 
-    public void writeDos(DataOutputStream dos) throws IOException
-    {
+    public void writeDos(DataOutputStream dos) throws IOException {
         dos.writeInt(length);
         dos.writeInt(palette.get().size());
         palette.get().iterateIO((data, __) -> writer.writeNodeData(dos, data));
@@ -91,38 +84,30 @@ public class DataContainer<T> {
         return d;
     }
 
-    private Palette<T> newPalette(int bits)
-    {
-        if(bits <= LINEAR_BITS_LIMIT)
-        {
+    private Palette<T> newPalette(int bits) {
+        if (bits <= LINEAR_BITS_LIMIT) {
             return new LinearPalette<>(LINEAR_INITIAL_LENGTH);
         }
 
         return new HashPalette<>();
     }
 
-    private void checkBits()
-    {
-        if(palette.get().size() >= BIT[bits.get()])
-        {
+    private void checkBits() {
+        if (palette.get().size() >= BIT[bits.get()]) {
             setBits(bits.get() + 1);
         }
     }
 
-    public void ensurePaletted(T t)
-    {
-        if(palette.get().id(t) == -1)
-        {
+    public void ensurePaletted(T t) {
+        if (palette.get().id(t) == -1) {
             checkBits();
         }
     }
 
-    public void set(int position, T t)
-    {
+    public void set(int position, T t) {
         int id = palette.get().id(t);
 
-        if(id == -1)
-        {
+        if (id == -1) {
             checkBits();
             id = palette.get().add(t);
         }
@@ -130,24 +115,19 @@ public class DataContainer<T> {
         data.get().set(position, id);
     }
 
-    public T get(int position)
-    {
-        int id = data.get().get(position)+1;
+    public T get(int position) {
+        int id = data.get().get(position) + 1;
 
-        if(id <= 0)
-        {
+        if (id <= 0) {
             return null;
         }
 
-        return palette.get().get(id-1);
+        return palette.get().get(id - 1);
     }
 
-    public void setBits(int bits)
-    {
-        if(this.bits.get() != bits)
-        {
-            if(this.bits.get() <= LINEAR_BITS_LIMIT != bits <= LINEAR_BITS_LIMIT)
-            {
+    public void setBits(int bits) {
+        if (this.bits.get() != bits) {
+            if (this.bits.get() <= LINEAR_BITS_LIMIT != bits <= LINEAR_BITS_LIMIT) {
                 palette.set(newPalette(bits).from(palette.get()));
             }
 
@@ -159,25 +139,20 @@ public class DataContainer<T> {
     private static int[] computeBitLimits() {
         int[] m = new int[16];
 
-        for(int i = 0; i < m.length; i++)
-        {
+        for (int i = 0; i < m.length; i++) {
             m[i] = (int) Math.pow(2, i);
         }
 
         return m;
     }
 
-    protected static int bits(int size)
-    {
-        if(DataContainer.BIT[INITIAL_BITS] >= size)
-        {
+    protected static int bits(int size) {
+        if (DataContainer.BIT[INITIAL_BITS] >= size) {
             return INITIAL_BITS;
         }
 
-        for(int i = 0; i <  DataContainer.BIT.length; i++)
-        {
-            if(DataContainer.BIT[i] >= size)
-            {
+        for (int i = 0; i < DataContainer.BIT.length; i++) {
+            if (DataContainer.BIT[i] >= size) {
                 return i;
             }
         }

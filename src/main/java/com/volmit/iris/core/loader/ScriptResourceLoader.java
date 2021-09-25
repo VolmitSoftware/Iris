@@ -113,8 +113,7 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
         return null;
     }
 
-    private IrisScript loadRaw(String name)
-    {
+    private IrisScript loadRaw(String name) {
         for (File i : getFolders(name)) {
             for (File j : i.listFiles()) {
                 if (j.isFile() && j.getName().endsWith(".js") && j.getName().split("\\Q.\\E")[0].equals(name)) {

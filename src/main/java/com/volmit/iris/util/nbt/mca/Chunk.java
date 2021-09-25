@@ -255,8 +255,7 @@ public class Chunk {
     public CompoundTag getBlockStateAt(int blockX, int blockY, int blockZ) {
         int s = MCAUtil.blockToChunk(blockY);
 
-        if(sections.length() <= s)
-        {
+        if (sections.length() <= s) {
             return null;
         }
 
@@ -282,8 +281,7 @@ public class Chunk {
     public void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
         int sectionIndex = MCAUtil.blockToChunk(blockY);
 
-        if(sections.length() <= sectionIndex)
-        {
+        if (sections.length() <= sectionIndex) {
             return;
         }
 

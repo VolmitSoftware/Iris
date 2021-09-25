@@ -55,7 +55,6 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Data;

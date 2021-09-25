@@ -19,7 +19,6 @@
 package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.hunk.bits.Writable;
 import com.volmit.iris.util.hunk.storage.MappedHunk;
 import com.volmit.iris.util.hunk.storage.PaletteOrHunk;
 import com.volmit.iris.util.matter.MatterReader;

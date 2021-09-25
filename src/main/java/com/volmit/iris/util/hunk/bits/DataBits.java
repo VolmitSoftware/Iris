@@ -18,8 +18,6 @@
 
 package com.volmit.iris.util.hunk.bits;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.util.data.Varint;
 import org.apache.commons.lang3.Validate;
 
 import java.io.DataInputStream;
@@ -65,8 +63,7 @@ public class DataBits {
         this(bits, length, (AtomicLongArray) null);
     }
 
-    public DataBits(int bits, int length, DataInputStream din) throws IOException
-    {
+    public DataBits(int bits, int length, DataInputStream din) throws IOException {
         this(bits, length, longs(din));
     }
 
@@ -83,8 +80,7 @@ public class DataBits {
         int var4 = (length + valuesPerLong - 1) / valuesPerLong;
 
         if (data != null) {
-            if (data.length() != var4)
-            {
+            if (data.length() != var4) {
                 throw new RuntimeException("NO! Trying to load " + data.length() + " into actual size of " + var4 + " because length: " + length + " (bits: " + bits + ")");
             }
             this.data = data;
@@ -93,36 +89,30 @@ public class DataBits {
         }
     }
 
-    public String toString()
-    {
+    public String toString() {
         return "DBits: " + size + "/" + bits + "[" + data.length() + "]";
     }
 
-    private static int dataLength(int bits, int length)
-    {
+    private static int dataLength(int bits, int length) {
         return (length + ((char) (64 / bits)) - 1) / ((char) (64 / bits));
     }
 
-    private static AtomicLongArray longs(DataInputStream din) throws IOException{
+    private static AtomicLongArray longs(DataInputStream din) throws IOException {
         AtomicLongArray a = new AtomicLongArray(din.readInt());
 
-        for(int i = 0; i < a.length(); i++)
-        {
+        for (int i = 0; i < a.length(); i++) {
             a.set(i, din.readLong());
         }
 
         return a;
     }
 
-    public DataBits setBits(int newBits)
-    {
-        if(bits != newBits)
-        {
+    public DataBits setBits(int newBits) {
+        if (bits != newBits) {
             DataBits newData = new DataBits(newBits, size);
             AtomicInteger c = new AtomicInteger(0);
 
-            for(int i = 0; i < size; i++)
-            {
+            for (int i = 0; i < size; i++) {
                 newData.set(i, get(i));
             }
 
@@ -183,14 +173,12 @@ public class DataBits {
 
     public void getAll(IntConsumer var0) {
         int var1 = 0;
-        for(int i = 0; i < data.length(); i++)
-        {
+        for (int i = 0; i < data.length(); i++) {
             long var5 = data.get(i);
             for (int var7 = 0; var7 < valuesPerLong; var7++) {
                 var0.accept((int) (var5 & mask));
                 var5 >>= bits;
-                if (++var1 >= size)
-                {
+                if (++var1 >= size) {
                     return;
                 }
             }
@@ -200,8 +188,7 @@ public class DataBits {
     public void write(DataOutputStream dos) throws IOException {
         dos.writeInt(data.length());
 
-        for(int i = 0; i < data.length(); i++)
-        {
+        for (int i = 0; i < data.length(); i++) {
             dos.writeLong(data.get(i));
         }
     }

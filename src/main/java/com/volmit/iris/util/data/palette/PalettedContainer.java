@@ -21,8 +21,8 @@ package com.volmit.iris.util.data.palette;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.math.M;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+
 import java.util.List;
-import java.util.function.Predicate;
 
 @SuppressWarnings("DuplicatedCode")
 public class PalettedContainer<T> implements PaletteResize<T> {
@@ -43,8 +43,7 @@ public class PalettedContainer<T> implements PaletteResize<T> {
     }
 
     private void setBits(int var0) {
-        if (var0 == this.bits)
-        {
+        if (var0 == this.bits) {
             return;
         }
         this.bits = var0;
@@ -65,8 +64,7 @@ public class PalettedContainer<T> implements PaletteResize<T> {
         setBits(var0);
         for (int var4 = 0; var4 < var2.getSize(); var4++) {
             T var5 = var3.valueFor(var2.get(var4));
-            if (var5 != null)
-            {
+            if (var5 != null) {
                 set(var4, var5);
             }
         }
@@ -95,8 +93,7 @@ public class PalettedContainer<T> implements PaletteResize<T> {
     private void set(int var0, T var1) {
         int var2 = this.palette.idFor(var1);
 
-        if(M.r(0.003))
-        {
+        if (M.r(0.003)) {
             Iris.info("ID for " + var1 + " is " + var2 + " Palette: " + palette.getSize());
         }
 
@@ -113,8 +110,7 @@ public class PalettedContainer<T> implements PaletteResize<T> {
 
     public void read(List<T> palette, long[] data) {
         int var2 = Math.max(4, Mth.ceillog2(palette.size()));
-        if (var2 != this.bits)
-        {
+        if (var2 != this.bits) {
             setBits(var2);
         }
 
@@ -124,8 +120,7 @@ public class PalettedContainer<T> implements PaletteResize<T> {
             System.arraycopy(data, 0, this.storage.getRaw(), 0, data.length);
         } else {
             BitStorage var4 = new BitStorage(var3, 4096, data);
-            for (int var5 = 0; var5 < 4096; var5++)
-            {
+            for (int var5 = 0; var5 < 4096; var5++) {
                 this.storage.set(var5, var4.get(var5));
             }
         }

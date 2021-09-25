@@ -25,15 +25,14 @@ import com.volmit.iris.engine.framework.EngineMode;
 import com.volmit.iris.engine.framework.IrisEngineMode;
 
 public class ModeSuperFlat extends IrisEngineMode implements EngineMode {
-    public ModeSuperFlat(Engine engine)
-    {
+    public ModeSuperFlat(Engine engine) {
         super(engine);
         var terrain = new IrisTerrainNormalActuator(getEngine());
         var biome = new IrisBiomeActuator(getEngine());
 
         registerStage(burst(
-            (x, z, k, p, m) -> terrain.actuate(x, z, k, m),
-            (x, z, k, p, m) -> biome.actuate(x, z, p, m)
+                (x, z, k, p, m) -> terrain.actuate(x, z, k, m),
+                (x, z, k, p, m) -> biome.actuate(x, z, p, m)
         ));
     }
 }

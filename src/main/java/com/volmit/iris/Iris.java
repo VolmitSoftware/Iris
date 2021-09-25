@@ -67,6 +67,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.plugin.IllegalPluginAccessException;
 import org.bukkit.plugin.Plugin;
 
 import java.io.BufferedInputStream;
@@ -298,15 +299,23 @@ public class Iris extends VolmitPlugin implements Listener {
 
     @SuppressWarnings("deprecation")
     public static void later(NastyRunnable object) {
-        Bukkit.getScheduler().scheduleAsyncDelayedTask(instance, () ->
+        try
         {
-            try {
-                object.run();
-            } catch (Throwable e) {
-                e.printStackTrace();
-                Iris.reportError(e);
-            }
-        }, RNG.r.i(100, 1200));
+            Bukkit.getScheduler().scheduleAsyncDelayedTask(instance, () ->
+            {
+                try {
+                    object.run();
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                    Iris.reportError(e);
+                }
+            }, RNG.r.i(100, 1200));
+        }
+
+        catch(IllegalPluginAccessException ignored)
+        {
+
+        }
     }
 
     public static int jobCount() {

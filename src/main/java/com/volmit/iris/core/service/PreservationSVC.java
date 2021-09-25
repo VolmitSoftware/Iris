@@ -32,14 +32,16 @@ import com.volmit.iris.util.scheduling.Looper;
 import com.volmit.iris.util.stream.utility.CachedStream2D;
 
 import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 
 public class PreservationSVC implements IrisService {
-    private final KList<Thread> threads = new KList<>();
-    private final KList<ExecutorService> services = new KList<>();
+    private final List<Thread> threads = new CopyOnWriteArrayList<>();
+    private final List<ExecutorService> services = new CopyOnWriteArrayList<>();
     private Looper dereferencer;
-    private final KList<MeteredCache> caches = new KList<>();
+    private final List<MeteredCache> caches = new CopyOnWriteArrayList<>();
 
     public void register(Thread t) {
         threads.add(t);
@@ -79,8 +81,8 @@ public class PreservationSVC implements IrisService {
     public void dereference() {
         IrisContext.dereference();
         IrisData.dereference();
-        threads.removeWhere((i) -> !i.isAlive());
-        services.removeWhere(ExecutorService::isShutdown);
+        threads.removeIf((i) -> !i.isAlive());
+        services.removeIf(ExecutorService::isShutdown);
         updateCaches();
     }
 
@@ -129,7 +131,7 @@ public class PreservationSVC implements IrisService {
 
     public void updateCaches()
     {
-        caches.removeWhere(MeteredCache::isClosed);
+        caches.removeIf(MeteredCache::isClosed);
     }
 
     public void registerCache(MeteredCache cache) {

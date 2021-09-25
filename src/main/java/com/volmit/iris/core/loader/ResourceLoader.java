@@ -70,7 +70,7 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
         this.resourceTypeName = resourceTypeName;
         this.root = root;
         this.folderName = folderName;
-        loadCache = new KCache<>(this::loadRaw, IrisSettings.get().getPerformance().getMaxResourceLoaderCacheSize());
+        loadCache = new KCache<>(this::loadRaw, IrisSettings.get().getPerformance().getResourceLoaderCacheSize());
         Iris.debug("Loader<" + C.GREEN + resourceTypeName + C.LIGHT_PURPLE + "> created in " + C.RED + "IDM/" + manager.getId() + C.LIGHT_PURPLE + " on " + C.GRAY + manager.getDataFolder().getPath());
         Iris.service(PreservationSVC.class).registerCache(this);
     }

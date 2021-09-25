@@ -89,7 +89,7 @@ public class IrisComplex implements DataProvider {
     }
 
     public IrisComplex(Engine engine, boolean simple) {
-        int cacheSize = IrisSettings.get().getPerformance().getMaxStreamCacheSize();
+        int cacheSize = IrisSettings.get().getPerformance().getCacheSize();
         IrisBiome emptyBiome = new IrisBiome();
         UUID focusUUID = UUID.nameUUIDFromBytes("focus".getBytes());
         this.rng = new RNG(engine.getSeedManager().getComplex());

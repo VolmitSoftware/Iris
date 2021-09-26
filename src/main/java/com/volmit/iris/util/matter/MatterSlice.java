@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.matter;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.data.palette.Palette;
@@ -184,7 +185,15 @@ public interface MatterSlice<T> extends Hunk<T>, PaletteType<T>, Writable<T> {
 
     default void read(DataInputStream din) throws IOException {
         if ((this instanceof PaletteOrHunk f && f.isPalette())) {
-            f.setPalette(new DataContainer<>(din, this));
+            try {
+                f.setPalette(new DataContainer<>(din, this));
+            }
+
+            catch(Throwable e)
+            {
+                Iris.error("Failed to read " + getType() + " Matter! ?? ");
+                throw new IOException(e);
+            }
             return;
         }
 

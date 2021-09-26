@@ -18,7 +18,9 @@
 
 package com.volmit.iris.util.hunk.bits;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.function.Consumer2;
+import org.bukkit.block.data.BlockData;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -70,7 +72,7 @@ public class LinearPalette<T> implements Palette<T> {
             return 0;
         }
 
-        for (int i = 0; i < size(); i++) {
+        for (int i = 1; i < size() + 1; i++) {
             if (t.equals(palette.get().get(i))) {
                 return i;
             }

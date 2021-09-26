@@ -32,7 +32,7 @@ public abstract class PaletteOrHunk<T> extends StorageHunk<T> implements Hunk<T>
 
     public PaletteOrHunk(int width, int height, int depth, boolean allow, Supplier<Hunk<T>> factory) {
         super(width, height, depth);
-        hunk = (allow) ? new PaletteHunk<>(width, height, depth, this) : factory.get();
+        hunk = (allow && (width * height * depth <= 4096)) ? new PaletteHunk<>(width, height, depth, this) : factory.get();
     }
 
     public DataContainer<T> palette() {

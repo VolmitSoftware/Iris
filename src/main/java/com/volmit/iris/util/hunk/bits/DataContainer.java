@@ -19,6 +19,7 @@
 package com.volmit.iris.util.hunk.bits;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.data.Varint;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -27,7 +28,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class DataContainer<T> {
     protected static final int INITIAL_BITS = 2;
@@ -50,7 +50,7 @@ public class DataContainer<T> {
 
     public DataContainer(DataInputStream din, Writable<T> writer) throws IOException {
         this.writer = writer;
-        this.length = din.readInt();
+        this.length = Varint.readUnsignedVarInt(din);
         this.palette = new AtomicReference<>(newPalette(din));
         this.data = new AtomicReference<>(new DataBits(palette.get().bits(), length, din));
         this.bits = new AtomicInteger(palette.get().bits());
@@ -82,15 +82,15 @@ public class DataContainer<T> {
     }
 
     public void writeDos(DataOutputStream dos) throws IOException {
-        dos.writeInt(length);
-        dos.writeInt(palette.get().size());
+        Varint.writeUnsignedVarInt(length, dos);
+        Varint.writeUnsignedVarInt(palette.get().size(), dos);
         palette.get().iterateIO((data, __) -> writer.writeNodeData(dos, data));
         data.get().write(dos);
         dos.flush();
     }
 
     private Palette<T> newPalette(DataInputStream din) throws IOException {
-        int paletteSize = din.readInt();
+        int paletteSize = Varint.readUnsignedVarInt(din);
         Palette<T> d = newPalette(bits(paletteSize+1));
         d.from(paletteSize, writer, din);
         return d;
@@ -104,15 +104,9 @@ public class DataContainer<T> {
         return new HashPalette<>();
     }
 
-    private void checkBits() {
-        if (palette.get().size() >= BIT[bits.get()]) {
-            setBits(bits.get() + 1);
-        }
-    }
-
     public void ensurePaletted(T t) {
         if (palette.get().id(t) == -1) {
-            checkBits();
+            expandOne();
         }
     }
 
@@ -131,7 +125,7 @@ public class DataContainer<T> {
     }
 
     private void expandOne() {
-        if (palette.get().size()+1 >= BIT[bits.get()]) {
+        if (palette.get().size() + 1 >= BIT[bits.get()] - 1) {
             setBits(bits.get() + 1);
         }
     }

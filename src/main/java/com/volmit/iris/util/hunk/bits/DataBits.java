@@ -19,6 +19,7 @@
 package com.volmit.iris.util.hunk.bits;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.data.Varint;
 import org.apache.commons.lang3.Validate;
 
 import java.io.DataInputStream;
@@ -65,7 +66,7 @@ public class DataBits {
     }
 
     public DataBits(int bits, int length, DataInputStream din) throws IOException {
-        this(bits, length, longs(din));
+        this(bits, length, longs(din, dataLength(bits, length)));
     }
 
     public DataBits(int bits, int length, AtomicLongArray data) {
@@ -98,11 +99,11 @@ public class DataBits {
         return (length + ((char) (64 / bits)) - 1) / ((char) (64 / bits));
     }
 
-    private static AtomicLongArray longs(DataInputStream din) throws IOException {
-        AtomicLongArray a = new AtomicLongArray(din.readInt());
+    private static AtomicLongArray longs(DataInputStream din, int longSize) throws IOException {
+        AtomicLongArray a = new AtomicLongArray(longSize);
 
         for (int i = 0; i < a.length(); i++) {
-            a.set(i, din.readLong());
+            a.set(i, Varint.readUnsignedVarLong(din));
         }
 
         return a;
@@ -187,10 +188,8 @@ public class DataBits {
     }
 
     public void write(DataOutputStream dos) throws IOException {
-        dos.writeInt(data.length());
-
         for (int i = 0; i < data.length(); i++) {
-            dos.writeLong(data.get(i));
+            Varint.writeUnsignedVarLong(data.get(i), dos);
         }
     }
 }

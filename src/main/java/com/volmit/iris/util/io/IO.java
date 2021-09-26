@@ -19,6 +19,7 @@
 package com.volmit.iris.util.io;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.format.Form;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -160,6 +161,10 @@ public class IO {
         }
 
         return new String(hexChars).toUpperCase();
+    }
+
+    public static String print(byte[] bytes) {
+        return Form.memSize(bytes.length, 2) + "[" + bytesToHex(bytes) + "]";
     }
 
     public static String longsToHex(long[] bytes) {

@@ -44,13 +44,11 @@ public enum IrisDimensionModeType {
     ;
     private final Function<Engine, EngineMode> factory;
 
-    IrisDimensionModeType(Function<Engine, EngineMode> factory)
-    {
+    IrisDimensionModeType(Function<Engine, EngineMode> factory) {
         this.factory = factory;
     }
 
-    public EngineMode create(Engine e)
-    {
+    public EngineMode create(Engine e) {
         return factory.apply(e);
     }
 }

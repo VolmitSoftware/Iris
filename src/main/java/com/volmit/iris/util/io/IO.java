@@ -19,13 +19,13 @@
 package com.volmit.iris.util.io;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.format.Form;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.CharArrayWriter;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -163,19 +163,22 @@ public class IO {
         return new String(hexChars).toUpperCase();
     }
 
+    public static String print(byte[] bytes) {
+        return Form.memSize(bytes.length, 2) + "[" + bytesToHex(bytes) + "]";
+    }
+
     public static String longsToHex(long[] bytes) {
         byte[] v = new byte[bytes.length * 8];
 
-        for(int i = 0; i < bytes.length; i++)
-        {
-            v[i * 8] = (byte)(bytes[i] >>> 56);
-            v[(i * 8) + 1] = (byte)(bytes[i] >>> 48);
-            v[(i * 8) + 2] = (byte)(bytes[i] >>> 40);
-            v[(i * 8) + 3] = (byte)(bytes[i] >>> 32);
-            v[(i * 8) + 4] = (byte)(bytes[i] >>> 24);
-            v[(i * 8) + 5] = (byte)(bytes[i] >>> 16);
-            v[(i * 8) + 6] = (byte)(bytes[i] >>>  8);
-            v[(i * 8) + 7] = (byte)(bytes[i] >>>  0);
+        for (int i = 0; i < bytes.length; i++) {
+            v[i * 8] = (byte) (bytes[i] >>> 56);
+            v[(i * 8) + 1] = (byte) (bytes[i] >>> 48);
+            v[(i * 8) + 2] = (byte) (bytes[i] >>> 40);
+            v[(i * 8) + 3] = (byte) (bytes[i] >>> 32);
+            v[(i * 8) + 4] = (byte) (bytes[i] >>> 24);
+            v[(i * 8) + 5] = (byte) (bytes[i] >>> 16);
+            v[(i * 8) + 6] = (byte) (bytes[i] >>> 8);
+            v[(i * 8) + 7] = (byte) (bytes[i] >>> 0);
         }
 
         return bytesToHex(v);

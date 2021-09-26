@@ -18,15 +18,17 @@
 
 package com.volmit.iris.engine.framework;
 
-public interface MeteredCache
-{
+import com.volmit.iris.util.data.KCache;
+
+public interface MeteredCache {
     long getSize();
+
+    KCache<?, ?> getRawCache();
 
     long getMaxSize();
 
-    default double getUsage()
-    {
-        return (double)getSize() / (double)getMaxSize();
+    default double getUsage() {
+        return (double) getSize() / (double) getMaxSize();
     }
 
     boolean isClosed();

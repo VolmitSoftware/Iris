@@ -41,16 +41,13 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class ServerConfigurator {
-    public static void configure()
-    {
+    public static void configure() {
         IrisSettings.IrisSettingsAutoconfiguration s = IrisSettings.get().getAutoConfiguration();
-        if(s.isConfigureSpigotTimeoutTime())
-        {
+        if (s.isConfigureSpigotTimeoutTime()) {
             J.attempt(ServerConfigurator::increaseKeepAliveSpigot);
         }
 
-        if(s.isConfigurePaperWatchdogDelay())
-        {
+        if (s.isConfigurePaperWatchdogDelay()) {
             J.attempt(ServerConfigurator::increasePaperWatchdog);
         }
 
@@ -63,9 +60,9 @@ public class ServerConfigurator {
         f.load(spigotConfig);
         long tt = f.getLong("settings.timeout-time");
 
-        if(tt < TimeUnit.MINUTES.toSeconds(5))
-        {
-            Iris.warn("Updating spigot.yml timeout-time: " + tt + " -> " + TimeUnit.MINUTES.toSeconds(5) + " (5 minutes). You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
+        if (tt < TimeUnit.MINUTES.toSeconds(5)) {
+            Iris.warn("Updating spigot.yml timeout-time: " + tt + " -> " + TimeUnit.MINUTES.toSeconds(5) + " (5 minutes)");
+            Iris.warn("You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
             f.set("settings.timeout-time", TimeUnit.MINUTES.toSeconds(5));
             f.save(spigotConfig);
         }
@@ -77,9 +74,9 @@ public class ServerConfigurator {
         f.load(spigotConfig);
         long tt = f.getLong("settings.watchdog.early-warning-delay");
 
-        if(tt < TimeUnit.MINUTES.toMillis(3))
-        {
-            Iris.warn("Updating paper.yml watchdog early-warning-delay: " + tt + " -> " + TimeUnit.MINUTES.toMillis(3) + " (3 minutes). You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
+        if (tt < TimeUnit.MINUTES.toMillis(3)) {
+            Iris.warn("Updating paper.yml watchdog early-warning-delay: " + tt + " -> " + TimeUnit.MINUTES.toMillis(3) + " (3 minutes)");
+            Iris.warn("You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
             f.set("settings.watchdog.early-warning-delay", TimeUnit.MINUTES.toMillis(3));
             f.save(spigotConfig);
         }
@@ -110,8 +107,7 @@ public class ServerConfigurator {
         return null;
     }
 
-    public static void installDataPacks(boolean fullInstall)
-    {
+    public static void installDataPacks(boolean fullInstall) {
         Iris.info("Checking Data Packs...");
         boolean reboot = false;
         File packs = new File("plugins/Iris/packs");
@@ -151,8 +147,7 @@ public class ServerConfigurator {
 
         Iris.info("Data Packs Setup!");
 
-        if(fullInstall)
-        {
+        if (fullInstall) {
             verifyDataPacksPost(IrisSettings.get().getAutoConfiguration().isAutoRestartOnCustomBiomeInstall());
         }
     }
@@ -194,14 +189,10 @@ public class ServerConfigurator {
             }
         }
 
-        if(bad)
-        {
-            if(allowRestarting)
-            {
+        if (bad) {
+            if (allowRestarting) {
                 restart();
-            }
-
-            else if (INMS.get().supportsDataPacks()) {
+            } else if (INMS.get().supportsDataPacks()) {
                 Iris.error("============================================================================");
                 Iris.error(C.ITALIC + "You need to restart your server to properly generate custom biomes.");
                 Iris.error(C.ITALIC + "By continuing, Iris will use backup biomes in place of the custom biomes.");
@@ -224,7 +215,9 @@ public class ServerConfigurator {
 
     public static void restart() {
         J.s(() -> {
-            Iris.warn("New data pack entries have been installed in Iris! Restarting server! (You can disable this auto restart in iris settings). This will only happen when your pack changes (updates/first time setup)");
+            Iris.warn("New data pack entries have been installed in Iris! Restarting server!");
+            Iris.warn("This will only happen when your pack changes (updates/first time setup)");
+            Iris.warn("(You can disable this auto restart in iris settings)");
             J.s(() -> {
                 Iris.warn("Looks like the restart command diddn't work. Stopping the server instead!");
                 Bukkit.shutdown();
@@ -268,7 +261,8 @@ public class ServerConfigurator {
         }
 
         if (warn) {
-            Iris.error("The Pack " + dimension.getLoadKey() + " is INCAPABLE of generating custom biomes, restart your server before generating with this pack!");
+            Iris.error("The Pack " + dimension.getLoadKey() + " is INCAPABLE of generating custom biomes");
+            Iris.error("If not done automatically, restart your server before generating with this pack!");
         }
 
         return !warn;

@@ -20,10 +20,7 @@ package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.nbt.io.NBTUtil;
-import com.volmit.iris.util.nbt.tag.CompoundTag;
-import com.volmit.iris.util.nbt.tag.IntTag;
 import com.volmit.iris.util.nbt.tag.Tag;
-import org.bukkit.entity.Player;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -31,7 +28,7 @@ import java.io.IOException;
 
 public class NBTMatter<T extends Tag<?>> extends RawMatter<T> {
     public NBTMatter(int width, int height, int depth, Class<T> c, T e) {
-        super(width, height, depth, c, e);
+        super(width, height, depth, c);
     }
 
     @Override

@@ -133,8 +133,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
     @Override
     public Mantle getMantle() {
-        if(IrisToolbelt.isIrisWorld(world))
-        {
+        if (IrisToolbelt.isIrisWorld(world)) {
             return IrisToolbelt.access(world).getEngine().getMantle().getMantle();
         }
 

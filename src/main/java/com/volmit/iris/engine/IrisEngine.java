@@ -21,30 +21,20 @@ package com.volmit.iris.engine;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.service.PreservationSVC;
-import com.volmit.iris.engine.actuator.IrisBiomeActuator;
-import com.volmit.iris.engine.actuator.IrisDecorantActuator;
-import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineEffects;
 import com.volmit.iris.engine.framework.EngineMetrics;
 import com.volmit.iris.engine.framework.EngineMode;
-import com.volmit.iris.engine.framework.EngineStage;
 import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.framework.EngineWorldManager;
 import com.volmit.iris.engine.framework.SeedManager;
 import com.volmit.iris.engine.framework.WrongEngineBroException;
 import com.volmit.iris.engine.mantle.EngineMantle;
-import com.volmit.iris.engine.mode.ModeOverworld;
-import com.volmit.iris.engine.modifier.IrisCarveModifier;
-import com.volmit.iris.engine.modifier.IrisDepositModifier;
-import com.volmit.iris.engine.modifier.IrisPerfectionModifier;
-import com.volmit.iris.engine.modifier.IrisPostModifier;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
 import com.volmit.iris.engine.object.IrisDecorator;
@@ -53,10 +43,8 @@ import com.volmit.iris.engine.object.IrisJigsawStructure;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.atomics.AtomicRollingSequence;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
-import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -65,8 +53,6 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.matter.MatterCavern;
-import com.volmit.iris.util.matter.MatterFluidBody;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -196,8 +182,7 @@ public class IrisEngine implements Engine {
     }
 
     private void setupMode() {
-        if(mode != null)
-        {
+        if (mode != null) {
             mode.close();
         }
 
@@ -462,18 +447,7 @@ public class IrisEngine implements Engine {
                 mode.generate(x, z, blocks, vbiomes, multicore);
             }
 
-            if(!multicore)
-            {
-                for(int i = 0; i < 16; i++)
-                {
-                    for(int j = 0; j < 16; j++)
-                    {
-                        blocks.set(i, 255, j, B.get("GLASS"));
-                    }
-                }
-            }
-
-            getMantle().getMantle().flag(x>>4, z>>4, MantleFlag.REAL, true);
+            getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.REAL, true);
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();
             recycle();

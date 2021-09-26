@@ -22,54 +22,60 @@ import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.volmit.iris.engine.framework.MeteredCache;
+import com.volmit.iris.util.math.RollingSequence;
 
-import java.util.function.Function;
-
-public class KCache<K,V> implements MeteredCache {
-    private long max;
+public class KCache<K, V> implements MeteredCache {
+    private final long max;
     private CacheLoader<K, V> loader;
-    private LoadingCache<K, V> cache;
+    private final LoadingCache<K, V> cache;
+    private final boolean fastDump;
+    private final RollingSequence msu = new RollingSequence(100);
 
-    public KCache(CacheLoader<K, V> loader, long max)
-    {
+    public KCache(CacheLoader<K, V> loader, long max) {
+        this(loader, max, false);
+    }
+
+    public KCache(CacheLoader<K, V> loader, long max, boolean fastDump) {
         this.max = max;
+        this.fastDump = fastDump;
         this.loader = loader;
         this.cache = create(loader);
     }
 
-    private LoadingCache<K,V> create(CacheLoader<K,V> loader) {
+    private LoadingCache<K, V> create(CacheLoader<K, V> loader) {
         return Caffeine
                 .newBuilder()
                 .maximumSize(max)
+                .softValues()
+                .initialCapacity((int) (max))
                 .build((k) -> loader == null ? null : loader.load(k));
     }
 
 
-    public void setLoader(CacheLoader<K, V> loader)
-    {
+    public void setLoader(CacheLoader<K, V> loader) {
         this.loader = loader;
     }
 
-    public void invalidate(K k)
-    {
+    public void invalidate(K k) {
         cache.invalidate(k);
     }
 
-    public void invalidate()
-    {
-        LoadingCache<?,?> c = cache;
-        cache = create(loader);
-        c.invalidateAll();
+    public void invalidate() {
+        cache.invalidateAll();
     }
 
-    public V get(K k)
-    {
+    public V get(K k) {
         return cache.get(k);
     }
 
     @Override
     public long getSize() {
         return cache.estimatedSize();
+    }
+
+    @Override
+    public KCache<?, ?> getRawCache() {
+        return this;
     }
 
     @Override

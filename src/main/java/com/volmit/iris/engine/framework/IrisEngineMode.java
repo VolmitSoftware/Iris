@@ -25,18 +25,15 @@ public abstract class IrisEngineMode implements EngineMode {
     private final KList<EngineStage> stages;
     private boolean closed;
 
-    public IrisEngineMode(Engine engine)
-    {
+    public IrisEngineMode(Engine engine) {
         this.engine = engine;
         this.stages = new KList<>();
         this.closed = false;
     }
 
     @Override
-    public synchronized void close()
-    {
-        if(closed)
-        {
+    public synchronized void close() {
+        if (closed) {
             return;
         }
 

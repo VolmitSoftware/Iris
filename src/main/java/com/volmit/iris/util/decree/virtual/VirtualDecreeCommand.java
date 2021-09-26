@@ -528,18 +528,28 @@ public class VirtualDecreeCommand {
             m++;
         }
 
-        CompletableFuture<String> future = new CompletableFuture<>();
-        Iris.service(CommandSVC.class).post(password, future);
+        if (sender.isPlayer()) {
+            CompletableFuture<String> future = new CompletableFuture<>();
+            Iris.service(CommandSVC.class).post(password, future);
 
-        if (IrisSettings.get().getGeneral().isCommandSounds() && sender.isPlayer()) {
-            (sender.player()).playSound((sender.player()).getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.77f, 0.65f);
-            (sender.player()).playSound((sender.player()).getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.125f, 1.99f);
-        }
+            if (IrisSettings.get().getGeneral().isCommandSounds()) {
+                (sender.player()).playSound((sender.player()).getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.77f, 0.65f);
+                (sender.player()).playSound((sender.player()).getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.125f, 1.99f);
+            }
 
-        try {
-            return future.get(15, TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            try {
+                return future.get(15, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
 
+            }
+        } else {
+            CompletableFuture<String> future = new CompletableFuture<>();
+            Iris.service(CommandSVC.class).postConsole(future);
+            try {
+                return future.get(15, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
+
+            }
         }
 
         return null;

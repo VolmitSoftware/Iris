@@ -18,6 +18,9 @@
 
 package com.volmit.iris;
 
+import com.google.gson.ExclusionStrategy;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.link.IrisPapiExpansion;
@@ -27,6 +30,7 @@ import com.volmit.iris.core.link.OraxenLink;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.service.StudioSVC;
+import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
@@ -37,15 +41,14 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.format.MemoryMonitor;
 import com.volmit.iris.util.function.NastyRunnable;
+import com.volmit.iris.util.hunk.bits.TecTest;
 import com.volmit.iris.util.io.FileWatcher;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.io.JarScanner;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.matter.MatterTest;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.Metrics;
@@ -68,6 +71,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.plugin.IllegalPluginAccessException;
 import org.bukkit.plugin.Plugin;
 
 import java.io.BufferedInputStream;
@@ -299,15 +303,23 @@ public class Iris extends VolmitPlugin implements Listener {
 
     @SuppressWarnings("deprecation")
     public static void later(NastyRunnable object) {
-        Bukkit.getScheduler().scheduleAsyncDelayedTask(instance, () ->
+        try
         {
-            try {
-                object.run();
-            } catch (Throwable e) {
-                e.printStackTrace();
-                Iris.reportError(e);
-            }
-        }, RNG.r.i(100, 1200));
+            Bukkit.getScheduler().scheduleAsyncDelayedTask(instance, () ->
+            {
+                try {
+                    object.run();
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                    Iris.reportError(e);
+                }
+            }, RNG.r.i(100, 1200));
+        }
+
+        catch(IllegalPluginAccessException ignored)
+        {
+
+        }
     }
 
     public static int jobCount() {
@@ -446,10 +458,10 @@ public class Iris extends VolmitPlugin implements Listener {
         J.ar(this::checkConfigHotload, 60);
         J.sr(this::tickQueue, 0);
         J.s(this::setupPapi);
+        J.s(TecTest::go);
         J.a(ServerConfigurator::configure, 20);
         splash();
-        J.a(MatterTest::test, 20);
-        
+
         if (IrisSettings.get().getStudio().isAutoStartDefaultStudio()) {
             Iris.info("Starting up auto Studio!");
             try {
@@ -466,6 +478,16 @@ public class Iris extends VolmitPlugin implements Listener {
                 e.printStackTrace();
             }
         }
+    }
+
+    public static void panic()
+    {
+        EnginePanic.panic();
+    }
+
+    public static void addPanic(String s, String v)
+    {
+        EnginePanic.add(s, v);
     }
 
     @SuppressWarnings("unchecked")

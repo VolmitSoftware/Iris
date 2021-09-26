@@ -32,7 +32,7 @@ public class CachedStream3D<T> extends BasicStream<T> implements ProceduralStrea
     private final KCache<BlockPosition, T> cache;
     private final Engine engine;
 
-    public CachedStream3D(Engine engine, ProceduralStream<T> stream, int size) {
+    public CachedStream3D(String name, Engine engine, ProceduralStream<T> stream, int size) {
         super();
         this.stream = stream;
         this.engine = engine;
@@ -63,6 +63,11 @@ public class CachedStream3D<T> extends BasicStream<T> implements ProceduralStrea
     @Override
     public long getSize() {
         return cache.getSize();
+    }
+
+    @Override
+    public KCache<?, ?> getRawCache() {
+        return cache;
     }
 
     @Override

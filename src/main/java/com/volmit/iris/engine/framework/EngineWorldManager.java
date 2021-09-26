@@ -21,6 +21,7 @@ package com.volmit.iris.engine.framework;
 import org.bukkit.Chunk;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 
 @SuppressWarnings("EmptyMethod")
 public interface EngineWorldManager {
@@ -45,4 +46,6 @@ public interface EngineWorldManager {
     void onChunkLoad(Chunk e, boolean generated);
 
     void chargeEnergy();
+
+    void teleportAsync(PlayerTeleportEvent e);
 }

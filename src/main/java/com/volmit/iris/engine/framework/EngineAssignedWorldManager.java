@@ -24,6 +24,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.plugin.VolmitSender;
+import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -31,13 +32,17 @@ import org.bukkit.entity.EnderSignal;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class EngineAssignedWorldManager extends EngineAssignedComponent implements EngineWorldManager, Listener {
     private final int taskId;
@@ -59,6 +64,27 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
             i.playSound(i.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_BREAK, 1f, 1.8f);
             VolmitSender s = new VolmitSender(i);
             s.sendTitle(C.IRIS + "Engine " + C.AQUA + "<font:minecraft:uniform>Hotloaded", 70, 60, 410);
+        }
+    }
+
+    protected AtomicBoolean ignoreTP = new AtomicBoolean(false);
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void on(PlayerTeleportEvent e) {
+        if (ignoreTP.get()) {
+            return;
+        }
+
+        if (!PaperLib.isPaper() || e.getTo() == null) {
+            return;
+        }
+
+        try {
+            if (e.getTo().getWorld().equals(getTarget().getWorld().realWorld())) {
+                getEngine().getWorldManager().teleportAsync(e);
+            }
+        } catch (Throwable ex) {
+
         }
     }
 

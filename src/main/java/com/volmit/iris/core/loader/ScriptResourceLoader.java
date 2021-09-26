@@ -32,7 +32,7 @@ import java.io.File;
 public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
     public ScriptResourceLoader(File root, IrisData idm, String folderName, String resourceTypeName) {
         super(root, idm, folderName, resourceTypeName, IrisScript.class);
-        loadCache = new KCache<>(this::loadRaw, IrisSettings.get().getPerformance().getMaxScriptLoaderCacheSize());
+        loadCache = new KCache<>(this::loadRaw, IrisSettings.get().getPerformance().getScriptLoaderCacheSize());
     }
 
     public boolean supportsSchemas() {
@@ -113,8 +113,7 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
         return null;
     }
 
-    private IrisScript loadRaw(String name)
-    {
+    private IrisScript loadRaw(String name) {
         for (File i : getFolders(name)) {
             for (File j : i.listFiles()) {
                 if (j.isFile() && j.getName().endsWith(".js") && j.getName().split("\\Q.\\E")[0].equals(name)) {

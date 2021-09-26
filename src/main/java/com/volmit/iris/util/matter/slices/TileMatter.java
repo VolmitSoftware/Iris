@@ -45,7 +45,7 @@ public class TileMatter extends RawMatter<MatterTile> {
     }
 
     public TileMatter(int width, int height, int depth) {
-        super(width, height, depth, MatterTile.class, EMPTY);
+        super(width, height, depth, MatterTile.class);
         registerWriter(World.class, ((w, d, x, y, z) -> INMS.get().deserializeTile(d.getTileData(), new Location(w, x, y, z))));
         registerReader(World.class, (w, x, y, z) -> {
             Location l = new Location(w, x, y, z);

@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.format;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.Looper;
@@ -30,14 +29,14 @@ public class MemoryMonitor {
     private long garbageLast;
     private long garbageBin;
     private long pressure;
-    private ChronoLatch cl;
-    private RollingSequence pressureAvg;
-    private Runtime runtime;
+    private final ChronoLatch cl;
+    private final RollingSequence pressureAvg;
+    private final Runtime runtime;
 
-    public MemoryMonitor(int sampleDelay){
+    public MemoryMonitor(int sampleDelay) {
         this.runtime = Runtime.getRuntime();
         usedMemory = -1;
-        pressureAvg = new RollingSequence(Math.max(Math.min(100, 1000/sampleDelay), 3));
+        pressureAvg = new RollingSequence(Math.max(Math.min(100, 1000 / sampleDelay), 3));
         garbageBin = 0;
         garbageMemory = -1;
         cl = new ChronoLatch(1000);
@@ -56,74 +55,55 @@ public class MemoryMonitor {
         looper.start();
     }
 
-    public long getGarbageBytes()
-    {
+    public long getGarbageBytes() {
         return garbageMemory;
     }
 
-    public long getUsedBytes()
-    {
+    public long getUsedBytes() {
         return usedMemory;
     }
 
-    public long getMaxBytes()
-    {
+    public long getMaxBytes() {
         return runtime.maxMemory();
     }
 
-    public long getPressure()
-    {
+    public long getPressure() {
         return (long) pressureAvg.getAverage();
     }
 
-    public double getUsagePercent()
-    {
-        return usedMemory / (double)getMaxBytes();
+    public double getUsagePercent() {
+        return usedMemory / (double) getMaxBytes();
     }
 
     private void sample() {
         long used = getVMUse();
-        if(usedMemory == -1)
-        {
+        if (usedMemory == -1) {
             usedMemory = used;
             garbageMemory = 0;
             return;
         }
 
-        if(used < usedMemory)
-        {
+        if (used < usedMemory) {
             usedMemory = used;
-        }
-
-        else
-        {
+        } else {
             garbageMemory = used - usedMemory;
         }
 
         long g = garbageMemory - garbageLast;
 
-        if(g >= 0)
-        {
-            garbageBin+= g;
+        if (g >= 0) {
+            garbageBin += g;
             garbageLast = garbageMemory;
-        }
-
-        else
-        {
+        } else {
             garbageMemory = 0;
             garbageLast = 0;
         }
 
-        if(cl.flip())
-        {
-            if(garbageMemory > 0)
-            {
+        if (cl.flip()) {
+            if (garbageMemory > 0) {
                 pressure = garbageBin;
                 garbageBin = 0;
-            }
-
-            else
-            {
+            } else {
                 pressure = 0;
                 garbageBin = 0;
             }
@@ -136,10 +116,8 @@ public class MemoryMonitor {
         return runtime.totalMemory() - runtime.freeMemory();
     }
 
-    public void close()
-    {
-        if(looper != null)
-        {
+    public void close() {
+        if (looper != null) {
             looper.interrupt();
             looper = null;
         }

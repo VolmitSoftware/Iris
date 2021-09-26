@@ -22,23 +22,16 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.KCache;
-import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.math.M;
-import com.volmit.iris.util.scheduling.ChronoLatch;
-import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
 import java.io.File;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
     public ObjectResourceLoader(File root, IrisData idm, String folderName, String resourceTypeName) {
         super(root, idm, folderName, resourceTypeName, IrisObject.class);
-        loadCache = new KCache<>(this::loadRaw, IrisSettings.get().getPerformance().getMaxObjectLoaderCacheSize());
+        loadCache = new KCache<>(this::loadRaw, IrisSettings.get().getPerformance().getObjectLoaderCacheSize());
     }
 
     public boolean supportsSchemas() {
@@ -128,7 +121,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
         return load(name, true);
     }
 
-    private IrisObject loadRaw(String name){
+    private IrisObject loadRaw(String name) {
         for (File i : getFolders(name)) {
             for (File j : i.listFiles()) {
                 if (j.isFile() && j.getName().endsWith(".iob") && j.getName().split("\\Q.\\E")[0].equals(name)) {

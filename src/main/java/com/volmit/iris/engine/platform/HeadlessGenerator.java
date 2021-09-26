@@ -29,7 +29,6 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.object.HeadlessWorld;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
@@ -41,7 +40,6 @@ import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
-import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -51,7 +49,6 @@ import org.bukkit.generator.ChunkGenerator;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Consumer;
 
 @Data
@@ -135,21 +132,19 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
     }
 
     private Position2 avgLast(int x, int z) {
-        while(last.size() > 3)
-        {
+        while (last.size() > 3) {
             last.remove(0);
         }
 
         double xx = 0;
         double zz = 0;
 
-        for(Position2 i : last)
-        {
+        for (Position2 i : last) {
             xx += 27 * (i.getX() - x);
             zz += 27 * (i.getZ() - z);
         }
 
-        return new Position2((int)xx, (int)zz);
+        return new Position2((int) xx, (int) zz);
     }
 
     @RegionCoordinates

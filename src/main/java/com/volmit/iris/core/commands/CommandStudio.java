@@ -62,7 +62,6 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.parallel.MultiBurst;
-import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -367,7 +366,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Hotload a studio", aliases = "reload")
     public void hotload() {
-        if (!Iris.service(StudioSVC.class).isProjectOpen()){
+        if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender().sendMessage(C.RED + "No studio world open!");
             return;
         }

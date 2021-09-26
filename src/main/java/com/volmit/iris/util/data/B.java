@@ -400,13 +400,11 @@ public class B {
         try {
             String bd = bdxf.trim();
 
-            if(bd.startsWith("minecraft:cauldron[level="))
-            {
+            if (bd.startsWith("minecraft:cauldron[level=")) {
                 bd = bd.replaceAll("\\Q:cauldron[\\E", ":water_cauldron[");
             }
 
-            if(bd.equals("minecraft:grass_path"))
-            {
+            if (bd.equals("minecraft:grass_path")) {
                 return DIRT_PATH.createBlockData();
             }
 

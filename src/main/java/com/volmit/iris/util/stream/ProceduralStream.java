@@ -288,16 +288,12 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         return new To3DStream<T>(this);
     }
 
-    default ProceduralStream<T> cache2D(Engine engine, int maxSize) {
-        return cache2D(engine, maxSize, false);
+    default ProceduralStream<T> cache2D(String name, Engine engine, int size) {
+        return new CachedStream2D<T>(name, engine, this, size);
     }
 
-    default ProceduralStream<T> cache2D(Engine engine, int maxSize, boolean weak) {
-        return new CachedStream2D<T>(engine, this, maxSize, weak);
-    }
-
-    default ProceduralStream<T> cache3D(Engine engine, int maxSize) {
-        return new CachedStream3D<T>(engine, this, maxSize);
+    default ProceduralStream<T> cache3D(String name, Engine engine, int maxSize) {
+        return new CachedStream3D<T>(name, engine, this, maxSize);
     }
 
     default <V> ProceduralStream<V> convert(Function<T, V> converter) {

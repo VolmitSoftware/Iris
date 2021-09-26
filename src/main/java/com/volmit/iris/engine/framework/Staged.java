@@ -25,8 +25,7 @@ public interface Staged {
 
     void registerStage(EngineStage stage);
 
-    default void dump()
-    {
+    default void dump() {
         getStages().forEach(EngineStage::close);
         getStages().clear();
     }

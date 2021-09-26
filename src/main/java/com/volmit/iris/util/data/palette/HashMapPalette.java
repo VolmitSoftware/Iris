@@ -20,12 +20,8 @@ package com.volmit.iris.util.data.palette;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.nbt.tag.CompoundTag;
-import com.volmit.iris.util.nbt.tag.ListTag;
 
 import java.util.List;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 public class HashMapPalette<T> implements Palette<T> {
     private final KMap<T, Integer> values;
@@ -41,16 +37,14 @@ public class HashMapPalette<T> implements Palette<T> {
     }
 
     public int idFor(T var0) {
-        if(var0 == null)
-        {
+        if (var0 == null) {
             return 0;
         }
 
         return this.values.computeIfAbsent(var0, (k) -> {
             int newId = id++;
 
-            if (newId >= 1 << this.bits)
-            {
+            if (newId >= 1 << this.bits) {
                 Iris.info(newId + " to...");
                 newId = this.resizeHandler.onResize(this.bits + 1, var0);
                 Iris.info(newId + "..");

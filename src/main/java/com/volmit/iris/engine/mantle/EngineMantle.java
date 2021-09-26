@@ -181,7 +181,7 @@ public interface EngineMantle extends IObjectPlacer {
     }
 
     default void trim() {
-        getMantle().trim(TimeUnit.SECONDS.toMillis(IrisSettings.get().getPerformance().getMantleKeepAliveSeconds()));
+        getMantle().trim(TimeUnit.SECONDS.toMillis(IrisSettings.get().getPerformance().getMantleKeepAlive()));
     }
 
     default MultiBurst burst() {

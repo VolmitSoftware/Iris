@@ -27,6 +27,7 @@ import com.volmit.iris.core.link.OraxenLink;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.service.StudioSVC;
+import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
@@ -474,6 +475,16 @@ public class Iris extends VolmitPlugin implements Listener {
                 e.printStackTrace();
             }
         }
+    }
+
+    public static void panic()
+    {
+        EnginePanic.panic();
+    }
+
+    public static void addPanic(String s, String v)
+    {
+        EnginePanic.add(s, v);
     }
 
     @SuppressWarnings("unchecked")

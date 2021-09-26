@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.matter;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.collection.KSet;
@@ -95,6 +96,10 @@ public interface Matter {
         return read(in, (b) -> new IrisMatter(b.getX(), b.getY(), b.getZ()));
     }
 
+    static Matter readDin(DataInputStream in) throws IOException, ClassNotFoundException {
+        return readDin(in, (b) -> new IrisMatter(b.getX(), b.getY(), b.getZ()));
+    }
+
     /**
      * Reads the input stream into a matter object using a matter factory.
      * Does not close the input stream. Be a man, close it yourself.
@@ -105,16 +110,26 @@ public interface Matter {
      * @throws IOException shit happens yo
      */
     static Matter read(InputStream in, Function<BlockPosition, Matter> matterFactory) throws IOException, ClassNotFoundException {
-        DataInputStream din = new DataInputStream(in);
-        Matter matter = matterFactory.apply(new BlockPosition(
-                Varint.readUnsignedVarInt(din),
-                Varint.readUnsignedVarInt(din),
-                Varint.readUnsignedVarInt(din)));
-        int sliceCount = din.readByte();
-        matter.getHeader().read(din);
+        return readDin(new DataInputStream(in), matterFactory);
+    }
 
-        while (sliceCount-- > 0) {
+    static Matter readDin(DataInputStream din, Function<BlockPosition, Matter> matterFactory) throws IOException, ClassNotFoundException {
+        Matter matter = matterFactory.apply(new BlockPosition(
+                din.readInt(),
+                din.readInt(),
+                din.readInt()));
+        Iris.addPanic("read.matter.size", matter.getWidth() + "x" + matter.getHeight() + "x" + matter.getDepth());
+        int sliceCount = din.readByte();
+        Iris.addPanic("read.matter.slicecount", sliceCount + "");
+
+        matter.getHeader().read(din);
+        Iris.addPanic("read.matter.header", matter.getHeader().toString());
+
+        for(int i = 0; i < sliceCount; i++)
+        {
+            Iris.addPanic("read.matter.slice", i + "");
             String cn = din.readUTF();
+            Iris.addPanic("read.matter.slice.class", cn);
             try {
                 Class<?> type = Class.forName(cn);
                 MatterSlice<?> slice = matter.createSlice(type, matter);
@@ -336,10 +351,6 @@ public interface Matter {
     Map<Class<?>, MatterSlice<?>> getSliceMap();
 
     default void write(File f) throws IOException {
-        write(f, true);
-    }
-
-    default void write(File f, boolean compression) throws IOException {
         OutputStream out = new FileOutputStream(f);
         write(out);
         out.close();
@@ -381,9 +392,9 @@ public interface Matter {
 
     default void writeDos(DataOutputStream dos) throws IOException {
         trimSlices();
-        Varint.writeUnsignedVarInt(getWidth(), dos);
-        Varint.writeUnsignedVarInt(getHeight(), dos);
-        Varint.writeUnsignedVarInt(getDepth(), dos);
+        dos.writeInt(getWidth());
+        dos.writeInt(getHeight());
+        dos.writeInt(getDepth());
         dos.writeByte(getSliceTypes().size());
         getHeader().write(dos);
 

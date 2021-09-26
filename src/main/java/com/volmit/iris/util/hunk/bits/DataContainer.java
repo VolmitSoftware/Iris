@@ -30,8 +30,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class DataContainer<T> {
-    protected static final int INITIAL_BITS = 2;
-    protected static final int LINEAR_BITS_LIMIT = 5;
+    protected static final int INITIAL_BITS = 3;
+    protected static final int LINEAR_BITS_LIMIT = 4;
     protected static final int LINEAR_INITIAL_LENGTH = (int) Math.pow(2, LINEAR_BITS_LIMIT) + 1;
     protected static final int[] BIT = computeBitLimits();
     private final AtomicReference<Palette<T>> palette;
@@ -54,6 +54,51 @@ public class DataContainer<T> {
         this.palette = new AtomicReference<>(newPalette(din));
         this.data = new AtomicReference<>(new DataBits(palette.get().bits(), length, din));
         this.bits = new AtomicInteger(palette.get().bits());
+    }
+
+    public static String readBitString(DataInputStream din) throws IOException
+    {
+        DataContainer<Character> c = new DataContainer<>(din, new Writable<Character>() {
+            @Override
+            public Character readNodeData(DataInputStream din) throws IOException {
+                return din.readChar();
+            }
+
+            @Override
+            public void writeNodeData(DataOutputStream dos, Character character) throws IOException {
+                dos.writeChar(character);
+            }
+        });
+
+        StringBuilder sb = new StringBuilder();
+
+        for(int i = c.size()-1; i >= 0; i--)
+        {
+            sb.setCharAt(i, c.get(i));
+        }
+
+        return sb.toString();
+    }
+
+    public static void writeBitString(String s, DataOutputStream dos) throws IOException {
+        DataContainer<Character> c = new DataContainer<>(new Writable<Character>() {
+            @Override
+            public Character readNodeData(DataInputStream din) throws IOException {
+                return din.readChar();
+            }
+
+            @Override
+            public void writeNodeData(DataOutputStream dos, Character character) throws IOException {
+                dos.writeChar(character);
+            }
+        }, s.length());
+
+        for(int i = 0; i < s.length(); i++)
+        {
+            c.set(i, s.charAt(i));
+        }
+
+        c.writeDos(dos);
     }
 
     public DataBits getData()
@@ -125,7 +170,7 @@ public class DataContainer<T> {
     }
 
     private void expandOne() {
-        if (palette.get().size() + 1 >= BIT[bits.get()] - 1) {
+        if (palette.get().size() + 1 >= BIT[bits.get()]) {
             setBits(bits.get() + 1);
         }
     }

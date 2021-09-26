@@ -19,6 +19,7 @@
 package com.volmit.iris.util.mantle;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
@@ -74,7 +75,9 @@ public class TectonicPlate {
         this(worldHeight, din.readInt(), din.readInt());
         for (int i = 0; i < chunks.length(); i++) {
             if (din.readBoolean()) {
+                Iris.addPanic("read-chunk", "Chunk[" + i + "]");
                 chunks.set(i, new MantleChunk(sectionHeight, din));
+                EnginePanic.saveLast();
             }
         }
     }

@@ -160,6 +160,7 @@ public interface MatterSlice<T> extends Hunk<T>, PaletteType<T>, Writable<T> {
 
     default void write(DataOutputStream dos) throws IOException {
         dos.writeUTF(getType().getCanonicalName());
+
         if ((this instanceof PaletteOrHunk f && f.isPalette())) {
             f.palette().writeDos(dos);
             return;
@@ -185,15 +186,7 @@ public interface MatterSlice<T> extends Hunk<T>, PaletteType<T>, Writable<T> {
 
     default void read(DataInputStream din) throws IOException {
         if ((this instanceof PaletteOrHunk f && f.isPalette())) {
-            try {
-                f.setPalette(new DataContainer<>(din, this));
-            }
-
-            catch(Throwable e)
-            {
-                Iris.error("Failed to read " + getType() + " Matter! ?? ");
-                throw new IOException(e);
-            }
+            f.setPalette(new DataContainer<>(din, this));
             return;
         }
 

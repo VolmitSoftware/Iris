@@ -518,39 +518,42 @@ public class VirtualDecreeCommand {
     }
 
     private String pickValidOption(VolmitSender sender, KList<?> validOptions, DecreeParameterHandler<?> handler, String name, String type) {
-        sender.sendHeader("Pick a " + name + " (" + type + ")");
-        sender.sendMessageRaw("<gradient:#1ed497:#b39427>This query will expire in 15 seconds.</gradient>");
-        String password = UUID.randomUUID().toString().replaceAll("\\Q-\\E", "");
-        int m = 0;
+        int tries = 3;
+        KList<String> options = validOptions.convert(handler::toStringForce);
+        String result = null;
+        while (tries-- > 0 && (result == null || !options.contains(result))) {
 
-        for (String i : validOptions.convert(handler::toStringForce)) {
-            sender.sendMessage("<hover:show_text:'" + gradients[m % gradients.length] + i + "</gradient>'><click:run_command:/irisdecree " + password + " " + i + ">" + "- " + gradients[m % gradients.length] + i + "</gradient></click></hover>");
-            m++;
+            sender.sendHeader("Pick a " + name + " (" + type + ")");
+            sender.sendMessageRaw("<gradient:#1ed497:#b39427>This query will expire in 15 seconds.</gradient>");
+            String password = UUID.randomUUID().toString().replaceAll("\\Q-\\E", "");
+            int m = 0;
+
+            for (String i : validOptions.convert(handler::toStringForce)) {
+                sender.sendMessage("<hover:show_text:'" + gradients[m % gradients.length] + i + "</gradient>'><click:run_command:/irisdecree " + password + " " + i + ">" + "- " + gradients[m % gradients.length] + i + "</gradient></click></hover>");
+                m++;
+            }
+
+            CompletableFuture<String> future = new CompletableFuture<>();
+            if (sender.isPlayer()) {
+                Iris.service(CommandSVC.class).post(password, future);
+
+                if (IrisSettings.get().getGeneral().isCommandSounds()) {
+                    (sender.player()).playSound((sender.player()).getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.77f, 0.65f);
+                    (sender.player()).playSound((sender.player()).getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.125f, 1.99f);
+                }
+            } else {
+                Iris.service(CommandSVC.class).postConsole(future);
+            }
+
+            try {
+                result = future.get(15, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
+
+            }
         }
 
-        if (sender.isPlayer()) {
-            CompletableFuture<String> future = new CompletableFuture<>();
-            Iris.service(CommandSVC.class).post(password, future);
-
-            if (IrisSettings.get().getGeneral().isCommandSounds()) {
-                (sender.player()).playSound((sender.player()).getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.77f, 0.65f);
-                (sender.player()).playSound((sender.player()).getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.125f, 1.99f);
-            }
-
-            try {
-                return future.get(15, TimeUnit.SECONDS);
-            } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
-
-            }
-        } else {
-            CompletableFuture<String> future = new CompletableFuture<>();
-            Iris.service(CommandSVC.class).postConsole(future);
-            try {
-                String result = future.get(15, TimeUnit.SECONDS);
-                return validOptions.convert(handler::toStringForce).contains(result) ? result : null;
-            } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
-
-            }
+        if (result != null && options.contains(result)) {
+            return result;
         }
 
         return null;

@@ -20,7 +20,6 @@ package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.util.data.palette.GlobalPalette;
 import com.volmit.iris.util.data.palette.Palette;
-import com.volmit.iris.util.matter.MatterTile;
 import com.volmit.iris.util.matter.MatterUpdate;
 import com.volmit.iris.util.matter.Sliced;
 
@@ -44,7 +43,7 @@ public class UpdateMatter extends RawMatter<MatterUpdate> {
     }
 
     public UpdateMatter(int width, int height, int depth) {
-        super(width, height, depth, MatterUpdate.class, OFF);
+        super(width, height, depth, MatterUpdate.class);
     }
 
     @Override

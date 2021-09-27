@@ -34,18 +34,16 @@ public interface Palette<T> {
 
     int size();
 
-    default int bits()
-    {
-        return DataContainer.bits(size());
+    default int bits() {
+        return DataContainer.bits(size()+1);
     }
 
     void iterate(Consumer2<T, Integer> c);
 
-    default void iterateIO(Consumer2IO<T, Integer> c)
-    {
-        iterate((a,b)-> {
+    default void iterateIO(Consumer2IO<T, Integer> c) {
+        iterate((a, b) -> {
             try {
-                c.accept(a,b);
+                c.accept(a, b);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -53,22 +51,19 @@ public interface Palette<T> {
     }
 
     default Palette<T> from(int size, Writable<T> writable, DataInputStream in) throws IOException {
-        for(int i = 0; i < size; i++)
-        {
+        for (int i = 0; i < size; i++) {
             add(writable.readNodeData(in));
         }
 
         return this;
     }
 
-    default Palette<T> from(Palette<T> oldPalette)
-    {
-        oldPalette.iterate((k,v) -> add(k));
+    default Palette<T> from(Palette<T> oldPalette) {
+        oldPalette.iterate((k, v) -> add(k));
         return this;
     }
 
-    default KList<T> list()
-    {
+    default KList<T> list() {
         KList<T> t = new KList<>();
         iterate((tx, __) -> t.add(tx));
         return t;

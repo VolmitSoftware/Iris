@@ -32,7 +32,7 @@ public class StringMatter extends RawMatter<String> {
     }
 
     public StringMatter(int width, int height, int depth) {
-        super(width, height, depth, String.class, "");
+        super(width, height, depth, String.class);
     }
 
     @Override

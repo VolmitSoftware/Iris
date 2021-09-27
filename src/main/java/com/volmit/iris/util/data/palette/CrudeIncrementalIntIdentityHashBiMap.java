@@ -20,7 +20,6 @@ package com.volmit.iris.util.data.palette;
 
 import com.google.common.collect.Iterators;
 
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicIntegerArray;
@@ -49,16 +48,14 @@ public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
 
 
     public K byId(int var0) {
-        if (var0 < 0 || var0 >= this.byId.length())
-        {
+        if (var0 < 0 || var0 >= this.byId.length()) {
             return null;
         }
         return this.byId.get(var0);
     }
 
     private int getValue(int var0) {
-        if (var0 == -1)
-        {
+        if (var0 == -1) {
             return -1;
         }
         return this.values.get(var0);
@@ -79,8 +76,7 @@ public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
     }
 
     private int nextId() {
-        while (nextId < byId.length() && byId.get(nextId) != null)
-        {
+        while (nextId < byId.length() && byId.get(nextId) != null) {
             nextId++;
         }
         return nextId;
@@ -95,8 +91,7 @@ public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
         this.nextId = 0;
         this.size = 0;
         for (int var3 = 0; var3 < var1.length(); var3++) {
-            if (var1.get(var3) != null)
-            {
+            if (var1.get(var3) != null) {
                 addMapping(var1.get(var3), var2.get(var3));
             }
         }
@@ -126,8 +121,7 @@ public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
     private int indexOf(K var0, int var1) {
         int var2;
         for (var2 = var1; var2 < this.keys.length(); var2++) {
-            if (this.keys.get(var2) == null)
-            {
+            if (this.keys.get(var2) == null) {
                 return 0;
             }
             if (this.keys.get(var2).equals(var0))
@@ -158,11 +152,12 @@ public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
     }
 
     public Iterator<K> iterator() {
-        return Iterators.filter(new Iterator<K>(){
+        return Iterators.filter(new Iterator<K>() {
             int i = 0;
+
             @Override
             public boolean hasNext() {
-                return i < byId.length()-1;
+                return i < byId.length() - 1;
             }
 
             @Override
@@ -174,15 +169,12 @@ public class CrudeIncrementalIntIdentityHashBiMap<K> implements IdMap<K> {
 
     public void clear() {
 
-        for(int i = 0; i < Math.max(keys.length(), byId.length()); i++)
-        {
-            if(i < keys.length() - 1)
-            {
+        for (int i = 0; i < Math.max(keys.length(), byId.length()); i++) {
+            if (i < keys.length() - 1) {
                 keys.set(i, null);
             }
 
-            if(i < byId.length() - 1)
-            {
+            if (i < byId.length() - 1) {
                 byId.set(i, null);
             }
         }

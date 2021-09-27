@@ -18,8 +18,6 @@
 
 package com.volmit.iris.util.hunk.storage;
 
-import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.data.palette.PalettedContainer;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.function.Consumer4IO;
 import com.volmit.iris.util.hunk.Hunk;
@@ -29,7 +27,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.IOException;
-import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 @SuppressWarnings({"DefaultAnnotationParam", "Lombok"})
 @Data
@@ -37,15 +35,14 @@ import java.util.Map;
 public class PaletteHunk<T> extends StorageHunk<T> implements Hunk<T> {
     private DataContainer<T> data;
 
-    public PaletteHunk(int w, int h, int d, Writable<T> writer, T e) {
-        super(w,h,d);
-        data = new DataContainer<>(writer, w * h * d, e);
+    public PaletteHunk(int w, int h, int d, Writable<T> writer) {
+        super(w, h, d);
+        data = new DataContainer<>(writer, w * h * d);
     }
 
     public void setPalette(DataContainer<T> c) {
         data = c;
     }
-
 
     public boolean isMapped() {
         return false;
@@ -57,16 +54,12 @@ public class PaletteHunk<T> extends StorageHunk<T> implements Hunk<T> {
 
     @Override
     public synchronized Hunk<T> iterateSync(Consumer4<Integer, Integer, Integer, T> c) {
-        for(int i = 0; i < getWidth(); i++)
-        {
-            for(int j = 0; j < getHeight(); j++)
-            {
-                for(int k = 0; k < getDepth(); k++)
-                {
-                    T t = getRaw(i,j,k);
-                    if(t != null)
-                    {
-                        c.accept(i,j,k,t);
+        for (int i = 0; i < getWidth(); i++) {
+            for (int j = 0; j < getHeight(); j++) {
+                for (int k = 0; k < getDepth(); k++) {
+                    T t = getRaw(i, j, k);
+                    if (t != null) {
+                        c.accept(i, j, k, t);
                     }
                 }
             }
@@ -76,16 +69,12 @@ public class PaletteHunk<T> extends StorageHunk<T> implements Hunk<T> {
 
     @Override
     public synchronized Hunk<T> iterateSyncIO(Consumer4IO<Integer, Integer, Integer, T> c) throws IOException {
-        for(int i = 0; i < getWidth(); i++)
-        {
-            for(int j = 0; j < getHeight(); j++)
-            {
-                for(int k = 0; k < getDepth(); k++)
-                {
-                    T t = getRaw(i,j,k);
-                    if(t != null)
-                    {
-                        c.accept(i,j,k,t);
+        for (int i = 0; i < getWidth(); i++) {
+            for (int j = 0; j < getHeight(); j++) {
+                for (int k = 0; k < getDepth(); k++) {
+                    T t = getRaw(i, j, k);
+                    if (t != null) {
+                        c.accept(i, j, k, t);
                     }
                 }
             }

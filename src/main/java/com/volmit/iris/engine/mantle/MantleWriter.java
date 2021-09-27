@@ -524,7 +524,15 @@ public class MantleWriter implements IObjectPlacer {
     }
 
     public <T> void set(IrisPosition pos, T data) {
-        setData(pos.getX(), pos.getY(), pos.getZ(), data);
+        try
+        {
+            setData(pos.getX(), pos.getY(), pos.getZ(), data);
+        }
+
+        catch(Throwable e)
+        {
+            Iris.error("No set? " + data.toString() + " for " + pos.toString());
+        }
     }
 
     public <T> void set(List<IrisPosition> positions, T data) {

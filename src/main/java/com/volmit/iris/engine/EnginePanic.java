@@ -16,23 +16,39 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.util.matter;
+package com.volmit.iris.engine;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.hunk.bits.DataContainer;
-import com.volmit.iris.util.hunk.bits.Writable;
-import com.volmit.iris.util.io.IO;
-import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.collection.KMap;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.Arrays;
+public class EnginePanic {
+    private static final KMap<String, String> stuff = new KMap<>();
+    private static KMap<String, String> last = new KMap<>();
 
-public class MatterTest {
-    public static void test()
+    public static void add(String key, String value)
     {
+        stuff.put(key, value);
+    }
 
+    public static void saveLast()
+    {
+        last = stuff.copy();
+    }
+
+    public static void lastPanic()
+    {
+        for(String i : last.keySet())
+        {
+            Iris.error("Last Panic " + i + ": " + stuff.get(i));
+        }
+    }
+
+    public static void panic()
+    {
+        lastPanic();
+        for(String i : stuff.keySet())
+        {
+            Iris.error("Engine Panic " + i + ": " + stuff.get(i));
+        }
     }
 }

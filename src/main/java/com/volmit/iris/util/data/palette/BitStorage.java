@@ -59,32 +59,26 @@ public class BitStorage {
         this(bits, length, (AtomicLongArray) null);
     }
 
-    private static AtomicLongArray atomic(long[] data)
-    {
-        if(data == null)
-        {
+    private static AtomicLongArray atomic(long[] data) {
+        if (data == null) {
             return null;
         }
 
         AtomicLongArray d = new AtomicLongArray(data.length);
-        for(int i = 0; i < data.length; i++)
-        {
+        for (int i = 0; i < data.length; i++) {
             d.set(i, data[i]);
         }
 
         return d;
     }
 
-    private static long[] atomic(AtomicLongArray data)
-    {
-        if(data == null)
-        {
+    private static long[] atomic(AtomicLongArray data) {
+        if (data == null) {
             return null;
         }
 
         long[] d = new long[data.length()];
-        for(int i = 0; i < data.length(); i++)
-        {
+        for (int i = 0; i < data.length(); i++) {
             d[i] = data.get(i);
         }
 
@@ -107,8 +101,7 @@ public class BitStorage {
         this.divideShift = MAGIC[var3 + 2];
         int var4 = (length + this.valuesPerLong - 1) / this.valuesPerLong;
         if (data != null) {
-            if (data.length() != var4)
-            {
+            if (data.length() != var4) {
                 throw new RuntimeException("NO!");
             }
             this.data = data;
@@ -166,8 +159,7 @@ public class BitStorage {
 
     public void getAll(IntConsumer var0) {
         int var1 = 0;
-        for(int i = 0; i < data.length(); i++)
-        {
+        for (int i = 0; i < data.length(); i++) {
             long var5 = data.get(i);
             for (int var7 = 0; var7 < this.valuesPerLong; var7++) {
                 var0.accept((int) (var5 & this.mask));

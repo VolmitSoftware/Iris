@@ -38,7 +38,6 @@ import com.volmit.iris.util.matter.MatterSlice;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.HyperLock;
 import com.volmit.iris.util.parallel.MultiBurst;
-import com.volmit.iris.util.scheduling.J;
 import lombok.Getter;
 import org.bukkit.Chunk;
 
@@ -477,6 +476,7 @@ public class Mantle {
 
             if (file.exists()) {
                 try {
+                    Iris.addPanic("reading.tectonic-plate", file.getAbsolutePath());
                     region = TectonicPlate.read(worldHeight, file);
 
                     if (region.getX() != x || region.getZ() != z) {
@@ -488,6 +488,8 @@ public class Mantle {
                 } catch (Throwable e) {
                     Iris.error("Failed to read Tectonic Plate " + file.getAbsolutePath() + " creating a new chunk instead.");
                     Iris.reportError(e);
+                    e.printStackTrace();
+                    Iris.panic();
                     region = new TectonicPlate(worldHeight, x, z);
                     loadedRegions.put(k, region);
                     Iris.debug("Created new Tectonic Plate (Due to Load Failure) " + C.DARK_GREEN + x + " " + z);

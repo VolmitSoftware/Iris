@@ -21,7 +21,6 @@ package com.volmit.iris.util.matter.slices;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.Sliced;
-import org.bukkit.entity.Player;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -39,7 +38,7 @@ public class LongMatter extends RawMatter<Long> {
     }
 
     public LongMatter(int width, int height, int depth) {
-        super(width, height, depth, Long.class, 0L);
+        super(width, height, depth, Long.class);
     }
 
     @Override

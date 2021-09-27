@@ -25,7 +25,6 @@ import com.volmit.iris.core.gui.components.Renderer;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.IrisComplex;
-import com.volmit.iris.engine.IrisWorldManager;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.mantle.EngineMantle;
@@ -61,7 +60,6 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterCavern;
-import com.volmit.iris.util.matter.MatterFluidBody;
 import com.volmit.iris.util.matter.MatterUpdate;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -74,13 +72,11 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.Sound;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.EnderSignal;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.Inventory;
@@ -794,12 +790,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     default void gotoJigsaw(IrisJigsawStructure s, Player player) {
-        if(s.getLoadKey().equals(getDimension().getStronghold()))
-        {
+        if (s.getLoadKey().equals(getDimension().getStronghold())) {
             KList<Position2> p = getDimension().getStrongholds(getSeedManager().getSpawn());
 
-            if(p.isEmpty())
-            {
+            if (p.isEmpty()) {
                 player.sendMessage(C.GOLD + "No strongholds in world.");
             }
 
@@ -905,10 +899,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         Locator.region(r.getLoadKey()).find(player);
     }
 
-    default void cleanupMantleChunk(int x, int z)
-    {
-        if(IrisSettings.get().getPerformance().isTrimMantleInStudio() || !isStudio())
-        {
+    default void cleanupMantleChunk(int x, int z) {
+        if (IrisSettings.get().getPerformance().isTrimMantleInStudio() || !isStudio()) {
             J.a(() -> getMantle().cleanupChunk(x, z));
         }
     }

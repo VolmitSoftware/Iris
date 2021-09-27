@@ -32,19 +32,16 @@ public interface EngineMode extends Staged {
 
     Engine getEngine();
 
-    default MultiBurst burst()
-    {
+    default MultiBurst burst() {
         return getEngine().burst();
     }
 
-    default EngineStage burst(EngineStage... stages)
-    {
+    default EngineStage burst(EngineStage... stages) {
         return (x, z, blocks, biomes, multicore) -> {
             BurstExecutor e = burst().burst(stages.length);
             e.setMulticore(multicore);
 
-            for(EngineStage i : stages)
-            {
+            for (EngineStage i : stages) {
                 e.queue(() -> i.generate(x, z, blocks, biomes, multicore));
             }
 
@@ -52,13 +49,11 @@ public interface EngineMode extends Staged {
         };
     }
 
-    default IrisComplex getComplex()
-    {
+    default IrisComplex getComplex() {
         return getEngine().getComplex();
     }
 
-    default EngineMantle getMantle()
-    {
+    default EngineMantle getMantle() {
         return getEngine().getMantle();
     }
 
@@ -67,8 +62,7 @@ public interface EngineMode extends Staged {
     }
 
     @BlockCoordinates
-    default void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes, boolean multicore)
-    {
+    default void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes, boolean multicore) {
         for (EngineStage i : getStages()) {
             i.generate(x, z, blocks, biomes, multicore);
         }

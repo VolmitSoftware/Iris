@@ -27,7 +27,6 @@ import lombok.EqualsAndHashCode;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @SuppressWarnings({"DefaultAnnotationParam", "Lombok"})
 @Data

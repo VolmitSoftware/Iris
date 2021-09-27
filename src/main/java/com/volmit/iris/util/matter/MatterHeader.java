@@ -34,13 +34,13 @@ public class MatterHeader {
 
     public void write(DataOutputStream out) throws IOException {
         out.writeUTF(author);
-        Varint.writeUnsignedVarLong(createdAt, out);
-        Varint.writeUnsignedVarInt(version, out);
+        out.writeLong(createdAt);
+        out.writeShort(version);
     }
 
     public void read(DataInputStream din) throws IOException {
         setAuthor(din.readUTF());
-        setCreatedAt(Varint.readUnsignedVarLong(din));
-        setVersion(Varint.readUnsignedVarInt(din));
+        setCreatedAt(din.readLong());
+        setVersion(din.readShort());
     }
 }

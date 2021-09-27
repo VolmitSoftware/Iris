@@ -16,23 +16,35 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.mode;
+package com.volmit.iris.util.data;
 
-import com.volmit.iris.engine.actuator.IrisBiomeActuator;
-import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
-import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.EngineMode;
-import com.volmit.iris.engine.framework.IrisEngineMode;
+import com.volmit.iris.util.function.Function2;
 
-public class ModeIslands extends IrisEngineMode implements EngineMode {
-    public ModeIslands(Engine engine) {
-        super(engine);
-        var terrain = new IrisTerrainNormalActuator(getEngine());
-        var biome = new IrisBiomeActuator(getEngine());
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
-        registerStage(burst(
-                (x, z, k, p, m) -> terrain.actuate(x, z, k, m),
-                (x, z, k, p, m) -> biome.actuate(x, z, p, m)
-        ));
+public class ChunkCache<T> {
+    private final AtomicReferenceArray<T> cache;
+
+    public ChunkCache() {
+        cache = new AtomicReferenceArray<>(256);
+    }
+
+    public T compute(int x, int z, Function2<Integer, Integer, T> function) {
+        T t = get(x & 15, z & 15);
+
+        if (t == null) {
+            t = function.apply(x, z);
+            set(x & 15, z & 15, t);
+        }
+
+        return t;
+    }
+
+    private void set(int x, int z, T t) {
+        cache.set(x * 16 + z, t);
+    }
+
+    private T get(int x, int z) {
+        return cache.get(x * 16 + z);
     }
 }

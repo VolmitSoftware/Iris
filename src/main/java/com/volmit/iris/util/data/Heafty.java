@@ -16,23 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.mode;
+package com.volmit.iris.util.data;
 
-import com.volmit.iris.engine.actuator.IrisBiomeActuator;
-import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
-import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.EngineMode;
-import com.volmit.iris.engine.framework.IrisEngineMode;
-
-public class ModeIslands extends IrisEngineMode implements EngineMode {
-    public ModeIslands(Engine engine) {
-        super(engine);
-        var terrain = new IrisTerrainNormalActuator(getEngine());
-        var biome = new IrisBiomeActuator(getEngine());
-
-        registerStage(burst(
-                (x, z, k, p, m) -> terrain.actuate(x, z, k, m),
-                (x, z, k, p, m) -> biome.actuate(x, z, p, m)
-        ));
-    }
+@FunctionalInterface
+public interface Heafty {
+    int getHeaft();
 }

@@ -34,6 +34,7 @@ import java.io.IOException;
 public class IrisSettings {
     public static transient IrisSettings settings;
     private IrisSettingsGeneral general = new IrisSettingsGeneral();
+    private IrisSettingsWorld world = new IrisSettingsWorld();
     private IrisSettingsGUI gui = new IrisSettingsGUI();
     private IrisSettingsAutoconfiguration autoConfiguration = new IrisSettingsAutoconfiguration();
     private IrisSettingsGenerator generator = new IrisSettingsGenerator();
@@ -57,6 +58,24 @@ public class IrisSettings {
     }
 
     @Data
+    public static class IrisAsyncTeleport {
+        public boolean enabled = false;
+        public int loadViewDistance = 2;
+        public boolean urgent = false;
+    }
+
+    @Data
+    public static class IrisSettingsWorld {
+        public IrisAsyncTeleport asyncTeleport = new IrisAsyncTeleport();
+        public boolean postLoadBlockUpdates = true;
+        public boolean anbientEntitySpawningSystem = true;
+        public long asyncTickIntervalMS = 700;
+        public double targetSpawnEntitiesPerChunk = 0.95;
+        public boolean markerEntitySpawningSystem = true;
+        public boolean effectSystem = true;
+    }
+
+    @Data
     public static class IrisSettingsConcurrency {
         public int parallelism = -1;
     }
@@ -64,11 +83,11 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsPerformance {
         public boolean trimMantleInStudio = false;
-        public int mantleKeepAliveSeconds = 25;
-        public int maxStreamCacheSize = 256_000;
-        public int maxResourceLoaderCacheSize = 1_000;
-        public int maxObjectLoaderCacheSize = 3_000;
-        public int maxScriptLoaderCacheSize = 500;
+        public int mantleKeepAlive = 60;
+        public int cacheSize = 4_096;
+        public int resourceLoaderCacheSize = 1_024;
+        public int objectLoaderCacheSize = 4_096;
+        public int scriptLoaderCacheSize = 512;
     }
 
     @Data
@@ -100,7 +119,7 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsGenerator {
         public String defaultWorldType = "overworld";
-        public boolean headlessPregeneration = false;
+        public boolean headlessPregeneration = true;
         public int maxBiomeChildDepth = 4;
         public boolean preventLeafDecay = true;
     }

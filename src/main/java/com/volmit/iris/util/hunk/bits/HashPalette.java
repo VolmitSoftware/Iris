@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.hunk.bits;
 
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.function.Consumer2;
 
@@ -30,17 +29,16 @@ public class HashPalette<T> implements Palette<T> {
     private final KMap<Integer, T> lookup;
     private final AtomicInteger size;
 
-    public HashPalette()
-    {
+    public HashPalette() {
         this.size = new AtomicInteger(0);
         this.palette = new LinkedHashMap<>();
         this.lookup = new KMap<>();
+        add(null);
     }
 
     @Override
     public T get(int id) {
-        if(id < 0 || id >= size.get())
-        {
+        if (id < 0 || id >= size.get()) {
             return null;
         }
 
@@ -52,8 +50,7 @@ public class HashPalette<T> implements Palette<T> {
         int index = size.getAndIncrement();
         palette.put(t, index);
 
-        if(t != null)
-        {
+        if (t != null) {
             lookup.put(index, t);
         }
 
@@ -62,19 +59,28 @@ public class HashPalette<T> implements Palette<T> {
 
     @Override
     public int id(T t) {
+        if(t == null)
+        {
+            return 0;
+        }
+
         Integer v = palette.get(t);
         return v != null ? v : -1;
     }
 
     @Override
     public int size() {
-        return size.get();
+        return size.get() - 1;
     }
 
     @Override
     public void iterate(Consumer2<T, Integer> c) {
-        for(T i : palette.keySet())
-        {
+        for (T i : palette.keySet()) {
+            if(i == null)
+            {
+                continue;
+            }
+
             c.accept(i, id(i));
         }
     }

@@ -21,7 +21,6 @@ package com.volmit.iris.util.matter.slices;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.palette.Palette;
-import com.volmit.iris.util.matter.MatterTile;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -29,7 +28,7 @@ import java.io.IOException;
 
 public class RegistryMatter<T extends IrisRegistrant> extends RawMatter<T> {
     public RegistryMatter(int width, int height, int depth, Class<T> c, T e) {
-        super(width, height, depth, c, e);
+        super(width, height, depth, c);
     }
 
     @Override

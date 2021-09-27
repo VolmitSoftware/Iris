@@ -24,7 +24,6 @@ import com.volmit.iris.core.pregenerator.IrisPregenerator;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
-import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
@@ -35,7 +34,6 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.Looper;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -46,7 +44,6 @@ import java.awt.Graphics2D;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -72,9 +69,9 @@ public class PregeneratorJob implements PregenListener {
     private JFrame frame;
     private PregenRenderer renderer;
     private int rgc = 0;
-    private ChronoLatch cl = new ChronoLatch(TimeUnit.MINUTES.toMillis(1));
+    private final ChronoLatch cl = new ChronoLatch(TimeUnit.MINUTES.toMillis(1));
     private String[] info;
-    private Engine engine;
+    private final Engine engine;
 
     public PregeneratorJob(PregenTask task, PregeneratorMethod method, Engine engine) {
         this.engine = engine;
@@ -101,8 +98,7 @@ public class PregeneratorJob implements PregenListener {
         J.a(this.pregenerator::start, 20);
     }
 
-    public Mantle getMantle()
-    {
+    public Mantle getMantle() {
         return pregenerator.getMantle();
     }
 
@@ -243,8 +239,7 @@ public class PregeneratorJob implements PregenListener {
 
     @Override
     public void onChunkGenerating(int x, int z) {
-        if(engine != null)
-        {
+        if (engine != null) {
             return;
         }
 
@@ -253,8 +248,7 @@ public class PregeneratorJob implements PregenListener {
 
     @Override
     public void onChunkGenerated(int x, int z) {
-        if(engine != null)
-        {
+        if (engine != null) {
             draw(x, z, engine.draw((x << 4) + 8, (z << 4) + 8));
             return;
         }
@@ -269,8 +263,7 @@ public class PregeneratorJob implements PregenListener {
     }
 
     private void shouldGc() {
-        if(cl.flip() && rgc > 16)
-        {
+        if (cl.flip() && rgc > 16) {
             System.gc();
         }
     }
@@ -329,8 +322,7 @@ public class PregeneratorJob implements PregenListener {
 
     @Override
     public void onChunkExistsInRegionGen(int x, int z) {
-        if(engine != null)
-        {
+        if (engine != null) {
             draw(x, z, engine.draw((x << 4) + 8, (z << 4) + 8));
             return;
         }

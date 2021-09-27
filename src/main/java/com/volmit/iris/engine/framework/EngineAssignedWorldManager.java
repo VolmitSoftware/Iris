@@ -71,26 +71,19 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void on(PlayerTeleportEvent e) {
-        if(ignoreTP.get())
-        {
+        if (ignoreTP.get()) {
             return;
         }
 
-        if(!PaperLib.isPaper() || e.getTo() == null)
-        {
+        if (!PaperLib.isPaper() || e.getTo() == null) {
             return;
         }
 
-        try
-        {
-            if(e.getTo().getWorld().equals(getTarget().getWorld().realWorld()))
-            {
+        try {
+            if (e.getTo().getWorld().equals(getTarget().getWorld().realWorld())) {
                 getEngine().getWorldManager().teleportAsync(e);
             }
-        }
-
-        catch(Throwable ex)
-        {
+        } catch (Throwable ex) {
 
         }
     }

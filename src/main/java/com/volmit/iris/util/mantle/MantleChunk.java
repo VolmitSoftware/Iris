@@ -18,6 +18,8 @@
 
 package com.volmit.iris.util.mantle;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.matter.IrisMatter;
@@ -77,8 +79,9 @@ public class MantleChunk {
         }
 
         for (int i = 0; i < s; i++) {
+            Iris.addPanic("read.section", "Section[" + i + "]");
             if (din.readBoolean()) {
-                sections.set(i, Matter.read(din));
+                sections.set(i, Matter.readDin(din));
             }
         }
     }

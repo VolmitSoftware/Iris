@@ -42,12 +42,9 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
         put(gMap);
     }
 
-    public K getKey(V value)
-    {
-        for(KeyPair<K,V> i : keypair())
-        {
-            if(i.getV().equals(value))
-            {
+    public K getKey(V value) {
+        for (KeyPair<K, V> i : keypair()) {
+            if (i.getV().equals(value)) {
                 return i.getK();
             }
         }

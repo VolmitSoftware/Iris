@@ -16,23 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.mode;
+package com.volmit.iris.util.data;
 
-import com.volmit.iris.engine.actuator.IrisBiomeActuator;
-import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
-import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.EngineMode;
-import com.volmit.iris.engine.framework.IrisEngineMode;
+import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.util.collection.KMap;
 
-public class ModeIslands extends IrisEngineMode implements EngineMode {
-    public ModeIslands(Engine engine) {
-        super(engine);
-        var terrain = new IrisTerrainNormalActuator(getEngine());
-        var biome = new IrisBiomeActuator(getEngine());
+public class ComplexCache<T> {
+    private final KMap<Long, ChunkCache<T>> chunks;
 
-        registerStage(burst(
-                (x, z, k, p, m) -> terrain.actuate(x, z, k, m),
-                (x, z, k, p, m) -> biome.actuate(x, z, p, m)
-        ));
+    public ComplexCache() {
+        chunks = new KMap<>();
+    }
+
+    public boolean has(int x, int z) {
+        return chunks.containsKey(Cache.key(x, z));
+    }
+
+    public void invalidate(int x, int z) {
+        chunks.remove(Cache.key(x, z));
+    }
+
+    public ChunkCache<T> chunk(int x, int z) {
+        return chunks.computeIfAbsent(Cache.key(x, z), (f) -> new ChunkCache<>());
     }
 }

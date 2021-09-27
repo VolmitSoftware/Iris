@@ -521,10 +521,12 @@ public class VirtualDecreeCommand {
         int tries = 3;
         KList<String> options = validOptions.convert(handler::toStringForce);
         String result = null;
-        while (tries-- > 0 && (result == null || !options.contains(result))) {
 
-            sender.sendHeader("Pick a " + name + " (" + type + ")");
-            sender.sendMessageRaw("<gradient:#1ed497:#b39427>This query will expire in 15 seconds.</gradient>");
+        sender.sendHeader("Pick a " + name + " (" + type + ")");
+        sender.sendMessageRaw("<gradient:#1ed497:#b39427>This query will expire in 15 seconds.</gradient>");
+
+        while (tries-- > 0 && (result == null || !options.contains(result))) {
+            sender.sendMessage("<gradient:#1ed497:#b39427>Please pick a valid option.");
             String password = UUID.randomUUID().toString().replaceAll("\\Q-\\E", "");
             int m = 0;
 
@@ -554,6 +556,9 @@ public class VirtualDecreeCommand {
 
         if (result != null && options.contains(result)) {
             return result;
+        } else {
+            sender.sendMessage(C.RED + "You did not enter a correct option within 3 tries.");
+            sender.sendMessage(C.RED + "Please double-check your arguments & option picking.");
         }
 
         return null;

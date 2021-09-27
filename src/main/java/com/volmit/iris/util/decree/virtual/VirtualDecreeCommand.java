@@ -546,7 +546,8 @@ public class VirtualDecreeCommand {
             CompletableFuture<String> future = new CompletableFuture<>();
             Iris.service(CommandSVC.class).postConsole(future);
             try {
-                return future.get(15, TimeUnit.SECONDS);
+                String result = future.get(15, TimeUnit.SECONDS);
+                return validOptions.convert(handler::toStringForce).contains(result) ? result : null;
             } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
 
             }

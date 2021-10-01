@@ -50,6 +50,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 @Data
 public class VirtualDecreeCommand {
@@ -287,96 +288,114 @@ public class VirtualDecreeCommand {
         }
     }
 
+    /**
+     * Maps the input a player typed to the parameters of this command
+     * @param sender The sender
+     * @param in The input
+     * @return A map of all the parameter names and their values
+     */
     private KMap<String, Object> map(VolmitSender sender, KList<String> in) {
         KMap<String, Object> data = new KMap<>();
         KSet<Integer> nowhich = new KSet<>();
 
-        for (int ix = 0; ix < in.size(); ix++) {
-            String i = in.get(ix);
+        KList<String> unknownInputs = new KList<>(in.stream().filter(s -> !s.contains("=")).collect(Collectors.toList()));
+        KList<String> knownInputs = new KList<>(in.stream().filter(s -> s.contains("=")).collect(Collectors.toList()));
 
-            if (i == null) {
-                continue;
+        //Loop known inputs
+        for (int x = 0; x < knownInputs.size(); x++) {
+            String stringParam = knownInputs.get(x);
+            int original = in.indexOf(stringParam);
+
+            String[] v = stringParam.split("\\Q=\\E");
+            String key = v[0];
+            String value = v[1];
+            DecreeParameter param = null;
+
+            //Find decree parameter from string param
+            for (DecreeParameter j : getNode().getParameters()) {
+                for (String k : j.getNames()) {
+                    if (k.equalsIgnoreCase(key)) {
+                        param = j;
+                        break;
+                    }
+                }
             }
 
-            if (i.contains("=")) {
-                String[] v = i.split("\\Q=\\E");
-                String key = v[0];
-                String value = v[1];
-                DecreeParameter param = null;
-
+            //If it failed, see if we can find it by checking if the names contain the param
+            if (param == null) {
                 for (DecreeParameter j : getNode().getParameters()) {
                     for (String k : j.getNames()) {
-                        if (k.equalsIgnoreCase(key)) {
+                        if (k.toLowerCase().contains(key.toLowerCase()) || key.toLowerCase().contains(k.toLowerCase())) {
                             param = j;
                             break;
                         }
                     }
                 }
+            }
 
-                if (param == null) {
-                    for (DecreeParameter j : getNode().getParameters()) {
-                        for (String k : j.getNames()) {
-                            if (k.toLowerCase().contains(key.toLowerCase()) || key.toLowerCase().contains(k.toLowerCase())) {
-                                param = j;
-                                break;
-                            }
-                        }
-                    }
+            //Still failed to find, error them
+            if (param == null) {
+                Iris.debug("Can't find parameter key for " + key + "=" + value + " in " + getPath());
+                sender.sendMessage(C.YELLOW + "Unknown Parameter: " + key);
+                unknownInputs.add(value); //Add the value to the unknowns and see if we can assume it later
+                continue;
+            }
+
+            key = param.getName();
+
+            try {
+                data.put(key, param.getHandler().parse(value, nowhich.contains(original))); //Parse and put
+            } catch (DecreeParsingException e) {
+                Iris.debug("Can't parse parameter value for " + key + "=" + value + " in " + getPath() + " using handler " + param.getHandler().getClass().getSimpleName());
+                sender.sendMessage(C.RED + "Cannot convert \"" + value + "\" into a " + param.getType().getSimpleName());
+                e.printStackTrace();
+                return null;
+            } catch (DecreeWhichException e) {
+                KList<?> validOptions = param.getHandler().getPossibilities(value);
+                Iris.debug("Found multiple results for " + key + "=" + value + " in " + getPath() + " using the handler " + param.getHandler().getClass().getSimpleName() + " with potential matches [" + validOptions.toString(",") + "]. Asking client to define one");
+                String update = pickValidOption(sender, validOptions, param.getHandler(), param.getName(), param.getType().getSimpleName());
+
+                if (update == null) {
+                    return null;
                 }
 
-                if (param == null) {
-                    Iris.debug("Can't find parameter key for " + key + "=" + value + " in " + getPath());
-                    sender.sendMessage(C.YELLOW + "Unknown Parameter: " + key);
-                    continue;
-                }
+                Iris.debug("Client chose " + update + " for " + key + "=" + value + " (old) in " + getPath());
+                nowhich.add(original);
+                in.set(original, update);
+            }
+        }
 
-                key = param.getName();
+        //Make a list of decree params that haven't been identified
+        KList<DecreeParameter> decreeParameters = new KList<>(getNode().getParameters().stream().filter(param -> !data.contains(param.getName())).collect(Collectors.toList()));
+
+        //Loop Unknown inputs
+        for (int x = 0; x < unknownInputs.size(); x++) {
+            String stringParam = unknownInputs.get(x);
+            int original = in.indexOf(stringParam);
+            try {
+                DecreeParameter par = decreeParameters.get(x);
 
                 try {
-                    data.put(key, param.getHandler().parse(value, nowhich.contains(ix)));
+                    data.put(par.getName(), par.getHandler().parse(stringParam, nowhich.contains(original)));
                 } catch (DecreeParsingException e) {
-                    Iris.debug("Can't parse parameter value for " + key + "=" + value + " in " + getPath() + " using handler " + param.getHandler().getClass().getSimpleName());
-                    sender.sendMessage(C.RED + "Cannot convert \"" + value + "\" into a " + param.getType().getSimpleName());
+                    Iris.debug("Can't parse parameter value for " + par.getName() + "=" + stringParam + " in " + getPath() + " using handler " + par.getHandler().getClass().getSimpleName());
+                    sender.sendMessage(C.RED + "Cannot convert \"" + stringParam + "\" into a " + par.getType().getSimpleName());
                     e.printStackTrace();
                     return null;
                 } catch (DecreeWhichException e) {
-                    KList<?> validOptions = param.getHandler().getPossibilities(value);
-                    Iris.debug("Found multiple results for " + key + "=" + value + " in " + getPath() + " using the handler " + param.getHandler().getClass().getSimpleName() + " with potential matches [" + validOptions.toString(",") + "]. Asking client to define one");
-                    String update = pickValidOption(sender, validOptions, param.getHandler(), param.getName(), param.getType().getSimpleName());
+                    KList<?> validOptions = par.getHandler().getPossibilities(stringParam);
+                    String update = pickValidOption(sender, validOptions, par.getHandler(), par.getName(), par.getType().getSimpleName());
 
                     if (update == null) {
                         return null;
                     }
 
-                    Iris.debug("Client chose " + update + " for " + key + "=" + value + " (old) in " + getPath());
-                    nowhich.add(ix);
-                    in.set(ix--, update);
+                    Iris.debug("Client chose " + update + " for " + par.getName() + "=" + stringParam + " (old) in " + getPath());
+                    nowhich.add(original);
+                    in.set(original, update);
                 }
-            } else {
-                try {
-                    DecreeParameter par = getNode().getParameters().get(ix);
-                    try {
-                        data.put(par.getName(), par.getHandler().parse(i, nowhich.contains(ix)));
-                    } catch (DecreeParsingException e) {
-                        Iris.debug("Can't parse parameter value for " + par.getName() + "=" + i + " in " + getPath() + " using handler " + par.getHandler().getClass().getSimpleName());
-                        sender.sendMessage(C.RED + "Cannot convert \"" + i + "\" into a " + par.getType().getSimpleName());
-                        e.printStackTrace();
-                        return null;
-                    } catch (DecreeWhichException e) {
-                        KList<?> validOptions = par.getHandler().getPossibilities(i);
-                        String update = pickValidOption(sender, validOptions, par.getHandler(), par.getName(), par.getType().getSimpleName());
-
-                        if (update == null) {
-                            return null;
-                        }
-
-                        Iris.debug("Client chose " + update + " for " + par.getName() + "=" + i + " (old) in " + getPath());
-                        nowhich.add(ix);
-                        in.set(ix--, update);
-                    }
-                } catch (IndexOutOfBoundsException e) {
-                    sender.sendMessage(C.YELLOW + "Unknown Parameter: " + i + " (" + Form.getNumberSuffixThStRd(ix + 1) + " argument)");
-                }
+            } catch (IndexOutOfBoundsException e) {
+                sender.sendMessage(C.YELLOW + "Unknown Parameter: " + stringParam + " (" + Form.getNumberSuffixThStRd(x + 1) + " argument)");
             }
         }
 

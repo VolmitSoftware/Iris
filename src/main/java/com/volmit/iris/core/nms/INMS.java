@@ -52,14 +52,14 @@ public class INMS {
         return "BUKKIT";
     }
 
-    private static final INMSBinding bind() {
+    private static INMSBinding bind() {
         String code = getNMSTag();
         Iris.info("Locating NMS Binding for " + code);
 
         if (bindings.containsKey(code)) {
             try {
                 INMSBinding b = bindings.get(code).getConstructor().newInstance();
-                Iris.info("Craftbukkit " + code + " <-> " + b.getClass().getSimpleName() + " Successfully Bound");
+                Iris.info("Craftbukkit " + code + " and " + b.getClass().getSimpleName() + " Successfully Bound");
 
                 return b;
             } catch (Throwable e) {

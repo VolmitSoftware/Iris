@@ -18,9 +18,6 @@
 
 package com.volmit.iris;
 
-import com.google.gson.ExclusionStrategy;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.link.IrisPapiExpansion;
@@ -106,10 +103,6 @@ public class Iris extends VolmitPlugin implements Listener {
 
     private final KList<Runnable> postShutdown = new KList<>();
     private KMap<Class<? extends IrisService>, IrisService> services;
-
-    public Iris() {
-        preEnable();
-    }
 
     public static VolmitSender getSender() {
         return sender;
@@ -413,20 +406,16 @@ public class Iris extends VolmitPlugin implements Listener {
         }
     }
 
-    private void preEnable() {
+    private void enable() {
         instance = this;
         services = new KMap<>();
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
-        INMS.get();
         IO.delete(new File("iris"));
         fixShading();
-    }
-
-    private void enable() {
         setupAudience();
         sender = new VolmitSender(Bukkit.getConsoleSender());
         sender.setTag(getTag());
-        instance = this;
+        INMS.get();
         compat = IrisCompat.configured(getDataFile("compat.json"));
         linkMultiverseCore = new MultiverseCoreLink();
         linkOraxen = new OraxenLink();

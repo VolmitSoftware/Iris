@@ -48,13 +48,13 @@ public class IrisBiomeGeneratorLink {
     @DependsOn({"min", "max"})
     @Required
     @MinNumber(-256) // TODO: WARNING HEIGHT
-    @MaxNumber(256) // TODO: WARNING HEIGHT
+    @MaxNumber(320) // TODO: WARNING HEIGHT
     @Desc("The min block value (value + fluidHeight)")
     private int min = 0;
     @DependsOn({"min", "max"})
     @Required
     @MinNumber(-256) // TODO: WARNING HEIGHT
-    @MaxNumber(256) // TODO: WARNING HEIGHT
+    @MaxNumber(320) // TODO: WARNING HEIGHT
     @Desc("The max block value (value + fluidHeight)")
     private int max = 0;
 

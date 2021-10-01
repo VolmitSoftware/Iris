@@ -68,7 +68,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 return;
             }
 
-            if (yy >= getEngine().getMaxHeight() || yy <= getEngine().getMinHeight()) { // Yes, skip bedrock
+            if (yy >= getEngine().getHeight()|| yy <= 0) { // Yes, skip bedrock
                 return;
             }
 
@@ -143,7 +143,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             int buf = v.get(0) - 1;
 
             for (Integer i : v) {
-                if (i < getEngine().getMinHeight() || i >= getEngine().getMaxHeight()) {
+                if (i < 0 || i >= getEngine().getHeight()) {
                     continue;
                 }
 
@@ -217,7 +217,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             }
         }
 
-        KList<BlockData> blocks = biome.generateLayers(getDimension(), xx, zz, rng, 3, zone.floor, getData(), getComplex());
+        KList<BlockData> blocks = biome.generateLayers(getDimension(), xx, zz, rng, 3, zone.floor + getEngine().getMinHeight(), getData(), getComplex());
 
         for (int i = 0; i < zone.floor - 1; i++) {
             if (!blocks.hasIndex(i)) {
@@ -235,7 +235,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             output.set(rx, zone.floor - i - 1, rz, blocks.get(i));
         }
 
-        blocks = biome.generateCeilingLayers(getDimension(), xx, zz, rng, 3, zone.ceiling, getData(), getComplex());
+        blocks = biome.generateCeilingLayers(getDimension(), xx, zz, rng, 3, zone.ceiling + getEngine().getMinHeight(), getData(), getComplex());
 
         if (zone.ceiling + 1 < mantle.getWorldHeight()) {
             for (int i = 0; i < zone.ceiling + 1; i++) {
@@ -250,7 +250,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                     continue;
                 }
 
-                if (B.isOre(up)) {
+                if (B.isOre(b)) {
                     output.set(rx, zone.ceiling + i + 1, rz, B.toDeepSlateOre(up, b));
                     continue;
                 }
@@ -270,7 +270,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         }
 
         public boolean isValid() {
-            return floor < ceiling && ceiling - floor >= 1 && floor >= 0 && ceiling <= 255 && airThickness() > 0;
+            return floor < ceiling && ceiling - floor >= 1 && floor >= 0 && ceiling <= 384 && airThickness() > 0;
         }
 
         public String toString() {

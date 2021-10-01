@@ -85,7 +85,7 @@ public class IrisCavePlacer implements IRare {
             return;
         }
 
-        if (y == -1) {
+        if (y == Integer.MIN_VALUE) {
             int h = (int) caveStartHeight.get(rng, x, z, data);
             int ma = breakSurface ? h : (int) (engine.getComplex().getHeightStream().get(x, z) - 9);
             y = Math.min(h, ma);

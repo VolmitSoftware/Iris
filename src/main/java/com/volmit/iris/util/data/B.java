@@ -271,10 +271,16 @@ public class B {
         return IntSets.unmodifiable(b);
     }
 
+    /**
+     * Will return an ore in the variation it should be, based on the block passed as the first parameter
+     * @param block The block we are testing against. E.g. deepslate blocks, stone blocks
+     * @param ore The ore we are trying to place/use. E.g. diamond_ore
+     * @return The corrected ore. If you pass in deepslate and diamond ore, deepslate diamond ore will be returned.
+     */
     public static BlockData toDeepSlateOre(BlockData block, BlockData ore) {
         int key = ore.getMaterial().ordinal();
 
-        if (isDeepSlate(block)) {
+        if (isDeepSlate(block) || isDeepslateOre(block)) {
             if (normal2DeepslateCache.containsKey(key)) {
                 return Material.values()[normal2DeepslateCache.get(key)].createBlockData();
             }
@@ -293,6 +299,10 @@ public class B {
 
     public static boolean isOre(BlockData blockData) {
         return blockData.getMaterial().name().endsWith("_ORE");
+    }
+
+    public static boolean isDeepslateOre(BlockData blockData) {
+        return blockData.getMaterial().name().endsWith("_ORE") && blockData.getMaterial().name().startsWith("DEEPSLATE_");
     }
 
     private static IntSet buildStorageChestCache() {

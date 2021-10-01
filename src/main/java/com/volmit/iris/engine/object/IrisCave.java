@@ -74,9 +74,9 @@ public class IrisCave extends IrisRegistrant {
         double girth = getWorm().getGirth().get(rng, x, z, engine.getData());
         KList<IrisPosition> points = getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z, (at) -> {
         });
-        int highestWater = Math.max(waterHint, -1);
+        int highestWater = Math.max(waterHint, Integer.MIN_VALUE);
 
-        if (highestWater == -1) {
+        if (highestWater == Integer.MIN_VALUE) {
             for (IrisPosition i : points) {
                 double yy = i.getY() + girth;
                 int th = engine.getHeight(x, z, true);

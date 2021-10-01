@@ -62,7 +62,7 @@ public class IrisCarving {
 
     @BlockCoordinates
     public void doCarving(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
-        doCarving(writer, rng, engine, x, y, z, -1);
+        doCarving(writer, rng, engine, x, y, z, Integer.MIN_VALUE);
     }
 
     @BlockCoordinates
@@ -105,7 +105,7 @@ public class IrisCarving {
     }
 
     public int getMaxRange(IrisData data) {
-        int max = 0;
+        int max = -64;
 
         for (IrisCavePlacer i : caves) {
             max = Math.max(max, i.getSize(data));

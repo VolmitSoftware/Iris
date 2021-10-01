@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.framework;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.IrisBiome;
@@ -105,8 +106,11 @@ public interface Locator<T> {
         cancelSearch();
 
         int fdistance = distance >> 4;
+        Position2 pos = random ? new Position2(M.irand(-29_000_000, 29_000_000) >> 4, M.irand(-29_000_000, 29_000_000) >> 4) : new Position2(location.getX(), location.getZ());
+        if (random) {
+            Iris.info("Randomly finding location from: " + pos);
+        }
         return MultiBurst.burst.completeValue(() -> {
-            Position2 pos = random ? new Position2(M.irand(-29*10^6, 29*10^6), M.irand(-29*10^6, 29*10^6)) : new Position2(location.getX(), location.getZ());
             int tc = IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism()) * 17;
             MultiBurst burst = MultiBurst.burst;
             AtomicBoolean found = new AtomicBoolean(false);
@@ -116,7 +120,7 @@ public interface Locator<T> {
             PrecisionStopwatch px = PrecisionStopwatch.start();
             LocatorCanceller.cancel = () -> stop.set(true);
             AtomicReference<Position2> next = new AtomicReference<>(pos);
-            Spiraler s = new Spiraler(50000, 50000, (x, z) -> next.set(new Position2((M.r(0.5) ? -1 : 1) * (x + fdistance), (M.r(0.5) ? -1 : 1) * (z + fdistance))));
+            Spiraler s = new Spiraler(50000, 50000, (x, z) -> next.set(new Position2(pos.getX() + (M.r(0.5) ? -1 : 1) * (x + fdistance), pos.getZ() + (M.r(0.5) ? -1 : 1) * (z + fdistance))));
 
             s.setOffset(pos.getX(), pos.getZ());
             s.next();

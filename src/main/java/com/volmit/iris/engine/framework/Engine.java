@@ -783,7 +783,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 && lb.matches(engine, chunk);
 
         if (!regionKeys.isEmpty()) {
-            locator.find(player, distance, random);
+            locator.find(player, Math.abs(distance), random);
         } else {
             player.sendMessage(C.RED + biome.getName() + " is not in any defined regions!");
         }

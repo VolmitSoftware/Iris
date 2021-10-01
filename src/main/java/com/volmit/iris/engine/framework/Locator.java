@@ -57,17 +57,16 @@ public interface Locator<T> {
         }
     }
 
-    default void find(Player player, int distance, boolean random) {
-        find(player, 30_000, distance, random);
+    default void find(Player player) {
+        find(player, 30_000);
     }
 
-    default void find(Player player, long timeout, int distance, boolean random) {
+    default void find(Player player, long timeout) {
         AtomicLong checks = new AtomicLong();
         long ms = M.ms();
         new SingleJob("Searching", () -> {
             try {
-                Position2 from = new Position2(player.getLocation().getBlockX() >> 4, player.getLocation().getBlockZ() >> 4);
-                Position2 at = find(IrisToolbelt.access(player.getWorld()).getEngine(), from, timeout, checks::set, distance, random).get();
+                Position2 at = find(IrisToolbelt.access(player.getWorld()).getEngine(), new Position2(player.getLocation().getBlockX() >> 4, player.getLocation().getBlockZ() >> 4), timeout, checks::set).get();
 
                 if (at != null) {
                     J.s(() -> player.teleport(new Location(player.getWorld(), (at.getX() << 4) + 8,
@@ -97,28 +96,26 @@ public interface Locator<T> {
         }.execute(new VolmitSender(player));
     }
 
-    default Future<Position2> find(Engine engine, Position2 location, long timeout, Consumer<Integer> checks, int distance, boolean random) throws WrongEngineBroException {
+    default Future<Position2> find(Engine engine, Position2 pos, long timeout, Consumer<Integer> checks) throws WrongEngineBroException {
         if (engine.isClosed()) {
             throw new WrongEngineBroException();
         }
 
         cancelSearch();
 
-        int fdistance = distance >> 4;
         return MultiBurst.burst.completeValue(() -> {
-            Position2 pos = random ? new Position2(M.irand(-29*10^6, 29*10^6), M.irand(-29*10^6, 29*10^6)) : new Position2(location.getX(), location.getZ());
             int tc = IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism()) * 17;
             MultiBurst burst = MultiBurst.burst;
             AtomicBoolean found = new AtomicBoolean(false);
+            Position2 cursor = pos;
             AtomicInteger searched = new AtomicInteger();
             AtomicBoolean stop = new AtomicBoolean(false);
             AtomicReference<Position2> foundPos = new AtomicReference<>();
             PrecisionStopwatch px = PrecisionStopwatch.start();
             LocatorCanceller.cancel = () -> stop.set(true);
-            AtomicReference<Position2> next = new AtomicReference<>(pos);
-            Spiraler s = new Spiraler(50000, 50000, (x, z) -> next.set(new Position2((M.r(0.5) ? -1 : 1) * (x + fdistance), (M.r(0.5) ? -1 : 1) * (z + fdistance))));
-
-            s.setOffset(pos.getX(), pos.getZ());
+            AtomicReference<Position2> next = new AtomicReference<>(cursor);
+            Spiraler s = new Spiraler(100000, 100000, (x, z) -> next.set(new Position2(x, z)));
+            s.setOffset(cursor.getX(), cursor.getZ());
             s.next();
             while (!found.get() && !stop.get() && px.getMilliseconds() < timeout) {
                 BurstExecutor e = burst.burst(tc);

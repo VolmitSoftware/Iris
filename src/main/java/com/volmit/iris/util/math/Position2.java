@@ -80,7 +80,7 @@ public class Position2 {
     }
 
     public double distance(Position2 center) {
-        return Math.pow(center.getX() - x, 2) + Math.pow(center.getZ() - z, 2);
+        return Math.sqrt(Math.pow(center.getX() - x, 2) + Math.pow(center.getZ() - z, 2));
     }
 
     public Position2 add(int x, int z) {

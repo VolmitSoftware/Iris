@@ -69,61 +69,10 @@ processResources {
 }
 
 /**
- * For performance during compilation, we specify which module groups are accessible from which repositories
- * This may cause issues resolving new dependencies but normally it shouldn't.
+ * Unified repo
  */
 repositories {
-    maven {
-        url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/'
-        content {
-            includeGroup 'org.spigotmc'
-        }
-    }
-    maven {
-        url 'https://papermc.io/repo/repository/maven-public/'
-        content {
-            includeGroup 'io.papermc'
-        }
-    }
-    maven {
-        url 'https://repo.extendedclip.com/content/repositories/placeholderapi/'
-        content {
-            includeGroup 'me.clip'
-        }
-    }
-    maven {
-        url 'https://oss.sonatype.org/content/repositories/snapshots/'
-        content {
-            includeGroup 'net.kyori'
-        }
-    }
-    maven {
-        url 'https://repo.jeff-media.de/maven2'
-        content {
-            includeGroup 'de.jeff_media'
-        }
-    }
-    maven { url 'https://jitpack.io' }
-    maven {
-        url 'https://repo.codemc.io/repository/maven-releases'
-        content {
-            includeGroup 'com.dfsek'
-        }
-    }
-    mavenCentral()
-    mavenLocal()
-    maven {
-        allowInsecureProtocol true
-        url 'http://archive.arcane.art/repository/arcane'
-        content {
-            includeGroup 'org.bukkit.craftbukkit'
-            includeGroup 'io.th0rgal'
-        }
-    }
-
-    // Uncomment this line if the build is failing because of missing dependencies
-    // Its slow but it will resolve any cached dependencies until we can find an alternative repo
-    // maven { allowInsecureProtocol true, url 'http://archive.arcane.art/repository/arcane'}
+    maven { url "https://dl.cloudsmith.io/public/arcane/archive/maven/" }
 }
 
 /**

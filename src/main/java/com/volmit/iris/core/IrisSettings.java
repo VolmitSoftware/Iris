@@ -83,7 +83,7 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsPerformance {
         public boolean trimMantleInStudio = false;
-        public int mantleKeepAlive = 60;
+        public int mantleKeepAlive = 30;
         public int cacheSize = 4_096;
         public int resourceLoaderCacheSize = 1_024;
         public int objectLoaderCacheSize = 4_096;

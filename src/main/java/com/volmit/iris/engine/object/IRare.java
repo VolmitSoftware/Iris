@@ -18,71 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.reflect.V;
-import com.volmit.iris.util.stream.ProceduralStream;
-import com.volmit.iris.util.stream.arithmetic.FittedStream;
-import com.volmit.iris.util.stream.interpolation.Interpolated;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 public interface IRare {
-    static <T extends IRare>ProceduralStream<T> stream(ProceduralStream<Double> noise, List<T> possibilities)
-    {
-        return ProceduralStream.of((x, z) -> pick(possibilities, noise.get(x, z)),
-            (x, y, z) -> pick(possibilities, noise.get(x, y, z)),
-            new Interpolated<T>() {
-                @Override
-                public double toDouble(T t) {
-                    return 0;
-                }
-
-                @Override
-                public T fromDouble(double d) {
-                    return null;
-                }
-            });
-    }
-
-    static <T extends IRare> T pick(List<T> possibilities, double noiseValue)
-    {
-        if(possibilities.isEmpty())
-        {
-            return null;
-        }
-
-        if(possibilities.size() == 1)
-        {
-            return possibilities.get(0);
-        }
-
-        double completeWeight = 0.0;
-        double highestWeight = 0.0;
-
-        for (T item : possibilities)
-        {
-            double weight = Math.max(item.getRarity(), 1);
-            highestWeight = Math.max(highestWeight, weight);
-            completeWeight += weight;
-        }
-
-        double r = noiseValue * completeWeight;
-        double countWeight = 0.0;
-
-        for (T item : possibilities) {
-            double weight = Math.max(highestWeight - Math.max(item.getRarity(), 1), 1);
-            countWeight += weight;
-            if (countWeight >= r)
-            {
-                return item;
-            }
-        }
-
-        return null;
-    }
-
     static int get(Object v) {
         return v instanceof IRare ? Math.max(1, ((IRare) v).getRarity()) : 1;
     }

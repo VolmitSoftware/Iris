@@ -42,7 +42,6 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceArray;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -216,21 +215,6 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
 
             if (t != null) {
                 m.add(t);
-            }
-        }
-
-        return m;
-    }
-
-    public KList<T> loadAll(KList<String> s, Consumer<T> postLoad) {
-        KList<T> m = new KList<>();
-
-        for (String i : s) {
-            T t = load(i);
-
-            if (t != null) {
-                m.add(t);
-                postLoad.accept(t);
             }
         }
 

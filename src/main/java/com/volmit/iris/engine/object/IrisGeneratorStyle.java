@@ -28,13 +28,10 @@ import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.noise.ExpressionNoise;
-import com.volmit.iris.util.stream.ProceduralStream;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-
-import java.util.List;
 
 @Snippet("style")
 @Accessors(chain = true)

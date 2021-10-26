@@ -29,6 +29,7 @@ import com.volmit.iris.util.function.Function3;
 import com.volmit.iris.util.function.Function4;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.reflect.V;
 import com.volmit.iris.util.stream.arithmetic.AddingStream;
 import com.volmit.iris.util.stream.arithmetic.ClampedStream;
 import com.volmit.iris.util.stream.arithmetic.CoordinateBitShiftLeftStream;
@@ -63,8 +64,10 @@ import com.volmit.iris.util.stream.utility.ProfiledStream;
 import com.volmit.iris.util.stream.utility.SemaphoreStream;
 import com.volmit.iris.util.stream.utility.SynchronizedStream;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("ALL")
 public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
@@ -363,32 +366,16 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         return new SelectionStream<V>(this, rarityTypes);
     }
 
-    default <V> ProceduralStream<V> selectRarity(List<V> types) {
-        KList<V> rarityTypes = new KList<>();
-        int totalRarity = 0;
-        for (V i : types) {
-            totalRarity += IRare.get(i);
-        }
-
-        for (V i : types) {
-            rarityTypes.addMultiple(i, totalRarity / IRare.get(i));
-        }
-
-        return new SelectionStream<V>(this, rarityTypes);
+    default <V extends IRare> ProceduralStream<V> selectRarity(List<V> types) {
+        return IRare.stream(this.forceDouble(), types);
     }
 
-    default <V> ProceduralStream<V> selectRarity(List<V> types, Function<V, IRare> loader) {
-        KList<V> rarityTypes = new KList<>();
-        int totalRarity = 0;
-        for (V i : types) {
-            totalRarity += IRare.get(loader.apply(i));
+    default <V> ProceduralStream<IRare> selectRarity(List<V> types, Function<V, IRare> loader) {
+        List<IRare> r = new ArrayList<>();
+        for(V f : types) {
+            r.add(loader.apply(f));
         }
-
-        for (V i : types) {
-            rarityTypes.addMultiple(i, totalRarity / IRare.get(loader.apply(i)));
-        }
-
-        return new SelectionStream<V>(this, rarityTypes);
+        return selectRarity(r);
     }
 
     default <V> int countPossibilities(List<V> types, Function<V, IRare> loader) {

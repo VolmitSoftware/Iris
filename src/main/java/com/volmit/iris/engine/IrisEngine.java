@@ -25,6 +25,7 @@ import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.service.PreservationSVC;
+import com.volmit.iris.engine.biome.AreaSystem;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineEffects;
@@ -104,10 +105,12 @@ public class IrisEngine implements Engine {
     private double maxBiomeLayerDensity;
     private double maxBiomeDecoratorDensity;
     private IrisComplex complex;
+    private AreaSystem biomeSystem;
 
     public IrisEngine(EngineTarget target, boolean studio) {
         this.studio = studio;
         this.target = target;
+        biomeSystem = getDimension().createBiomeSystem();
         getEngineData();
         verifySeed();
         this.seedManager = new SeedManager(target.getWorld().getRawWorldSeed());

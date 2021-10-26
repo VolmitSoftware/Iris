@@ -123,48 +123,34 @@ public class IrisComplex implements DataProvider {
                 ProceduralStream.of((x, z) -> focusRegion,
                         Interpolated.of(a -> 0D, a -> focusRegion))
                 : regionStyleStream
-                .selectRarity(engine.getDimension().getRegions(), (i) -> data.getRegionLoader().load(i))
-                .convertCached((s) -> data.getRegionLoader().load(s)).cache2D("regionStream", engine, cacheSize);
+                .selectRarity(data.getRegionLoader().loadAll(engine.getDimension().getRegions()))
+                .cache2D("regionStream", engine, cacheSize);
         regionIDStream = regionIdentityStream.convertCached((i) -> new UUID(Double.doubleToLongBits(i), String.valueOf(i * 38445).hashCode() * 3245556666L));
         caveBiomeStream = regionStream.convert((r)
                 -> engine.getDimension().getCaveBiomeStyle().create(rng.nextParallelRNG(InferredType.CAVE.ordinal()), getData()).stream()
                 .zoom(r.getCaveBiomeZoom())
-                .selectRarity(r.getCaveBiomes(), (i) -> data.getBiomeLoader().load(i))
-                .onNull("")
-                .convertCached((s) -> {
-                    if (s.isEmpty()) {
-                        return emptyBiome;
-                    }
-
-                    return data.getBiomeLoader().load(s)
-                            .setInferredType(InferredType.CAVE);
-                })
+                .selectRarity(data.getBiomeLoader().loadAll(r.getCaveBiomes()))
+                .onNull(emptyBiome)
         ).convertAware2D(ProceduralStream::get).cache2D("caveBiomeStream", engine, cacheSize);
         inferredStreams.put(InferredType.CAVE, caveBiomeStream);
         landBiomeStream = regionStream.convert((r)
                         -> engine.getDimension().getLandBiomeStyle().create(rng.nextParallelRNG(InferredType.LAND.ordinal()), getData()).stream()
                         .zoom(r.getLandBiomeZoom())
-                        .selectRarity(r.getLandBiomes(), (i) -> data.getBiomeLoader().load(i))
-                        .convertCached((s) -> data.getBiomeLoader().load(s)
-                                .setInferredType(InferredType.LAND))
+                        .selectRarity(data.getBiomeLoader().loadAll(r.getLandBiomes(), (t) -> t.setInferredType(InferredType.LAND)))
                 ).convertAware2D(ProceduralStream::get)
                 .cache2D("landBiomeStream", engine, cacheSize);
         inferredStreams.put(InferredType.LAND, landBiomeStream);
         seaBiomeStream = regionStream.convert((r)
                         -> engine.getDimension().getSeaBiomeStyle().create(rng.nextParallelRNG(InferredType.SEA.ordinal()), getData()).stream()
                         .zoom(r.getSeaBiomeZoom())
-                        .selectRarity(r.getSeaBiomes(), (i) -> data.getBiomeLoader().load(i))
-                        .convertCached((s) -> data.getBiomeLoader().load(s)
-                                .setInferredType(InferredType.SEA))
+                        .selectRarity(data.getBiomeLoader().loadAll(r.getSeaBiomes(), (t) -> t.setInferredType(InferredType.SEA)))
                 ).convertAware2D(ProceduralStream::get)
                 .cache2D("seaBiomeStream", engine, cacheSize);
         inferredStreams.put(InferredType.SEA, seaBiomeStream);
         shoreBiomeStream = regionStream.convert((r)
                 -> engine.getDimension().getShoreBiomeStyle().create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), getData()).stream()
                 .zoom(r.getShoreBiomeZoom())
-                .selectRarity(r.getShoreBiomes(), (i) -> data.getBiomeLoader().load(i))
-                .convertCached((s) -> data.getBiomeLoader().load(s)
-                        .setInferredType(InferredType.SHORE))
+                .selectRarity(data.getBiomeLoader().loadAll(r.getShoreBiomes(), (t) -> t.setInferredType(InferredType.SHORE)))
         ).convertAware2D(ProceduralStream::get).cache2D("shoreBiomeStream", engine, cacheSize);
         inferredStreams.put(InferredType.SHORE, shoreBiomeStream);
         bridgeStream = focus != null ? ProceduralStream.of((x, z) -> focus.getInferredType(),

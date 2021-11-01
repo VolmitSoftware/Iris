@@ -101,6 +101,7 @@ public class CommandStudio implements DecreeExecutor {
     public static String hrf(Duration duration) {
         return duration.toString().substring(2).replaceAll("(\\d[HMS])(?!$)", "$1 ").toLowerCase();
     }
+    private CommandFind find;
 
     @Decree(description = "Download a project.", aliases = "dl")
     public void download(

@@ -97,6 +97,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @MaxNumber(1)
     @Desc("The shore ration (How much percent of land should be a shore)")
     private double shoreRatio = 0.13;
+    @RegistryListResource(IrisSpawner.class)
     @ArrayType(min = 1, type = IrisObjectPlacement.class)
     @Desc("Objects define what schematics (iob files) iris will place in this region")
     private KList<IrisObjectPlacement> objects = new KList<>();

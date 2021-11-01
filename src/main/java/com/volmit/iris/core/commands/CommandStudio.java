@@ -364,7 +364,7 @@ public class CommandStudio implements DecreeExecutor {
         NoiseExplorerGUI.launch(l, "Custom Generator");
     }
 
-    @Decree(description = "Hotload a studio", aliases = "reload")
+    @Decree(description = "Hotload a studio", aliases = {"reload", "h"})
     public void hotload() {
         if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender().sendMessage(C.RED + "No studio world open!");

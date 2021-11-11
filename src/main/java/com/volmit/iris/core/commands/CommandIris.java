@@ -75,6 +75,8 @@ public class CommandIris implements DecreeExecutor {
             return;
         }
 
+        sender().sendMessage(C.RED + "You should not be using this command to create new worlds. Instead, use /mvc " + name + " NORMAL -g Iris:" + type.getName());
+
         try {
             IrisToolbelt.createWorld()
                     .dimension(type.getLoadKey())

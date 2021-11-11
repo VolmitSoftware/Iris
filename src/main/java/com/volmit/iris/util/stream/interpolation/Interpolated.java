@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.stream.interpolation;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.CaveResult;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
@@ -61,6 +62,7 @@ public interface Interpolated<T> {
             return new InterpolatorFactory<>((ProceduralStream<T>) this);
         }
 
+        Iris.warn("Cannot interpolate " + this.getClass().getCanonicalName() + "!");
         return null;
     }
 }

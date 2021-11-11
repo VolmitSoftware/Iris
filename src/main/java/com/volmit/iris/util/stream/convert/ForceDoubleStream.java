@@ -26,6 +26,7 @@ public class ForceDoubleStream extends BasicStream<Double> {
 
     public ForceDoubleStream(ProceduralStream<?> stream) {
         super(null);
+        this.stream = stream;
     }
 
     @Override

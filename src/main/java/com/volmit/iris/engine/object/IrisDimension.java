@@ -21,8 +21,6 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
-import com.volmit.iris.engine.biome.AreaSystem;
-import com.volmit.iris.engine.biome.ProceduralBiomeSystem;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.ArrayType;
@@ -395,9 +393,5 @@ public class IrisDimension extends IrisRegistrant {
     @Override
     public void scanForErrors(JSONObject p, VolmitSender sender) {
 
-    }
-
-    public AreaSystem createBiomeSystem(Engine engine) {
-        return new ProceduralBiomeSystem(engine);
     }
 }

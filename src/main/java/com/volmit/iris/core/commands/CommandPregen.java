@@ -42,7 +42,7 @@ public class CommandPregen implements DecreeExecutor {
                     Vector center
     ) {
         try {
-            if (access() == null) {
+            if (sender().isPlayer() && access() == null) {
                 sender().sendMessage(C.RED + "The engine access for this world is null!");
                 sender().sendMessage(C.RED + "Please make sure the world is loaded & the engine is initialized. Generate a new chunk, for example.");
             }

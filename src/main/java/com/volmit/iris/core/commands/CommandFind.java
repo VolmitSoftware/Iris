@@ -29,7 +29,7 @@ import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.decree.specialhandlers.ObjectHandler;
 import com.volmit.iris.util.format.C;
 
-@Decree(name = "find", origin = DecreeOrigin.PLAYER, description = "Iris Find commands")
+@Decree(name = "find", origin = DecreeOrigin.PLAYER, description = "Iris Find commands", aliases = "goto")
 public class CommandFind implements DecreeExecutor {
     @Decree(description = "Find a biome")
     public void biome(

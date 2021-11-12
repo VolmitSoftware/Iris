@@ -74,10 +74,7 @@ public class IrisImageMap {
 
     public double getNoise(IrisData data, int x, int z)
     {
-        IrisImage i = imageCache.aquire(() -> {
-            IrisImage ii = data.getImageLoader().load(image);
-            return ii;
-        });
+        IrisImage i = imageCache.aquire(() -> data.getImageLoader().load(image));
         if(i == null)
         {
             Iris.error("NULL IMAGE FOR " + image);
@@ -90,10 +87,10 @@ public class IrisImageMap {
     {
         x /= coordinateScale;
         z /= coordinateScale;
-        x = isTiled() ? x % i.getWidth() : x;
-        z = isTiled() ? z % i.getHeight() : z;
         x = isCentered() ? x + ((i.getWidth() / 2D) * coordinateScale) : x;
         z = isCentered() ? z + ((i.getHeight() / 2D) * coordinateScale) : z;
+        x = isTiled() ? x % i.getWidth() : x;
+        z = isTiled() ? z % i.getHeight() : z;
         double v = i.getValue(getChannel(), (int)x, (int)z);
         return isInverted() ? 1D - v : v;
     }

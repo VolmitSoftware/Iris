@@ -20,6 +20,7 @@ package com.volmit.iris.util.noise;
 
 import com.volmit.iris.util.math.Vector2f;
 import com.volmit.iris.util.math.Vector3f;
+import com.volmit.iris.util.stream.ProceduralStream;
 
 public class FastNoise {
     private static final Float2[] GRAD_2D = {new Float2(-1, -1), new Float2(1, -1), new Float2(-1, 1), new Float2(1, 1), new Float2(0, -1), new Float2(-1, 0), new Float2(0, 1), new Float2(1, 0),
@@ -1728,6 +1729,19 @@ public class FastNoise {
                 return 0;
         }
     }
+    public float GetCellular(float x, float y, ProceduralStream<Double> sourceNoise) {
+        x *= m_frequency;
+        y *= m_frequency;
+
+        switch (m_cellularReturnType) {
+            case CellValue:
+            case NoiseLookup:
+            case Distance:
+                return SingleCellular(x, y, sourceNoise);
+            default:
+                return SingleCellular2Edge(x, y);
+        }
+    }
 
     public float GetCellular(float x, float y) {
         x *= m_frequency;
@@ -1811,6 +1825,86 @@ public class FastNoise {
         switch (m_cellularReturnType) {
             case CellValue:
                 return ValCoord2D(0, xc, yc);
+
+            case NoiseLookup:
+                Float2 vec = CELL_2D[Hash2D(m_seed, xc, yc) & 255];
+                return m_cellularNoiseLookup.GetNoise(xc + vec.x, yc + vec.y);
+
+            case Distance:
+                return distance - 1;
+            default:
+                return 0;
+        }
+    }
+
+    private float SingleCellular(float x, float y, ProceduralStream<Double> sourceNoise) {
+        int xr = FastRound(x);
+        int yr = FastRound(y);
+
+        float distance = 999999;
+        int xc = 0, yc = 0;
+
+        switch (m_cellularDistanceFunction) {
+            default:
+            case Euclidean:
+                for (int xi = xr - 1; xi <= xr + 1; xi++) {
+                    for (int yi = yr - 1; yi <= yr + 1; yi++) {
+                        Float2 vec = CELL_2D[Hash2D(m_seed, xi, yi) & 255];
+
+                        float vecX = xi - x + vec.x;
+                        float vecY = yi - y + vec.y;
+
+                        float newDistance = vecX * vecX + vecY * vecY;
+
+                        if (newDistance < distance) {
+                            distance = newDistance;
+                            xc = xi;
+                            yc = yi;
+                        }
+                    }
+                }
+                break;
+            case Manhattan:
+                for (int xi = xr - 1; xi <= xr + 1; xi++) {
+                    for (int yi = yr - 1; yi <= yr + 1; yi++) {
+                        Float2 vec = CELL_2D[Hash2D(m_seed, xi, yi) & 255];
+
+                        float vecX = xi - x + vec.x;
+                        float vecY = yi - y + vec.y;
+
+                        float newDistance = (Math.abs(vecX) + Math.abs(vecY));
+
+                        if (newDistance < distance) {
+                            distance = newDistance;
+                            xc = xi;
+                            yc = yi;
+                        }
+                    }
+                }
+                break;
+            case Natural:
+                for (int xi = xr - 1; xi <= xr + 1; xi++) {
+                    for (int yi = yr - 1; yi <= yr + 1; yi++) {
+                        Float2 vec = CELL_2D[Hash2D(m_seed, xi, yi) & 255];
+
+                        float vecX = xi - x + vec.x;
+                        float vecY = yi - y + vec.y;
+
+                        float newDistance = (Math.abs(vecX) + Math.abs(vecY)) + (vecX * vecX + vecY * vecY);
+
+                        if (newDistance < distance) {
+                            distance = newDistance;
+                            xc = xi;
+                            yc = yi;
+                        }
+                    }
+                }
+                break;
+        }
+
+        switch (m_cellularReturnType) {
+            case CellValue:
+                return sourceNoise.get(xc, yc).floatValue();
 
             case NoiseLookup:
                 Float2 vec = CELL_2D[Hash2D(m_seed, xc, yc) & 255];

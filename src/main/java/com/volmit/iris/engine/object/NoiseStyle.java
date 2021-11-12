@@ -20,6 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.noise.BiasedCellularNoise;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.noise.CNGFactory;
 import com.volmit.iris.util.noise.NoiseType;
@@ -446,6 +447,22 @@ public enum NoiseStyle {
 
     @Desc("Vascular noise gets higher as the position nears a cell border. Cells are distorted using Iris styled wispy noise.")
     VASCULAR_IRIS_HALF(rng -> CNG.signatureHalf(rng, NoiseType.VASCULAR)),
+
+    @Desc("White Noise is like static. Useful for block scattering but not terrain.")
+    SIMPLEX_BIASED_CELLULAR(rng -> new CNG(rng, new BiasedCellularNoise(rng.lmax(),
+        SIMPLEX.stream(rng.nextParallelRNG(-23333666)).zoom(0.158)), 1D, 1)),
+
+    @Desc("White Noise is like static. Useful for block scattering but not terrain.")
+    NOWHERE_BIASED_CELLULAR(rng -> new CNG(rng, new BiasedCellularNoise(rng.lmax(),
+        NOWHERE.stream(rng.nextParallelRNG(-23333666)).zoom(0.158)), 1D, 1)),
+
+    @Desc("White Noise is like static. Useful for block scattering but not terrain.")
+    IRIS_BIASED_CELLULAR(rng -> new CNG(rng, new BiasedCellularNoise(rng.lmax(),
+        IRIS.stream(rng.nextParallelRNG(-23333666)).zoom(0.158)), 1D, 1)),
+
+    @Desc("White Noise is like static. Useful for block scattering but not terrain.")
+    VASCULAR_BIASED_CELLULAR(rng -> new CNG(rng, new BiasedCellularNoise(rng.lmax(),
+        VASCULAR.stream(rng.nextParallelRNG(-23333666)).zoom(0.158)), 1D, 1)),
 
     ;
 

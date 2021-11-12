@@ -18,9 +18,6 @@
 
 package com.volmit.iris;
 
-import com.google.gson.ExclusionStrategy;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.link.IrisPapiExpansion;
@@ -98,6 +95,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
     static {
         try {
+            fixShading();
             InstanceState.updateInstanceId();
         } catch (Throwable ignored) {
 
@@ -106,10 +104,6 @@ public class Iris extends VolmitPlugin implements Listener {
 
     private final KList<Runnable> postShutdown = new KList<>();
     private KMap<Class<? extends IrisService>, IrisService> services;
-
-    public Iris() {
-        preEnable();
-    }
 
     public static VolmitSender getSender() {
         return sender;
@@ -387,6 +381,67 @@ public class Iris extends VolmitPlugin implements Listener {
         }
     }
 
+    private void enable() {
+        instance = this;
+        services = new KMap<>();
+        initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
+        INMS.get();
+        IO.delete(new File("iris"));
+        setupAudience();
+        sender = new VolmitSender(Bukkit.getConsoleSender());
+        sender.setTag(getTag());
+        instance = this;
+        compat = IrisCompat.configured(getDataFile("compat.json"));
+        linkMultiverseCore = new MultiverseCoreLink();
+        linkOraxen = new OraxenLink();
+        linkMythicMobs = new MythicMobsLink();
+        configWatcher = new FileWatcher(getDataFile("settings.json"));
+        services.values().forEach(IrisService::onEnable);
+        services.values().forEach(this::registerListener);
+        J.s(() -> {
+            J.a(() -> PaperLib.suggestPaper(this));
+            J.a(() -> IO.delete(getTemp()));
+            J.a(this::bstats);
+            J.ar(this::checkConfigHotload, 60);
+            J.sr(this::tickQueue, 0);
+            J.s(this::setupPapi);
+            J.s(TecTest::go);
+            J.a(ServerConfigurator::configure, 20);
+            splash();
+            autoStartStudio();
+        });
+    }
+
+    private void autoStartStudio() {
+        if (IrisSettings.get().getStudio().isAutoStartDefaultStudio()) {
+            Iris.info("Starting up auto Studio!");
+            try {
+                Player r = new KList<>(getServer().getOnlinePlayers()).getRandom();
+                Iris.service(StudioSVC.class).open(r != null ? new VolmitSender(r) : sender, 1337, IrisSettings.get().getGenerator().getDefaultWorldType(), (w) -> {
+                    J.s(() -> {
+                        for (Player i : getServer().getOnlinePlayers()) {
+                            i.setGameMode(GameMode.SPECTATOR);
+                            i.teleport(new Location(w, 0, 200, 0));
+                        }
+                    });
+                });
+            } catch (IrisException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void setupAudience() {
+        try {
+            audiences = BukkitAudiences.create(this);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            IrisSettings.get().getGeneral().setUseConsoleCustomColors(false);
+            IrisSettings.get().getGeneral().setUseCustomColorsIngame(false);
+            Iris.error("Failed to setup Adventure API... No custom colors :(");
+        }
+    }
+
     public static void dump() {
         try {
             File fi = Iris.instance.getDataFile("dump", "td-" + new java.sql.Date(M.ms()) + ".txt");
@@ -413,71 +468,8 @@ public class Iris extends VolmitPlugin implements Listener {
         }
     }
 
-    private void preEnable() {
-        instance = this;
-        services = new KMap<>();
-        initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
-        INMS.get();
-        IO.delete(new File("iris"));
-        fixShading();
-    }
-
-    private void enable() {
-        setupAudience();
-        sender = new VolmitSender(Bukkit.getConsoleSender());
-        sender.setTag(getTag());
-        instance = this;
-        compat = IrisCompat.configured(getDataFile("compat.json"));
-        linkMultiverseCore = new MultiverseCoreLink();
-        linkOraxen = new OraxenLink();
-        linkMythicMobs = new MythicMobsLink();
-        configWatcher = new FileWatcher(getDataFile("settings.json"));
-        services.values().forEach(IrisService::onEnable);
-        services.values().forEach(this::registerListener);
-    }
-
-    private void setupAudience() {
-        try {
-            audiences = BukkitAudiences.create(this);
-        } catch (Throwable e) {
-            e.printStackTrace();
-            IrisSettings.get().getGeneral().setUseConsoleCustomColors(false);
-            IrisSettings.get().getGeneral().setUseCustomColorsIngame(false);
-            Iris.error("Failed to setup Adventure API... No custom colors :(");
-        }
-    }
-
     public void postShutdown(Runnable r) {
         postShutdown.add(r);
-    }
-
-    private void postEnable() {
-        J.a(() -> PaperLib.suggestPaper(this));
-        J.a(() -> IO.delete(getTemp()));
-        J.a(this::bstats);
-        J.ar(this::checkConfigHotload, 60);
-        J.sr(this::tickQueue, 0);
-        J.s(this::setupPapi);
-        J.s(TecTest::go);
-        J.a(ServerConfigurator::configure, 20);
-        splash();
-
-        if (IrisSettings.get().getStudio().isAutoStartDefaultStudio()) {
-            Iris.info("Starting up auto Studio!");
-            try {
-                Player r = new KList<>(getServer().getOnlinePlayers()).getRandom();
-                Iris.service(StudioSVC.class).open(r != null ? new VolmitSender(r) : sender, 1337, IrisSettings.get().getGenerator().getDefaultWorldType(), (w) -> {
-                    J.s(() -> {
-                        for (Player i : getServer().getOnlinePlayers()) {
-                            i.setGameMode(GameMode.SPECTATOR);
-                            i.teleport(new Location(w, 0, 200, 0));
-                        }
-                    });
-                });
-            } catch (IrisException e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     public static void panic()
@@ -495,7 +487,6 @@ public class Iris extends VolmitPlugin implements Listener {
         enable();
         super.onEnable();
         Bukkit.getPluginManager().registerEvents(this, this);
-        J.s(this::postEnable);
     }
 
     public void onDisable() {
@@ -508,7 +499,7 @@ public class Iris extends VolmitPlugin implements Listener {
         super.onDisable();
     }
 
-    private void fixShading() {
+    private static void fixShading() {
         ShadeFix.fix(ComponentSerializer.class);
     }
 

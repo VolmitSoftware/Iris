@@ -38,6 +38,7 @@ import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisEntity;
 import com.volmit.iris.engine.object.IrisExpression;
 import com.volmit.iris.engine.object.IrisGenerator;
+import com.volmit.iris.engine.object.IrisImage;
 import com.volmit.iris.engine.object.IrisJigsawPiece;
 import com.volmit.iris.engine.object.IrisJigsawPool;
 import com.volmit.iris.engine.object.IrisJigsawStructure;
@@ -86,6 +87,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private ResourceLoader<IrisBlockData> blockLoader;
     private ResourceLoader<IrisExpression> expressionLoader;
     private ResourceLoader<IrisObject> objectLoader;
+    private ResourceLoader<IrisImage> imageLoader;
     private ResourceLoader<IrisScript> scriptLoader;
     private ResourceLoader<IrisCave> caveLoader;
     private ResourceLoader<IrisRavine> ravineLoader;
@@ -184,6 +186,10 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     public static IrisCave loadAnyCave(String key) {
         return loadAny(key, (dm) -> dm.getCaveLoader().load(key, false));
+    }
+
+    public static IrisImage loadAnyImage(String key) {
+        return loadAny(key, (dm) -> dm.getImageLoader().load(key, false));
     }
 
     public static IrisDimension loadAnyDimension(String key) {
@@ -336,6 +342,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.blockLoader = registerLoader(IrisBlockData.class);
         this.expressionLoader = registerLoader(IrisExpression.class);
         this.objectLoader = registerLoader(IrisObject.class);
+        this.imageLoader = registerLoader(IrisImage.class);
         this.scriptLoader = registerLoader(IrisScript.class);
         gson = builder.create();
     }

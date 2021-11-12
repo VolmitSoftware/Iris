@@ -32,6 +32,7 @@ import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
+import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -56,21 +57,35 @@ public class IrisImageMap {
     @Desc("The interpolation method if the coordinateScale is greater than 1. This blends the image into noise. For nearest neighbor, use NONE.")
     private InterpolationMethod interpolationMethod = InterpolationMethod.BILINEAR_STARCAST_6;
 
-    @Desc("The color of the sky, top half of sky. (hex format)")
-    private IrisImageChannel channel = IrisImageChannel.COMPOSITE_HSB;
+    @Desc("The channel of the image to read from. This basically converts image data into a number betwen 0 to 1 per pixel using a certain 'channel/filter'")
+    private IrisImageChannel channel = IrisImageChannel.COMPOSITE_ADD_HSB;
 
     @Desc("Invert the channel input")
     private boolean inverted = false;
+
+    @Desc("Tile the image coordinates")
+    private boolean tiled = false;
+
+    @Desc("Center 0,0 to the center of the image instead of the top left.")
+    private boolean centered = true;
 
     private AtomicCache<IrisImage> imageCache = new AtomicCache<IrisImage>();
 
     public double getNoise(IrisData data, int x, int z)
     {
         IrisImage i = imageCache.aquire(() -> data.getImageLoader().load(image));
+        return IrisInterpolation.getNoise(interpolationMethod, x, z, coordinateScale, (xx,zz) -> rawNoise(i, xx, zz));
+    }
 
-        if(coordinateScale <= 1)
-        {
-            return i.getImage
-        }
+    private double rawNoise(IrisImage i, double x, double z)
+    {
+        x /= coordinateScale;
+        z /= coordinateScale;
+        x = isTiled() ? x % i.getWidth() : x;
+        z = isTiled() ? z % i.getHeight() : z;
+        x = isCentered() ? x + ((i.getWidth() / 2D) * coordinateScale) : x;
+        z = isCentered() ? z + ((i.getHeight() / 2D) * coordinateScale) : z;
+        double v = i.getValue(getChannel(), (int)(x/coordinateScale), (int)(z/coordinateScale));
+        return isInverted() ? 1D - v : v;
     }
 }

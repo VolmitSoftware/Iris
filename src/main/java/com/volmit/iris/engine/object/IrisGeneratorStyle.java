@@ -28,6 +28,7 @@ import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.noise.ExpressionNoise;
+import com.volmit.iris.util.noise.ImageNoise;
 import com.volmit.iris.util.stream.ProceduralStream;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -52,6 +53,8 @@ public class IrisGeneratorStyle {
     @Desc("Instead of using the style property, use a custom expression to represent this style.")
     @RegistryListResource(IrisExpression.class)
     private String expression = null;
+    @Desc("Use an Image map instead of a generated value")
+    private IrisImageMap imageMap = null;
     @MinNumber(0.00001)
     @Desc("The Output multiplier. Only used if parent is fracture.")
     private double multiplier = 1;
@@ -88,6 +91,18 @@ public class IrisGeneratorStyle {
 
                 return cng;
             }
+        }
+
+        else if(getImageMap() != null)
+        {
+            CNG cng = new CNG(rng, new ImageNoise(data, getImageMap()), 1D, 1).bake().scale(1D/zoom).pow(exponent).bake();
+            cng.setTrueFracturing(axialFracturing);
+            
+            if (fracture != null) {
+                cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
+            }
+
+            return cng;
         }
 
         CNG cng = style.create(rng).bake().scale(1D / zoom).pow(exponent).bake();

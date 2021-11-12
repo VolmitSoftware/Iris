@@ -28,9 +28,19 @@ import java.awt.image.BufferedImage;
 public class IrisImage extends IrisRegistrant {
     private BufferedImage image;
 
+    public int getWidth()
+    {
+        return image.getWidth();
+    }
+
+    public int getHeight()
+    {
+        return image.getHeight();
+    }
+
     public int getRawValue(int x, int z)
     {
-        if(x >= w || z >= h || x < 0 || z < 0)
+        if(x >= getWidth() || z >= getHeight() || x < 0 || z < 0)
         {
             return 0;
         }
@@ -40,7 +50,7 @@ public class IrisImage extends IrisRegistrant {
 
     public double getValue(IrisImageChannel channel, int x, int z)
     {
-        int color = getRawValue(x + (image.getWidth()/2), z + (image.getHeight()/2));
+        int color = getRawValue(x, z);
 
         switch(channel)
         {
@@ -87,6 +97,8 @@ public class IrisImage extends IrisRegistrant {
                 return color;
             }
         }
+
+        return color;
     }
 
     public IrisImage()

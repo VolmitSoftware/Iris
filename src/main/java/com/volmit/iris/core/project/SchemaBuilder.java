@@ -675,7 +675,7 @@ public class SchemaBuilder {
         }
 
         if (!r.isPrimitive() && !r.equals(KList.class) && !r.equals(KMap.class) && r.getCanonicalName().startsWith("com.volmit.")) {
-            warnings.addIfMissing("Missing @Desc on " + r.getSimpleName() + " in " + r.getDeclaringClass().getCanonicalName());
+            warnings.addIfMissing("Missing @Desc on " + r.getSimpleName() + " in " + (r.getDeclaringClass() != null ? r.getDeclaringClass().getCanonicalName() : " NOSRC"));
         }
         return "";
     }

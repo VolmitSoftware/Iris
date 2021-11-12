@@ -297,7 +297,10 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                         rr.getTypeName());
             } else if (registrant.equals(IrisScript.class)) {
                 r = (ResourceLoader<T>) new ScriptResourceLoader(dataFolder, this, rr.getFolderName(),
-                        rr.getTypeName());
+                    rr.getTypeName());
+            }else if (registrant.equals(IrisImage.class)) {
+                r = (ResourceLoader<T>) new ImageResourceLoader(dataFolder, this, rr.getFolderName(),
+                    rr.getTypeName());
             } else {
                 J.attempt(() -> registrant.getConstructor().newInstance().registerTypeAdapters(builder));
                 r = new ResourceLoader<>(dataFolder, this, rr.getFolderName(), rr.getTypeName(), registrant);

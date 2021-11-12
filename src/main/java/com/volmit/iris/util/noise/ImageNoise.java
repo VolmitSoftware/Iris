@@ -44,6 +44,6 @@ public class ImageNoise implements NoiseGenerator {
 
     @Override
     public double noise(double x, double y, double z) {
-        return noise(x, y, 0);
+        return noise(x, z + y);
     }
 }

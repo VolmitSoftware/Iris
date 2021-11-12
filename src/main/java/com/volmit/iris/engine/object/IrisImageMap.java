@@ -20,6 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.project.SchemaBuilder;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.MantleWriter;
@@ -43,7 +44,7 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Desc("Represents a carving configuration")
+@Desc("Represents an image map")
 @Data
 public class IrisImageMap {
     @RegistryListResource(IrisImage.class)
@@ -69,11 +70,19 @@ public class IrisImageMap {
     @Desc("Center 0,0 to the center of the image instead of the top left.")
     private boolean centered = true;
 
-    private AtomicCache<IrisImage> imageCache = new AtomicCache<IrisImage>();
+    private transient AtomicCache<IrisImage> imageCache = new AtomicCache<IrisImage>();
 
     public double getNoise(IrisData data, int x, int z)
     {
-        IrisImage i = imageCache.aquire(() -> data.getImageLoader().load(image));
+        IrisImage i = imageCache.aquire(() -> {
+            IrisImage ii = data.getImageLoader().load(image);
+            return ii;
+        });
+        if(i == null)
+        {
+            Iris.error("NULL IMAGE FOR " + image);
+        }
+
         return IrisInterpolation.getNoise(interpolationMethod, x, z, coordinateScale, (xx,zz) -> rawNoise(i, xx, zz));
     }
 
@@ -85,7 +94,7 @@ public class IrisImageMap {
         z = isTiled() ? z % i.getHeight() : z;
         x = isCentered() ? x + ((i.getWidth() / 2D) * coordinateScale) : x;
         z = isCentered() ? z + ((i.getHeight() / 2D) * coordinateScale) : z;
-        double v = i.getValue(getChannel(), (int)(x/coordinateScale), (int)(z/coordinateScale));
+        double v = i.getValue(getChannel(), (int)x, (int)z);
         return isInverted() ? 1D - v : v;
     }
 }

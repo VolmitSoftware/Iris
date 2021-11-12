@@ -97,7 +97,7 @@ public class IrisGeneratorStyle {
         {
             CNG cng = new CNG(rng, new ImageNoise(data, getImageMap()), 1D, 1).bake().scale(1D/zoom).pow(exponent).bake();
             cng.setTrueFracturing(axialFracturing);
-            
+
             if (fracture != null) {
                 cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
             }

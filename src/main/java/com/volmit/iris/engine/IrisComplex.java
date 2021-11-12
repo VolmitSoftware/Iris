@@ -162,7 +162,8 @@ public class IrisComplex implements DataProvider {
         baseBiomeStream = focus != null ? ProceduralStream.of((x, z) -> focus,
                 Interpolated.of(a -> 0D, a -> focus)) :
                 bridgeStream.convertAware2D((t, x, z) -> inferredStreams.get(t).get(x, z))
-                        .convertAware2D(this::implode).cache2D("baseBiomeStream", engine, cacheSize);
+                        .convertAware2D(this::implode)
+                    .cache2D("baseBiomeStream", engine, cacheSize);
         heightStream = ProceduralStream.of((x, z) -> {
             IrisBiome b = focus != null ? focus : baseBiomeStream.get(x, z);
             return getHeight(engine, b, x, z, engine.getSeedManager().getHeight());

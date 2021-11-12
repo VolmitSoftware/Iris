@@ -21,14 +21,17 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.reflect.V;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.stream.ProceduralStream;
 import com.volmit.iris.util.stream.arithmetic.FittedStream;
 import com.volmit.iris.util.stream.interpolation.Interpolated;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface IRare {

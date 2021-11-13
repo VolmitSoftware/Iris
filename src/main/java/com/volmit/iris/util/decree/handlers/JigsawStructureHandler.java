@@ -25,7 +25,6 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
-import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 
 import java.io.File;
 import java.util.stream.Collectors;
@@ -56,7 +55,7 @@ public class JigsawStructureHandler implements DecreeParameterHandler<IrisJigsaw
     }
 
     @Override
-    public IrisJigsawStructure parse(String in, boolean force) throws DecreeParsingException, DecreeWhichException {
+    public IrisJigsawStructure parse(String in, boolean force) throws DecreeParsingException {
         if (in.equals("null")) {
             return null;
         }
@@ -64,19 +63,11 @@ public class JigsawStructureHandler implements DecreeParameterHandler<IrisJigsaw
 
         if (options.isEmpty()) {
             throw new DecreeParsingException("Unable to find Jigsaw Structure \"" + in + "\"");
-        } else if (options.size() > 1) {
-            if (force) {
-                try {
-                    return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
-                } catch (Throwable e) {
-                    throw new DecreeParsingException("Unable to filter which Jigsaw Structure \"" + in + "\"");
-                }
-            } else {
-                throw new DecreeWhichException();
-            }
+        } try {
+            return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
+        } catch (Throwable e) {
+            throw new DecreeParsingException("Unable to filter which Jigsaw Structure \"" + in + "\"");
         }
-
-        return options.get(0);
     }
 
     @Override

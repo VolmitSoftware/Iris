@@ -25,7 +25,6 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
-import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 
 import java.io.File;
 import java.util.stream.Collectors;
@@ -73,27 +72,18 @@ public class EntityHandler implements DecreeParameterHandler<IrisEntity> {
      * @param in The string to parse
      * @return The value extracted from the string, of the designated type
      * @throws DecreeParsingException Thrown when the parsing fails (ex: "oop" translated to an integer throws this)
-     * @throws DecreeWhichException   Thrown when multiple results are possible
      */
     @Override
-    public IrisEntity parse(String in, boolean force) throws DecreeParsingException, DecreeWhichException {
+    public IrisEntity parse(String in, boolean force) throws DecreeParsingException {
         KList<IrisEntity> options = getPossibilities(in);
 
         if (options.isEmpty()) {
             throw new DecreeParsingException("Unable to find Entity \"" + in + "\"");
-        } else if (options.size() > 1) {
-            if (force) {
-                try {
-                    return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
-                } catch (Throwable e) {
-                    throw new DecreeParsingException("Unable to filter which Biome \"" + in + "\"");
-                }
-            } else {
-                throw new DecreeWhichException();
-            }
+        } try {
+            return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
+        } catch (Throwable e) {
+            throw new DecreeParsingException("Unable to filter which Biome \"" + in + "\"");
         }
-
-        return options.get(0);
     }
 
     /**

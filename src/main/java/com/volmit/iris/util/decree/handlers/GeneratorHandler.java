@@ -25,7 +25,6 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
-import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 
 import java.io.File;
 import java.util.stream.Collectors;
@@ -56,24 +55,16 @@ public class GeneratorHandler implements DecreeParameterHandler<IrisGenerator> {
     }
 
     @Override
-    public IrisGenerator parse(String in, boolean force) throws DecreeParsingException, DecreeWhichException {
+    public IrisGenerator parse(String in, boolean force) throws DecreeParsingException {
         KList<IrisGenerator> options = getPossibilities(in);
 
         if (options.isEmpty()) {
             throw new DecreeParsingException("Unable to find Generator \"" + in + "\"");
-        } else if (options.size() > 1) {
-            if (force) {
-                try {
-                    return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
-                } catch (Throwable e) {
-                    throw new DecreeParsingException("Unable to filter which Biome \"" + in + "\"");
-                }
-            } else {
-                throw new DecreeWhichException();
-            }
+        } try {
+            return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
+        } catch (Throwable e) {
+            throw new DecreeParsingException("Unable to filter which Biome \"" + in + "\"");
         }
-
-        return options.get(0);
     }
 
     @Override

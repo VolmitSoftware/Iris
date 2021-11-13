@@ -20,7 +20,6 @@ package com.volmit.iris.util.decree;
 
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
-import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -60,9 +59,8 @@ public interface DecreeParameterHandler<T> {
      * @param in The string to parse
      * @return The value extracted from the string, of the designated type
      * @throws DecreeParsingException Thrown when the parsing fails (ex: "oop" translated to an integer throws this)
-     * @throws DecreeWhichException   Thrown when multiple results are possible
      */
-    default T parse(String in) throws DecreeParsingException, DecreeWhichException {
+    default T parse(String in) throws DecreeParsingException {
         return parse(in, false);
     }
 
@@ -73,9 +71,8 @@ public interface DecreeParameterHandler<T> {
      * @param force force an option instead of throwing decreewhich
      * @return The value extracted from the string, of the designated type
      * @throws DecreeParsingException Thrown when the parsing fails (ex: "oop" translated to an integer throws this)
-     * @throws DecreeWhichException   Thrown when multiple results are possible
      */
-    T parse(String in, boolean force) throws DecreeParsingException, DecreeWhichException;
+    T parse(String in, boolean force) throws DecreeParsingException;
 
     /**
      * Returns whether a certain type is supported by this handler<br>

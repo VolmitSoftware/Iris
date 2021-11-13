@@ -21,7 +21,6 @@ package com.volmit.iris.util.decree.specialhandlers;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
-import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 
 public class DummyHandler implements DecreeParameterHandler<Object> {
     @Override
@@ -39,7 +38,7 @@ public class DummyHandler implements DecreeParameterHandler<Object> {
     }
 
     @Override
-    public Object parse(String in, boolean force) throws DecreeParsingException, DecreeWhichException {
+    public Object parse(String in, boolean force) throws DecreeParsingException {
         return null;
     }
 

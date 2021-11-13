@@ -23,7 +23,6 @@ import com.volmit.iris.util.decree.DecreeContext;
 import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.DecreeSystem;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
-import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -54,7 +53,7 @@ public class BlockVectorHandler implements DecreeParameterHandler<BlockVector> {
     }
 
     @Override
-    public BlockVector parse(String in, boolean force) throws DecreeParsingException, DecreeWhichException {
+    public BlockVector parse(String in, boolean force) throws DecreeParsingException {
         try {
             if (in.contains(",")) {
                 String[] comp = in.split("\\Q,\\E");

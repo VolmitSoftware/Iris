@@ -23,7 +23,6 @@ import com.volmit.iris.util.decree.DecreeContext;
 import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.DecreeSystem;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
-import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 import com.volmit.iris.util.format.Form;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.entity.Player;
@@ -55,7 +54,7 @@ public class VectorHandler implements DecreeParameterHandler<Vector> {
     }
 
     @Override
-    public Vector parse(String in, boolean force) throws DecreeParsingException, DecreeWhichException {
+    public Vector parse(String in, boolean force) throws DecreeParsingException {
         try {
             if (in.contains(",")) {
                 String[] comp = in.split("\\Q,\\E");

@@ -22,7 +22,6 @@ import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
-import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 import com.volmit.iris.util.decree.specialhandlers.DummyHandler;
 import lombok.Data;
 
@@ -91,7 +90,7 @@ public class DecreeParameter {
         return d;
     }
 
-    public Object getDefaultValue() throws DecreeParsingException, DecreeWhichException {
+    public Object getDefaultValue() throws DecreeParsingException {
         return param.defaultValue().trim().isEmpty() ? null : getHandler().parse(param.defaultValue().trim(), true);
     }
 

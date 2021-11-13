@@ -31,7 +31,6 @@ import com.volmit.iris.util.decree.DecreeParameter;
 import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
-import com.volmit.iris.util.decree.exceptions.DecreeWhichException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.plugin.CommandDummy;
@@ -350,18 +349,6 @@ public class VirtualDecreeCommand {
                 sender.sendMessage(C.RED + "Cannot convert \"" + value + "\" into a " + param.getType().getSimpleName());
                 e.printStackTrace();
                 return null;
-            } catch (DecreeWhichException e) {
-                KList<?> validOptions = param.getHandler().getPossibilities(value);
-                Iris.debug("Found multiple results for " + key + "=" + value + " in " + getPath() + " using the handler " + param.getHandler().getClass().getSimpleName() + " with potential matches [" + validOptions.toString(",") + "]. Asking client to define one");
-                String update = pickValidOption(sender, validOptions, param.getHandler(), param.getName(), param.getType().getSimpleName());
-
-                if (update == null) {
-                    return null;
-                }
-
-                Iris.debug("Client chose " + update + " for " + key + "=" + value + " (old) in " + getPath());
-                nowhich.add(original);
-                in.set(original, update);
             }
         }
 
@@ -382,17 +369,6 @@ public class VirtualDecreeCommand {
                     sender.sendMessage(C.RED + "Cannot convert \"" + stringParam + "\" into a " + par.getType().getSimpleName());
                     e.printStackTrace();
                     return null;
-                } catch (DecreeWhichException e) {
-                    KList<?> validOptions = par.getHandler().getPossibilities(stringParam);
-                    String update = pickValidOption(sender, validOptions, par.getHandler(), par.getName(), par.getType().getSimpleName());
-
-                    if (update == null) {
-                        return null;
-                    }
-
-                    Iris.debug("Client chose " + update + " for " + par.getName() + "=" + stringParam + " (old) in " + getPath());
-                    nowhich.add(original);
-                    in.set(original, update);
                 }
             } catch (IndexOutOfBoundsException e) {
                 sender.sendMessage(C.YELLOW + "Unknown Parameter: " + stringParam + " (" + Form.getNumberSuffixThStRd(x + 1) + " argument)");
@@ -467,16 +443,6 @@ public class VirtualDecreeCommand {
                 Iris.debug("Can't parse parameter value for " + i.getName() + "=" + i.getParam().defaultValue() + " in " + getPath() + " using handler " + i.getHandler().getClass().getSimpleName());
                 sender.sendMessage(C.RED + "Cannot convert \"" + i.getParam().defaultValue() + "\" into a " + i.getType().getSimpleName());
                 return false;
-            } catch (DecreeWhichException e) {
-                KList<?> validOptions = i.getHandler().getPossibilities(i.getParam().defaultValue());
-                String update = pickValidOption(sender, validOptions, i.getHandler(), i.getName(), i.getType().getSimpleName());
-
-                if (update == null) {
-                    return false;
-                }
-
-                Iris.debug("Client chose " + update + " for " + i.getName() + "=" + i + " (old) in " + getPath());
-                value = update;
             }
 
             if (sender.isPlayer() && i.isContextual() && value == null) {
@@ -534,53 +500,6 @@ public class VirtualDecreeCommand {
         }
 
         return true;
-    }
-
-    private String pickValidOption(VolmitSender sender, KList<?> validOptions, DecreeParameterHandler<?> handler, String name, String type) {
-        int tries = 3;
-        KList<String> options = validOptions.convert(handler::toStringForce);
-        String result = null;
-
-        sender.sendHeader("Pick a " + name + " (" + type + ")");
-        sender.sendMessageRaw("<gradient:#1ed497:#b39427>This query will expire in 15 seconds.</gradient>");
-
-        while (tries-- > 0 && (result == null || !options.contains(result))) {
-            sender.sendMessage("<gradient:#1ed497:#b39427>Please pick a valid option.");
-            String password = UUID.randomUUID().toString().replaceAll("\\Q-\\E", "");
-            int m = 0;
-
-            for (String i : validOptions.convert(handler::toStringForce)) {
-                sender.sendMessage("<hover:show_text:'" + gradients[m % gradients.length] + i + "</gradient>'><click:run_command:/irisdecree " + password + " " + i + ">" + "- " + gradients[m % gradients.length] + i + "</gradient></click></hover>");
-                m++;
-            }
-
-            CompletableFuture<String> future = new CompletableFuture<>();
-            if (sender.isPlayer()) {
-                Iris.service(CommandSVC.class).post(password, future);
-
-                if (IrisSettings.get().getGeneral().isCommandSounds()) {
-                    (sender.player()).playSound((sender.player()).getLocation(), Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 0.77f, 0.65f);
-                    (sender.player()).playSound((sender.player()).getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.125f, 1.99f);
-                }
-            } else {
-                Iris.service(CommandSVC.class).postConsole(future);
-            }
-
-            try {
-                result = future.get(15, TimeUnit.SECONDS);
-            } catch (InterruptedException | ExecutionException | TimeoutException ignored) {
-
-            }
-        }
-
-        if (result != null && options.contains(result)) {
-            return result;
-        } else {
-            sender.sendMessage(C.RED + "You did not enter a correct option within 3 tries.");
-            sender.sendMessage(C.RED + "Please double-check your arguments & option picking.");
-        }
-
-        return null;
     }
 
     public KList<VirtualDecreeCommand> matchAllNodes(String in) {

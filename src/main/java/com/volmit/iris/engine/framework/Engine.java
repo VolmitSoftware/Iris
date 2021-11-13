@@ -771,7 +771,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return getBiomeOrMantle(l.getBlockX(), l.getBlockY(), l.getBlockZ());
     }
 
-    default void gotoBiome(IrisBiome biome, Player player, int distance, boolean random) {
+    default void gotoBiome(IrisBiome biome, Player player) {
         Set<String> regionKeys = getDimension()
                 .getAllRegions(this).stream()
                 .filter((i) -> i.getAllBiomes(this).contains(biome))
@@ -783,13 +783,17 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 && lb.matches(engine, chunk);
 
         if (!regionKeys.isEmpty()) {
+<<<<<<< HEAD
             locator.find(player, Math.abs(distance), random);
+=======
+            locator.find(player);
+>>>>>>> parent of 636fddd... Improve finding by allowing minimal distance & randomization
         } else {
             player.sendMessage(C.RED + biome.getName() + " is not in any defined regions!");
         }
     }
 
-    default void gotoJigsaw(IrisJigsawStructure s, Player player, int distance, boolean random) {
+    default void gotoJigsaw(IrisJigsawStructure s, Player player) {
         if (s.getLoadKey().equals(getDimension().getStronghold())) {
             KList<Position2> p = getDimension().getStrongholds(getSeedManager().getSpawn());
 
@@ -826,7 +830,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         if (getDimension().getJigsawStructures().stream()
                 .map(IrisJigsawStructurePlacement::getStructure)
                 .collect(Collectors.toSet()).contains(s.getLoadKey())) {
-            Locator.jigsawStructure(s.getLoadKey()).find(player, distance, random);
+            Locator.jigsawStructure(s.getLoadKey()).find(player);
         } else {
             Set<String> biomeKeys = getDimension().getAllBiomes(this).stream()
                     .filter((i) -> i.getJigsawStructures()
@@ -853,7 +857,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             };
 
             if (!regionKeys.isEmpty()) {
-                locator.find(player, distance, random);
+                locator.find(player);
             } else {
                 player.sendMessage(C.RED + s.getLoadKey() + " is not in any defined regions, biomes or dimensions!");
             }
@@ -861,7 +865,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     }
 
-    default void gotoObject(String s, Player player, int distance, boolean random) {
+    default void gotoObject(String s, Player player) {
         Set<String> biomeKeys = getDimension().getAllBiomes(this).stream()
                 .filter((i) -> i.getObjects().stream().anyMatch((f) -> f.getPlace().contains(s)))
                 .map(IrisRegistrant::getLoadKey)
@@ -884,19 +888,19 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         };
 
         if (!regionKeys.isEmpty()) {
-            locator.find(player, distance, random);
+            locator.find(player);
         } else {
             player.sendMessage(C.RED + s + " is not in any defined regions or biomes!");
         }
     }
 
-    default void gotoRegion(IrisRegion r, Player player, int distance, boolean random) {
+    default void gotoRegion(IrisRegion r, Player player) {
         if (!getDimension().getAllRegions(this).contains(r)) {
             player.sendMessage(C.RED + r.getName() + " is not defined in the dimension!");
             return;
         }
 
-        Locator.region(r.getLoadKey()).find(player, distance, random);
+        Locator.region(r.getLoadKey()).find(player);
     }
 
     default void cleanupMantleChunk(int x, int z) {

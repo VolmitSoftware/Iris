@@ -1729,7 +1729,7 @@ public class FastNoise {
                 return 0;
         }
     }
-    public float GetCellular(float x, float y, ProceduralStream<Double> sourceNoise) {
+    public float GetCellular(float x, float y, ProceduralStream<Double> sourceNoise, double iscale) {
         x *= m_frequency;
         y *= m_frequency;
 
@@ -1737,7 +1737,7 @@ public class FastNoise {
             case CellValue:
             case NoiseLookup:
             case Distance:
-                return SingleCellular(x, y, sourceNoise);
+                return SingleCellular(x, y, sourceNoise, iscale);
             default:
                 return SingleCellular2Edge(x, y);
         }
@@ -1837,7 +1837,7 @@ public class FastNoise {
         }
     }
 
-    private float SingleCellular(float x, float y, ProceduralStream<Double> sourceNoise) {
+    private float SingleCellular(float x, float y, ProceduralStream<Double> sourceNoise, double iscale) {
         int xr = FastRound(x);
         int yr = FastRound(y);
 
@@ -1904,7 +1904,7 @@ public class FastNoise {
 
         switch (m_cellularReturnType) {
             case CellValue:
-                return sourceNoise.get(xc, yc).floatValue();
+                return sourceNoise.get(xc * iscale, yc * iscale).floatValue();
 
             case NoiseLookup:
                 Float2 vec = CELL_2D[Hash2D(m_seed, xc, yc) & 255];

@@ -19,6 +19,7 @@
 package com.volmit.iris.util.noise;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.IRare;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.function.NoiseInjector;
@@ -100,6 +101,34 @@ public class CNG {
         if (generator instanceof OctaveNoise) {
             ((OctaveNoise) generator).setOctaves(octaves);
         }
+    }
+
+    public CNG cellularize(RNG seed, double freq)
+    {
+        FastNoise cellularFilter = new FastNoise(seed.imax());
+        cellularFilter.SetNoiseType(FastNoise.NoiseType.Cellular);
+        cellularFilter.SetCellularReturnType(FastNoise.CellularReturnType.CellValue);
+        cellularFilter.SetCellularDistanceFunction(FastNoise.CellularDistanceFunction.Manhattan);
+        cellularFilter.SetFrequency((float) freq * 0.01f);
+
+        ProceduralStream<Double> str = stream();
+
+        return new CNG(seed, new NoiseGenerator() {
+            @Override
+            public double noise(double x) {
+                return noise(x, 0);
+            }
+
+            @Override
+            public double noise(double x, double z) {
+                return (cellularFilter.GetCellular((float)x, (float)z, str, 1) / 2D) + 0.5D;
+            }
+
+            @Override
+            public double noise(double x, double y, double z) {
+                return noise(x, y + z);
+            }
+        }, 1D, 1);
     }
 
     public static CNG signature(RNG rng) {

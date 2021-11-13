@@ -47,6 +47,13 @@ public class IrisGeneratorStyle {
     private final transient AtomicCache<CNG> cng = new AtomicCache<>();
     @Desc("The chance is 1 in CHANCE per interval")
     private NoiseStyle style = NoiseStyle.FLAT;
+
+    @Desc("If set above 0, this style will be cellularized")
+    private double cellularFrequency = 0;
+
+    @Desc("Cell zooms")
+    private double cellularZoom = 1;
+
     @MinNumber(0.00001)
     @Desc("The zoom of this style")
     private double zoom = 1;
@@ -89,6 +96,11 @@ public class IrisGeneratorStyle {
                     cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
                 }
 
+                if(cellularFrequency > 0)
+                {
+                    return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D/cellularZoom).bake();
+                }
+
                 return cng;
             }
         }
@@ -102,6 +114,11 @@ public class IrisGeneratorStyle {
                 cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
             }
 
+            if(cellularFrequency > 0)
+            {
+                return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D/cellularZoom).bake();
+            }
+
             return cng;
         }
 
@@ -110,6 +127,11 @@ public class IrisGeneratorStyle {
 
         if (fracture != null) {
             cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
+        }
+
+        if(cellularFrequency > 0)
+        {
+            return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D/cellularZoom).bake();
         }
 
         return cng;

@@ -19,7 +19,9 @@
 package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.board.BoardManager;
@@ -85,6 +87,11 @@ public class BoardSVC implements IrisService, BoardProvider {
     }
 
     public void tick() {
+        if(!Iris.service(StudioSVC.class).isProjectOpen())
+        {
+            return;
+        }
+
         boards.forEach((k, v) -> v.update());
     }
 

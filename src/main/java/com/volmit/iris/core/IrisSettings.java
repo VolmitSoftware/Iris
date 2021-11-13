@@ -68,6 +68,7 @@ public class IrisSettings {
     public static class IrisSettingsWorld {
         public IrisAsyncTeleport asyncTeleport = new IrisAsyncTeleport();
         public boolean postLoadBlockUpdates = true;
+        public boolean forcePersistEntities = true;
         public boolean anbientEntitySpawningSystem = true;
         public long asyncTickIntervalMS = 700;
         public double targetSpawnEntitiesPerChunk = 0.95;

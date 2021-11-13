@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.ArrayType;
@@ -235,7 +236,7 @@ public class IrisEntity extends IrisRegistrant {
         e.setGravity(isGravity());
         e.setInvulnerable(isInvulnerable());
         e.setSilent(isSilent());
-        e.setPersistent(isKeepEntity());
+        e.setPersistent(isKeepEntity() || IrisSettings.get().getWorld().isForcePersistEntities());
 
         int gg = 0;
         for (IrisEntity i : passengers) {

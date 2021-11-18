@@ -54,7 +54,7 @@ public class CommandPregen implements DecreeExecutor {
                     .width(w)
                     .height(w)
                     .build(), world);
-            String msg = C.GREEN + "Pregen started in " + C.GOLD + world.getName() + C.GREEN + " of " + C.GOLD + w + C.GREEN + " by " + C.GOLD + w + C.GREEN + " blocks from " + C.GOLD + center.getX() + "," + center.getZ();
+            String msg = C.GREEN + "Pregen started in " + C.GOLD + world.getName() + C.GREEN + " of " + C.GOLD + (radius * 2) + C.GREEN + " by " + C.GOLD + (radius * 2) + C.GREEN + " blocks from " + C.GOLD + center.getX() + "," + center.getZ();
             sender().sendMessage(msg);
             Iris.info(msg);
         } catch (Throwable e) {

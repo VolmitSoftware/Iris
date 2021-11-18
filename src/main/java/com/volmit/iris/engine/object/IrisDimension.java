@@ -161,7 +161,7 @@ public class IrisDimension extends IrisRegistrant {
     @RegistryListResource(IrisBiome.class)
     @Desc("Keep this either undefined or empty. Setting any biome name into this will force iris to only generate the specified biome. Great for testing.")
     private String focus = "";
-    @RegistryListResource(IrisBiome.class)
+    @RegistryListResource(IrisRegion.class)
     @Desc("Keep this either undefined or empty. Setting any region name into this will force iris to only generate the specified region. Great for testing.")
     private String focusRegion = "";
     @MinNumber(0.0001)

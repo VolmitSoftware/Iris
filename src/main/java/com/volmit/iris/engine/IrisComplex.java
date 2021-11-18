@@ -83,6 +83,7 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<BlockData> rockStream;
     private ProceduralStream<BlockData> fluidStream;
     private IrisBiome focus;
+    private IrisRegion focusRegion;
 
     public IrisComplex(Engine engine) {
         this(engine, false);
@@ -98,13 +99,14 @@ public class IrisComplex implements DataProvider {
         fluidHeight = engine.getDimension().getFluidHeight();
         generators = new KMap<>();
         focus = engine.getFocus();
+        focusRegion = engine.getFocusRegion();
         KMap<InferredType, ProceduralStream<IrisBiome>> inferredStreams = new KMap<>();
 
         if (focus != null) {
             focus.setInferredType(InferredType.LAND);
+            focusRegion = findRegion(focus, engine);
         }
 
-        IrisRegion focusRegion = focus != null ? findRegion(focus, engine) : null;
         //@builder
         engine.getDimension().getRegions().forEach((i) -> data.getRegionLoader().load(i)
                 .getAllBiomes(this).forEach((b) -> b

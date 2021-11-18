@@ -518,6 +518,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     IrisBiome getFocus();
 
+    IrisRegion getFocusRegion();
+
     IrisEngineData getEngineData();
 
     default IrisBiome getSurfaceBiome(Chunk c) {

@@ -36,6 +36,7 @@ registerCustomOutputTask('Coco', 'C://Users/sjoer/Desktop/MCSM/plugins', name)
 registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins', name)
 // ========================== UNIX ==============================
 registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/Documents/development/server/plugins', name)
+registerCustomOutputTaskUnix('PsychoLT', '/Users/brianfopiano/Desktop/REMOTES/RemoteMinecraft/plugins', name)
 // ==============================================================
 
 

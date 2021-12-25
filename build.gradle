@@ -169,6 +169,6 @@ dependencies {
     implementation 'com.google.guava:guava:31.0.1-jre'
     implementation 'bsf:bsf:2.4.0'
     implementation 'rhino:js:1.7R2'
-    implementation 'com.github.ben-manes.caffeine:caffeine:3.0.4'
+    implementation 'com.github.ben-manes.caffeine:caffeine:3.0.5'
     implementation 'org.apache.commons:commons-lang3:3.12.0'
 }

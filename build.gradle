@@ -28,15 +28,41 @@ def name = getRootProject().getName() // Defined in settings.gradle
 def main = 'com.volmit.iris.Iris'
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
-// ==============================================================
+// ======================== WINDOWS =============================
 registerCustomOutputTask('Cyberpwn', 'C://Users/cyberpwn/Documents/development/server/plugins', name)
 registerCustomOutputTask('Psycho', 'D://Dan/MinecraftDevelopment/server/plugins', name)
 registerCustomOutputTask('ArcaneArts', 'C://Users/arcane/Documents/development/server/plugins', name)
 registerCustomOutputTask('Coco', 'C://Users/sjoer/Desktop/MCSM/plugins', name)
 registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins', name)
+// ========================== UNIX ==============================
+registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/Documents/development/server/plugins', name)
 // ==============================================================
 
+
 def registerCustomOutputTask(name, path, plugin) {
+    if (!System.properties['os.name'].toLowerCase().contains('windows'))
+    {
+        return;
+    }
+
+    tasks.register('build' + name, Copy) {
+        group('development')
+        outputs.upToDateWhen { false }
+        dependsOn ':shadowJar'
+        from(file('build/libs/' + plugin + '-' + version + '-all.jar'))
+        into(file(path))
+        rename { String fileName ->
+            fileName.replace(plugin + '-' + version + '-all.jar', plugin + ".jar")
+        }
+    }
+}
+
+def registerCustomOutputTaskUnix(name, path, plugin) {
+    if(System.properties['os.name'].toLowerCase().contains('windows'))
+    {
+        return;
+    }
+
     tasks.register('build' + name, Copy) {
         group('development')
         outputs.upToDateWhen { false }
@@ -119,7 +145,7 @@ dependencies {
     // Provided or Classpath
     compileOnly 'org.projectlombok:lombok:1.18.22'
     annotationProcessor 'org.projectlombok:lombok:1.18.22'
-    implementation 'org.spigotmc:spigot-api:1.17.1-R0.1-SNAPSHOT'
+    implementation 'org.spigotmc:spigot-api-final:1.17'
     implementation 'org.bukkit.craftbukkit:1.17.1:1.17.1'
     implementation 'me.clip:placeholderapi:2.10.10'
     implementation 'io.th0rgal:oraxen:1.94.0'

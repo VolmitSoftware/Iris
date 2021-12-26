@@ -518,6 +518,9 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     IrisBiome getFocus();
 
+    IrisRegion getFocusRegion();
+
+
     IrisEngineData getEngineData();
 
     default IrisBiome getSurfaceBiome(Chunk c) {
@@ -764,6 +767,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
         return new PlacedObject(null, getData().getObjectLoader().load(object), id, x, z);
     }
+
 
     int getCacheID();
 

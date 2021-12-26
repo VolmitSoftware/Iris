@@ -35,12 +35,7 @@ import com.volmit.iris.engine.framework.EngineWorldManager;
 import com.volmit.iris.engine.framework.SeedManager;
 import com.volmit.iris.engine.framework.WrongEngineBroException;
 import com.volmit.iris.engine.mantle.EngineMantle;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
-import com.volmit.iris.engine.object.IrisDecorator;
-import com.volmit.iris.engine.object.IrisEngineData;
-import com.volmit.iris.engine.object.IrisJigsawStructure;
-import com.volmit.iris.engine.object.IrisObjectPlacement;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.atomics.AtomicRollingSequence;
 import com.volmit.iris.util.collection.KMap;
@@ -485,6 +480,14 @@ public class IrisEngine implements Engine {
         return getData().getBiomeLoader().load(getDimension().getFocus());
     }
 
+    @Override
+    public IrisRegion getFocusRegion() {
+        if (getDimension().getFocusRegion() == null || getDimension().getFocusRegion().trim().isEmpty()) {
+            return null;
+        }
+
+        return getData().getRegionLoader().load(getDimension().getFocusRegion());
+    }
     @Override
     public void fail(String error, Throwable e) {
         failing = true;

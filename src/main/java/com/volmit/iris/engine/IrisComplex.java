@@ -82,7 +82,8 @@ public class IrisComplex implements DataProvider {
     private ProceduralStream<IrisDecorator> shoreSurfaceDecoration;
     private ProceduralStream<BlockData> rockStream;
     private ProceduralStream<BlockData> fluidStream;
-    private IrisBiome focus;
+    private IrisBiome focusBiome;
+    private IrisRegion focusRegion;
 
     public IrisComplex(Engine engine) {
         this(engine, false);
@@ -97,14 +98,15 @@ public class IrisComplex implements DataProvider {
         double height = engine.getHeight();
         fluidHeight = engine.getDimension().getFluidHeight();
         generators = new KMap<>();
-        focus = engine.getFocus();
+        focusBiome = engine.getFocus();
+        focusRegion = engine.getFocusRegion();
         KMap<InferredType, ProceduralStream<IrisBiome>> inferredStreams = new KMap<>();
 
-        if (focus != null) {
-            focus.setInferredType(InferredType.LAND);
+        if (focusBiome != null) {
+            focusBiome.setInferredType(InferredType.LAND);
+            focusRegion = findRegion(focusBiome, engine);
         }
 
-        IrisRegion focusRegion = focus != null ? findRegion(focus, engine) : null;
         //@builder
         engine.getDimension().getRegions().forEach((i) -> data.getRegionLoader().load(i)
                 .getAllBiomes(this).forEach((b) -> b
@@ -153,25 +155,25 @@ public class IrisComplex implements DataProvider {
                 .selectRarity(data.getBiomeLoader().loadAll(r.getShoreBiomes(), (t) -> t.setInferredType(InferredType.SHORE)))
         ).convertAware2D(ProceduralStream::get).cache2D("shoreBiomeStream", engine, cacheSize);
         inferredStreams.put(InferredType.SHORE, shoreBiomeStream);
-        bridgeStream = focus != null ? ProceduralStream.of((x, z) -> focus.getInferredType(),
-                Interpolated.of(a -> 0D, a -> focus.getInferredType())) :
+        bridgeStream = focusBiome != null ? ProceduralStream.of((x, z) -> focusBiome.getInferredType(),
+                Interpolated.of(a -> 0D, a -> focusBiome.getInferredType())) :
                 engine.getDimension().getContinentalStyle().create(rng.nextParallelRNG(234234565), getData())
                         .bake().scale(1D / engine.getDimension().getContinentZoom()).bake().stream()
                         .convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND)
                         .cache2D("bridgeStream", engine, cacheSize);
-        baseBiomeStream = focus != null ? ProceduralStream.of((x, z) -> focus,
-                Interpolated.of(a -> 0D, a -> focus)) :
+        baseBiomeStream = focusBiome != null ? ProceduralStream.of((x, z) -> focusBiome,
+                Interpolated.of(a -> 0D, a -> focusBiome)) :
                 bridgeStream.convertAware2D((t, x, z) -> inferredStreams.get(t).get(x, z))
                         .convertAware2D(this::implode)
                     .cache2D("baseBiomeStream", engine, cacheSize);
         heightStream = ProceduralStream.of((x, z) -> {
-            IrisBiome b = focus != null ? focus : baseBiomeStream.get(x, z);
+            IrisBiome b = focusBiome != null ? focusBiome : baseBiomeStream.get(x, z);
             return getHeight(engine, b, x, z, engine.getSeedManager().getHeight());
         }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D("heightStream", engine, cacheSize);
         roundedHeighteightStream = heightStream.round();
         slopeStream = heightStream.slope(3).cache2D("slopeStream", engine, cacheSize);
-        trueBiomeStream = focus != null ? ProceduralStream.of((x, y) -> focus, Interpolated.of(a -> 0D,
-                        b -> focus))
+        trueBiomeStream = focusBiome != null ? ProceduralStream.of((x, y) -> focusBiome, Interpolated.of(a -> 0D,
+                        b -> focusBiome))
                 .cache2D("trueBiomeStream-focus", engine, cacheSize) : heightStream
                 .convertAware2D((h, x, z) ->
                         fixBiomeType(h, baseBiomeStream.get(x, z),

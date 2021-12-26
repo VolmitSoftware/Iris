@@ -46,7 +46,6 @@ import static org.bukkit.Material.*;
 
 public class B {
     private static final Material AIR_MATERIAL = Material.AIR;
-    private static final ReentrantLock createLock = new ReentrantLock();
     private static final BlockData AIR = AIR_MATERIAL.createBlockData();
     private static final IntSet foliageCache = buildFoliageCache();
     private static final IntSet deepslateCache = buildDeepslateCache();
@@ -441,31 +440,8 @@ public class B {
         return AIR;
     }
 
-    private static BlockData createBlockData(String s) {
-        BlockData be = null;
-        try {
-            be = Bukkit.createBlockData(s);
-        } catch (Throwable e) {
-
-        }
-
-        if (be == null) {
-            try {
-                createLock.lock();
-                be = Bukkit.createBlockData(s);
-                createLock.unlock();
-                if (be != null) {
-                    Iris.info("We have fixed: " + s);
-                }
-                return be;
-
-            } catch (Throwable ee) {
-
-            }
-            Iris.error("Oh no... " + s);
-
-        }
-        return be;
+    private static synchronized BlockData createBlockData(String s) {
+        return Bukkit.createBlockData(s);
     }
 
     private static BlockData parseBlockData(String ix) {

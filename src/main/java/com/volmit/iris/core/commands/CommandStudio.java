@@ -23,6 +23,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.core.gui.VisionGUI;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.service.ConversionSVC;
 import com.volmit.iris.core.service.StudioSVC;
@@ -102,6 +103,8 @@ public class CommandStudio implements DecreeExecutor {
         return duration.toString().substring(2).replaceAll("(\\d[HMS])(?!$)", "$1 ").toLowerCase();
     }
     private CommandFind find;
+    private CommandEdit edit;
+
 
     @Decree(description = "Download a project.", aliases = "dl")
     public void download(
@@ -297,27 +300,7 @@ public class CommandStudio implements DecreeExecutor {
         Iris.service(ConversionSVC.class).check(sender());
     }
 
-    @Decree(description = "Edit the biome you are currently in", aliases = {"ebiome", "eb"}, origin = DecreeOrigin.PLAYER)
-    public void editbiome(
-            @Param(contextual = true, description = "The biome to edit")
-                    IrisBiome biome
-    ) {
-        if (noStudio()) {
-            return;
-        }
 
-        try {
-            if (biome.getLoadFile() == null) {
-                sender().sendMessage(C.GOLD + "Cannot find the file for the biome you are in! Perhaps it was not loaded directly from a file?");
-                return;
-            }
-
-            Desktop.getDesktop().open(biome.getLoadFile());
-        } catch (Throwable e) {
-            Iris.reportError(e);
-            sender().sendMessage(C.RED + "Cant find the file. Unsure why this happened.");
-        }
-    }
 
     @Decree(description = "Execute a script", aliases = "run", origin = DecreeOrigin.PLAYER)
     public void execute(

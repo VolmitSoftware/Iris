@@ -28,6 +28,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 
 @Snippet("command")
 @Accessors(chain = true)
@@ -49,8 +50,21 @@ public class IrisCommand {
     @Desc("The delay between repeats, in server ticks (by default 100, so 5 seconds)")
     private long repeatDelay = 100;
 
+    @Desc("The block of 24 hour time in which the command should execute.")
+    private IrisTimeBlock timeBlock = new IrisTimeBlock();
+
+    @Desc("The weather that is required for the command to execute.")
+    private IrisWeather weather = IrisWeather.ANY;
+
+    public boolean isValid(World world) {
+        return timeBlock.isWithin(world) && weather.is(world);
+    }
 
     public void run(Location at) {
+        if (!isValid(at.getWorld())) {
+            return;
+        }
+
         for (String command : commands) {
             command = (command.startsWith("/") ? command.replaceFirst("/", "") : command)
                     .replaceAll("\\Q{x}\\E", String.valueOf(at.getBlockX()))

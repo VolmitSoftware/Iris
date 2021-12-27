@@ -159,7 +159,7 @@ public class IrisSettings {
                     e.printStackTrace();
                 }
             } catch (Throwable ee) {
-                Iris.reportError(ee);
+                // Iris.reportError(ee); causes a self-reference & stackoverflow
                 Iris.error("Configuration Error in settings.json! " + ee.getClass().getSimpleName() + ": " + ee.getMessage());
             }
         }

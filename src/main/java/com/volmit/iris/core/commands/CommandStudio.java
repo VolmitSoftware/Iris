@@ -402,12 +402,18 @@ public class CommandStudio implements DecreeExecutor {
     }
 
     @Decree(description = "Render a world map (External GUI)", aliases = "render")
-    public void map() {
-        if (noStudio()) return;
-
+    public void map(
+            @Param(name = "world", description = "The world to open the generator for", contextual = true)
+            World world
+    ) {
         if (noGUI()) return;
 
-        VisionGUI.launch(engine(), 0);
+        if (!IrisToolbelt.isIrisWorld(world)) {
+            sender().sendMessage(C.RED + "You need to be in or specify an Iris-generated world!");
+            return;
+        }
+
+        VisionGUI.launch(IrisToolbelt.access(world).getEngine(), 0);
         sender().sendMessage(C.GREEN + "Opening map!");
     }
 

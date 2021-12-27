@@ -306,6 +306,11 @@ public class B {
     }
 
     public static boolean canPlaceOnto(Material mat, Material onto) {
+        if ((onto.equals(CRIMSON_NYLIUM) || onto.equals(WARPED_NYLIUM)) &&
+                (mat.equals(CRIMSON_FUNGUS) || mat.equals(CRIMSON_ROOTS) ||mat.equals(WARPED_FUNGUS) || mat.equals(WARPED_ROOTS) ) ){
+            return true;
+        }
+
         if (isFoliage(mat)) {
             if (!isFoliagePlantable(onto)) {
                 return false;

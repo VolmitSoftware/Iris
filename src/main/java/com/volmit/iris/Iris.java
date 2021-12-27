@@ -279,8 +279,12 @@ public class Iris extends VolmitPlugin implements Listener {
         if (!IrisSettings.get().getGeneral().isDebug()) {
             return;
         }
+        if(IrisSettings.get().getGeneral().isUseConsoleCustomColors()){
+            msg("<gradient:#095fe0:#a848db>" + category + " <#bf3b76>" + line + "<reset> " + C.LIGHT_PURPLE + string.replaceAll("\\Q<\\E", "[").replaceAll("\\Q>\\E", "]"));
+        } else {
+            msg(C.BLUE + category  + ":" + C.AQUA +line + C.RESET + C.LIGHT_PURPLE + " " + string.replaceAll("\\Q<\\E", "[").replaceAll("\\Q>\\E", "]"));
 
-        msg("<gradient:#095fe0:#a848db>" + category + " <#bf3b76>" + line + "<reset> " + C.LIGHT_PURPLE + string.replaceAll("\\Q<\\E", "[").replaceAll("\\Q>\\E", "]"));
+        }
     }
 
     public static void verbose(String string) {

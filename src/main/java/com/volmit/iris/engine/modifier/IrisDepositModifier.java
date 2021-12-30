@@ -80,7 +80,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
         for (int l = 0; l < rng.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++) {
             IrisObject clump = k.getClump(rng, getData());
 
-            int af = (int) Math.ceil(clump.getW() / 2D);
+            int af = (int) Math.floor(clump.getW() / 2D);
             int bf = (int) Math.floor(16D - (clump.getW() / 2D));
 
             if (af > bf || af < 0 || bf > 15 || af > 15 || bf < 0) {
@@ -88,6 +88,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
                 bf = 9;
             }
 
+            af = Math.max(af-1, 0);
             int x = rng.i(af, bf);
             int z = rng.i(af, bf);
             int height = (he != null ? he.getHeight((cx << 4) + x, (cz << 4) + z) : (int) (Math.round(

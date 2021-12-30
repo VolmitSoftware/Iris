@@ -178,6 +178,24 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Desc("Define biome deposit generators that add onto the existing regional and global deposit generators")
     private KList<IrisDepositGenerator> deposits = new KList<>();
     private transient InferredType inferredType;
+    @Desc("Collection of ores to be generated")
+    @ArrayType(type = IrisOreGenerator.class, min = 1)
+    private KList<IrisOreGenerator> ores = new KList<>();
+
+    public BlockData generateOres(int x, int y, int z, RNG rng, IrisData data) {
+        if (ores.isEmpty()) {
+            return null;
+        }
+        BlockData b = null;
+        for (IrisOreGenerator i : ores) {
+
+            b = i.generate(x,y,z,rng,data);
+            if(b != null ){
+                return b;
+            }
+        }
+        return null;
+    }
 
     public Biome getVanillaDerivative() {
         return vanillaDerivative == null ? derivative : vanillaDerivative;

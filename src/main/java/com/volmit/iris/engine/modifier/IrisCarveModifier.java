@@ -83,6 +83,8 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
 
             positions.computeIfAbsent(Cache.key(rx, rz), (k) -> new KList<>()).qadd(yy);
 
+            //todo: Fix chunk decoration not working on chunk's border
+
             if (rz < 15 && mantle.get(xx, yy, zz + 1, MatterCavern.class) == null) {
                 walls.put(new IrisPosition(rx, yy, rz + 1), c);
             }

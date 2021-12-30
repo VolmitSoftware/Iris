@@ -21,6 +21,8 @@ package com.volmit.iris.engine.actuator;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
@@ -76,16 +78,20 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
      */
     @BlockCoordinates
     public void terrainSliver(int x, int z, int xf, Hunk<BlockData> h) {
+        //
         int zf, realX, realZ, hf, he;
         IrisBiome biome;
+        IrisRegion region;
 
         for (zf = 0; zf < h.getDepth(); zf++) {
             realX = xf + x;
             realZ = zf + z;
             biome = getComplex().getTrueBiomeStream().get(realX, realZ);
+            region = getComplex().getRegionStream().get(realX, realZ);
             he = (int) Math.round(Math.min(h.getHeight(), getComplex().getHeightStream().get(realX, realZ)));
             hf = Math.round(Math.max(Math.min(h.getHeight(), getDimension().getFluidHeight()), he));
 
+            // this 0 is where we are going to need to modify the world base height, the Zero, not this instance...
             if (hf < 0) {
                 continue;
             }
@@ -94,11 +100,13 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
             KList<BlockData> fblocks = null;
             int depth, fdepth;
 
+            // Fluid height and lower
             for (int i = hf; i >= 0; i--) {
-                if (i >= h.getHeight()) {
+                if (i >= h.getHeight()) { // h.getheight is terrain height
                     continue;
                 }
 
+                // will need to change
                 if (i == 0) {
                     if (getDimension().isBedrock()) {
                         h.set(xf, i, zf, BEDROCK);
@@ -123,6 +131,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                     continue;
                 }
 
+                // top of surface
                 if (i <= he) {
                     depth = he - i;
                     if (blocks == null) {
@@ -133,12 +142,22 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                                 getComplex());
                     }
 
+
                     if (blocks.hasIndex(depth)) {
                         h.set(xf, i, zf, blocks.get(depth));
                         continue;
                     }
 
-                    h.set(xf, i, zf, getComplex().getRockStream().get(realX, realZ));
+                    BlockData ore = biome.generateOres(realX, i, realZ, rng, getData());
+                    ore = ore == null ? region.generateOres(realX, i, realZ, rng, getData()) : ore;
+                    ore = ore == null ? getDimension().generateOres(realX, i, realZ, rng, getData()) : ore;
+
+                    if (ore != null) {
+                        h.set(xf, i, zf, ore);
+                    } else {
+                        h.set(xf, i, zf, getComplex().getRockStream().get(realX, realZ));
+                    }
+
                 }
             }
         }

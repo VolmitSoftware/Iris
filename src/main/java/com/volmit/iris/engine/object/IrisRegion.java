@@ -44,6 +44,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.block.data.BlockData;
 
 import java.awt.Color;
 import java.util.Random;
@@ -176,6 +177,24 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     private double riverThickness = 0.1;
     @Desc("A color for visualizing this region with a color. I.e. #F13AF5. This will show up on the map.")
     private String color = null;
+    @Desc("Collection of ores to be generated")
+    @ArrayType(type = IrisOreGenerator.class, min = 1)
+    private KList<IrisOreGenerator> ores = new KList<>();
+
+    public BlockData generateOres(int x, int y, int z, RNG rng, IrisData data) {
+        if (ores.isEmpty()) {
+            return null;
+        }
+        BlockData b = null;
+        for (IrisOreGenerator i : ores) {
+
+            b = i.generate(x,y,z,rng,data);
+            if(b != null ){
+                return b;
+            }
+        }
+        return null;
+    }
 
     public String getName() {
         return name;

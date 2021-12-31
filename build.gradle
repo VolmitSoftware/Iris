@@ -178,12 +178,18 @@ dependencies {
 
 System.out.println("Gradle is using Java: " + JavaVersion.current());
 def buildToolsJar = new File(buildDir, "buildtools/BuildTools.jar");
+def specialSourceJar = new File(buildDir, "specialsource/SpecialSource.jar");
 def buildToolsFolder = new File(buildDir, "buildtools");
 
 // ======================== Building Mapped Jars =============================
 task downloadBuildtools(type: Download) {
     src 'https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar'
     dest buildToolsJar
+}
+
+task downloadSpecialSource(type: Download){
+    src 'https://repo.maven.apache.org/maven2/net/md-5/SpecialSource/1.10.0/SpecialSource-1.10.0-shaded.jar'
+    dest specialSourceJar
 }
 
 task executeBuildTools(dependsOn: downloadBuildtools, type: JavaExec)

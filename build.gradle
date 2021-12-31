@@ -19,11 +19,13 @@ plugins {
     id 'java'
     id 'io.freefair.lombok' version '5.2.1'
     id "com.github.johnrengelman.shadow" version "7.0.0"
+    id "de.undercouch.download" version "4.1.2"
 }
 
 group 'com.volmit.iris'
-version '1.9.6-1.17.X'
-def apiVersion = '1.17'
+version '1.9.7-1.18.X'
+def nmsVersion = "1.18.1"
+def apiVersion = '1.18'
 def name = getRootProject().getName() // Defined in settings.gradle
 def main = 'com.volmit.iris.Iris'
 
@@ -147,10 +149,11 @@ dependencies {
     // Provided or Classpath
     compileOnly 'org.projectlombok:lombok:1.18.22'
     annotationProcessor 'org.projectlombok:lombok:1.18.22'
-    implementation 'org.spigotmc:spigot-api:1.17.1-R0.1-SNAPSHOT'
-    implementation 'org.bukkit.craftbukkit:1.17.1:1.17.1'
+    implementation 'org.spigotmc:spigot-api:1.18.1-R0.1-SNAPSHOT'
     implementation 'me.clip:placeholderapi:2.10.10'
     implementation 'io.th0rgal:oraxen:1.94.0'
+
+    compileOnly 'org.spigotmc:spigot:1.18-R0.1-SNAPSHOT:remapped-mojang'
 
     // Shaded
     implementation 'com.dfsek:Paralithic:0.4.0'
@@ -171,4 +174,27 @@ dependencies {
     implementation 'rhino:js:1.7R2'
     implementation 'com.github.ben-manes.caffeine:caffeine:3.0.5'
     implementation 'org.apache.commons:commons-lang3:3.12.0'
+}
+
+def buildToolsJar = new File(buildDir, "buildtools/BuildTools.jar");
+def buildToolsFolder = new File(buildDir, "buildtools");
+
+// ======================== Building Mapped Jars =============================
+task downloadBuildtools(type: Download) {
+    src 'https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar'
+    dest buildToolsJar
+}
+
+task executeBuildTools(dependsOn: downloadBuildtools, type: JavaExec)
+{
+    classpath = files(buildToolsJar)
+    workingDir = buildToolsFolder
+    args = [
+            "--rev",
+            nmsVersion,
+            "--compile",
+            "craftbukkit",
+            "--compile-if-changed",
+            "--remap"
+    ]
 }

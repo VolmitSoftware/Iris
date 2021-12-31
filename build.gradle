@@ -101,8 +101,15 @@ processResources {
  * Unified repo
  */
 repositories {
+    mavenLocal{
+        content{
+            includeGroup("org.bukkit")
+            includeGroup("org.spigotmc")
+        }
+    }
     maven { url "https://dl.cloudsmith.io/public/arcane/archive/maven/" }
     mavenCentral()
+    mavenLocal()
 }
 
 /**
@@ -152,8 +159,8 @@ dependencies {
     implementation 'org.spigotmc:spigot-api:1.18.1-R0.1-SNAPSHOT'
     implementation 'me.clip:placeholderapi:2.10.10'
     implementation 'io.th0rgal:oraxen:1.94.0'
-
-    compileOnly 'org.spigotmc:spigot:1.18-R0.1-SNAPSHOT:remapped-mojang'
+    compileOnly 'org.bukkit:craftbukkit:1.18.1-R0.1-SNAPSHOT:remapped-mojang'
+    compileOnly 'org.spigotmc:spigot:1.18.1-R0.1-SNAPSHOT:remapped-mojang'
 
     // Shaded
     implementation 'com.dfsek:Paralithic:0.4.0'
@@ -185,11 +192,17 @@ def buildToolsFolder = new File(buildDir, "buildtools");
 task downloadBuildtools(type: Download) {
     src 'https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar'
     dest buildToolsJar
+    onlyIf{
+        !buildToolsJar.exists()
+    }
 }
 
 task downloadSpecialSource(type: Download){
     src 'https://repo.maven.apache.org/maven2/net/md-5/SpecialSource/1.10.0/SpecialSource-1.10.0-shaded.jar'
     dest specialSourceJar
+    onlyIf{
+        !specialSourceJar.exists()
+    }
 }
 
 task executeBuildTools(dependsOn: downloadBuildtools, type: JavaExec)
@@ -201,7 +214,11 @@ task executeBuildTools(dependsOn: downloadBuildtools, type: JavaExec)
             nmsVersion,
             "--compile",
             "craftbukkit",
-            "--compile-if-changed",
             "--remap"
     ]
+    onlyIf{
+        !buildToolsFolder.exists()
+    }
 }
+
+tasks.compileJava.dependsOn(executeBuildTools)

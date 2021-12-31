@@ -176,6 +176,7 @@ dependencies {
     implementation 'org.apache.commons:commons-lang3:3.12.0'
 }
 
+System.out.println("Gradle is using Java: " + JavaVersion.current());
 def buildToolsJar = new File(buildDir, "buildtools/BuildTools.jar");
 def buildToolsFolder = new File(buildDir, "buildtools");
 

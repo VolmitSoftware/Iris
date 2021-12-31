@@ -160,6 +160,10 @@ public class IrisEntitySpawn implements IRare {
     private Entity spawn100(Engine g, Location at, boolean ignoreSurfaces) {
         try {
             IrisEntity irisEntity = getRealEntity(g);
+            if(irisEntity == null){
+                Iris.error("      An entity referenced is not properly referenced / not real");
+                return null;
+            }
 
             if (!ignoreSurfaces && !irisEntity.getSurface().matches(at.clone().subtract(0, 1, 0).getBlock())) {
                 return null;
@@ -169,6 +173,7 @@ public class IrisEntitySpawn implements IRare {
             if (e != null) {
                 Iris.debug("Spawned " + C.DARK_AQUA + "Entity<" + getEntity() + "> " + C.GREEN + e.getType() + C.LIGHT_PURPLE + " @ " + C.GRAY + e.getLocation().getX() + ", " + e.getLocation().getY() + ", " + e.getLocation().getZ());
             }
+
 
             return e;
         } catch (Throwable e) {

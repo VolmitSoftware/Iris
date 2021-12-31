@@ -160,8 +160,7 @@ public class IrisEntitySpawn implements IRare {
     private Entity spawn100(Engine g, Location at, boolean ignoreSurfaces) {
         try {
             IrisEntity irisEntity = getRealEntity(g);
-            if(irisEntity == null){
-                Iris.error("      An entity referenced is not properly referenced / not real");
+            if(irisEntity == null){ // No entity
                 return null;
             }
 

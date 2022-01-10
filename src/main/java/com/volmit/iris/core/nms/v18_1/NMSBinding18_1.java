@@ -303,7 +303,7 @@ public class NMSBinding18_1 implements INMSBinding {
     }
 
     public boolean supportsDataPacks() {
-        return false;
+        return true;
     }
 
     @Override

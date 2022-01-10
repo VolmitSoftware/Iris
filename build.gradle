@@ -159,8 +159,7 @@ dependencies {
     implementation 'org.spigotmc:spigot-api:1.18.1-R0.1-SNAPSHOT'
     implementation 'me.clip:placeholderapi:2.10.10'
     implementation 'io.th0rgal:oraxen:1.94.0'
-    compileOnly 'org.bukkit:craftbukkit:1.18.1-R0.1-SNAPSHOT:remapped-mojang'
-    compileOnly 'org.spigotmc:spigot:1.18.1-R0.1-SNAPSHOT:remapped-mojang'
+    implementation 'org.bukkit:craftbukkit:1.18.1-R0.1-SNAPSHOT:remapped-mojang'
 
     // Shaded
     implementation 'com.dfsek:Paralithic:0.4.0'
@@ -187,6 +186,7 @@ System.out.println("Gradle is using Java: " + JavaVersion.current());
 def buildToolsJar = new File(buildDir, "buildtools/BuildTools.jar");
 def specialSourceJar = new File(buildDir, "specialsource/SpecialSource.jar");
 def buildToolsFolder = new File(buildDir, "buildtools");
+def buildToolsHint = new File(buildDir, "buildtools/craftbukkit-" + nmsVersion + ".jar");
 
 // ======================== Building Mapped Jars =============================
 task downloadBuildtools(type: Download) {
@@ -217,7 +217,7 @@ task executeBuildTools(dependsOn: downloadBuildtools, type: JavaExec)
             "--remap"
     ]
     onlyIf{
-        !buildToolsFolder.exists()
+        !buildToolsHint.exists()
     }
 }
 

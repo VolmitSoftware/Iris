@@ -24,22 +24,37 @@ import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.nbt.io.NBTUtil;
+import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
 import com.volmit.iris.util.nbt.mca.palette.MCAChunkBiomeContainer;
+import com.volmit.iris.util.nbt.mca.palette.MCAGlobalPalette;
 import com.volmit.iris.util.nbt.mca.palette.MCAIdMap;
+import com.volmit.iris.util.nbt.mca.palette.MCAIdMapper;
+import com.volmit.iris.util.nbt.mca.palette.MCAPalette;
 import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
+import com.volmit.iris.util.nbt.mca.palette.MCAPalettedContainer;
+import com.volmit.iris.util.nbt.mca.palette.MCAWrappedPalettedContainer;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.core.Registry;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.craftbukkit.v1_18_R1.CraftChunk;
 import org.bukkit.craftbukkit.v1_18_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_18_R1.CraftWorld;
+import org.bukkit.craftbukkit.v1_18_R1.block.data.CraftBlockData;
+import org.bukkit.craftbukkit.v1_18_R1.generator.CustomChunkGenerator;
 import org.bukkit.entity.Entity;
 import org.bukkit.generator.ChunkGenerator;
 import org.jetbrains.annotations.NotNull;
@@ -48,13 +63,20 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.lang.reflect.Field;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class NMSBinding18_1 implements INMSBinding {
 
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
+    private final BlockData AIR = Material.AIR.createBlockData();
     private final AtomicCache<MCAIdMap<net.minecraft.world.level.biome.Biome>> biomeMapCache = new AtomicCache<>();
+    private final AtomicCache<MCAIdMapper<BlockState>> registryCache = new AtomicCache<>();
+    private final AtomicCache<MCAPalette<BlockState>> globalCache = new AtomicCache<>();
+    private Field biomeStorageCache = null;
 
     @Override
     public boolean hasTile(Location l) {
@@ -124,6 +146,10 @@ public class NMSBinding18_1 implements INMSBinding {
 
     private Registry<net.minecraft.world.level.biome.Biome> getCustomBiomeRegistry() {
         return ((CraftServer) Bukkit.getServer()).getHandle().getServer().registryHolder.registry(Registry.BIOME_REGISTRY).orElse(null);
+    }
+
+    private Registry<Block> getBlockRegistry() {
+        return ((CraftServer) Bukkit.getServer()).getHandle().getServer().registryHolder.registry(Registry.BLOCK_REGISTRY).orElse(null);
     }
 
     @Override
@@ -223,7 +249,7 @@ public class NMSBinding18_1 implements INMSBinding {
 
             @Override
             public net.minecraft.world.level.biome.Biome byId(int paramInt) {
-                return getCustomBiomeRegistry().fromId(paramInt);
+                return getCustomBiomeRegistry().byId(paramInt);
             }
         });
     }
@@ -279,17 +305,57 @@ public class NMSBinding18_1 implements INMSBinding {
     @Override
     public void forceBiomeInto(int x, int y, int z, Object somethingVeryDirty, ChunkGenerator.BiomeGrid chunk) {
         try {
-
-            BiomeStorage s = (BiomeStorage) getFieldForBiomeStorage(chunk).get(chunk);
-            s.setBiome(x, y, z, (BiomeBase) somethingVeryDirty);
+            ChunkAccess s = (ChunkAccess) getFieldForBiomeStorage(chunk).get(chunk);
+            s.setBiome(x, y, z, (net.minecraft.world.level.biome.Biome) somethingVeryDirty);
         } catch (IllegalAccessException e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
     }
 
+    private Field getFieldForBiomeStorage(Object storage) {
+        Field f = biomeStorageCache;
+
+        if (f != null) {
+            return f;
+        }
+        try {
+
+            f = storage.getClass().getDeclaredField("biome");
+            f.setAccessible(true);
+            return f;
+        } catch (Throwable e) {
+            Iris.reportError(e);
+            e.printStackTrace();
+            Iris.error(storage.getClass().getCanonicalName());
+        }
+
+        biomeStorageCache = f;
+        return null;
+    }
+
     @Override
     public MCAPaletteAccess createPalette() {
-        return null;
+        MCAIdMapper<BlockState> registry = registryCache.aquireNasty(() -> {
+            Field cf = net.minecraft.core.IdMapper.class.getDeclaredField("tToId");
+            Field df = net.minecraft.core.IdMapper.class.getDeclaredField("idToT");
+            Field bf = net.minecraft.core.IdMapper.class.getDeclaredField("nextId");
+            cf.setAccessible(true);
+            df.setAccessible(true);
+            bf.setAccessible(true);
+            net.minecraft.core.IdMapper<BlockState> blockData = Block.BLOCK_STATE_REGISTRY;
+            int b = bf.getInt(blockData);
+            Object2IntMap<BlockState> c = (Object2IntMap<BlockState>) cf.get(blockData);
+            List<BlockState> d = (List<BlockState>) df.get(blockData);
+            return new MCAIdMapper<BlockState>(c, d, b);
+        });
+        MCAPalette<BlockState> global = globalCache.aquireNasty(() -> new MCAGlobalPalette<>(registry, ((CraftBlockData) AIR).getState()));
+        MCAPalettedContainer<BlockState> container = new MCAPalettedContainer<>(global, registry,
+            i -> ((CraftBlockData) NBTWorld.getBlockData(i)).getState(),
+            i -> NBTWorld.getCompound(CraftBlockData.fromData(i)),
+            ((CraftBlockData) AIR).getState());
+        return new MCAWrappedPalettedContainer<>(container,
+            i -> NBTWorld.getCompound(CraftBlockData.fromData(i)),
+            i -> ((CraftBlockData) NBTWorld.getBlockData(i)).getState());
     }
 }

@@ -139,6 +139,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                         updateChunks();
                     }
 
+
                     if (getDimension().isInfiniteEnergy()) {
                         energy += 1000;
                         fixEnergy();
@@ -285,7 +286,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     }
 
     private void fixEnergy() {
-        energy = M.clip(energy, 1D, 1000D);
+        energy = M.clip(energy, 1D, getDimension().getMaximumEnergy());
     }
 
     private void spawnIn(Chunk c, boolean initial) {

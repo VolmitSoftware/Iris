@@ -18,12 +18,6 @@
 
 package com.volmit.iris.util.math;
 
-import net.minecraft.SystemUtils;
-import net.minecraft.core.BaseBlockPosition;
-import net.minecraft.world.phys.AxisAlignedBB;
-import net.minecraft.world.phys.Vec3D;
-import org.bukkit.craftbukkit.libs.org.apache.commons.lang3.math.NumberUtils;
-
 import java.util.Random;
 import java.util.UUID;
 import java.util.function.IntPredicate;
@@ -43,12 +37,6 @@ public class MathHelper {
     private static final long l = -4611686018427387904L;
     private static final long m = -9223372036854775808L;
     private static final float n = 10430.378F;
-    private static final float[] o = SystemUtils.a(new float[65536], (var0x) -> {
-        for (int var1 = 0; var1 < var0x.length; ++var1) {
-            var0x[var1] = (float) Math.sin((double) var1 * 3.141592653589793D * 2.0D / 65536.0D);
-        }
-
-    });
     private static final Random p = new Random();
     private static final int[] q = new int[]{0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9};
     private static final double r = 0.16666666666666666D;
@@ -69,14 +57,6 @@ public class MathHelper {
     }
 
     public MathHelper() {
-    }
-
-    public static float sin(float var0) {
-        return o[(int) (var0 * 10430.378F) & '\uffff'];
-    }
-
-    public static float cos(float var0) {
-        return o[(int) (var0 * 10430.378F + 16384.0F) & '\uffff'];
     }
 
     public static float c(float var0) {
@@ -304,14 +284,6 @@ public class MathHelper {
         return d(var0, var0 + var3, var2);
     }
 
-    public static int a(String var0, int var1) {
-        return NumberUtils.toInt(var0, var1);
-    }
-
-    public static int a(String var0, int var1, int var2) {
-        return Math.max(var2, a(var0, var1));
-    }
-
     public static double a(String var0, double var1) {
         try {
             return Double.parseDouble(var0);
@@ -388,18 +360,6 @@ public class MathHelper {
         return var0 - (double) c(var0);
     }
 
-    public static Vec3D a(Vec3D var0, Vec3D var1, Vec3D var2, Vec3D var3, double var4) {
-        double var6 = ((-var4 + 2.0D) * var4 - 1.0D) * var4 * 0.5D;
-        double var8 = ((3.0D * var4 - 5.0D) * var4 * var4 + 2.0D) * 0.5D;
-        double var10 = ((-3.0D * var4 + 4.0D) * var4 + 1.0D) * var4 * 0.5D;
-        double var12 = (var4 - 1.0D) * var4 * var4 * 0.5D;
-        return new Vec3D(var0.b * var6 + var1.b * var8 + var2.b * var10 + var3.b * var12, var0.c * var6 + var1.c * var8 + var2.c * var10 + var3.c * var12, var0.d * var6 + var1.d * var8 + var2.d * var10 + var3.d * var12);
-    }
-
-    public static long a(BaseBlockPosition var0) {
-        return c(var0.getX(), var0.getY(), var0.getZ());
-    }
-
     public static long c(int var0, int var1, int var2) {
         long var3 = (long) (var0 * 3129871) ^ (long) var2 * 116129781L ^ (long) var1;
         var3 = var3 * var3 * 42317861L + var3 * 11L;
@@ -418,45 +378,6 @@ public class MathHelper {
 
     public static double c(double var0, double var2, double var4) {
         return (var0 - var2) / (var4 - var2);
-    }
-
-    public static boolean a(Vec3D var0, Vec3D var1, AxisAlignedBB var2) {
-        double var3 = (var2.a + var2.d) * 0.5D;
-        double var5 = (var2.d - var2.a) * 0.5D;
-        double var7 = var0.b - var3;
-        if (Math.abs(var7) > var5 && var7 * var1.b >= 0.0D) {
-            return false;
-        } else {
-            double var9 = (var2.b + var2.e) * 0.5D;
-            double var11 = (var2.e - var2.b) * 0.5D;
-            double var13 = var0.c - var9;
-            if (Math.abs(var13) > var11 && var13 * var1.c >= 0.0D) {
-                return false;
-            } else {
-                double var15 = (var2.c + var2.f) * 0.5D;
-                double var17 = (var2.f - var2.c) * 0.5D;
-                double var19 = var0.d - var15;
-                if (Math.abs(var19) > var17 && var19 * var1.d >= 0.0D) {
-                    return false;
-                } else {
-                    double var21 = Math.abs(var1.b);
-                    double var23 = Math.abs(var1.c);
-                    double var25 = Math.abs(var1.d);
-                    double var27 = var1.c * var19 - var1.d * var13;
-                    if (Math.abs(var27) > var11 * var25 + var17 * var23) {
-                        return false;
-                    } else {
-                        var27 = var1.d * var7 - var1.b * var19;
-                        if (Math.abs(var27) > var5 * var25 + var17 * var21) {
-                            return false;
-                        } else {
-                            var27 = var1.b * var13 - var1.c * var7;
-                            return Math.abs(var27) < var5 * var23 + var11 * var21;
-                        }
-                    }
-                }
-            }
-        }
     }
 
     public static double d(double var0, double var2) {

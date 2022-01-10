@@ -161,6 +161,7 @@ public class IrisEntitySpawn implements IRare {
         try {
             IrisEntity irisEntity = getRealEntity(g);
             if(irisEntity == null){ // No entity
+                Iris.debug("      You are trying to spawn an entity that does not exist!");
                 return null;
             }
 

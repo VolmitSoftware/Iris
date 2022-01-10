@@ -62,7 +62,7 @@ public class VanillaBiomeMap {
         add(Biome.SAVANNA_PLATEAU, 0xA79D64,  Color.GREEN, Luminosity.LIGHT, null);
         add(Biome.BADLANDS, 0xD94515, Color.ORANGE, Luminosity.BRIGHT, SaturationType.MEDIUM);
         add(Biome.WOODED_BADLANDS, 0xB09765,  Color.ORANGE, Luminosity.BRIGHT, SaturationType.HIGH);
-        add(Biome.SMALL_END_ISLANDS, 0xff1a8c,  Color.PURPLE, Luminosity.BRIGHT, SaturationType.MEDIUM); // Need to do -
+        add(Biome.SMALL_END_ISLANDS, 0xff1a8c,  Color.PURPLE, Luminosity.BRIGHT, SaturationType.MEDIUM);
         add(Biome.END_MIDLANDS, 0x8080FF, Color.YELLOW, Luminosity.LIGHT, SaturationType.LOW);
         add(Biome.END_HIGHLANDS, 0x8080FF,  Color.PURPLE, Luminosity.LIGHT, SaturationType.LOW);
         add(Biome.END_BARRENS, 0x8080FF,  Color.PURPLE, Luminosity.LIGHT, SaturationType.MEDIUM);

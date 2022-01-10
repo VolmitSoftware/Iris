@@ -23,7 +23,7 @@ plugins {
 }
 
 group 'com.volmit.iris'
-version '1.9.7-1.18.X'
+version '1.9.6-1.18.X'
 def nmsVersion = "1.18.1"
 def apiVersion = '1.18'
 def name = getRootProject().getName() // Defined in settings.gradle

@@ -302,6 +302,10 @@ public class NMSBinding18_1 implements INMSBinding {
         return a.get();
     }
 
+    public boolean supportsDataPacks() {
+        return false;
+    }
+
     @Override
     public void forceBiomeInto(int x, int y, int z, Object somethingVeryDirty, ChunkGenerator.BiomeGrid chunk) {
         try {

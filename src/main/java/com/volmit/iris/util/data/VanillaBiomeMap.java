@@ -50,7 +50,7 @@ public class VanillaBiomeMap {
         add(Biome.BEACH, 0xFADE55,  Color.YELLOW, Luminosity.LIGHT, SaturationType.LOW);
         add(Biome.JUNGLE, 0x537B09,  Color.GREEN, Luminosity.BRIGHT, SaturationType.HIGH);
         add(Biome.SPARSE_JUNGLE, 0x628B17, Color.GREEN, Luminosity.BRIGHT, SaturationType.HIGH);
-        add(Biome.DEEP_OCEAN, 0x000030,  Color.BLUE, Luminosity.DARK, null;
+        add(Biome.DEEP_OCEAN, 0x000030,  Color.BLUE, Luminosity.DARK, null);
         add(Biome.STONY_SHORE, 0xA2A284,  Color.GREEN, Luminosity.DARK, null);
         add(Biome.SNOWY_BEACH, 0xFAF0C0,  Color.YELLOW, Luminosity.LIGHT, null);
         add(Biome.BIRCH_FOREST, 0x307444, Color.GREEN, Luminosity.LIGHT, null);
@@ -107,8 +107,8 @@ public class VanillaBiomeMap {
         BIOME_IDs.put(biome, (short) biome.ordinal());
     }
 
-    private static void add(Biome biome, int color Color randomColor, Luminosity luminosity) {
-        add(biome, color, id, randomColor, luminosity, null);
+    private static void add(Biome biome, int color, Color randomColor, Luminosity luminosity) {
+        add(biome, color, randomColor, luminosity, null);
     }
 
     public static int getColor(Biome biome) {

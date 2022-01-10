@@ -273,6 +273,12 @@ task specialSourceRemapObfuscate(type: JavaExec)
 
 tasks.compileJava.dependsOn(executeBuildTools)
 
+task setup()
+{
+    group("iris")
+    dependsOn(clean, executeBuildTools)
+}
+
 task iris(type: Copy)
 {
     group "iris"

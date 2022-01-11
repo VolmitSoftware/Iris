@@ -300,11 +300,11 @@ def registerCustomOutputTask(name, path) {
     tasks.register('build' + name, Copy) {
         group('development')
         outputs.upToDateWhen { false }
-        dependsOn ':shadowJar'
-        from(new File(buildDir, "specialsource/Iris-" + version + "-rmo.jar"))
+        dependsOn(iris)
+        from(new File(buildDir, "Iris-" + version + ".jar"))
         into(file(path))
         rename { String fileName ->
-            fileName.replace(new File(buildDir, "specialsource/Iris-" + version + "-rmo.jar").getName(), "Iris.jar")
+            fileName.replace("Iris-" + version + ".jar", "Iris.jar")
         }
     }
 }
@@ -319,10 +319,10 @@ def registerCustomOutputTaskUnix(name, path) {
         group('development')
         outputs.upToDateWhen { false }
         dependsOn(iris)
-        from(new File(buildDir, "specialsource/Iris-" + version + "-rmo.jar"))
+        from(new File(buildDir, "Iris-" + version + ".jar"))
         into(file(path))
         rename { String fileName ->
-            fileName.replace(new File(buildDir, "specialsource/Iris-" + version + "-rmo.jar").getName(), "Iris.jar")
+            fileName.replace("Iris-" + version + ".jar", "Iris.jar")
         }
     }
 }

@@ -87,7 +87,7 @@ compileJava {
  * Configure Iris for shading
  */
 shadowJar {
-    minimize()
+    //minimize()
     append("plugin.yml")
     relocate 'com.dfsek.paralithic', 'com.volmit.iris.util.paralithic'
     relocate 'io.papermc.lib', 'com.volmit.iris.util.paper'
@@ -149,32 +149,6 @@ dependencies {
 if(JavaVersion.current().toString() != "17")
 {
     System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
     System.err.println("=========================================================================================================")
     System.err.println("You must run gradle on Java 17. You are using " + JavaVersion.current())
     System.err.println()
@@ -188,10 +162,6 @@ if(JavaVersion.current().toString() != "17")
     System.err.println("3. Open a new command prompt window to get the new environment variables if need be.")
     System.err.println("=========================================================================================================")
     System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
-    System.err.println()
     System.exit(69);
 }
 
@@ -203,6 +173,7 @@ def buildToolsHint = new File(buildDir, "buildtools/craftbukkit-" + nmsVersion +
 def outputShadeJar = new File(buildDir, "libs/Iris-" + version + "-all.jar");
 def ssiJar = new File(buildDir, "specialsource/Iris-" + version + "-all.jar");
 def ssobfJar = new File(buildDir, "specialsource/Iris-" + version + "-rmo.jar");
+def ssJar = new File(buildDir, "specialsource/Iris-" + version + "-rma.jar");
 def homePath = System.properties['user.home']
 def m2 = new File(homePath + "/.m2/repository")
 def m2s = m2.getAbsolutePath();
@@ -271,6 +242,25 @@ task specialSourceRemapObfuscate(type: JavaExec)
     ]
 }
 
+task specialSourceRemap(type: JavaExec)
+{
+    group "remapping"
+    dependsOn(specialSourceRemapObfuscate)
+    workingDir = specialSourceFolder
+    classpath = files(specialSourceJar,
+            new File(m2s + "/org/spigotmc/spigot/"+spigotJarVersion+"/spigot-" + spigotJarVersion + "-remapped-obf.jar"))
+    mainClass = "net.md_5.specialsource.SpecialSource"
+    args = [
+            "--live",
+            "-i",
+            ssobfJar.getName(),
+            "-o",
+            ssJar.getName(),
+            "-m",
+            m2s + "/org/spigotmc/minecraft-server/"+spigotJarVersion+"/minecraft-server-" + spigotJarVersion + "-maps-spigot.csrg"
+    ]
+}
+
 tasks.compileJava.dependsOn(executeBuildTools)
 
 task setup()
@@ -282,12 +272,12 @@ task setup()
 task iris(type: Copy)
 {
     group "iris"
-    from ssobfJar
+    from ssJar
     into buildDir
     rename { String fileName ->
-        fileName.replace('Iris-' + version + '-rmo.jar', "Iris-" + version + ".jar")
+        fileName.replace('Iris-' + version + '-rma.jar', "Iris-" + version + ".jar")
     }
-    dependsOn(specialSourceRemapObfuscate)
+    dependsOn(specialSourceRemap)
 }
 
 

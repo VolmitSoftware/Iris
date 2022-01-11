@@ -38,8 +38,10 @@ import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.scheduling.Queue;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.core.BlockPos;
@@ -65,6 +67,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -77,6 +80,7 @@ public class NMSBinding18_1 implements INMSBinding {
     private final AtomicCache<MCAIdMap<net.minecraft.world.level.biome.Biome>> biomeMapCache = new AtomicCache<>();
     private final AtomicCache<MCAIdMapper<BlockState>> registryCache = new AtomicCache<>();
     private final AtomicCache<MCAPalette<BlockState>> globalCache = new AtomicCache<>();
+    private final AtomicCache<RegistryAccess> registryAccess = new AtomicCache<>();
     private Field biomeStorageCache = null;
 
     @Override
@@ -145,12 +149,18 @@ public class NMSBinding18_1 implements INMSBinding {
         return true;
     }
 
+    private RegistryAccess registry()
+    {
+        return registryAccess.aquire(() -> (RegistryAccess) getFor(RegistryAccess.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()));
+    }
+
     private Registry<net.minecraft.world.level.biome.Biome> getCustomBiomeRegistry() {
-        return ((CraftServer) Bukkit.getServer()).getHandle().getServer().registryHolder.registry(Registry.BIOME_REGISTRY).orElse(null);
+
+        return registry().registry(Registry.BIOME_REGISTRY).orElse(null);
     }
 
     private Registry<Block> getBlockRegistry() {
-        return ((CraftServer) Bukkit.getServer()).getHandle().getServer().registryHolder.registry(Registry.BLOCK_REGISTRY).orElse(null);
+        return registry().registry(Registry.BLOCK_REGISTRY).orElse(null);
     }
 
     @Override
@@ -185,7 +195,7 @@ public class NMSBinding18_1 implements INMSBinding {
 
     @Override
     public Object getCustomBiomeBaseFor(String mckey) {
-        return null;
+        return getCustomBiomeRegistry().get(new ResourceLocation(mckey));
     }
 
     @Override
@@ -362,5 +372,54 @@ public class NMSBinding18_1 implements INMSBinding {
         return new MCAWrappedPalettedContainer<>(container,
             i -> NBTWorld.getCompound(CraftBlockData.fromData(i)),
             i -> ((CraftBlockData) NBTWorld.getBlockData(i)).getState());
+    }
+
+    private static Object getFor(Class<?> type, Object source) {
+        Object o = fieldFor(type, source);
+
+        if(o != null)
+        {
+            return o;
+        }
+
+        return invokeFor(type, source);
+    }
+
+    private static Object invokeFor(Class<?> returns, Object in)
+    {
+        for(Method i : in.getClass().getMethods())
+        {
+            if(i.getReturnType().equals(returns))
+            {
+                i.setAccessible(true);
+                try {
+                    Iris.info("[NMS] Found " + returns.getSimpleName() + " in " + in.getClass().getSimpleName() +"."+ i.getName() + "()");
+                    return i.invoke(in);
+                } catch(Throwable e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static Object fieldFor(Class<?> returns, Object in)
+    {
+        for(Field i : in.getClass().getFields())
+        {
+            if(i.getType().equals(returns))
+            {
+                i.setAccessible(true);
+                try {
+                    Iris.info("[NMS] Found " + returns.getSimpleName() + " in " + in.getClass().getSimpleName() +"."+ i.getName());
+                    return i.get(in);
+                } catch(IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return null;
     }
 }

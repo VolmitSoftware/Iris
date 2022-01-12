@@ -54,9 +54,9 @@ public class ObjectSVC implements IrisService {
     }
 
     private void loopChange(int amount) {
-        if (undos.size() > 0) {
+        if(undos.size() > 0) {
             revert(undos.pollLast());
-            if (amount > 1) {
+            if(amount > 1) {
                 J.s(() -> loopChange(amount - 1), 2);
             }
         }
@@ -65,12 +65,13 @@ public class ObjectSVC implements IrisService {
     /**
      * Reverts all the block changes provided, 200 blocks per tick
      *
-     * @param blocks The blocks to remove
+     * @param blocks
+     *     The blocks to remove
      */
     private void revert(Map<Block, BlockData> blocks) {
         int amount = 0;
         Iterator<Map.Entry<Block, BlockData>> it = blocks.entrySet().iterator();
-        while (it.hasNext()) {
+        while(it.hasNext()) {
             Map.Entry<Block, BlockData> entry = it.next();
             BlockData data = entry.getValue();
             entry.getKey().setBlockData(data, false);
@@ -78,7 +79,7 @@ public class ObjectSVC implements IrisService {
 
             amount++;
 
-            if (amount > 200) {
+            if(amount > 200) {
                 J.s(() -> revert(blocks), 1);
             }
         }

@@ -36,7 +36,7 @@ public class Spiraler {
     }
 
     public void drain() {
-        while (hasNext()) {
+        while(hasNext()) {
             next();
         }
     }
@@ -62,11 +62,11 @@ public class Spiraler {
     }
 
     public void next() {
-        if ((-sizeX / 2 <= x) && (x <= sizeX / 2) && (-sizeZ / 2 <= z) && (z <= sizeZ / 2)) {
+        if((-sizeX / 2 <= x) && (x <= sizeX / 2) && (-sizeZ / 2 <= z) && (z <= sizeZ / 2)) {
             spiraled.on(x + ox, z + ox);
         }
 
-        if ((x == z) || ((x < 0) && (x == -z)) || ((x > 0) && (x == 1 - z))) {
+        if((x == z) || ((x < 0) && (x == -z)) || ((x > 0) && (x == 1 - z))) {
             t = dx;
             dx = -dz;
             dz = t;

@@ -97,11 +97,11 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         IrisData data = IrisData.get(dataLocation);
         IrisDimension dimension = data.getDimensionLoader().load(dimensionKey);
 
-        if (dimension == null) {
+        if(dimension == null) {
             Iris.error("Oh No! There's no pack in " + data.getDataFolder().getPath() + " or... there's no dimension for the key " + dimensionKey);
             IrisDimension test = IrisData.loadAnyDimension(dimensionKey);
 
-            if (test != null) {
+            if(test != null) {
                 Iris.warn("Looks like " + dimensionKey + " exists in " + test.getLoadFile().getPath() + " ");
                 Iris.service(StudioSVC.class).installIntoWorld(Iris.getSender(), dimensionKey, dataLocation.getParentFile().getParentFile());
                 Iris.warn("Attempted to install into " + data.getDataFolder().getPath());
@@ -109,7 +109,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 data.clearLists();
                 test = data.getDimensionLoader().load(dimensionKey);
 
-                if (test != null) {
+                if(test != null) {
                     Iris.success("Woo! Patched the Engine!");
                     dimension = test;
                 } else {
@@ -138,20 +138,20 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             loadLock.acquire();
             IrisBiomeStorage st = new IrisBiomeStorage();
             TerrainChunk tc = TerrainChunk.createUnsafe(world, st);
-            Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
-            Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
+            Hunk<BlockData> blocks = Hunk.view(tc);
+            Hunk<Biome> biomes = Hunk.view(tc, tc.getMinHeight(), tc.getMaxHeight());
             this.world.bind(world);
             getEngine().generate(x << 4, z << 4, blocks, biomes, true);
             Iris.debug("Regenerated " + x + " " + z);
             int t = 0;
-            for (int i = getEngine().getHeight() >> 4; i >= 0; i--) {
-                if (!world.isChunkLoaded(x, z)) {
+            for(int i = getEngine().getHeight() >> 4; i >= 0; i--) {
+                if(!world.isChunkLoaded(x, z)) {
                     continue;
                 }
 
                 Chunk c = world.getChunkAt(x, z);
-                for (Entity ee : c.getEntities()) {
-                    if (ee instanceof Player) {
+                for(Entity ee : c.getEntities()) {
+                    if(ee instanceof Player) {
                         continue;
                     }
 
@@ -163,10 +163,10 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 int finalI = i;
                 jobs.accept(() -> {
 
-                    for (int xx = 0; xx < 16; xx++) {
-                        for (int yy = 0; yy < 16; yy++) {
-                            for (int zz = 0; zz < 16; zz++) {
-                                if (yy + (finalI << 4) >= engine.getHeight() || yy + (finalI << 4) < 0) {
+                    for(int xx = 0; xx < 16; xx++) {
+                        for(int yy = 0; yy < 16; yy++) {
+                            for(int zz = 0; zz < 16; zz++) {
+                                if(yy + (finalI << 4) >= engine.getHeight() || yy + (finalI << 4) < 0) {
                                     continue;
                                 }
 
@@ -178,7 +178,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             }
 
             loadLock.release();
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             loadLock.release();
             Iris.error("======================================");
             e.printStackTrace();
@@ -187,8 +187,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
             ChunkData d = Bukkit.createChunkData(world);
 
-            for (int i = 0; i < 16; i++) {
-                for (int j = 0; j < 16; j++) {
+            for(int i = 0; i < 16; i++) {
+                for(int j = 0; j < 16; j++) {
                     d.setBlock(i, 0, j, Material.RED_GLAZED_TERRACOTTA.createBlockData());
                 }
             }
@@ -196,17 +196,17 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     private Engine getEngine(World world) {
-        if (setup.get()) {
+        if(setup.get()) {
             return getEngine();
         }
 
-        synchronized (this) {
+        synchronized(this) {
             getWorld().setRawWorldSeed(world.getSeed());
             setupEngine();
             this.hotloader = studio ? new Looper() {
                 @Override
                 protected long loop() {
-                    if (hotloadChecker.flip()) {
+                    if(hotloadChecker.flip()) {
                         folder.check();
                     }
 
@@ -214,7 +214,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 }
             } : null;
 
-            if (studio) {
+            if(studio) {
                 hotloader.setPriority(Thread.MIN_PRIORITY);
                 hotloader.start();
                 hotloader.setName(getTarget().getWorld().name() + " Hotloader");
@@ -229,7 +229,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @Override
     public void close() {
         withExclusiveControl(() -> {
-            if (isStudio()) {
+            if(isStudio()) {
                 hotloader.interrupt();
             }
 
@@ -247,7 +247,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void hotload() {
-        if (!isStudio()) {
+        if(!isStudio()) {
             return;
         }
 
@@ -260,7 +260,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 loadLock.acquire(LOAD_LOCKS);
                 r.run();
                 loadLock.release(LOAD_LOCKS);
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 Iris.reportError(e);
             }
         });
@@ -280,11 +280,11 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             TerrainChunk tc = TerrainChunk.create(world, biome);
             this.world.bind(world);
 
-            if (studioGenerator != null) {
+            if(studioGenerator != null) {
                 studioGenerator.generateChunk(getEngine(), tc, x, z);
             } else {
-                Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
-                Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
+                Hunk<BlockData> blocks = Hunk.view(tc);
+                Hunk<Biome> biomes = Hunk.view(tc, tc.getMinHeight(), tc.getMaxHeight());
                 getEngine().generate(x << 4, z << 4, blocks, biomes, true);
             }
 
@@ -292,7 +292,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             Iris.debug("Generated " + x + " " + z);
             loadLock.release();
             return c;
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             loadLock.release();
             Iris.error("======================================");
             e.printStackTrace();
@@ -301,8 +301,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
             ChunkData d = Bukkit.createChunkData(world);
 
-            for (int i = 0; i < 16; i++) {
-                for (int j = 0; j < 16; j++) {
+            for(int i = 0; i < 16; i++) {
+                for(int j = 0; j < 16; j++) {
                     d.setBlock(i, 0, j, Material.RED_GLAZED_TERRACOTTA.createBlockData());
                 }
             }
@@ -312,7 +312,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     private void computeStudioGenerator() {
-        if (!getEngine().getDimension().getStudioMode().equals(lastMode)) {
+        if(!getEngine().getDimension().getStudioMode().equals(lastMode)) {
             lastMode = getEngine().getDimension().getStudioMode();
             getEngine().getDimension().getStudioMode().inject(this);
         }

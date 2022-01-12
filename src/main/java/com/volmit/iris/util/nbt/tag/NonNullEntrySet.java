@@ -140,7 +140,7 @@ class NonNullEntrySet<K, V> implements Set<Map.Entry<K, V>> {
 
         @Override
         public V setValue(V value) {
-            if (value == null) {
+            if(value == null) {
                 throw new NullPointerException(getClass().getSimpleName() + " does not allow setting null");
             }
             return entry.setValue(value);

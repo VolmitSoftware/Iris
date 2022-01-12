@@ -52,55 +52,55 @@ public class IrisPapiExpansion extends PlaceholderExpansion {
         Location l = null;
         PlatformChunkGenerator a = null;
 
-        if (player.isOnline()) {
+        if(player.isOnline()) {
             l = player.getPlayer().getLocation();
             a = IrisToolbelt.access(l.getWorld());
         }
 
-        if (p.equalsIgnoreCase("biome_name")) {
-            if (a != null) {
+        if(p.equalsIgnoreCase("biome_name")) {
+            if(a != null) {
                 return a.getEngine().getBiome(l).getName();
             }
-        } else if (p.equalsIgnoreCase("biome_id")) {
-            if (a != null) {
+        } else if(p.equalsIgnoreCase("biome_id")) {
+            if(a != null) {
                 return a.getEngine().getBiome(l).getLoadKey();
             }
-        } else if (p.equalsIgnoreCase("biome_file")) {
-            if (a != null) {
+        } else if(p.equalsIgnoreCase("biome_file")) {
+            if(a != null) {
                 return a.getEngine().getBiome(l).getLoadFile().getPath();
             }
-        } else if (p.equalsIgnoreCase("region_name")) {
-            if (a != null) {
+        } else if(p.equalsIgnoreCase("region_name")) {
+            if(a != null) {
                 return a.getEngine().getRegion(l).getName();
             }
-        } else if (p.equalsIgnoreCase("region_id")) {
-            if (a != null) {
+        } else if(p.equalsIgnoreCase("region_id")) {
+            if(a != null) {
                 return a.getEngine().getRegion(l).getLoadKey();
             }
-        } else if (p.equalsIgnoreCase("region_file")) {
-            if (a != null) {
+        } else if(p.equalsIgnoreCase("region_file")) {
+            if(a != null) {
                 return a.getEngine().getRegion(l).getLoadFile().getPath();
             }
-        } else if (p.equalsIgnoreCase("terrain_slope")) {
-            if (a != null) {
+        } else if(p.equalsIgnoreCase("terrain_slope")) {
+            if(a != null) {
                 return (a.getEngine())
-                        .getComplex().getSlopeStream()
-                        .get(l.getX(), l.getZ()) + "";
+                    .getComplex().getSlopeStream()
+                    .get(l.getX(), l.getZ()) + "";
             }
-        } else if (p.equalsIgnoreCase("terrain_height")) {
-            if (a != null) {
+        } else if(p.equalsIgnoreCase("terrain_height")) {
+            if(a != null) {
                 return Math.round(a.getEngine().getHeight(l.getBlockX(), l.getBlockZ())) + "";
             }
-        } else if (p.equalsIgnoreCase("world_mode")) {
-            if (a != null) {
+        } else if(p.equalsIgnoreCase("world_mode")) {
+            if(a != null) {
                 return a.isStudio() ? "Studio" : "Production";
             }
-        } else if (p.equalsIgnoreCase("world_seed")) {
-            if (a != null) {
+        } else if(p.equalsIgnoreCase("world_seed")) {
+            if(a != null) {
                 return a.getEngine().getSeedManager().getSeed() + "";
             }
-        } else if (p.equalsIgnoreCase("world_speed")) {
-            if (a != null) {
+        } else if(p.equalsIgnoreCase("world_speed")) {
+            if(a != null) {
                 return a.getEngine().getGeneratedPerSecond() + "/s";
             }
         }

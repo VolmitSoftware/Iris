@@ -44,7 +44,7 @@ public class InterpolatedNoise implements NoiseGenerator {
 
     @Override
     public double noise(double x, double y, double z) {
-        if (z == 0) {
+        if(z == 0) {
             return noise(x, y);
         }
 

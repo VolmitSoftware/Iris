@@ -54,20 +54,20 @@ public class MultiBurst {
 
     private synchronized ExecutorService getService() {
         last.set(M.ms());
-        if (service == null || service.isShutdown()) {
+        if(service == null || service.isShutdown()) {
             service = new ForkJoinPool(IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism()),
-                    new ForkJoinPool.ForkJoinWorkerThreadFactory() {
-                        int m = 0;
+                new ForkJoinPool.ForkJoinWorkerThreadFactory() {
+                    int m = 0;
 
-                        @Override
-                        public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
-                            final ForkJoinWorkerThread worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
-                            worker.setPriority(priority);
-                            worker.setName(name + " " + ++m);
-                            return worker;
-                        }
-                    },
-                    (t, e) -> e.printStackTrace(), true);
+                    @Override
+                    public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
+                        final ForkJoinWorkerThread worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
+                        worker.setPriority(priority);
+                        worker.setName(name + " " + ++m);
+                        return worker;
+                    }
+                },
+                (t, e) -> e.printStackTrace(), true);
         }
 
         return service;
@@ -78,7 +78,7 @@ public class MultiBurst {
     }
 
     public void burst(boolean multicore, Runnable... r) {
-        if (multicore) {
+        if(multicore) {
             burst(r);
         } else {
             sync(r);
@@ -90,7 +90,7 @@ public class MultiBurst {
     }
 
     public void burst(boolean multicore, List<Runnable> r) {
-        if (multicore) {
+        if(multicore) {
             burst(r);
         } else {
             sync(r);
@@ -98,19 +98,19 @@ public class MultiBurst {
     }
 
     private void sync(List<Runnable> r) {
-        for (Runnable i : new KList<>(r)) {
+        for(Runnable i : new KList<>(r)) {
             i.run();
         }
     }
 
     public void sync(Runnable... r) {
-        for (Runnable i : r) {
+        for(Runnable i : r) {
             i.run();
         }
     }
 
     public void sync(KList<Runnable> r) {
-        for (Runnable i : r) {
+        for(Runnable i : r) {
             i.run();
         }
     }
@@ -150,25 +150,25 @@ public class MultiBurst {
     }
 
     public void close() {
-        if (service != null) {
+        if(service != null) {
             service.shutdown();
             PrecisionStopwatch p = PrecisionStopwatch.start();
             try {
-                while (!service.awaitTermination(1, TimeUnit.SECONDS)) {
+                while(!service.awaitTermination(1, TimeUnit.SECONDS)) {
                     Iris.info("Still waiting to shutdown burster...");
-                    if (p.getMilliseconds() > 7000) {
+                    if(p.getMilliseconds() > 7000) {
                         Iris.warn("Forcing Shutdown...");
 
                         try {
                             service.shutdownNow();
-                        } catch (Throwable e) {
+                        } catch(Throwable e) {
 
                         }
 
                         break;
                     }
                 }
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 e.printStackTrace();
                 Iris.reportError(e);
             }

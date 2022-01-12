@@ -37,14 +37,14 @@ public class HashMapPalette<T> implements Palette<T> {
     }
 
     public int idFor(T var0) {
-        if (var0 == null) {
+        if(var0 == null) {
             return 0;
         }
 
         return this.values.computeIfAbsent(var0, (k) -> {
             int newId = id++;
 
-            if (newId >= 1 << this.bits) {
+            if(newId >= 1 << this.bits) {
                 Iris.info(newId + " to...");
                 newId = this.resizeHandler.onResize(this.bits + 1, var0);
                 Iris.info(newId + "..");

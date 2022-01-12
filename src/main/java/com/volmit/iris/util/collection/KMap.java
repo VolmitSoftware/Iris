@@ -43,8 +43,8 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
     }
 
     public K getKey(V value) {
-        for (KeyPair<K, V> i : keypair()) {
-            if (i.getV().equals(value)) {
+        for(KeyPair<K, V> i : keypair()) {
+            if(i.getV().equals(value)) {
                 return i.getK();
             }
         }
@@ -56,9 +56,12 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
      * Puts a value into a map-value-list based on the key such that if GMap<K,
      * GList<S>> where V is GList<S>
      *
-     * @param <S> the list type in the value type
-     * @param k   the key to look for
-     * @param vs  the values to put into the list of the given key
+     * @param <S>
+     *     the list type in the value type
+     * @param k
+     *     the key to look for
+     * @param vs
+     *     the values to put into the list of the given key
      * @return the same list (builder)
      */
     @SuppressWarnings("unchecked")
@@ -66,12 +69,12 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
         try {
             KMap<K, KList<S>> s = (KMap<K, KList<S>>) this;
 
-            if (!s.containsKey(k)) {
+            if(!s.containsKey(k)) {
                 s.put(k, new KList<S>());
             }
 
             s.get(k).add(vs);
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
 
         }
@@ -96,9 +99,9 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
             }
         });
 
-        for (V i : v) {
-            for (K j : k()) {
-                if (get(j).equals(i)) {
+        for(V i : v) {
+            for(K j : k()) {
+                if(get(j).equals(i)) {
                     k.add(j);
                 }
             }
@@ -128,9 +131,9 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
             }
         });
 
-        for (V i : v) {
-            for (K j : k()) {
-                if (get(j).equals(i)) {
+        for(V i : v) {
+            for(K j : k()) {
+                if(get(j).equals(i)) {
                     k.add(j);
                 }
             }
@@ -143,7 +146,8 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
     /**
      * Put another map's values into this map
      *
-     * @param m the map to insert
+     * @param m
+     *     the map to insert
      * @return this map (builder)
      */
     public KMap<K, V> put(Map<K, V> m) {
@@ -163,13 +167,14 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
     /**
      * Loop through each keyvalue set (copy of it) with the map parameter
      *
-     * @param f the function
+     * @param f
+     *     the function
      * @return the same gmap
      */
     public KMap<K, V> rewrite(Consumer3<K, V, KMap<K, V>> f) {
         KMap<K, V> m = copy();
 
-        for (K i : m.k()) {
+        for(K i : m.k()) {
             f.accept(i, get(i), this);
         }
 
@@ -179,11 +184,12 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
     /**
      * Loop through each keyvalue set (copy of it)
      *
-     * @param f the function
+     * @param f
+     *     the function
      * @return the same gmap
      */
     public KMap<K, V> each(Consumer2<K, V> f) {
-        for (K i : k()) {
+        for(K i : k()) {
             f.accept(i, get(i));
         }
 
@@ -199,7 +205,7 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
         KMap<V, KList<K>> f = flip();
         KMap<V, K> m = new KMap<>();
 
-        for (V i : f.k()) {
+        for(V i : f.k()) {
             m.putNonNull(i, m.isEmpty() ? null : m.get(0));
         }
 
@@ -214,12 +220,12 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
     public KMap<V, KList<K>> flip() {
         KMap<V, KList<K>> flipped = new KMap<V, KList<K>>();
 
-        for (K i : keySet()) {
-            if (i == null) {
+        for(K i : keySet()) {
+            if(i == null) {
                 continue;
             }
 
-            if (!flipped.containsKey(get(i))) {
+            if(!flipped.containsKey(get(i))) {
                 flipped.put(get(i), new KList<K>());
             }
 
@@ -245,9 +251,9 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
             }
         });
 
-        for (K i : k) {
-            for (V j : v()) {
-                if (get(i).equals(j)) {
+        for(K i : k) {
+            for(V j : v()) {
+                if(get(i).equals(j)) {
                     v.add(j);
                 }
             }
@@ -268,9 +274,9 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
             }
         });
 
-        for (K i : k) {
-            for (V j : v()) {
-                if (get(i).equals(j)) {
+        for(K i : k) {
+            for(V j : v()) {
+                if(get(i).equals(j)) {
                     v.add(j);
                 }
             }
@@ -288,7 +294,7 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
         KList<K> k = new KList<K>();
         Enumeration<K> kk = keys();
 
-        while (kk.hasMoreElements()) {
+        while(kk.hasMoreElements()) {
             K kkk = kk.nextElement();
             k.add(kkk);
         }
@@ -308,9 +314,10 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
     /**
      * Still works as it normally should except it returns itself (builder)
      *
-     * @param key   the key
-     * @param value the value (single only supported)
-     * @return
+     * @param key
+     *     the key
+     * @param value
+     *     the value (single only supported)
      */
     public KMap<K, V> qput(K key, V value) {
         super.put(key, value);
@@ -321,12 +328,14 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
      * Works just like put, except it wont put anything unless the key and value are
      * nonnull
      *
-     * @param key   the nonnull key
-     * @param value the nonnull value
+     * @param key
+     *     the nonnull key
+     * @param value
+     *     the nonnull value
      * @return the same map
      */
     public KMap<K, V> putNonNull(K key, V value) {
-        if (key != null || value != null) {
+        if(key != null || value != null) {
             put(key, value);
         }
 
@@ -334,7 +343,7 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
     }
 
     public V putThen(K key, V valueIfKeyNotPresent) {
-        if (!containsKey(key)) {
+        if(!containsKey(key)) {
             put(key, valueIfKeyNotPresent);
         }
 

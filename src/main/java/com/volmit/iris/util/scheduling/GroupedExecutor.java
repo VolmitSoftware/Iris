@@ -37,7 +37,7 @@ public class GroupedExecutor {
         xc = 1;
         mirror = new KMap<>();
 
-        if (threadLimit == 1) {
+        if(threadLimit == 1) {
             service = Executors.newSingleThreadExecutor((r) ->
             {
                 Thread t = new Thread(r);
@@ -46,7 +46,7 @@ public class GroupedExecutor {
 
                 return t;
             });
-        } else if (threadLimit > 1) {
+        } else if(threadLimit > 1) {
             final ForkJoinWorkerThreadFactory factory = pool -> {
                 final ForkJoinWorkerThread worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
                 worker.setName(name + " " + xc++);
@@ -68,16 +68,16 @@ public class GroupedExecutor {
     }
 
     public void waitFor(String g) {
-        if (g == null) {
+        if(g == null) {
             return;
         }
 
-        if (!mirror.containsKey(g)) {
+        if(!mirror.containsKey(g)) {
             return;
         }
 
-        while (true) {
-            if (mirror.get(g) == 0) {
+        while(true) {
+            if(mirror.get(g) == 0) {
                 break;
             }
         }
@@ -89,7 +89,7 @@ public class GroupedExecutor {
         {
             try {
                 r.run();
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 Iris.reportError(e);
                 e.printStackTrace();
             }

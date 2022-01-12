@@ -31,8 +31,8 @@ public class ModeSuperFlat extends IrisEngineMode implements EngineMode {
         var biome = new IrisBiomeActuator(getEngine());
 
         registerStage(burst(
-                (x, z, k, p, m) -> terrain.actuate(x, z, k, m),
-                (x, z, k, p, m) -> biome.actuate(x, z, p, m)
+            (x, z, k, p, m) -> terrain.actuate(x, z, k, m),
+            (x, z, k, p, m) -> biome.actuate(x, z, p, m)
         ));
     }
 }

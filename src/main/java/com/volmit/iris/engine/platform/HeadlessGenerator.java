@@ -44,7 +44,6 @@ import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.generator.ChunkGenerator;
 
 import java.io.File;
 import java.io.IOException;
@@ -80,24 +79,24 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
             int oz = z << 4;
             com.volmit.iris.util.nbt.mca.Chunk chunk = writer.getChunk(file, x, z);
             TerrainChunk tc = MCATerrainChunk.builder()
-                    .writer(writer).ox(ox).oz(oz).mcaChunk(chunk)
-                    .minHeight(world.getWorld().minHeight()).maxHeight(world.getWorld().maxHeight())
-                    .injector((xx, yy, zz, biomeBase) -> chunk.setBiomeAt(ox + xx, yy, oz + zz,
-                            INMS.get().getTrueBiomeBaseId(biomeBase)))
-                    .build();
+                .writer(writer).ox(ox).oz(oz).mcaChunk(chunk)
+                .minHeight(world.getWorld().minHeight()).maxHeight(world.getWorld().maxHeight())
+                .injector((xx, yy, zz, biomeBase) -> chunk.setBiomeAt(ox + xx, yy, oz + zz,
+                    INMS.get().getTrueBiomeBaseId(biomeBase)))
+                .build();
             getEngine().generate(x << 4, z << 4,
-                    Hunk.view((ChunkGenerator.ChunkData) tc), Hunk.view((ChunkGenerator.BiomeGrid) tc),
-                    false);
+                Hunk.view(tc), Hunk.view(tc, tc.getMinHeight(), tc.getMaxHeight()),
+                false);
             chunk.cleanupPalettesAndBlockStates();
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.error("======================================");
             e.printStackTrace();
             Iris.reportErrorChunk(x, z, e, "MCA");
             Iris.error("======================================");
             com.volmit.iris.util.nbt.mca.Chunk chunk = writer.getChunk(x, z);
             CompoundTag c = NBTWorld.getCompound(ERROR_BLOCK);
-            for (int i = 0; i < 16; i++) {
-                for (int j = 0; j < 16; j++) {
+            for(int i = 0; i < 16; i++) {
+                for(int j = 0; j < 16; j++) {
                     chunk.setBlockStateAt(i, 0, j, c, false);
                 }
             }
@@ -119,11 +118,11 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
         BurstExecutor e = burst.burst(1024);
         MCAFile f = writer.getMCA(x, z);
         PregenTask.iterateRegion(x, z, (ii, jj) -> e.queue(() -> {
-            if (listener != null) {
+            if(listener != null) {
                 listener.onChunkGenerating(ii, jj);
             }
             generateChunk(f, ii, jj);
-            if (listener != null) {
+            if(listener != null) {
                 listener.onChunkGenerated(ii, jj);
             }
         }), avgLast(x, z));
@@ -132,14 +131,14 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
     }
 
     private Position2 avgLast(int x, int z) {
-        while (last.size() > 3) {
+        while(last.size() > 3) {
             last.remove(0);
         }
 
         double xx = 0;
         double zz = 0;
 
-        for (Position2 i : last) {
+        for(Position2 i : last) {
             xx += 27 * (i.getX() - x);
             zz += 27 * (i.getZ() - z);
         }
@@ -179,7 +178,7 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
     public KList<Position2> getChunksInRegion(int x, int z) {
         try {
             return MCAUtil.sampleChunkPositions(writer.getRegionFile(x, z));
-        } catch (IOException e) {
+        } catch(IOException e) {
             e.printStackTrace();
         }
 

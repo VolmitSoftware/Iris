@@ -35,7 +35,7 @@ public class BiStarcastStream<T> extends BasicStream<T> implements Interpolator<
         double m = (360D / checks);
         double v = 0;
 
-        for (int i = 0; i < 360; i += m) {
+        for(int i = 0; i < 360; i += m) {
             double sin = Math.sin(Math.toRadians(i));
             double cos = Math.cos(Math.toRadians(i));
             double cx = x + ((rad * cos) - (rad * sin));

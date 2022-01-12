@@ -28,10 +28,10 @@ public class IrisEngineChunkData {
     private KList<IrisEngineSpawnerCooldown> cooldowns = new KList<>();
 
     public void cleanup(Engine engine) {
-        for (IrisEngineSpawnerCooldown i : getCooldowns().copy()) {
+        for(IrisEngineSpawnerCooldown i : getCooldowns().copy()) {
             IrisSpawner sp = engine.getData().getSpawnerLoader().load(i.getSpawner());
 
-            if (sp == null || i.canSpawn(sp.getMaximumRate())) {
+            if(sp == null || i.canSpawn(sp.getMaximumRate())) {
                 getCooldowns().remove(i);
             }
         }

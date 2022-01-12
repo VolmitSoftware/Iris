@@ -35,7 +35,7 @@ public class SimplexNoise implements NoiseGenerator, OctaveNoise {
 
     @Override
     public double noise(double x) {
-        if (octaves <= 1) {
+        if(octaves <= 1) {
             return f(n.GetSimplex(x, 0d));
         }
 
@@ -43,7 +43,7 @@ public class SimplexNoise implements NoiseGenerator, OctaveNoise {
         double m = 0;
         double v = 0;
 
-        for (int i = 0; i < octaves; i++) {
+        for(int i = 0; i < octaves; i++) {
             v += n.GetSimplex((x * (f == 1 ? f++ : (f *= 2))), 0d) * f;
             m += f;
         }
@@ -53,14 +53,14 @@ public class SimplexNoise implements NoiseGenerator, OctaveNoise {
 
     @Override
     public double noise(double x, double z) {
-        if (octaves <= 1) {
+        if(octaves <= 1) {
             return f(n.GetSimplex(x, z));
         }
         double f = 1;
         double m = 0;
         double v = 0;
 
-        for (int i = 0; i < octaves; i++) {
+        for(int i = 0; i < octaves; i++) {
             f = f == 1 ? f + 1 : f * 2;
             v += n.GetSimplex((x * f), (z * f)) * f;
             m += f;
@@ -71,14 +71,14 @@ public class SimplexNoise implements NoiseGenerator, OctaveNoise {
 
     @Override
     public double noise(double x, double y, double z) {
-        if (octaves <= 1) {
+        if(octaves <= 1) {
             return f(n.GetSimplex(x, y, z));
         }
         double f = 1;
         double m = 0;
         double v = 0;
 
-        for (int i = 0; i < octaves; i++) {
+        for(int i = 0; i < octaves; i++) {
             f = f == 1 ? f + 1 : f * 2;
             v += n.GetSimplex((x * f), (y * f), (z * f)) * f;
             m += f;

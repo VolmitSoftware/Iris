@@ -49,6 +49,6 @@ public class StringHandler implements DecreeParameterHandler<String> {
     @Override
     public String getRandomDefault() {
         return new KList<String>().qadd("text").qadd("string")
-                .qadd("blah").qadd("derp").qadd("yolo").getRandom();
+            .qadd("blah").qadd("derp").qadd("yolo").getRandom();
     }
 }

@@ -69,7 +69,7 @@ public class SyndicateServer extends Thread implements PregenListener {
     }
 
     public void run() {
-        while (!interrupted()) {
+        while(!interrupted()) {
             try {
                 Socket client = server.accept();
                 DataInputStream i = new DataInputStream(client.getInputStream());
@@ -77,13 +77,13 @@ public class SyndicateServer extends Thread implements PregenListener {
                 try {
                     handle(client, i, o);
                     o.flush();
-                } catch (Throwable throwable) {
+                } catch(Throwable throwable) {
                     throwable.printStackTrace();
                 }
                 client.close();
-            } catch (SocketTimeoutException ignored) {
+            } catch(SocketTimeoutException ignored) {
 
-            } catch (IOException e) {
+            } catch(IOException e) {
                 e.printStackTrace();
             }
         }
@@ -92,7 +92,7 @@ public class SyndicateServer extends Thread implements PregenListener {
     private void handle(Socket client, DataInputStream i, DataOutputStream o) throws Throwable {
         SyndicateCommand cmd = handle(SyndicateCommandIO.read(i), i, o);
 
-        if (cmd != null) {
+        if(cmd != null) {
             SyndicateCommandIO.write(cmd, o);
         }
 
@@ -104,12 +104,12 @@ public class SyndicateServer extends Thread implements PregenListener {
     }
 
     private SyndicateCommand handle(SyndicateCommand command, DataInputStream i, DataOutputStream o) throws Throwable {
-        if (command instanceof SyndicateInstallPack) {
-            if (busy) {
+        if(command instanceof SyndicateInstallPack) {
+            if(busy) {
                 return new SyndicateBusy();
             }
 
-            if (generator != null) {
+            if(generator != null) {
                 generator.close();
                 IO.delete(generator.getWorld().getWorld().worldFolder());
                 generator = null;
@@ -133,12 +133,12 @@ public class SyndicateServer extends Thread implements PregenListener {
             return new SyndicateOK();
         }
 
-        if (command instanceof SyndicateGenerate) {
-            if (busy) {
+        if(command instanceof SyndicateGenerate) {
+            if(busy) {
                 return new SyndicateBusy();
             }
 
-            if (generator == null || !Objects.equals(currentId, ((SyndicateGenerate) command).getPack())) {
+            if(generator == null || !Objects.equals(currentId, ((SyndicateGenerate) command).getPack())) {
                 return new SyndicateInstallFirst();
             }
 
@@ -151,8 +151,8 @@ public class SyndicateServer extends Thread implements PregenListener {
             return new SyndicateOK();
         }
 
-        if (command instanceof SyndicateClose) {
-            if (generator != null && Objects.equals(currentId, ((SyndicateClose) command).getPack()) && !busy) {
+        if(command instanceof SyndicateClose) {
+            if(generator != null && Objects.equals(currentId, ((SyndicateClose) command).getPack()) && !busy) {
                 generator.close();
                 IO.delete(generator.getWorld().getWorld().worldFolder());
                 generator = null;
@@ -160,18 +160,18 @@ public class SyndicateServer extends Thread implements PregenListener {
             }
         }
 
-        if (command instanceof SyndicateGetProgress) {
-            if (generator != null && busy && Objects.equals(currentId, ((SyndicateGetProgress) command).getPack())) {
+        if(command instanceof SyndicateGetProgress) {
+            if(generator != null && busy && Objects.equals(currentId, ((SyndicateGetProgress) command).getPack())) {
                 return SyndicateSendProgress.builder().progress((double) g.get() / 1024D).build();
-            } else if (generator != null && !busy && Objects.equals(currentId, ((SyndicateGetProgress) command).getPack()) && lastGeneratedRegion != null && lastGeneratedRegion.exists()) {
+            } else if(generator != null && !busy && Objects.equals(currentId, ((SyndicateGetProgress) command).getPack()) && lastGeneratedRegion != null && lastGeneratedRegion.exists()) {
                 SyndicateCommandIO.write(SyndicateSendProgress
-                        .builder()
-                        .progress(1).available(true)
-                        .build(), o);
+                    .builder()
+                    .progress(1).available(true)
+                    .build(), o);
                 o.writeLong(lastGeneratedRegion.length());
                 IO.writeAll(lastGeneratedRegion, o);
                 return null;
-            } else if (generator == null) {
+            } else if(generator == null) {
                 return new SyndicateInstallFirst();
             } else {
                 return new SyndicateBusy();

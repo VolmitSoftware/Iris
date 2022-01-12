@@ -59,12 +59,12 @@ public class MantleJigsawComponent extends IrisMantleComponent {
     private void generateJigsaw(MantleWriter writer, RNG rng, int x, int z, IrisBiome biome, IrisRegion region) {
         boolean placed = false;
 
-        if (getDimension().getStronghold() != null) {
+        if(getDimension().getStronghold() != null) {
             List<Position2> poss = getDimension().getStrongholds(seed());
 
-            if (poss != null) {
-                for (Position2 pos : poss) {
-                    if (x == pos.getX() >> 4 && z == pos.getZ() >> 4) {
+            if(poss != null) {
+                for(Position2 pos : poss) {
+                    if(x == pos.getX() >> 4 && z == pos.getZ() >> 4) {
                         IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(getDimension().getStronghold());
                         place(writer, pos.toIris(), structure, rng);
                         placed = true;
@@ -73,9 +73,9 @@ public class MantleJigsawComponent extends IrisMantleComponent {
             }
         }
 
-        if (!placed) {
-            for (IrisJigsawStructurePlacement i : biome.getJigsawStructures()) {
-                if (rng.nextInt(i.getRarity()) == 0) {
+        if(!placed) {
+            for(IrisJigsawStructurePlacement i : biome.getJigsawStructures()) {
+                if(rng.nextInt(i.getRarity()) == 0) {
                     IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
                     IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
                     place(writer, position, structure, rng);
@@ -84,9 +84,9 @@ public class MantleJigsawComponent extends IrisMantleComponent {
             }
         }
 
-        if (!placed) {
-            for (IrisJigsawStructurePlacement i : region.getJigsawStructures()) {
-                if (rng.nextInt(i.getRarity()) == 0) {
+        if(!placed) {
+            for(IrisJigsawStructurePlacement i : region.getJigsawStructures()) {
+                if(rng.nextInt(i.getRarity()) == 0) {
                     IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
                     IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
                     place(writer, position, structure, rng);
@@ -95,9 +95,9 @@ public class MantleJigsawComponent extends IrisMantleComponent {
             }
         }
 
-        if (!placed) {
-            for (IrisJigsawStructurePlacement i : getDimension().getJigsawStructures()) {
-                if (rng.nextInt(i.getRarity()) == 0) {
+        if(!placed) {
+            for(IrisJigsawStructurePlacement i : getDimension().getJigsawStructures()) {
+                if(rng.nextInt(i.getRarity()) == 0) {
                     IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
                     IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
                     place(writer, position, structure, rng);
@@ -112,32 +112,32 @@ public class MantleJigsawComponent extends IrisMantleComponent {
         IrisBiome biome = getEngineMantle().getEngine().getSurfaceBiome((x << 4) + 8, (z << 4) + 8);
         IrisRegion region = getEngineMantle().getEngine().getRegion((x << 4) + 8, (z << 4) + 8);
 
-        if (getDimension().getStronghold() != null) {
+        if(getDimension().getStronghold() != null) {
             List<Position2> poss = getDimension().getStrongholds(seed());
 
-            if (poss != null) {
-                for (Position2 pos : poss) {
-                    if (x == pos.getX() >> 4 && z == pos.getZ() >> 4) {
+            if(poss != null) {
+                for(Position2 pos : poss) {
+                    if(x == pos.getX() >> 4 && z == pos.getZ() >> 4) {
                         return getData().getJigsawStructureLoader().load(getDimension().getStronghold());
                     }
                 }
             }
         }
 
-        for (IrisJigsawStructurePlacement i : biome.getJigsawStructures()) {
-            if (rng.nextInt(i.getRarity()) == 0) {
+        for(IrisJigsawStructurePlacement i : biome.getJigsawStructures()) {
+            if(rng.nextInt(i.getRarity()) == 0) {
                 return getData().getJigsawStructureLoader().load(i.getStructure());
             }
         }
 
-        for (IrisJigsawStructurePlacement i : region.getJigsawStructures()) {
-            if (rng.nextInt(i.getRarity()) == 0) {
+        for(IrisJigsawStructurePlacement i : region.getJigsawStructures()) {
+            if(rng.nextInt(i.getRarity()) == 0) {
                 return getData().getJigsawStructureLoader().load(i.getStructure());
             }
         }
 
-        for (IrisJigsawStructurePlacement i : getDimension().getJigsawStructures()) {
-            if (rng.nextInt(i.getRarity()) == 0) {
+        for(IrisJigsawStructurePlacement i : getDimension().getJigsawStructures()) {
+            if(rng.nextInt(i.getRarity()) == 0) {
                 return getData().getJigsawStructureLoader().load(i.getStructure());
             }
         }

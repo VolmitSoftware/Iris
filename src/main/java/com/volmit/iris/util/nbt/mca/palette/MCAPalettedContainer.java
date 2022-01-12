@@ -61,13 +61,13 @@ public class MCAPalettedContainer<T> implements MCAPaletteResize<T> {
     }
 
     private void setBits(int var0) {
-        if (var0 == this.bits)
+        if(var0 == this.bits)
             return;
         this.bits = var0;
-        if (this.bits <= 4) {
+        if(this.bits <= 4) {
             this.bits = 4;
             this.palette = new MCALinearPalette<>(this.registry, this.bits, this, this.reader);
-        } else if (this.bits < 9) {
+        } else if(this.bits < 9) {
             this.palette = new MCAHashMapPalette<>(this.registry, this.bits, this, this.reader, this.writer);
         } else {
             this.palette = this.globalPalette;
@@ -81,9 +81,9 @@ public class MCAPalettedContainer<T> implements MCAPaletteResize<T> {
         MCABitStorage var2 = this.storage;
         MCAPalette<T> var3 = this.palette;
         setBits(var0);
-        for (int var4 = 0; var4 < var2.getSize(); var4++) {
+        for(int var4 = 0; var4 < var2.getSize(); var4++) {
             T var5 = var3.valueFor(var2.get(var4));
-            if (var5 != null)
+            if(var5 != null)
                 set(var4, var5);
         }
         return this.palette.idFor(var1);
@@ -124,21 +124,21 @@ public class MCAPalettedContainer<T> implements MCAPaletteResize<T> {
 
     public void read(ListTag var0, long[] var1) {
         int var2 = Math.max(4, MCAMth.ceillog2(var0.size()));
-        if (var2 != this.bits)
+        if(var2 != this.bits)
             setBits(var2);
         this.palette.read(var0);
         int var3 = var1.length * 64 / 4096;
-        if (this.palette == this.globalPalette) {
+        if(this.palette == this.globalPalette) {
             MCAPalette<T> var4 = new MCAHashMapPalette<>(this.registry, var2, this.dummyPaletteResize, this.reader, this.writer);
             var4.read(var0);
             MCABitStorage var5 = new MCABitStorage(var2, 4096, var1);
-            for (int var6 = 0; var6 < 4096; var6++)
+            for(int var6 = 0; var6 < 4096; var6++)
                 this.storage.set(var6, this.globalPalette.idFor(var4.valueFor(var5.get(var6))));
-        } else if (var3 == this.bits) {
+        } else if(var3 == this.bits) {
             System.arraycopy(var1, 0, this.storage.getRaw(), 0, var1.length);
         } else {
             MCABitStorage var4 = new MCABitStorage(var3, 4096, var1);
-            for (int var5 = 0; var5 < 4096; var5++)
+            for(int var5 = 0; var5 < 4096; var5++)
                 this.storage.set(var5, var4.get(var5));
         }
     }
@@ -148,9 +148,9 @@ public class MCAPalettedContainer<T> implements MCAPaletteResize<T> {
         T var4 = this.defaultValue;
         int var5 = var3.idFor(this.defaultValue);
         int[] var6 = new int[4096];
-        for (int i = 0; i < 4096; i++) {
+        for(int i = 0; i < 4096; i++) {
             T t = get(i);
-            if (t != var4) {
+            if(t != var4) {
                 var4 = t;
                 var5 = var3.idFor(t);
             }
@@ -161,7 +161,7 @@ public class MCAPalettedContainer<T> implements MCAPaletteResize<T> {
         var0.put(var1, paletteList);
         int var8 = Math.max(4, MCAMth.ceillog2(paletteList.size()));
         MCABitStorage var9 = new MCABitStorage(var8, 4096);
-        for (int var10 = 0; var10 < var6.length; var10++) {
+        for(int var10 = 0; var10 < var6.length; var10++) {
             var9.set(var10, var6[var10]);
         }
         var0.putLongArray(var2, var9.getRaw());

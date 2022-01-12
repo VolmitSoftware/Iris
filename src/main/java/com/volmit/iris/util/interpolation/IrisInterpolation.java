@@ -69,19 +69,19 @@ public class IrisInterpolation {
     }
 
     public static double blerp(double a, double b, double c, double d, double tx, double ty, InterpolationType type) {
-        if (type.equals(InterpolationType.LINEAR)) {
+        if(type.equals(InterpolationType.LINEAR)) {
             return blerp(a, b, c, d, tx, ty);
         }
 
-        if (type.equals(InterpolationType.BEZIER)) {
+        if(type.equals(InterpolationType.BEZIER)) {
             return blerpBezier(a, b, c, d, tx, ty);
         }
 
-        if (type.equals(InterpolationType.PARAMETRIC_2)) {
+        if(type.equals(InterpolationType.PARAMETRIC_2)) {
             return blerpParametric(a, b, c, d, tx, ty, 2);
         }
 
-        if (type.equals(InterpolationType.PARAMETRIC_4)) {
+        if(type.equals(InterpolationType.PARAMETRIC_4)) {
             return blerpParametric(a, b, c, d, tx, ty, 4);
         }
 
@@ -111,22 +111,22 @@ public class IrisInterpolation {
     public static double bihermiteBezier(double p00, double p01, double p02, double p03, double p10, double p11, double p12, double p13, double p20, double p21, double p22, double p23, double p30, double p31, double p32, double p33, double mux, double muy, double tension, double bias) {
         //@builder
         return hermiteBezier(
-                hermiteBezier(p00, p01, p02, p03, muy, tension, bias),
-                hermiteBezier(p10, p11, p12, p13, muy, tension, bias),
-                hermiteBezier(p20, p21, p22, p23, muy, tension, bias),
-                hermiteBezier(p30, p31, p32, p33, muy, tension, bias),
-                mux, tension, bias);
+            hermiteBezier(p00, p01, p02, p03, muy, tension, bias),
+            hermiteBezier(p10, p11, p12, p13, muy, tension, bias),
+            hermiteBezier(p20, p21, p22, p23, muy, tension, bias),
+            hermiteBezier(p30, p31, p32, p33, muy, tension, bias),
+            mux, tension, bias);
         //@done
     }
 
     public static double bihermiteParametric(double p00, double p01, double p02, double p03, double p10, double p11, double p12, double p13, double p20, double p21, double p22, double p23, double p30, double p31, double p32, double p33, double mux, double muy, double tension, double bias, double a) {
         //@builder
         return hermiteParametric(
-                hermiteParametric(p00, p01, p02, p03, muy, tension, bias, a),
-                hermiteParametric(p10, p11, p12, p13, muy, tension, bias, a),
-                hermiteParametric(p20, p21, p22, p23, muy, tension, bias, a),
-                hermiteParametric(p30, p31, p32, p33, muy, tension, bias, a),
-                mux, tension, bias, a);
+            hermiteParametric(p00, p01, p02, p03, muy, tension, bias, a),
+            hermiteParametric(p10, p11, p12, p13, muy, tension, bias, a),
+            hermiteParametric(p20, p21, p22, p23, muy, tension, bias, a),
+            hermiteParametric(p30, p31, p32, p33, muy, tension, bias, a),
+            mux, tension, bias, a);
         //@done
     }
 
@@ -171,49 +171,49 @@ public class IrisInterpolation {
     public static double bicubic(double p00, double p01, double p02, double p03, double p10, double p11, double p12, double p13, double p20, double p21, double p22, double p23, double p30, double p31, double p32, double p33, double mux, double muy) {
         //@builder
         return cubic(
-                cubic(p00, p01, p02, p03, muy),
-                cubic(p10, p11, p12, p13, muy),
-                cubic(p20, p21, p22, p23, muy),
-                cubic(p30, p31, p32, p33, muy),
-                mux);
+            cubic(p00, p01, p02, p03, muy),
+            cubic(p10, p11, p12, p13, muy),
+            cubic(p20, p21, p22, p23, muy),
+            cubic(p30, p31, p32, p33, muy),
+            mux);
         //@done
     }
 
     public static double bihermite(double p00, double p01, double p02, double p03, double p10, double p11, double p12, double p13, double p20, double p21, double p22, double p23, double p30, double p31, double p32, double p33, double mux, double muy, double tension, double bias) {
         //@builder
         return hermite(
-                hermite(p00, p01, p02, p03, muy, tension, bias),
-                hermite(p10, p11, p12, p13, muy, tension, bias),
-                hermite(p20, p21, p22, p23, muy, tension, bias),
-                hermite(p30, p31, p32, p33, muy, tension, bias),
-                mux, tension, bias);
+            hermite(p00, p01, p02, p03, muy, tension, bias),
+            hermite(p10, p11, p12, p13, muy, tension, bias),
+            hermite(p20, p21, p22, p23, muy, tension, bias),
+            hermite(p30, p31, p32, p33, muy, tension, bias),
+            mux, tension, bias);
         //@done
     }
 
     public static double trihermite(double p000, double p001, double p002, double p003, double p010, double p011, double p012, double p013, double p020, double p021, double p022, double p023, double p030, double p031, double p032, double p033, double p100, double p101, double p102, double p103, double p110, double p111, double p112, double p113, double p120, double p121, double p122, double p123, double p130, double p131, double p132, double p133, double p200, double p201, double p202, double p203, double p210, double p211, double p212, double p213, double p220, double p221, double p222, double p223, double p230, double p231, double p232, double p233, double p300, double p301, double p302, double p303, double p310, double p311, double p312, double p313, double p320, double p321, double p322, double p323, double p330, double p331, double p332, double p333, double mux, double muy, double muz, double tension, double bias) {
         //@builder
         return hermite(
-                bihermite(p000, p001, p002, p003,
-                        p010, p011, p012, p013,
-                        p020, p021, p022, p023,
-                        p030, p031, p032, p033,
-                        mux, muy, tension, bias),
-                bihermite(p100, p101, p102, p103,
-                        p110, p111, p112, p113,
-                        p120, p121, p122, p123,
-                        p130, p131, p132, p133,
-                        mux, muy, tension, bias),
-                bihermite(p200, p201, p202, p203,
-                        p210, p211, p212, p213,
-                        p220, p221, p222, p223,
-                        p230, p231, p232, p233,
-                        mux, muy, tension, bias),
-                bihermite(p300, p301, p302, p303,
-                        p310, p311, p312, p313,
-                        p320, p321, p322, p323,
-                        p330, p331, p332, p333,
-                        mux, muy, tension, bias),
-                muz, tension, bias);
+            bihermite(p000, p001, p002, p003,
+                p010, p011, p012, p013,
+                p020, p021, p022, p023,
+                p030, p031, p032, p033,
+                mux, muy, tension, bias),
+            bihermite(p100, p101, p102, p103,
+                p110, p111, p112, p113,
+                p120, p121, p122, p123,
+                p130, p131, p132, p133,
+                mux, muy, tension, bias),
+            bihermite(p200, p201, p202, p203,
+                p210, p211, p212, p213,
+                p220, p221, p222, p223,
+                p230, p231, p232, p233,
+                mux, muy, tension, bias),
+            bihermite(p300, p301, p302, p303,
+                p310, p311, p312, p313,
+                p320, p321, p322, p323,
+                p330, p331, p332, p333,
+                mux, muy, tension, bias),
+            muz, tension, bias);
         //@done
     }
 
@@ -226,27 +226,27 @@ public class IrisInterpolation {
                                   double p012, double p013, double p020, double p021, double p022, double p023, double p030, double p031, double p032, double p033, double p100, double p101, double p102, double p103, double p110, double p111, double p112, double p113, double p120, double p121, double p122, double p123, double p130, double p131, double p132, double p133, double p200, double p201, double p202, double p203, double p210, double p211, double p212, double p213, double p220, double p221, double p222, double p223, double p230, double p231, double p232, double p233, double p300, double p301, double p302, double p303, double p310, double p311, double p312, double p313, double p320, double p321, double p322, double p323, double p330, double p331, double p332, double p333, double mux, double muy, double muz) {
         //@builder
         return cubic(
-                bicubic(p000, p001, p002, p003,
-                        p010, p011, p012, p013,
-                        p020, p021, p022, p023,
-                        p030, p031, p032, p033,
-                        mux, muy),
-                bicubic(p100, p101, p102, p103,
-                        p110, p111, p112, p113,
-                        p120, p121, p122, p123,
-                        p130, p131, p132, p133,
-                        mux, muy),
-                bicubic(p200, p201, p202, p203,
-                        p210, p211, p212, p213,
-                        p220, p221, p222, p223,
-                        p230, p231, p232, p233,
-                        mux, muy),
-                bicubic(p300, p301, p302, p303,
-                        p310, p311, p312, p313,
-                        p320, p321, p322, p323,
-                        p330, p331, p332, p333,
-                        mux, muy),
-                muz);
+            bicubic(p000, p001, p002, p003,
+                p010, p011, p012, p013,
+                p020, p021, p022, p023,
+                p030, p031, p032, p033,
+                mux, muy),
+            bicubic(p100, p101, p102, p103,
+                p110, p111, p112, p113,
+                p120, p121, p122, p123,
+                p130, p131, p132, p133,
+                mux, muy),
+            bicubic(p200, p201, p202, p203,
+                p210, p211, p212, p213,
+                p220, p221, p222, p223,
+                p230, p231, p232, p233,
+                mux, muy),
+            bicubic(p300, p301, p302, p303,
+                p310, p311, p312, p313,
+                p320, p321, p322, p323,
+                p330, p331, p332, p333,
+                mux, muy),
+            muz);
         //@done
     }
 
@@ -265,22 +265,22 @@ public class IrisInterpolation {
     public static double bicubicBezier(double p00, double p01, double p02, double p03, double p10, double p11, double p12, double p13, double p20, double p21, double p22, double p23, double p30, double p31, double p32, double p33, double mux, double muy) {
         //@builder
         return cubicBezier(
-                cubicBezier(p00, p01, p02, p03, muy),
-                cubicBezier(p10, p11, p12, p13, muy),
-                cubicBezier(p20, p21, p22, p23, muy),
-                cubicBezier(p30, p31, p32, p33, muy),
-                mux);
+            cubicBezier(p00, p01, p02, p03, muy),
+            cubicBezier(p10, p11, p12, p13, muy),
+            cubicBezier(p20, p21, p22, p23, muy),
+            cubicBezier(p30, p31, p32, p33, muy),
+            mux);
         //@done
     }
 
     public static double bicubicParametric(double p00, double p01, double p02, double p03, double p10, double p11, double p12, double p13, double p20, double p21, double p22, double p23, double p30, double p31, double p32, double p33, double mux, double muy, double a) {
         //@builder
         return cubicParametric(
-                cubicParametric(p00, p01, p02, p03, muy, a),
-                cubicParametric(p10, p11, p12, p13, muy, a),
-                cubicParametric(p20, p21, p22, p23, muy, a),
-                cubicParametric(p30, p31, p32, p33, muy, a),
-                mux, a);
+            cubicParametric(p00, p01, p02, p03, muy, a),
+            cubicParametric(p10, p11, p12, p13, muy, a),
+            cubicParametric(p20, p21, p22, p23, muy, a),
+            cubicParametric(p30, p31, p32, p33, muy, a),
+            mux, a);
         //@done
     }
 
@@ -296,18 +296,18 @@ public class IrisInterpolation {
         double pz = rangeScale(0, 1, z1, z2, z);
         //@builder
         return blerp(
-                n.noise(x1, z1),
-                n.noise(x2, z1),
-                n.noise(x1, z2),
-                n.noise(x2, z2),
-                px, pz);
+            n.noise(x1, z1),
+            n.noise(x2, z1),
+            n.noise(x1, z2),
+            n.noise(x2, z2),
+            px, pz);
         //@done
     }
 
     public static void test(String m, Consumer2<Integer, Integer> f) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
 
-        for (int i = 0; i < 8192; i++) {
+        for(int i = 0; i < 8192; i++) {
             f.accept(i, -i * 234);
         }
 
@@ -336,12 +336,12 @@ public class IrisInterpolation {
         StringBuilder fb = new StringBuilder();
         StringBuilder sb = new StringBuilder();
 
-        if (array) {
+        if(array) {
             fb.append("private static final double[] F" + (int) checks + "A = {");
         }
 
         sb.append("private static double sc" + (int) checks + "(int x, int z, double r, NoiseProvider n) {\n    return (");
-        for (int i = 0; i < 360; i += m) {
+        for(int i = 0; i < 360; i += m) {
             double sin = Math.sin(Math.toRadians(i));
             double cos = Math.cos(Math.toRadians(i));
             String cof = new BigDecimal(cos).toPlainString();
@@ -349,7 +349,7 @@ public class IrisInterpolation {
             String cc = array ? "F" + (int) checks + "A[" + (igx++) + "]" : "F" + (int) checks + "C" + ig;
             String ss = array ? "F" + (int) checks + "A[" + (igx++) + "]" : "F" + (int) checks + "S" + ig;
 
-            if (array) {
+            if(array) {
                 fb.append((ig > 0 ? (ig % 6 == 0 ? ",\n" : ",") : "") + cof + "," + sif);
             } else {
                 fb.append("private static final double " + cc + " = " + cof + ";\n");
@@ -360,7 +360,7 @@ public class IrisInterpolation {
             ig++;
         }
 
-        if (array) {
+        if(array) {
             fb.append("};");
         }
 
@@ -370,8 +370,8 @@ public class IrisInterpolation {
 
     public static double getStarcast3D(int x, int y, int z, double rad, double checks, NoiseProvider3 n) {
         return (Starcast.starcast(x, z, rad, checks, (xx, zz) -> n.noise(xx, y, zz))
-                + Starcast.starcast(x, y, rad, checks, (xx, yy) -> n.noise(xx, yy, z))
-                + Starcast.starcast(y, z, rad, checks, (yy, zz) -> n.noise(x, yy, zz))) / 3D;
+            + Starcast.starcast(x, y, rad, checks, (xx, yy) -> n.noise(xx, yy, z))
+            + Starcast.starcast(y, z, rad, checks, (yy, zz) -> n.noise(x, yy, zz))) / 3D;
     }
 
     public static double getBilinearBezierNoise(int x, int z, double rad, NoiseProvider n) {
@@ -385,11 +385,11 @@ public class IrisInterpolation {
         double pz = rangeScale(0, 1, z1, z2, z);
         //@builder
         return blerpBezier(
-                n.noise(x1, z1),
-                n.noise(x2, z1),
-                n.noise(x1, z2),
-                n.noise(x2, z2),
-                px, pz);
+            n.noise(x1, z1),
+            n.noise(x2, z1),
+            n.noise(x1, z2),
+            n.noise(x2, z2),
+            px, pz);
         //@done
     }
 
@@ -404,11 +404,11 @@ public class IrisInterpolation {
         double pz = rangeScale(0, 1, z1, z2, z);
         //@builder
         return blerpParametric(
-                n.noise(x1, z1),
-                n.noise(x2, z1),
-                n.noise(x1, z2),
-                n.noise(x2, z2),
-                px, pz, a);
+            n.noise(x1, z1),
+            n.noise(x2, z1),
+            n.noise(x1, z2),
+            n.noise(x2, z2),
+            px, pz, a);
         //@done
     }
 
@@ -431,15 +431,15 @@ public class IrisInterpolation {
         double pz = rangeScale(0, 1, z1, z2, z);
         //@builder
         return trilerp(
-                n.noise(x1, y1, z1),
-                n.noise(x2, y1, z1),
-                n.noise(x1, y2, z1),
-                n.noise(x2, y2, z1),
-                n.noise(x1, y1, z2),
-                n.noise(x2, y1, z2),
-                n.noise(x1, y2, z2),
-                n.noise(x2, y2, z2),
-                px, py, pz);
+            n.noise(x1, y1, z1),
+            n.noise(x2, y1, z1),
+            n.noise(x1, y2, z1),
+            n.noise(x2, y2, z1),
+            n.noise(x1, y1, z2),
+            n.noise(x2, y1, z2),
+            n.noise(x1, y2, z2),
+            n.noise(x2, y2, z2),
+            px, py, pz);
         //@done
     }
 
@@ -470,71 +470,71 @@ public class IrisInterpolation {
         //!!!!!!!!!!!!!!!!!! 2 1 3
 
         return tricubic(
-                n.noise(x0, y0, z0),
-                n.noise(x0, y1, z0),
-                n.noise(x0, y2, z0),
-                n.noise(x0, y3, z0),
-                n.noise(x1, y0, z0),
-                n.noise(x1, y1, z0),
-                n.noise(x1, y2, z0),
-                n.noise(x1, y3, z0),
-                n.noise(x2, y0, z0),
-                n.noise(x2, y1, z0),
-                n.noise(x2, y2, z0),
-                n.noise(x2, y3, z0),
-                n.noise(x3, y0, z0),
-                n.noise(x3, y1, z0),
-                n.noise(x3, y2, z0),
-                n.noise(x3, y3, z0),
-                n.noise(x0, y0, z1),
-                n.noise(x0, y1, z1),
-                n.noise(x0, y2, z1),
-                n.noise(x0, y3, z1),
-                n.noise(x1, y0, z1),
-                n.noise(x1, y1, z1),
-                n.noise(x1, y2, z1),
-                n.noise(x1, y3, z1),
-                n.noise(x2, y0, z1),
-                n.noise(x2, y1, z1),
-                n.noise(x2, y2, z1),
-                n.noise(x2, y3, z1),
-                n.noise(x3, y0, z1),
-                n.noise(x3, y1, z1),
-                n.noise(x3, y2, z1),
-                n.noise(x3, y3, z1),
-                n.noise(x0, y0, z2),
-                n.noise(x0, y1, z2),
-                n.noise(x0, y2, z2),
-                n.noise(x0, y3, z2),
-                n.noise(x1, y0, z2),
-                n.noise(x1, y1, z2),
-                n.noise(x1, y2, z2),
-                n.noise(x1, y3, z2),
-                n.noise(x2, y0, z2),
-                n.noise(x2, y1, z2),
-                n.noise(x2, y2, z2),
-                n.noise(x2, y3, z2),
-                n.noise(x3, y0, z2),
-                n.noise(x3, y1, z2),
-                n.noise(x3, y2, z2),
-                n.noise(x3, y3, z2),
-                n.noise(x0, y0, z3),
-                n.noise(x0, y1, z3),
-                n.noise(x0, y2, z3),
-                n.noise(x0, y3, z3),
-                n.noise(x1, y0, z3),
-                n.noise(x1, y1, z3),
-                n.noise(x1, y2, z3),
-                n.noise(x1, y3, z3),
-                n.noise(x2, y0, z3),
-                n.noise(x2, y1, z3),
-                n.noise(x2, y2, z3),
-                n.noise(x2, y3, z3),
-                n.noise(x3, y0, z3),
-                n.noise(x3, y1, z3),
-                n.noise(x3, y2, z3),
-                n.noise(x3, y3, z3),
-                px, py, pz);
+            n.noise(x0, y0, z0),
+            n.noise(x0, y1, z0),
+            n.noise(x0, y2, z0),
+            n.noise(x0, y3, z0),
+            n.noise(x1, y0, z0),
+            n.noise(x1, y1, z0),
+            n.noise(x1, y2, z0),
+            n.noise(x1, y3, z0),
+            n.noise(x2, y0, z0),
+            n.noise(x2, y1, z0),
+            n.noise(x2, y2, z0),
+            n.noise(x2, y3, z0),
+            n.noise(x3, y0, z0),
+            n.noise(x3, y1, z0),
+            n.noise(x3, y2, z0),
+            n.noise(x3, y3, z0),
+            n.noise(x0, y0, z1),
+            n.noise(x0, y1, z1),
+            n.noise(x0, y2, z1),
+            n.noise(x0, y3, z1),
+            n.noise(x1, y0, z1),
+            n.noise(x1, y1, z1),
+            n.noise(x1, y2, z1),
+            n.noise(x1, y3, z1),
+            n.noise(x2, y0, z1),
+            n.noise(x2, y1, z1),
+            n.noise(x2, y2, z1),
+            n.noise(x2, y3, z1),
+            n.noise(x3, y0, z1),
+            n.noise(x3, y1, z1),
+            n.noise(x3, y2, z1),
+            n.noise(x3, y3, z1),
+            n.noise(x0, y0, z2),
+            n.noise(x0, y1, z2),
+            n.noise(x0, y2, z2),
+            n.noise(x0, y3, z2),
+            n.noise(x1, y0, z2),
+            n.noise(x1, y1, z2),
+            n.noise(x1, y2, z2),
+            n.noise(x1, y3, z2),
+            n.noise(x2, y0, z2),
+            n.noise(x2, y1, z2),
+            n.noise(x2, y2, z2),
+            n.noise(x2, y3, z2),
+            n.noise(x3, y0, z2),
+            n.noise(x3, y1, z2),
+            n.noise(x3, y2, z2),
+            n.noise(x3, y3, z2),
+            n.noise(x0, y0, z3),
+            n.noise(x0, y1, z3),
+            n.noise(x0, y2, z3),
+            n.noise(x0, y3, z3),
+            n.noise(x1, y0, z3),
+            n.noise(x1, y1, z3),
+            n.noise(x1, y2, z3),
+            n.noise(x1, y3, z3),
+            n.noise(x2, y0, z3),
+            n.noise(x2, y1, z3),
+            n.noise(x2, y2, z3),
+            n.noise(x2, y3, z3),
+            n.noise(x3, y0, z3),
+            n.noise(x3, y1, z3),
+            n.noise(x3, y2, z3),
+            n.noise(x3, y3, z3),
+            px, py, pz);
         //@done
     }
 
@@ -573,71 +573,71 @@ public class IrisInterpolation {
         //!!!!!!!!!!!!!!!!!! 2 1 3
 
         return trihermite(
-                n.noise(x0, y0, z0),
-                n.noise(x0, y1, z0),
-                n.noise(x0, y2, z0),
-                n.noise(x0, y3, z0),
-                n.noise(x1, y0, z0),
-                n.noise(x1, y1, z0),
-                n.noise(x1, y2, z0),
-                n.noise(x1, y3, z0),
-                n.noise(x2, y0, z0),
-                n.noise(x2, y1, z0),
-                n.noise(x2, y2, z0),
-                n.noise(x2, y3, z0),
-                n.noise(x3, y0, z0),
-                n.noise(x3, y1, z0),
-                n.noise(x3, y2, z0),
-                n.noise(x3, y3, z0),
-                n.noise(x0, y0, z1),
-                n.noise(x0, y1, z1),
-                n.noise(x0, y2, z1),
-                n.noise(x0, y3, z1),
-                n.noise(x1, y0, z1),
-                n.noise(x1, y1, z1),
-                n.noise(x1, y2, z1),
-                n.noise(x1, y3, z1),
-                n.noise(x2, y0, z1),
-                n.noise(x2, y1, z1),
-                n.noise(x2, y2, z1),
-                n.noise(x2, y3, z1),
-                n.noise(x3, y0, z1),
-                n.noise(x3, y1, z1),
-                n.noise(x3, y2, z1),
-                n.noise(x3, y3, z1),
-                n.noise(x0, y0, z2),
-                n.noise(x0, y1, z2),
-                n.noise(x0, y2, z2),
-                n.noise(x0, y3, z2),
-                n.noise(x1, y0, z2),
-                n.noise(x1, y1, z2),
-                n.noise(x1, y2, z2),
-                n.noise(x1, y3, z2),
-                n.noise(x2, y0, z2),
-                n.noise(x2, y1, z2),
-                n.noise(x2, y2, z2),
-                n.noise(x2, y3, z2),
-                n.noise(x3, y0, z2),
-                n.noise(x3, y1, z2),
-                n.noise(x3, y2, z2),
-                n.noise(x3, y3, z2),
-                n.noise(x0, y0, z3),
-                n.noise(x0, y1, z3),
-                n.noise(x0, y2, z3),
-                n.noise(x0, y3, z3),
-                n.noise(x1, y0, z3),
-                n.noise(x1, y1, z3),
-                n.noise(x1, y2, z3),
-                n.noise(x1, y3, z3),
-                n.noise(x2, y0, z3),
-                n.noise(x2, y1, z3),
-                n.noise(x2, y2, z3),
-                n.noise(x2, y3, z3),
-                n.noise(x3, y0, z3),
-                n.noise(x3, y1, z3),
-                n.noise(x3, y2, z3),
-                n.noise(x3, y3, z3),
-                px, py, pz, tension, bias);
+            n.noise(x0, y0, z0),
+            n.noise(x0, y1, z0),
+            n.noise(x0, y2, z0),
+            n.noise(x0, y3, z0),
+            n.noise(x1, y0, z0),
+            n.noise(x1, y1, z0),
+            n.noise(x1, y2, z0),
+            n.noise(x1, y3, z0),
+            n.noise(x2, y0, z0),
+            n.noise(x2, y1, z0),
+            n.noise(x2, y2, z0),
+            n.noise(x2, y3, z0),
+            n.noise(x3, y0, z0),
+            n.noise(x3, y1, z0),
+            n.noise(x3, y2, z0),
+            n.noise(x3, y3, z0),
+            n.noise(x0, y0, z1),
+            n.noise(x0, y1, z1),
+            n.noise(x0, y2, z1),
+            n.noise(x0, y3, z1),
+            n.noise(x1, y0, z1),
+            n.noise(x1, y1, z1),
+            n.noise(x1, y2, z1),
+            n.noise(x1, y3, z1),
+            n.noise(x2, y0, z1),
+            n.noise(x2, y1, z1),
+            n.noise(x2, y2, z1),
+            n.noise(x2, y3, z1),
+            n.noise(x3, y0, z1),
+            n.noise(x3, y1, z1),
+            n.noise(x3, y2, z1),
+            n.noise(x3, y3, z1),
+            n.noise(x0, y0, z2),
+            n.noise(x0, y1, z2),
+            n.noise(x0, y2, z2),
+            n.noise(x0, y3, z2),
+            n.noise(x1, y0, z2),
+            n.noise(x1, y1, z2),
+            n.noise(x1, y2, z2),
+            n.noise(x1, y3, z2),
+            n.noise(x2, y0, z2),
+            n.noise(x2, y1, z2),
+            n.noise(x2, y2, z2),
+            n.noise(x2, y3, z2),
+            n.noise(x3, y0, z2),
+            n.noise(x3, y1, z2),
+            n.noise(x3, y2, z2),
+            n.noise(x3, y3, z2),
+            n.noise(x0, y0, z3),
+            n.noise(x0, y1, z3),
+            n.noise(x0, y2, z3),
+            n.noise(x0, y3, z3),
+            n.noise(x1, y0, z3),
+            n.noise(x1, y1, z3),
+            n.noise(x1, y2, z3),
+            n.noise(x1, y3, z3),
+            n.noise(x2, y0, z3),
+            n.noise(x2, y1, z3),
+            n.noise(x2, y2, z3),
+            n.noise(x2, y3, z3),
+            n.noise(x3, y0, z3),
+            n.noise(x3, y1, z3),
+            n.noise(x3, y2, z3),
+            n.noise(x3, y3, z3),
+            px, py, pz, tension, bias);
         //@done
     }
 
@@ -652,11 +652,11 @@ public class IrisInterpolation {
         double pz = rangeScale(0, 1, z1, z2, z);
         //@builder
         return blerpSinCenter(
-                n.noise(x1, z1),
-                n.noise(x2, z1),
-                n.noise(x1, z2),
-                n.noise(x2, z2),
-                px, pz);
+            n.noise(x1, z1),
+            n.noise(x2, z1),
+            n.noise(x1, z2),
+            n.noise(x2, z2),
+            px, pz);
         //@done
     }
 
@@ -675,23 +675,23 @@ public class IrisInterpolation {
         double pz = rangeScale(0, 1, z1, z2, z);
         //@builder
         return bicubic(
-                n.noise(x0, z0),
-                n.noise(x0, z1),
-                n.noise(x0, z2),
-                n.noise(x0, z3),
-                n.noise(x1, z0),
-                n.noise(x1, z1),
-                n.noise(x1, z2),
-                n.noise(x1, z3),
-                n.noise(x2, z0),
-                n.noise(x2, z1),
-                n.noise(x2, z2),
-                n.noise(x2, z3),
-                n.noise(x3, z0),
-                n.noise(x3, z1),
-                n.noise(x3, z2),
-                n.noise(x3, z3),
-                px, pz);
+            n.noise(x0, z0),
+            n.noise(x0, z1),
+            n.noise(x0, z2),
+            n.noise(x0, z3),
+            n.noise(x1, z0),
+            n.noise(x1, z1),
+            n.noise(x1, z2),
+            n.noise(x1, z3),
+            n.noise(x2, z0),
+            n.noise(x2, z1),
+            n.noise(x2, z2),
+            n.noise(x2, z3),
+            n.noise(x3, z0),
+            n.noise(x3, z1),
+            n.noise(x3, z2),
+            n.noise(x3, z3),
+            px, pz);
         //@done
     }
 
@@ -710,23 +710,23 @@ public class IrisInterpolation {
         double pz = rangeScale(0, 1, z1, z2, z);
         //@builder
         return bicubicBezier(
-                n.noise(x0, z0),
-                n.noise(x0, z1),
-                n.noise(x0, z2),
-                n.noise(x0, z3),
-                n.noise(x1, z0),
-                n.noise(x1, z1),
-                n.noise(x1, z2),
-                n.noise(x1, z3),
-                n.noise(x2, z0),
-                n.noise(x2, z1),
-                n.noise(x2, z2),
-                n.noise(x2, z3),
-                n.noise(x3, z0),
-                n.noise(x3, z1),
-                n.noise(x3, z2),
-                n.noise(x3, z3),
-                px, pz);
+            n.noise(x0, z0),
+            n.noise(x0, z1),
+            n.noise(x0, z2),
+            n.noise(x0, z3),
+            n.noise(x1, z0),
+            n.noise(x1, z1),
+            n.noise(x1, z2),
+            n.noise(x1, z3),
+            n.noise(x2, z0),
+            n.noise(x2, z1),
+            n.noise(x2, z2),
+            n.noise(x2, z3),
+            n.noise(x3, z0),
+            n.noise(x3, z1),
+            n.noise(x3, z2),
+            n.noise(x3, z3),
+            px, pz);
         //@done
     }
 
@@ -745,23 +745,23 @@ public class IrisInterpolation {
         double pz = rangeScale(0, 1, z1, z2, z);
         //@builder
         return bicubicParametric(
-                n.noise(x0, z0),
-                n.noise(x0, z1),
-                n.noise(x0, z2),
-                n.noise(x0, z3),
-                n.noise(x1, z0),
-                n.noise(x1, z1),
-                n.noise(x1, z2),
-                n.noise(x1, z3),
-                n.noise(x2, z0),
-                n.noise(x2, z1),
-                n.noise(x2, z2),
-                n.noise(x2, z3),
-                n.noise(x3, z0),
-                n.noise(x3, z1),
-                n.noise(x3, z2),
-                n.noise(x3, z3),
-                px, pz, a);
+            n.noise(x0, z0),
+            n.noise(x0, z1),
+            n.noise(x0, z2),
+            n.noise(x0, z3),
+            n.noise(x1, z0),
+            n.noise(x1, z1),
+            n.noise(x1, z2),
+            n.noise(x1, z3),
+            n.noise(x2, z0),
+            n.noise(x2, z1),
+            n.noise(x2, z2),
+            n.noise(x2, z3),
+            n.noise(x3, z0),
+            n.noise(x3, z1),
+            n.noise(x3, z2),
+            n.noise(x3, z3),
+            px, pz, a);
         //@done
     }
 
@@ -792,23 +792,23 @@ public class IrisInterpolation {
         double pz = rangeScale(0, 1, z1, z2, z);
         //@builder
         return bihermite(
-                n.noise(x0, z0),
-                n.noise(x0, z1),
-                n.noise(x0, z2),
-                n.noise(x0, z3),
-                n.noise(x1, z0),
-                n.noise(x1, z1),
-                n.noise(x1, z2),
-                n.noise(x1, z3),
-                n.noise(x2, z0),
-                n.noise(x2, z1),
-                n.noise(x2, z2),
-                n.noise(x2, z3),
-                n.noise(x3, z0),
-                n.noise(x3, z1),
-                n.noise(x3, z2),
-                n.noise(x3, z3),
-                px, pz, t, b);
+            n.noise(x0, z0),
+            n.noise(x0, z1),
+            n.noise(x0, z2),
+            n.noise(x0, z3),
+            n.noise(x1, z0),
+            n.noise(x1, z1),
+            n.noise(x1, z2),
+            n.noise(x1, z3),
+            n.noise(x2, z0),
+            n.noise(x2, z1),
+            n.noise(x2, z2),
+            n.noise(x2, z3),
+            n.noise(x3, z0),
+            n.noise(x3, z1),
+            n.noise(x3, z2),
+            n.noise(x3, z3),
+            px, pz, t, b);
         //@done
     }
 
@@ -827,23 +827,23 @@ public class IrisInterpolation {
         double pz = rangeScale(0, 1, z1, z2, z);
         //@builder
         return bihermiteBezier(
-                n.noise(x0, z0),
-                n.noise(x0, z1),
-                n.noise(x0, z2),
-                n.noise(x0, z3),
-                n.noise(x1, z0),
-                n.noise(x1, z1),
-                n.noise(x1, z2),
-                n.noise(x1, z3),
-                n.noise(x2, z0),
-                n.noise(x2, z1),
-                n.noise(x2, z2),
-                n.noise(x2, z3),
-                n.noise(x3, z0),
-                n.noise(x3, z1),
-                n.noise(x3, z2),
-                n.noise(x3, z3),
-                px, pz, t, b);
+            n.noise(x0, z0),
+            n.noise(x0, z1),
+            n.noise(x0, z2),
+            n.noise(x0, z3),
+            n.noise(x1, z0),
+            n.noise(x1, z1),
+            n.noise(x1, z2),
+            n.noise(x1, z3),
+            n.noise(x2, z0),
+            n.noise(x2, z1),
+            n.noise(x2, z2),
+            n.noise(x2, z3),
+            n.noise(x3, z0),
+            n.noise(x3, z1),
+            n.noise(x3, z2),
+            n.noise(x3, z3),
+            px, pz, t, b);
         //@done
     }
 
@@ -862,23 +862,23 @@ public class IrisInterpolation {
         double pz = rangeScale(0, 1, z1, z2, z);
         //@builder
         return bihermiteParametric(
-                n.noise(x0, z0),
-                n.noise(x0, z1),
-                n.noise(x0, z2),
-                n.noise(x0, z3),
-                n.noise(x1, z0),
-                n.noise(x1, z1),
-                n.noise(x1, z2),
-                n.noise(x1, z3),
-                n.noise(x2, z0),
-                n.noise(x2, z1),
-                n.noise(x2, z2),
-                n.noise(x2, z3),
-                n.noise(x3, z0),
-                n.noise(x3, z1),
-                n.noise(x3, z2),
-                n.noise(x3, z3),
-                px, pz, t, b, a);
+            n.noise(x0, z0),
+            n.noise(x0, z1),
+            n.noise(x0, z2),
+            n.noise(x0, z3),
+            n.noise(x1, z0),
+            n.noise(x1, z1),
+            n.noise(x1, z2),
+            n.noise(x1, z3),
+            n.noise(x2, z0),
+            n.noise(x2, z1),
+            n.noise(x2, z2),
+            n.noise(x2, z3),
+            n.noise(x3, z0),
+            n.noise(x3, z1),
+            n.noise(x3, z2),
+            n.noise(x3, z3),
+            px, pz, t, b, a);
         //@done
     }
 
@@ -888,7 +888,7 @@ public class IrisInterpolation {
         AtomicDouble accessZ = new AtomicDouble();
         NoiseProvider np = (x1, z1) -> {
             double d = Math.max(Math.abs(x1), Math.abs(z1));
-            if (d > rad.get()) {
+            if(d > rad.get()) {
                 rad.set(d);
             }
             return 0;
@@ -898,7 +898,7 @@ public class IrisInterpolation {
     }
 
     public static double getNoise3D(InterpolationMethod3D method, int x, int y, int z, double radx, double rady, double radz, NoiseProvider3 n) {
-        return switch (method) {
+        return switch(method) {
             case TRILINEAR -> getTrilinear(x, y, z, radx, rady, radz, n);
             case TRICUBIC -> getTricubic(x, y, z, radx, rady, radz, n);
             case TRIHERMITE -> getTrihermite(x, y, z, radx, rady, radz, n);
@@ -921,17 +921,28 @@ public class IrisInterpolation {
     /**
      * Get the interpolated 3D noise within a given cuboid size with offsets
      *
-     * @param method the interpolation method to use
-     * @param xo     the x offset for noise
-     * @param yo     the y offset for noise
-     * @param zo     the z offset for noise
-     * @param w      the width of the result
-     * @param h      the height of the result
-     * @param d      the depth of the result
-     * @param radX   the interpolation radius for the x axis
-     * @param radY   the interpolation radius for the y axis
-     * @param radZ   the interpolation radius for the z axis
-     * @param n      the noise provider
+     * @param method
+     *     the interpolation method to use
+     * @param xo
+     *     the x offset for noise
+     * @param yo
+     *     the y offset for noise
+     * @param zo
+     *     the z offset for noise
+     * @param w
+     *     the width of the result
+     * @param h
+     *     the height of the result
+     * @param d
+     *     the depth of the result
+     * @param radX
+     *     the interpolation radius for the x axis
+     * @param radY
+     *     the interpolation radius for the y axis
+     * @param radZ
+     *     the interpolation radius for the z axis
+     * @param n
+     *     the noise provider
      * @return the resulting hunk of noise
      */
     public static Hunk<Double> getNoise3D(InterpolationMethod3D method, int xo, int yo, int zo, int w, int h, int d, double radX, double radY, double radZ, NoiseProvider3 n) {
@@ -939,15 +950,15 @@ public class IrisInterpolation {
         HashMap<Integer, Double> cache = new HashMap<>();
         int i, j, k;
 
-        for (i = 0; i < w; i++) {
+        for(i = 0; i < w; i++) {
             int fi = i;
-            for (j = 0; j < h; j++) {
+            for(j = 0; j < h; j++) {
                 int fj = j;
-                for (k = 0; k < d; k++) {
+                for(k = 0; k < d; k++) {
                     int fk = k;
                     hunk.set(i, j, k, cache.computeIfAbsent((k * w * h) + (j * w) + i, (p)
-                            -> getNoise3D(method, fi + xo, fj + yo, fk + zo,
-                            radX, radY, radZ, n)));
+                        -> getNoise3D(method, fi + xo, fj + yo, fk + zo,
+                        radX, radY, radZ, n)));
                 }
             }
         }
@@ -960,57 +971,57 @@ public class IrisInterpolation {
     }
 
     public static double getNoise(InterpolationMethod method, int x, int z, double h, NoiseProvider n) {
-        if (method.equals(InterpolationMethod.BILINEAR)) {
+        if(method.equals(InterpolationMethod.BILINEAR)) {
             return getBilinearNoise(x, z, h, n);
-        } else if (method.equals(InterpolationMethod.STARCAST_3)) {
+        } else if(method.equals(InterpolationMethod.STARCAST_3)) {
             return Starcast.starcast(x, z, h, 3D, n);
-        } else if (method.equals(InterpolationMethod.STARCAST_6)) {
+        } else if(method.equals(InterpolationMethod.STARCAST_6)) {
             return Starcast.starcast(x, z, h, 6D, n);
-        } else if (method.equals(InterpolationMethod.STARCAST_9)) {
+        } else if(method.equals(InterpolationMethod.STARCAST_9)) {
             return Starcast.starcast(x, z, h, 9D, n);
-        } else if (method.equals(InterpolationMethod.STARCAST_12)) {
+        } else if(method.equals(InterpolationMethod.STARCAST_12)) {
             return Starcast.starcast(x, z, h, 12D, n);
-        } else if (method.equals(InterpolationMethod.BILINEAR_STARCAST_3)) {
+        } else if(method.equals(InterpolationMethod.BILINEAR_STARCAST_3)) {
             return Starcast.starcast(x, z, h, 3D, (xx, zz) -> getBilinearNoise((int) xx, (int) zz, h, n));
-        } else if (method.equals(InterpolationMethod.BILINEAR_STARCAST_6)) {
+        } else if(method.equals(InterpolationMethod.BILINEAR_STARCAST_6)) {
             return Starcast.starcast(x, z, h, 6D, (xx, zz) -> getBilinearNoise((int) xx, (int) zz, h, n));
-        } else if (method.equals(InterpolationMethod.BILINEAR_STARCAST_9)) {
+        } else if(method.equals(InterpolationMethod.BILINEAR_STARCAST_9)) {
             return Starcast.starcast(x, z, h, 9D, (xx, zz) -> getBilinearNoise((int) xx, (int) zz, h, n));
-        } else if (method.equals(InterpolationMethod.BILINEAR_STARCAST_12)) {
+        } else if(method.equals(InterpolationMethod.BILINEAR_STARCAST_12)) {
             return Starcast.starcast(x, z, h, 12D, (xx, zz) -> getBilinearNoise((int) xx, (int) zz, h, n));
-        } else if (method.equals(InterpolationMethod.HERMITE_STARCAST_3)) {
+        } else if(method.equals(InterpolationMethod.HERMITE_STARCAST_3)) {
             return Starcast.starcast(x, z, h, 3D, (xx, zz) -> getHermiteNoise((int) xx, (int) zz, h, n, 0D, 0D));
-        } else if (method.equals(InterpolationMethod.HERMITE_STARCAST_6)) {
+        } else if(method.equals(InterpolationMethod.HERMITE_STARCAST_6)) {
             return Starcast.starcast(x, z, h, 6D, (xx, zz) -> getHermiteNoise((int) xx, (int) zz, h, n, 0D, 0D));
-        } else if (method.equals(InterpolationMethod.HERMITE_STARCAST_9)) {
+        } else if(method.equals(InterpolationMethod.HERMITE_STARCAST_9)) {
             return Starcast.starcast(x, z, h, 9D, (xx, zz) -> getHermiteNoise((int) xx, (int) zz, h, n, 0D, 0D));
-        } else if (method.equals(InterpolationMethod.HERMITE_STARCAST_12)) {
+        } else if(method.equals(InterpolationMethod.HERMITE_STARCAST_12)) {
             return Starcast.starcast(x, z, h, 12D, (xx, zz) -> getHermiteNoise((int) xx, (int) zz, h, n, 0D, 0D));
-        } else if (method.equals(InterpolationMethod.BILINEAR_BEZIER)) {
+        } else if(method.equals(InterpolationMethod.BILINEAR_BEZIER)) {
             return getBilinearBezierNoise(x, z, h, n);
-        } else if (method.equals(InterpolationMethod.BILINEAR_PARAMETRIC_2)) {
+        } else if(method.equals(InterpolationMethod.BILINEAR_PARAMETRIC_2)) {
             return getBilinearParametricNoise(x, z, h, n, 2);
-        } else if (method.equals(InterpolationMethod.BILINEAR_PARAMETRIC_4)) {
+        } else if(method.equals(InterpolationMethod.BILINEAR_PARAMETRIC_4)) {
             return getBilinearParametricNoise(x, z, h, n, 4);
-        } else if (method.equals(InterpolationMethod.BILINEAR_PARAMETRIC_1_5)) {
+        } else if(method.equals(InterpolationMethod.BILINEAR_PARAMETRIC_1_5)) {
             return getBilinearParametricNoise(x, z, h, n, 1.5);
-        } else if (method.equals(InterpolationMethod.BICUBIC)) {
+        } else if(method.equals(InterpolationMethod.BICUBIC)) {
             return getBilinearNoise(x, z, h, n);
-        } else if (method.equals(InterpolationMethod.HERMITE)) {
+        } else if(method.equals(InterpolationMethod.HERMITE)) {
             return getHermiteNoise(x, z, h, n);
-        } else if (method.equals(InterpolationMethod.HERMITE_TENSE)) {
+        } else if(method.equals(InterpolationMethod.HERMITE_TENSE)) {
             return getHermiteNoise(x, z, h, n, 0.8D, 0D);
-        } else if (method.equals(InterpolationMethod.CATMULL_ROM_SPLINE)) {
+        } else if(method.equals(InterpolationMethod.CATMULL_ROM_SPLINE)) {
             return getHermiteNoise(x, z, h, n, 1D, 0D);
-        } else if (method.equals(InterpolationMethod.HERMITE_LOOSE)) {
+        } else if(method.equals(InterpolationMethod.HERMITE_LOOSE)) {
             return getHermiteNoise(x, z, h, n, 0D, 0D);
-        } else if (method.equals(InterpolationMethod.HERMITE_LOOSE_HALF_NEGATIVE_BIAS)) {
+        } else if(method.equals(InterpolationMethod.HERMITE_LOOSE_HALF_NEGATIVE_BIAS)) {
             return getHermiteNoise(x, z, h, n, 0D, -0.5D);
-        } else if (method.equals(InterpolationMethod.HERMITE_LOOSE_HALF_POSITIVE_BIAS)) {
+        } else if(method.equals(InterpolationMethod.HERMITE_LOOSE_HALF_POSITIVE_BIAS)) {
             return getHermiteNoise(x, z, h, n, 0D, 0.5D);
-        } else if (method.equals(InterpolationMethod.HERMITE_LOOSE_FULL_NEGATIVE_BIAS)) {
+        } else if(method.equals(InterpolationMethod.HERMITE_LOOSE_FULL_NEGATIVE_BIAS)) {
             return getHermiteNoise(x, z, h, n, 0D, -1D);
-        } else if (method.equals(InterpolationMethod.HERMITE_LOOSE_FULL_POSITIVE_BIAS)) {
+        } else if(method.equals(InterpolationMethod.HERMITE_LOOSE_FULL_POSITIVE_BIAS)) {
             return getHermiteNoise(x, z, h, n, 0D, 1D);
         }
 

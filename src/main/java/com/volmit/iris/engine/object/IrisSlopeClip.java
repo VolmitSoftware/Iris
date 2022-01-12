@@ -50,7 +50,7 @@ public class IrisSlopeClip {
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isValid(double slope) {
-        if (isDefault()) {
+        if(isDefault()) {
             return true;
         }
 

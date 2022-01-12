@@ -51,7 +51,7 @@ public interface Locator<T> {
     boolean matches(Engine engine, Position2 chunk);
 
     static void cancelSearch() {
-        if (LocatorCanceller.cancel != null) {
+        if(LocatorCanceller.cancel != null) {
             LocatorCanceller.cancel.run();
             LocatorCanceller.cancel = null;
         }
@@ -68,14 +68,14 @@ public interface Locator<T> {
             try {
                 Position2 at = find(IrisToolbelt.access(player.getWorld()).getEngine(), new Position2(player.getLocation().getBlockX() >> 4, player.getLocation().getBlockZ() >> 4), timeout, checks::set).get();
 
-                if (at != null) {
+                if(at != null) {
                     J.s(() -> player.teleport(new Location(player.getWorld(), (at.getX() << 4) + 8,
-                            IrisToolbelt.access(player.getWorld()).getEngine().getHeight(
-                                    (at.getX() << 4) + 8,
-                                    (at.getZ() << 4) + 8, false),
-                            (at.getZ() << 4) + 8)));
+                        IrisToolbelt.access(player.getWorld()).getEngine().getHeight(
+                            (at.getX() << 4) + 8,
+                            (at.getZ() << 4) + 8, false),
+                        (at.getZ() << 4) + 8)));
                 }
-            } catch (WrongEngineBroException | InterruptedException | ExecutionException e) {
+            } catch(WrongEngineBroException | InterruptedException | ExecutionException e) {
                 e.printStackTrace();
             }
         }) {
@@ -97,7 +97,7 @@ public interface Locator<T> {
     }
 
     default Future<Position2> find(Engine engine, Position2 pos, long timeout, Consumer<Integer> checks) throws WrongEngineBroException {
-        if (engine.isClosed()) {
+        if(engine.isClosed()) {
             throw new WrongEngineBroException();
         }
 
@@ -117,15 +117,15 @@ public interface Locator<T> {
             Spiraler s = new Spiraler(100000, 100000, (x, z) -> next.set(new Position2(x, z)));
             s.setOffset(cursor.getX(), cursor.getZ());
             s.next();
-            while (!found.get() && !stop.get() && px.getMilliseconds() < timeout) {
+            while(!found.get() && !stop.get() && px.getMilliseconds() < timeout) {
                 BurstExecutor e = burst.burst(tc);
 
-                for (int i = 0; i < tc; i++) {
+                for(int i = 0; i < tc; i++) {
                     Position2 p = next.get();
                     s.next();
                     e.queue(() -> {
-                        if (matches(engine, p)) {
-                            if (foundPos.get() == null) {
+                        if(matches(engine, p)) {
+                            if(foundPos.get() == null) {
                                 foundPos.set(p);
                             }
 
@@ -141,7 +141,7 @@ public interface Locator<T> {
 
             LocatorCanceller.cancel = null;
 
-            if (found.get() && foundPos.get() != null) {
+            if(found.get() && foundPos.get() != null) {
                 return foundPos.get();
             }
 
@@ -177,11 +177,11 @@ public interface Locator<T> {
             AtomicBoolean found = new AtomicBoolean(false);
             e.generateMatter(c.getX(), c.getZ(), true);
             e.getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, y, z, t) -> {
-                if (found.get()) {
+                if(found.get()) {
                     return;
                 }
 
-                if (t != null && t.getCustomBiome().equals(loadKey)) {
+                if(t != null && t.getCustomBiome().equals(loadKey)) {
                     found.set(true);
                 }
             });

@@ -21,7 +21,6 @@ package com.volmit.iris.core.loader;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.object.IrisImage;
-import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.KCache;
@@ -60,7 +59,7 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
             logLoad(j, img);
             tlt.addAndGet(p.getMilliseconds());
             return img;
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
             return null;
@@ -68,24 +67,24 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
     }
 
     public String[] getPossibleKeys() {
-        if (possibleKeys != null) {
+        if(possibleKeys != null) {
             return possibleKeys;
         }
 
         Iris.debug("Building " + resourceTypeName + " Possibility Lists");
         KSet<String> m = new KSet<>();
 
-        for (File i : getFolders()) {
-            for (File j : i.listFiles()) {
-                if (j.isFile() && j.getName().endsWith(".png")) {
+        for(File i : getFolders()) {
+            for(File j : i.listFiles()) {
+                if(j.isFile() && j.getName().endsWith(".png")) {
                     m.add(j.getName().replaceAll("\\Q.png\\E", ""));
-                } else if (j.isDirectory()) {
-                    for (File k : j.listFiles()) {
-                        if (k.isFile() && k.getName().endsWith(".png")) {
+                } else if(j.isDirectory()) {
+                    for(File k : j.listFiles()) {
+                        if(k.isFile() && k.getName().endsWith(".png")) {
                             m.add(j.getName() + "/" + k.getName().replaceAll("\\Q.png\\E", ""));
-                        } else if (k.isDirectory()) {
-                            for (File l : k.listFiles()) {
-                                if (l.isFile() && l.getName().endsWith(".png")) {
+                        } else if(k.isDirectory()) {
+                            for(File l : k.listFiles()) {
+                                if(l.isFile() && l.getName().endsWith(".png")) {
                                     m.add(j.getName() + "/" + k.getName() + "/" + l.getName().replaceAll("\\Q.png\\E", ""));
                                 }
                             }
@@ -101,16 +100,16 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
     }
 
     public File findFile(String name) {
-        for (File i : getFolders(name)) {
-            for (File j : i.listFiles()) {
-                if (j.isFile() && j.getName().endsWith(".png") && j.getName().split("\\Q.\\E")[0].equals(name)) {
+        for(File i : getFolders(name)) {
+            for(File j : i.listFiles()) {
+                if(j.isFile() && j.getName().endsWith(".png") && j.getName().split("\\Q.\\E")[0].equals(name)) {
                     return j;
                 }
             }
 
             File file = new File(i, name + ".png");
 
-            if (file.exists()) {
+            if(file.exists()) {
                 return file;
             }
         }
@@ -125,16 +124,16 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
     }
 
     private IrisImage loadRaw(String name) {
-        for (File i : getFolders(name)) {
-            for (File j : i.listFiles()) {
-                if (j.isFile() && j.getName().endsWith(".png") && j.getName().split("\\Q.\\E")[0].equals(name)) {
+        for(File i : getFolders(name)) {
+            for(File j : i.listFiles()) {
+                if(j.isFile() && j.getName().endsWith(".png") && j.getName().split("\\Q.\\E")[0].equals(name)) {
                     return loadFile(j, name);
                 }
             }
 
             File file = new File(i, name + ".png");
 
-            if (file.exists()) {
+            if(file.exists()) {
                 return loadFile(file, name);
             }
         }

@@ -49,7 +49,7 @@ public class ChunkHunkView implements Hunk<BlockData> {
 
     @Override
     public void setRaw(int x, int y, int z, BlockData t) {
-        if (t == null) {
+        if(t == null) {
             return;
         }
 

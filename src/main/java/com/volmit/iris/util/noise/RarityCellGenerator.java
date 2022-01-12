@@ -28,28 +28,28 @@ public class RarityCellGenerator<T extends IRare> extends CellGenerator {
     }
 
     public T get(double x, double z, KList<T> b) {
-        if (b.size() == 0) {
+        if(b.size() == 0) {
             return null;
         }
 
-        if (b.size() == 1) {
+        if(b.size() == 1) {
             return b.get(0);
         }
 
         KList<T> rarityMapped = new KList<>();
         boolean o = false;
         int max = 1;
-        for (T i : b) {
-            if (i.getRarity() > max) {
+        for(T i : b) {
+            if(i.getRarity() > max) {
                 max = i.getRarity();
             }
         }
 
         max++;
 
-        for (T i : b) {
-            for (int j = 0; j < max - i.getRarity(); j++) {
-                if (o = !o) {
+        for(T i : b) {
+            for(int j = 0; j < max - i.getRarity(); j++) {
+                if(o = !o) {
                     rarityMapped.add(i);
                 } else {
                     rarityMapped.add(0, i);
@@ -57,11 +57,11 @@ public class RarityCellGenerator<T extends IRare> extends CellGenerator {
             }
         }
 
-        if (rarityMapped.size() == 1) {
+        if(rarityMapped.size() == 1) {
             return rarityMapped.get(0);
         }
 
-        if (rarityMapped.isEmpty()) {
+        if(rarityMapped.isEmpty()) {
             throw new RuntimeException("BAD RARITY MAP! RELATED TO: " + b.toString(", or possibly "));
         }
 

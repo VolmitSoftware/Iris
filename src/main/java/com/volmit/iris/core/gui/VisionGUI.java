@@ -149,7 +149,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
         J.a(() -> {
             J.sleep(10000);
 
-            if (!helpIgnored && help) {
+            if(!helpIgnored && help) {
                 help = false;
             }
         });
@@ -173,11 +173,11 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
         frame.setVisible(true);
         File file = Iris.getCached("Iris Icon", "https://raw.githubusercontent.com/VolmitSoftware/Iris/master/icon.png");
 
-        if (file != null) {
+        if(file != null) {
             try {
                 nv.texture = ImageIO.read(file);
                 frame.setIconImage(ImageIO.read(file));
-            } catch (IOException e) {
+            } catch(IOException e) {
                 Iris.reportError(e);
 
             }
@@ -186,17 +186,17 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
 
     public static void launch(Engine g, int i) {
         J.a(() ->
-                createAndShowGUI(g, i, g.getWorld()));
+            createAndShowGUI(g, i, g.getWorld()));
     }
 
     public boolean updateEngine() {
-        if (engine.isClosed()) {
-            if (world.hasRealWorld()) {
+        if(engine.isClosed()) {
+            if(world.hasRealWorld()) {
                 try {
                     engine = IrisToolbelt.access(world.realWorld()).getEngine();
                     Iris.info("Updated Renderer");
                     return !engine.isClosed();
-                } catch (Throwable e) {
+                } catch(Throwable e) {
 
                 }
             }
@@ -224,7 +224,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
     public int getColor(double wx, double wz) {
         BiFunction<Double, Double, Integer> colorFunction = (d, dx) -> Color.black.getRGB();
 
-        switch (currentType) {
+        switch(currentType) {
             case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD -> colorFunction = (x, z) -> engine.getComplex().getTrueBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
             case BIOME_LAND -> colorFunction = (x, z) -> engine.getComplex().getLandBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
             case BIOME_SEA -> colorFunction = (x, z) -> engine.getComplex().getSeaBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
@@ -247,51 +247,51 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
 
     @Override
     public void keyPressed(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
+        if(e.getKeyCode() == KeyEvent.VK_SHIFT) {
             shift = true;
         }
-        if (e.getKeyCode() == KeyEvent.VK_CONTROL) {
+        if(e.getKeyCode() == KeyEvent.VK_CONTROL) {
             control = true;
         }
-        if (e.getKeyCode() == KeyEvent.VK_SEMICOLON) {
+        if(e.getKeyCode() == KeyEvent.VK_SEMICOLON) {
             debug = true;
         }
-        if (e.getKeyCode() == KeyEvent.VK_SLASH) {
+        if(e.getKeyCode() == KeyEvent.VK_SLASH) {
             help = true;
             helpIgnored = true;
         }
-        if (e.getKeyCode() == KeyEvent.VK_ALT) {
+        if(e.getKeyCode() == KeyEvent.VK_ALT) {
             alt = true;
         }
     }
 
     @Override
     public void keyReleased(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_SEMICOLON) {
+        if(e.getKeyCode() == KeyEvent.VK_SEMICOLON) {
             debug = false;
         }
-        if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
+        if(e.getKeyCode() == KeyEvent.VK_SHIFT) {
             shift = false;
         }
 
-        if (e.getKeyCode() == KeyEvent.VK_CONTROL) {
+        if(e.getKeyCode() == KeyEvent.VK_CONTROL) {
             control = false;
         }
-        if (e.getKeyCode() == KeyEvent.VK_SLASH) {
+        if(e.getKeyCode() == KeyEvent.VK_SLASH) {
             help = false;
             helpIgnored = true;
         }
-        if (e.getKeyCode() == KeyEvent.VK_ALT) {
+        if(e.getKeyCode() == KeyEvent.VK_ALT) {
             alt = false;
         }
 
         // Pushes
-        if (e.getKeyCode() == KeyEvent.VK_F) {
+        if(e.getKeyCode() == KeyEvent.VK_F) {
             follow = !follow;
 
-            if (player != null && follow) {
+            if(player != null && follow) {
                 notify("Following " + player.getName() + ". Press F to disable");
-            } else if (follow) {
+            } else if(follow) {
                 notify("Can't follow, no one is in the world");
                 follow = false;
             } else {
@@ -301,38 +301,38 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
             return;
         }
 
-        if (e.getKeyCode() == KeyEvent.VK_R) {
+        if(e.getKeyCode() == KeyEvent.VK_R) {
             dump();
             notify("Refreshing Chunks");
             return;
         }
 
-        if (e.getKeyCode() == KeyEvent.VK_P) {
+        if(e.getKeyCode() == KeyEvent.VK_P) {
             lowtile = !lowtile;
             dump();
             notify("Rendering " + (lowtile ? "Low" : "High") + " Quality Tiles");
             return;
         }
-        if (e.getKeyCode() == KeyEvent.VK_E) {
+        if(e.getKeyCode() == KeyEvent.VK_E) {
             eco = !eco;
             dump();
             notify("Using " + (eco ? "60" : "Uncapped") + " FPS Limit");
             return;
         }
-        if (e.getKeyCode() == KeyEvent.VK_EQUALS) {
+        if(e.getKeyCode() == KeyEvent.VK_EQUALS) {
             mscale = mscale + ((0.044 * mscale) * -3);
             mscale = Math.max(mscale, 0.00001);
             dump();
             return;
         }
-        if (e.getKeyCode() == KeyEvent.VK_MINUS) {
+        if(e.getKeyCode() == KeyEvent.VK_MINUS) {
             mscale = mscale + ((0.044 * mscale) * 3);
             mscale = Math.max(mscale, 0.00001);
             dump();
             return;
         }
 
-        if (e.getKeyCode() == KeyEvent.VK_BACK_SLASH) {
+        if(e.getKeyCode() == KeyEvent.VK_BACK_SLASH) {
             mscale = 1D;
             dump();
             notify("Zoom Reset");
@@ -341,9 +341,9 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
 
         int currentMode = currentType.ordinal();
 
-        for (RenderType i : RenderType.values()) {
-            if (e.getKeyChar() == String.valueOf(i.ordinal() + 1).charAt(0)) {
-                if (i.ordinal() != currentMode) {
+        for(RenderType i : RenderType.values()) {
+            if(e.getKeyChar() == String.valueOf(i.ordinal() + 1).charAt(0)) {
+                if(i.ordinal() != currentMode) {
                     currentType = i;
                     dump();
                     notify("Rendering " + Form.capitalizeWords(currentType.name().toLowerCase().replaceAll("\\Q_\\E", " ")));
@@ -352,7 +352,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
             }
         }
 
-        if (e.getKeyCode() == KeyEvent.VK_M) {
+        if(e.getKeyCode() == KeyEvent.VK_M) {
             currentType = RenderType.values()[(currentMode + 1) % RenderType.values().length];
             notify("Rendering " + Form.capitalizeWords(currentType.name().toLowerCase().replaceAll("\\Q_\\E", " ")));
             dump();
@@ -368,15 +368,15 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
         BlockPosition key = new BlockPosition((int) mscale, Math.floorDiv(x, div), Math.floorDiv(z, div));
         fg.add(key);
 
-        if (positions.containsKey(key)) {
+        if(positions.containsKey(key)) {
             return positions.get(key);
         }
 
-        if (fastpositions.containsKey(key)) {
-            if (!working.contains(key) && working.size() < 9) {
+        if(fastpositions.containsKey(key)) {
+            if(!working.contains(key) && working.size() < 9) {
                 m.set(m.get() - 1);
 
-                if (m.get() >= 0 && velocity < 50) {
+                if(m.get() >= 0 && velocity < 50) {
                     working.add(key);
                     double mk = mscale;
                     double mkd = scale;
@@ -387,7 +387,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
                         rs.put(ps.getMilliseconds());
                         working.remove(key);
 
-                        if (mk == mscale && mkd == scale) {
+                        if(mk == mscale && mkd == scale) {
                             positions.put(key, b);
                         }
                     });
@@ -397,7 +397,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
             return fastpositions.get(key);
         }
 
-        if (workingfast.contains(key) || workingfast.size() > Runtime.getRuntime().availableProcessors()) {
+        if(workingfast.contains(key) || workingfast.size() > Runtime.getRuntime().availableProcessors()) {
             return null;
         }
 
@@ -411,7 +411,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
             rs.put(ps.getMilliseconds());
             workingfast.remove(key);
 
-            if (mk == mscale && mkd == scale) {
+            if(mk == mscale && mkd == scale) {
                 fastpositions.put(key, b);
             }
         });
@@ -437,49 +437,49 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
 
     @Override
     public void paint(Graphics gx) {
-        if (updateEngine()) {
+        if(updateEngine()) {
             dump();
         }
 
-        if (ox < oxp) {
+        if(ox < oxp) {
             velocity = Math.abs(ox - oxp) * 0.36;
             oxp -= velocity;
         }
 
-        if (ox > oxp) {
+        if(ox > oxp) {
             velocity = Math.abs(oxp - ox) * 0.36;
             oxp += velocity;
         }
 
-        if (oz < ozp) {
+        if(oz < ozp) {
             velocity = Math.abs(oz - ozp) * 0.36;
             ozp -= velocity;
         }
 
-        if (oz > ozp) {
+        if(oz > ozp) {
             velocity = Math.abs(ozp - oz) * 0.36;
             ozp += velocity;
         }
 
-        if (lx < hx) {
+        if(lx < hx) {
             hx -= Math.abs(lx - hx) * 0.36;
         }
 
-        if (lx > hx) {
+        if(lx > hx) {
             hx += Math.abs(hx - lx) * 0.36;
         }
 
-        if (lz < hz) {
+        if(lz < hz) {
             hz -= Math.abs(lz - hz) * 0.36;
         }
 
-        if (lz > hz) {
+        if(lz > hz) {
             hz += Math.abs(hz - lz) * 0.36;
         }
 
-        if (centities.flip()) {
+        if(centities.flip()) {
             J.s(() -> {
-                synchronized (lastEntities) {
+                synchronized(lastEntities) {
                     lastEntities.clear();
                     lastEntities.addAll(world.getEntitiesByClass(LivingEntity.class));
                 }
@@ -493,7 +493,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
         double vscale = scale;
         scale = w / 12D;
 
-        if (scale != vscale) {
+        if(scale != vscale) {
             positions.clear();
         }
 
@@ -505,15 +505,15 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
         posZ = (int) ozp;
         m.set(3);
 
-        for (int r = 0; r < Math.max(w, h); r += iscale) {
-            for (int i = -iscale; i < w + iscale; i += iscale) {
-                for (int j = -iscale; j < h + iscale; j += iscale) {
+        for(int r = 0; r < Math.max(w, h); r += iscale) {
+            for(int i = -iscale; i < w + iscale; i += iscale) {
+                for(int j = -iscale; j < h + iscale; j += iscale) {
                     int a = i - (w / 2);
                     int b = j - (h / 2);
-                    if (a * a + b * b <= r * r) {
+                    if(a * a + b * b <= r * r) {
                         BufferedImage t = getTile(gg, iscale, Math.floorDiv((posX / iscale) + i, iscale) * iscale, Math.floorDiv((posZ / iscale) + j, iscale) * iscale, m);
 
-                        if (t != null) {
+                        if(t != null) {
                             g.drawImage(t, i - ((posX / iscale) % (iscale)), j - ((posZ / iscale) % (iscale)), iscale, iscale, (img, infoflags, x, y, width, height) -> true);
                         }
                     }
@@ -523,8 +523,8 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
 
         p.end();
 
-        for (BlockPosition i : positions.k()) {
-            if (!gg.contains(i)) {
+        for(BlockPosition i : positions.k()) {
+            if(!gg.contains(i)) {
                 positions.remove(i);
             }
         }
@@ -532,15 +532,15 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
         hanleFollow();
         renderOverlays(g);
 
-        if (!isVisible()) {
+        if(!isVisible()) {
             return;
         }
 
-        if (!getParent().isVisible()) {
+        if(!getParent().isVisible()) {
             return;
         }
 
-        if (!getParent().getParent().isVisible()) {
+        if(!getParent().getParent().isVisible()) {
             return;
         }
 
@@ -552,7 +552,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
     }
 
     private void hanleFollow() {
-        if (follow && player != null) {
+        if(follow && player != null) {
             animateTo(player.getLocation().getX(), player.getLocation().getZ());
         }
     }
@@ -560,16 +560,16 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
     private void renderOverlays(Graphics2D g) {
         renderPlayer(g);
 
-        if (help) {
+        if(help) {
             renderOverlayHelp(g);
-        } else if (debug) {
+        } else if(debug) {
             renderOverlayDebug(g);
         }
 
         renderOverlayLegend(g);
 
         renderHoverOverlay(g, shift);
-        if (!notifications.isEmpty()) {
+        if(!notifications.isEmpty()) {
             renderNotification(g);
         }
     }
@@ -587,8 +587,8 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
     private void renderNotification(Graphics2D g) {
         drawCardCB(g, notifications.k());
 
-        for (String i : notifications.k()) {
-            if (M.ms() > notifications.get(i)) {
+        for(String i : notifications.k()) {
+            if(M.ms() > notifications.get(i)) {
                 notifications.remove(i);
             }
         }
@@ -597,32 +597,32 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
     private void renderPlayer(Graphics2D g) {
         Player b = null;
 
-        for (Player i : world.getPlayers()) {
+        for(Player i : world.getPlayers()) {
             b = i;
             renderPosition(g, i.getLocation().getX(), i.getLocation().getZ());
         }
 
-        synchronized (lastEntities) {
+        synchronized(lastEntities) {
             double dist = Double.MAX_VALUE;
             LivingEntity h = null;
 
-            for (LivingEntity i : lastEntities) {
-                if (i instanceof Player) {
+            for(LivingEntity i : lastEntities) {
+                if(i instanceof Player) {
                     continue;
                 }
 
                 renderMobPosition(g, i, i.getLocation().getX(), i.getLocation().getZ());
-                if (shift) {
+                if(shift) {
                     double d = i.getLocation().distanceSquared(new Location(i.getWorld(), getWorldX(hx), i.getLocation().getY(), getWorldZ(hz)));
 
-                    if (d < dist) {
+                    if(d < dist) {
                         dist = d;
                         h = i;
                     }
                 }
             }
 
-            if (h != null && shift) {
+            if(h != null && shift) {
                 g.setColor(Color.red);
                 g.fillRoundRect((int) getScreenX(h.getLocation().getX()) - 10, (int) getScreenZ(h.getLocation().getZ()) - 10, 20, 20, 20, 20);
                 KList<String> k = new KList<>();
@@ -647,7 +647,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
     }
 
     private void renderPosition(Graphics2D g, double x, double z) {
-        if (texture != null) {
+        if(texture != null) {
             g.drawImage(texture, (int) getScreenX(x), (int) getScreenZ(z), 66, 66, (img, infoflags, xx, xy, width, height) -> true);
         } else {
             g.setColor(Color.darkGray);
@@ -669,7 +669,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
         l.add("Biome: " + biome.getName());
         l.add("Region: " + region.getName() + "(" + region.getLoadKey() + ")");
         l.add("Block " + (int) getWorldX(hx) + ", " + (int) getWorldZ(hz));
-        if (detailed) {
+        if(detailed) {
             l.add("Chunk " + ((int) getWorldX(hx) >> 4) + ", " + ((int) getWorldZ(hz) >> 4));
             l.add("Region " + (((int) getWorldX(hx) >> 4) >> 5) + ", " + (((int) getWorldZ(hz) >> 4) >> 5));
             l.add("Key: " + biome.getLoadKey());
@@ -698,7 +698,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
         l.add("E to toggle Eco FPS Mode");
 
         int ff = 0;
-        for (RenderType i : RenderType.values()) {
+        for(RenderType i : RenderType.values()) {
             ff++;
             l.add(ff + " to view " + Form.capitalizeWords(i.name().toLowerCase().replaceAll("\\Q_\\E", " ")));
         }
@@ -728,7 +728,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
     private void open() {
         IrisComplex complex = engine.getComplex();
         File r = null;
-        switch (currentType) {
+        switch(currentType) {
             case BIOME, LAYER_LOAD, DECORATOR_LOAD, OBJECT_LOAD, HEIGHT -> r = complex.getTrueBiomeStream().get(getWorldX(hx), getWorldZ(hz)).openInVSCode();
             case BIOME_LAND -> r = complex.getLandBiomeStream().get(getWorldX(hx), getWorldZ(hz)).openInVSCode();
             case BIOME_SEA -> r = complex.getSeaBiomeStream().get(getWorldX(hx), getWorldZ(hz)).openInVSCode();
@@ -741,7 +741,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
 
     private void teleport() {
         J.s(() -> {
-            if (player != null) {
+            if(player != null) {
                 int xx = (int) getWorldX(hx);
                 int zz = (int) getWorldZ(hz);
                 int h = engine.getComplex().getRoundedHeighteightStream().get(xx, zz);
@@ -766,7 +766,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
         int h = 0;
         int w = 0;
 
-        for (String i : text) {
+        for(String i : text) {
             h += g.getFontMetrics().getHeight();
             w = Math.max(w, g.getFontMetrics().stringWidth(i));
         }
@@ -786,14 +786,14 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
 
         g.setColor(Color.black);
         int m = 0;
-        for (String i : text) {
+        for(String i : text) {
             g.drawString(i, x + 14 - cw, y + 14 - ch + (++m * g.getFontMetrics().getHeight()));
         }
     }
 
     public void mouseWheelMoved(MouseWheelEvent e) {
         int notches = e.getWheelRotation();
-        if (e.isControlDown()) {
+        if(e.isControlDown()) {
             return;
         }
 
@@ -806,9 +806,9 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
 
     @Override
     public void mouseClicked(MouseEvent e) {
-        if (control) {
+        if(control) {
             teleport();
-        } else if (alt) {
+        } else if(alt) {
             open();
         }
     }

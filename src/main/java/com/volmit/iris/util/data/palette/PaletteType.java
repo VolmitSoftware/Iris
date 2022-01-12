@@ -33,7 +33,7 @@ public interface PaletteType<T> {
 
     default void writeList(DataOutputStream dos, List<T> list) throws IOException {
         Varint.writeUnsignedVarInt(list.size(), dos);
-        for (T i : list) {
+        for(T i : list) {
             writePaletteNode(dos, i);
         }
     }
@@ -42,7 +42,7 @@ public interface PaletteType<T> {
         int v = Varint.readUnsignedVarInt(din);
         List<T> t = new ArrayList<>();
 
-        for (int i = 0; i < v; i++) {
+        for(int i = 0; i < v; i++) {
             t.add(readPaletteNode(din));
         }
 

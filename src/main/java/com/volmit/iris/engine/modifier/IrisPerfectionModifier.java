@@ -49,27 +49,27 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<BlockData> {
         List<Integer> surfaces = new ArrayList<>();
         List<Integer> ceilings = new ArrayList<>();
         BurstExecutor burst = burst().burst(multicore);
-        while (changed.get()) {
+        while(changed.get()) {
             passes++;
             changed.set(false);
-            for (int i = 0; i < 16; i++) {
+            for(int i = 0; i < 16; i++) {
                 int finalI = i;
                 burst.queue(() -> {
-                    for (int j = 0; j < 16; j++) {
+                    for(int j = 0; j < 16; j++) {
                         surfaces.clear();
                         ceilings.clear();
                         int top = getHeight(output, finalI, j);
                         boolean inside = true;
                         surfaces.add(top);
 
-                        for (int k = top; k >= 0; k--) {
+                        for(int k = top; k >= 0; k--) {
                             BlockData b = output.get(finalI, k, j);
                             boolean now = b != null && !(B.isAir(b) || B.isFluid(b));
 
-                            if (now != inside) {
+                            if(now != inside) {
                                 inside = now;
 
-                                if (inside) {
+                                if(inside) {
                                     surfaces.add(k);
                                 } else {
                                     ceilings.add(k + 1);
@@ -77,37 +77,37 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<BlockData> {
                             }
                         }
 
-                        for (int k : surfaces) {
+                        for(int k : surfaces) {
                             BlockData tip = output.get(finalI, k, j);
 
-                            if (tip == null) {
+                            if(tip == null) {
                                 continue;
                             }
 
                             boolean remove = false;
                             boolean remove2 = false;
 
-                            if (B.isDecorant(tip)) {
+                            if(B.isDecorant(tip)) {
                                 BlockData bel = output.get(finalI, k - 1, j);
 
-                                if (bel == null) {
+                                if(bel == null) {
                                     remove = true;
-                                } else if (!B.canPlaceOnto(tip.getMaterial(), bel.getMaterial())) {
+                                } else if(!B.canPlaceOnto(tip.getMaterial(), bel.getMaterial())) {
                                     remove = true;
-                                } else if (bel instanceof Bisected) {
+                                } else if(bel instanceof Bisected) {
                                     BlockData bb = output.get(finalI, k - 2, j);
-                                    if (bb == null || !B.canPlaceOnto(bel.getMaterial(), bb.getMaterial())) {
+                                    if(bb == null || !B.canPlaceOnto(bel.getMaterial(), bb.getMaterial())) {
                                         remove = true;
                                         remove2 = true;
                                     }
                                 }
 
-                                if (remove) {
+                                if(remove) {
                                     changed.set(true);
                                     changes.getAndIncrement();
                                     output.set(finalI, k, j, AIR);
 
-                                    if (remove2) {
+                                    if(remove2) {
                                         changes.getAndIncrement();
                                         output.set(finalI, k - 1, j, AIR);
                                     }
@@ -123,10 +123,10 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<BlockData> {
     }
 
     private int getHeight(Hunk<BlockData> output, int x, int z) {
-        for (int i = output.getHeight() - 1; i >= 0; i--) {
+        for(int i = output.getHeight() - 1; i >= 0; i--) {
             BlockData b = output.get(x, i, z);
 
-            if (b != null && !B.isAir(b) && !B.isFluid(b)) {
+            if(b != null && !B.isAir(b) && !B.isFluid(b)) {
                 return i;
             }
         }

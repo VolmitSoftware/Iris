@@ -45,19 +45,19 @@ public class IrisEngineEffects extends EngineAssignedComponent implements Engine
     public void updatePlayerMap() {
         List<Player> pr = getEngine().getWorld().getPlayers();
 
-        if (pr == null) {
+        if(pr == null) {
             return;
         }
 
-        for (Player i : pr) {
+        for(Player i : pr) {
             boolean pcc = players.containsKey(i.getUniqueId());
-            if (!pcc) {
+            if(!pcc) {
                 players.put(i.getUniqueId(), new EnginePlayer(getEngine(), i));
             }
         }
 
-        for (UUID i : players.k()) {
-            if (!pr.contains(players.get(i).getPlayer())) {
+        for(UUID i : players.k()) {
+            if(!pr.contains(players.get(i).getPlayer())) {
                 players.remove(i);
             }
         }
@@ -65,14 +65,14 @@ public class IrisEngineEffects extends EngineAssignedComponent implements Engine
 
     @Override
     public void tickRandomPlayer() {
-        if (limit.tryAcquire()) {
-            if (M.r(0.02)) {
+        if(limit.tryAcquire()) {
+            if(M.r(0.02)) {
                 updatePlayerMap();
                 limit.release();
                 return;
             }
 
-            if (players.isEmpty()) {
+            if(players.isEmpty()) {
                 limit.release();
                 return;
             }
@@ -81,7 +81,7 @@ public class IrisEngineEffects extends EngineAssignedComponent implements Engine
             int max = players.size();
             PrecisionStopwatch p = new PrecisionStopwatch();
 
-            while (max-- > 0 && M.ms() - p.getMilliseconds() < limitms) {
+            while(max-- > 0 && M.ms() - p.getMilliseconds() < limitms) {
                 players.v().getRandom().tick();
             }
 

@@ -97,7 +97,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
             outputPluginInfo();
             outputCommandInfo();
             outputPermissionInfo();
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
 
         }
@@ -106,7 +106,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     private void outputPermissionInfo() throws IOException {
         FileConfiguration fc = new YamlConfiguration();
 
-        for (MortarPermission i : permissionCache) {
+        for(MortarPermission i : permissionCache) {
             chain(i, fc);
         }
 
@@ -116,7 +116,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     private void chain(MortarPermission i, FileConfiguration fc) {
         KList<String> ff = new KList<>();
 
-        for (MortarPermission j : i.getChildren()) {
+        for(MortarPermission j : i.getChildren()) {
             ff.add(j.getFullNode());
         }
 
@@ -124,7 +124,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
         fc.set(i.getFullNode().replaceAll("\\Q.\\E", ",") + "." + "default", i.isDefault());
         fc.set(i.getFullNode().replaceAll("\\Q.\\E", ",") + "." + "children", ff);
 
-        for (MortarPermission j : i.getChildren()) {
+        for(MortarPermission j : i.getChildren()) {
             chain(j, fc);
         }
     }
@@ -132,7 +132,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     private void outputCommandInfo() throws IOException {
         FileConfiguration fc = new YamlConfiguration();
 
-        for (MortarCommand i : commandCache) {
+        for(MortarCommand i : commandCache) {
             chain(i, "/", fc);
         }
 
@@ -145,7 +145,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
         fc.set(n + "." + "required-permissions", i.getRequiredPermissions());
         fc.set(n + "." + "aliases", i.getAllNodes());
 
-        for (MortarCommand j : i.getChildren()) {
+        for(MortarCommand j : i.getChildren()) {
             chain(j, n, fc);
         }
     }
@@ -160,8 +160,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     private void registerPermissions() {
         permissionCache = new KList<>();
 
-        for (Field i : getClass().getDeclaredFields()) {
-            if (i.isAnnotationPresent(Permission.class)) {
+        for(Field i : getClass().getDeclaredFields()) {
+            if(i.isAnnotationPresent(Permission.class)) {
                 try {
                     i.setAccessible(true);
                     MortarPermission pc = (MortarPermission) i.getType().getConstructor().newInstance();
@@ -169,7 +169,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                     registerPermission(pc);
                     permissionCache.add(pc);
                     v("Registered Permissions " + pc.getFullNode() + " (" + i.getName() + ")");
-                } catch (IllegalArgumentException | IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                } catch(IllegalArgumentException | IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
                     Iris.reportError(e);
                     w("Failed to register permission (field " + i.getName() + ")");
                     e.printStackTrace();
@@ -177,10 +177,10 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
             }
         }
 
-        for (org.bukkit.permissions.Permission i : computePermissions()) {
+        for(org.bukkit.permissions.Permission i : computePermissions()) {
             try {
                 Bukkit.getPluginManager().addPermission(i);
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 Iris.reportError(e);
 
             }
@@ -189,13 +189,13 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
 
     private KList<org.bukkit.permissions.Permission> computePermissions() {
         KList<org.bukkit.permissions.Permission> g = new KList<>();
-        for (Field i : getClass().getDeclaredFields()) {
-            if (i.isAnnotationPresent(Permission.class)) {
+        for(Field i : getClass().getDeclaredFields()) {
+            if(i.isAnnotationPresent(Permission.class)) {
                 try {
                     MortarPermission x = (MortarPermission) i.get(Modifier.isStatic(i.getModifiers()) ? null : this);
                     g.add(toPermission(x));
                     g.addAll(computePermissions(x));
-                } catch (IllegalArgumentException | IllegalAccessException | SecurityException e) {
+                } catch(IllegalArgumentException | IllegalAccessException | SecurityException e) {
                     Iris.reportError(e);
                     e.printStackTrace();
                 }
@@ -208,12 +208,12 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     private KList<org.bukkit.permissions.Permission> computePermissions(MortarPermission p) {
         KList<org.bukkit.permissions.Permission> g = new KList<>();
 
-        if (p == null) {
+        if(p == null) {
             return g;
         }
 
-        for (MortarPermission i : p.getChildren()) {
-            if (i == null) {
+        for(MortarPermission i : p.getChildren()) {
+            if(i == null) {
                 continue;
             }
 
@@ -225,7 +225,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     }
 
     private org.bukkit.permissions.Permission toPermission(MortarPermission p) {
-        if (p == null) {
+        if(p == null) {
             return null;
         }
 
@@ -233,7 +233,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
         perm.setDescription(p.getDescription() == null ? "" : p.getDescription());
         perm.setDefault(p.isDefault() ? PermissionDefault.TRUE : PermissionDefault.OP);
 
-        for (MortarPermission i : p.getChildren()) {
+        for(MortarPermission i : p.getChildren()) {
             perm.getChildren().put(i.getFullNode(), true);
         }
 
@@ -253,19 +253,19 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     }
 
     private void tickController(IController i) {
-        if (bad) {
+        if(bad) {
             return;
         }
 
-        if (i.getTickInterval() < 0) {
+        if(i.getTickInterval() < 0) {
             return;
         }
 
         M.tick++;
-        if (M.interval(i.getTickInterval())) {
+        if(M.interval(i.getTickInterval())) {
             try {
                 i.tick();
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 w("Failed to tick controller " + i.getName());
                 e.printStackTrace();
                 Iris.reportError(e);
@@ -274,16 +274,16 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     }
 
     private void registerInstance() {
-        if (bad) {
+        if(bad) {
             return;
         }
-        for (Field i : getClass().getDeclaredFields()) {
-            if (i.isAnnotationPresent(Instance.class)) {
+        for(Field i : getClass().getDeclaredFields()) {
+            if(i.isAnnotationPresent(Instance.class)) {
                 try {
                     i.setAccessible(true);
                     i.set(Modifier.isStatic(i.getModifiers()) ? null : this, this);
                     v("Registered Instance " + i.getName());
-                } catch (IllegalArgumentException | IllegalAccessException | SecurityException e) {
+                } catch(IllegalArgumentException | IllegalAccessException | SecurityException e) {
                     w("Failed to register instance (field " + i.getName() + ")");
                     e.printStackTrace();
                     Iris.reportError(e);
@@ -293,16 +293,16 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     }
 
     private void unregisterInstance() {
-        if (bad) {
+        if(bad) {
             return;
         }
-        for (Field i : getClass().getDeclaredFields()) {
-            if (i.isAnnotationPresent(Instance.class)) {
+        for(Field i : getClass().getDeclaredFields()) {
+            if(i.isAnnotationPresent(Instance.class)) {
                 try {
                     i.setAccessible(true);
                     i.set(Modifier.isStatic(i.getModifiers()) ? null : this, null);
                     v("Unregistered Instance " + i.getName());
-                } catch (IllegalArgumentException | IllegalAccessException | SecurityException e) {
+                } catch(IllegalArgumentException | IllegalAccessException | SecurityException e) {
                     w("Failed to unregister instance (field " + i.getName() + ")");
                     e.printStackTrace();
                     Iris.reportError(e);
@@ -312,14 +312,14 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     }
 
     private void registerCommands() {
-        if (bad) {
+        if(bad) {
             return;
         }
         commands = new KMap<>();
         commandCache = new KList<>();
 
-        for (Field i : getClass().getDeclaredFields()) {
-            if (i.isAnnotationPresent(com.volmit.iris.util.plugin.Command.class)) {
+        for(Field i : getClass().getDeclaredFields()) {
+            if(i.isAnnotationPresent(com.volmit.iris.util.plugin.Command.class)) {
                 try {
                     i.setAccessible(true);
                     MortarCommand pc = (MortarCommand) i.getType().getConstructor().newInstance();
@@ -327,7 +327,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                     registerCommand(pc, c.value());
                     commandCache.add(pc);
                     v("Registered Commands /" + pc.getNode() + " (" + i.getName() + ")");
-                } catch (IllegalArgumentException | IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                } catch(IllegalArgumentException | IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
                     w("Failed to register command (field " + i.getName() + ")");
                     e.printStackTrace();
                     Iris.reportError(e);
@@ -342,21 +342,21 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                                       String alias, String[] args) {
         KList<String> chain = new KList<>();
 
-        for (String i : args) {
-            if (i.trim().isEmpty()) {
+        for(String i : args) {
+            if(i.trim().isEmpty()) {
                 continue;
             }
 
             chain.add(i.trim());
         }
 
-        for (KList<String> i : commands.k()) {
-            for (String j : i) {
-                if (j.equalsIgnoreCase(alias)) {
+        for(KList<String> i : commands.k()) {
+            for(String j : i) {
+                if(j.equalsIgnoreCase(alias)) {
                     VirtualCommand cmd = commands.get(i);
 
                     List<String> v = cmd.hitTab(sender, chain.copy(), alias);
-                    if (v != null) {
+                    if(v != null) {
                         return v;
                     }
                 }
@@ -368,19 +368,19 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
 
     @Override
     public boolean onCommand(CommandSender sender, org.bukkit.command.Command command, String label, String[] args) {
-        if (bad) {
+        if(bad) {
             return false;
         }
 
         KList<String> chain = new KList<>();
         chain.add(args);
 
-        for (KList<String> i : commands.k()) {
-            for (String j : i) {
-                if (j.equalsIgnoreCase(label)) {
+        for(KList<String> i : commands.k()) {
+            for(String j : i) {
+                if(j.equalsIgnoreCase(label)) {
                     VirtualCommand cmd = commands.get(i);
 
-                    if (cmd.hit(sender, chain.copy(), label)) {
+                    if(cmd.hit(sender, chain.copy(), label)) {
                         return true;
                     }
                 }
@@ -395,14 +395,14 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     }
 
     public void registerCommand(ICommand cmd, String subTag) {
-        if (bad) {
+        if(bad) {
             return;
         }
 
         commands.put(cmd.getAllNodes(), new VirtualCommand(cmd, subTag.trim().isEmpty() ? getTag() : getTag(subTag.trim())));
         PluginCommand cc = getCommand(cmd.getNode().toLowerCase());
 
-        if (cc != null) {
+        if(cc != null) {
             cc.setExecutor(this);
             cc.setUsage(getName() + ":" + getClass().toString() + ":" + cmd.getNode());
         } else {
@@ -413,7 +413,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     }
 
     public void unregisterCommand(ICommand cmd) {
-        if (bad) {
+        if(bad) {
             return;
         }
         try {
@@ -421,14 +421,14 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
 
             Map<String, Command> k = new V(m).get("knownCommands");
 
-            for (Iterator<Map.Entry<String, Command>> it = k.entrySet().iterator(); it.hasNext(); ) {
+            for(Iterator<Map.Entry<String, Command>> it = k.entrySet().iterator(); it.hasNext(); ) {
                 Map.Entry<String, Command> entry = it.next();
-                if (entry.getValue() instanceof Command) {
+                if(entry.getValue() instanceof Command) {
                     org.bukkit.command.Command c = entry.getValue();
                     String u = c.getUsage();
 
-                    if (u != null && u.equals(getName() + ":" + getClass().toString() + ":" + cmd.getNode())) {
-                        if (c.unregister(m)) {
+                    if(u != null && u.equals(getName() + ":" + getClass().toString() + ":" + cmd.getNode())) {
+                        if(c.unregister(m)) {
                             it.remove();
                             v("Unregistered Command /" + cmd.getNode());
                         } else {
@@ -437,14 +437,14 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                     }
                 }
             }
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             e.printStackTrace();
             Iris.reportError(e);
         }
     }
 
     public String getTag() {
-        if (bad) {
+        if(bad) {
             return "";
         }
         return getTag("");
@@ -461,20 +461,20 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     }
 
     public void unregisterListeners() {
-        if (bad) {
+        if(bad) {
             return;
         }
         HandlerList.unregisterAll((Listener) this);
     }
 
     public void unregisterCommands() {
-        if (bad) {
+        if(bad) {
             return;
         }
-        for (VirtualCommand i : commands.v()) {
+        for(VirtualCommand i : commands.v()) {
             try {
                 unregisterCommand(i.getCommand());
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 Iris.reportError(e);
 
             }
@@ -482,10 +482,10 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     }
 
     private void unregisterPermissions() {
-        if (bad) {
+        if(bad) {
             return;
         }
-        for (org.bukkit.permissions.Permission i : computePermissions()) {
+        for(org.bukkit.permissions.Permission i : computePermissions()) {
             Bukkit.getPluginManager().removePermission(i);
             v("Unregistered Permission " + i.getName());
         }
@@ -506,7 +506,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     }
 
     public File getDataFolder(String... strings) {
-        if (strings.length == 0) {
+        if(strings.length == 0) {
             return super.getDataFolder();
         }
 
@@ -517,7 +517,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     }
 
     public File getDataFolderNoCreate(String... strings) {
-        if (strings.length == 0) {
+        if(strings.length == 0) {
             return super.getDataFolder();
         }
 
@@ -529,7 +529,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     public File getDataFolderList(String pre, String[] strings) {
         KList<String> v = new KList<>(strings);
         v.add(0, pre);
-        if (v.size() == 0) {
+        if(v.size() == 0) {
             return super.getDataFolder();
         }
         File f = new File(getDataFolder(), v.toString(File.separator));

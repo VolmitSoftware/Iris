@@ -42,8 +42,8 @@ import java.io.File;
 public class CommandJigsaw implements DecreeExecutor {
     @Decree(description = "Edit a jigsaw piece")
     public void edit(
-            @Param(description = "The jigsaw piece to edit")
-                    IrisJigsawPiece piece
+        @Param(description = "The jigsaw piece to edit")
+            IrisJigsawPiece piece
     ) {
         File dest = piece.getLoadFile();
         new JigsawEditor(player(), piece, IrisData.loadAnyObject(piece.getObject()), dest);
@@ -51,8 +51,8 @@ public class CommandJigsaw implements DecreeExecutor {
 
     @Decree(description = "Place a jigsaw structure")
     public void place(
-            @Param(description = "The jigsaw structure to place")
-                    IrisJigsawStructure structure
+        @Param(description = "The jigsaw structure to place")
+            IrisJigsawStructure structure
     ) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         PlannedStructure ps = new PlannedStructure(structure, new IrisPosition(player().getLocation()), new RNG());
@@ -62,16 +62,16 @@ public class CommandJigsaw implements DecreeExecutor {
 
     @Decree(description = "Create a jigsaw piece")
     public void create(
-            @Param(description = "The name of the jigsaw piece")
-                    String piece,
-            @Param(description = "The project to add the jigsaw piece to")
-                    String project,
-            @Param(description = "The object to use for this piece", customHandler = ObjectHandler.class)
-                    String object
+        @Param(description = "The name of the jigsaw piece")
+            String piece,
+        @Param(description = "The project to add the jigsaw piece to")
+            String project,
+        @Param(description = "The object to use for this piece", customHandler = ObjectHandler.class)
+            String object
     ) {
         IrisObject o = IrisData.loadAnyObject(object);
 
-        if (object == null) {
+        if(object == null) {
             sender().sendMessage(C.RED + "Failed to find existing object");
             return;
         }
@@ -88,7 +88,7 @@ public class CommandJigsaw implements DecreeExecutor {
     public void exit() {
         JigsawEditor editor = JigsawEditor.editors.get(player());
 
-        if (editor == null) {
+        if(editor == null) {
             sender().sendMessage(C.GOLD + "You don't have any pieces open to exit!");
             return;
         }
@@ -101,7 +101,7 @@ public class CommandJigsaw implements DecreeExecutor {
     public void save() {
         JigsawEditor editor = JigsawEditor.editors.get(player());
 
-        if (editor == null) {
+        if(editor == null) {
             sender().sendMessage(C.GOLD + "You don't have any pieces open to save!");
             return;
         }

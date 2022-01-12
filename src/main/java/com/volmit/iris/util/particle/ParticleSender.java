@@ -51,8 +51,8 @@ interface ParticleSender {
         public void spawnParticle(Object receiver, ParticleType particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, Object data) {
             Particle bukkitParticle = Particle.valueOf(particle.toString());
 
-            if (data instanceof Color) {
-                if (particle.getDataType() == Color.class) {
+            if(data instanceof Color) {
+                if(particle.getDataType() == Color.class) {
                     Color color = (Color) data;
                     count = 0;
                     offsetX = color(color.getRed());
@@ -63,9 +63,9 @@ interface ParticleSender {
                 data = null;
             }
 
-            if (receiver instanceof World) {
+            if(receiver instanceof World) {
                 ((World) receiver).spawnParticle(bukkitParticle, x, y, z, count, offsetX, offsetY, offsetZ, extra, data);
-            } else if (receiver instanceof Player) {
+            } else if(receiver instanceof Player) {
                 ((Player) receiver).spawnParticle(bukkitParticle, x, y, z, count, offsetX, offsetY, offsetZ, extra, data);
             }
         }
@@ -74,7 +74,7 @@ interface ParticleSender {
         public Particle getParticle(ParticleType particle) {
             try {
                 return Particle.valueOf(particle.toString());
-            } catch (IllegalArgumentException e) {
+            } catch(IllegalArgumentException e) {
                 Iris.reportError(e);
                 return null;
             }
@@ -95,13 +95,13 @@ interface ParticleSender {
         public void spawnParticle(Object receiver, ParticleType particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, Object data) {
             Particle bukkitParticle = Particle.valueOf(particle.toString());
 
-            if (bukkitParticle.getDataType() == Particle.DustOptions.class) {
-                if (data instanceof Color) {
+            if(bukkitParticle.getDataType() == Particle.DustOptions.class) {
+                if(data instanceof Color) {
                     data = new Particle.DustOptions((Color) data, 1);
-                } else if (data == null) {
+                } else if(data == null) {
                     data = new Particle.DustOptions(Color.RED, 1);
                 }
-            } else if (bukkitParticle.getDataType() == BlockData.class && data instanceof MaterialData) {
+            } else if(bukkitParticle.getDataType() == BlockData.class && data instanceof MaterialData) {
                 data = Bukkit.createBlockData(((MaterialData) data).getItemType());
             }
 
@@ -110,11 +110,11 @@ interface ParticleSender {
 
         @Override
         public boolean isValidDataBukkit(Particle particle, Object data) {
-            if (particle.getDataType() == Particle.DustOptions.class && data instanceof Color) {
+            if(particle.getDataType() == Particle.DustOptions.class && data instanceof Color) {
                 return true;
             }
 
-            if (particle.getDataType() == BlockData.class && data instanceof MaterialData) {
+            if(particle.getDataType() == BlockData.class && data instanceof MaterialData) {
                 return true;
             }
 

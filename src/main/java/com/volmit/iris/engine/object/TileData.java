@@ -53,21 +53,21 @@ public interface TileData<T extends TileState> extends Cloneable {
     }
 
     static void setTileState(Block block, TileData<? extends TileState> data) {
-        if (data.isApplicable(block.getBlockData())) {
+        if(data.isApplicable(block.getBlockData())) {
             data.toBukkitTry(block.getState());
         }
     }
 
     static TileData<? extends TileState> getTileState(Block block) {
-        for (TileData<? extends TileState> i : registry) {
+        for(TileData<? extends TileState> i : registry) {
             BlockData data = block.getBlockData();
 
-            if (i.isApplicable(data)) {
+            if(i.isApplicable(data)) {
                 try {
                     @SuppressWarnings("unchecked") TileData<? extends TileState> s = i.getClass().getConstructor().newInstance();
                     s.fromBukkitTry(block.getState());
                     return s;
-                } catch (Throwable e) {
+                } catch(Throwable e) {
                     Iris.reportError(e);
                     e.printStackTrace();
                 }
@@ -90,7 +90,7 @@ public interface TileData<T extends TileState> extends Cloneable {
             //noinspection unchecked
             toBukkit((T) t);
             return true;
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
 
         }
@@ -103,7 +103,7 @@ public interface TileData<T extends TileState> extends Cloneable {
             //noinspection unchecked
             fromBukkit((T) t);
             return true;
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
 
         }

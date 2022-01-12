@@ -45,7 +45,7 @@ public class PrecisionStopwatch {
     }
 
     public void end() {
-        if (!profiling) {
+        if(!profiling) {
             return;
         }
 

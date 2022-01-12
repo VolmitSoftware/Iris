@@ -76,12 +76,12 @@ public class IrisCave extends IrisRegistrant {
         });
         int highestWater = Math.max(waterHint, -1);
 
-        if (highestWater == -1) {
-            for (IrisPosition i : points) {
+        if(highestWater == -1) {
+            for(IrisPosition i : points) {
                 double yy = i.getY() + girth;
                 int th = engine.getHeight(x, z, true);
 
-                if (yy > th && th < engine.getDimension().getFluidHeight()) {
+                if(yy > th && th < engine.getDimension().getFluidHeight()) {
                     highestWater = Math.max(highestWater, (int) yy);
                     break;
                 }
@@ -91,7 +91,7 @@ public class IrisCave extends IrisRegistrant {
 
         int h = Math.min(Math.max(highestWater, waterHint), engine.getDimension().getFluidHeight());
 
-        for (IrisPosition i : points) {
+        for(IrisPosition i : points) {
             fork.doCarving(writer, rng, engine, i.getX(), i.getY(), i.getZ(), h);
         }
 
@@ -99,8 +99,8 @@ public class IrisCave extends IrisRegistrant {
         MatterCavern w = new MatterCavern(true, customBiome, (byte) 1);
 
         writer.setLineConsumer(points,
-                girth, true,
-                (xf, yf, zf) -> yf <= h ? w : c);
+            girth, true,
+            (xf, yf, zf) -> yf <= h ? w : c);
     }
 
     @Override

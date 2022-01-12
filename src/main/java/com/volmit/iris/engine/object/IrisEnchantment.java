@@ -61,25 +61,25 @@ public class IrisEnchantment {
 
     public void apply(RNG rng, ItemMeta meta) {
         try {
-            if (rng.nextDouble() < chance) {
-                if (meta instanceof EnchantmentStorageMeta) {
+            if(rng.nextDouble() < chance) {
+                if(meta instanceof EnchantmentStorageMeta) {
                     ((EnchantmentStorageMeta) meta).addStoredEnchant(getEnchant(), getLevel(rng), true);
                     return;
                 }
                 meta.addEnchant(getEnchant(), getLevel(rng), true);
             }
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
 
         }
     }
 
     public Enchantment getEnchant() {
-        for (Field i : Enchantment.class.getDeclaredFields()) {
-            if (i.getType().equals(Enchantment.class) && i.getName().equals(getEnchantment())) {
+        for(Field i : Enchantment.class.getDeclaredFields()) {
+            if(i.getType().equals(Enchantment.class) && i.getName().equals(getEnchantment())) {
                 try {
                     return (Enchantment) i.get(null);
-                } catch (IllegalArgumentException | IllegalAccessException e) {
+                } catch(IllegalArgumentException | IllegalAccessException e) {
                     e.printStackTrace();
                     Iris.reportError(e);
                 }

@@ -51,22 +51,22 @@ public class ThreadMonitor extends Thread {
     }
 
     public void run() {
-        while (running) {
+        while(running) {
             try {
                 //noinspection BusyWait
                 Thread.sleep(0);
                 State s = monitor.getState();
-                if (lastState != s) {
+                if(lastState != s) {
                     cycles++;
                     pushState(s);
                 }
 
                 lastState = s;
 
-                if (cl.flip()) {
+                if(cl.flip()) {
                     Iris.info("Cycles: " + Form.f(cycles) + " (" + Form.duration(sq.getAverage(), 2) + ")");
                 }
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 Iris.reportError(e);
                 running = false;
                 break;
@@ -75,8 +75,8 @@ public class ThreadMonitor extends Thread {
     }
 
     public void pushState(State s) {
-        if (s != State.RUNNABLE) {
-            if (st != null) {
+        if(s != State.RUNNABLE) {
+            if(st != null) {
                 sq.put(st.getMilliseconds());
             }
         } else {

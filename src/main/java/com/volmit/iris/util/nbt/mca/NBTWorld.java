@@ -49,11 +49,11 @@ public class NBTWorld {
         NamespacedKey key = blockData.getMaterial().getKey();
         s.putString("Name", key.getNamespace() + ":" + key.getKey());
 
-        if (data.contains("[")) {
+        if(data.contains("[")) {
             String raw = data.split("\\Q[\\E")[1].replaceAll("\\Q]\\E", "");
             CompoundTag props = new CompoundTag();
-            if (raw.contains(",")) {
-                for (String i : raw.split("\\Q,\\E")) {
+            if(raw.contains(",")) {
+                for(String i : raw.split("\\Q,\\E")) {
                     String[] m = i.split("\\Q=\\E");
                     String k = m[0];
                     String v = m[1];
@@ -90,17 +90,17 @@ public class NBTWorld {
     }
 
     public static BlockData getBlockData(CompoundTag tag) {
-        if (tag == null) {
+        if(tag == null) {
             return B.getAir();
         }
 
         StringBuilder p = new StringBuilder(tag.getString("Name"));
 
-        if (tag.containsKey("Properties")) {
+        if(tag.containsKey("Properties")) {
             CompoundTag props = tag.getCompoundTag("Properties");
             p.append('[');
 
-            for (String i : props.keySet()) {
+            for(String i : props.keySet()) {
                 p.append(i).append('=').append(props.getString(i)).append(',');
             }
 
@@ -109,7 +109,7 @@ public class NBTWorld {
 
         BlockData b = B.getOrNull(p.toString());
 
-        if (b == null) {
+        if(b == null) {
             return B.getAir();
         }
 
@@ -123,8 +123,8 @@ public class NBTWorld {
     private static Map<Biome, Integer> computeBiomeIDs() {
         Map<Biome, Integer> biomeIds = new KMap<>();
 
-        for (Biome biome : Biome.values()) {
-            if (!biome.name().equals("CUSTOM")) {
+        for(Biome biome : Biome.values()) {
+            if(!biome.name().equals("CUSTOM")) {
                 biomeIds.put(biome, INMS.get().getBiomeId(biome));
             }
         }
@@ -134,22 +134,22 @@ public class NBTWorld {
 
     public void close() {
 
-        for (Long i : loadedRegions.k()) {
+        for(Long i : loadedRegions.k()) {
             queueSaveUnload(Cache.keyX(i), Cache.keyZ(i));
         }
 
         saveQueue.shutdown();
         try {
-            while (!saveQueue.awaitTermination(3, TimeUnit.SECONDS)) {
+            while(!saveQueue.awaitTermination(3, TimeUnit.SECONDS)) {
                 Iris.info("Still Waiting to save MCA Files...");
             }
-        } catch (InterruptedException e) {
+        } catch(InterruptedException e) {
             e.printStackTrace();
         }
     }
 
     public void flushNow() {
-        for (Long i : loadedRegions.k()) {
+        for(Long i : loadedRegions.k()) {
             doSaveUnload(Cache.keyX(i), Cache.keyZ(i));
         }
     }
@@ -160,7 +160,7 @@ public class NBTWorld {
 
     public void doSaveUnload(int x, int z) {
         MCAFile f = getMCAOrNull(x, z);
-        if (f != null) {
+        if(f != null) {
             unloadRegion(x, z);
         }
 
@@ -170,15 +170,15 @@ public class NBTWorld {
     public void save() {
         boolean saving = true;
 
-        for (Long i : loadedRegions.k()) {
+        for(Long i : loadedRegions.k()) {
             int x = Cache.keyX(i);
             int z = Cache.keyZ(i);
 
-            if (!lastUse.containsKey(i)) {
+            if(!lastUse.containsKey(i)) {
                 lastUse.put(i, M.ms());
             }
 
-            if (shouldUnload(x, z)) {
+            if(shouldUnload(x, z)) {
                 queueSaveUnload(x, z);
             }
         }
@@ -203,7 +203,7 @@ public class NBTWorld {
         try {
             MCAUtil.write(mca, getRegionFile(x, z), true);
             Iris.debug("Saved Region " + C.GOLD + x + " " + z);
-        } catch (IOException e) {
+        } catch(IOException e) {
             Iris.error("Failed to save region " + getRegionFile(x, z).getPath());
             e.printStackTrace();
         }
@@ -213,7 +213,7 @@ public class NBTWorld {
         try {
             MCAUtil.write(mca, getRegionFile(x, z), true);
             Iris.debug("Saved Region " + C.GOLD + x + " " + z);
-        } catch (IOException e) {
+        } catch(IOException e) {
             Iris.error("Failed to save region " + getRegionFile(x, z).getPath());
             e.printStackTrace();
         }
@@ -231,12 +231,12 @@ public class NBTWorld {
         try {
             CompoundTag tag = getChunkSection(x >> 4, y >> 4, z >> 4).getBlockStateAt(x & 15, y & 15, z & 15);
 
-            if (tag == null) {
+            if(tag == null) {
                 return AIR;
             }
 
             return getBlockData(tag);
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
 
         }
@@ -259,7 +259,7 @@ public class NBTWorld {
         Chunk c = getChunk(x, z);
         Section s = c.getSection(y);
 
-        if (s == null) {
+        if(s == null) {
             s = Section.newSection();
             c.setSection(y, s);
         }
@@ -274,7 +274,7 @@ public class NBTWorld {
     public Chunk getChunk(MCAFile mca, int x, int z) {
         Chunk c = mca.getChunk(x & 31, z & 31);
 
-        if (c == null) {
+        if(c == null) {
             c = Chunk.newChunk();
             mca.setChunk(x & 31, z & 31, c);
         }
@@ -304,7 +304,7 @@ public class NBTWorld {
 
             MCAFile mcaf = loadedRegions.get(key);
 
-            if (mcaf == null) {
+            if(mcaf == null) {
                 mcaf = new MCAFile(x, z);
                 loadedRegions.put(key, mcaf);
             }
@@ -317,7 +317,7 @@ public class NBTWorld {
         long key = Cache.key(x, z);
 
         return hyperLock.withResult(x, z, () -> {
-            if (loadedRegions.containsKey(key)) {
+            if(loadedRegions.containsKey(key)) {
                 lastUse.put(key, M.ms());
                 return loadedRegions.get(key);
             }

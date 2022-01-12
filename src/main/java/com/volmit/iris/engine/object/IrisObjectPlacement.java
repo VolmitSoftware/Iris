@@ -158,7 +158,7 @@ public class IrisObjectPlacement {
 
     public CNG getSurfaceWarp(RNG rng, IrisData data) {
         return surfaceWarp.aquire(() ->
-                getWarp().create(rng, data));
+            getWarp().create(rng, data));
     }
 
     public double warp(RNG rng, double x, double y, double z, IrisData data) {
@@ -166,7 +166,7 @@ public class IrisObjectPlacement {
     }
 
     public IrisObject getObject(DataProvider g, RNG random) {
-        if (place.isEmpty()) {
+        if(place.isEmpty()) {
             return null;
         }
 
@@ -174,8 +174,8 @@ public class IrisObjectPlacement {
     }
 
     public boolean matches(IrisTreeSize size, TreeType type) {
-        for (IrisTree i : getTrees()) {
-            if (i.matches(size, type)) {
+        for(IrisTree i : getTrees()) {
+            if(i.matches(size, type)) {
                 return true;
             }
         }
@@ -184,14 +184,14 @@ public class IrisObjectPlacement {
     }
 
     public int getDensity() {
-        if (densityStyle == null) {
+        if(densityStyle == null) {
             return density;
         }
         return densityStyle.getMid();
     }
 
     public int getDensity(RNG rng, double x, double z, IrisData data) {
-        if (densityStyle == null) {
+        if(densityStyle == null) {
             return density;
         }
 
@@ -202,20 +202,20 @@ public class IrisObjectPlacement {
         return cache.aquire(() -> {
             TableCache tc = new TableCache();
 
-            for (IrisObjectLoot loot : getLoot()) {
+            for(IrisObjectLoot loot : getLoot()) {
                 IrisLootTable table = manager.getLootLoader().load(loot.getName());
-                if (table == null) {
+                if(table == null) {
                     Iris.warn("Couldn't find loot table " + loot.getName());
                     continue;
                 }
 
-                if (loot.getFilter().isEmpty()) //Table applies to all containers
+                if(loot.getFilter().isEmpty()) //Table applies to all containers
                 {
                     tc.global.put(table, loot.getWeight());
-                } else if (!loot.isExact()) //Table is meant to be by type
+                } else if(!loot.isExact()) //Table is meant to be by type
                 {
-                    for (BlockData filterData : loot.getFilter(manager)) {
-                        if (!tc.basic.containsKey(filterData.getMaterial())) {
+                    for(BlockData filterData : loot.getFilter(manager)) {
+                        if(!tc.basic.containsKey(filterData.getMaterial())) {
                             tc.basic.put(filterData.getMaterial(), new WeightedRandom<>());
                         }
 
@@ -223,12 +223,12 @@ public class IrisObjectPlacement {
                     }
                 } else //Filter is exact
                 {
-                    for (BlockData filterData : loot.getFilter(manager)) {
-                        if (!tc.exact.containsKey(filterData.getMaterial())) {
+                    for(BlockData filterData : loot.getFilter(manager)) {
+                        if(!tc.exact.containsKey(filterData.getMaterial())) {
                             tc.exact.put(filterData.getMaterial(), new KMap<>());
                         }
 
-                        if (!tc.exact.get(filterData.getMaterial()).containsKey(filterData)) {
+                        if(!tc.exact.get(filterData.getMaterial()).containsKey(filterData)) {
                             tc.exact.get(filterData.getMaterial()).put(filterData, new WeightedRandom<>());
                         }
 
@@ -243,20 +243,22 @@ public class IrisObjectPlacement {
     /**
      * Gets the loot table that should be used for the block
      *
-     * @param data        The block data of the block
-     * @param dataManager Iris Data Manager
+     * @param data
+     *     The block data of the block
+     * @param dataManager
+     *     Iris Data Manager
      * @return The loot table it should use.
      */
     public IrisLootTable getTable(BlockData data, IrisData dataManager) {
         TableCache cache = getCache(dataManager);
 
-        if (B.isStorageChest(data)) {
+        if(B.isStorageChest(data)) {
             IrisLootTable picked = null;
-            if (cache.exact.containsKey(data.getMaterial()) && cache.exact.containsKey(data)) {
+            if(cache.exact.containsKey(data.getMaterial()) && cache.exact.containsKey(data)) {
                 picked = cache.exact.get(data.getMaterial()).get(data).pullRandom();
-            } else if (cache.basic.containsKey(data.getMaterial())) {
+            } else if(cache.basic.containsKey(data.getMaterial())) {
                 picked = cache.basic.get(data.getMaterial()).pullRandom();
-            } else if (cache.global.getSize() > 0) {
+            } else if(cache.global.getSize() > 0) {
                 picked = cache.global.pullRandom();
             }
 

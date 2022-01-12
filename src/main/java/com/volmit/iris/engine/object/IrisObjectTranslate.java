@@ -62,7 +62,7 @@ public class IrisObjectTranslate {
     }
 
     public BlockVector translate(BlockVector i) {
-        if (canTranslate()) {
+        if(canTranslate()) {
             return (BlockVector) i.clone().add(new BlockVector(x, y, z));
         }
 
@@ -70,7 +70,7 @@ public class IrisObjectTranslate {
     }
 
     public BlockVector translate(BlockVector clone, IrisObjectRotation rotation, int sx, int sy, int sz) {
-        if (canTranslate()) {
+        if(canTranslate()) {
             return (BlockVector) clone.clone().add(rotation.rotate(new BlockVector(x, y, z), sx, sy, sz));
         }
 

@@ -112,29 +112,29 @@ public class IrisLoot {
             ItemStack is = new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
             ItemMeta m = is.getItemMeta();
 
-            if (getType().getMaxDurability() > 0 && m instanceof Damageable d) {
+            if(getType().getMaxDurability() > 0 && m instanceof Damageable d) {
                 int max = getType().getMaxDurability();
                 d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
             }
 
-            for (IrisEnchantment i : getEnchantments()) {
+            for(IrisEnchantment i : getEnchantments()) {
                 i.apply(rng, m);
             }
 
-            for (IrisAttributeModifier i : getAttributes()) {
+            for(IrisAttributeModifier i : getAttributes()) {
                 i.apply(rng, m);
             }
 
             try {
                 m.setCustomModelData(getCustomModel());
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 Iris.reportError(e);
             }
             m.setLocalizedName(C.translateAlternateColorCodes('&', displayName));
             m.setDisplayName(C.translateAlternateColorCodes('&', displayName));
             m.setUnbreakable(isUnbreakable());
 
-            for (ItemFlag i : getItemFlags()) {
+            for(ItemFlag i : getItemFlags()) {
                 m.addItemFlags(i);
             }
 
@@ -144,8 +144,8 @@ public class IrisLoot {
             {
                 String mf = C.translateAlternateColorCodes('&', i);
 
-                if (mf.length() > 24) {
-                    for (String g : Form.wrapWords(mf, 24).split("\\Q\n\\E")) {
+                if(mf.length() > 24) {
+                    for(String g : Form.wrapWords(mf, 24).split("\\Q\n\\E")) {
                         lore.add(g.trim());
                     }
                 } else {
@@ -153,8 +153,8 @@ public class IrisLoot {
                 }
             });
 
-            if (debug) {
-                if (lore.isNotEmpty()) {
+            if(debug) {
+                if(lore.isNotEmpty()) {
                     lore.add(C.GRAY + "--------------------");
                 }
 
@@ -163,18 +163,18 @@ public class IrisLoot {
 
             m.setLore(lore);
 
-            if (getLeatherColor() != null && m instanceof LeatherArmorMeta) {
+            if(getLeatherColor() != null && m instanceof LeatherArmorMeta) {
                 Color c = Color.decode(getLeatherColor());
                 ((LeatherArmorMeta) m).setColor(org.bukkit.Color.fromRGB(c.getRed(), c.getGreen(), c.getBlue()));
             }
 
-            if (getDyeColor() != null && m instanceof Colorable) {
+            if(getDyeColor() != null && m instanceof Colorable) {
                 ((Colorable) m).setColor(getDyeColor());
             }
 
             is.setItemMeta(m);
             return is;
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
 
         }
@@ -183,12 +183,12 @@ public class IrisLoot {
     }
 
     public ItemStack get(boolean debug, boolean giveSomething, IrisLootTable table, RNG rng, int x, int y, int z) {
-        if (debug) {
+        if(debug) {
             chance.reset();
         }
 
-        if (giveSomething || chance.aquire(() -> NoiseStyle.STATIC.create(rng)).fit(1, rarity * table.getRarity(), x, y, z) == 1) {
-            if (getType() == null) {
+        if(giveSomething || chance.aquire(() -> NoiseStyle.STATIC.create(rng)).fit(1, rarity * table.getRarity(), x, y, z) == 1) {
+            if(getType() == null) {
                 Iris.warn("Cant find item type " + type);
                 return null;
             }
@@ -197,22 +197,22 @@ public class IrisLoot {
                 ItemStack is = new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
                 ItemMeta m = is.getItemMeta();
 
-                if (getType().getMaxDurability() > 0 && m instanceof Damageable d) {
+                if(getType().getMaxDurability() > 0 && m instanceof Damageable d) {
                     int max = getType().getMaxDurability();
                     d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
                 }
 
-                for (IrisEnchantment i : getEnchantments()) {
+                for(IrisEnchantment i : getEnchantments()) {
                     i.apply(rng, m);
                 }
 
-                for (IrisAttributeModifier i : getAttributes()) {
+                for(IrisAttributeModifier i : getAttributes()) {
                     i.apply(rng, m);
                 }
 
                 try {
                     m.setCustomModelData(getCustomModel());
-                } catch (Throwable e) {
+                } catch(Throwable e) {
                     Iris.reportError(e);
                 }
 
@@ -220,7 +220,7 @@ public class IrisLoot {
                 m.setDisplayName(C.translateAlternateColorCodes('&', displayName));
                 m.setUnbreakable(isUnbreakable());
 
-                for (ItemFlag i : getItemFlags()) {
+                for(ItemFlag i : getItemFlags()) {
                     m.addItemFlags(i);
                 }
 
@@ -230,8 +230,8 @@ public class IrisLoot {
                 {
                     String mf = C.translateAlternateColorCodes('&', i);
 
-                    if (mf.length() > 24) {
-                        for (String g : Form.wrapWords(mf, 24).split("\\Q\n\\E")) {
+                    if(mf.length() > 24) {
+                        for(String g : Form.wrapWords(mf, 24).split("\\Q\n\\E")) {
                             lore.add(g.trim());
                         }
                     } else {
@@ -239,8 +239,8 @@ public class IrisLoot {
                     }
                 });
 
-                if (debug) {
-                    if (lore.isNotEmpty()) {
+                if(debug) {
+                    if(lore.isNotEmpty()) {
                         lore.add(C.GRAY + "--------------------");
                     }
 
@@ -251,7 +251,7 @@ public class IrisLoot {
                 m.setLore(lore);
                 is.setItemMeta(m);
                 return is;
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 Iris.reportError(e);
 
             }

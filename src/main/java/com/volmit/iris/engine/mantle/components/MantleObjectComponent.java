@@ -54,12 +54,12 @@ public class MantleObjectComponent extends IrisMantleComponent {
     private void placeObjects(MantleWriter writer, RNG rng, int x, int z, IrisBiome biome, IrisRegion region) {
         long s = Cache.key(x, z) + seed();
         RNG rnp = new RNG(s);
-        for (IrisObjectPlacement i : biome.getSurfaceObjects()) {
-            if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
+        for(IrisObjectPlacement i : biome.getSurfaceObjects()) {
+            if(rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
                 try {
                     placeObject(writer, rnp, x << 4, z << 4, i);
                     rnp.setSeed(s);
-                } catch (Throwable e) {
+                } catch(Throwable e) {
                     Iris.reportError(e);
                     Iris.error("Failed to place objects in the following biome: " + biome.getName());
                     Iris.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
@@ -69,12 +69,12 @@ public class MantleObjectComponent extends IrisMantleComponent {
             }
         }
 
-        for (IrisObjectPlacement i : region.getSurfaceObjects()) {
-            if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
+        for(IrisObjectPlacement i : region.getSurfaceObjects()) {
+            if(rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
                 try {
                     placeObject(writer, rnp, x << 4, z << 4, i);
                     rnp.setSeed(s);
-                } catch (Throwable e) {
+                } catch(Throwable e) {
                     Iris.reportError(e);
                     Iris.error("Failed to place objects in the following region: " + region.getName());
                     Iris.error("Object(s) " + i.getPlace().toString(", ") + " (" + e.getClass().getSimpleName() + ").");
@@ -87,26 +87,26 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     @BlockCoordinates
     private void placeObject(MantleWriter writer, RNG rng, int x, int z, IrisObjectPlacement objectPlacement) {
-        for (int i = 0; i < objectPlacement.getDensity(rng, x, z, getData()); i++) {
+        for(int i = 0; i < objectPlacement.getDensity(rng, x, z, getData()); i++) {
             IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(getComplex(), rng));
-            if (v == null) {
+            if(v == null) {
                 return;
             }
             int xx = rng.i(x, x + 15);
             int zz = rng.i(z, z + 15);
             int id = rng.i(0, Integer.MAX_VALUE);
             v.place(xx, -1, zz, writer, objectPlacement, rng,
-                    getMantle().shouldReduce(getEngineMantle().getEngine()) ? null : (b) -> writer.setData(b.getX(), b.getY(), b.getZ(),
-                            v.getLoadKey() + "@" + id), null, getData());
+                getMantle().shouldReduce(getEngineMantle().getEngine()) ? null : (b) -> writer.setData(b.getX(), b.getY(), b.getZ(),
+                    v.getLoadKey() + "@" + id), null, getData());
         }
     }
 
     @BlockCoordinates
     private Set<String> guessPlacedKeys(RNG rng, int x, int z, IrisObjectPlacement objectPlacement) {
         Set<String> f = new KSet<>();
-        for (int i = 0; i < objectPlacement.getDensity(rng, x, z, getData()); i++) {
+        for(int i = 0; i < objectPlacement.getDensity(rng, x, z, getData()); i++) {
             IrisObject v = objectPlacement.getScale().get(rng, objectPlacement.getObject(getComplex(), rng));
-            if (v == null) {
+            if(v == null) {
                 continue;
             }
 
@@ -123,15 +123,15 @@ public class MantleObjectComponent extends IrisMantleComponent {
         IrisBiome biome = getEngineMantle().getEngine().getSurfaceBiome((x << 4) + 8, (z << 4) + 8);
         IrisRegion region = getEngineMantle().getEngine().getRegion((x << 4) + 8, (z << 4) + 8);
         Set<String> v = new KSet<>();
-        for (IrisObjectPlacement i : biome.getSurfaceObjects()) {
-            if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
+        for(IrisObjectPlacement i : biome.getSurfaceObjects()) {
+            if(rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
                 v.addAll(guessPlacedKeys(rngd, x, z, i));
                 rngd.setSeed(s);
             }
         }
 
-        for (IrisObjectPlacement i : region.getSurfaceObjects()) {
-            if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
+        for(IrisObjectPlacement i : region.getSurfaceObjects()) {
+            if(rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
                 v.addAll(guessPlacedKeys(rngd, x, z, i));
                 rngd.setSeed(s);
             }

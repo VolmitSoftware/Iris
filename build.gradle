@@ -18,63 +18,29 @@
 plugins {
     id 'java'
     id 'io.freefair.lombok' version '5.2.1'
-    id "com.github.johnrengelman.shadow" version "7.0.0"
+    id "com.github.johnrengelman.shadow" version "7.1.2"
+    id "de.undercouch.download" version "4.1.2"
 }
 
 group 'com.volmit.iris'
-version '1.9.6-1.17.X'
-def apiVersion = '1.17'
+version '1.9.6-1.18.X'
+def nmsVersion = "1.18.1"
+def apiVersion = '1.18'
+def spigotJarVersion = '1.18.1-R0.1-SNAPSHOT'
 def name = getRootProject().getName() // Defined in settings.gradle
 def main = 'com.volmit.iris.Iris'
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================
-registerCustomOutputTask('Cyberpwn', 'C://Users/cyberpwn/Documents/development/server/plugins', name)
-registerCustomOutputTask('Psycho', 'D://Dan/MinecraftDevelopment/server/plugins', name)
-registerCustomOutputTask('ArcaneArts', 'C://Users/arcane/Documents/development/server/plugins', name)
-registerCustomOutputTask('Coco', 'C://Users/sjoer/Desktop/MCSM/plugins', name)
-registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins', name)
+registerCustomOutputTask('Cyberpwn', 'C://Users/cyberpwn/Documents/development/server/plugins')
+registerCustomOutputTask('Psycho', 'D://Dan/MinecraftDevelopment/server/plugins')
+registerCustomOutputTask('ArcaneArts', 'C://Users/arcane/Documents/development/server/plugins')
+registerCustomOutputTask('Coco', 'C://Users/sjoer/Desktop/MCSM/plugins')
+registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins')
 // ========================== UNIX ==============================
-registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/Documents/development/server/plugins', name)
-registerCustomOutputTaskUnix('PsychoLT', '/Users/brianfopiano/Desktop/REMOTES/RemoteMinecraft/plugins', name)
+registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/Documents/development/server/plugins')
+registerCustomOutputTaskUnix('PsychoLT', '/Users/brianfopiano/Desktop/REMOTES/RemoteMinecraft/plugins')
 // ==============================================================
-
-
-def registerCustomOutputTask(name, path, plugin) {
-    if (!System.properties['os.name'].toLowerCase().contains('windows'))
-    {
-        return;
-    }
-
-    tasks.register('build' + name, Copy) {
-        group('development')
-        outputs.upToDateWhen { false }
-        dependsOn ':shadowJar'
-        from(file('build/libs/' + plugin + '-' + version + '-all.jar'))
-        into(file(path))
-        rename { String fileName ->
-            fileName.replace(plugin + '-' + version + '-all.jar', plugin + ".jar")
-        }
-    }
-}
-
-def registerCustomOutputTaskUnix(name, path, plugin) {
-    if(System.properties['os.name'].toLowerCase().contains('windows'))
-    {
-        return;
-    }
-
-    tasks.register('build' + name, Copy) {
-        group('development')
-        outputs.upToDateWhen { false }
-        dependsOn ':shadowJar'
-        from(file('build/libs/' + plugin + '-' + version + '-all.jar'))
-        into(file(path))
-        rename { String fileName ->
-            fileName.replace(plugin + '-' + version + '-all.jar', plugin + ".jar")
-        }
-    }
-}
 
 /**
  * Gradle is weird sometimes, we need to delete the plugin yml from the build folder to actually filter properly.
@@ -99,8 +65,15 @@ processResources {
  * Unified repo
  */
 repositories {
+    mavenLocal{
+        content{
+            includeGroup("org.bukkit")
+            includeGroup("org.spigotmc")
+        }
+    }
     maven { url "https://dl.cloudsmith.io/public/arcane/archive/maven/" }
     mavenCentral()
+    mavenLocal()
 }
 
 /**
@@ -114,7 +87,7 @@ compileJava {
  * Configure Iris for shading
  */
 shadowJar {
-    minimize()
+    //minimize()
     append("plugin.yml")
     relocate 'com.dfsek.paralithic', 'com.volmit.iris.util.paralithic'
     relocate 'io.papermc.lib', 'com.volmit.iris.util.paper'
@@ -147,10 +120,10 @@ dependencies {
     // Provided or Classpath
     compileOnly 'org.projectlombok:lombok:1.18.22'
     annotationProcessor 'org.projectlombok:lombok:1.18.22'
-    implementation 'org.spigotmc:spigot-api:1.17.1-R0.1-SNAPSHOT'
-    implementation 'org.bukkit.craftbukkit:1.17.1:1.17.1'
+    implementation 'org.spigotmc:spigot-api:1.18.1-R0.1-SNAPSHOT'
     implementation 'me.clip:placeholderapi:2.10.10'
     implementation 'io.th0rgal:oraxen:1.94.0'
+    implementation 'org.bukkit:craftbukkit:1.18.1-R0.1-SNAPSHOT:remapped-mojang'
 
     // Shaded
     implementation 'com.dfsek:Paralithic:0.4.0'
@@ -172,3 +145,175 @@ dependencies {
     implementation 'com.github.ben-manes.caffeine:caffeine:3.0.5'
     implementation 'org.apache.commons:commons-lang3:3.12.0'
 }
+
+if(JavaVersion.current().toString() != "17")
+{
+    System.err.println()
+    System.err.println("=========================================================================================================")
+    System.err.println("You must run gradle on Java 17. You are using " + JavaVersion.current())
+    System.err.println()
+    System.err.println("=== For IDEs ===")
+    System.err.println("1. Configure the project for Java 17")
+    System.err.println("2. Configure the bundled gradle to use Java 17 in settings")
+    System.err.println()
+    System.err.println("=== For Command Line (gradlew) ===")
+    System.err.println("1. Install JDK 17 from https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html")
+    System.err.println("2. Set JAVA_HOME environment variable to the new jdk installation folder such as C:\\Program Files\\Java\\jdk-17.0.1")
+    System.err.println("3. Open a new command prompt window to get the new environment variables if need be.")
+    System.err.println("=========================================================================================================")
+    System.err.println()
+    System.exit(69);
+}
+
+def buildToolsJar = new File(buildDir, "buildtools/BuildTools.jar");
+def specialSourceJar = new File(buildDir, "specialsource/SpecialSource.jar");
+def buildToolsFolder = new File(buildDir, "buildtools");
+def specialSourceFolder = new File(buildDir, "specialsource");
+def buildToolsHint = new File(buildDir, "buildtools/craftbukkit-" + nmsVersion + ".jar");
+def outputShadeJar = new File(buildDir, "libs/Iris-" + version + "-all.jar");
+def ssiJar = new File(buildDir, "specialsource/Iris-" + version + "-all.jar");
+def ssobfJar = new File(buildDir, "specialsource/Iris-" + version + "-rmo.jar");
+def ssJar = new File(buildDir, "specialsource/Iris-" + version + "-rma.jar");
+def homePath = System.properties['user.home']
+def m2 = new File(homePath + "/.m2/repository")
+def m2s = m2.getAbsolutePath();
+
+// ======================== Building Mapped Jars =============================
+task downloadBuildtools(type: Download) {
+    group "remapping"
+    src 'https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar'
+    dest buildToolsJar
+    onlyIf{
+        !buildToolsJar.exists()
+    }
+}
+
+task downloadSpecialSource(type: Download){
+    group "remapping"
+    src 'https://repo.maven.apache.org/maven2/net/md-5/SpecialSource/1.10.0/SpecialSource-1.10.0-shaded.jar'
+    dest specialSourceJar
+    onlyIf{
+        !specialSourceJar.exists()
+    }
+}
+
+task executeBuildTools(dependsOn: downloadBuildtools, type: JavaExec)
+{
+    group "remapping"
+    classpath = files(buildToolsJar)
+    workingDir = buildToolsFolder
+    args = [
+            "--rev",
+            nmsVersion,
+            "--compile",
+            "craftbukkit",
+            "--remap"
+    ]
+    onlyIf{
+        !buildToolsHint.exists()
+    }
+}
+
+task copyBuildToSpecialSource(type: Copy)
+{
+    group "remapping"
+    from outputShadeJar
+    into specialSourceFolder
+    dependsOn(downloadSpecialSource, shadowJar)
+}
+
+task specialSourceRemapObfuscate(type: JavaExec)
+{
+    group "remapping"
+    dependsOn(copyBuildToSpecialSource, downloadSpecialSource, shadowJar)
+    workingDir = specialSourceFolder
+    classpath = files(specialSourceJar,
+            new File(m2s + "/org/spigotmc/spigot/"+spigotJarVersion+"/spigot-" + spigotJarVersion + "-remapped-mojang.jar"))
+    mainClass = "net.md_5.specialsource.SpecialSource"
+    args = [
+            "--live",
+            "-i",
+            ssiJar.getName(),
+            "-o",
+            ssobfJar.getName(),
+            "-m",
+            m2s + "/org/spigotmc/minecraft-server/"+spigotJarVersion+"/minecraft-server-" + spigotJarVersion + "-maps-mojang.txt",
+            "--reverse",
+    ]
+}
+
+task specialSourceRemap(type: JavaExec)
+{
+    group "remapping"
+    dependsOn(specialSourceRemapObfuscate)
+    workingDir = specialSourceFolder
+    classpath = files(specialSourceJar,
+            new File(m2s + "/org/spigotmc/spigot/"+spigotJarVersion+"/spigot-" + spigotJarVersion + "-remapped-obf.jar"))
+    mainClass = "net.md_5.specialsource.SpecialSource"
+    args = [
+            "--live",
+            "-i",
+            ssobfJar.getName(),
+            "-o",
+            ssJar.getName(),
+            "-m",
+            m2s + "/org/spigotmc/minecraft-server/"+spigotJarVersion+"/minecraft-server-" + spigotJarVersion + "-maps-spigot.csrg"
+    ]
+}
+
+tasks.compileJava.dependsOn(executeBuildTools)
+
+task setup()
+{
+    group("iris")
+    dependsOn(clean, executeBuildTools)
+}
+
+task iris(type: Copy)
+{
+    group "iris"
+    from ssJar
+    into buildDir
+    rename { String fileName ->
+        fileName.replace('Iris-' + version + '-rma.jar', "Iris-" + version + ".jar")
+    }
+    dependsOn(specialSourceRemap)
+}
+
+
+def registerCustomOutputTask(name, path) {
+    if (!System.properties['os.name'].toLowerCase().contains('windows'))
+    {
+        return;
+    }
+
+    tasks.register('build' + name, Copy) {
+        group('development')
+        outputs.upToDateWhen { false }
+        dependsOn(iris)
+        from(new File(buildDir, "Iris-" + version + ".jar"))
+        into(file(path))
+        rename { String fileName ->
+            fileName.replace("Iris-" + version + ".jar", "Iris.jar")
+        }
+    }
+}
+
+def registerCustomOutputTaskUnix(name, path) {
+    if(System.properties['os.name'].toLowerCase().contains('windows'))
+    {
+        return;
+    }
+
+    tasks.register('build' + name, Copy) {
+        group('development')
+        outputs.upToDateWhen { false }
+        dependsOn(iris)
+        from(new File(buildDir, "Iris-" + version + ".jar"))
+        into(file(path))
+        rename { String fileName ->
+            fileName.replace("Iris-" + version + ".jar", "Iris.jar")
+        }
+    }
+}
+

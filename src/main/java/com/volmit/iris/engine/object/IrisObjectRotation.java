@@ -92,7 +92,7 @@ public class IrisObjectRotation {
     }
 
     public IrisObject rotateCopy(IrisObject e) {
-        if (e == null) {
+        if(e == null) {
             return null;
         }
 
@@ -101,7 +101,7 @@ public class IrisObjectRotation {
 
     public IrisJigsawPiece rotateCopy(IrisJigsawPiece v) {
         IrisJigsawPiece piece = v.copy();
-        for (IrisJigsawPieceConnector i : piece.getConnectors()) {
+        for(IrisJigsawPieceConnector i : piece.getConnectors()) {
             i.setPosition(rotate(i.getPosition()));
             i.setDirection(rotate(i.getDirection()));
         }
@@ -119,11 +119,11 @@ public class IrisObjectRotation {
     }
 
     public double getRotation(int spin, IrisAxisRotationClamp clamp) {
-        if (!enabled) {
+        if(!enabled) {
             return 0;
         }
 
-        if (!clamp.isEnabled()) {
+        if(!clamp.isEnabled()) {
             return 0;
         }
 
@@ -135,27 +135,27 @@ public class IrisObjectRotation {
         int y = (int) Math.round(v.getY());
         int z = (int) Math.round(v.getZ());
 
-        if (x == 0 && z == -1) {
+        if(x == 0 && z == -1) {
             return BlockFace.NORTH;
         }
 
-        if (x == 0 && z == 1) {
+        if(x == 0 && z == 1) {
             return BlockFace.SOUTH;
         }
 
-        if (x == 1 && z == 0) {
+        if(x == 1 && z == 0) {
             return BlockFace.EAST;
         }
 
-        if (x == -1 && z == 0) {
+        if(x == -1 && z == 0) {
             return BlockFace.WEST;
         }
 
-        if (y > 0) {
+        if(y > 0) {
             return BlockFace.UP;
         }
 
-        if (y < 0) {
+        if(y < 0) {
             return BlockFace.DOWN;
         }
 
@@ -167,28 +167,28 @@ public class IrisObjectRotation {
         int y = v.getBlockY();
         int z = v.getBlockZ();
 
-        if (x == 0 && z == -1) return BlockFace.NORTH;
-        if (x == 1 && z == -2) return BlockFace.NORTH_NORTH_EAST;
-        if (x == 1 && z == -1) return BlockFace.NORTH_EAST;
-        if (x == 2 && z == -1) return BlockFace.EAST_NORTH_EAST;
-        if (x == 1 && z == 0) return BlockFace.EAST;
-        if (x == 2 && z == 1) return BlockFace.EAST_SOUTH_EAST;
-        if (x == 1 && z == 1) return BlockFace.SOUTH_EAST;
-        if (x == 1 && z == 2) return BlockFace.SOUTH_SOUTH_EAST;
-        if (x == 0 && z == 1) return BlockFace.SOUTH;
-        if (x == -1 && z == 2) return BlockFace.SOUTH_SOUTH_WEST;
-        if (x == -1 && z == 1) return BlockFace.SOUTH_WEST;
-        if (x == -2 && z == 1) return BlockFace.WEST_SOUTH_WEST;
-        if (x == -1 && z == 0) return BlockFace.WEST;
-        if (x == -2 && z == -1) return BlockFace.WEST_NORTH_WEST;
-        if (x == -1 && z == -1) return BlockFace.NORTH_WEST;
-        if (x == -1 && z == -2) return BlockFace.NORTH_NORTH_WEST;
+        if(x == 0 && z == -1) return BlockFace.NORTH;
+        if(x == 1 && z == -2) return BlockFace.NORTH_NORTH_EAST;
+        if(x == 1 && z == -1) return BlockFace.NORTH_EAST;
+        if(x == 2 && z == -1) return BlockFace.EAST_NORTH_EAST;
+        if(x == 1 && z == 0) return BlockFace.EAST;
+        if(x == 2 && z == 1) return BlockFace.EAST_SOUTH_EAST;
+        if(x == 1 && z == 1) return BlockFace.SOUTH_EAST;
+        if(x == 1 && z == 2) return BlockFace.SOUTH_SOUTH_EAST;
+        if(x == 0 && z == 1) return BlockFace.SOUTH;
+        if(x == -1 && z == 2) return BlockFace.SOUTH_SOUTH_WEST;
+        if(x == -1 && z == 1) return BlockFace.SOUTH_WEST;
+        if(x == -2 && z == 1) return BlockFace.WEST_SOUTH_WEST;
+        if(x == -1 && z == 0) return BlockFace.WEST;
+        if(x == -2 && z == -1) return BlockFace.WEST_NORTH_WEST;
+        if(x == -1 && z == -1) return BlockFace.NORTH_WEST;
+        if(x == -1 && z == -2) return BlockFace.NORTH_NORTH_WEST;
 
-        if (y > 0) {
+        if(y > 0) {
             return BlockFace.UP;
         }
 
-        if (y < 0) {
+        if(y < 0) {
             return BlockFace.DOWN;
         }
 
@@ -196,7 +196,7 @@ public class IrisObjectRotation {
     }
 
     public BlockFace faceForAxis(Axis axis) {
-        return switch (axis) {
+        return switch(axis) {
             case X -> BlockFace.EAST;
             case Y -> BlockFace.UP;
             case Z -> BlockFace.NORTH;
@@ -205,7 +205,7 @@ public class IrisObjectRotation {
     }
 
     public Axis axisFor(BlockFace f) {
-        return switch (f) {
+        return switch(f) {
             case NORTH, SOUTH -> Axis.Z;
             case EAST, WEST -> Axis.X;
             default -> Axis.Y;
@@ -214,7 +214,7 @@ public class IrisObjectRotation {
     }
 
     public Axis axisFor2D(BlockFace f) {
-        return switch (f) {
+        return switch(f) {
             case EAST, WEST, UP, DOWN -> Axis.X;
             default -> Axis.Z;
         };
@@ -228,22 +228,22 @@ public class IrisObjectRotation {
             int spiny = (int) (90D * (Math.ceil(Math.abs((spinyy % 360D) / 90D))));
             int spinz = (int) (90D * (Math.ceil(Math.abs((spinzz % 360D) / 90D))));
 
-            if (!canRotate()) {
+            if(!canRotate()) {
                 return d;
             }
 
-            if (d instanceof Directional g) {
+            if(d instanceof Directional g) {
                 BlockFace f = g.getFacing();
                 BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
                 bv = rotate(bv.clone(), spinx, spiny, spinz);
                 BlockFace t = getFace(bv);
 
-                if (g.getFaces().contains(t)) {
+                if(g.getFaces().contains(t)) {
                     g.setFacing(t);
-                } else if (!g.getMaterial().isSolid()) {
+                } else if(!g.getMaterial().isSolid()) {
                     d = null;
                 }
-            } else if (d instanceof Rotatable g) {
+            } else if(d instanceof Rotatable g) {
                 BlockFace f = g.getRotation();
 
                 BlockVector bv = new BlockVector(f.getModX(), 0, f.getModZ());
@@ -252,36 +252,36 @@ public class IrisObjectRotation {
 
                 g.setRotation(face);
 
-            } else if (d instanceof Orientable) {
+            } else if(d instanceof Orientable) {
                 BlockFace f = getFace(((Orientable) d).getAxis());
                 BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
                 bv = rotate(bv.clone(), spinx, spiny, spinz);
                 Axis a = getAxis(bv);
 
-                if (!a.equals(((Orientable) d).getAxis()) && ((Orientable) d).getAxes().contains(a)) {
+                if(!a.equals(((Orientable) d).getAxis()) && ((Orientable) d).getAxes().contains(a)) {
                     ((Orientable) d).setAxis(a);
                 }
-            } else if (d instanceof MultipleFacing g) {
+            } else if(d instanceof MultipleFacing g) {
                 List<BlockFace> faces = new KList<>();
 
-                for (BlockFace i : g.getFaces()) {
+                for(BlockFace i : g.getFaces()) {
                     BlockVector bv = new BlockVector(i.getModX(), i.getModY(), i.getModZ());
                     bv = rotate(bv.clone(), spinx, spiny, spinz);
                     BlockFace r = getFace(bv);
 
-                    if (g.getAllowedFaces().contains(r)) {
+                    if(g.getAllowedFaces().contains(r)) {
                         faces.add(r);
                     }
                 }
 
-                for (BlockFace i : g.getFaces()) {
+                for(BlockFace i : g.getFaces()) {
                     g.setFace(i, false);
                 }
 
-                for (BlockFace i : faces) {
+                for(BlockFace i : faces) {
                     g.setFace(i, true);
                 }
-            } else if (d.getMaterial().equals(Material.NETHER_PORTAL) && d instanceof Orientable g) {
+            } else if(d.getMaterial().equals(Material.NETHER_PORTAL) && d instanceof Orientable g) {
                 //TODO: Fucks up logs
                 BlockFace f = faceForAxis(g.getAxis());
                 BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
@@ -290,7 +290,7 @@ public class IrisObjectRotation {
                 Axis a = !g.getAxes().contains(Axis.Y) ? axisFor(t) : axisFor2D(t);
                 ((Orientable) d).setAxis(a);
             }
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
 
         }
@@ -299,15 +299,15 @@ public class IrisObjectRotation {
     }
 
     public Axis getAxis(BlockVector v) {
-        if (Math.abs(v.getBlockX()) > Math.max(Math.abs(v.getBlockY()), Math.abs(v.getBlockZ()))) {
+        if(Math.abs(v.getBlockX()) > Math.max(Math.abs(v.getBlockY()), Math.abs(v.getBlockZ()))) {
             return Axis.X;
         }
 
-        if (Math.abs(v.getBlockY()) > Math.max(Math.abs(v.getBlockX()), Math.abs(v.getBlockZ()))) {
+        if(Math.abs(v.getBlockY()) > Math.max(Math.abs(v.getBlockX()), Math.abs(v.getBlockZ()))) {
             return Axis.Y;
         }
 
-        if (Math.abs(v.getBlockZ()) > Math.max(Math.abs(v.getBlockX()), Math.abs(v.getBlockY()))) {
+        if(Math.abs(v.getBlockZ()) > Math.max(Math.abs(v.getBlockX()), Math.abs(v.getBlockY()))) {
             return Axis.Z;
         }
 
@@ -315,7 +315,7 @@ public class IrisObjectRotation {
     }
 
     private BlockFace getFace(Axis axis) {
-        return switch (axis) {
+        return switch(axis) {
             case X -> BlockFace.EAST;
             case Y -> BlockFace.UP;
             case Z -> BlockFace.SOUTH;
@@ -331,22 +331,22 @@ public class IrisObjectRotation {
     }
 
     public BlockVector rotate(BlockVector b, int spinx, int spiny, int spinz) {
-        if (!canRotate()) {
+        if(!canRotate()) {
             return b;
         }
 
         BlockVector v = b.clone();
 
-        if (canRotateX()) {
-            if (getXAxis().isLocked()) {
-                if (Math.abs(getXAxis().getMax()) % 360D == 180D) {
+        if(canRotateX()) {
+            if(getXAxis().isLocked()) {
+                if(Math.abs(getXAxis().getMax()) % 360D == 180D) {
                     v.setZ(-v.getZ());
                     v.setY(-v.getY());
-                } else if (getXAxis().getMax() % 360D == 90D || getXAxis().getMax() % 360D == -270D) {
+                } else if(getXAxis().getMax() % 360D == 90D || getXAxis().getMax() % 360D == -270D) {
                     double z = v.getZ();
                     v.setZ(v.getY());
                     v.setY(-z);
-                } else if (getXAxis().getMax() == -90D || getXAxis().getMax() % 360D == 270D) {
+                } else if(getXAxis().getMax() == -90D || getXAxis().getMax() % 360D == 270D) {
                     double z = v.getZ();
                     v.setZ(-v.getY());
                     v.setY(z);
@@ -358,16 +358,16 @@ public class IrisObjectRotation {
             }
         }
 
-        if (canRotateZ()) {
-            if (getZAxis().isLocked()) {
-                if (Math.abs(getZAxis().getMax()) % 360D == 180D) {
+        if(canRotateZ()) {
+            if(getZAxis().isLocked()) {
+                if(Math.abs(getZAxis().getMax()) % 360D == 180D) {
                     v.setY(-v.getY());
                     v.setX(-v.getX());
-                } else if (getZAxis().getMax() % 360D == 90D || getZAxis().getMax() % 360D == -270D) {
+                } else if(getZAxis().getMax() % 360D == 90D || getZAxis().getMax() % 360D == -270D) {
                     double y = v.getY();
                     v.setY(v.getX());
                     v.setX(-y);
-                } else if (getZAxis().getMax() == -90D || getZAxis().getMax() % 360D == 270D) {
+                } else if(getZAxis().getMax() == -90D || getZAxis().getMax() % 360D == 270D) {
                     double y = v.getY();
                     v.setY(-v.getX());
                     v.setX(y);
@@ -379,16 +379,16 @@ public class IrisObjectRotation {
             }
         }
 
-        if (canRotateY()) {
-            if (getYAxis().isLocked()) {
-                if (Math.abs(getYAxis().getMax()) % 360D == 180D) {
+        if(canRotateY()) {
+            if(getYAxis().isLocked()) {
+                if(Math.abs(getYAxis().getMax()) % 360D == 180D) {
                     v.setX(-v.getX());
                     v.setZ(-v.getZ());
-                } else if (getYAxis().getMax() % 360D == 90D || getYAxis().getMax() % 360D == -270D) {
+                } else if(getYAxis().getMax() % 360D == 90D || getYAxis().getMax() % 360D == -270D) {
                     double x = v.getX();
                     v.setX(v.getZ());
                     v.setZ(-x);
-                } else if (getYAxis().getMax() == -90D || getYAxis().getMax() % 360D == 270D) {
+                } else if(getYAxis().getMax() == -90D || getYAxis().getMax() % 360D == 270D) {
                     double x = v.getX();
                     v.setX(-v.getZ());
                     v.setZ(x);

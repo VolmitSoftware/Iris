@@ -42,7 +42,8 @@ public class RNG extends Random {
     /**
      * Creates a seed (long) from the hash of the seed string
      *
-     * @param seed the seed (string)
+     * @param seed
+     *     the seed (string)
      */
     public RNG(String seed) {
         this(UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).getLeastSignificantBits() + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).getMostSignificantBits() + (seed.length() * 32564L));
@@ -59,7 +60,7 @@ public class RNG extends Random {
     public String s(int length) {
         StringBuilder sb = new StringBuilder();
 
-        for (int i = 0; i < length; i++) {
+        for(int i = 0; i < length; i++) {
             sb.append(c());
         }
 
@@ -73,7 +74,8 @@ public class RNG extends Random {
     /**
      * Pick a random enum
      *
-     * @param t the enum class
+     * @param t
+     *     the enum class
      * @return the enum
      */
     public <T> T e(Class<T> t) {
@@ -114,7 +116,7 @@ public class RNG extends Random {
     }
 
     public double d(double lowerBound, double upperBound) {
-        if (lowerBound > upperBound) {
+        if(lowerBound > upperBound) {
             return M.lerp(upperBound, lowerBound, nextDouble());
         }
 
@@ -170,11 +172,11 @@ public class RNG extends Random {
     }
 
     public <T> T pick(List<T> pieces) {
-        if (pieces.isEmpty()) {
+        if(pieces.isEmpty()) {
             return null;
         }
 
-        if (pieces.size() == 1) {
+        if(pieces.size() == 1) {
             return pieces.get(0);
         }
 

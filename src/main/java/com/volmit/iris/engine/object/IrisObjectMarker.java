@@ -66,10 +66,10 @@ public class IrisObjectMarker {
         {
             KList<BlockData> b = new KList<>();
 
-            for (IrisBlockData i : mark) {
+            for(IrisBlockData i : mark) {
                 BlockData bx = i.getBlockData(rdata);
 
-                if (bx != null) {
+                if(bx != null) {
                     b.add(bx);
                 }
             }

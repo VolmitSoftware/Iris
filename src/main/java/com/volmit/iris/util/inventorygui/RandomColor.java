@@ -74,12 +74,12 @@ public class RandomColor {
     }
 
     public int[] randomColor(int count) {
-        if (count <= 0) {
+        if(count <= 0) {
             throw new IllegalArgumentException("count must be greater than 0");
         }
 
         int[] colors = new int[count];
-        for (int i = 0; i < count; i++) {
+        for(int i = 0; i < count; i++) {
             colors[i] = randomColor();
         }
 
@@ -96,12 +96,12 @@ public class RandomColor {
     }
 
     public int[] random(Color color, int count) {
-        if (count <= 0) {
+        if(count <= 0) {
             throw new IllegalArgumentException("count must be greater than 0");
         }
 
         int[] colors = new int[count];
-        for (int i = 0; i < count; i++) {
+        for(int i = 0; i < count; i++) {
             colors[i] = randomColor(color);
         }
 
@@ -118,7 +118,7 @@ public class RandomColor {
 
         // Instead of storing red as two seperate ranges,
         // we group them, using negative numbers
-        if (hue < 0) {
+        if(hue < 0) {
             hue = 360 + hue;
         }
 
@@ -131,7 +131,7 @@ public class RandomColor {
     }
 
     private Range getHueRange(int number) {
-        if (number < 360 && number > 0) {
+        if(number < 360 && number > 0) {
             return new Range(number, number);
         }
 
@@ -139,7 +139,7 @@ public class RandomColor {
     }
 
     private Range getHueRange(String name) {
-        if (colors.containsKey(name)) {
+        if(colors.containsKey(name)) {
             return colors.get(name).getHueRange();
         }
 
@@ -156,8 +156,8 @@ public class RandomColor {
     }
 
     private int pickSaturation(ColorInfo colorInfo, SaturationType saturationType, Luminosity luminosity) {
-        if (saturationType != null) {
-            switch (saturationType) {
+        if(saturationType != null) {
+            switch(saturationType) {
                 case RANDOM:
                     return randomWithin(new Range(0, 100));
                 case MONOCHROME:
@@ -171,7 +171,7 @@ public class RandomColor {
             }
         }
 
-        if (colorInfo == null) {
+        if(colorInfo == null) {
             return 0;
         }
 
@@ -180,8 +180,8 @@ public class RandomColor {
         int min = saturationRange.start;
         int max = saturationRange.end;
 
-        if (luminosity != null) {
-            switch (luminosity) {
+        if(luminosity != null) {
+            switch(luminosity) {
                 case LIGHT:
                     min = 55;
                     break;
@@ -211,10 +211,10 @@ public class RandomColor {
 
     private int pickBrightness(ColorInfo colorInfo, int saturation, Luminosity luminosity) {
         int min = getMinimumBrightness(colorInfo, saturation),
-                max = 100;
+            max = 100;
 
-        if (luminosity != null) {
-            switch (luminosity) {
+        if(luminosity != null) {
+            switch(luminosity) {
 
                 case DARK:
                     max = min + 20;
@@ -235,26 +235,26 @@ public class RandomColor {
     }
 
     private int getMinimumBrightness(ColorInfo colorInfo, int saturation) {
-        if (colorInfo == null) {
+        if(colorInfo == null) {
             return 0;
         }
 
         List<Range> lowerBounds = colorInfo.getLowerBounds();
-        for (int i = 0; i < lowerBounds.size() - 1; i++) {
+        for(int i = 0; i < lowerBounds.size() - 1; i++) {
 
             int s1 = lowerBounds.get(i).start,
-                    v1 = lowerBounds.get(i).end;
+                v1 = lowerBounds.get(i).end;
 
-            if (i == lowerBounds.size() - 1) {
+            if(i == lowerBounds.size() - 1) {
                 break;
             }
             int s2 = lowerBounds.get(i + 1).start,
-                    v2 = lowerBounds.get(i + 1).end;
+                v2 = lowerBounds.get(i + 1).end;
 
-            if (saturation >= s1 && saturation <= s2) {
+            if(saturation >= s1 && saturation <= s2) {
 
                 float m = (v2 - v1) / (float) (s2 - s1),
-                        b = v1 - m * s1;
+                    b = v1 - m * s1;
 
                 return (int) (m * saturation + b);
             }
@@ -266,13 +266,13 @@ public class RandomColor {
 
     private ColorInfo getColorInfo(int hue) {
         // Maps red colors to make picking hue easier
-        if (hue >= 334 && hue <= 360) {
+        if(hue >= 334 && hue <= 360) {
             hue -= 360;
         }
 
-        for (String key : colors.keySet()) {
+        for(String key : colors.keySet()) {
             ColorInfo colorInfo = colors.get(key);
-            if (colorInfo.getHueRange() != null && colorInfo.getHueRange().contain(hue)) {
+            if(colorInfo.getHueRange() != null && colorInfo.getHueRange().contain(hue)) {
                 return colorInfo;
             }
         }
@@ -298,9 +298,9 @@ public class RandomColor {
         lowerBounds1.add(new Range(0, 0));
         lowerBounds1.add(new Range(100, 0));
         defineColor(
-                Color.MONOCHROME.name(),
-                new Range(0, 0),
-                lowerBounds1
+            Color.MONOCHROME.name(),
+            new Range(0, 0),
+            lowerBounds1
         );
 
         List<Range> lowerBounds2 = new ArrayList<>();
@@ -314,9 +314,9 @@ public class RandomColor {
         lowerBounds2.add(new Range(90, 55));
         lowerBounds2.add(new Range(100, 50));
         defineColor(
-                Color.RED.name(),
-                new Range(-26, 18),
-                lowerBounds2
+            Color.RED.name(),
+            new Range(-26, 18),
+            lowerBounds2
         );
 
         List<Range> lowerBounds3 = new ArrayList<Range>();
@@ -328,9 +328,9 @@ public class RandomColor {
         lowerBounds3.add(new Range(70, 70));
         lowerBounds3.add(new Range(100, 70));
         defineColor(
-                Color.ORANGE.name(),
-                new Range(19, 46),
-                lowerBounds3
+            Color.ORANGE.name(),
+            new Range(19, 46),
+            lowerBounds3
         );
 
         List<Range> lowerBounds4 = new ArrayList<>();
@@ -344,9 +344,9 @@ public class RandomColor {
         lowerBounds4.add(new Range(100, 75));
 
         defineColor(
-                Color.YELLOW.name(),
-                new Range(47, 62),
-                lowerBounds4
+            Color.YELLOW.name(),
+            new Range(47, 62),
+            lowerBounds4
         );
 
         List<Range> lowerBounds5 = new ArrayList<>();
@@ -360,9 +360,9 @@ public class RandomColor {
         lowerBounds5.add(new Range(100, 40));
 
         defineColor(
-                Color.GREEN.name(),
-                new Range(63, 178),
-                lowerBounds5
+            Color.GREEN.name(),
+            new Range(63, 178),
+            lowerBounds5
         );
 
         List<Range> lowerBounds6 = new ArrayList<>();
@@ -377,9 +377,9 @@ public class RandomColor {
         lowerBounds6.add(new Range(100, 35));
 
         defineColor(
-                Color.BLUE.name(),
-                new Range(179, 257),
-                lowerBounds6
+            Color.BLUE.name(),
+            new Range(179, 257),
+            lowerBounds6
         );
 
         List<Range> lowerBounds7 = new ArrayList<>();
@@ -394,9 +394,9 @@ public class RandomColor {
         lowerBounds7.add(new Range(100, 42));
 
         defineColor(
-                Color.PURPLE.name(),
-                new Range(258, 282),
-                lowerBounds7
+            Color.PURPLE.name(),
+            new Range(258, 282),
+            lowerBounds7
         );
 
         List<Range> lowerBounds8 = new ArrayList<>();
@@ -409,9 +409,9 @@ public class RandomColor {
         lowerBounds8.add(new Range(100, 73));
 
         defineColor(
-                Color.PINK.name(),
-                new Range(283, 334),
-                lowerBounds8
+            Color.PINK.name(),
+            new Range(283, 334),
+            lowerBounds8
         );
     }
 

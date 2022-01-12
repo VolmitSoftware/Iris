@@ -82,14 +82,14 @@ public class IrisProject {
 
     public static int clean(VolmitSender s, File clean) {
         int c = 0;
-        if (clean.isDirectory()) {
-            for (File i : clean.listFiles()) {
+        if(clean.isDirectory()) {
+            for(File i : clean.listFiles()) {
                 c += clean(s, i);
             }
-        } else if (clean.getName().endsWith(".json")) {
+        } else if(clean.getName().endsWith(".json")) {
             try {
                 clean(clean);
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 Iris.reportError(e);
                 Iris.error("Failed to beautify " + clean.getAbsolutePath() + " You may have errors in your json!");
             }
@@ -108,29 +108,29 @@ public class IrisProject {
     }
 
     public static void fixBlocks(JSONObject obj, File f) {
-        for (String i : obj.keySet()) {
+        for(String i : obj.keySet()) {
             Object o = obj.get(i);
 
-            if (i.equals("block") && o instanceof String && !o.toString().trim().isEmpty() && !o.toString().contains(":")) {
+            if(i.equals("block") && o instanceof String && !o.toString().trim().isEmpty() && !o.toString().contains(":")) {
                 obj.put(i, "minecraft:" + o);
                 Iris.debug("Updated Block Key: " + o + " to " + obj.getString(i) + " in " + f.getPath());
             }
 
-            if (o instanceof JSONObject) {
+            if(o instanceof JSONObject) {
                 fixBlocks((JSONObject) o, f);
-            } else if (o instanceof JSONArray) {
+            } else if(o instanceof JSONArray) {
                 fixBlocks((JSONArray) o, f);
             }
         }
     }
 
     public static void fixBlocks(JSONArray obj, File f) {
-        for (int i = 0; i < obj.length(); i++) {
+        for(int i = 0; i < obj.length(); i++) {
             Object o = obj.get(i);
 
-            if (o instanceof JSONObject) {
+            if(o instanceof JSONObject) {
                 fixBlocks((JSONObject) o, f);
-            } else if (o instanceof JSONArray) {
+            } else if(o instanceof JSONArray) {
                 fixBlocks((JSONArray) o, f);
             }
         }
@@ -143,11 +143,11 @@ public class IrisProject {
     public KList<File> collectFiles(File f, String fileExtension) {
         KList<File> l = new KList<>();
 
-        if (f.isDirectory()) {
-            for (File i : f.listFiles()) {
+        if(f.isDirectory()) {
+            for(File i : f.listFiles()) {
                 l.addAll(collectFiles(i, fileExtension));
             }
-        } else if (f.getName().endsWith("." + fileExtension)) {
+        } else if(f.getName().endsWith("." + fileExtension)) {
             l.add(f);
         }
 
@@ -170,28 +170,28 @@ public class IrisProject {
         J.attemptAsync(() ->
         {
             try {
-                if (d.getLoader() == null) {
+                if(d.getLoader() == null) {
                     sender.sendMessage("Could not get dimension loader");
                     return;
                 }
                 File f = d.getLoader().getDataFolder();
 
-                if (!doOpenVSCode(f)) {
+                if(!doOpenVSCode(f)) {
                     File ff = new File(d.getLoader().getDataFolder(), d.getLoadKey() + ".code-workspace");
                     Iris.warn("Project missing code-workspace: " + ff.getAbsolutePath() + " Re-creating code workspace.");
 
                     try {
                         IO.writeAll(ff, createCodeWorkspaceConfig());
-                    } catch (IOException e1) {
+                    } catch(IOException e1) {
                         Iris.reportError(e1);
                         e1.printStackTrace();
                     }
                     updateWorkspace();
-                    if (!doOpenVSCode(f)) {
+                    if(!doOpenVSCode(f)) {
                         Iris.warn("Tried creating code workspace but failed a second time. Your project is likely corrupt.");
                     }
                 }
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 Iris.reportError(e);
                 e.printStackTrace();
             }
@@ -200,16 +200,16 @@ public class IrisProject {
 
     private boolean doOpenVSCode(File f) throws IOException {
         boolean foundWork = false;
-        for (File i : Objects.requireNonNull(f.listFiles())) {
-            if (i.getName().endsWith(".code-workspace")) {
+        for(File i : Objects.requireNonNull(f.listFiles())) {
+            if(i.getName().endsWith(".code-workspace")) {
                 foundWork = true;
                 J.a(() ->
                 {
                     updateWorkspace();
                 });
 
-                if (IrisSettings.get().getStudio().isOpenVSCode()) {
-                    if (!GraphicsEnvironment.isHeadless()) {
+                if(IrisSettings.get().getStudio().isOpenVSCode()) {
+                    if(!GraphicsEnvironment.isHeadless()) {
                         Iris.msg("Opening VSCode. You may see the output from VSCode.");
                         Iris.msg("VSCode output always starts with: '(node:#####) electron'");
                         Desktop.getDesktop().open(i);
@@ -223,21 +223,21 @@ public class IrisProject {
     }
 
     public void open(VolmitSender sender, long seed, Consumer<World> onDone) throws IrisException {
-        if (isOpen()) {
+        if(isOpen()) {
             close();
         }
 
         boolean hasError = false;
 
-        if (hasError) {
+        if(hasError) {
             return;
         }
 
         IrisDimension d = IrisData.loadAnyDimension(getName());
-        if (d == null) {
+        if(d == null) {
             sender.sendMessage("Can't find dimension: " + getName());
             return;
-        } else if (sender.isPlayer()) {
+        } else if(sender.isPlayer()) {
             sender.player().setGameMode(GameMode.SPECTATOR);
         }
 
@@ -247,14 +247,14 @@ public class IrisProject {
         J.a(() -> {
             try {
                 activeProvider = (PlatformChunkGenerator) IrisToolbelt.createWorld()
-                        .seed(seed)
-                        .sender(sender)
-                        .studio(true)
-                        .name("iris/" + UUID.randomUUID())
-                        .dimension(d.getLoadKey())
-                        .create().getGenerator();
+                    .seed(seed)
+                    .sender(sender)
+                    .studio(true)
+                    .name("iris/" + UUID.randomUUID())
+                    .dimension(d.getLoadKey())
+                    .create().getGenerator();
                 onDone.accept(activeProvider.getTarget().getWorld().realWorld());
-            } catch (IrisException e) {
+            } catch(IrisException e) {
                 e.printStackTrace();
             }
         });
@@ -286,13 +286,13 @@ public class IrisProject {
             IO.writeAll(ws, j.toString(4));
             p.end();
             return true;
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             Iris.warn("Project invalid: " + ws.getAbsolutePath() + " Re-creating. You may loose some vs-code workspace settings! But not your actual project!");
             ws.delete();
             try {
                 IO.writeAll(ws, createCodeWorkspaceConfig());
-            } catch (IOException e1) {
+            } catch(IOException e1) {
                 Iris.reportError(e1);
                 e1.printStackTrace();
             }
@@ -334,19 +334,19 @@ public class IrisProject {
         JSONArray schemas = new JSONArray();
         IrisData dm = IrisData.get(getPath());
 
-        for (ResourceLoader<?> r : dm.getLoaders().v()) {
-            if (r.supportsSchemas()) {
+        for(ResourceLoader<?> r : dm.getLoaders().v()) {
+            if(r.supportsSchemas()) {
                 schemas.put(r.buildSchema());
             }
         }
 
-        for (Class<?> i : Iris.getClasses("com.volmit.iris.engine.object.", Snippet.class)) {
+        for(Class<?> i : Iris.getClasses("com.volmit.iris.engine.object.", Snippet.class)) {
             try {
                 String snipType = i.getDeclaredAnnotation(Snippet.class).value();
                 JSONObject o = new JSONObject();
                 KList<String> fm = new KList<>();
 
-                for (int g = 1; g < 8; g++) {
+                for(int g = 1; g < 8; g++) {
                     fm.add("/snippet/" + snipType + Form.repeat("/*", g) + ".json");
                 }
 
@@ -357,11 +357,11 @@ public class IrisProject {
                 J.attemptAsync(() -> {
                     try {
                         IO.writeAll(a, new SchemaBuilder(i, dm).construct().toString(4));
-                    } catch (Throwable e) {
+                    } catch(Throwable e) {
                         e.printStackTrace();
                     }
                 });
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 e.printStackTrace();
             }
         }
@@ -387,7 +387,7 @@ public class IrisProject {
         KSet<IrisLootTable> loot = new KSet<>();
         KSet<IrisBlockData> blocks = new KSet<>();
 
-        for (String i : dm.getDimensionLoader().getPossibleKeys()) {
+        for(String i : dm.getDimensionLoader().getPossibleKeys()) {
             blocks.add(dm.getBlockLoader().load(i));
         }
 
@@ -407,13 +407,13 @@ public class IrisProject {
         StringBuilder c = new StringBuilder();
         sender.sendMessage("Serializing Objects");
 
-        for (IrisBiome i : biomes) {
-            for (IrisObjectPlacement j : i.getObjects()) {
+        for(IrisBiome i : biomes) {
+            for(IrisObjectPlacement j : i.getObjects()) {
                 b.append(j.hashCode());
                 KList<String> newNames = new KList<>();
 
-                for (String k : j.getPlace()) {
-                    if (renameObjects.containsKey(k)) {
+                for(String k : j.getPlace()) {
+                    if(renameObjects.containsKey(k)) {
                         newNames.add(renameObjects.get(k));
                         continue;
                     }
@@ -441,12 +441,12 @@ public class IrisProject {
                 gb.append(IO.hash(f));
                 ggg.set(ggg.get() + 1);
 
-                if (cl.flip()) {
+                if(cl.flip()) {
                     int g = ggg.get();
                     ggg.set(0);
                     sender.sendMessage("Wrote another " + g + " Objects");
                 }
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 Iris.reportError(e);
             }
         })));
@@ -462,7 +462,7 @@ public class IrisProject {
             IO.writeAll(new File(folder, "dimensions/" + dimension.getLoadKey() + ".json"), a);
             b.append(IO.hash(a));
 
-            for (IrisGenerator i : generators) {
+            for(IrisGenerator i : generators) {
                 a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
                 IO.writeAll(new File(folder, "generators/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
@@ -471,31 +471,31 @@ public class IrisProject {
             c.append(IO.hash(b.toString()));
             b = new StringBuilder();
 
-            for (IrisRegion i : regions) {
+            for(IrisRegion i : regions) {
                 a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
                 IO.writeAll(new File(folder, "regions/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }
 
-            for (IrisBlockData i : blocks) {
+            for(IrisBlockData i : blocks) {
                 a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
                 IO.writeAll(new File(folder, "blocks/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }
 
-            for (IrisBiome i : biomes) {
+            for(IrisBiome i : biomes) {
                 a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
                 IO.writeAll(new File(folder, "biomes/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }
 
-            for (IrisEntity i : entities) {
+            for(IrisEntity i : entities) {
                 a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
                 IO.writeAll(new File(folder, "entities/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }
 
-            for (IrisLootTable i : loot) {
+            for(IrisLootTable i : loot) {
                 a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
                 IO.writeAll(new File(folder, "loot/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
@@ -515,7 +515,7 @@ public class IrisProject {
 
             sender.sendMessage("Package Compiled!");
             return p;
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
@@ -538,18 +538,18 @@ public class IrisProject {
                     IrisObject o = new IrisObject(0, 0, 0);
                     o.read(f);
 
-                    if (o.getBlocks().isEmpty()) {
+                    if(o.getBlocks().isEmpty()) {
                         sender.sendMessageRaw("<hover:show_text:'Error:\n" +
-                                "<yellow>" + f.getPath() +
-                                "'><red>- IOB " + f.getName() + " has 0 blocks!");
+                            "<yellow>" + f.getPath() +
+                            "'><red>- IOB " + f.getName() + " has 0 blocks!");
                     }
 
-                    if (o.getW() == 0 || o.getH() == 0 || o.getD() == 0) {
+                    if(o.getW() == 0 || o.getH() == 0 || o.getD() == 0) {
                         sender.sendMessageRaw("<hover:show_text:'Error:\n" +
-                                "<yellow>" + f.getPath() + "\n<red>The width height or depth has a zero in it (bad format)" +
-                                "'><red>- IOB " + f.getName() + " is not 3D!");
+                            "<yellow>" + f.getPath() + "\n<red>The width height or depth has a zero in it (bad format)" +
+                            "'><red>- IOB " + f.getName() + " is not 3D!");
                     }
-                } catch (IOException e) {
+                } catch(IOException e) {
                     e.printStackTrace();
                 }
             }
@@ -569,11 +569,11 @@ public class IrisProject {
                     scanForErrors(data, f, p, sender);
                     IO.writeAll(f, p.toString(4));
 
-                } catch (Throwable e) {
+                } catch(Throwable e) {
                     sender.sendMessageRaw("<hover:show_text:'Error:\n" +
-                            "<yellow>" + f.getPath() +
-                            "\n<red>" + e.getMessage() +
-                            "'><red>- JSON Error " + f.getName());
+                        "<yellow>" + f.getPath() +
+                        "\n<red>" + e.getMessage() +
+                        "'><red>- JSON Error " + f.getName());
                 }
             }
 
@@ -590,7 +590,7 @@ public class IrisProject {
         String key = data.toLoadKey(f);
         ResourceLoader<?> loader = data.getTypedLoaderFor(f);
 
-        if (loader == null) {
+        if(loader == null) {
             sender.sendMessageBasic("Can't find loader for " + f.getPath());
             return;
         }
@@ -603,62 +603,62 @@ public class IrisProject {
     public void compare(Class<?> c, JSONObject j, VolmitSender sender, KList<String> path) {
         try {
             Object o = c.getClass().getConstructor().newInstance();
-        } catch (Throwable e) {
+        } catch(Throwable e) {
 
         }
     }
 
     public void files(File clean, KList<File> files) {
-        if (clean.isDirectory()) {
-            for (File i : clean.listFiles()) {
+        if(clean.isDirectory()) {
+            for(File i : clean.listFiles()) {
                 files(i, files);
             }
-        } else if (clean.getName().endsWith(".json")) {
+        } else if(clean.getName().endsWith(".json")) {
             try {
                 files.add(clean);
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 Iris.reportError(e);
             }
         }
     }
 
     public void filesObjects(File clean, KList<File> files) {
-        if (clean.isDirectory()) {
-            for (File i : clean.listFiles()) {
+        if(clean.isDirectory()) {
+            for(File i : clean.listFiles()) {
                 filesObjects(i, files);
             }
-        } else if (clean.getName().endsWith(".iob")) {
+        } else if(clean.getName().endsWith(".iob")) {
             try {
                 files.add(clean);
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 Iris.reportError(e);
             }
         }
     }
 
     private void fixBlocks(JSONObject obj) {
-        for (String i : obj.keySet()) {
+        for(String i : obj.keySet()) {
             Object o = obj.get(i);
 
-            if (i.equals("block") && o instanceof String && !o.toString().trim().isEmpty() && !o.toString().contains(":")) {
+            if(i.equals("block") && o instanceof String && !o.toString().trim().isEmpty() && !o.toString().contains(":")) {
                 obj.put(i, "minecraft:" + o);
             }
 
-            if (o instanceof JSONObject) {
+            if(o instanceof JSONObject) {
                 fixBlocks((JSONObject) o);
-            } else if (o instanceof JSONArray) {
+            } else if(o instanceof JSONArray) {
                 fixBlocks((JSONArray) o);
             }
         }
     }
 
     private void fixBlocks(JSONArray obj) {
-        for (int i = 0; i < obj.length(); i++) {
+        for(int i = 0; i < obj.length(); i++) {
             Object o = obj.get(i);
 
-            if (o instanceof JSONObject) {
+            if(o instanceof JSONObject) {
                 fixBlocks((JSONObject) o);
-            } else if (o instanceof JSONArray) {
+            } else if(o instanceof JSONArray) {
                 fixBlocks((JSONArray) o);
             }
         }

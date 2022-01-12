@@ -63,7 +63,7 @@ public class IrisBiomeGeneratorLink {
         {
             IrisGenerator gen = g.getData().getGeneratorLoader().load(getGenerator());
 
-            if (gen == null) {
+            if(gen == null) {
                 gen = new IrisGenerator();
             }
 

@@ -19,44 +19,36 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.edit.BlockSignal;
-import com.volmit.iris.core.loader.IrisRegistrant;
-import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.service.StudioSVC;
-import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.object.*;
-import com.volmit.iris.util.data.B;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisCave;
+import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisJigsawPiece;
+import com.volmit.iris.engine.object.IrisJigsawPool;
+import com.volmit.iris.engine.object.IrisJigsawStructure;
+import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.matter.MatterMarker;
-import com.volmit.iris.util.scheduling.J;
-import org.bukkit.Chunk;
-import org.bukkit.FluidCollisionMode;
-import org.bukkit.Material;
-import org.bukkit.block.Biome;
-import org.bukkit.block.data.BlockData;
 
-import java.awt.*;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import java.awt.Desktop;
 
 
 @Decree(name = "edit", origin = DecreeOrigin.PLAYER, studio = true, description = "Edit something")
 public class CommandEdit implements DecreeExecutor {
 
     private boolean noStudio() {
-        if (!sender().isPlayer()) {
+        if(!sender().isPlayer()) {
             sender().sendMessage(C.RED + "Players only!");
             return true;
         }
-        if (!Iris.service(StudioSVC.class).isProjectOpen()) {
+        if(!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender().sendMessage(C.RED + "No studio world is open!");
             return true;
         }
-        if (!engine().isStudio()) {
+        if(!engine().isStudio()) {
             sender().sendMessage(C.RED + "You must be in a studio world!");
             return true;
         }
@@ -64,18 +56,19 @@ public class CommandEdit implements DecreeExecutor {
     }
 
 
-
     @Decree(description = "Edit the biome you specified", aliases = {"b"}, origin = DecreeOrigin.PLAYER)
     public void biome(@Param(contextual = false, description = "The biome to edit") IrisBiome biome) {
-        if (noStudio()) {return;}
+        if(noStudio()) {
+            return;
+        }
         try {
-            if ( biome==null || biome.getLoadFile() == null) {
+            if(biome == null || biome.getLoadFile() == null) {
                 sender().sendMessage(C.GOLD + "Cannot find the file; Perhaps it was not loaded directly from a file?");
                 return;
             }
             Desktop.getDesktop().open(biome.getLoadFile());
             sender().sendMessage(C.GREEN + "Opening " + biome.getTypeName() + " " + biome.getLoadFile().getName().split("\\Q.\\E")[0] + " in VSCode! ");
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             sender().sendMessage(C.RED + "Cant find the file. Or registrant does not exist");
         }
@@ -83,15 +76,17 @@ public class CommandEdit implements DecreeExecutor {
 
     @Decree(description = "Edit the region you specified", aliases = {"r"}, origin = DecreeOrigin.PLAYER)
     public void region(@Param(contextual = false, description = "The region to edit") IrisRegion region) {
-        if (noStudio()) {return;}
+        if(noStudio()) {
+            return;
+        }
         try {
-            if ( region==null || region.getLoadFile() == null) {
+            if(region == null || region.getLoadFile() == null) {
                 sender().sendMessage(C.GOLD + "Cannot find the file; Perhaps it was not loaded directly from a file?");
                 return;
             }
             Desktop.getDesktop().open(region.getLoadFile());
             sender().sendMessage(C.GREEN + "Opening " + region.getTypeName() + " " + region.getLoadFile().getName().split("\\Q.\\E")[0] + " in VSCode! ");
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             sender().sendMessage(C.RED + "Cant find the file. Or registrant does not exist");
         }
@@ -99,15 +94,17 @@ public class CommandEdit implements DecreeExecutor {
 
     @Decree(description = "Edit the dimension you specified", aliases = {"d"}, origin = DecreeOrigin.PLAYER)
     public void dimension(@Param(contextual = false, description = "The dimension to edit") IrisDimension dimension) {
-        if (noStudio()) {return;}
+        if(noStudio()) {
+            return;
+        }
         try {
-            if ( dimension==null || dimension.getLoadFile() == null) {
+            if(dimension == null || dimension.getLoadFile() == null) {
                 sender().sendMessage(C.GOLD + "Cannot find the file; Perhaps it was not loaded directly from a file?");
                 return;
             }
             Desktop.getDesktop().open(dimension.getLoadFile());
             sender().sendMessage(C.GREEN + "Opening " + dimension.getTypeName() + " " + dimension.getLoadFile().getName().split("\\Q.\\E")[0] + " in VSCode! ");
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             sender().sendMessage(C.RED + "Cant find the file. Or registrant does not exist");
         }
@@ -115,15 +112,17 @@ public class CommandEdit implements DecreeExecutor {
 
     @Decree(description = "Edit the cave file you specified", aliases = {"c"}, origin = DecreeOrigin.PLAYER)
     public void cave(@Param(contextual = false, description = "The cave to edit") IrisCave cave) {
-        if (noStudio()) {return;}
+        if(noStudio()) {
+            return;
+        }
         try {
-            if ( cave==null || cave.getLoadFile() == null) {
+            if(cave == null || cave.getLoadFile() == null) {
                 sender().sendMessage(C.GOLD + "Cannot find the file; Perhaps it was not loaded directly from a file?");
                 return;
             }
             Desktop.getDesktop().open(cave.getLoadFile());
             sender().sendMessage(C.GREEN + "Opening " + cave.getTypeName() + " " + cave.getLoadFile().getName().split("\\Q.\\E")[0] + " in VSCode! ");
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             sender().sendMessage(C.RED + "Cant find the file. Or registrant does not exist");
         }
@@ -131,15 +130,17 @@ public class CommandEdit implements DecreeExecutor {
 
     @Decree(description = "Edit the structure file you specified", aliases = {"jigsawstructure", "structure"}, origin = DecreeOrigin.PLAYER)
     public void jigsaw(@Param(contextual = false, description = "The jigsaw structure to edit") IrisJigsawStructure jigsaw) {
-        if (noStudio()) {return;}
+        if(noStudio()) {
+            return;
+        }
         try {
-            if ( jigsaw==null || jigsaw.getLoadFile() == null) {
+            if(jigsaw == null || jigsaw.getLoadFile() == null) {
                 sender().sendMessage(C.GOLD + "Cannot find the file; Perhaps it was not loaded directly from a file?");
                 return;
             }
             Desktop.getDesktop().open(jigsaw.getLoadFile());
             sender().sendMessage(C.GREEN + "Opening " + jigsaw.getTypeName() + " " + jigsaw.getLoadFile().getName().split("\\Q.\\E")[0] + " in VSCode! ");
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             sender().sendMessage(C.RED + "Cant find the file. Or registrant does not exist");
         }
@@ -147,15 +148,17 @@ public class CommandEdit implements DecreeExecutor {
 
     @Decree(description = "Edit the pool file you specified", aliases = {"jigsawpool", "pool"}, origin = DecreeOrigin.PLAYER)
     public void jigsawPool(@Param(contextual = false, description = "The jigsaw pool to edit") IrisJigsawPool pool) {
-        if (noStudio()) {return;}
+        if(noStudio()) {
+            return;
+        }
         try {
-            if ( pool==null || pool.getLoadFile() == null) {
+            if(pool == null || pool.getLoadFile() == null) {
                 sender().sendMessage(C.GOLD + "Cannot find the file; Perhaps it was not loaded directly from a file?");
                 return;
             }
             Desktop.getDesktop().open(pool.getLoadFile());
             sender().sendMessage(C.GREEN + "Opening " + pool.getTypeName() + " " + pool.getLoadFile().getName().split("\\Q.\\E")[0] + " in VSCode! ");
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             sender().sendMessage(C.RED + "Cant find the file. Or registrant does not exist");
         }
@@ -163,15 +166,17 @@ public class CommandEdit implements DecreeExecutor {
 
     @Decree(description = "Edit the jigsaw piece file you specified", aliases = {"jigsawpiece", "piece"}, origin = DecreeOrigin.PLAYER)
     public void jigsawPiece(@Param(contextual = false, description = "The jigsaw piece to edit") IrisJigsawPiece piece) {
-        if (noStudio()) {return;}
+        if(noStudio()) {
+            return;
+        }
         try {
-            if ( piece==null || piece.getLoadFile() == null) {
+            if(piece == null || piece.getLoadFile() == null) {
                 sender().sendMessage(C.GOLD + "Cannot find the file; Perhaps it was not loaded directly from a file?");
                 return;
             }
             Desktop.getDesktop().open(piece.getLoadFile());
             sender().sendMessage(C.GREEN + "Opening " + piece.getTypeName() + " " + piece.getLoadFile().getName().split("\\Q.\\E")[0] + " in VSCode! ");
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             sender().sendMessage(C.RED + "Cant find the file. Or registrant does not exist");
         }

@@ -54,13 +54,13 @@ public class MCACrudeIncrementalIntIdentityHashBiMap<K> implements MCAIdMap<K> {
 
 
     public K byId(int var0) {
-        if (var0 < 0 || var0 >= this.byId.length)
+        if(var0 < 0 || var0 >= this.byId.length)
             return null;
         return this.byId[var0];
     }
 
     private int getValue(int var0) {
-        if (var0 == -1)
+        if(var0 == -1)
             return -1;
         return this.values[var0];
     }
@@ -80,7 +80,7 @@ public class MCACrudeIncrementalIntIdentityHashBiMap<K> implements MCAIdMap<K> {
     }
 
     private int nextId() {
-        while (this.nextId < this.byId.length && this.byId[this.nextId] != null)
+        while(this.nextId < this.byId.length && this.byId[this.nextId] != null)
             this.nextId++;
         return this.nextId;
     }
@@ -93,17 +93,17 @@ public class MCACrudeIncrementalIntIdentityHashBiMap<K> implements MCAIdMap<K> {
         this.byId = (K[]) new Object[var0];
         this.nextId = 0;
         this.size = 0;
-        for (int var3 = 0; var3 < var1.length; var3++) {
-            if (var1[var3] != null)
+        for(int var3 = 0; var3 < var1.length; var3++) {
+            if(var1[var3] != null)
                 addMapping(var1[var3], var2[var3]);
         }
     }
 
     public void addMapping(K var0, int var1) {
         int var2 = Math.max(var1, this.size + 1);
-        if (var2 >= this.keys.length * 0.8F) {
+        if(var2 >= this.keys.length * 0.8F) {
             int i = this.keys.length << 1;
-            while (i < var1)
+            while(i < var1)
                 i <<= 1;
             grow(i);
         }
@@ -112,7 +112,7 @@ public class MCACrudeIncrementalIntIdentityHashBiMap<K> implements MCAIdMap<K> {
         this.values[var3] = var1;
         this.byId[var1] = var0;
         this.size++;
-        if (var1 == this.nextId)
+        if(var1 == this.nextId)
             this.nextId++;
     }
 
@@ -122,16 +122,16 @@ public class MCACrudeIncrementalIntIdentityHashBiMap<K> implements MCAIdMap<K> {
 
     private int indexOf(K var0, int var1) {
         int var2;
-        for (var2 = var1; var2 < this.keys.length; var2++) {
-            if (this.keys[var2] == var0)
+        for(var2 = var1; var2 < this.keys.length; var2++) {
+            if(this.keys[var2] == var0)
                 return var2;
-            if (this.keys[var2] == EMPTY_SLOT)
+            if(this.keys[var2] == EMPTY_SLOT)
                 return -1;
         }
-        for (var2 = 0; var2 < var1; var2++) {
-            if (this.keys[var2] == var0)
+        for(var2 = 0; var2 < var1; var2++) {
+            if(this.keys[var2] == var0)
                 return var2;
-            if (this.keys[var2] == EMPTY_SLOT)
+            if(this.keys[var2] == EMPTY_SLOT)
                 return -1;
         }
         return -1;
@@ -139,12 +139,12 @@ public class MCACrudeIncrementalIntIdentityHashBiMap<K> implements MCAIdMap<K> {
 
     private int findEmpty(int var0) {
         int var1;
-        for (var1 = var0; var1 < this.keys.length; var1++) {
-            if (this.keys[var1] == EMPTY_SLOT)
+        for(var1 = var0; var1 < this.keys.length; var1++) {
+            if(this.keys[var1] == EMPTY_SLOT)
                 return var1;
         }
-        for (var1 = 0; var1 < var0; var1++) {
-            if (this.keys[var1] == EMPTY_SLOT)
+        for(var1 = 0; var1 < var0; var1++) {
+            if(this.keys[var1] == EMPTY_SLOT)
                 return var1;
         }
         throw new RuntimeException("Overflowed :(");

@@ -74,17 +74,17 @@ public class IrisSpawner extends IrisRegistrant {
     private IrisSpawnGroup group = IrisSpawnGroup.NORMAL;
 
     public boolean isValid(IrisBiome biome) {
-        return switch (group) {
-            case NORMAL -> switch (biome.getInferredType()) {
+        return switch(group) {
+            case NORMAL -> switch(biome.getInferredType()) {
                 case SHORE, SEA, CAVE, DEFER -> false;
                 case LAND -> true;
             };
             case CAVE -> true;
-            case UNDERWATER -> switch (biome.getInferredType()) {
+            case UNDERWATER -> switch(biome.getInferredType()) {
                 case SHORE, LAND, CAVE, DEFER -> false;
                 case SEA -> true;
             };
-            case BEACH -> switch (biome.getInferredType()) {
+            case BEACH -> switch(biome.getInferredType()) {
                 case SHORE -> true;
                 case LAND, CAVE, SEA, DEFER -> false;
             };

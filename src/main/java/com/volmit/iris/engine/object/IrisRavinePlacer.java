@@ -64,18 +64,18 @@ public class IrisRavinePlacer implements IRare {
     }
 
     public void generateRavine(MantleWriter mantle, RNG rng, Engine engine, int x, int y, int z, int waterHint) {
-        if (fail.get()) {
+        if(fail.get()) {
             return;
         }
 
-        if (rng.nextInt(rarity) != 0) {
+        if(rng.nextInt(rarity) != 0) {
             return;
         }
 
         IrisData data = engine.getData();
         IrisRavine ravine = getRealRavine(data);
 
-        if (ravine == null) {
+        if(ravine == null) {
             Iris.warn("Unable to locate ravine for generation!");
             fail.set(true);
             return;
@@ -85,7 +85,7 @@ public class IrisRavinePlacer implements IRare {
             int xx = x + rng.nextInt(15);
             int zz = z + rng.nextInt(15);
             ravine.generate(mantle, rng, engine, xx, y, zz, waterHint);
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             e.printStackTrace();
             fail.set(true);
         }

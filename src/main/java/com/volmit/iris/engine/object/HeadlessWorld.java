@@ -50,24 +50,24 @@ public class HeadlessWorld {
         this.dimension = dimension;
         this.studio = studio;
         world = IrisWorld.builder()
-                .environment(dimension.getEnvironment())
-                .worldFolder(new File(worldName))
-                .seed(seed)
-                .maxHeight(256)
-                .minHeight(0)
-                .name(worldName)
-                .build();
+            .environment(dimension.getEnvironment())
+            .worldFolder(new File(worldName))
+            .seed(seed)
+            .maxHeight(dimension.getMaxHeight())
+            .minHeight(dimension.getMinHeight())
+            .name(worldName)
+            .build();
         world.worldFolder().mkdirs();
         new File(world.worldFolder(), "region").mkdirs();
 
-        if (!studio && !new File(world.worldFolder(), "iris/pack").exists()) {
+        if(!studio && !new File(world.worldFolder(), "iris/pack").exists()) {
             Iris.service(StudioSVC.class).installIntoWorld(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag("Headless")), dimension.getLoadKey(), world.worldFolder());
         }
     }
 
     public static HeadlessWorld from(World world) {
         return new HeadlessWorld(world.getName(), IrisToolbelt.access(world)
-                .getEngine().getTarget().getDimension(), world.getSeed());
+            .getEngine().getTarget().getDimension(), world.getSeed());
     }
 
     public static HeadlessWorld from(String name, String dimension, long seed) {
@@ -78,13 +78,13 @@ public class HeadlessWorld {
     public HeadlessGenerator generate() {
         Engine e = null;
 
-        if (getWorld().tryGetRealWorld()) {
-            if (IrisToolbelt.isIrisWorld(getWorld().realWorld())) {
+        if(getWorld().tryGetRealWorld()) {
+            if(IrisToolbelt.isIrisWorld(getWorld().realWorld())) {
                 e = IrisToolbelt.access(getWorld().realWorld()).getEngine();
             }
         }
 
-        if (e != null) {
+        if(e != null) {
             Iris.info("Using Existing Engine " + getWorld().name() + " for Headless Pregeneration.");
         }
 
@@ -93,11 +93,11 @@ public class HeadlessWorld {
 
     public World load() {
         World w = new WorldCreator(worldName)
-                .environment(dimension.getEnvironment())
-                .seed(world.getRawWorldSeed())
-                .generator(new BukkitChunkGenerator(world, studio, dimension.getLoader().getDataFolder(),
-                        dimension.getLoadKey()))
-                .createWorld();
+            .environment(dimension.getEnvironment())
+            .seed(world.getRawWorldSeed())
+            .generator(new BukkitChunkGenerator(world, studio, dimension.getLoader().getDataFolder(),
+                dimension.getLoadKey()))
+            .createWorld();
         world.realWorld(w);
         return w;
     }

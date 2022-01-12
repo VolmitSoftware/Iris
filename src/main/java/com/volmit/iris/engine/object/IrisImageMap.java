@@ -20,21 +20,13 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.core.project.SchemaBuilder;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.mantle.MantleWriter;
-import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Snippet;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
-import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -72,26 +64,23 @@ public class IrisImageMap {
 
     private transient AtomicCache<IrisImage> imageCache = new AtomicCache<IrisImage>();
 
-    public double getNoise(IrisData data, int x, int z)
-    {
+    public double getNoise(IrisData data, int x, int z) {
         IrisImage i = imageCache.aquire(() -> data.getImageLoader().load(image));
-        if(i == null)
-        {
+        if(i == null) {
             Iris.error("NULL IMAGE FOR " + image);
         }
 
-        return IrisInterpolation.getNoise(interpolationMethod, x, z, coordinateScale, (xx,zz) -> rawNoise(i, xx, zz));
+        return IrisInterpolation.getNoise(interpolationMethod, x, z, coordinateScale, (xx, zz) -> rawNoise(i, xx, zz));
     }
 
-    private double rawNoise(IrisImage i, double x, double z)
-    {
+    private double rawNoise(IrisImage i, double x, double z) {
         x /= coordinateScale;
         z /= coordinateScale;
         x = isCentered() ? x + ((i.getWidth() / 2D) * coordinateScale) : x;
         z = isCentered() ? z + ((i.getHeight() / 2D) * coordinateScale) : z;
         x = isTiled() ? x % i.getWidth() : x;
         z = isTiled() ? z % i.getHeight() : z;
-        double v = i.getValue(getChannel(), (int)x, (int)z);
+        double v = i.getValue(getChannel(), (int) x, (int) z);
         return isInverted() ? 1D - v : v;
     }
 }

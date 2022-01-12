@@ -35,7 +35,7 @@ public interface Palette<T> {
     int size();
 
     default int bits() {
-        return DataContainer.bits(size()+1);
+        return DataContainer.bits(size() + 1);
     }
 
     void iterate(Consumer2<T, Integer> c);
@@ -44,14 +44,14 @@ public interface Palette<T> {
         iterate((a, b) -> {
             try {
                 c.accept(a, b);
-            } catch (IOException e) {
+            } catch(IOException e) {
                 e.printStackTrace();
             }
         });
     }
 
     default Palette<T> from(int size, Writable<T> writable, DataInputStream in) throws IOException {
-        for (int i = 0; i < size; i++) {
+        for(int i = 0; i < size; i++) {
             add(writable.readNodeData(in));
         }
 

@@ -49,14 +49,14 @@ public class IrisFluidBodies {
 
     @BlockCoordinates
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
-        if (rivers.isNotEmpty()) {
-            for (IrisRiver i : rivers) {
+        if(rivers.isNotEmpty()) {
+            for(IrisRiver i : rivers) {
                 i.generate(writer, rng, engine, x, y, z);
             }
         }
 
-        if (lakes.isNotEmpty()) {
-            for (IrisLake i : lakes) {
+        if(lakes.isNotEmpty()) {
+            for(IrisLake i : lakes) {
                 i.generate(writer, rng, engine, x, y, z);
             }
         }
@@ -65,11 +65,11 @@ public class IrisFluidBodies {
     public int getMaxRange(IrisData data) {
         int max = 0;
 
-        for (IrisRiver i : rivers) {
+        for(IrisRiver i : rivers) {
             max = Math.max(max, i.getSize(data));
         }
 
-        for (IrisLake i : lakes) {
+        for(IrisLake i : lakes) {
             max = Math.max(max, i.getSize(data));
         }
 

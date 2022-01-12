@@ -32,9 +32,9 @@ public class GeneratorContextHandler implements DecreeContextHandler<IrisGenerat
 
     @Override
     public IrisGenerator handle(VolmitSender sender) {
-        if (sender.isPlayer()
-                && IrisToolbelt.isIrisWorld(sender.player().getWorld())
-                && IrisToolbelt.access(sender.player().getWorld()).getEngine() != null) {
+        if(sender.isPlayer()
+            && IrisToolbelt.isIrisWorld(sender.player().getWorld())
+            && IrisToolbelt.access(sender.player().getWorld()).getEngine() != null) {
             Engine engine = IrisToolbelt.access(sender.player().getWorld()).getEngine();
             return engine.getData().getGeneratorLoader().load(engine.getBiome(sender.player().getLocation()).getGenerators().getRandom().getGenerator());
         }

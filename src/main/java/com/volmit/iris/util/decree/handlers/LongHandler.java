@@ -37,7 +37,7 @@ public class LongHandler implements DecreeParameterHandler<Long> {
             AtomicReference<String> r = new AtomicReference<>(in);
             double m = getMultiplier(r);
             return (long) (Long.valueOf(r.get()).doubleValue() * m);
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             throw new DecreeParsingException("Unable to parse long \"" + in + "\"");
         }
     }

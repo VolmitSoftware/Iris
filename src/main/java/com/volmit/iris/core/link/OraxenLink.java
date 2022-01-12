@@ -44,22 +44,22 @@ public class OraxenLink {
     }
 
     public BlockData getBlockDataFor(String id) {
-        if (!supported()) {
+        if(!supported()) {
             return null;
         }
 
         MechanicFactory f = getFactory(id);
 
-        if (f == null) {
+        if(f == null) {
             return null;
         }
 
         Mechanic m = f.getMechanic(id);
 
         // TODO: Why isnt there a simple getBlockData() function?
-        if (m.getFactory() instanceof NoteBlockMechanicFactory) {
+        if(m.getFactory() instanceof NoteBlockMechanicFactory) {
             return ((NoteBlockMechanicFactory) m.getFactory()).createNoteBlockData(id);
-        } else if (m.getFactory() instanceof BlockMechanicFactory) {
+        } else if(m.getFactory() instanceof BlockMechanicFactory) {
             MultipleFacing newBlockData = (MultipleFacing) Bukkit.createBlockData(Material.MUSHROOM_STEM);
             Utils.setBlockFacing(newBlockData, ((BlockMechanic) m).getCustomVariation());
             return newBlockData;
@@ -69,7 +69,7 @@ public class OraxenLink {
     }
 
     public MechanicFactory getFactory(String id) {
-        if (!supported()) {
+        if(!supported()) {
             return null;
         }
 
@@ -78,12 +78,12 @@ public class OraxenLink {
             f.setAccessible(true);
             Map<String, MechanicFactory> map = (Map<String, MechanicFactory>) f.get(null);
 
-            for (MechanicFactory i : map.values()) {
-                if (i.getItems().contains(id)) {
+            for(MechanicFactory i : map.values()) {
+                if(i.getItems().contains(id)) {
                     return i;
                 }
             }
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             e.printStackTrace();
         }
 
@@ -91,14 +91,14 @@ public class OraxenLink {
     }
 
     public String[] getItemTypes() {
-        if (!supported()) {
+        if(!supported()) {
             return EMPTY;
         }
 
         KList<String> v = new KList<>();
 
-        for (String i : OraxenItems.getItemNames()) {
-            if (getBlockDataFor(i) != null) {
+        for(String i : OraxenItems.getItemNames()) {
+            if(getBlockDataFor(i) != null) {
                 v.add(i);
             }
         }

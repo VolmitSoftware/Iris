@@ -60,10 +60,10 @@ public class ConversionSVC implements IrisService {
         converters = new KList<>();
 
         J.s(() ->
-                J.attemptAsync(() ->
-                {
+            J.attemptAsync(() ->
+            {
 
-                }), 5);
+            }), 5);
     }
 
     @Override
@@ -84,13 +84,13 @@ public class ConversionSVC implements IrisService {
         destPools.mkdirs();
         findAllNBT(in, (folder, file) -> {
             total.getAndIncrement();
-            if (roots.addIfMissing(folder)) {
+            if(roots.addIfMissing(folder)) {
                 String b = in.toURI().relativize(folder.toURI()).getPath();
-                if (b.startsWith("/")) {
+                if(b.startsWith("/")) {
                     b = b.substring(1);
                 }
 
-                if (b.endsWith("/")) {
+                if(b.endsWith("/")) {
                     b = b.substring(0, b.length() - 1);
                 }
 
@@ -100,11 +100,11 @@ public class ConversionSVC implements IrisService {
         findAllNBT(in, (folder, file) -> {
             at.getAndIncrement();
             String b = in.toURI().relativize(folder.toURI()).getPath();
-            if (b.startsWith("/")) {
+            if(b.startsWith("/")) {
                 b = b.substring(1);
             }
 
-            if (b.endsWith("/")) {
+            if(b.endsWith("/")) {
                 b = b.substring(0, b.length() - 1);
             }
             IrisJigsawPool jpool = pools.get(b);
@@ -117,7 +117,7 @@ public class ConversionSVC implements IrisService {
                 NamedTag tag = NBTUtil.read(file);
                 CompoundTag compound = (CompoundTag) tag.getTag();
 
-                if (compound.containsKey("blocks") && compound.containsKey("palette") && compound.containsKey("size")) {
+                if(compound.containsKey("blocks") && compound.containsKey("palette") && compound.containsKey("size")) {
                     String id = in.toURI().relativize(folder.toURI()).getPath() + file.getName().split("\\Q.\\E")[0];
                     @SuppressWarnings("unchecked") ListTag<IntTag> size = (ListTag<IntTag>) compound.getListTag("size");
                     int w = size.get(0).asInt();
@@ -125,14 +125,14 @@ public class ConversionSVC implements IrisService {
                     int d = size.get(2).asInt();
                     KList<BlockData> palette = new KList<>();
                     @SuppressWarnings("unchecked") ListTag<CompoundTag> paletteList = (ListTag<CompoundTag>) compound.getListTag("palette");
-                    for (int i = 0; i < paletteList.size(); i++) {
+                    for(int i = 0; i < paletteList.size(); i++) {
                         CompoundTag cp = paletteList.get(i);
                         palette.add(NBTWorld.getBlockData(cp));
                     }
                     IrisJigsawPiece piece = new IrisJigsawPiece();
                     IrisObject object = new IrisObject(w, h, d);
                     @SuppressWarnings("unchecked") ListTag<CompoundTag> blockList = (ListTag<CompoundTag>) compound.getListTag("blocks");
-                    for (int i = 0; i < blockList.size(); i++) {
+                    for(int i = 0; i < blockList.size(); i++) {
                         CompoundTag cp = blockList.get(i);
                         @SuppressWarnings("unchecked") ListTag<IntTag> pos = (ListTag<IntTag>) cp.getListTag("pos");
                         int x = pos.get(0).asInt();
@@ -140,7 +140,7 @@ public class ConversionSVC implements IrisService {
                         int z = pos.get(2).asInt();
                         BlockData bd = palette.get(cp.getInt("state")).clone();
 
-                        if (bd.getMaterial().equals(Material.JIGSAW) && cp.containsKey("nbt")) {
+                        if(bd.getMaterial().equals(Material.JIGSAW) && cp.containsKey("nbt")) {
                             piece.setObject(in.toURI().relativize(folder.toURI()).getPath() + file.getName().split("\\Q.\\E")[0]);
                             IrisPosition spos = new IrisPosition(object.getSigned(x, y, z));
                             CompoundTag nbt = cp.getCompoundTag("nbt");
@@ -162,14 +162,14 @@ public class ConversionSVC implements IrisService {
                             connector.getPools().add(poolId);
                             connector.setDirection(IrisDirection.getDirection(((Jigsaw) jd).getOrientation()));
 
-                            if (target.equals("minecraft:building_entrance")) {
+                            if(target.equals("minecraft:building_entrance")) {
                                 connector.setInnerConnector(true);
                             }
 
                             piece.getConnectors().add(connector);
                         }
 
-                        if (!bd.getMaterial().equals(Material.STRUCTURE_VOID) && !bd.getMaterial().equals(Material.AIR)) {
+                        if(!bd.getMaterial().equals(Material.STRUCTURE_VOID) && !bd.getMaterial().equals(Material.AIR)) {
                             object.setUnsigned(x, y, z, bd);
                         }
                     }
@@ -179,16 +179,16 @@ public class ConversionSVC implements IrisService {
                     IO.writeAll(new File(destPieces, file.getName().split("\\Q.\\E")[0] + ".json"), new JSONObject(new Gson().toJson(piece)).toString(4));
                     Iris.info("[Jigsaw]: (" + Form.pc((double) at.get() / (double) total.get(), 0) + ") Exported Piece: " + id);
                 }
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 e.printStackTrace();
                 Iris.reportError(e);
             }
         });
 
-        for (String i : pools.k()) {
+        for(String i : pools.k()) {
             try {
                 IO.writeAll(new File(destPools, i + ".json"), new JSONObject(new Gson().toJson(pools.get(i))).toString(4));
-            } catch (IOException e) {
+            } catch(IOException e) {
                 e.printStackTrace();
                 Iris.reportError(e);
             }
@@ -198,19 +198,19 @@ public class ConversionSVC implements IrisService {
     }
 
     public void findAllNBT(File path, Consumer2<File, File> inFile) {
-        if (path == null) {
+        if(path == null) {
             return;
         }
 
-        if (path.isFile() && path.getName().endsWith(".nbt")) {
+        if(path.isFile() && path.getName().endsWith(".nbt")) {
             inFile.accept(path.getParentFile(), path);
             return;
         }
 
-        for (File i : path.listFiles()) {
-            if (i.isDirectory()) {
+        for(File i : path.listFiles()) {
+            if(i.isDirectory()) {
                 findAllNBT(i, inFile);
-            } else if (i.isFile() && i.getName().endsWith(".nbt")) {
+            } else if(i.isFile() && i.getName().endsWith(".nbt")) {
                 inFile.accept(path, i);
             }
         }
@@ -220,9 +220,9 @@ public class ConversionSVC implements IrisService {
         int m = 0;
         Iris.instance.getDataFolder("convert");
 
-        for (File i : folder.listFiles()) {
-            for (Converter j : converters) {
-                if (i.getName().endsWith("." + j.getInExtension())) {
+        for(File i : folder.listFiles()) {
+            for(Converter j : converters) {
+                if(i.getName().endsWith("." + j.getInExtension())) {
                     File out = new File(folder, i.getName().replaceAll("\\Q." + j.getInExtension() + "\\E", "." + j.getOutExtension()));
                     m++;
                     j.convert(i, out);
@@ -230,10 +230,10 @@ public class ConversionSVC implements IrisService {
                 }
             }
 
-            if (i.isDirectory() && i.getName().equals("structures")) {
+            if(i.isDirectory() && i.getName().equals("structures")) {
                 File f = new File(folder, "jigsaw");
 
-                if (!f.exists()) {
+                if(!f.exists()) {
                     s.sendMessage("Converting NBT Structures into Iris Jigsaw Structures...");
                     f.mkdirs();
                     J.a(() -> convertStructures(i, f, s));

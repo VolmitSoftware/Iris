@@ -28,7 +28,7 @@ public abstract class StorageHunk<T> implements Hunk<T> {
     private final int depth;
 
     public StorageHunk(int width, int height, int depth) {
-        if (width <= 0 || height <= 0 || depth <= 0) {
+        if(width <= 0 || height <= 0 || depth <= 0) {
             throw new RuntimeException("Unsupported size " + width + " " + height + " " + depth);
         }
 

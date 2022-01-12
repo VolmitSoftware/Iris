@@ -70,10 +70,10 @@ public class Position2 {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) {
+        if(this == obj) {
             return true;
         }
-        if (!(obj instanceof Position2 other)) {
+        if(!(obj instanceof Position2 other)) {
             return false;
         }
         return x == other.x && z == other.z;

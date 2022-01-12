@@ -21,8 +21,6 @@ package com.volmit.iris.util.decree.handlers;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.object.IrisCave;
-import com.volmit.iris.engine.object.IrisJigsawPiece;
-import com.volmit.iris.engine.object.IrisJigsawPool;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.decree.DecreeParameterHandler;
@@ -37,10 +35,10 @@ public class CaveHandler implements DecreeParameterHandler<IrisCave> {
         KMap<String, IrisCave> p = new KMap<>();
 
         //noinspection ConstantConditions
-        for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
-            if (i.isDirectory()) {
+        for(File i : Iris.instance.getDataFolder("packs").listFiles()) {
+            if(i.isDirectory()) {
                 IrisData data = IrisData.get(i);
-                for (IrisCave j : data.getCaveLoader().loadAll(data.getCaveLoader().getPossibleKeys())) {
+                for(IrisCave j : data.getCaveLoader().loadAll(data.getCaveLoader().getPossibleKeys())) {
                     p.putIfAbsent(j.getLoadKey(), j);
                 }
 
@@ -58,16 +56,17 @@ public class CaveHandler implements DecreeParameterHandler<IrisCave> {
 
     @Override
     public IrisCave parse(String in, boolean force) throws DecreeParsingException {
-        if (in.equals("null")) {
+        if(in.equals("null")) {
             return null;
         }
         KList<IrisCave> options = getPossibilities(in);
 
-        if (options.isEmpty()) {
+        if(options.isEmpty()) {
             throw new DecreeParsingException("Unable to find Cave \"" + in + "\"");
-        }try {
+        }
+        try {
             return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             throw new DecreeParsingException("Unable to filter which Cave\"" + in + "\"");
         }
     }

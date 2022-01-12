@@ -70,8 +70,8 @@ public class ShurikenQueue<T> implements Queue<T> {
     public KList<T> next(int amt) {
         KList<T> t = new KList<>();
 
-        for (int i = 0; i < amt; i++) {
-            if (!hasNext()) {
+        for(int i = 0; i < amt; i++) {
+            if(!hasNext()) {
                 break;
             }
 

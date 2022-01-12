@@ -51,17 +51,18 @@ public class IrisToolbelt {
      * - GithubUsername/repository
      * - GithubUsername/repository/branch
      *
-     * @param dimension the dimension id such as overworld or flat
+     * @param dimension
+     *     the dimension id such as overworld or flat
      * @return the IrisDimension or null
      */
     public static IrisDimension getDimension(String dimension) {
         File pack = Iris.instance.getDataFolder("packs", dimension);
 
-        if (!pack.exists()) {
+        if(!pack.exists()) {
             Iris.service(StudioSVC.class).downloadSearch(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), dimension, false, false);
         }
 
-        if (!pack.exists()) {
+        if(!pack.exists()) {
             return null;
         }
 
@@ -80,15 +81,16 @@ public class IrisToolbelt {
     /**
      * Checks if the given world is an Iris World (same as access(world) != null)
      *
-     * @param world the world
+     * @param world
+     *     the world
      * @return true if it is an Iris Access world
      */
     public static boolean isIrisWorld(World world) {
-        if (world == null) {
+        if(world == null) {
             return false;
         }
 
-        if (world.getGenerator() instanceof PlatformChunkGenerator f) {
+        if(world.getGenerator() instanceof PlatformChunkGenerator f) {
             f.touch(world);
             return true;
         }
@@ -103,11 +105,12 @@ public class IrisToolbelt {
     /**
      * Get the Iris generator for the given world
      *
-     * @param world the given world
+     * @param world
+     *     the given world
      * @return the IrisAccess or null if it's not an Iris World
      */
     public static PlatformChunkGenerator access(World world) {
-        if (isIrisWorld(world)) {
+        if(isIrisWorld(world)) {
             return ((PlatformChunkGenerator) world.getGenerator());
         }
 
@@ -117,8 +120,10 @@ public class IrisToolbelt {
     /**
      * Start a pregenerator task
      *
-     * @param task   the scheduled task
-     * @param method the method to execute the task
+     * @param task
+     *     the scheduled task
+     * @param method
+     *     the method to execute the task
      * @return the pregenerator job (already started)
      */
     public static PregeneratorJob pregenerate(PregenTask task, PregeneratorMethod method, Engine engine) {
@@ -129,29 +134,33 @@ public class IrisToolbelt {
      * Start a pregenerator task. If the supplied generator is headless, headless mode is used,
      * otherwise Hybrid mode is used.
      *
-     * @param task the scheduled task
-     * @param gen  the Iris Generator
+     * @param task
+     *     the scheduled task
+     * @param gen
+     *     the Iris Generator
      * @return the pregenerator job (already started)
      */
     public static PregeneratorJob pregenerate(PregenTask task, PlatformChunkGenerator gen) {
-        if (gen.isHeadless()) {
+        if(gen.isHeadless()) {
             return pregenerate(task, new HeadlessPregenMethod(((HeadlessGenerator) gen).getWorld(), (HeadlessGenerator) gen), gen.getEngine());
         }
 
         return pregenerate(task, new HybridPregenMethod(gen.getEngine().getWorld().realWorld(),
-                IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())), gen.getEngine());
+            IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())), gen.getEngine());
     }
 
     /**
      * Start a pregenerator task. If the supplied generator is headless, headless mode is used,
      * otherwise Hybrid mode is used.
      *
-     * @param task  the scheduled task
-     * @param world the World
+     * @param task
+     *     the scheduled task
+     * @param world
+     *     the World
      * @return the pregenerator job (already started)
      */
     public static PregeneratorJob pregenerate(PregenTask task, World world) {
-        if (isIrisWorld(world)) {
+        if(isIrisWorld(world)) {
             return pregenerate(task, access(world));
         }
 
@@ -162,12 +171,13 @@ public class IrisToolbelt {
      * Evacuate all players from the world into literally any other world.
      * If there are no other worlds, kick them! Not the best but what's mine is mine sometimes...
      *
-     * @param world the world to evac
+     * @param world
+     *     the world to evac
      */
     public static boolean evacuate(World world) {
-        for (World i : Bukkit.getWorlds()) {
-            if (!i.getName().equals(world.getName())) {
-                for (Player j : world.getPlayers()) {
+        for(World i : Bukkit.getWorlds()) {
+            if(!i.getName().equals(world.getName())) {
+                for(Player j : world.getPlayers()) {
                     new VolmitSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world.");
                     j.teleport(i.getSpawnLocation());
                 }
@@ -182,14 +192,16 @@ public class IrisToolbelt {
     /**
      * Evacuate all players from the world
      *
-     * @param world the world to leave
-     * @param m     the message
+     * @param world
+     *     the world to leave
+     * @param m
+     *     the message
      * @return true if it was evacuated.
      */
     public static boolean evacuate(World world, String m) {
-        for (World i : Bukkit.getWorlds()) {
-            if (!i.getName().equals(world.getName())) {
-                for (Player j : world.getPlayers()) {
+        for(World i : Bukkit.getWorlds()) {
+            if(!i.getName().equals(world.getName())) {
+                for(Player j : world.getPlayers()) {
                     new VolmitSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world. " + m);
                     j.teleport(i.getSpawnLocation());
                 }

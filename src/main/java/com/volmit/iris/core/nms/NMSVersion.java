@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public enum NMSVersion {
+    R1_18,
+    R1_17,
     R1_16,
     R1_15,
     R1_14,
@@ -45,48 +47,56 @@ public enum NMSVersion {
     }
 
     public static NMSVersion current() {
-        if (tryVersion("1_8_R3")) {
+        if(tryVersion("1_8_R3")) {
             return R1_8;
         }
 
-        if (tryVersion("1_9_R1")) {
+        if(tryVersion("1_9_R1")) {
             return R1_9_2;
         }
 
-        if (tryVersion("1_9_R2")) {
+        if(tryVersion("1_9_R2")) {
             return R1_9_4;
         }
 
-        if (tryVersion("1_10_R1")) {
+        if(tryVersion("1_10_R1")) {
             return R1_10;
         }
 
-        if (tryVersion("1_11_R1")) {
+        if(tryVersion("1_11_R1")) {
             return R1_11;
         }
 
-        if (tryVersion("1_12_R1")) {
+        if(tryVersion("1_12_R1")) {
             return R1_12;
         }
 
-        if (tryVersion("1_13_R1")) {
+        if(tryVersion("1_13_R1")) {
             return R1_13;
         }
 
-        if (tryVersion("1_13_R2")) {
+        if(tryVersion("1_13_R2")) {
             return R1_13_1;
         }
 
-        if (tryVersion("1_14_R1")) {
+        if(tryVersion("1_14_R1")) {
             return R1_14;
         }
 
-        if (tryVersion("1_15_R1")) {
+        if(tryVersion("1_15_R1")) {
             return R1_15;
         }
 
-        if (tryVersion("1_16_R1")) {
+        if(tryVersion("1_16_R1")) {
             return R1_16;
+        }
+
+        if(tryVersion("1_17_R1")) {
+            return R1_17;
+        }
+
+        if(tryVersion("1_18_R1")) {
+            return R1_18;
         }
         return null;
     }
@@ -95,7 +105,7 @@ public enum NMSVersion {
         try {
             Class.forName("org.bukkit.craftbukkit.v" + v + ".CraftWorld");
             return true;
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
 
         }
@@ -106,8 +116,8 @@ public enum NMSVersion {
     public List<NMSVersion> getAboveInclusive() {
         List<NMSVersion> n = new ArrayList<>();
 
-        for (NMSVersion i : values()) {
-            if (i.ordinal() >= ordinal()) {
+        for(NMSVersion i : values()) {
+            if(i.ordinal() >= ordinal()) {
                 n.add(i);
             }
         }
@@ -118,8 +128,8 @@ public enum NMSVersion {
     public List<NMSVersion> betweenInclusive(NMSVersion other) {
         List<NMSVersion> n = new ArrayList<>();
 
-        for (NMSVersion i : values()) {
-            if (i.ordinal() <= Math.max(other.ordinal(), ordinal()) && i.ordinal() >= Math.min(ordinal(), other.ordinal())) {
+        for(NMSVersion i : values()) {
+            if(i.ordinal() <= Math.max(other.ordinal(), ordinal()) && i.ordinal() >= Math.min(ordinal(), other.ordinal())) {
                 n.add(i);
             }
         }
@@ -130,8 +140,8 @@ public enum NMSVersion {
     public List<NMSVersion> getBelowInclusive() {
         List<NMSVersion> n = new ArrayList<>();
 
-        for (NMSVersion i : values()) {
-            if (i.ordinal() <= ordinal()) {
+        for(NMSVersion i : values()) {
+            if(i.ordinal() <= ordinal()) {
                 n.add(i);
             }
         }

@@ -42,12 +42,12 @@ public class DolphinSVC implements IrisService {
      */
     @EventHandler
     public void on(PlayerInteractEntityEvent event) {
-        if (!IrisToolbelt.isIrisWorld(event.getPlayer().getWorld())) {
+        if(!IrisToolbelt.isIrisWorld(event.getPlayer().getWorld())) {
             return;
         }
 
         Material hand = event.getPlayer().getInventory().getItem(event.getHand()).getType();
-        if (event.getRightClicked().getType().equals(EntityType.DOLPHIN) && (hand.equals(Material.TROPICAL_FISH) || hand.equals(Material.PUFFERFISH) || hand.equals(Material.COD) || hand.equals(Material.SALMON))) {
+        if(event.getRightClicked().getType().equals(EntityType.DOLPHIN) && (hand.equals(Material.TROPICAL_FISH) || hand.equals(Material.PUFFERFISH) || hand.equals(Material.COD) || hand.equals(Material.SALMON))) {
             event.setCancelled(true);
         }
     }

@@ -42,7 +42,7 @@ public class JobCollection implements Job {
 
     @Override
     public void execute() {
-        for (Job i : jobs) {
+        for(Job i : jobs) {
             status = i.getName();
             i.execute();
         }

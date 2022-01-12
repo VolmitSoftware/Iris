@@ -42,29 +42,29 @@ public class ChunkDataHunkView implements Hunk<BlockData> {
 
     @Override
     public int getHeight() {
-        return chunk.getMaxHeight();
+        return chunk.getMaxHeight() - chunk.getMinHeight();
     }
 
     @Override
     public void set(int x1, int y1, int z1, int x2, int y2, int z2, BlockData t) {
-        if (t == null) {
+        if(t == null) {
             return;
         }
 
-        chunk.setRegion(x1, y1, z1, x2, y2, z2, t);
+        chunk.setRegion(x1, y1 + chunk.getMinHeight(), z1, x2, y2 + chunk.getMinHeight(), z2, t);
     }
 
     @Override
     public void setRaw(int x, int y, int z, BlockData t) {
-        if (t == null) {
+        if(t == null) {
             return;
         }
 
-        chunk.setBlock(x, y, z, t);
+        chunk.setBlock(x, y + chunk.getMinHeight(), z, t);
     }
 
     @Override
     public BlockData getRaw(int x, int y, int z) {
-        return chunk.getBlockData(x, y, z);
+        return chunk.getBlockData(x, y + chunk.getMinHeight(), z);
     }
 }

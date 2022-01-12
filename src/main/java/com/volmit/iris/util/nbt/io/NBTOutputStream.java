@@ -74,7 +74,7 @@ public class NBTOutputStream extends DataOutputStream implements MaxDepthIO {
 
     static byte idFromClass(Class<?> clazz) {
         Byte id = classIdMapping.get(clazz);
-        if (id == null) {
+        if(id == null) {
             throw new IllegalArgumentException("unknown Tag class " + clazz.getName());
         }
         return id;
@@ -115,14 +115,14 @@ public class NBTOutputStream extends DataOutputStream implements MaxDepthIO {
 
     private static void writeIntArray(NBTOutputStream out, Tag<?> tag) throws IOException {
         out.writeInt(((IntArrayTag) tag).length());
-        for (int i : ((IntArrayTag) tag).getValue()) {
+        for(int i : ((IntArrayTag) tag).getValue()) {
             out.writeInt(i);
         }
     }
 
     private static void writeLongArray(NBTOutputStream out, Tag<?> tag) throws IOException {
         out.writeInt(((LongArrayTag) tag).length());
-        for (long l : ((LongArrayTag) tag).getValue()) {
+        for(long l : ((LongArrayTag) tag).getValue()) {
             out.writeLong(l);
         }
     }
@@ -130,14 +130,14 @@ public class NBTOutputStream extends DataOutputStream implements MaxDepthIO {
     private static void writeList(NBTOutputStream out, Tag<?> tag, int maxDepth) throws IOException {
         out.writeByte(idFromClass(((ListTag<?>) tag).getTypeClass()));
         out.writeInt(((ListTag<?>) tag).size());
-        for (Tag<?> t : ((ListTag<?>) tag)) {
+        for(Tag<?> t : ((ListTag<?>) tag)) {
             out.writeRawTag(t, out.decrementMaxDepth(maxDepth));
         }
     }
 
     private static void writeCompound(NBTOutputStream out, Tag<?> tag, int maxDepth) throws IOException {
-        for (Map.Entry<String, Tag<?>> entry : (CompoundTag) tag) {
-            if (entry.getValue().getID() == 0) {
+        for(Map.Entry<String, Tag<?>> entry : (CompoundTag) tag) {
+            if(entry.getValue().getID() == 0) {
                 throw new IOException("end tag not allowed");
             }
             out.writeByte(entry.getValue().getID());
@@ -149,7 +149,7 @@ public class NBTOutputStream extends DataOutputStream implements MaxDepthIO {
 
     public void writeTag(NamedTag tag, int maxDepth) throws IOException {
         writeByte(tag.getTag().getID());
-        if (tag.getTag().getID() != 0) {
+        if(tag.getTag().getID() != 0) {
             writeUTF(tag.getName() == null ? "" : tag.getName());
         }
         writeRawTag(tag.getTag(), maxDepth);
@@ -157,7 +157,7 @@ public class NBTOutputStream extends DataOutputStream implements MaxDepthIO {
 
     public void writeTag(Tag<?> tag, int maxDepth) throws IOException {
         writeByte(tag.getID());
-        if (tag.getID() != 0) {
+        if(tag.getID() != 0) {
             writeUTF("");
         }
         writeRawTag(tag, maxDepth);
@@ -165,7 +165,7 @@ public class NBTOutputStream extends DataOutputStream implements MaxDepthIO {
 
     public void writeRawTag(Tag<?> tag, int maxDepth) throws IOException {
         ExceptionTriConsumer<NBTOutputStream, Tag<?>, Integer, IOException> f;
-        if ((f = writers.get(tag.getID())) == null) {
+        if((f = writers.get(tag.getID())) == null) {
             throw new IOException("invalid tag \"" + tag.getID() + "\"");
         }
         f.accept(this, tag, maxDepth);

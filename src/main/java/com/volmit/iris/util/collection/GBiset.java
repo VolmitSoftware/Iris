@@ -24,8 +24,10 @@ import java.io.Serializable;
 /**
  * A Biset
  *
- * @param <A> the first object type
- * @param <B> the second object type
+ * @param <A>
+ *     the first object type
+ * @param <B>
+ *     the second object type
  * @author cyberpwn
  */
 @SuppressWarnings("hiding")
@@ -37,8 +39,10 @@ public class GBiset<A, B> implements Serializable {
     /**
      * Create a new Biset
      *
-     * @param a the first object
-     * @param b the second object
+     * @param a
+     *     the first object
+     * @param b
+     *     the second object
      */
     public GBiset(A a, B b) {
         this.a = a;
@@ -57,7 +61,8 @@ public class GBiset<A, B> implements Serializable {
     /**
      * Set the first object
      *
-     * @param a the first object A
+     * @param a
+     *     the first object A
      */
     public void setA(A a) {
         this.a = a;

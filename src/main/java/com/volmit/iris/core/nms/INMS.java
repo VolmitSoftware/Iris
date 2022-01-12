@@ -20,7 +20,7 @@ package com.volmit.iris.core.nms;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.nms.v17_1.NMSBinding17_1;
+import com.volmit.iris.core.nms.v18_1.NMSBinding18_1;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.util.collection.KMap;
 import org.bukkit.Bukkit;
@@ -28,7 +28,7 @@ import org.bukkit.Bukkit;
 public class INMS {
     //@builder
     private static final KMap<String, Class<? extends INMSBinding>> bindings = new KMap<String, Class<? extends INMSBinding>>()
-            .qput("v1_17_R1", NMSBinding17_1.class);
+        .qput("v1_18_R1", NMSBinding18_1.class);
     //@done
     private static final INMSBinding binding = bind();
 
@@ -37,13 +37,13 @@ public class INMS {
     }
 
     public static final String getNMSTag() {
-        if (IrisSettings.get().getGeneral().isDisableNMS()) {
+        if(IrisSettings.get().getGeneral().isDisableNMS()) {
             return "BUKKIT";
         }
 
         try {
             return Bukkit.getServer().getClass().getCanonicalName().split("\\Q.\\E")[3];
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             Iris.error("Failed to determine server nms version!");
             e.printStackTrace();
@@ -56,13 +56,13 @@ public class INMS {
         String code = getNMSTag();
         Iris.info("Locating NMS Binding for " + code);
 
-        if (bindings.containsKey(code)) {
+        if(bindings.containsKey(code)) {
             try {
                 INMSBinding b = bindings.get(code).getConstructor().newInstance();
                 Iris.info("Craftbukkit " + code + " <-> " + b.getClass().getSimpleName() + " Successfully Bound");
 
                 return b;
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 Iris.reportError(e);
                 e.printStackTrace();
             }

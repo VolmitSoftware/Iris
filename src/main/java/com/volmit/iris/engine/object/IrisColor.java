@@ -55,7 +55,7 @@ public class IrisColor {
     private int blue = 0;
 
     public static Color blend(Color... c) {
-        if (c == null || c.length <= 0) {
+        if(c == null || c.length <= 0) {
             return null;
         }
         float ratio = 1f / ((float) c.length);
@@ -65,7 +65,7 @@ public class IrisColor {
         int g = 0;
         int b = 0;
 
-        for (Color value : c) {
+        for(Color value : c) {
             int rgb = value.getRGB();
             int a1 = (rgb >> 24 & 0xff);
             int r1 = ((rgb & 0xff0000) >> 16);
@@ -82,11 +82,11 @@ public class IrisColor {
 
     public Color getColor() {
         return color.aquire(() -> {
-            if (hex != null) {
+            if(hex != null) {
                 String v = (hex.startsWith("#") ? hex : "#" + hex).trim();
                 try {
                     return Color.decode(v);
-                } catch (Throwable e) {
+                } catch(Throwable e) {
                     Iris.reportError(e);
 
                 }
@@ -101,11 +101,11 @@ public class IrisColor {
     }
 
     public int getAsRGB() {
-        if (hex != null) {
+        if(hex != null) {
             try {
-                if (hex.startsWith("#")) hex = hex.substring(1);
+                if(hex.startsWith("#")) hex = hex.substring(1);
                 return Integer.parseInt(hex, 16);
-            } catch (NumberFormatException e) {
+            } catch(NumberFormatException e) {
                 return 0;
             }
         }

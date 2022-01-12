@@ -44,11 +44,11 @@ public class KCache<K, V> implements MeteredCache {
 
     private LoadingCache<K, V> create(CacheLoader<K, V> loader) {
         return Caffeine
-                .newBuilder()
-                .maximumSize(max)
-                .softValues()
-                .initialCapacity((int) (max))
-                .build((k) -> loader == null ? null : loader.load(k));
+            .newBuilder()
+            .maximumSize(max)
+            .softValues()
+            .initialCapacity((int) (max))
+            .build((k) -> loader == null ? null : loader.load(k));
     }
 
 

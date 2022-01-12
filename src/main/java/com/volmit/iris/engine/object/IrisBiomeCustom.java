@@ -102,7 +102,7 @@ public class IrisBiomeCustom {
         effects.put("water_color", parseColor(getWaterColor()));
         effects.put("water_fog_color", parseColor(getWaterFogColor()));
 
-        if (ambientParticle != null) {
+        if(ambientParticle != null) {
             JSONObject particle = new JSONObject();
             JSONObject po = new JSONObject();
             po.put("type", ambientParticle.getParticle().name().toLowerCase());
@@ -111,11 +111,11 @@ public class IrisBiomeCustom {
             effects.put("particle", particle);
         }
 
-        if (!getGrassColor().isEmpty()) {
+        if(!getGrassColor().isEmpty()) {
             effects.put("grass_color", parseColor(getGrassColor()));
         }
 
-        if (!getFoliageColor().isEmpty()) {
+        if(!getFoliageColor().isEmpty()) {
             effects.put("foliage_color", parseColor(getFoliageColor()));
         }
 
@@ -135,15 +135,15 @@ public class IrisBiomeCustom {
         j.put("carvers", new JSONObject());
         j.put("features", new JSONArray());
 
-        if (spawnRarity > 0) {
+        if(spawnRarity > 0) {
             j.put("creature_spawn_probability", spawnRarity);
         }
 
-        if (getSpawns() != null && getSpawns().isNotEmpty()) {
+        if(getSpawns() != null && getSpawns().isNotEmpty()) {
             JSONObject spawners = new JSONObject();
             KMap<IrisBiomeCustomSpawnType, JSONArray> groups = new KMap<>();
 
-            for (IrisBiomeCustomSpawn i : getSpawns()) {
+            for(IrisBiomeCustomSpawn i : getSpawns()) {
                 JSONArray g = groups.computeIfAbsent(i.getGroup(), (k) -> new JSONArray());
                 JSONObject o = new JSONObject();
                 o.put("type", "minecraft:" + i.getType().name().toLowerCase());
@@ -153,7 +153,7 @@ public class IrisBiomeCustom {
                 g.put(o);
             }
 
-            for (IrisBiomeCustomSpawnType i : groups.k()) {
+            for(IrisBiomeCustomSpawnType i : groups.k()) {
                 spawners.put(i.name().toLowerCase(Locale.ROOT), groups.get(i));
             }
 
@@ -167,7 +167,7 @@ public class IrisBiomeCustom {
         String v = (c.startsWith("#") ? c : "#" + c).trim();
         try {
             return Color.decode(v).getRGB();
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             Iris.error("Error Parsing '''color''', (" + c + ")");
         }

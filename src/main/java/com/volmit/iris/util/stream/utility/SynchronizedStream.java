@@ -38,14 +38,14 @@ public class SynchronizedStream<T> extends BasicStream<T> {
 
     @Override
     public T get(double x, double z) {
-        synchronized (getTypedSource()) {
+        synchronized(getTypedSource()) {
             return getTypedSource().get(x, z);
         }
     }
 
     @Override
     public T get(double x, double y, double z) {
-        synchronized (getTypedSource()) {
+        synchronized(getTypedSource()) {
             return getTypedSource().get(x, y, z);
         }
     }

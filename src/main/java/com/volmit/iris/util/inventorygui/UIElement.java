@@ -137,7 +137,7 @@ public class UIElement implements Element {
     @Override
     public Element call(ElementEvent event, Element context) {
         try {
-            switch (event) {
+            switch(event) {
                 case DRAG_INTO -> {
                     eDraggedInto.run(context);
                     return this;
@@ -163,10 +163,10 @@ public class UIElement implements Element {
                     return this;
                 }
             }
-        } catch (NullPointerException e) {
+        } catch(NullPointerException e) {
             Iris.reportError(e);
 
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
@@ -211,13 +211,13 @@ public class UIElement implements Element {
             im.setDisplayName(getName());
             im.setLore(getLore().copy());
 
-            if (isEnchanted()) {
+            if(isEnchanted()) {
                 im.addEnchant(Enchantment.DURABILITY, 1, true);
             }
 
             is.setItemMeta(im);
             return is;
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
@@ -238,7 +238,7 @@ public class UIElement implements Element {
 
     @Override
     public short getEffectiveDurability() {
-        if (getMaterial().getMaterial().getMaxDurability() == 0) {
+        if(getMaterial().getMaterial().getMaxDurability() == 0) {
             return 0;
         } else {
             int prog = (int) ((double) getMaterial().getMaterial().getMaxDurability() * (1D - getProgress()));

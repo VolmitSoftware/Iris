@@ -52,7 +52,7 @@ public class BlockSignal {
             active.decrementAndGet();
             BlockData type = block.getBlockData();
             MultiBurst.burst.lazy(() -> {
-                for (Player i : block.getWorld().getPlayers()) {
+                for(Player i : block.getWorld().getPlayers()) {
                     i.sendBlockChange(block.getLocation(), block.getBlockData());
                 }
             });
@@ -83,7 +83,7 @@ public class BlockSignal {
         new SR(20) {
             @Override
             public void run() {
-                if (e.isDead()) {
+                if(e.isDead()) {
                     cancel();
                     return;
                 }
@@ -99,7 +99,7 @@ public class BlockSignal {
             BlockData type = block.getBlockData();
 
             MultiBurst.burst.lazy(() -> {
-                for (Player i : block.getWorld().getPlayers()) {
+                for(Player i : block.getWorld().getPlayers()) {
                     i.sendBlockChange(block.getLocation(), block.getBlockData());
                 }
             });

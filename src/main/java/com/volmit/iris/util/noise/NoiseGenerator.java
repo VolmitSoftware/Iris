@@ -36,8 +36,7 @@ public interface NoiseGenerator {
         return false;
     }
 
-    default ProceduralStream<Double> stream()
-    {
+    default ProceduralStream<Double> stream() {
         return ProceduralStream.of(this::noise, this::noise, Interpolated.DOUBLE);
     }
 }

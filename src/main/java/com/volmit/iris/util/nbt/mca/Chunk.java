@@ -20,6 +20,7 @@ package com.volmit.iris.util.nbt.mca;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.nbt.io.NBTDeserializer;
 import com.volmit.iris.util.nbt.io.NBTSerializer;
 import com.volmit.iris.util.nbt.io.NamedTag;
@@ -33,13 +34,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.concurrent.atomic.AtomicReferenceArray;
 
 import static com.volmit.iris.util.nbt.mca.LoadFlags.*;
 
 public class Chunk {
     public static final int DEFAULT_DATA_VERSION = 2730;
-    private final AtomicReferenceArray<Section> sections = new AtomicReferenceArray<>(16);
+    private final KMap<Integer, Section> sections = new KMap<>();
     private boolean partial;
     private int lastMCAUpdate;
     private CompoundTag data;
@@ -67,7 +67,8 @@ public class Chunk {
     /**
      * Create a new chunk based on raw base data from a region file.
      *
-     * @param data The raw base data to be used.
+     * @param data
+     *     The raw base data to be used.
      */
     public Chunk(CompoundTag data) {
         this.data = data;
@@ -93,69 +94,69 @@ public class Chunk {
     }
 
     private void initReferences(long loadFlags) {
-        if (data == null) {
+        if(data == null) {
             throw new NullPointerException("data cannot be null");
         }
         CompoundTag level;
-        if ((level = data.getCompoundTag("Level")) == null) {
+        if((level = data.getCompoundTag("Level")) == null) {
             throw new IllegalArgumentException("data does not contain \"Level\" tag");
         }
         dataVersion = data.getInt("DataVersion");
         inhabitedTime = level.getLong("InhabitedTime");
         lastUpdate = level.getLong("LastUpdate");
-        if ((loadFlags & BIOMES) != 0) {
+        if((loadFlags & BIOMES) != 0) {
             biomes = INMS.get().newBiomeContainer(0, 256, level.getIntArray("Biomes"));
         }
-        if ((loadFlags & HEIGHTMAPS) != 0) {
+        if((loadFlags & HEIGHTMAPS) != 0) {
             heightMaps = level.getCompoundTag("Heightmaps");
         }
-        if ((loadFlags & CARVING_MASKS) != 0) {
+        if((loadFlags & CARVING_MASKS) != 0) {
             carvingMasks = level.getCompoundTag("CarvingMasks");
         }
-        if ((loadFlags & ENTITIES) != 0) {
+        if((loadFlags & ENTITIES) != 0) {
             entities = level.containsKey("Entities") ? level.getListTag("Entities").asCompoundTagList() : null;
         }
-        if ((loadFlags & TILE_ENTITIES) != 0) {
+        if((loadFlags & TILE_ENTITIES) != 0) {
             tileEntities = level.containsKey("TileEntities") ? level.getListTag("TileEntities").asCompoundTagList() : null;
         }
-        if ((loadFlags & TILE_TICKS) != 0) {
+        if((loadFlags & TILE_TICKS) != 0) {
             tileTicks = level.containsKey("TileTicks") ? level.getListTag("TileTicks").asCompoundTagList() : null;
         }
-        if ((loadFlags & LIQUID_TICKS) != 0) {
+        if((loadFlags & LIQUID_TICKS) != 0) {
             liquidTicks = level.containsKey("LiquidTicks") ? level.getListTag("LiquidTicks").asCompoundTagList() : null;
         }
-        if ((loadFlags & LIGHTS) != 0) {
+        if((loadFlags & LIGHTS) != 0) {
             lights = level.containsKey("Lights") ? level.getListTag("Lights").asListTagList() : null;
         }
-        if ((loadFlags & LIQUIDS_TO_BE_TICKED) != 0) {
+        if((loadFlags & LIQUIDS_TO_BE_TICKED) != 0) {
             liquidsToBeTicked = level.containsKey("LiquidsToBeTicked") ? level.getListTag("LiquidsToBeTicked").asListTagList() : null;
         }
-        if ((loadFlags & TO_BE_TICKED) != 0) {
+        if((loadFlags & TO_BE_TICKED) != 0) {
             toBeTicked = level.containsKey("ToBeTicked") ? level.getListTag("ToBeTicked").asListTagList() : null;
         }
-        if ((loadFlags & POST_PROCESSING) != 0) {
+        if((loadFlags & POST_PROCESSING) != 0) {
             postProcessing = level.containsKey("PostProcessing") ? level.getListTag("PostProcessing").asListTagList() : null;
         }
         status = level.getString("Status");
-        if ((loadFlags & STRUCTURES) != 0) {
+        if((loadFlags & STRUCTURES) != 0) {
             structures = level.getCompoundTag("Structures");
         }
-        if ((loadFlags & (BLOCK_LIGHTS | BLOCK_STATES | SKY_LIGHT)) != 0 && level.containsKey("Sections")) {
-            for (CompoundTag section : level.getListTag("Sections").asCompoundTagList()) {
+        if((loadFlags & (BLOCK_LIGHTS | BLOCK_STATES | SKY_LIGHT)) != 0 && level.containsKey("Sections")) {
+            for(CompoundTag section : level.getListTag("Sections").asCompoundTagList()) {
                 int sectionIndex = section.getByte("Y");
-                if (sectionIndex > 15 || sectionIndex < 0) {
+                if(sectionIndex > 15 || sectionIndex < 0) {
                     continue;
                 }
                 Section newSection = new Section(section, dataVersion, loadFlags);
-                if (newSection.isEmpty()) {
+                if(newSection.isEmpty()) {
                     continue;
                 }
-                sections.set(sectionIndex, newSection);
+                sections.put(sectionIndex, newSection);
             }
         }
 
         // If we haven't requested the full set of data we can drop the underlying raw data to let the GC handle it.
-        if (loadFlags != ALL_DATA) {
+        if(loadFlags != ALL_DATA) {
             data = null;
             partial = true;
         } else {
@@ -166,19 +167,24 @@ public class Chunk {
     /**
      * Serializes this chunk to a <code>RandomAccessFile</code>.
      *
-     * @param raf  The RandomAccessFile to be written to.
-     * @param xPos The x-coordinate of the chunk.
-     * @param zPos The z-coodrinate of the chunk.
+     * @param raf
+     *     The RandomAccessFile to be written to.
+     * @param xPos
+     *     The x-coordinate of the chunk.
+     * @param zPos
+     *     The z-coodrinate of the chunk.
      * @return The amount of bytes written to the RandomAccessFile.
-     * @throws UnsupportedOperationException When something went wrong during writing.
-     * @throws IOException                   When something went wrong during writing.
+     * @throws UnsupportedOperationException
+     *     When something went wrong during writing.
+     * @throws IOException
+     *     When something went wrong during writing.
      */
     public int serialize(RandomAccessFile raf, int xPos, int zPos) throws IOException {
-        if (partial) {
+        if(partial) {
             throw new UnsupportedOperationException("Partially loaded chunks cannot be serialized");
         }
         ByteArrayOutputStream baos = new ByteArrayOutputStream(4096);
-        try (BufferedOutputStream nbtOut = new BufferedOutputStream(CompressionType.ZLIB.compress(baos))) {
+        try(BufferedOutputStream nbtOut = new BufferedOutputStream(CompressionType.ZLIB.compress(baos))) {
             new NBTSerializer(false).toStream(new NamedTag(null, updateHandle(xPos, zPos)), nbtOut);
         }
 
@@ -192,8 +198,10 @@ public class Chunk {
     /**
      * Reads chunk data from a RandomAccessFile. The RandomAccessFile must already be at the correct position.
      *
-     * @param raf The RandomAccessFile to read the chunk data from.
-     * @throws IOException When something went wrong during reading.
+     * @param raf
+     *     The RandomAccessFile to read the chunk data from.
+     * @throws IOException
+     *     When something went wrong during reading.
      */
     public void deserialize(RandomAccessFile raf) throws IOException {
         deserialize(raf, ALL_DATA);
@@ -202,19 +210,22 @@ public class Chunk {
     /**
      * Reads chunk data from a RandomAccessFile. The RandomAccessFile must already be at the correct position.
      *
-     * @param raf       The RandomAccessFile to read the chunk data from.
-     * @param loadFlags A logical or of {@link LoadFlags} constants indicating what data should be loaded
-     * @throws IOException When something went wrong during reading.
+     * @param raf
+     *     The RandomAccessFile to read the chunk data from.
+     * @param loadFlags
+     *     A logical or of {@link LoadFlags} constants indicating what data should be loaded
+     * @throws IOException
+     *     When something went wrong during reading.
      */
     public void deserialize(RandomAccessFile raf, long loadFlags) throws IOException {
         byte compressionTypeByte = raf.readByte();
         CompressionType compressionType = CompressionType.getFromID(compressionTypeByte);
-        if (compressionType == null) {
+        if(compressionType == null) {
             throw new IOException("invalid compression type " + compressionTypeByte);
         }
         BufferedInputStream dis = new BufferedInputStream(compressionType.decompress(new FileInputStream(raf.getFD())));
         NamedTag tag = new NBTDeserializer(false).fromStream(dis);
-        if (tag != null && tag.getTag() instanceof CompoundTag) {
+        if(tag != null && tag.getTag() instanceof CompoundTag) {
             data = (CompoundTag) tag.getTag();
             initReferences(loadFlags);
         } else {
@@ -226,9 +237,12 @@ public class Chunk {
      * Fetches a biome id at a specific block in this chunk.
      * The coordinates can be absolute coordinates or relative to the region or chunk.
      *
-     * @param blockX The x-coordinate of the block.
-     * @param blockY The y-coordinate of the block.
-     * @param blockZ The z-coordinate of the block.
+     * @param blockX
+     *     The x-coordinate of the block.
+     * @param blockY
+     *     The y-coordinate of the block.
+     * @param blockZ
+     *     The z-coordinate of the block.
      * @return The biome id or -1 if the biomes are not correctly initialized.
      */
     public synchronized int getBiomeAt(int blockX, int blockY, int blockZ) {
@@ -239,10 +253,13 @@ public class Chunk {
      * Sets a biome id at a specific block column.
      * The coordinates can be absolute coordinates or relative to the region or chunk.
      *
-     * @param blockX  The x-coordinate of the block column.
-     * @param blockZ  The z-coordinate of the block column.
-     * @param biomeID The biome id to be set.
-     *                When set to a negative number, Minecraft will replace it with the block column's default biome.
+     * @param blockX
+     *     The x-coordinate of the block column.
+     * @param blockZ
+     *     The z-coordinate of the block column.
+     * @param biomeID
+     *     The biome id to be set.
+     *     When set to a negative number, Minecraft will replace it with the block column's default biome.
      */
     public synchronized void setBiomeAt(int blockX, int blockY, int blockZ, int biomeID) {
         biomes.setBiome(blockX, blockY, blockZ, biomeID);
@@ -255,12 +272,8 @@ public class Chunk {
     public CompoundTag getBlockStateAt(int blockX, int blockY, int blockZ) {
         int s = MCAUtil.blockToChunk(blockY);
 
-        if (sections.length() <= s) {
-            return null;
-        }
-
         Section section = sections.get(s);
-        if (section == null) {
+        if(section == null) {
             return null;
         }
         return section.getBlockStateAt(blockX, blockY, blockZ);
@@ -270,25 +283,26 @@ public class Chunk {
      * Sets a block state at a specific location.
      * The block coordinates can be absolute or relative to the region or chunk.
      *
-     * @param blockX  The x-coordinate of the block.
-     * @param blockY  The y-coordinate of the block.
-     * @param blockZ  The z-coordinate of the block.
-     * @param state   The block state to be set.
-     * @param cleanup When <code>true</code>, it will cleanup all palettes of this chunk.
-     *                This option should only be used moderately to avoid unnecessary recalculation of the palette indices.
-     *                Recalculating the Palette should only be executed once right before saving the Chunk to file.
+     * @param blockX
+     *     The x-coordinate of the block.
+     * @param blockY
+     *     The y-coordinate of the block.
+     * @param blockZ
+     *     The z-coordinate of the block.
+     * @param state
+     *     The block state to be set.
+     * @param cleanup
+     *     When <code>true</code>, it will cleanup all palettes of this chunk.
+     *     This option should only be used moderately to avoid unnecessary recalculation of the palette indices.
+     *     Recalculating the Palette should only be executed once right before saving the Chunk to file.
      */
     public void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
         int sectionIndex = MCAUtil.blockToChunk(blockY);
 
-        if (sections.length() <= sectionIndex) {
-            return;
-        }
-
         Section section = sections.get(sectionIndex);
-        if (section == null) {
+        if(section == null) {
             section = Section.newSection();
-            sections.set(sectionIndex, section);
+            sections.put(sectionIndex, section);
         }
         section.setBlockStateAt(blockX, blockY, blockZ, state, cleanup);
     }
@@ -304,7 +318,8 @@ public class Chunk {
      * Sets the DataVersion of this chunk. This does not check if the data of this chunk conforms
      * to that DataVersion, that is the responsibility of the developer.
      *
-     * @param dataVersion The DataVersion to be set.
+     * @param dataVersion
+     *     The DataVersion to be set.
      */
     public void setDataVersion(int dataVersion) {
         this.dataVersion = dataVersion;
@@ -320,7 +335,8 @@ public class Chunk {
     /**
      * Sets the timestamp when this region file was last updated in seconds since 1970-01-01.
      *
-     * @param lastMCAUpdate The time in seconds since 1970-01-01.
+     * @param lastMCAUpdate
+     *     The time in seconds since 1970-01-01.
      */
     public void setLastMCAUpdate(int lastMCAUpdate) {
         this.lastMCAUpdate = lastMCAUpdate;
@@ -336,7 +352,8 @@ public class Chunk {
     /**
      * Sets the generation status of this chunk.
      *
-     * @param status The generation status of this chunk.
+     * @param status
+     *     The generation status of this chunk.
      */
     public void setStatus(String status) {
         this.status = status;
@@ -345,7 +362,8 @@ public class Chunk {
     /**
      * Fetches the section at the given y-coordinate.
      *
-     * @param sectionY The y-coordinate of the section in this chunk ranging from 0 to 15.
+     * @param sectionY
+     *     The y-coordinate of the section in this chunk ranging from 0 to 15.
      * @return The Section.
      */
     public Section getSection(int sectionY) {
@@ -355,11 +373,13 @@ public class Chunk {
     /**
      * Sets a section at a givesn y-coordinate
      *
-     * @param sectionY The y-coordinate of the section in this chunk ranging from 0 to 15.
-     * @param section  The section to be set.
+     * @param sectionY
+     *     The y-coordinate of the section in this chunk ranging from 0 to 15.
+     * @param section
+     *     The section to be set.
      */
     public void setSection(int sectionY, Section section) {
-        sections.set(sectionY, section);
+        sections.put(sectionY, section);
     }
 
     /**
@@ -372,7 +392,8 @@ public class Chunk {
     /**
      * Sets the time when this chunk was last updated as a UNIX timestamp.
      *
-     * @param lastUpdate The UNIX timestamp.
+     * @param lastUpdate
+     *     The UNIX timestamp.
      */
     public void setLastUpdate(long lastUpdate) {
         this.lastUpdate = lastUpdate;
@@ -388,7 +409,8 @@ public class Chunk {
     /**
      * Sets the cumulative amount of time players have spent in this chunk in ticks.
      *
-     * @param inhabitedTime The time in ticks.
+     * @param inhabitedTime
+     *     The time in ticks.
      */
     public void setInhabitedTime(long inhabitedTime) {
         this.inhabitedTime = inhabitedTime;
@@ -404,7 +426,8 @@ public class Chunk {
     /**
      * Sets the height maps of this chunk.
      *
-     * @param heightMaps The height maps.
+     * @param heightMaps
+     *     The height maps.
      */
     public void setHeightMaps(CompoundTag heightMaps) {
         this.heightMaps = heightMaps;
@@ -420,7 +443,8 @@ public class Chunk {
     /**
      * Sets the carving masks of this chunk.
      *
-     * @param carvingMasks The carving masks.
+     * @param carvingMasks
+     *     The carving masks.
      */
     public void setCarvingMasks(CompoundTag carvingMasks) {
         this.carvingMasks = carvingMasks;
@@ -436,7 +460,8 @@ public class Chunk {
     /**
      * Sets the entities of this chunk.
      *
-     * @param entities The entities.
+     * @param entities
+     *     The entities.
      */
     public void setEntities(ListTag<CompoundTag> entities) {
         this.entities = entities;
@@ -452,7 +477,8 @@ public class Chunk {
     /**
      * Sets the tile entities of this chunk.
      *
-     * @param tileEntities The tile entities of this chunk.
+     * @param tileEntities
+     *     The tile entities of this chunk.
      */
     public void setTileEntities(ListTag<CompoundTag> tileEntities) {
         this.tileEntities = tileEntities;
@@ -468,7 +494,8 @@ public class Chunk {
     /**
      * Sets the tile ticks of this chunk.
      *
-     * @param tileTicks Thee tile ticks.
+     * @param tileTicks
+     *     Thee tile ticks.
      */
     public void setTileTicks(ListTag<CompoundTag> tileTicks) {
         this.tileTicks = tileTicks;
@@ -484,7 +511,8 @@ public class Chunk {
     /**
      * Sets the liquid ticks of this chunk.
      *
-     * @param liquidTicks The liquid ticks.
+     * @param liquidTicks
+     *     The liquid ticks.
      */
     public void setLiquidTicks(ListTag<CompoundTag> liquidTicks) {
         this.liquidTicks = liquidTicks;
@@ -500,7 +528,8 @@ public class Chunk {
     /**
      * Sets the light sources in this chunk.
      *
-     * @param lights The light sources.
+     * @param lights
+     *     The light sources.
      */
     public void setLights(ListTag<ListTag<?>> lights) {
         this.lights = lights;
@@ -516,7 +545,8 @@ public class Chunk {
     /**
      * Sets the liquids to be ticked in this chunk.
      *
-     * @param liquidsToBeTicked The liquids to be ticked.
+     * @param liquidsToBeTicked
+     *     The liquids to be ticked.
      */
     public void setLiquidsToBeTicked(ListTag<ListTag<?>> liquidsToBeTicked) {
         this.liquidsToBeTicked = liquidsToBeTicked;
@@ -532,7 +562,8 @@ public class Chunk {
     /**
      * Sets stuff to be ticked in this chunk.
      *
-     * @param toBeTicked The stuff to be ticked.
+     * @param toBeTicked
+     *     The stuff to be ticked.
      */
     public void setToBeTicked(ListTag<ListTag<?>> toBeTicked) {
         this.toBeTicked = toBeTicked;
@@ -548,7 +579,8 @@ public class Chunk {
     /**
      * Sets things to be post processed in this chunk.
      *
-     * @param postProcessing The things to be post processed.
+     * @param postProcessing
+     *     The things to be post processed.
      */
     public void setPostProcessing(ListTag<ListTag<?>> postProcessing) {
         this.postProcessing = postProcessing;
@@ -564,7 +596,8 @@ public class Chunk {
     /**
      * Sets data about structures in this chunk.
      *
-     * @param structures The data about structures.
+     * @param structures
+     *     The data about structures.
      */
     public void setStructures(CompoundTag structures) {
         this.structures = structures;
@@ -575,9 +608,8 @@ public class Chunk {
     }
 
     public void cleanupPalettesAndBlockStates() {
-        for (int i = 0; i < sections.length(); i++) {
-            Section section = sections.get(i);
-            if (section != null) {
+        for(Section section : sections.values()) {
+            if(section != null) {
                 section.cleanupPaletteAndBlockStates();
             }
         }
@@ -591,29 +623,31 @@ public class Chunk {
         level.putLong("LastUpdate", lastUpdate);
         level.putLong("InhabitedTime", inhabitedTime);
         level.putIntArray("Biomes", biomes.getData());
-        if (heightMaps != null) level.put("Heightmaps", heightMaps);
-        if (carvingMasks != null) level.put("CarvingMasks", carvingMasks);
-        if (entities != null) level.put("Entities", entities);
-        if (tileEntities != null) level.put("TileEntities", tileEntities);
-        if (tileTicks != null) level.put("TileTicks", tileTicks);
-        if (liquidTicks != null) level.put("LiquidTicks", liquidTicks);
-        if (lights != null) level.put("Lights", lights);
-        if (liquidsToBeTicked != null) level.put("LiquidsToBeTicked", liquidsToBeTicked);
-        if (toBeTicked != null) level.put("ToBeTicked", toBeTicked);
-        if (postProcessing != null) level.put("PostProcessing", postProcessing);
+        if(heightMaps != null) level.put("Heightmaps", heightMaps);
+        if(carvingMasks != null) level.put("CarvingMasks", carvingMasks);
+        if(entities != null) level.put("Entities", entities);
+        if(tileEntities != null) level.put("TileEntities", tileEntities);
+        if(tileTicks != null) level.put("TileTicks", tileTicks);
+        if(liquidTicks != null) level.put("LiquidTicks", liquidTicks);
+        if(lights != null) level.put("Lights", lights);
+        if(liquidsToBeTicked != null) level.put("LiquidsToBeTicked", liquidsToBeTicked);
+        if(toBeTicked != null) level.put("ToBeTicked", toBeTicked);
+        if(postProcessing != null) level.put("PostProcessing", postProcessing);
         level.putString("Status", status);
-        if (structures != null) level.put("Structures", structures);
+        if(structures != null) level.put("Structures", structures);
         ListTag<CompoundTag> sections = new ListTag<>(CompoundTag.class);
-        for (int i = 0; i < this.sections.length(); i++) {
-            if (this.sections.get(i) != null) {
+
+        for(int i : this.sections.keySet()) {
+            if(this.sections.get(i) != null) {
                 sections.add(this.sections.get(i).updateHandle(i));
             }
         }
+
         level.put("Sections", sections);
         return data;
     }
 
     public int sectionCount() {
-        return sections.length();
+        return sections.size();
     }
 }

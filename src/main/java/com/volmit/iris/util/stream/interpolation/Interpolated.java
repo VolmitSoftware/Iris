@@ -58,7 +58,7 @@ public interface Interpolated<T> {
     T fromDouble(double d);
 
     default InterpolatorFactory<T> interpolate() {
-        if (this instanceof ProceduralStream) {
+        if(this instanceof ProceduralStream) {
             return new InterpolatorFactory<>((ProceduralStream<T>) this);
         }
 

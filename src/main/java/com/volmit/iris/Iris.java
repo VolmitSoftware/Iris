@@ -607,8 +607,8 @@ public class Iris extends VolmitPlugin implements Listener {
             .seed(1337)
             .environment(dim.getEnvironment())
             .worldFolder(new File(worldName))
-            .minHeight(0)
-            .maxHeight(256)
+            .minHeight(-64)
+            .maxHeight(320)
             .build();
 
         Iris.debug("Generator Config: " + w.toString());

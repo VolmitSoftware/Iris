@@ -232,12 +232,14 @@ public class IrisDimension extends IrisRegistrant {
 
     public int getMaxHeight()
     {
-        return (int) getDimensionHeight().getMax();
+        return 320;
+        // return (int) getDimensionHeight().getMax();
     }
 
     public int getMinHeight()
     {
-        return (int) getDimensionHeight().getMin();
+        return -64;
+        // return (int) getDimensionHeight().getMin();
     }
 
     public BlockData generateOres(int x, int y, int z, RNG rng, IrisData data) {

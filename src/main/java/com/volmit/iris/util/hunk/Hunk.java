@@ -98,8 +98,8 @@ public interface Hunk<T> {
         return new FunctionalHunkView<A, B>(src, reader, writer);
     }
 
-    static Hunk<Biome> view(BiomeGrid biome) {
-        return new BiomeGridHunkView(biome);
+    static Hunk<Biome> view(BiomeGrid biome, int minHeight, int maxHeight) {
+        return new BiomeGridHunkView(biome, minHeight, maxHeight);
     }
 
     static <T> Hunk<T> fringe(Hunk<T> i, Hunk<T> o) {

@@ -86,7 +86,7 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
                             INMS.get().getTrueBiomeBaseId(biomeBase)))
                     .build();
             getEngine().generate(x << 4, z << 4,
-                    Hunk.view((ChunkGenerator.ChunkData) tc), Hunk.view((ChunkGenerator.BiomeGrid) tc),
+                    Hunk.view((ChunkGenerator.ChunkData) tc), Hunk.view((ChunkGenerator.BiomeGrid) tc, tc.getMinHeight(), tc.getMaxHeight()),
                     false);
             chunk.cleanupPalettesAndBlockStates();
         } catch (Throwable e) {

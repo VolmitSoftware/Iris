@@ -139,7 +139,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             IrisBiomeStorage st = new IrisBiomeStorage();
             TerrainChunk tc = TerrainChunk.createUnsafe(world, st);
             Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
-            Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
+            Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc, tc.getMinHeight(), tc.getMaxHeight());
             this.world.bind(world);
             getEngine().generate(x << 4, z << 4, blocks, biomes, true);
             Iris.debug("Regenerated " + x + " " + z);
@@ -284,7 +284,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 studioGenerator.generateChunk(getEngine(), tc, x, z);
             } else {
                 Hunk<BlockData> blocks = Hunk.view((ChunkData) tc);
-                Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc);
+                Hunk<Biome> biomes = Hunk.view((BiomeGrid) tc, tc.getMinHeight(), tc.getMaxHeight());
                 getEngine().generate(x << 4, z << 4, blocks, biomes, true);
             }
 

@@ -25,17 +25,20 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.hunk.view.BiomeGridHunkView;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator;
 
 public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
     private final RNG rng;
+    private final ChronoLatch cl = new ChronoLatch(5000);
 
     public IrisBiomeActuator(Engine engine) {
         super(engine, "Biome");
@@ -78,6 +81,15 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
                         try {
                             IrisBiomeCustom custom = ib.getCustomBiome(rng, x, 0, z);
                             Object biomeBase = INMS.get().getCustomBiomeBaseFor(getDimension().getLoadKey() + ":" + custom.getId());
+//
+//                            int m = hits.size();
+//                            String str = ib.getLoadKey() + ":custom:" + custom.getId();
+//                            hits.add(str);
+//
+//                            if(m != hits.size())
+//                            {
+//                                Iris.info("Added " + str);
+//                            }
 
                             if(biomeBase == null || !injectBiome(h, x, 0, z, biomeBase)) {
                                 throw new RuntimeException("Cant inject biome!");
@@ -95,8 +107,17 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
                         }
                     } else {
                         Biome v = ib.getSkyBiome(rng, x, 0, z);
-                        for(int i = 0; i < maxHeight; i++) {
-                            h.set(finalXf, i, zf, v);
+
+                        if(v != null)
+                        {
+                            for(int i = 0; i < maxHeight; i++) {
+                                h.set(finalXf, i, zf, v);
+                            }
+                        }
+
+                        else if(cl.flip())
+                        {
+                            Iris.error("No biome provided for " + ib.getLoadKey());
                         }
                     }
                 }

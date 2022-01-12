@@ -25,7 +25,6 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
-import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.hunk.view.BiomeGridHunkView;
@@ -108,15 +107,11 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
                     } else {
                         Biome v = ib.getSkyBiome(rng, x, 0, z);
 
-                        if(v != null)
-                        {
+                        if(v != null) {
                             for(int i = 0; i < maxHeight; i++) {
                                 h.set(finalXf, i, zf, v);
                             }
-                        }
-
-                        else if(cl.flip())
-                        {
+                        } else if(cl.flip()) {
                             Iris.error("No biome provided for " + ib.getLoadKey());
                         }
                     }

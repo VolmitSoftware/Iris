@@ -44,7 +44,6 @@ import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.generator.ChunkGenerator;
 
 import java.io.File;
 import java.io.IOException;

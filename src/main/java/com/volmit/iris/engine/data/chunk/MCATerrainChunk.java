@@ -82,7 +82,7 @@ public class MCATerrainChunk implements TerrainChunk {
         int zz = (z + oz) & 15;
 
         if(y > getMaxHeight() || y < getMinHeight()) {
-           return;
+            return;
         }
 
         if(blockData == null) {

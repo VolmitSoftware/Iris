@@ -34,7 +34,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.concurrent.atomic.AtomicReferenceArray;
 
 import static com.volmit.iris.util.nbt.mca.LoadFlags.*;
 
@@ -638,8 +637,7 @@ public class Chunk {
         if(structures != null) level.put("Structures", structures);
         ListTag<CompoundTag> sections = new ListTag<>(CompoundTag.class);
 
-        for(int i : this.sections.keySet())
-        {
+        for(int i : this.sections.keySet()) {
             if(this.sections.get(i) != null) {
                 sections.add(this.sections.get(i).updateHandle(i));
             }

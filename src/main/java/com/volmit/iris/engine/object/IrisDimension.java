@@ -230,14 +230,12 @@ public class IrisDimension extends IrisRegistrant {
     @ArrayType(type = IrisOreGenerator.class, min = 1)
     private KList<IrisOreGenerator> ores = new KList<>();
 
-    public int getMaxHeight()
-    {
+    public int getMaxHeight() {
         return 320;
         // return (int) getDimensionHeight().getMax();
     }
 
-    public int getMinHeight()
-    {
+    public int getMinHeight() {
         return -64;
         // return (int) getDimensionHeight().getMin();
     }

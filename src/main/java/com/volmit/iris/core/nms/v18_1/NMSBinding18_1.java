@@ -35,7 +35,6 @@ import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.mca.palette.MCAPalettedContainer;
 import com.volmit.iris.util.nbt.mca.palette.MCAWrappedPalettedContainer;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
-import com.volmit.iris.util.scheduling.J;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.IdMap;
@@ -67,7 +66,6 @@ import java.io.DataOutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -166,10 +164,8 @@ public class NMSBinding18_1 implements INMSBinding {
     public Object getBiomeBaseFromId(int id) {
         try {
             return byIdRef.aquire(() -> {
-                for(Method i : IdMap.class.getDeclaredMethods())
-                {
-                    if(i.getParameterCount() == 1 && i.getParameterTypes()[0].equals(int.class))
-                    {
+                for(Method i : IdMap.class.getDeclaredMethods()) {
+                    if(i.getParameterCount() == 1 && i.getParameterTypes()[0].equals(int.class)) {
                         Iris.info("[NMS] Found byId method in " + IdMap.class.getSimpleName() + "." + i.getName() + "(int) => " + Biome.class.getSimpleName());
                         return i;
                     }

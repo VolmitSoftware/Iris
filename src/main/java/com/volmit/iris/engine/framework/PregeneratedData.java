@@ -24,7 +24,6 @@ import com.volmit.iris.util.hunk.Hunk;
 import lombok.Data;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.generator.ChunkGenerator;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 

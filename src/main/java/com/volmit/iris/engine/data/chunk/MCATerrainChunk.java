@@ -81,8 +81,8 @@ public class MCATerrainChunk implements TerrainChunk {
         int xx = (x + ox) & 15;
         int zz = (z + oz) & 15;
 
-        if(y > 255 || y < 0) {
-            return;
+        if(y > getMaxHeight() || y < getMinHeight()) {
+           return;
         }
 
         if(blockData == null) {
@@ -98,8 +98,8 @@ public class MCATerrainChunk implements TerrainChunk {
             y = getMaxHeight();
         }
 
-        if(y < 0) {
-            y = 0;
+        if(y < getMinHeight()) {
+            y = getMinHeight();
         }
 
         return NBTWorld.getBlockData(mcaChunk.getBlockStateAt((x + ox) & 15, y, (z + oz) & 15));

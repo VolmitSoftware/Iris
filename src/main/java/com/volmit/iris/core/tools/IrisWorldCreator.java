@@ -33,8 +33,8 @@ public class IrisWorldCreator {
     private boolean studio = false;
     private String dimensionName = null;
     private long seed = 1337;
-    private int maxHeight = 256;
-    private int minHeight = 0;
+    private int maxHeight = 320;
+    private int minHeight = -64;
 
     public IrisWorldCreator() {
 
@@ -42,12 +42,6 @@ public class IrisWorldCreator {
 
     public IrisWorldCreator dimension(String loadKey) {
         this.dimensionName = loadKey;
-        return this;
-    }
-
-    public IrisWorldCreator height(int maxHeight) {
-        this.maxHeight = maxHeight;
-        this.minHeight = 0;
         return this;
     }
 

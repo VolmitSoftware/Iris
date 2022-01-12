@@ -157,6 +157,8 @@ public class IrisDimension extends IrisRegistrant {
     @MaxNumber(255)
     @Desc("The fluid height for this dimension")
     private int fluidHeight = 63;
+    @Desc("Define the min and max Y bounds of this dimension. Please keep in mind that Iris internally generates from 0 to (max - min). \n\nFor example at -64 to 320, Iris is internally generating to 0 to 384, then on outputting chunks, it shifts it down by the min height (64 blocks). The default is -64 to 320. \n\nThe fluid height is placed at (fluid height + min height). So a fluid height of 63 would actually show up in the world at 1.")
+    private IrisRange dimensionHeight = new IrisRange(-64, 320);
     @RegistryListResource(IrisBiome.class)
     @Desc("Keep this either undefined or empty. Setting any biome name into this will force iris to only generate the specified biome. Great for testing.")
     private String focus = "";
@@ -227,6 +229,16 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Collection of ores to be generated")
     @ArrayType(type = IrisOreGenerator.class, min = 1)
     private KList<IrisOreGenerator> ores = new KList<>();
+
+    public int getMaxHeight()
+    {
+        return (int) getDimensionHeight().getMax();
+    }
+
+    public int getMinHeight()
+    {
+        return (int) getDimensionHeight().getMin();
+    }
 
     public BlockData generateOres(int x, int y, int z, RNG rng, IrisData data) {
         if(ores.isEmpty()) {

@@ -33,8 +33,6 @@ public class IrisWorldCreator {
     private boolean studio = false;
     private String dimensionName = null;
     private long seed = 1337;
-    private int maxHeight = 320;
-    private int minHeight = -64;
 
     public IrisWorldCreator() {
 
@@ -42,12 +40,6 @@ public class IrisWorldCreator {
 
     public IrisWorldCreator dimension(String loadKey) {
         this.dimensionName = loadKey;
-        return this;
-    }
-
-    public IrisWorldCreator height(int minHeight, int maxHeight) {
-        this.maxHeight = maxHeight;
-        this.minHeight = minHeight;
         return this;
     }
 
@@ -72,16 +64,18 @@ public class IrisWorldCreator {
     }
 
     public WorldCreator create() {
+        IrisDimension dim = IrisData.loadAnyDimension(dimensionName);
+
         IrisWorld w = IrisWorld.builder()
             .name(name)
-            .minHeight(minHeight)
-            .maxHeight(maxHeight)
+            .minHeight(dim.getMinHeight())
+            .maxHeight(dim.getMaxHeight())
             .seed(seed)
             .worldFolder(new File(name))
             .environment(findEnvironment())
             .build();
         ChunkGenerator g = new BukkitChunkGenerator(w, studio, studio
-            ? IrisData.loadAnyDimension(dimensionName).getLoader().getDataFolder() :
+            ? dim.getLoader().getDataFolder() :
             new File(w.worldFolder(), "iris/pack"), dimensionName);
 
         return new WorldCreator(name)

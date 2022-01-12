@@ -131,7 +131,7 @@ public class BoardSVC implements IrisService, BoardProvider {
                 lines.add("&7&m                   ");
                 lines.add(C.AQUA + "Region" + C.GRAY + ": " + engine.getRegion(x, z).getName());
                 lines.add(C.AQUA + "Biome" + C.GRAY + ":  " + engine.getBiomeOrMantle(x, y, z).getName());
-                lines.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z)));
+                lines.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z) + engine.getWorld().minHeight()));
                 lines.add(C.AQUA + "Slope" + C.GRAY + ":  " + Form.f(engine.getComplex().getSlopeStream().get(x, z), 2));
                 lines.add(C.AQUA + "BUD/s" + C.GRAY + ": " + Form.f(engine.getBlockUpdatesPerSecond()));
                 lines.add("&7&m                   ");

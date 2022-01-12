@@ -101,6 +101,12 @@ public class CommandIris implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");
     }
 
+    @Decree(description = "Print version information", origin = DecreeOrigin.PLAYER)
+    public void height() {
+        sender().sendMessage(C.GREEN + "" + sender().player().getWorld().getMinHeight() + " to " + sender().player().getWorld().getMaxHeight());
+        sender().sendMessage(C.GREEN + "Total Height: " + (sender().player().getWorld().getMaxHeight() - sender().player().getWorld().getMinHeight()));
+    }
+
     @Decree(description = "Set aura spins")
     public void aura(
         @Param(description = "The h color value", defaultValue = "-20")

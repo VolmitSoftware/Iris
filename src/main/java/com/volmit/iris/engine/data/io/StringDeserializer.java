@@ -36,14 +36,14 @@ public interface StringDeserializer<T> extends Deserializer<T> {
 
     @Override
     default T fromStream(InputStream stream) throws IOException {
-        try (Reader reader = new InputStreamReader(stream)) {
+        try(Reader reader = new InputStreamReader(stream)) {
             return fromReader(reader);
         }
     }
 
     @Override
     default T fromFile(File file) throws IOException {
-        try (Reader reader = new FileReader(file)) {
+        try(Reader reader = new FileReader(file)) {
             return fromReader(reader);
         }
     }

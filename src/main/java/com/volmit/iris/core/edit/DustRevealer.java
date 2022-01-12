@@ -50,11 +50,11 @@ public class DustRevealer {
 
         J.s(() -> {
             new BlockSignal(world.getBlockAt(block.getX(), block.getY(), block.getZ()), 7);
-            if (M.r(0.25)) {
+            if(M.r(0.25)) {
                 world.playSound(block.toBlock(world).getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, RNG.r.f(0.2f, 2f));
             }
             J.a(() -> {
-                while (BlockSignal.active.get() > 128) {
+                while(BlockSignal.active.get() > 128) {
                     J.sleep(5);
                 }
 
@@ -85,7 +85,7 @@ public class DustRevealer {
                     is(new BlockPosition(block.getX() + 1, block.getY() + 1, block.getZ() + 1));
                     is(new BlockPosition(block.getX() + 1, block.getY() - 1, block.getZ() - 1));
                     is(new BlockPosition(block.getX() + 1, block.getY() - 1, block.getZ() + 1));
-                } catch (Throwable e) {
+                } catch(Throwable e) {
                     Iris.reportError(e);
                     e.printStackTrace();
                 }
@@ -97,10 +97,10 @@ public class DustRevealer {
         World world = block.getWorld();
         Engine access = IrisToolbelt.access(world).getEngine();
 
-        if (access != null) {
+        if(access != null) {
             String a = access.getObjectPlacementKey(block.getX(), block.getY(), block.getZ());
 
-            if (a != null) {
+            if(a != null) {
                 world.playSound(block.getLocation(), Sound.ITEM_LODESTONE_COMPASS_LOCK, 1f, 0.1f);
 
                 sender.sendMessage("Found object " + a);
@@ -112,7 +112,7 @@ public class DustRevealer {
     }
 
     private boolean is(BlockPosition a) {
-        if (isValidTry(a) && engine.getObjectPlacementKey(a.getX(), a.getY(), a.getZ()) != null && engine.getObjectPlacementKey(a.getX(), a.getY(), a.getZ()).equals(key)) {
+        if(isValidTry(a) && engine.getObjectPlacementKey(a.getX(), a.getY(), a.getZ()) != null && engine.getObjectPlacementKey(a.getX(), a.getY(), a.getZ()).equals(key)) {
             hits.add(a);
             new DustRevealer(engine, world, a, key, hits);
             return true;

@@ -35,7 +35,7 @@ public class FunctionalHunkView<R, T> implements Hunk<T> {
 
     @Override
     public void setRaw(int x, int y, int z, T t) {
-        if (backConverter == null) {
+        if(backConverter == null) {
             throw new UnsupportedOperationException("You cannot writeNodeData to this hunk (Read Only)");
         }
 
@@ -44,7 +44,7 @@ public class FunctionalHunkView<R, T> implements Hunk<T> {
 
     @Override
     public T getRaw(int x, int y, int z) {
-        if (converter == null) {
+        if(converter == null) {
             throw new UnsupportedOperationException("You cannot read this hunk (Write Only)");
         }
 

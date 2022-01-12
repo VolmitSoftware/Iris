@@ -49,10 +49,10 @@ public class TileMatter extends RawMatter<MatterTile> {
         registerWriter(World.class, ((w, d, x, y, z) -> INMS.get().deserializeTile(d.getTileData(), new Location(w, x, y, z))));
         registerReader(World.class, (w, x, y, z) -> {
             Location l = new Location(w, x, y, z);
-            if (INMS.get().hasTile(l)) {
+            if(INMS.get().hasTile(l)) {
                 CompoundTag tag = INMS.get().serializeTile(l);
 
-                if (tag != null) {
+                if(tag != null) {
                     return new MatterTile(tag);
                 }
             }

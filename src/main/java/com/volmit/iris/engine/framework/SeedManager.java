@@ -94,7 +94,7 @@ public class SeedManager {
         RNG e = new RNG((IRIS_TERRAIN_VERSION * 42) + IRIS_SIGNATURE);
         double gsoup = 0;
         int gk = a.i(1_000, 10_000);
-        for (char i : (a.s(4) + b.s(4) + c.s(4) + d.s(4) + e.s(4)).toCharArray()) {
+        for(char i : (a.s(4) + b.s(4) + c.s(4) + d.s(4) + e.s(4)).toCharArray()) {
             gsoup += ((gk * b.d(3, Math.PI)) / c.d(10, 18 * Math.E)) + 6_549;
             gsoup *= d.d(90.5, 1_234_567);
             gsoup += e.d(39.95, 99.25);

@@ -34,7 +34,7 @@ public class WriteTrackHunk<T> implements Hunk<T> {
 
     @Override
     public void setRaw(int x, int y, int z, T t) {
-        if (!b.get()) {
+        if(!b.get()) {
             b.set(true);
         }
 

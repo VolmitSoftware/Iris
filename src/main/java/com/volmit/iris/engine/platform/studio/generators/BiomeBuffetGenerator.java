@@ -46,11 +46,11 @@ public class BiomeBuffetGenerator extends EnginedStudioGenerator {
     public void generateChunk(Engine engine, TerrainChunk tc, int x, int z) throws WrongEngineBroException {
         int id = Cache.to1D(x / biomeSize, 0, z / biomeSize, width, 1);
 
-        if (id >= 0 && id < biomes.length) {
+        if(id >= 0 && id < biomes.length) {
             IrisBiome biome = biomes[id];
             String foc = engine.getDimension().getFocus();
 
-            if (!Objects.equals(foc, biome.getLoadKey())) {
+            if(!Objects.equals(foc, biome.getLoadKey())) {
                 engine.getDimension().setFocus(biome.getLoadKey());
                 engine.hotloadComplex();
             }

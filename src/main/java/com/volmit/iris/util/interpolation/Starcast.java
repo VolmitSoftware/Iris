@@ -22,23 +22,23 @@ import com.volmit.iris.util.function.NoiseProvider;
 
 public class Starcast {
     public static double starcast(int x, int z, double r, double checks, boolean optimized, NoiseProvider n) {
-        if (optimized) {
-            if (checks == 3) return sc3(x, z, r, n);
-            else if (checks == 5) return sc5(x, z, r, n);
-            else if (checks == 6) return sc6(x, z, r, n);
-            else if (checks == 7) return sc7(x, z, r, n);
-            else if (checks == 9) return sc9(x, z, r, n);
-            else if (checks == 12) return sc12(x, z, r, n);
-            else if (checks == 24) return sc24(x, z, r, n);
-            else if (checks == 32) return sc32(x, z, r, n);
-            else if (checks == 48) return sc48(x, z, r, n);
-            else if (checks == 64) return sc64(x, z, r, n);
+        if(optimized) {
+            if(checks == 3) return sc3(x, z, r, n);
+            else if(checks == 5) return sc5(x, z, r, n);
+            else if(checks == 6) return sc6(x, z, r, n);
+            else if(checks == 7) return sc7(x, z, r, n);
+            else if(checks == 9) return sc9(x, z, r, n);
+            else if(checks == 12) return sc12(x, z, r, n);
+            else if(checks == 24) return sc24(x, z, r, n);
+            else if(checks == 32) return sc32(x, z, r, n);
+            else if(checks == 48) return sc48(x, z, r, n);
+            else if(checks == 64) return sc64(x, z, r, n);
         }
 
         double m = 360D / checks;
         double v = 0;
 
-        for (int i = 0; i < 360; i += m) {
+        for(int i = 0; i < 360; i += m) {
             double sin = Math.sin(Math.toRadians(i));
             double cos = Math.cos(Math.toRadians(i));
             double cx = x + ((r * cos) - (r * sin));
@@ -62,8 +62,8 @@ public class Starcast {
 
     private static double sc3(int x, int z, double r, NoiseProvider n) {
         return (n.noise(x + ((r * F3C0) - (r * F3S0)), z + ((r * F3S0) + (r * F3C0)))
-                + n.noise(x + ((r * F3C1) - (r * F3S1)), z + ((r * F3S1) + (r * F3C1)))
-                + n.noise(x + ((r * F3C2) - (r * F3S2)), z + ((r * F3S2) + (r * F3C2)))) / 3.0D;
+            + n.noise(x + ((r * F3C1) - (r * F3S1)), z + ((r * F3S1) + (r * F3C1)))
+            + n.noise(x + ((r * F3C2) - (r * F3S2)), z + ((r * F3S2) + (r * F3C2)))) / 3.0D;
     }
 
     private static final double F5C0 = 1;
@@ -79,10 +79,10 @@ public class Starcast {
 
     private static double sc5(int x, int z, double r, NoiseProvider n) {
         return (n.noise(x + ((r * F5C0) - (r * F5S0)), z + ((r * F5S0) + (r * F5C0)))
-                + n.noise(x + ((r * F5C1) - (r * F5S1)), z + ((r * F5S1) + (r * F5C1)))
-                + n.noise(x + ((r * F5C2) - (r * F5S2)), z + ((r * F5S2) + (r * F5C2)))
-                + n.noise(x + ((r * F5C3) - (r * F5S3)), z + ((r * F5S3) + (r * F5C3)))
-                + n.noise(x + ((r * F5C4) - (r * F5S4)), z + ((r * F5S4) + (r * F5C4)))) / 5.0D;
+            + n.noise(x + ((r * F5C1) - (r * F5S1)), z + ((r * F5S1) + (r * F5C1)))
+            + n.noise(x + ((r * F5C2) - (r * F5S2)), z + ((r * F5S2) + (r * F5C2)))
+            + n.noise(x + ((r * F5C3) - (r * F5S3)), z + ((r * F5S3) + (r * F5C3)))
+            + n.noise(x + ((r * F5C4) - (r * F5S4)), z + ((r * F5S4) + (r * F5C4)))) / 5.0D;
     }
 
     private static final double F6C0 = 1;
@@ -100,11 +100,11 @@ public class Starcast {
 
     private static double sc6(int x, int z, double r, NoiseProvider n) {
         return (n.noise(x + ((r * F6C0) - (r * F6S0)), z + ((r * F6S0) + (r * F6C0)))
-                + n.noise(x + ((r * F6C1) - (r * F6S1)), z + ((r * F6S1) + (r * F6C1)))
-                + n.noise(x + ((r * F6C2) - (r * F6S2)), z + ((r * F6S2) + (r * F6C2)))
-                + n.noise(x + ((r * F6C3) - (r * F6S3)), z + ((r * F6S3) + (r * F6C3)))
-                + n.noise(x + ((r * F6C4) - (r * F6S4)), z + ((r * F6S4) + (r * F6C4)))
-                + n.noise(x + ((r * F6C5) - (r * F6S5)), z + ((r * F6S5) + (r * F6C5)))) / 6.0D;
+            + n.noise(x + ((r * F6C1) - (r * F6S1)), z + ((r * F6S1) + (r * F6C1)))
+            + n.noise(x + ((r * F6C2) - (r * F6S2)), z + ((r * F6S2) + (r * F6C2)))
+            + n.noise(x + ((r * F6C3) - (r * F6S3)), z + ((r * F6S3) + (r * F6C3)))
+            + n.noise(x + ((r * F6C4) - (r * F6S4)), z + ((r * F6S4) + (r * F6C4)))
+            + n.noise(x + ((r * F6C5) - (r * F6S5)), z + ((r * F6S5) + (r * F6C5)))) / 6.0D;
     }
 
     private static final double F7C0 = 1;
@@ -126,13 +126,13 @@ public class Starcast {
 
     private static double sc7(int x, int z, double r, NoiseProvider n) {
         return (n.noise(x + ((r * F7C0) - (r * F7S0)), z + ((r * F7S0) + (r * F7C0)))
-                + n.noise(x + ((r * F7C1) - (r * F7S1)), z + ((r * F7S1) + (r * F7C1)))
-                + n.noise(x + ((r * F7C2) - (r * F7S2)), z + ((r * F7S2) + (r * F7C2)))
-                + n.noise(x + ((r * F7C3) - (r * F7S3)), z + ((r * F7S3) + (r * F7C3)))
-                + n.noise(x + ((r * F7C4) - (r * F7S4)), z + ((r * F7S4) + (r * F7C4)))
-                + n.noise(x + ((r * F7C5) - (r * F7S5)), z + ((r * F7S5) + (r * F7C5)))
-                + n.noise(x + ((r * F7C6) - (r * F7S6)), z + ((r * F7S6) + (r * F7C6)))
-                + n.noise(x + ((r * F7C7) - (r * F7S7)), z + ((r * F7S7) + (r * F7C7)))) / 7.0D;
+            + n.noise(x + ((r * F7C1) - (r * F7S1)), z + ((r * F7S1) + (r * F7C1)))
+            + n.noise(x + ((r * F7C2) - (r * F7S2)), z + ((r * F7S2) + (r * F7C2)))
+            + n.noise(x + ((r * F7C3) - (r * F7S3)), z + ((r * F7S3) + (r * F7C3)))
+            + n.noise(x + ((r * F7C4) - (r * F7S4)), z + ((r * F7S4) + (r * F7C4)))
+            + n.noise(x + ((r * F7C5) - (r * F7S5)), z + ((r * F7S5) + (r * F7C5)))
+            + n.noise(x + ((r * F7C6) - (r * F7S6)), z + ((r * F7S6) + (r * F7C6)))
+            + n.noise(x + ((r * F7C7) - (r * F7S7)), z + ((r * F7S7) + (r * F7C7)))) / 7.0D;
     }
 
     private static final double F9C0 = 1;
@@ -156,14 +156,14 @@ public class Starcast {
 
     private static double sc9(int x, int z, double r, NoiseProvider n) {
         return (n.noise(x + ((r * F9C0) - (r * F9S0)), z + ((r * F9S0) + (r * F9C0)))
-                + n.noise(x + ((r * F9C1) - (r * F9S1)), z + ((r * F9S1) + (r * F9C1)))
-                + n.noise(x + ((r * F9C2) - (r * F9S2)), z + ((r * F9S2) + (r * F9C2)))
-                + n.noise(x + ((r * F9C3) - (r * F9S3)), z + ((r * F9S3) + (r * F9C3)))
-                + n.noise(x + ((r * F9C4) - (r * F9S4)), z + ((r * F9S4) + (r * F9C4)))
-                + n.noise(x + ((r * F9C5) - (r * F9S5)), z + ((r * F9S5) + (r * F9C5)))
-                + n.noise(x + ((r * F9C6) - (r * F9S6)), z + ((r * F9S6) + (r * F9C6)))
-                + n.noise(x + ((r * F9C7) - (r * F9S7)), z + ((r * F9S7) + (r * F9C7)))
-                + n.noise(x + ((r * F9C8) - (r * F9S8)), z + ((r * F9S8) + (r * F9C8)))) / 9.0D;
+            + n.noise(x + ((r * F9C1) - (r * F9S1)), z + ((r * F9S1) + (r * F9C1)))
+            + n.noise(x + ((r * F9C2) - (r * F9S2)), z + ((r * F9S2) + (r * F9C2)))
+            + n.noise(x + ((r * F9C3) - (r * F9S3)), z + ((r * F9S3) + (r * F9C3)))
+            + n.noise(x + ((r * F9C4) - (r * F9S4)), z + ((r * F9S4) + (r * F9C4)))
+            + n.noise(x + ((r * F9C5) - (r * F9S5)), z + ((r * F9S5) + (r * F9C5)))
+            + n.noise(x + ((r * F9C6) - (r * F9S6)), z + ((r * F9S6) + (r * F9C6)))
+            + n.noise(x + ((r * F9C7) - (r * F9S7)), z + ((r * F9S7) + (r * F9C7)))
+            + n.noise(x + ((r * F9C8) - (r * F9S8)), z + ((r * F9S8) + (r * F9C8)))) / 9.0D;
     }
 
     private static final double F12C0 = 1;
@@ -193,17 +193,17 @@ public class Starcast {
 
     private static double sc12(int x, int z, double r, NoiseProvider n) {
         return (n.noise(x + ((r * F12C0) - (r * F12S0)), z + ((r * F12S0) + (r * F12C0)))
-                + n.noise(x + ((r * F12C1) - (r * F12S1)), z + ((r * F12S1) + (r * F12C1)))
-                + n.noise(x + ((r * F12C2) - (r * F12S2)), z + ((r * F12S2) + (r * F12C2)))
-                + n.noise(x + ((r * F12C3) - (r * F12S3)), z + ((r * F12S3) + (r * F12C3)))
-                + n.noise(x + ((r * F12C4) - (r * F12S4)), z + ((r * F12S4) + (r * F12C4)))
-                + n.noise(x + ((r * F12C5) - (r * F12S5)), z + ((r * F12S5) + (r * F12C5)))
-                + n.noise(x + ((r * F12C6) - (r * F12S6)), z + ((r * F12S6) + (r * F12C6)))
-                + n.noise(x + ((r * F12C7) - (r * F12S7)), z + ((r * F12S7) + (r * F12C7)))
-                + n.noise(x + ((r * F12C8) - (r * F12S8)), z + ((r * F12S8) + (r * F12C8)))
-                + n.noise(x + ((r * F12C9) - (r * F12S9)), z + ((r * F12S9) + (r * F12C9)))
-                + n.noise(x + ((r * F12C10) - (r * F12S10)), z + ((r * F12S10) + (r * F12C10)))
-                + n.noise(x + ((r * F12C11) - (r * F12S11)), z + ((r * F12S11) + (r * F12C11)))) / 12.0D;
+            + n.noise(x + ((r * F12C1) - (r * F12S1)), z + ((r * F12S1) + (r * F12C1)))
+            + n.noise(x + ((r * F12C2) - (r * F12S2)), z + ((r * F12S2) + (r * F12C2)))
+            + n.noise(x + ((r * F12C3) - (r * F12S3)), z + ((r * F12S3) + (r * F12C3)))
+            + n.noise(x + ((r * F12C4) - (r * F12S4)), z + ((r * F12S4) + (r * F12C4)))
+            + n.noise(x + ((r * F12C5) - (r * F12S5)), z + ((r * F12S5) + (r * F12C5)))
+            + n.noise(x + ((r * F12C6) - (r * F12S6)), z + ((r * F12S6) + (r * F12C6)))
+            + n.noise(x + ((r * F12C7) - (r * F12S7)), z + ((r * F12S7) + (r * F12C7)))
+            + n.noise(x + ((r * F12C8) - (r * F12S8)), z + ((r * F12S8) + (r * F12C8)))
+            + n.noise(x + ((r * F12C9) - (r * F12S9)), z + ((r * F12S9) + (r * F12C9)))
+            + n.noise(x + ((r * F12C10) - (r * F12S10)), z + ((r * F12S10) + (r * F12C10)))
+            + n.noise(x + ((r * F12C11) - (r * F12S11)), z + ((r * F12S11) + (r * F12C11)))) / 12.0D;
     }
 
     private static final double F24C0 = 1;
@@ -257,29 +257,29 @@ public class Starcast {
 
     private static double sc24(int x, int z, double r, NoiseProvider n) {
         return (n.noise(x + ((r * F24C0) - (r * F24S0)), z + ((r * F24S0) + (r * F24C0)))
-                + n.noise(x + ((r * F24C1) - (r * F24S1)), z + ((r * F24S1) + (r * F24C1)))
-                + n.noise(x + ((r * F24C2) - (r * F24S2)), z + ((r * F24S2) + (r * F24C2)))
-                + n.noise(x + ((r * F24C3) - (r * F24S3)), z + ((r * F24S3) + (r * F24C3)))
-                + n.noise(x + ((r * F24C4) - (r * F24S4)), z + ((r * F24S4) + (r * F24C4)))
-                + n.noise(x + ((r * F24C5) - (r * F24S5)), z + ((r * F24S5) + (r * F24C5)))
-                + n.noise(x + ((r * F24C6) - (r * F24S6)), z + ((r * F24S6) + (r * F24C6)))
-                + n.noise(x + ((r * F24C7) - (r * F24S7)), z + ((r * F24S7) + (r * F24C7)))
-                + n.noise(x + ((r * F24C8) - (r * F24S8)), z + ((r * F24S8) + (r * F24C8)))
-                + n.noise(x + ((r * F24C9) - (r * F24S9)), z + ((r * F24S9) + (r * F24C9)))
-                + n.noise(x + ((r * F24C10) - (r * F24S10)), z + ((r * F24S10) + (r * F24C10)))
-                + n.noise(x + ((r * F24C11) - (r * F24S11)), z + ((r * F24S11) + (r * F24C11)))
-                + n.noise(x + ((r * F24C12) - (r * F24S12)), z + ((r * F24S12) + (r * F24C12)))
-                + n.noise(x + ((r * F24C13) - (r * F24S13)), z + ((r * F24S13) + (r * F24C13)))
-                + n.noise(x + ((r * F24C14) - (r * F24S14)), z + ((r * F24S14) + (r * F24C14)))
-                + n.noise(x + ((r * F24C15) - (r * F24S15)), z + ((r * F24S15) + (r * F24C15)))
-                + n.noise(x + ((r * F24C16) - (r * F24S16)), z + ((r * F24S16) + (r * F24C16)))
-                + n.noise(x + ((r * F24C17) - (r * F24S17)), z + ((r * F24S17) + (r * F24C17)))
-                + n.noise(x + ((r * F24C18) - (r * F24S18)), z + ((r * F24S18) + (r * F24C18)))
-                + n.noise(x + ((r * F24C19) - (r * F24S19)), z + ((r * F24S19) + (r * F24C19)))
-                + n.noise(x + ((r * F24C20) - (r * F24S20)), z + ((r * F24S20) + (r * F24C20)))
-                + n.noise(x + ((r * F24C21) - (r * F24S21)), z + ((r * F24S21) + (r * F24C21)))
-                + n.noise(x + ((r * F24C22) - (r * F24S22)), z + ((r * F24S22) + (r * F24C22)))
-                + n.noise(x + ((r * F24C23) - (r * F24S23)), z + ((r * F24S23) + (r * F24C23)))) / 24.0D;
+            + n.noise(x + ((r * F24C1) - (r * F24S1)), z + ((r * F24S1) + (r * F24C1)))
+            + n.noise(x + ((r * F24C2) - (r * F24S2)), z + ((r * F24S2) + (r * F24C2)))
+            + n.noise(x + ((r * F24C3) - (r * F24S3)), z + ((r * F24S3) + (r * F24C3)))
+            + n.noise(x + ((r * F24C4) - (r * F24S4)), z + ((r * F24S4) + (r * F24C4)))
+            + n.noise(x + ((r * F24C5) - (r * F24S5)), z + ((r * F24S5) + (r * F24C5)))
+            + n.noise(x + ((r * F24C6) - (r * F24S6)), z + ((r * F24S6) + (r * F24C6)))
+            + n.noise(x + ((r * F24C7) - (r * F24S7)), z + ((r * F24S7) + (r * F24C7)))
+            + n.noise(x + ((r * F24C8) - (r * F24S8)), z + ((r * F24S8) + (r * F24C8)))
+            + n.noise(x + ((r * F24C9) - (r * F24S9)), z + ((r * F24S9) + (r * F24C9)))
+            + n.noise(x + ((r * F24C10) - (r * F24S10)), z + ((r * F24S10) + (r * F24C10)))
+            + n.noise(x + ((r * F24C11) - (r * F24S11)), z + ((r * F24S11) + (r * F24C11)))
+            + n.noise(x + ((r * F24C12) - (r * F24S12)), z + ((r * F24S12) + (r * F24C12)))
+            + n.noise(x + ((r * F24C13) - (r * F24S13)), z + ((r * F24S13) + (r * F24C13)))
+            + n.noise(x + ((r * F24C14) - (r * F24S14)), z + ((r * F24S14) + (r * F24C14)))
+            + n.noise(x + ((r * F24C15) - (r * F24S15)), z + ((r * F24S15) + (r * F24C15)))
+            + n.noise(x + ((r * F24C16) - (r * F24S16)), z + ((r * F24S16) + (r * F24C16)))
+            + n.noise(x + ((r * F24C17) - (r * F24S17)), z + ((r * F24S17) + (r * F24C17)))
+            + n.noise(x + ((r * F24C18) - (r * F24S18)), z + ((r * F24S18) + (r * F24C18)))
+            + n.noise(x + ((r * F24C19) - (r * F24S19)), z + ((r * F24S19) + (r * F24C19)))
+            + n.noise(x + ((r * F24C20) - (r * F24S20)), z + ((r * F24S20) + (r * F24C20)))
+            + n.noise(x + ((r * F24C21) - (r * F24S21)), z + ((r * F24S21) + (r * F24C21)))
+            + n.noise(x + ((r * F24C22) - (r * F24S22)), z + ((r * F24S22) + (r * F24C22)))
+            + n.noise(x + ((r * F24C23) - (r * F24S23)), z + ((r * F24S23) + (r * F24C23)))) / 24.0D;
     }
 
     private static final double F32C0 = 1;
@@ -351,38 +351,38 @@ public class Starcast {
 
     private static double sc32(int x, int z, double r, NoiseProvider n) {
         return (n.noise(x + ((r * F32C0) - (r * F32S0)), z + ((r * F32S0) + (r * F32C0)))
-                + n.noise(x + ((r * F32C1) - (r * F32S1)), z + ((r * F32S1) + (r * F32C1)))
-                + n.noise(x + ((r * F32C2) - (r * F32S2)), z + ((r * F32S2) + (r * F32C2)))
-                + n.noise(x + ((r * F32C3) - (r * F32S3)), z + ((r * F32S3) + (r * F32C3)))
-                + n.noise(x + ((r * F32C4) - (r * F32S4)), z + ((r * F32S4) + (r * F32C4)))
-                + n.noise(x + ((r * F32C5) - (r * F32S5)), z + ((r * F32S5) + (r * F32C5)))
-                + n.noise(x + ((r * F32C6) - (r * F32S6)), z + ((r * F32S6) + (r * F32C6)))
-                + n.noise(x + ((r * F32C7) - (r * F32S7)), z + ((r * F32S7) + (r * F32C7)))
-                + n.noise(x + ((r * F32C8) - (r * F32S8)), z + ((r * F32S8) + (r * F32C8)))
-                + n.noise(x + ((r * F32C9) - (r * F32S9)), z + ((r * F32S9) + (r * F32C9)))
-                + n.noise(x + ((r * F32C10) - (r * F32S10)), z + ((r * F32S10) + (r * F32C10)))
-                + n.noise(x + ((r * F32C11) - (r * F32S11)), z + ((r * F32S11) + (r * F32C11)))
-                + n.noise(x + ((r * F32C12) - (r * F32S12)), z + ((r * F32S12) + (r * F32C12)))
-                + n.noise(x + ((r * F32C13) - (r * F32S13)), z + ((r * F32S13) + (r * F32C13)))
-                + n.noise(x + ((r * F32C14) - (r * F32S14)), z + ((r * F32S14) + (r * F32C14)))
-                + n.noise(x + ((r * F32C15) - (r * F32S15)), z + ((r * F32S15) + (r * F32C15)))
-                + n.noise(x + ((r * F32C16) - (r * F32S16)), z + ((r * F32S16) + (r * F32C16)))
-                + n.noise(x + ((r * F32C17) - (r * F32S17)), z + ((r * F32S17) + (r * F32C17)))
-                + n.noise(x + ((r * F32C18) - (r * F32S18)), z + ((r * F32S18) + (r * F32C18)))
-                + n.noise(x + ((r * F32C19) - (r * F32S19)), z + ((r * F32S19) + (r * F32C19)))
-                + n.noise(x + ((r * F32C20) - (r * F32S20)), z + ((r * F32S20) + (r * F32C20)))
-                + n.noise(x + ((r * F32C21) - (r * F32S21)), z + ((r * F32S21) + (r * F32C21)))
-                + n.noise(x + ((r * F32C22) - (r * F32S22)), z + ((r * F32S22) + (r * F32C22)))
-                + n.noise(x + ((r * F32C23) - (r * F32S23)), z + ((r * F32S23) + (r * F32C23)))
-                + n.noise(x + ((r * F32C24) - (r * F32S24)), z + ((r * F32S24) + (r * F32C24)))
-                + n.noise(x + ((r * F32C25) - (r * F32S25)), z + ((r * F32S25) + (r * F32C25)))
-                + n.noise(x + ((r * F32C26) - (r * F32S26)), z + ((r * F32S26) + (r * F32C26)))
-                + n.noise(x + ((r * F32C27) - (r * F32S27)), z + ((r * F32S27) + (r * F32C27)))
-                + n.noise(x + ((r * F32C28) - (r * F32S28)), z + ((r * F32S28) + (r * F32C28)))
-                + n.noise(x + ((r * F32C29) - (r * F32S29)), z + ((r * F32S29) + (r * F32C29)))
-                + n.noise(x + ((r * F32C30) - (r * F32S30)), z + ((r * F32S30) + (r * F32C30)))
-                + n.noise(x + ((r * F32C31) - (r * F32S31)), z + ((r * F32S31) + (r * F32C31)))
-                + n.noise(x + ((r * F32C32) - (r * F32S32)), z + ((r * F32S32) + (r * F32C32)))) / 32.0D;
+            + n.noise(x + ((r * F32C1) - (r * F32S1)), z + ((r * F32S1) + (r * F32C1)))
+            + n.noise(x + ((r * F32C2) - (r * F32S2)), z + ((r * F32S2) + (r * F32C2)))
+            + n.noise(x + ((r * F32C3) - (r * F32S3)), z + ((r * F32S3) + (r * F32C3)))
+            + n.noise(x + ((r * F32C4) - (r * F32S4)), z + ((r * F32S4) + (r * F32C4)))
+            + n.noise(x + ((r * F32C5) - (r * F32S5)), z + ((r * F32S5) + (r * F32C5)))
+            + n.noise(x + ((r * F32C6) - (r * F32S6)), z + ((r * F32S6) + (r * F32C6)))
+            + n.noise(x + ((r * F32C7) - (r * F32S7)), z + ((r * F32S7) + (r * F32C7)))
+            + n.noise(x + ((r * F32C8) - (r * F32S8)), z + ((r * F32S8) + (r * F32C8)))
+            + n.noise(x + ((r * F32C9) - (r * F32S9)), z + ((r * F32S9) + (r * F32C9)))
+            + n.noise(x + ((r * F32C10) - (r * F32S10)), z + ((r * F32S10) + (r * F32C10)))
+            + n.noise(x + ((r * F32C11) - (r * F32S11)), z + ((r * F32S11) + (r * F32C11)))
+            + n.noise(x + ((r * F32C12) - (r * F32S12)), z + ((r * F32S12) + (r * F32C12)))
+            + n.noise(x + ((r * F32C13) - (r * F32S13)), z + ((r * F32S13) + (r * F32C13)))
+            + n.noise(x + ((r * F32C14) - (r * F32S14)), z + ((r * F32S14) + (r * F32C14)))
+            + n.noise(x + ((r * F32C15) - (r * F32S15)), z + ((r * F32S15) + (r * F32C15)))
+            + n.noise(x + ((r * F32C16) - (r * F32S16)), z + ((r * F32S16) + (r * F32C16)))
+            + n.noise(x + ((r * F32C17) - (r * F32S17)), z + ((r * F32S17) + (r * F32C17)))
+            + n.noise(x + ((r * F32C18) - (r * F32S18)), z + ((r * F32S18) + (r * F32C18)))
+            + n.noise(x + ((r * F32C19) - (r * F32S19)), z + ((r * F32S19) + (r * F32C19)))
+            + n.noise(x + ((r * F32C20) - (r * F32S20)), z + ((r * F32S20) + (r * F32C20)))
+            + n.noise(x + ((r * F32C21) - (r * F32S21)), z + ((r * F32S21) + (r * F32C21)))
+            + n.noise(x + ((r * F32C22) - (r * F32S22)), z + ((r * F32S22) + (r * F32C22)))
+            + n.noise(x + ((r * F32C23) - (r * F32S23)), z + ((r * F32S23) + (r * F32C23)))
+            + n.noise(x + ((r * F32C24) - (r * F32S24)), z + ((r * F32S24) + (r * F32C24)))
+            + n.noise(x + ((r * F32C25) - (r * F32S25)), z + ((r * F32S25) + (r * F32C25)))
+            + n.noise(x + ((r * F32C26) - (r * F32S26)), z + ((r * F32S26) + (r * F32C26)))
+            + n.noise(x + ((r * F32C27) - (r * F32S27)), z + ((r * F32S27) + (r * F32C27)))
+            + n.noise(x + ((r * F32C28) - (r * F32S28)), z + ((r * F32S28) + (r * F32C28)))
+            + n.noise(x + ((r * F32C29) - (r * F32S29)), z + ((r * F32S29) + (r * F32C29)))
+            + n.noise(x + ((r * F32C30) - (r * F32S30)), z + ((r * F32S30) + (r * F32C30)))
+            + n.noise(x + ((r * F32C31) - (r * F32S31)), z + ((r * F32S31) + (r * F32C31)))
+            + n.noise(x + ((r * F32C32) - (r * F32S32)), z + ((r * F32S32) + (r * F32C32)))) / 32.0D;
     }
 
     private static final double F48C0 = 1;
@@ -492,57 +492,57 @@ public class Starcast {
 
     private static double sc48(int x, int z, double r, NoiseProvider n) {
         return (n.noise(x + ((r * F48C0) - (r * F48S0)), z + ((r * F48S0) + (r * F48C0)))
-                + n.noise(x + ((r * F48C1) - (r * F48S1)), z + ((r * F48S1) + (r * F48C1)))
-                + n.noise(x + ((r * F48C2) - (r * F48S2)), z + ((r * F48S2) + (r * F48C2)))
-                + n.noise(x + ((r * F48C3) - (r * F48S3)), z + ((r * F48S3) + (r * F48C3)))
-                + n.noise(x + ((r * F48C4) - (r * F48S4)), z + ((r * F48S4) + (r * F48C4)))
-                + n.noise(x + ((r * F48C5) - (r * F48S5)), z + ((r * F48S5) + (r * F48C5)))
-                + n.noise(x + ((r * F48C6) - (r * F48S6)), z + ((r * F48S6) + (r * F48C6)))
-                + n.noise(x + ((r * F48C7) - (r * F48S7)), z + ((r * F48S7) + (r * F48C7)))
-                + n.noise(x + ((r * F48C8) - (r * F48S8)), z + ((r * F48S8) + (r * F48C8)))
-                + n.noise(x + ((r * F48C9) - (r * F48S9)), z + ((r * F48S9) + (r * F48C9)))
-                + n.noise(x + ((r * F48C10) - (r * F48S10)), z + ((r * F48S10) + (r * F48C10)))
-                + n.noise(x + ((r * F48C11) - (r * F48S11)), z + ((r * F48S11) + (r * F48C11)))
-                + n.noise(x + ((r * F48C12) - (r * F48S12)), z + ((r * F48S12) + (r * F48C12)))
-                + n.noise(x + ((r * F48C13) - (r * F48S13)), z + ((r * F48S13) + (r * F48C13)))
-                + n.noise(x + ((r * F48C14) - (r * F48S14)), z + ((r * F48S14) + (r * F48C14)))
-                + n.noise(x + ((r * F48C15) - (r * F48S15)), z + ((r * F48S15) + (r * F48C15)))
-                + n.noise(x + ((r * F48C16) - (r * F48S16)), z + ((r * F48S16) + (r * F48C16)))
-                + n.noise(x + ((r * F48C17) - (r * F48S17)), z + ((r * F48S17) + (r * F48C17)))
-                + n.noise(x + ((r * F48C18) - (r * F48S18)), z + ((r * F48S18) + (r * F48C18)))
-                + n.noise(x + ((r * F48C19) - (r * F48S19)), z + ((r * F48S19) + (r * F48C19)))
-                + n.noise(x + ((r * F48C20) - (r * F48S20)), z + ((r * F48S20) + (r * F48C20)))
-                + n.noise(x + ((r * F48C21) - (r * F48S21)), z + ((r * F48S21) + (r * F48C21)))
-                + n.noise(x + ((r * F48C22) - (r * F48S22)), z + ((r * F48S22) + (r * F48C22)))
-                + n.noise(x + ((r * F48C23) - (r * F48S23)), z + ((r * F48S23) + (r * F48C23)))
-                + n.noise(x + ((r * F48C24) - (r * F48S24)), z + ((r * F48S24) + (r * F48C24)))
-                + n.noise(x + ((r * F48C25) - (r * F48S25)), z + ((r * F48S25) + (r * F48C25)))
-                + n.noise(x + ((r * F48C26) - (r * F48S26)), z + ((r * F48S26) + (r * F48C26)))
-                + n.noise(x + ((r * F48C27) - (r * F48S27)), z + ((r * F48S27) + (r * F48C27)))
-                + n.noise(x + ((r * F48C28) - (r * F48S28)), z + ((r * F48S28) + (r * F48C28)))
-                + n.noise(x + ((r * F48C29) - (r * F48S29)), z + ((r * F48S29) + (r * F48C29)))
-                + n.noise(x + ((r * F48C30) - (r * F48S30)), z + ((r * F48S30) + (r * F48C30)))
-                + n.noise(x + ((r * F48C31) - (r * F48S31)), z + ((r * F48S31) + (r * F48C31)))
-                + n.noise(x + ((r * F48C32) - (r * F48S32)), z + ((r * F48S32) + (r * F48C32)))
-                + n.noise(x + ((r * F48C33) - (r * F48S33)), z + ((r * F48S33) + (r * F48C33)))
-                + n.noise(x + ((r * F48C34) - (r * F48S34)), z + ((r * F48S34) + (r * F48C34)))
-                + n.noise(x + ((r * F48C35) - (r * F48S35)), z + ((r * F48S35) + (r * F48C35)))
-                + n.noise(x + ((r * F48C36) - (r * F48S36)), z + ((r * F48S36) + (r * F48C36)))
-                + n.noise(x + ((r * F48C37) - (r * F48S37)), z + ((r * F48S37) + (r * F48C37)))
-                + n.noise(x + ((r * F48C38) - (r * F48S38)), z + ((r * F48S38) + (r * F48C38)))
-                + n.noise(x + ((r * F48C39) - (r * F48S39)), z + ((r * F48S39) + (r * F48C39)))
-                + n.noise(x + ((r * F48C40) - (r * F48S40)), z + ((r * F48S40) + (r * F48C40)))
-                + n.noise(x + ((r * F48C41) - (r * F48S41)), z + ((r * F48S41) + (r * F48C41)))
-                + n.noise(x + ((r * F48C42) - (r * F48S42)), z + ((r * F48S42) + (r * F48C42)))
-                + n.noise(x + ((r * F48C43) - (r * F48S43)), z + ((r * F48S43) + (r * F48C43)))
-                + n.noise(x + ((r * F48C44) - (r * F48S44)), z + ((r * F48S44) + (r * F48C44)))
-                + n.noise(x + ((r * F48C45) - (r * F48S45)), z + ((r * F48S45) + (r * F48C45)))
-                + n.noise(x + ((r * F48C46) - (r * F48S46)), z + ((r * F48S46) + (r * F48C46)))
-                + n.noise(x + ((r * F48C47) - (r * F48S47)), z + ((r * F48S47) + (r * F48C47)))
-                + n.noise(x + ((r * F48C48) - (r * F48S48)), z + ((r * F48S48) + (r * F48C48)))
-                + n.noise(x + ((r * F48C49) - (r * F48S49)), z + ((r * F48S49) + (r * F48C49)))
-                + n.noise(x + ((r * F48C50) - (r * F48S50)), z + ((r * F48S50) + (r * F48C50)))
-                + n.noise(x + ((r * F48C51) - (r * F48S51)), z + ((r * F48S51) + (r * F48C51)))) / 48.0D;
+            + n.noise(x + ((r * F48C1) - (r * F48S1)), z + ((r * F48S1) + (r * F48C1)))
+            + n.noise(x + ((r * F48C2) - (r * F48S2)), z + ((r * F48S2) + (r * F48C2)))
+            + n.noise(x + ((r * F48C3) - (r * F48S3)), z + ((r * F48S3) + (r * F48C3)))
+            + n.noise(x + ((r * F48C4) - (r * F48S4)), z + ((r * F48S4) + (r * F48C4)))
+            + n.noise(x + ((r * F48C5) - (r * F48S5)), z + ((r * F48S5) + (r * F48C5)))
+            + n.noise(x + ((r * F48C6) - (r * F48S6)), z + ((r * F48S6) + (r * F48C6)))
+            + n.noise(x + ((r * F48C7) - (r * F48S7)), z + ((r * F48S7) + (r * F48C7)))
+            + n.noise(x + ((r * F48C8) - (r * F48S8)), z + ((r * F48S8) + (r * F48C8)))
+            + n.noise(x + ((r * F48C9) - (r * F48S9)), z + ((r * F48S9) + (r * F48C9)))
+            + n.noise(x + ((r * F48C10) - (r * F48S10)), z + ((r * F48S10) + (r * F48C10)))
+            + n.noise(x + ((r * F48C11) - (r * F48S11)), z + ((r * F48S11) + (r * F48C11)))
+            + n.noise(x + ((r * F48C12) - (r * F48S12)), z + ((r * F48S12) + (r * F48C12)))
+            + n.noise(x + ((r * F48C13) - (r * F48S13)), z + ((r * F48S13) + (r * F48C13)))
+            + n.noise(x + ((r * F48C14) - (r * F48S14)), z + ((r * F48S14) + (r * F48C14)))
+            + n.noise(x + ((r * F48C15) - (r * F48S15)), z + ((r * F48S15) + (r * F48C15)))
+            + n.noise(x + ((r * F48C16) - (r * F48S16)), z + ((r * F48S16) + (r * F48C16)))
+            + n.noise(x + ((r * F48C17) - (r * F48S17)), z + ((r * F48S17) + (r * F48C17)))
+            + n.noise(x + ((r * F48C18) - (r * F48S18)), z + ((r * F48S18) + (r * F48C18)))
+            + n.noise(x + ((r * F48C19) - (r * F48S19)), z + ((r * F48S19) + (r * F48C19)))
+            + n.noise(x + ((r * F48C20) - (r * F48S20)), z + ((r * F48S20) + (r * F48C20)))
+            + n.noise(x + ((r * F48C21) - (r * F48S21)), z + ((r * F48S21) + (r * F48C21)))
+            + n.noise(x + ((r * F48C22) - (r * F48S22)), z + ((r * F48S22) + (r * F48C22)))
+            + n.noise(x + ((r * F48C23) - (r * F48S23)), z + ((r * F48S23) + (r * F48C23)))
+            + n.noise(x + ((r * F48C24) - (r * F48S24)), z + ((r * F48S24) + (r * F48C24)))
+            + n.noise(x + ((r * F48C25) - (r * F48S25)), z + ((r * F48S25) + (r * F48C25)))
+            + n.noise(x + ((r * F48C26) - (r * F48S26)), z + ((r * F48S26) + (r * F48C26)))
+            + n.noise(x + ((r * F48C27) - (r * F48S27)), z + ((r * F48S27) + (r * F48C27)))
+            + n.noise(x + ((r * F48C28) - (r * F48S28)), z + ((r * F48S28) + (r * F48C28)))
+            + n.noise(x + ((r * F48C29) - (r * F48S29)), z + ((r * F48S29) + (r * F48C29)))
+            + n.noise(x + ((r * F48C30) - (r * F48S30)), z + ((r * F48S30) + (r * F48C30)))
+            + n.noise(x + ((r * F48C31) - (r * F48S31)), z + ((r * F48S31) + (r * F48C31)))
+            + n.noise(x + ((r * F48C32) - (r * F48S32)), z + ((r * F48S32) + (r * F48C32)))
+            + n.noise(x + ((r * F48C33) - (r * F48S33)), z + ((r * F48S33) + (r * F48C33)))
+            + n.noise(x + ((r * F48C34) - (r * F48S34)), z + ((r * F48S34) + (r * F48C34)))
+            + n.noise(x + ((r * F48C35) - (r * F48S35)), z + ((r * F48S35) + (r * F48C35)))
+            + n.noise(x + ((r * F48C36) - (r * F48S36)), z + ((r * F48S36) + (r * F48C36)))
+            + n.noise(x + ((r * F48C37) - (r * F48S37)), z + ((r * F48S37) + (r * F48C37)))
+            + n.noise(x + ((r * F48C38) - (r * F48S38)), z + ((r * F48S38) + (r * F48C38)))
+            + n.noise(x + ((r * F48C39) - (r * F48S39)), z + ((r * F48S39) + (r * F48C39)))
+            + n.noise(x + ((r * F48C40) - (r * F48S40)), z + ((r * F48S40) + (r * F48C40)))
+            + n.noise(x + ((r * F48C41) - (r * F48S41)), z + ((r * F48S41) + (r * F48C41)))
+            + n.noise(x + ((r * F48C42) - (r * F48S42)), z + ((r * F48S42) + (r * F48C42)))
+            + n.noise(x + ((r * F48C43) - (r * F48S43)), z + ((r * F48S43) + (r * F48C43)))
+            + n.noise(x + ((r * F48C44) - (r * F48S44)), z + ((r * F48S44) + (r * F48C44)))
+            + n.noise(x + ((r * F48C45) - (r * F48S45)), z + ((r * F48S45) + (r * F48C45)))
+            + n.noise(x + ((r * F48C46) - (r * F48S46)), z + ((r * F48S46) + (r * F48C46)))
+            + n.noise(x + ((r * F48C47) - (r * F48S47)), z + ((r * F48S47) + (r * F48C47)))
+            + n.noise(x + ((r * F48C48) - (r * F48S48)), z + ((r * F48S48) + (r * F48C48)))
+            + n.noise(x + ((r * F48C49) - (r * F48S49)), z + ((r * F48S49) + (r * F48C49)))
+            + n.noise(x + ((r * F48C50) - (r * F48S50)), z + ((r * F48S50) + (r * F48C50)))
+            + n.noise(x + ((r * F48C51) - (r * F48S51)), z + ((r * F48S51) + (r * F48C51)))) / 48.0D;
     }
 
     private static final double F64C0 = 1;
@@ -692,76 +692,76 @@ public class Starcast {
 
     private static double sc64(int x, int z, double r, NoiseProvider n) {
         return (n.noise(x + ((r * F64C0) - (r * F64S0)), z + ((r * F64S0) + (r * F64C0)))
-                + n.noise(x + ((r * F64C1) - (r * F64S1)), z + ((r * F64S1) + (r * F64C1)))
-                + n.noise(x + ((r * F64C2) - (r * F64S2)), z + ((r * F64S2) + (r * F64C2)))
-                + n.noise(x + ((r * F64C3) - (r * F64S3)), z + ((r * F64S3) + (r * F64C3)))
-                + n.noise(x + ((r * F64C4) - (r * F64S4)), z + ((r * F64S4) + (r * F64C4)))
-                + n.noise(x + ((r * F64C5) - (r * F64S5)), z + ((r * F64S5) + (r * F64C5)))
-                + n.noise(x + ((r * F64C6) - (r * F64S6)), z + ((r * F64S6) + (r * F64C6)))
-                + n.noise(x + ((r * F64C7) - (r * F64S7)), z + ((r * F64S7) + (r * F64C7)))
-                + n.noise(x + ((r * F64C8) - (r * F64S8)), z + ((r * F64S8) + (r * F64C8)))
-                + n.noise(x + ((r * F64C9) - (r * F64S9)), z + ((r * F64S9) + (r * F64C9)))
-                + n.noise(x + ((r * F64C10) - (r * F64S10)), z + ((r * F64S10) + (r * F64C10)))
-                + n.noise(x + ((r * F64C11) - (r * F64S11)), z + ((r * F64S11) + (r * F64C11)))
-                + n.noise(x + ((r * F64C12) - (r * F64S12)), z + ((r * F64S12) + (r * F64C12)))
-                + n.noise(x + ((r * F64C13) - (r * F64S13)), z + ((r * F64S13) + (r * F64C13)))
-                + n.noise(x + ((r * F64C14) - (r * F64S14)), z + ((r * F64S14) + (r * F64C14)))
-                + n.noise(x + ((r * F64C15) - (r * F64S15)), z + ((r * F64S15) + (r * F64C15)))
-                + n.noise(x + ((r * F64C16) - (r * F64S16)), z + ((r * F64S16) + (r * F64C16)))
-                + n.noise(x + ((r * F64C17) - (r * F64S17)), z + ((r * F64S17) + (r * F64C17)))
-                + n.noise(x + ((r * F64C18) - (r * F64S18)), z + ((r * F64S18) + (r * F64C18)))
-                + n.noise(x + ((r * F64C19) - (r * F64S19)), z + ((r * F64S19) + (r * F64C19)))
-                + n.noise(x + ((r * F64C20) - (r * F64S20)), z + ((r * F64S20) + (r * F64C20)))
-                + n.noise(x + ((r * F64C21) - (r * F64S21)), z + ((r * F64S21) + (r * F64C21)))
-                + n.noise(x + ((r * F64C22) - (r * F64S22)), z + ((r * F64S22) + (r * F64C22)))
-                + n.noise(x + ((r * F64C23) - (r * F64S23)), z + ((r * F64S23) + (r * F64C23)))
-                + n.noise(x + ((r * F64C24) - (r * F64S24)), z + ((r * F64S24) + (r * F64C24)))
-                + n.noise(x + ((r * F64C25) - (r * F64S25)), z + ((r * F64S25) + (r * F64C25)))
-                + n.noise(x + ((r * F64C26) - (r * F64S26)), z + ((r * F64S26) + (r * F64C26)))
-                + n.noise(x + ((r * F64C27) - (r * F64S27)), z + ((r * F64S27) + (r * F64C27)))
-                + n.noise(x + ((r * F64C28) - (r * F64S28)), z + ((r * F64S28) + (r * F64C28)))
-                + n.noise(x + ((r * F64C29) - (r * F64S29)), z + ((r * F64S29) + (r * F64C29)))
-                + n.noise(x + ((r * F64C30) - (r * F64S30)), z + ((r * F64S30) + (r * F64C30)))
-                + n.noise(x + ((r * F64C31) - (r * F64S31)), z + ((r * F64S31) + (r * F64C31)))
-                + n.noise(x + ((r * F64C32) - (r * F64S32)), z + ((r * F64S32) + (r * F64C32)))
-                + n.noise(x + ((r * F64C33) - (r * F64S33)), z + ((r * F64S33) + (r * F64C33)))
-                + n.noise(x + ((r * F64C34) - (r * F64S34)), z + ((r * F64S34) + (r * F64C34)))
-                + n.noise(x + ((r * F64C35) - (r * F64S35)), z + ((r * F64S35) + (r * F64C35)))
-                + n.noise(x + ((r * F64C36) - (r * F64S36)), z + ((r * F64S36) + (r * F64C36)))
-                + n.noise(x + ((r * F64C37) - (r * F64S37)), z + ((r * F64S37) + (r * F64C37)))
-                + n.noise(x + ((r * F64C38) - (r * F64S38)), z + ((r * F64S38) + (r * F64C38)))
-                + n.noise(x + ((r * F64C39) - (r * F64S39)), z + ((r * F64S39) + (r * F64C39)))
-                + n.noise(x + ((r * F64C40) - (r * F64S40)), z + ((r * F64S40) + (r * F64C40)))
-                + n.noise(x + ((r * F64C41) - (r * F64S41)), z + ((r * F64S41) + (r * F64C41)))
-                + n.noise(x + ((r * F64C42) - (r * F64S42)), z + ((r * F64S42) + (r * F64C42)))
-                + n.noise(x + ((r * F64C43) - (r * F64S43)), z + ((r * F64S43) + (r * F64C43)))
-                + n.noise(x + ((r * F64C44) - (r * F64S44)), z + ((r * F64S44) + (r * F64C44)))
-                + n.noise(x + ((r * F64C45) - (r * F64S45)), z + ((r * F64S45) + (r * F64C45)))
-                + n.noise(x + ((r * F64C46) - (r * F64S46)), z + ((r * F64S46) + (r * F64C46)))
-                + n.noise(x + ((r * F64C47) - (r * F64S47)), z + ((r * F64S47) + (r * F64C47)))
-                + n.noise(x + ((r * F64C48) - (r * F64S48)), z + ((r * F64S48) + (r * F64C48)))
-                + n.noise(x + ((r * F64C49) - (r * F64S49)), z + ((r * F64S49) + (r * F64C49)))
-                + n.noise(x + ((r * F64C50) - (r * F64S50)), z + ((r * F64S50) + (r * F64C50)))
-                + n.noise(x + ((r * F64C51) - (r * F64S51)), z + ((r * F64S51) + (r * F64C51)))
-                + n.noise(x + ((r * F64C52) - (r * F64S52)), z + ((r * F64S52) + (r * F64C52)))
-                + n.noise(x + ((r * F64C53) - (r * F64S53)), z + ((r * F64S53) + (r * F64C53)))
-                + n.noise(x + ((r * F64C54) - (r * F64S54)), z + ((r * F64S54) + (r * F64C54)))
-                + n.noise(x + ((r * F64C55) - (r * F64S55)), z + ((r * F64S55) + (r * F64C55)))
-                + n.noise(x + ((r * F64C56) - (r * F64S56)), z + ((r * F64S56) + (r * F64C56)))
-                + n.noise(x + ((r * F64C57) - (r * F64S57)), z + ((r * F64S57) + (r * F64C57)))
-                + n.noise(x + ((r * F64C58) - (r * F64S58)), z + ((r * F64S58) + (r * F64C58)))
-                + n.noise(x + ((r * F64C59) - (r * F64S59)), z + ((r * F64S59) + (r * F64C59)))
-                + n.noise(x + ((r * F64C60) - (r * F64S60)), z + ((r * F64S60) + (r * F64C60)))
-                + n.noise(x + ((r * F64C61) - (r * F64S61)), z + ((r * F64S61) + (r * F64C61)))
-                + n.noise(x + ((r * F64C62) - (r * F64S62)), z + ((r * F64S62) + (r * F64C62)))
-                + n.noise(x + ((r * F64C63) - (r * F64S63)), z + ((r * F64S63) + (r * F64C63)))
-                + n.noise(x + ((r * F64C64) - (r * F64S64)), z + ((r * F64S64) + (r * F64C64)))
-                + n.noise(x + ((r * F64C65) - (r * F64S65)), z + ((r * F64S65) + (r * F64C65)))
-                + n.noise(x + ((r * F64C66) - (r * F64S66)), z + ((r * F64S66) + (r * F64C66)))
-                + n.noise(x + ((r * F64C67) - (r * F64S67)), z + ((r * F64S67) + (r * F64C67)))
-                + n.noise(x + ((r * F64C68) - (r * F64S68)), z + ((r * F64S68) + (r * F64C68)))
-                + n.noise(x + ((r * F64C69) - (r * F64S69)), z + ((r * F64S69) + (r * F64C69)))
-                + n.noise(x + ((r * F64C70) - (r * F64S70)), z + ((r * F64S70) + (r * F64C70)))
-                + n.noise(x + ((r * F64C71) - (r * F64S71)), z + ((r * F64S71) + (r * F64C71)))) / 64.0D;
+            + n.noise(x + ((r * F64C1) - (r * F64S1)), z + ((r * F64S1) + (r * F64C1)))
+            + n.noise(x + ((r * F64C2) - (r * F64S2)), z + ((r * F64S2) + (r * F64C2)))
+            + n.noise(x + ((r * F64C3) - (r * F64S3)), z + ((r * F64S3) + (r * F64C3)))
+            + n.noise(x + ((r * F64C4) - (r * F64S4)), z + ((r * F64S4) + (r * F64C4)))
+            + n.noise(x + ((r * F64C5) - (r * F64S5)), z + ((r * F64S5) + (r * F64C5)))
+            + n.noise(x + ((r * F64C6) - (r * F64S6)), z + ((r * F64S6) + (r * F64C6)))
+            + n.noise(x + ((r * F64C7) - (r * F64S7)), z + ((r * F64S7) + (r * F64C7)))
+            + n.noise(x + ((r * F64C8) - (r * F64S8)), z + ((r * F64S8) + (r * F64C8)))
+            + n.noise(x + ((r * F64C9) - (r * F64S9)), z + ((r * F64S9) + (r * F64C9)))
+            + n.noise(x + ((r * F64C10) - (r * F64S10)), z + ((r * F64S10) + (r * F64C10)))
+            + n.noise(x + ((r * F64C11) - (r * F64S11)), z + ((r * F64S11) + (r * F64C11)))
+            + n.noise(x + ((r * F64C12) - (r * F64S12)), z + ((r * F64S12) + (r * F64C12)))
+            + n.noise(x + ((r * F64C13) - (r * F64S13)), z + ((r * F64S13) + (r * F64C13)))
+            + n.noise(x + ((r * F64C14) - (r * F64S14)), z + ((r * F64S14) + (r * F64C14)))
+            + n.noise(x + ((r * F64C15) - (r * F64S15)), z + ((r * F64S15) + (r * F64C15)))
+            + n.noise(x + ((r * F64C16) - (r * F64S16)), z + ((r * F64S16) + (r * F64C16)))
+            + n.noise(x + ((r * F64C17) - (r * F64S17)), z + ((r * F64S17) + (r * F64C17)))
+            + n.noise(x + ((r * F64C18) - (r * F64S18)), z + ((r * F64S18) + (r * F64C18)))
+            + n.noise(x + ((r * F64C19) - (r * F64S19)), z + ((r * F64S19) + (r * F64C19)))
+            + n.noise(x + ((r * F64C20) - (r * F64S20)), z + ((r * F64S20) + (r * F64C20)))
+            + n.noise(x + ((r * F64C21) - (r * F64S21)), z + ((r * F64S21) + (r * F64C21)))
+            + n.noise(x + ((r * F64C22) - (r * F64S22)), z + ((r * F64S22) + (r * F64C22)))
+            + n.noise(x + ((r * F64C23) - (r * F64S23)), z + ((r * F64S23) + (r * F64C23)))
+            + n.noise(x + ((r * F64C24) - (r * F64S24)), z + ((r * F64S24) + (r * F64C24)))
+            + n.noise(x + ((r * F64C25) - (r * F64S25)), z + ((r * F64S25) + (r * F64C25)))
+            + n.noise(x + ((r * F64C26) - (r * F64S26)), z + ((r * F64S26) + (r * F64C26)))
+            + n.noise(x + ((r * F64C27) - (r * F64S27)), z + ((r * F64S27) + (r * F64C27)))
+            + n.noise(x + ((r * F64C28) - (r * F64S28)), z + ((r * F64S28) + (r * F64C28)))
+            + n.noise(x + ((r * F64C29) - (r * F64S29)), z + ((r * F64S29) + (r * F64C29)))
+            + n.noise(x + ((r * F64C30) - (r * F64S30)), z + ((r * F64S30) + (r * F64C30)))
+            + n.noise(x + ((r * F64C31) - (r * F64S31)), z + ((r * F64S31) + (r * F64C31)))
+            + n.noise(x + ((r * F64C32) - (r * F64S32)), z + ((r * F64S32) + (r * F64C32)))
+            + n.noise(x + ((r * F64C33) - (r * F64S33)), z + ((r * F64S33) + (r * F64C33)))
+            + n.noise(x + ((r * F64C34) - (r * F64S34)), z + ((r * F64S34) + (r * F64C34)))
+            + n.noise(x + ((r * F64C35) - (r * F64S35)), z + ((r * F64S35) + (r * F64C35)))
+            + n.noise(x + ((r * F64C36) - (r * F64S36)), z + ((r * F64S36) + (r * F64C36)))
+            + n.noise(x + ((r * F64C37) - (r * F64S37)), z + ((r * F64S37) + (r * F64C37)))
+            + n.noise(x + ((r * F64C38) - (r * F64S38)), z + ((r * F64S38) + (r * F64C38)))
+            + n.noise(x + ((r * F64C39) - (r * F64S39)), z + ((r * F64S39) + (r * F64C39)))
+            + n.noise(x + ((r * F64C40) - (r * F64S40)), z + ((r * F64S40) + (r * F64C40)))
+            + n.noise(x + ((r * F64C41) - (r * F64S41)), z + ((r * F64S41) + (r * F64C41)))
+            + n.noise(x + ((r * F64C42) - (r * F64S42)), z + ((r * F64S42) + (r * F64C42)))
+            + n.noise(x + ((r * F64C43) - (r * F64S43)), z + ((r * F64S43) + (r * F64C43)))
+            + n.noise(x + ((r * F64C44) - (r * F64S44)), z + ((r * F64S44) + (r * F64C44)))
+            + n.noise(x + ((r * F64C45) - (r * F64S45)), z + ((r * F64S45) + (r * F64C45)))
+            + n.noise(x + ((r * F64C46) - (r * F64S46)), z + ((r * F64S46) + (r * F64C46)))
+            + n.noise(x + ((r * F64C47) - (r * F64S47)), z + ((r * F64S47) + (r * F64C47)))
+            + n.noise(x + ((r * F64C48) - (r * F64S48)), z + ((r * F64S48) + (r * F64C48)))
+            + n.noise(x + ((r * F64C49) - (r * F64S49)), z + ((r * F64S49) + (r * F64C49)))
+            + n.noise(x + ((r * F64C50) - (r * F64S50)), z + ((r * F64S50) + (r * F64C50)))
+            + n.noise(x + ((r * F64C51) - (r * F64S51)), z + ((r * F64S51) + (r * F64C51)))
+            + n.noise(x + ((r * F64C52) - (r * F64S52)), z + ((r * F64S52) + (r * F64C52)))
+            + n.noise(x + ((r * F64C53) - (r * F64S53)), z + ((r * F64S53) + (r * F64C53)))
+            + n.noise(x + ((r * F64C54) - (r * F64S54)), z + ((r * F64S54) + (r * F64C54)))
+            + n.noise(x + ((r * F64C55) - (r * F64S55)), z + ((r * F64S55) + (r * F64C55)))
+            + n.noise(x + ((r * F64C56) - (r * F64S56)), z + ((r * F64S56) + (r * F64C56)))
+            + n.noise(x + ((r * F64C57) - (r * F64S57)), z + ((r * F64S57) + (r * F64C57)))
+            + n.noise(x + ((r * F64C58) - (r * F64S58)), z + ((r * F64S58) + (r * F64C58)))
+            + n.noise(x + ((r * F64C59) - (r * F64S59)), z + ((r * F64S59) + (r * F64C59)))
+            + n.noise(x + ((r * F64C60) - (r * F64S60)), z + ((r * F64S60) + (r * F64C60)))
+            + n.noise(x + ((r * F64C61) - (r * F64S61)), z + ((r * F64S61) + (r * F64C61)))
+            + n.noise(x + ((r * F64C62) - (r * F64S62)), z + ((r * F64S62) + (r * F64C62)))
+            + n.noise(x + ((r * F64C63) - (r * F64S63)), z + ((r * F64S63) + (r * F64C63)))
+            + n.noise(x + ((r * F64C64) - (r * F64S64)), z + ((r * F64S64) + (r * F64C64)))
+            + n.noise(x + ((r * F64C65) - (r * F64S65)), z + ((r * F64S65) + (r * F64C65)))
+            + n.noise(x + ((r * F64C66) - (r * F64S66)), z + ((r * F64S66) + (r * F64C66)))
+            + n.noise(x + ((r * F64C67) - (r * F64S67)), z + ((r * F64S67) + (r * F64C67)))
+            + n.noise(x + ((r * F64C68) - (r * F64S68)), z + ((r * F64S68) + (r * F64C68)))
+            + n.noise(x + ((r * F64C69) - (r * F64S69)), z + ((r * F64S69) + (r * F64C69)))
+            + n.noise(x + ((r * F64C70) - (r * F64S70)), z + ((r * F64S70) + (r * F64C70)))
+            + n.noise(x + ((r * F64C71) - (r * F64S71)), z + ((r * F64S71) + (r * F64C71)))) / 64.0D;
     }
 }

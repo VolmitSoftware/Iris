@@ -64,7 +64,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     public static KList<String> fromJSONAny(JSONArray oo) {
         KList<String> s = new KList<String>();
 
-        for (int i = 0; i < oo.length(); i++) {
+        for(int i = 0; i < oo.length(); i++) {
             s.add(oo.get(i).toString());
         }
 
@@ -74,7 +74,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     public static KList<String> asStringList(List<?> oo) {
         KList<String> s = new KList<String>();
 
-        for (Object i : oo) {
+        for(Object i : oo) {
             s.add(i.toString());
         }
 
@@ -96,13 +96,13 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     }
 
     public void addMultiple(T t, int c) {
-        for (int i = 0; i < c; i++) {
+        for(int i = 0; i < c; i++) {
             add(t);
         }
     }
 
     private KList<T> add(Enumeration<T> e) {
-        while (e.hasMoreElements()) {
+        while(e.hasMoreElements()) {
             add(e.nextElement());
         }
 
@@ -119,8 +119,10 @@ public class KList<T> extends ArrayList<T> implements List<T> {
      * returned map. You must specify each key for each value in this list. In the
      * function, returning null will not add the keyval pair.
      *
-     * @param <K> the inferred key type
-     * @param f   the function
+     * @param <K>
+     *     the inferred key type
+     * @param f
+     *     the function
      * @return the new map
      */
     public <K> KMap<K, T> asValues(Function<T, K> f) {
@@ -134,8 +136,10 @@ public class KList<T> extends ArrayList<T> implements List<T> {
      * returned map. You must specify each value for each key in this list. In the
      * function, returning null will not add the keyval pair.
      *
-     * @param <V> the inferred value type
-     * @param f   the function
+     * @param <V>
+     *     the inferred value type
+     * @param f
+     *     the function
      * @return the new map
      */
     public <V> KMap<T, V> asKeys(Function<T, V> f) {
@@ -147,7 +151,8 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     /**
      * Cut this list into targetCount sublists
      *
-     * @param targetCount the target count of sublists
+     * @param targetCount
+     *     the target count of sublists
      * @return the list of sublists
      */
     public KList<KList<T>> divide(int targetCount) {
@@ -158,7 +163,8 @@ public class KList<T> extends ArrayList<T> implements List<T> {
      * Split this list into a list of sublists with roughly targetSize elements of T
      * per sublist
      *
-     * @param targetSize the target size
+     * @param targetSize
+     *     the target size
      * @return the list of sublists
      */
     public KList<KList<T>> split(int targetSize) {
@@ -166,8 +172,8 @@ public class KList<T> extends ArrayList<T> implements List<T> {
         KList<KList<T>> gg = new KList<>();
         KList<T> b = new KList<>();
 
-        for (T i : this) {
-            if (b.size() >= targetSize) {
+        for(T i : this) {
+            if(b.size() >= targetSize) {
                 gg.add(b.copy());
                 b.clear();
             }
@@ -175,7 +181,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
             b.add(i);
         }
 
-        if (!b.isEmpty()) {
+        if(!b.isEmpty()) {
             gg.add(b);
         }
 
@@ -186,14 +192,15 @@ public class KList<T> extends ArrayList<T> implements List<T> {
      * Rewrite this list by checking each value and changing the value (or not).
      * Return null to remove the element in the function
      *
-     * @param t the function
+     * @param t
+     *     the function
      * @return the same list (not a copy)
      */
     public KList<T> rewrite(Function<T, T> t) {
         KList<T> m = copy();
         clear();
 
-        for (T i : m) {
+        for(T i : m) {
             addNonNull(t.apply(i));
         }
 
@@ -262,21 +269,22 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     /**
      * Tostring with a seperator for each item in the list
      *
-     * @param split the seperator
+     * @param split
+     *     the seperator
      * @return the string representing this object
      */
     public String toString(String split) {
-        if (isEmpty()) {
+        if(isEmpty()) {
             return "";
         }
 
-        if (size() == 1) {
+        if(size() == 1) {
             return get(0) + "";
         }
 
         StringBuilder b = new StringBuilder();
 
-        for (String i : toStringList()) {
+        for(String i : toStringList()) {
             b.append(split).append(i == null ? "null" : i);
         }
 
@@ -295,9 +303,12 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     /**
      * Add the contents of the given list (v) into this list using a converter
      *
-     * @param <V>       the type of the forign list
-     * @param v         the forign (given) list
-     * @param converter the converter that converts the forign type into this list type
+     * @param <V>
+     *     the type of the forign list
+     * @param v
+     *     the forign (given) list
+     * @param converter
+     *     the converter that converts the forign type into this list type
      * @return this list (builder)
      */
     public <V> KList<T> addFrom(List<V> v, Function<V, T> converter) {
@@ -308,10 +319,6 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     /**
      * Convert this list into another list type. Such as GList<Integer> to
      * GList<String>. list.convert((i) -> "" + i);
-     *
-     * @param <V>
-     * @param converter
-     * @return
      */
     public <V> KList<V> convert(Function<T, V> converter) {
         KList<V> v = new KList<V>();
@@ -320,8 +327,8 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     }
 
     public KList<T> removeWhere(Predicate<T> t) {
-        for (T i : copy()) {
-            if (t.test(i)) {
+        for(T i : copy()) {
+            if(t.test(i)) {
                 remove(i);
             }
         }
@@ -332,11 +339,12 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     /**
      * Adds T to the list, ignores if null
      *
-     * @param t the value to add
+     * @param t
+     *     the value to add
      * @return the same list
      */
     public KList<T> addNonNull(T t) {
-        if (t != null) {
+        if(t != null) {
             super.add(t);
         }
 
@@ -347,8 +355,10 @@ public class KList<T> extends ArrayList<T> implements List<T> {
      * Swaps the values of index a and b. For example "hello", "world", "!" swap(1,
      * 2) would change the list to "hello", "!", "world"
      *
-     * @param a the first index
-     * @param b the second index
+     * @param a
+     *     the first index
+     * @param b
+     *     the second index
      * @return the same list (builder), not a copy
      */
     public KList<T> swapIndexes(int a, int b) {
@@ -364,12 +374,13 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     /**
      * Remove a number of elements from the list
      *
-     * @param t the elements
+     * @param t
+     *     the elements
      * @return this list
      */
     @SuppressWarnings("unchecked")
     public KList<T> remove(T... t) {
-        for (T i : t) {
+        for(T i : t) {
             super.remove(i);
         }
 
@@ -379,7 +390,8 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     /**
      * Add another glist's contents to this one (addall builder)
      *
-     * @param t the list
+     * @param t
+     *     the list
      * @return the same list
      */
     public KList<T> add(KList<T> t) {
@@ -390,12 +402,13 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     /**
      * Add a number of values to this list
      *
-     * @param t the list
+     * @param t
+     *     the list
      * @return this list
      */
     @SuppressWarnings("unchecked")
     public KList<T> add(T... t) {
-        for (T i : t) {
+        for(T i : t) {
             super.add(i);
         }
 
@@ -405,7 +418,8 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     /**
      * Check if this list has an index at the given index
      *
-     * @param index the given index
+     * @param index
+     *     the given index
      * @return true if size > index
      */
     public boolean hasIndex(int index) {
@@ -465,7 +479,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
      * @return the popped off item or null if the list is empty
      */
     public T pop() {
-        if (isEmpty()) {
+        if(isEmpty()) {
             return null;
         }
 
@@ -478,7 +492,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
      * @return the popped off item or null if the list is empty
      */
     public T popLast() {
-        if (isEmpty()) {
+        if(isEmpty()) {
             return null;
         }
 
@@ -486,11 +500,11 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     }
 
     public T popRandom() {
-        if (isEmpty()) {
+        if(isEmpty()) {
             return null;
         }
 
-        if (size() == 1) {
+        if(size() == 1) {
             return pop();
         }
 
@@ -498,11 +512,11 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     }
 
     public T popRandom(RNG rng) {
-        if (isEmpty()) {
+        if(isEmpty()) {
             return null;
         }
 
-        if (size() == 1) {
+        if(size() == 1) {
             return pop();
         }
 
@@ -512,7 +526,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     public KList<T> sub(int f, int t) {
         KList<T> g = new KList<>();
 
-        for (int i = f; i < M.min(size(), t); i++) {
+        for(int i = f; i < M.min(size(), t); i++) {
             g.add(get(i));
         }
 
@@ -522,7 +536,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     public JSONArray toJSONStringArray() {
         JSONArray j = new JSONArray();
 
-        for (Object i : this) {
+        for(Object i : this) {
             j.put(i.toString());
         }
 
@@ -531,7 +545,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
 
     @SuppressWarnings("unchecked")
     public KList<T> forceAdd(Object[] values) {
-        for (Object i : values) {
+        for(Object i : values) {
             add((T) i);
         }
 
@@ -540,7 +554,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
 
     @SuppressWarnings("unchecked")
     public KList<T> forceAdd(int[] values) {
-        for (Object i : values) {
+        for(Object i : values) {
             add((T) i);
         }
 
@@ -549,7 +563,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
 
     @SuppressWarnings("unchecked")
     public KList<T> forceAdd(double[] values) {
-        for (Object i : values) {
+        for(Object i : values) {
             add((T) i);
         }
 
@@ -558,7 +572,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
 
     @SuppressWarnings("unchecked")
     public KList<T> forceAdd(AtomicDoubleArray values) {
-        for (int i = 0; i < values.length(); i++) {
+        for(int i = 0; i < values.length(); i++) {
             add((T) ((Object) values.get(i)));
         }
 
@@ -567,7 +581,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
 
     @SuppressWarnings("unchecked")
     public KList<T> forceAdd(float[] values) {
-        for (Object i : values) {
+        for(Object i : values) {
             add((T) i);
         }
 
@@ -576,7 +590,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
 
     @SuppressWarnings("unchecked")
     public KList<T> forceAdd(byte[] values) {
-        for (Object i : values) {
+        for(Object i : values) {
             add((T) i);
         }
 
@@ -585,7 +599,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
 
     @SuppressWarnings("unchecked")
     public KList<T> forceAdd(short[] values) {
-        for (Object i : values) {
+        for(Object i : values) {
             add((T) i);
         }
 
@@ -594,7 +608,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
 
     @SuppressWarnings("unchecked")
     public KList<T> forceAdd(long[] values) {
-        for (Object i : values) {
+        for(Object i : values) {
             add((T) i);
         }
 
@@ -603,7 +617,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
 
     @SuppressWarnings("unchecked")
     public KList<T> forceAdd(boolean[] values) {
-        for (Object i : values) {
+        for(Object i : values) {
             add((T) i);
         }
 
@@ -619,11 +633,11 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     }
 
     public T getRandom() {
-        if (isEmpty()) {
+        if(isEmpty()) {
             return null;
         }
 
-        if (size() == 1) {
+        if(size() == 1) {
             return get(0);
         }
 
@@ -633,8 +647,8 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     public KList<T> popRandom(RNG rng, int c) {
         KList<T> m = new KList<>();
 
-        for (int i = 0; i < c; i++) {
-            if (isEmpty()) {
+        for(int i = 0; i < c; i++) {
+            if(isEmpty()) {
                 break;
             }
 
@@ -645,11 +659,11 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     }
 
     public T getRandom(RNG rng) {
-        if (isEmpty()) {
+        if(isEmpty()) {
             return null;
         }
 
-        if (size() == 1) {
+        if(size() == 1) {
             return get(0);
         }
 
@@ -680,7 +694,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     }
 
     public boolean addIfMissing(T t) {
-        if (!contains(t)) {
+        if(!contains(t)) {
             add(t);
             return true;
         }
@@ -689,8 +703,8 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     }
 
     public void addAllIfMissing(KList<T> t) {
-        for (T i : t) {
-            if (!contains(i)) {
+        for(T i : t) {
+            if(!contains(i)) {
                 add(i);
             }
         }

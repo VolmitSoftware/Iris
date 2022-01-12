@@ -65,21 +65,21 @@ public class IrisExpression extends IrisRegistrant {
             Scope scope = new Scope(); // Create variable scope. This scope can hold both constants and invocation variables.
 
             try {
-                for (IrisExpressionLoad i : variables) {
+                for(IrisExpressionLoad i : variables) {
                     scope.addInvocationVariable(i.getName());
                 }
 
                 scope.addInvocationVariable("x");
                 scope.addInvocationVariable("y");
                 scope.addInvocationVariable("z");
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 e.printStackTrace();
                 Iris.error("Script Variable load error in " + getLoadFile().getPath());
             }
 
             try {
                 return parser.parse(getExpression(), scope);
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 e.printStackTrace();
                 Iris.error("Script load error in " + getLoadFile().getPath());
             }
@@ -90,13 +90,13 @@ public class IrisExpression extends IrisRegistrant {
 
     public ProceduralStream<Double> stream(RNG rng) {
         return streamCache.aquire(() -> ProceduralStream.of((x, z) -> evaluate(rng, x, z),
-                (x, y, z) -> evaluate(rng, x, y, z), Interpolated.DOUBLE));
+            (x, y, z) -> evaluate(rng, x, y, z), Interpolated.DOUBLE));
     }
 
     public double evaluate(RNG rng, double x, double z) {
         double[] g = new double[3 + getVariables().size()];
         int m = 0;
-        for (IrisExpressionLoad i : getVariables()) {
+        for(IrisExpressionLoad i : getVariables()) {
             g[m++] = i.getValue(rng, getLoader(), x, z);
         }
 
@@ -110,7 +110,7 @@ public class IrisExpression extends IrisRegistrant {
     public double evaluate(RNG rng, double x, double y, double z) {
         double[] g = new double[3 + getVariables().size()];
         int m = 0;
-        for (IrisExpressionLoad i : getVariables()) {
+        for(IrisExpressionLoad i : getVariables()) {
             g[m++] = i.getValue(rng, getLoader(), x, y, z);
         }
 

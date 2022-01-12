@@ -40,7 +40,7 @@ public abstract class PaletteOrHunk<T> extends StorageHunk<T> implements Hunk<T>
     }
 
     public void setPalette(DataContainer<T> c) {
-        if (isPalette()) {
+        if(isPalette()) {
             ((PaletteHunk<T>) hunk).setPalette(c);
         }
     }

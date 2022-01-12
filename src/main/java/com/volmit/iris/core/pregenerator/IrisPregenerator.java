@@ -85,7 +85,7 @@ public class IrisPregenerator {
                 generatedLast.set(generated.get());
                 chunksPerSecond.put(secondGenerated);
 
-                if (minuteLatch.flip()) {
+                if(minuteLatch.flip()) {
                     int minuteGenerated = generated.get() - generatedLastMinute.get();
                     generatedLastMinute.set(generated.get());
                     chunksPerMinute.put(minuteGenerated);
@@ -93,13 +93,13 @@ public class IrisPregenerator {
                 }
 
                 listener.onTick(chunksPerSecond.getAverage(), chunksPerMinute.getAverage(),
-                        regionsPerMinute.getAverage(),
-                        (double) generated.get() / (double) totalChunks.get(),
-                        generated.get(), totalChunks.get(),
-                        totalChunks.get() - generated.get(),
-                        eta, M.ms() - startTime.get(), currentGeneratorMethod.get());
+                    regionsPerMinute.getAverage(),
+                    (double) generated.get() / (double) totalChunks.get(),
+                    generated.get(), totalChunks.get(),
+                    totalChunks.get() - generated.get(),
+                    eta, M.ms() - startTime.get(), currentGeneratorMethod.get());
 
-                if (cl.flip()) {
+                if(cl.flip()) {
                     Iris.info("Pregen: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (" + Form.pc((double) generated.get() / (double) totalChunks.get(), 0) + ") " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration((double) eta, 2));
                 }
 
@@ -110,7 +110,7 @@ public class IrisPregenerator {
 
     private long computeETA() {
         return (long) ((totalChunks.get() - generated.get()) *
-                ((double) (M.ms() - startTime.get()) / (double) generated.get()));
+            ((double) (M.ms() - startTime.get()) / (double) generated.get()));
     }
 
     public void close() {
@@ -143,34 +143,34 @@ public class IrisPregenerator {
     }
 
     private void visitRegion(int x, int z, boolean regions) {
-        while (paused.get() && !shutdown.get()) {
+        while(paused.get() && !shutdown.get()) {
             J.sleep(50);
         }
 
-        if (shutdown.get()) {
+        if(shutdown.get()) {
             listener.onRegionSkipped(x, z);
             return;
         }
 
         Position2 pos = new Position2(x, z);
 
-        if (generatedRegions.contains(pos)) {
+        if(generatedRegions.contains(pos)) {
             return;
         }
 
         currentGeneratorMethod.set(generator.getMethod(x, z));
         boolean hit = false;
-        if (generator.supportsRegions(x, z, listener) && regions) {
+        if(generator.supportsRegions(x, z, listener) && regions) {
             hit = true;
             listener.onRegionGenerating(x, z);
             generator.generateRegion(x, z, listener);
-        } else if (!regions) {
+        } else if(!regions) {
             hit = true;
             listener.onRegionGenerating(x, z);
             PregenTask.iterateRegion(x, z, (xx, zz) -> generator.generateChunk(xx, zz, listener));
         }
 
-        if (hit) {
+        if(hit) {
             listener.onRegionGenerated(x, z);
             listener.onSaving();
             generator.save();
@@ -180,7 +180,7 @@ public class IrisPregenerator {
     }
 
     private void checkRegion(int x, int z) {
-        if (generatedRegions.contains(new Position2(x, z))) {
+        if(generatedRegions.contains(new Position2(x, z))) {
             return;
         }
 

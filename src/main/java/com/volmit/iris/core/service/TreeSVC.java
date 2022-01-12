@@ -79,22 +79,23 @@ public class TreeSVC implements IrisService {
      * <br>4. Check biome, region and dimension for overrides for that sapling type -> Found -> use</br>
      * <br>5. Exit if none are found, cancel event if one or more are.</br>
      *
-     * @param event Checks the given event for sapling overrides
+     * @param event
+     *     Checks the given event for sapling overrides
      */
     @EventHandler(priority = EventPriority.HIGHEST)
     public void on(StructureGrowEvent event) {
-        if (block || event.isCancelled()) {
+        if(block || event.isCancelled()) {
             return;
         }
         Iris.debug(this.getClass().getName() + " received a structure grow event");
 
-        if (!IrisToolbelt.isIrisWorld(event.getWorld())) {
+        if(!IrisToolbelt.isIrisWorld(event.getWorld())) {
             Iris.debug(this.getClass().getName() + " passed grow event off to vanilla since not an Iris world");
             return;
         }
 
         PlatformChunkGenerator worldAccess = IrisToolbelt.access(event.getWorld());
-        if (worldAccess == null) {
+        if(worldAccess == null) {
             Iris.debug(this.getClass().getName() + " passed it off to vanilla because could not get IrisAccess for this world");
             Iris.reportError(new NullPointerException(event.getWorld().getName() + " could not be accessed despite being an Iris world"));
             return;
@@ -102,7 +103,7 @@ public class TreeSVC implements IrisService {
 
         Engine engine = worldAccess.getEngine();
 
-        if (engine == null) {
+        if(engine == null) {
             Iris.debug(this.getClass().getName() + " passed it off to vanilla because could not get Engine for this world");
             Iris.reportError(new NullPointerException(event.getWorld().getName() + " could not be accessed despite being an Iris world"));
             return;
@@ -110,13 +111,13 @@ public class TreeSVC implements IrisService {
 
         IrisDimension dimension = engine.getDimension();
 
-        if (dimension == null) {
+        if(dimension == null) {
             Iris.debug(this.getClass().getName() + " passed it off to vanilla because could not get Dimension for this world");
             Iris.reportError(new NullPointerException(event.getWorld().getName() + " could not be accessed despite being an Iris world"));
             return;
         }
 
-        if (!dimension.getTreeSettings().isEnabled()) {
+        if(!dimension.getTreeSettings().isEnabled()) {
             Iris.debug(this.getClass().getName() + " cancelled because tree overrides are disabled");
             return;
         }
@@ -128,7 +129,7 @@ public class TreeSVC implements IrisService {
         Iris.debug("Sapling plane is: " + saplingPlane.getSizeX() + " by " + saplingPlane.getSizeZ());
         IrisObjectPlacement placement = getObjectPlacement(worldAccess, event.getLocation(), event.getSpecies(), new IrisTreeSize(1, 1));
 
-        if (placement == null) {
+        if(placement == null) {
             Iris.debug(this.getClass().getName() + " had options but did not manage to find objectPlacements for them");
             return;
         }
@@ -207,13 +208,13 @@ public class TreeSVC implements IrisService {
         };
 
         object.place(
-                saplingPlane.getCenter().getBlockX(),
-                (saplingPlane.getCenter().getBlockY() + object.getH() / 2),
-                saplingPlane.getCenter().getBlockZ(),
-                placer,
-                placement,
-                RNG.r,
-                Objects.requireNonNull(worldAccess).getData()
+            saplingPlane.getCenter().getBlockX(),
+            (saplingPlane.getCenter().getBlockY() + object.getH() / 2),
+            saplingPlane.getCenter().getBlockZ(),
+            placer,
+            placement,
+            RNG.r,
+            Objects.requireNonNull(worldAccess).getData()
         );
 
         event.setCancelled(true);
@@ -225,11 +226,11 @@ public class TreeSVC implements IrisService {
             Bukkit.getServer().getPluginManager().callEvent(iGrow);
             block = false;
 
-            if (!iGrow.isCancelled()) {
-                for (BlockState block : iGrow.getBlocks()) {
+            if(!iGrow.isCancelled()) {
+                for(BlockState block : iGrow.getBlocks()) {
                     Location l = block.getLocation();
 
-                    if (dataCache.containsKey(l)) {
+                    if(dataCache.containsKey(l)) {
                         l.getBlock().setBlockData(dataCache.get(l), false);
                     }
                 }
@@ -238,12 +239,17 @@ public class TreeSVC implements IrisService {
     }
 
     /**
-     * Finds a single object placement (which may contain more than one object) for the requirements species, location & size
+     * Finds a single object placement (which may contain more than one object) for the requirements species, location &
+     * size
      *
-     * @param worldAccess The world to access (check for biome, region, dimension, etc)
-     * @param location    The location of the growth event (For biome/region finding)
-     * @param type        The bukkit TreeType to match
-     * @param size        The size of the sapling area
+     * @param worldAccess
+     *     The world to access (check for biome, region, dimension, etc)
+     * @param location
+     *     The location of the growth event (For biome/region finding)
+     * @param type
+     *     The bukkit TreeType to match
+     * @param size
+     *     The size of the sapling area
      * @return An object placement which contains the matched tree, or null if none were found / it's disabled.
      */
     private IrisObjectPlacement getObjectPlacement(PlatformChunkGenerator worldAccess, Location location, TreeType type, IrisTreeSize size) {
@@ -256,7 +262,7 @@ public class TreeSVC implements IrisService {
         placements.addAll(matchObjectPlacements(biome.getObjects(), size, type));
 
         // Add more or find any in the region
-        if (isUseAll || placements.isEmpty()) {
+        if(isUseAll || placements.isEmpty()) {
             IrisRegion region = worldAccess.getEngine().getRegion(location.getBlockX(), location.getBlockZ());
             placements.addAll(matchObjectPlacements(region.getObjects(), size, type));
         }
@@ -268,17 +274,20 @@ public class TreeSVC implements IrisService {
     /**
      * Filters out mismatches and returns matches
      *
-     * @param objects The object placements to check
-     * @param size    The size of the sapling area to filter with
-     * @param type    The type of the tree to filter with
+     * @param objects
+     *     The object placements to check
+     * @param size
+     *     The size of the sapling area to filter with
+     * @param type
+     *     The type of the tree to filter with
      * @return A list of objectPlacements that matched. May be empty.
      */
     private KList<IrisObjectPlacement> matchObjectPlacements(KList<IrisObjectPlacement> objects, IrisTreeSize size, TreeType type) {
 
         KList<IrisObjectPlacement> p = new KList<>();
 
-        for (IrisObjectPlacement i : objects) {
-            if (i.matches(size, type)) {
+        for(IrisObjectPlacement i : objects) {
+            if(i.matches(size, type)) {
                 p.add(i);
             }
         }
@@ -289,9 +298,12 @@ public class TreeSVC implements IrisService {
     /**
      * Get the Cuboid of sapling sizes at a location & blockData predicate
      *
-     * @param at    this location
-     * @param valid with this blockData predicate
-     * @param world the world to check in
+     * @param at
+     *     this location
+     * @param valid
+     *     with this blockData predicate
+     * @param world
+     *     the world to check in
      * @return A cuboid containing only saplings
      */
     public Cuboid getSaplings(Location at, Predicate<BlockData> valid, World world) {
@@ -301,7 +313,7 @@ public class TreeSVC implements IrisService {
         BlockPosition b = new BlockPosition(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
 
         // Maximise the block position in x and z to get max cuboid bounds
-        for (BlockPosition blockPosition : blockPositions) {
+        for(BlockPosition blockPosition : blockPositions) {
             a.max(blockPosition);
             b.min(blockPosition);
         }
@@ -314,12 +326,12 @@ public class TreeSVC implements IrisService {
         boolean cuboidIsValid = true;
 
         // Loop while the cuboid is larger than 2
-        while (Math.min(cuboid.getSizeX(), cuboid.getSizeZ()) > 0) {
+        while(Math.min(cuboid.getSizeX(), cuboid.getSizeZ()) > 0) {
             checking:
-            for (int i = cuboid.getLowerX(); i < cuboid.getUpperX(); i++) {
-                for (int j = cuboid.getLowerY(); j < cuboid.getUpperY(); j++) {
-                    for (int k = cuboid.getLowerZ(); k < cuboid.getUpperZ(); k++) {
-                        if (!blockPositions.contains(new BlockPosition(i, j, k))) {
+            for(int i = cuboid.getLowerX(); i < cuboid.getUpperX(); i++) {
+                for(int j = cuboid.getLowerY(); j < cuboid.getUpperY(); j++) {
+                    for(int k = cuboid.getLowerZ(); k < cuboid.getUpperZ(); k++) {
+                        if(!blockPositions.contains(new BlockPosition(i, j, k))) {
                             cuboidIsValid = false;
                             break checking;
                         }
@@ -328,7 +340,7 @@ public class TreeSVC implements IrisService {
             }
 
             // Return this cuboid if it's valid
-            if (cuboidIsValid) {
+            if(cuboidIsValid) {
                 return cuboid;
             }
 
@@ -343,14 +355,18 @@ public class TreeSVC implements IrisService {
     /**
      * Grows the blockPosition list by means of checking neighbours in
      *
-     * @param world  the world to check in
-     * @param center the location of this position
-     * @param valid  validation on blockData to check block with
-     * @param l      list of block positions to add new neighbors too
+     * @param world
+     *     the world to check in
+     * @param center
+     *     the location of this position
+     * @param valid
+     *     validation on blockData to check block with
+     * @param l
+     *     list of block positions to add new neighbors too
      */
     private void grow(World world, BlockPosition center, Predicate<BlockData> valid, KList<BlockPosition> l) {
         // Make sure size is less than 50, the block to check isn't already in, and make sure the blockData still matches
-        if (l.size() <= 50 && !l.contains(center) && valid.test(center.toBlock(world).getBlockData())) {
+        if(l.size() <= 50 && !l.contains(center) && valid.test(center.toBlock(world).getBlockData())) {
             l.add(center);
             grow(world, center.add(1, 0, 0), valid, l);
             grow(world, center.add(-1, 0, 0), valid, l);

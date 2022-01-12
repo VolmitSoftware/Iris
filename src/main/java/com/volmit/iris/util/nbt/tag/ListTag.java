@@ -48,13 +48,16 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
     }
 
     /**
-     * @param typeClass The exact class of the elements
-     * @throws IllegalArgumentException When {@code typeClass} is {@link EndTag}{@code .class}
-     * @throws NullPointerException     When {@code typeClass} is {@code null}
+     * @param typeClass
+     *     The exact class of the elements
+     * @throws IllegalArgumentException
+     *     When {@code typeClass} is {@link EndTag}{@code .class}
+     * @throws NullPointerException
+     *     When {@code typeClass} is {@code null}
      */
     public ListTag(Class<? super T> typeClass) throws IllegalArgumentException, NullPointerException {
         super(createEmptyValue(3));
-        if (typeClass == EndTag.class) {
+        if(typeClass == EndTag.class) {
             throw new IllegalArgumentException("cannot create ListTag with EndTag elements");
         }
         this.typeClass = Objects.requireNonNull(typeClass);
@@ -78,8 +81,10 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
     /**
      * <p>Creates an empty mutable list to be used as empty value of ListTags.</p>
      *
-     * @param <T>             Type of the list elements
-     * @param initialCapacity The initial capacity of the returned List
+     * @param <T>
+     *     Type of the list elements
+     * @param initialCapacity
+     *     The initial capacity of the returned List
      * @return An instance of {@link List} with an initial capacity of 3
      */
     private static <T> List<T> createEmptyValue(@SuppressWarnings("SameParameterValue") int initialCapacity) {
@@ -141,7 +146,8 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
     /**
      * Adds a Tag to this ListTag after the last index.
      *
-     * @param t The element to be added.
+     * @param t
+     *     The element to be added.
      */
     public void add(T t) {
         add(size(), t);
@@ -149,26 +155,26 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 
     public void add(int index, T t) {
         Objects.requireNonNull(t);
-        if (typeClass == null || typeClass == EndTag.class) {
+        if(typeClass == null || typeClass == EndTag.class) {
             typeClass = t.getClass();
-        } else if (typeClass != t.getClass()) {
+        } else if(typeClass != t.getClass()) {
             throw new ClassCastException(
-                    String.format("cannot add %s to ListTag<%s>",
-                            t.getClass().getSimpleName(),
-                            typeClass.getSimpleName()));
+                String.format("cannot add %s to ListTag<%s>",
+                    t.getClass().getSimpleName(),
+                    typeClass.getSimpleName()));
         }
         getValue().add(index, t);
     }
 
     public void addAll(Collection<T> t) {
-        for (T tt : t) {
+        for(T tt : t) {
             add(tt);
         }
     }
 
     public void addAll(int index, Collection<T> t) {
         int i = 0;
-        for (T tt : t) {
+        for(T tt : t) {
             add(index + i, tt);
             i++;
         }
@@ -287,7 +293,7 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
     @Override
     public String valueToString(int maxDepth) {
         StringBuilder sb = new StringBuilder("{\"type\":\"").append(getTypeClass().getSimpleName()).append("\",\"list\":[");
-        for (int i = 0; i < size(); i++) {
+        for(int i = 0; i < size(); i++) {
             sb.append(i > 0 ? "," : "").append(get(i).valueToString(decrementMaxDepth(maxDepth)));
         }
         sb.append("]}");
@@ -296,14 +302,14 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 
     @Override
     public boolean equals(Object other) {
-        if (this == other) {
+        if(this == other) {
             return true;
         }
-        if (!super.equals(other) || size() != ((ListTag<?>) other).size() || getTypeClass() != ((ListTag<?>) other).getTypeClass()) {
+        if(!super.equals(other) || size() != ((ListTag<?>) other).size() || getTypeClass() != ((ListTag<?>) other).getTypeClass()) {
             return false;
         }
-        for (int i = 0; i < size(); i++) {
-            if (!get(i).equals(((ListTag<?>) other).get(i))) {
+        for(int i = 0; i < size(); i++) {
+            if(!get(i).equals(((ListTag<?>) other).get(i))) {
                 return false;
             }
         }
@@ -326,7 +332,7 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
         ListTag<T> copy = new ListTag<>();
         // assure type safety for clone
         copy.typeClass = typeClass;
-        for (T t : getValue()) {
+        for(T t : getValue()) {
             copy.add((T) t.clone());
         }
         return copy;
@@ -335,19 +341,19 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
     //TODO: make private
     @SuppressWarnings("unchecked")
     public void addUnchecked(Tag<?> tag) {
-        if (typeClass != null && typeClass != tag.getClass() && typeClass != EndTag.class) {
+        if(typeClass != null && typeClass != tag.getClass() && typeClass != EndTag.class) {
             throw new IllegalArgumentException(String.format(
-                    "cannot add %s to ListTag<%s>",
-                    tag.getClass().getSimpleName(), typeClass.getSimpleName()));
+                "cannot add %s to ListTag<%s>",
+                tag.getClass().getSimpleName(), typeClass.getSimpleName()));
         }
         add(size(), (T) tag);
     }
 
     private void checkTypeClass(Class<?> clazz) {
-        if (typeClass != null && typeClass != EndTag.class && typeClass != clazz) {
+        if(typeClass != null && typeClass != EndTag.class && typeClass != clazz) {
             throw new ClassCastException(String.format(
-                    "cannot cast ListTag<%s> to ListTag<%s>",
-                    typeClass.getSimpleName(), clazz.getSimpleName()));
+                "cannot cast ListTag<%s> to ListTag<%s>",
+                typeClass.getSimpleName(), clazz.getSimpleName()));
         }
     }
 }

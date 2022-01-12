@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
@@ -230,14 +229,14 @@ public class IrisDimension extends IrisRegistrant {
     private KList<IrisOreGenerator> ores = new KList<>();
 
     public BlockData generateOres(int x, int y, int z, RNG rng, IrisData data) {
-        if (ores.isEmpty()) {
+        if(ores.isEmpty()) {
             return null;
         }
         BlockData b = null;
-        for (IrisOreGenerator i : ores) {
+        for(IrisOreGenerator i : ores) {
 
-            b = i.generate(x,y,z,rng,data);
-            if(b != null ){
+            b = i.generate(x, y, z, rng, data);
+            if(b != null) {
                 return b;
             }
         }
@@ -250,11 +249,11 @@ public class IrisDimension extends IrisRegistrant {
             int jump = strongholdJumpDistance;
             RNG rng = new RNG((seed * 223) + 12945);
 
-            for (int i = 0; i < maxStrongholds + 1; i++) {
+            for(int i = 0; i < maxStrongholds + 1; i++) {
                 int m = i + 1;
                 pos.add(new Position2(
-                        (int) ((rng.i(jump * i) + (jump * i)) * (rng.b() ? -1D : 1D)),
-                        (int) ((rng.i(jump * i) + (jump * i)) * (rng.b() ? -1D : 1D))
+                    (int) ((rng.i(jump * i) + (jump * i)) * (rng.b() ? -1D : 1D)),
+                    (int) ((rng.i(jump * i) + (jump * i)) * (rng.b() ? -1D : 1D))
                 ));
             }
 
@@ -300,7 +299,7 @@ public class IrisDimension extends IrisRegistrant {
     public KList<IrisRegion> getAllRegions(DataProvider g) {
         KList<IrisRegion> r = new KList<>();
 
-        for (String i : getRegions()) {
+        for(String i : getRegions()) {
             r.add(g.getData().getRegionLoader().load(i));
         }
 
@@ -310,7 +309,7 @@ public class IrisDimension extends IrisRegistrant {
     public KList<IrisRegion> getAllAnyRegions() {
         KList<IrisRegion> r = new KList<>();
 
-        for (String i : getRegions()) {
+        for(String i : getRegions()) {
             r.add(IrisData.loadAnyRegion(i));
         }
 
@@ -324,8 +323,8 @@ public class IrisDimension extends IrisRegistrant {
     public KList<IrisBiome> getAllAnyBiomes() {
         KList<IrisBiome> r = new KList<>();
 
-        for (IrisRegion i : getAllAnyRegions()) {
-            if (i == null) {
+        for(IrisRegion i : getAllAnyRegions()) {
+            if(i == null) {
                 continue;
             }
 
@@ -336,7 +335,7 @@ public class IrisDimension extends IrisRegistrant {
     }
 
     public IrisGeneratorStyle getBiomeStyle(InferredType type) {
-        switch (type) {
+        switch(type) {
             case CAVE:
                 return caveBiomeStyle;
             case LAND:
@@ -358,14 +357,14 @@ public class IrisDimension extends IrisRegistrant {
 
         IO.delete(new File(datapacks, "iris/data/" + getLoadKey().toLowerCase()));
 
-        for (IrisBiome i : getAllBiomes(data)) {
-            if (i.isCustom()) {
+        for(IrisBiome i : getAllBiomes(data)) {
+            if(i.isCustom()) {
                 write = true;
 
-                for (IrisBiomeCustom j : i.getCustomDerivitives()) {
+                for(IrisBiomeCustom j : i.getCustomDerivitives()) {
                     File output = new File(datapacks, "iris/data/" + getLoadKey().toLowerCase() + "/worldgen/biome/" + j.getId() + ".json");
 
-                    if (!output.exists()) {
+                    if(!output.exists()) {
                         changed = true;
                     }
 
@@ -373,7 +372,7 @@ public class IrisDimension extends IrisRegistrant {
                     output.getParentFile().mkdirs();
                     try {
                         IO.writeAll(output, j.generateJson());
-                    } catch (IOException e) {
+                    } catch(IOException e) {
                         Iris.reportError(e);
                         e.printStackTrace();
                     }
@@ -381,18 +380,18 @@ public class IrisDimension extends IrisRegistrant {
             }
         }
 
-        if (write) {
+        if(write) {
             File mcm = new File(datapacks, "iris/pack.mcmeta");
             try {
                 IO.writeAll(mcm, """
-                        {
-                            "pack": {
-                                "description": "Iris Data Pack. This pack contains all installed Iris Packs' resources.",
-                                "pack_format": 7
-                            }
+                    {
+                        "pack": {
+                            "description": "Iris Data Pack. This pack contains all installed Iris Packs' resources.",
+                            "pack_format": 7
                         }
-                        """);
-            } catch (IOException e) {
+                    }
+                    """);
+            } catch(IOException e) {
                 Iris.reportError(e);
                 e.printStackTrace();
             }

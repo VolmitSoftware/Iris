@@ -89,7 +89,7 @@ public class IrisDepositGenerator {
             RNG rngv = rng.nextParallelRNG(3957778);
             KList<IrisObject> objectsf = new KList<>();
 
-            for (int i = 0; i < varience; i++) {
+            for(int i = 0; i < varience; i++) {
                 objectsf.add(generateClumpObject(rngv.nextParallelRNG(2349 * i + 3598), rdata));
             }
 
@@ -108,10 +108,10 @@ public class IrisDepositGenerator {
         int w = dim / 2;
         IrisObject o = new IrisObject(dim, dim, dim);
 
-        if (s == 1) {
+        if(s == 1) {
             o.getBlocks().put(o.getCenter(), nextBlock(rngv, rdata));
         } else {
-            while (s > 0) {
+            while(s > 0) {
                 s--;
                 BlockVector ang = new BlockVector(rngv.i(-w, w), rngv.i(-w, w), rngv.i(-w, w));
                 BlockVector pos = o.getCenter().clone().add(ang).toBlockVector();
@@ -131,10 +131,10 @@ public class IrisDepositGenerator {
         {
             KList<BlockData> blockData = new KList<>();
 
-            for (IrisBlockData ix : palette) {
+            for(IrisBlockData ix : palette) {
                 BlockData bx = ix.getBlockData(rdata);
 
-                if (bx != null) {
+                if(bx != null) {
                     blockData.add(bx);
                 }
             }

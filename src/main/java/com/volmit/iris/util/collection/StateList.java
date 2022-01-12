@@ -24,7 +24,7 @@ public class StateList {
     public StateList(String... states) {
         this.states = new KList<String>(states);
 
-        if (getBits() > 64) {
+        if(getBits() > 64) {
             throw new RuntimeException("StateLists cannot exceed 64 bits! You are trying to use " + getBits() + " bits!");
         }
     }
@@ -32,7 +32,7 @@ public class StateList {
     public StateList(Enum<?>... states) {
         this.states = new KList<Enum<?>>().convert(Enum::name);
 
-        if (getBits() > 64) {
+        if(getBits() > 64) {
             throw new RuntimeException("StateLists cannot exceed 64 bits! You are trying to use " + getBits() + " bits!");
         }
     }
@@ -44,8 +44,8 @@ public class StateList {
     public KList<String> getEnabled(long list) {
         KList<String> f = new KList<>();
 
-        for (String i : states) {
-            if (is(list, i)) {
+        for(String i : states) {
+            if(is(list, i)) {
                 f.add(i);
             }
         }
@@ -56,7 +56,7 @@ public class StateList {
     public long of(String... enabledStates) {
         long b = 0;
 
-        for (String i : enabledStates) {
+        for(String i : enabledStates) {
             b |= getBit(i);
         }
 
@@ -67,9 +67,9 @@ public class StateList {
         long bit = getBit(state);
         boolean is = is(list, state);
 
-        if (enabled && !is) {
+        if(enabled && !is) {
             return list | bit;
-        } else if (!enabled && is) {
+        } else if(!enabled && is) {
             return list ^ bit;
         }
 

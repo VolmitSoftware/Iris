@@ -40,7 +40,7 @@ public class NBTSerializer implements Serializer<NamedTag> {
     @Override
     public void toStream(NamedTag object, OutputStream out) throws IOException {
         NBTOutputStream nbtOut;
-        if (compressed) {
+        if(compressed) {
             nbtOut = new NBTOutputStream(new GZIPOutputStream(out, true));
         } else {
             nbtOut = new NBTOutputStream(out);

@@ -29,7 +29,7 @@ public class NibbleArray implements Writable {
     private static final int[] MASKS = new int[8];
 
     static {
-        for (int i = 0; i < MASKS.length; i++) {
+        for(int i = 0; i < MASKS.length; i++) {
             MASKS[i] = maskFor(i);
         }
     }
@@ -47,7 +47,7 @@ public class NibbleArray implements Writable {
     }
 
     public NibbleArray(int nibbleDepth, int capacity) {
-        if (nibbleDepth > 8 || nibbleDepth < 1) {
+        if(nibbleDepth > 8 || nibbleDepth < 1) {
             throw new IllegalArgumentException();
         }
 
@@ -60,7 +60,7 @@ public class NibbleArray implements Writable {
     }
 
     public NibbleArray(int nibbleDepth, int capacity, NibbleArray existing) {
-        if (nibbleDepth > 8 || nibbleDepth < 1) {
+        if(nibbleDepth > 8 || nibbleDepth < 1) {
             throw new IllegalArgumentException();
         }
 
@@ -70,7 +70,7 @@ public class NibbleArray implements Writable {
         data = new byte[(neededBits + neededBits % 8) / 8];
         mask = (byte) maskFor(nibbleDepth);
 
-        for (int i = 0; i < Math.min(size, existing.size()); i++) {
+        for(int i = 0; i < Math.min(size, existing.size()); i++) {
             set(i, existing.get(i));
         }
     }
@@ -82,7 +82,7 @@ public class NibbleArray implements Writable {
     public static int powerOfTwo(int power) {
         int result = 1;
 
-        for (int i = 0; i < power; i++) {
+        for(int i = 0; i < power; i++) {
             result *= 2;
         }
 
@@ -119,13 +119,13 @@ public class NibbleArray implements Writable {
     }
 
     public byte get(int index) {
-        synchronized (lock) {
+        synchronized(lock) {
             bitIndex = index * depth;
             byteIndex = bitIndex >> 3;
             bitInByte = bitIndex & 7;
             int value = data[byteIndex] >> bitInByte;
 
-            if (bitInByte + depth > 8) {
+            if(bitInByte + depth > 8) {
                 value |= data[byteIndex + 1] << bitInByte;
             }
 
@@ -150,13 +150,13 @@ public class NibbleArray implements Writable {
     }
 
     public void set(int index, byte nybble) {
-        synchronized (lock) {
+        synchronized(lock) {
             bitIndex = index * depth;
             byteIndex = bitIndex >> 3;
             bitInByte = bitIndex & 7;
             data[byteIndex] = (byte) (((~(data[byteIndex] & (mask << bitInByte)) & data[byteIndex]) | ((nybble & mask) << bitInByte)) & 0xff);
 
-            if (bitInByte + depth > 8) {
+            if(bitInByte + depth > 8) {
                 data[byteIndex + 1] = (byte) (((~(data[byteIndex + 1] & MASKS[bitInByte + depth - 8]) & data[byteIndex + 1]) | ((nybble & mask) >> (8 - bitInByte))) & 0xff);
             }
         }
@@ -169,7 +169,7 @@ public class NibbleArray implements Writable {
     public String toBitsString(ByteOrder byteOrder) {
         StringJoiner joiner = new StringJoiner(" ");
 
-        for (byte datum : data) {
+        for(byte datum : data) {
             joiner.add(binaryString(datum, byteOrder));
         }
 
@@ -181,13 +181,13 @@ public class NibbleArray implements Writable {
     }
 
     public void setAll(byte nibble) {
-        for (int i = 0; i < size; i++) {
+        for(int i = 0; i < size; i++) {
             set(i, nibble);
         }
     }
 
     public void setAll(int nibble) {
-        for (int i = 0; i < size; i++) {
+        for(int i = 0; i < size; i++) {
             set(i, (byte) nibble);
         }
     }

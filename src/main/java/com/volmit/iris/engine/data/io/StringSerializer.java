@@ -46,7 +46,7 @@ public interface StringSerializer<T> extends Serializer<T> {
 
     @Override
     default void toFile(T object, File file) throws IOException {
-        try (Writer writer = new FileWriter(file)) {
+        try(Writer writer = new FileWriter(file)) {
             toWriter(object, writer);
         }
     }

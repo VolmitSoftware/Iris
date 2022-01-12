@@ -25,29 +25,23 @@ public class EnginePanic {
     private static final KMap<String, String> stuff = new KMap<>();
     private static KMap<String, String> last = new KMap<>();
 
-    public static void add(String key, String value)
-    {
+    public static void add(String key, String value) {
         stuff.put(key, value);
     }
 
-    public static void saveLast()
-    {
+    public static void saveLast() {
         last = stuff.copy();
     }
 
-    public static void lastPanic()
-    {
-        for(String i : last.keySet())
-        {
+    public static void lastPanic() {
+        for(String i : last.keySet()) {
             Iris.error("Last Panic " + i + ": " + stuff.get(i));
         }
     }
 
-    public static void panic()
-    {
+    public static void panic() {
         lastPanic();
-        for(String i : stuff.keySet())
-        {
+        for(String i : stuff.keySet()) {
             Iris.error("Engine Panic " + i + ": " + stuff.get(i));
         }
     }

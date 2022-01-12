@@ -50,15 +50,17 @@ public class MythicMobsLink {
     /**
      * Spawn a mythic mob at this location
      *
-     * @param mob      The mob
-     * @param location The location
+     * @param mob
+     *     The mob
+     * @param location
+     *     The location
      * @return The mob, or null if it can't be spawned
      */
     public @Nullable
     Entity spawnMob(String mob, Location location) {
-        if (!isEnabled()) return null;
+        if(!isEnabled()) return null;
 
-        if (spawnMobFunction != null) {
+        if(spawnMobFunction != null) {
             return spawnMobFunction.apply(mob, location);
         }
 
@@ -73,14 +75,14 @@ public class MythicMobsLink {
             spawnMobFunction = (str, loc) -> {
                 try {
                     return (Entity) spawnMobMethod.invoke(apiHelper, str, loc);
-                } catch (InvocationTargetException | IllegalAccessException e) {
+                } catch(InvocationTargetException | IllegalAccessException e) {
                     e.printStackTrace();
                 }
                 return null;
             };
 
             return spawnMobFunction.apply(mob, location);
-        } catch (Exception e) {
+        } catch(Exception e) {
             e.printStackTrace();
 
         }
@@ -88,11 +90,11 @@ public class MythicMobsLink {
     }
 
     public Collection<String> getMythicMobTypes() {
-        if (mobs != null) {
+        if(mobs != null) {
             return mobs;
         }
 
-        if (isEnabled()) {
+        if(isEnabled()) {
 
             try {
                 Class<?> mythicMobClass = Class.forName("io.lumine.xikage.mythicmobs.MythicMobs");
@@ -103,7 +105,7 @@ public class MythicMobsLink {
                 Method getMobNames = mobManager.getClass().getDeclaredMethod("getMobNames");
                 mobs = (Collection<String>) getMobNames.invoke(mobManager);
                 return mobs;
-            } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+            } catch(ClassNotFoundException | NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
                 e.printStackTrace();
             }
         }

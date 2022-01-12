@@ -88,20 +88,21 @@ public class IrisCreator {
      * Create the IrisAccess (contains the world)
      *
      * @return the IrisAccess
-     * @throws IrisException shit happens
+     * @throws IrisException
+     *     shit happens
      */
     public World create() throws IrisException {
-        if (Bukkit.isPrimaryThread()) {
+        if(Bukkit.isPrimaryThread()) {
             throw new IrisException("You cannot invoke create() on the main thread.");
         }
 
         IrisDimension d = IrisToolbelt.getDimension(dimension());
 
-        if (d == null) {
+        if(d == null) {
             throw new IrisException("Dimension cannot be found null for id " + dimension());
         }
 
-        if (!studio()) {
+        if(!studio()) {
             Iris.service(StudioSVC.class).installIntoWorld(sender, d.getLoadKey(), new File(name()));
         }
 
@@ -111,11 +112,11 @@ public class IrisCreator {
         O<Boolean> done = new O<>();
         done.set(false);
         WorldCreator wc = new IrisWorldCreator()
-                .dimension(dimension)
-                .name(name)
-                .seed(seed)
-                .studio(studio)
-                .create();
+            .dimension(dimension)
+            .name(name)
+            .seed(seed)
+            .studio(studio)
+            .create();
 
         access = (PlatformChunkGenerator) wc.generator();
         PlatformChunkGenerator finalAccess1 = access;
@@ -126,14 +127,14 @@ public class IrisCreator {
             Supplier<Integer> g = () -> {
                 try {
                     return finalAccess1.getEngine().getGenerated();
-                } catch (Throwable e) {
+                } catch(Throwable e) {
                     return 0;
                 }
             };
-            while (g.get() < req) {
+            while(g.get() < req) {
                 double v = (double) g.get() / (double) req;
 
-                if (sender.isPlayer()) {
+                if(sender.isPlayer()) {
                     sender.sendProgress(v, "Generating");
                     J.sleep(16);
                 } else {
@@ -148,27 +149,27 @@ public class IrisCreator {
             J.sfut(() -> {
                 world.set(wc.createWorld());
             }).get();
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             e.printStackTrace();
         }
 
-        if (access == null) {
+        if(access == null) {
             throw new IrisException("Access is null. Something bad happened.");
         }
 
         done.set(true);
 
-        if (sender.isPlayer()) {
+        if(sender.isPlayer()) {
             J.s(() -> {
                 sender.player().teleport(new Location(world.get(), 0, world.get().getHighestBlockYAt(0, 0), 0));
             });
         }
 
-        if (studio) {
+        if(studio) {
             J.s(() -> {
                 Iris.linkMultiverseCore.removeFromConfig(world.get());
 
-                if (IrisSettings.get().getStudio().isDisableTimeAndWeather()) {
+                if(IrisSettings.get().getStudio().isDisableTimeAndWeather()) {
                     world.get().setGameRule(GameRule.DO_WEATHER_CYCLE, false);
                     world.get().setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
                     world.get().setTime(6000);
@@ -176,19 +177,19 @@ public class IrisCreator {
             });
         }
 
-        if (pregen != null) {
+        if(pregen != null) {
             CompletableFuture<Boolean> ff = new CompletableFuture<>();
 
             IrisToolbelt.pregenerate(pregen, access)
-                    .onProgress(pp::set)
-                    .whenDone(() -> ff.complete(true));
+                .onProgress(pp::set)
+                .whenDone(() -> ff.complete(true));
 
             try {
                 AtomicBoolean dx = new AtomicBoolean(false);
 
                 J.a(() -> {
-                    while (!dx.get()) {
-                        if (sender.isPlayer()) {
+                    while(!dx.get()) {
+                        if(sender.isPlayer()) {
                             sender.sendProgress(pp.get(), "Pregenerating");
                             J.sleep(16);
                         } else {
@@ -200,7 +201,7 @@ public class IrisCreator {
 
                 ff.get();
                 dx.set(true);
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 e.printStackTrace();
             }
         }

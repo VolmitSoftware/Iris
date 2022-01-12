@@ -38,7 +38,7 @@ public class EngineData {
         try {
             f.getParentFile().mkdirs();
             return new Gson().fromJson(IO.readAll(f), EngineData.class);
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
 
         }
@@ -50,7 +50,7 @@ public class EngineData {
         try {
             f.getParentFile().mkdirs();
             IO.writeAll(f, new Gson().toJson(this));
-        } catch (IOException e) {
+        } catch(IOException e) {
             Iris.reportError(e);
             e.printStackTrace();
         }

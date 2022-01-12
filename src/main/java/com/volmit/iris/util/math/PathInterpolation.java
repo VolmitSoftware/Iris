@@ -28,14 +28,16 @@ public interface PathInterpolation {
      * Sets nodes to be used by subsequent calls to
      * {@link #getPosition(double)} and the other methods.
      *
-     * @param nodes the nodes
+     * @param nodes
+     *     the nodes
      */
     void setNodes(List<INode> nodes);
 
     /**
      * Gets the result of f(position).
      *
-     * @param position the position to interpolate
+     * @param position
+     *     the position to interpolate
      * @return the result
      */
     Vector getPosition(double position);
@@ -43,7 +45,8 @@ public interface PathInterpolation {
     /**
      * Gets the result of f'(position).
      *
-     * @param position the position to interpolate
+     * @param position
+     *     the position to interpolate
      * @return the result
      */
     Vector get1stDerivative(double position);
@@ -53,8 +56,10 @@ public interface PathInterpolation {
      * That means it calculates the arc length (in meters) between positionA
      * and positionB.
      *
-     * @param positionA lower limit
-     * @param positionB upper limit
+     * @param positionA
+     *     lower limit
+     * @param positionB
+     *     upper limit
      * @return the arc length
      */
     double arcLength(double positionA, double positionB);
@@ -62,7 +67,8 @@ public interface PathInterpolation {
     /**
      * Get the segment position.
      *
-     * @param position the position
+     * @param position
+     *     the position
      * @return the segment position
      */
     int getSegment(double position);

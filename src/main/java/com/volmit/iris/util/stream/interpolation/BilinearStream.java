@@ -44,11 +44,11 @@ public class BilinearStream<T> extends BasicStream<T> implements Interpolator<T>
 
         //@builder
         return getTypedSource().fromDouble(IrisInterpolation.blerp(
-                getTypedSource().getDouble(x1, z1),
-                getTypedSource().getDouble(x2, z1),
-                getTypedSource().getDouble(x1, z2),
-                getTypedSource().getDouble(x2, z2),
-                px, pz));
+            getTypedSource().getDouble(x1, z1),
+            getTypedSource().getDouble(x2, z1),
+            getTypedSource().getDouble(x1, z2),
+            getTypedSource().getDouble(x2, z2),
+            px, pz));
         //@done
     }
 

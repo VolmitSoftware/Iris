@@ -104,15 +104,15 @@ public class IrisRavine extends IrisRegistrant {
         int highestWater = Math.max(waterHint, -1);
         boolean water = false;
 
-        if (highestWater == -1) {
-            for (IrisPosition i : pos) {
+        if(highestWater == -1) {
+            for(IrisPosition i : pos) {
                 int rsurface = y == -1 ? engine.getComplex().getHeightStream().get(x, z).intValue() : y;
                 int depth = (int) Math.round(dg.fitDouble(depthStyle.getMin(), depthStyle.getMax(), i.getX(), i.getZ()));
                 int surface = (int) Math.round(rsurface - depth * 0.45);
                 int yy = surface + depth;
                 int th = engine.getHeight(x, z, true);
 
-                if (yy > th && th < engine.getDimension().getFluidHeight()) {
+                if(yy > th && th < engine.getDimension().getFluidHeight()) {
                     highestWater = Math.max(highestWater, yy);
                     water = true;
                     break;
@@ -125,11 +125,11 @@ public class IrisRavine extends IrisRegistrant {
         MatterCavern c = new MatterCavern(true, customBiome, (byte) (water ? 1 : 0));
         MatterCavern l = new MatterCavern(true, customBiome, (byte) 2);
 
-        if (pos.size() < nodeThreshold) {
+        if(pos.size() < nodeThreshold) {
             return;
         }
 
-        for (IrisPosition p : pos) {
+        for(IrisPosition p : pos) {
             int rsurface = y == -1 ? engine.getComplex().getHeightStream().get(x, z).intValue() : y;
             int depth = (int) Math.round(dg.fitDouble(depthStyle.getMin(), depthStyle.getMax(), p.getX(), p.getZ()));
             int width = (int) Math.round(bw.fitDouble(baseWidthStyle.getMin(), baseWidthStyle.getMax(), p.getX(), p.getZ()));
@@ -137,19 +137,19 @@ public class IrisRavine extends IrisRegistrant {
 
             fork.doCarving(writer, rng, engine, p.getX(), rng.i(surface - depth, surface), p.getZ(), Math.max(highestWater, waterHint));
 
-            for (int i = surface + depth; i >= surface; i--) {
-                if (i % ribThickness == 0) {
+            for(int i = surface + depth; i >= surface; i--) {
+                if(i % ribThickness == 0) {
                     double v = width + ((((surface + depth) - i) * (angle / 360D)));
 
-                    if (v <= 0.25) {
+                    if(v <= 0.25) {
                         break;
                     }
 
-                    if (i <= ribThickness + 2) {
+                    if(i <= ribThickness + 2) {
                         break;
                     }
 
-                    if (lavaLevel >= 0 && i <= lavaLevel + (surface - depthStyle.getMid())) {
+                    if(lavaLevel >= 0 && i <= lavaLevel + (surface - depthStyle.getMid())) {
                         writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, l);
                     } else {
                         writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, c);
@@ -157,19 +157,19 @@ public class IrisRavine extends IrisRegistrant {
                 }
             }
 
-            for (int i = surface - depth; i <= surface; i++) {
-                if (i % ribThickness == 0) {
+            for(int i = surface - depth; i <= surface; i++) {
+                if(i % ribThickness == 0) {
                     double v = width - ((((surface - depth) - i) * (angle / 360D)));
 
-                    if (v <= 0.25) {
+                    if(v <= 0.25) {
                         break;
                     }
 
-                    if (i <= ribThickness + 2) {
+                    if(i <= ribThickness + 2) {
                         break;
                     }
 
-                    if (lavaLevel >= 0 && i <= lavaLevel + (surface - depthStyle.getMid())) {
+                    if(lavaLevel >= 0 && i <= lavaLevel + (surface - depthStyle.getMid())) {
                         writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, l);
                     } else {
                         writer.setElipsoid(p.getX(), i, p.getZ(), v, ribThickness, v, true, c);

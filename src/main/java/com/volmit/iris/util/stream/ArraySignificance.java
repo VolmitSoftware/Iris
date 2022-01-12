@@ -36,8 +36,8 @@ public class ArraySignificance<T> implements Significance<T> {
         this.significance = significance;
         double s = 0;
         int v = 0;
-        for (int i = 0; i < significance.size(); i++) {
-            if (significance.get(i) > s) {
+        for(int i = 0; i < significance.size(); i++) {
+            if(significance.get(i) > s) {
                 s = significance.get(i);
                 v = i;
             }
@@ -53,8 +53,8 @@ public class ArraySignificance<T> implements Significance<T> {
 
     @Override
     public double getSignificance(T t) {
-        for (int i = 0; i < types.size(); i++) {
-            if (types.get(i).equals(t)) {
+        for(int i = 0; i < types.size(); i++) {
+            if(types.get(i).equals(t)) {
                 return significance.get(i);
             }
         }

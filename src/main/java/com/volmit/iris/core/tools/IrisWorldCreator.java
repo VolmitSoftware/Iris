@@ -79,26 +79,26 @@ public class IrisWorldCreator {
 
     public WorldCreator create() {
         IrisWorld w = IrisWorld.builder()
-                .name(name)
-                .minHeight(minHeight)
-                .maxHeight(maxHeight)
-                .seed(seed)
-                .worldFolder(new File(name))
-                .environment(findEnvironment())
-                .build();
+            .name(name)
+            .minHeight(minHeight)
+            .maxHeight(maxHeight)
+            .seed(seed)
+            .worldFolder(new File(name))
+            .environment(findEnvironment())
+            .build();
         ChunkGenerator g = new BukkitChunkGenerator(w, studio, studio
-                ? IrisData.loadAnyDimension(dimensionName).getLoader().getDataFolder() :
-                new File(w.worldFolder(), "iris/pack"), dimensionName);
+            ? IrisData.loadAnyDimension(dimensionName).getLoader().getDataFolder() :
+            new File(w.worldFolder(), "iris/pack"), dimensionName);
 
         return new WorldCreator(name)
-                .environment(findEnvironment())
-                .generateStructures(true)
-                .generator(g).seed(seed);
+            .environment(findEnvironment())
+            .generateStructures(true)
+            .generator(g).seed(seed);
     }
 
     private World.Environment findEnvironment() {
         IrisDimension dim = IrisData.loadAnyDimension(dimensionName);
-        if (dim == null || dim.getEnvironment() == null) {
+        if(dim == null || dim.getEnvironment() == null) {
             return World.Environment.NORMAL;
         } else {
             return dim.getEnvironment();

@@ -18,54 +18,46 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.reflect.V;
-import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.stream.ProceduralStream;
-import com.volmit.iris.util.stream.arithmetic.FittedStream;
 import com.volmit.iris.util.stream.interpolation.Interpolated;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 
-import java.util.*;
+import java.util.List;
 
 public interface IRare {
     static <T extends IRare> ProceduralStream<T> stream(ProceduralStream<Double> noise, List<T> possibilities) {
         return ProceduralStream.of((x, z) -> pick(possibilities, noise.get(x, z)),
-                (x, y, z) -> pick(possibilities, noise.get(x, y, z)),
-                new Interpolated<T>() {
-                    @Override
-                    public double toDouble(T t) {
-                        return 0;
-                    }
+            (x, y, z) -> pick(possibilities, noise.get(x, y, z)),
+            new Interpolated<T>() {
+                @Override
+                public double toDouble(T t) {
+                    return 0;
+                }
 
-                    @Override
-                    public T fromDouble(double d) {
-                        return null;
-                    }
-                });
+                @Override
+                public T fromDouble(double d) {
+                    return null;
+                }
+            });
     }
 
 
     static <T extends IRare> T pickSlowly(List<T> possibilities, double noiseValue) {
-        if (possibilities.isEmpty()) {
+        if(possibilities.isEmpty()) {
             return null;
         }
 
-        if (possibilities.size() == 1) {
+        if(possibilities.size() == 1) {
             return possibilities.get(0);
         }
 
         KList<T> rarityTypes = new KList<>();
         int totalRarity = 0;
-        for (T i : possibilities) {
+        for(T i : possibilities) {
             totalRarity += IRare.get(i);
         }
 
-        for (T i : possibilities) {
+        for(T i : possibilities) {
             rarityTypes.addMultiple(i, totalRarity / IRare.get(i));
         }
 
@@ -73,23 +65,23 @@ public interface IRare {
     }
 
     static <T extends IRare> T pick(List<T> possibilities, double noiseValue) {
-        if (possibilities.isEmpty()) {
+        if(possibilities.isEmpty()) {
             return null;
         }
 
-        if (possibilities.size() == 1) {
+        if(possibilities.size() == 1) {
             return possibilities.get(0);
         }
         int totalWeight = 0; // This is he baseline
         int buffer = 0;
-        for (T i : possibilities) { // Im adding all of the rarity together
+        for(T i : possibilities) { // Im adding all of the rarity together
             totalWeight += i.getRarity();
         }
         double threshold = totalWeight * (possibilities.size() - 1) * noiseValue;
-        for (T i : possibilities) {
+        for(T i : possibilities) {
             buffer += totalWeight - i.getRarity();
 
-            if (buffer >= threshold) {
+            if(buffer >= threshold) {
                 return i;
             }
         }
@@ -98,18 +90,18 @@ public interface IRare {
 
 
     static <T extends IRare> T pickOld(List<T> possibilities, double noiseValue) {
-        if (possibilities.isEmpty()) {
+        if(possibilities.isEmpty()) {
             return null;
         }
 
-        if (possibilities.size() == 1) {
+        if(possibilities.size() == 1) {
             return possibilities.get(0);
         }
 
         double completeWeight = 0.0;
         double highestWeight = 0.0;
 
-        for (T item : possibilities) {
+        for(T item : possibilities) {
             double weight = Math.max(item.getRarity(), 1);
             highestWeight = Math.max(highestWeight, weight);
             completeWeight += weight;
@@ -118,10 +110,10 @@ public interface IRare {
         double r = noiseValue * completeWeight;
         double countWeight = 0.0;
 
-        for (T item : possibilities) {
+        for(T item : possibilities) {
             double weight = Math.max(highestWeight - Math.max(item.getRarity(), 1), 1);
             countWeight += weight;
-            if (countWeight >= r) {
+            if(countWeight >= r) {
                 return item;
             }
         }

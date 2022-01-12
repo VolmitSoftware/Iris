@@ -37,33 +37,33 @@ public class IrisSeaSurfaceDecorator extends IrisEngineDecorator {
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1, Hunk<BlockData> data, IrisBiome biome, int height, int max) {
         IrisDecorator decorator = getDecorator(biome, realX, realZ);
 
-        if (decorator != null) {
-            if (!decorator.isStacking()) {
-                if (height >= 0 || height < getEngine().getHeight()) {
+        if(decorator != null) {
+            if(!decorator.isStacking()) {
+                if(height >= 0 || height < getEngine().getHeight()) {
                     data.set(x, height + 1, z, decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData()));
                 }
             } else {
                 int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
-                if (decorator.isScaleStack()) {
+                if(decorator.isScaleStack()) {
                     int maxStack = max - height;
                     stack = (int) Math.ceil((double) maxStack * ((double) stack / 100));
                 }
 
-                if (stack == 1) {
+                if(stack == 1) {
                     data.set(x, height, z, decorator.getBlockDataForTop(biome, getRng(), realX, height, realZ, getData()));
                     return;
                 }
 
-                for (int i = 0; i < stack; i++) {
+                for(int i = 0; i < stack; i++) {
                     int h = height + i;
-                    if (h >= max || h >= getEngine().getHeight()) {
+                    if(h >= max || h >= getEngine().getHeight()) {
                         continue;
                     }
 
                     double threshold = ((double) i) / (stack - 1);
                     data.set(x, h + 1, z, threshold >= decorator.getTopThreshold() ?
-                            decorator.getBlockDataForTop(biome, getRng().nextParallelRNG(i), realX, h, realZ, getData()) :
-                            decorator.getBlockData100(biome, getRng().nextParallelRNG(i), realX, h, realZ, getData()));
+                        decorator.getBlockDataForTop(biome, getRng().nextParallelRNG(i), realX, h, realZ, getData()) :
+                        decorator.getBlockData100(biome, getRng().nextParallelRNG(i), realX, h, realZ, getData()));
                 }
             }
         }

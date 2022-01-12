@@ -75,7 +75,7 @@ public class IrisDecorator {
     private int stackMax = 1;
     @DependsOn({"stackMin", "stackMax"})
     @Desc("Changes stackMin and stackMin from being absolute block heights and instead uses them as a percentage to scale the stack based on the cave height" +
-            "\n\nWithin a cave, setting them stackMin/max to 50 would make the stack 50% of the cave height")
+        "\n\nWithin a cave, setting them stackMin/max to 50 would make the stack 50% of the cave height")
     private boolean scaleStack = false;
     @Required
     @MinNumber(0)
@@ -97,19 +97,19 @@ public class IrisDecorator {
     private double topThreshold = 1.0;
 
     public int getHeight(RNG rng, double x, double z, IrisData data) {
-        if (stackMin == stackMax) {
+        if(stackMin == stackMax) {
             return stackMin;
         }
 
         return getHeightGenerator(rng, data)
-                .fit(stackMin, stackMax,
-                        x / heightVariance.getZoom(),
-                        z / heightVariance.getZoom()) + 1;
+            .fit(stackMin, stackMax,
+                x / heightVariance.getZoom(),
+                z / heightVariance.getZoom()) + 1;
     }
 
     public CNG getHeightGenerator(RNG rng, IrisData data) {
         return heightGenerator.aquire(() ->
-                heightVariance.create(rng.nextParallelRNG(getBlockData(data).size() + stackMax + stackMin), data));
+            heightVariance.create(rng.nextParallelRNG(getBlockData(data).size() + stackMax + stackMin), data));
     }
 
     public CNG getGenerator(RNG rng, IrisData data) {
@@ -118,9 +118,9 @@ public class IrisDecorator {
 
     public CNG getVarianceGenerator(RNG rng, IrisData data) {
         return varianceGenerator.aquire(() ->
-                variance.create(
-                                rng.nextParallelRNG(getBlockData(data).size()), data)
-                        .scale(1D / variance.getZoom()));
+            variance.create(
+                    rng.nextParallelRNG(getBlockData(data).size()), data)
+                .scale(1D / variance.getZoom()));
     }
 
     public KList<IrisBlockData> add(String b) {
@@ -129,7 +129,7 @@ public class IrisDecorator {
     }
 
     public BlockData getBlockData(IrisBiome b, RNG rng, double x, double z, IrisData data) {
-        if (getBlockData(data).isEmpty()) {
+        if(getBlockData(data).isEmpty()) {
             Iris.warn("Empty Block Data for " + b.getName());
             return null;
         }
@@ -137,8 +137,8 @@ public class IrisDecorator {
         double xx = x / style.getZoom();
         double zz = z / style.getZoom();
 
-        if (getGenerator(rng, data).fitDouble(0D, 1D, xx, zz) <= chance) {
-            if (getBlockData(data).size() == 1) {
+        if(getGenerator(rng, data).fitDouble(0D, 1D, xx, zz) <= chance) {
+            if(getBlockData(data).size() == 1) {
                 return getBlockData(data).get(0);
             }
 
@@ -149,7 +149,7 @@ public class IrisDecorator {
     }
 
     public BlockData getBlockData100(IrisBiome b, RNG rng, double x, double y, double z, IrisData data) {
-        if (getBlockData(data).isEmpty()) {
+        if(getBlockData(data).isEmpty()) {
             Iris.warn("Empty Block Data for " + b.getName());
             return null;
         }
@@ -158,13 +158,13 @@ public class IrisDecorator {
         double yy = y;
         double zz = z;
 
-        if (!getVarianceGenerator(rng, data).isStatic()) {
+        if(!getVarianceGenerator(rng, data).isStatic()) {
             xx = x / style.getZoom();
             yy = y / style.getZoom();
             zz = z / style.getZoom();
         }
 
-        if (getBlockData(data).size() == 1) {
+        if(getBlockData(data).size() == 1) {
             return getBlockData(data).get(0);
         }
 
@@ -172,15 +172,15 @@ public class IrisDecorator {
     }
 
     public BlockData getBlockDataForTop(IrisBiome b, RNG rng, double x, double y, double z, IrisData data) {
-        if (getBlockDataTops(data).isEmpty()) {
+        if(getBlockDataTops(data).isEmpty()) {
             return getBlockData100(b, rng, x, y, z, data);
         }
 
         double xx = x / style.getZoom();
         double zz = z / style.getZoom();
 
-        if (getGenerator(rng, data).fitDouble(0D, 1D, xx, zz) <= chance) { //Exclude y from here
-            if (getBlockData(data).size() == 1) {
+        if(getGenerator(rng, data).fitDouble(0D, 1D, xx, zz) <= chance) { //Exclude y from here
+            if(getBlockData(data).size() == 1) {
                 return getBlockDataTops(data).get(0);
             }
 
@@ -194,10 +194,10 @@ public class IrisDecorator {
         return blockData.aquire(() ->
         {
             KList<BlockData> blockData = new KList<>();
-            for (IrisBlockData i : palette) {
+            for(IrisBlockData i : palette) {
                 BlockData bx = i.getBlockData(data);
-                if (bx != null) {
-                    for (int n = 0; n < i.getWeight(); n++) {
+                if(bx != null) {
+                    for(int n = 0; n < i.getWeight(); n++) {
                         blockData.add(bx);
                     }
                 }
@@ -211,10 +211,10 @@ public class IrisDecorator {
         return blockDataTops.aquire(() ->
         {
             KList<BlockData> blockDataTops = new KList<>();
-            for (IrisBlockData i : topPalette) {
+            for(IrisBlockData i : topPalette) {
                 BlockData bx = i.getBlockData(data);
-                if (bx != null) {
-                    for (int n = 0; n < i.getWeight(); n++) {
+                if(bx != null) {
+                    for(int n = 0; n < i.getWeight(); n++) {
                         blockDataTops.add(bx);
                     }
                 }

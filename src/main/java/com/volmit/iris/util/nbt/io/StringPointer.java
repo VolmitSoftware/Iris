@@ -29,17 +29,17 @@ public class StringPointer {
 
     private static boolean isSimpleChar(char c) {
         return c >= 'a' && c <= 'z'
-                || c >= 'A' && c <= 'Z'
-                || c >= '0' && c <= '9'
-                || c == '-'
-                || c == '+'
-                || c == '.'
-                || c == '_';
+            || c >= 'A' && c <= 'Z'
+            || c >= '0' && c <= '9'
+            || c == '-'
+            || c == '+'
+            || c == '.'
+            || c == '_';
     }
 
     public String parseSimpleString() {
         int oldIndex = index;
-        while (hasNext() && isSimpleChar(currentChar())) {
+        while(hasNext() && isSimpleChar(currentChar())) {
             index++;
         }
         return value.substring(oldIndex, index);
@@ -49,27 +49,27 @@ public class StringPointer {
         int oldIndex = ++index; //ignore beginning quotes
         StringBuilder sb = null;
         boolean escape = false;
-        while (hasNext()) {
+        while(hasNext()) {
             char c = next();
-            if (escape) {
-                if (c != '\\' && c != '"') {
+            if(escape) {
+                if(c != '\\' && c != '"') {
                     throw parseException("invalid escape of '" + c + "'");
                 }
                 escape = false;
             } else {
-                if (c == '\\') { //escape
+                if(c == '\\') { //escape
                     escape = true;
-                    if (sb != null) {
+                    if(sb != null) {
                         continue;
                     }
                     sb = new StringBuilder(value.substring(oldIndex, index - 1));
                     continue;
                 }
-                if (c == '"') {
+                if(c == '"') {
                     return sb == null ? value.substring(oldIndex, index - 1) : sb.toString();
                 }
             }
-            if (sb != null) {
+            if(sb != null) {
                 sb.append(c);
             }
         }
@@ -79,7 +79,7 @@ public class StringPointer {
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean nextArrayElement() {
         skipWhitespace();
-        if (hasNext() && currentChar() == ',') {
+        if(hasNext() && currentChar() == ',') {
             index++;
             skipWhitespace();
             return true;
@@ -90,7 +90,7 @@ public class StringPointer {
     public void expectChar(char c) throws ParseException {
         skipWhitespace();
         boolean hasNext = hasNext();
-        if (hasNext && currentChar() == c) {
+        if(hasNext && currentChar() == c) {
             index++;
             return;
         }
@@ -98,7 +98,7 @@ public class StringPointer {
     }
 
     public void skipWhitespace() {
-        while (hasNext() && Character.isWhitespace(currentChar())) {
+        while(hasNext() && Character.isWhitespace(currentChar())) {
             index++;
         }
     }

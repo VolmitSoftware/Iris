@@ -39,7 +39,7 @@ public class CloverNoise implements NoiseGenerator {
 
     @Override
     public double noise(double x, double y, double z) {
-        if (z == 0) {
+        if(z == 0) {
             return n2.noise(x, y);
         }
 
@@ -60,7 +60,8 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Constructs a new 2D Clover Noise generator with a specific seed.
          *
-         * @param seed The seed for the noise generator.
+         * @param seed
+         *     The seed for the noise generator.
          */
         public Noise2D(long seed) {
             this.seed = seed;
@@ -76,7 +77,7 @@ public class CloverNoise implements NoiseGenerator {
         private long doHash(long input, long seed) {
             input += seed;
 
-            if (input < 0) {
+            if(input < 0) {
                 input += HASH_M;
             }
 
@@ -91,7 +92,7 @@ public class CloverNoise implements NoiseGenerator {
             long hash = doHash(seed, (long) Math.floor(position.getX()));
             hash = doHash(hash, (long) Math.floor(position.getY()));
             hash = doHash(hash, hash * (long) Math.floor(position.getX() + position.getY()));
-            if (hash < 0) {
+            if(hash < 0) {
                 hash += HASH_M;
             }
 
@@ -108,7 +109,8 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates 2D Clover Noise at a specific point.
          *
-         * @param p The point to generate noise at.
+         * @param p
+         *     The point to generate noise at.
          * @return The value of noise, from 0 to 1.
          */
         public double noise(Vector2 p) {
@@ -128,10 +130,10 @@ public class CloverNoise implements NoiseGenerator {
 
             Vector2 a, c, d;
 
-            if (side_nx < 0 && p.x < c_11.x || side_px > 0 && p.x > c_11.x) {
+            if(side_nx < 0 && p.x < c_11.x || side_px > 0 && p.x > c_11.x) {
                 double side_py = m_p_c11.sub(d_p_c11.mult(c_12)).ymx();
 
-                if (side_py > 0) {
+                if(side_py > 0) {
                     a = c_12;
                     c = c_01;
                     d = new Vector2(-1, 1);
@@ -143,7 +145,7 @@ public class CloverNoise implements NoiseGenerator {
             } else {
                 double side_ny = m_p_c11.sub(d_p_c11.mult(c_10)).ymx();
 
-                if (side_ny > 0) {
+                if(side_ny > 0) {
                     a = c_10;
                     c = c_21;
                     d = new Vector2(1, -1);
@@ -163,16 +165,16 @@ public class CloverNoise implements NoiseGenerator {
             Vector2 ac = a.sub(c);
             Vector2 bd = c_11.sub(d);
 
-            if (ac.x * ac.x + ac.y * ac.y < bd.x * bd.x + bd.y * bd.y) {
+            if(ac.x * ac.x + ac.y * ac.y < bd.x * bd.x + bd.y * bd.y) {
                 Vector2 pa = p.sub(a);
 
-                if (pa.x * ac.y - pa.y * ac.x > 0.) {
+                if(pa.x * ac.y - pa.y * ac.x > 0.) {
                     h = c_11;
                 }
             } else {
                 Vector2 pb = p.sub(c_11);
 
-                if (pb.x * bd.y - pb.y * bd.x > 0) {
+                if(pb.x * bd.y - pb.y * bd.x > 0) {
                     f = c_11;
                 } else {
                     g = c_11;
@@ -205,8 +207,10 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates 2D Clover Noise at a specific point.
          *
-         * @param x The x coordinate of the point.
-         * @param y The y coordinate of the point.
+         * @param x
+         *     The x coordinate of the point.
+         * @param y
+         *     The y coordinate of the point.
          * @return The value of noise, from 0 to 1.
          */
         public double noise(double x, double y) {
@@ -216,8 +220,10 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates fractal 2D Clover Noise at a specific point.
          *
-         * @param p          The point to generate noise at.
-         * @param iterations The number of iterations for the fractal noise.
+         * @param p
+         *     The point to generate noise at.
+         * @param iterations
+         *     The number of iterations for the fractal noise.
          * @return The value of noise, from 0 to 1.
          */
         public double fractalNoise(Vector2 p, int iterations) {
@@ -225,7 +231,7 @@ public class CloverNoise implements NoiseGenerator {
             double weight = 1;
             double div = 0;
 
-            for (int i = 0; i < iterations; i++) {
+            for(int i = 0; i < iterations; i++) {
                 total += noise(p.mult(1 / weight)) * weight;
                 div += weight;
 
@@ -238,9 +244,12 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates fractal 2D Clover Noise at a specific point.
          *
-         * @param x          The x coordinate of the point.
-         * @param y          The y coordinate of the point.
-         * @param iterations The number of iterations for the fractal noise.
+         * @param x
+         *     The x coordinate of the point.
+         * @param y
+         *     The y coordinate of the point.
+         * @param iterations
+         *     The number of iterations for the fractal noise.
          * @return The value of noise, from 0 to 1.
          */
         public double fractalNoise(double x, double y, int iterations) {
@@ -250,7 +259,8 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates curl 2D Clover Noise at a specific point.
          *
-         * @param p The point to generate noise at.
+         * @param p
+         *     The point to generate noise at.
          * @return The value of curl noise, a normalized 2D vector.
          */
         public Vector2 curlNoise(Vector2 p) {
@@ -264,8 +274,10 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates curl 2D Clover Noise at a specific point.
          *
-         * @param x The x coordinate of the point.
-         * @param y The y coordinate of the point.
+         * @param x
+         *     The x coordinate of the point.
+         * @param y
+         *     The y coordinate of the point.
          * @return The value of curl noise, a normalized 2D vector.
          */
         public Vector2 curlNoise(double x, double y) {
@@ -275,8 +287,10 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates fractal curl 2D Clover Noise at a specific point.
          *
-         * @param p          The point to generate noise at.
-         * @param iterations The number of iterations for the fractal noise.
+         * @param p
+         *     The point to generate noise at.
+         * @param iterations
+         *     The number of iterations for the fractal noise.
          * @return The value of curl noise, a normalized 2D vector.
          */
         public Vector2 fractalCurlNoise(Vector2 p, int iterations) {
@@ -290,9 +304,12 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates fractal curl 2D Clover Noise at a specific point.
          *
-         * @param x          The x coordinate of the point.
-         * @param y          The y coordinate of the point.
-         * @param iterations The number of iterations for the fractal noise.
+         * @param x
+         *     The x coordinate of the point.
+         * @param y
+         *     The y coordinate of the point.
+         * @param iterations
+         *     The number of iterations for the fractal noise.
          * @return The value of curl noise, a normalized 2D vector.
          */
         public Vector2 fractalCurlNoise(double x, double y, int iterations) {
@@ -302,7 +319,8 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates 2D Frost Noise at a specific point. See https://github.com/ValgoBoi/clover-noise/blob/master/variations/frost.md
          *
-         * @param p The point to generate noise at.
+         * @param p
+         *     The point to generate noise at.
          * @return The value of noise, from 0 to 1.
          */
         public double frostNoise(Vector2 p) {
@@ -317,8 +335,10 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates 2D Frost Noise at a specific point. See https://github.com/ValgoBoi/clover-noise/blob/master/variations/frost.md
          *
-         * @param x The x coordinate of the point.
-         * @param y The y coordinate of the point.
+         * @param x
+         *     The x coordinate of the point.
+         * @param y
+         *     The y coordinate of the point.
          * @return The value of noise, from 0 to 1.
          */
         public double frostNoise(double x, double y) {
@@ -328,7 +348,8 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates 2D Marble Noise at a specific point. See https://github.com/ValgoBoi/clover-noise/blob/master/variations/marble.md
          *
-         * @param p The point to generate noise at.
+         * @param p
+         *     The point to generate noise at.
          * @return The value of noise, from 0 to 1.
          */
         public double marbleNoise(Vector2 p) {
@@ -353,8 +374,10 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates 2D Marble Noise at a specific point. See https://github.com/ValgoBoi/clover-noise/blob/master/variations/marble.md
          *
-         * @param x The x coordinate of the point.
-         * @param y The y coordinate of the point.
+         * @param x
+         *     The x coordinate of the point.
+         * @param y
+         *     The y coordinate of the point.
          * @return The value of noise, from 0 to 1.
          */
         public double marbleNoise(double x, double y) {
@@ -381,7 +404,7 @@ public class CloverNoise implements NoiseGenerator {
         private long doHash(long input, long seed) {
             input += seed;
 
-            if (input < 0) {
+            if(input < 0) {
                 input += HASH_M;
             }
 
@@ -397,7 +420,7 @@ public class CloverNoise implements NoiseGenerator {
             hash = doHash(hash, (long) Math.floor(position.getY()));
             hash = doHash(hash, (long) Math.floor(position.getZ()));
             hash = doHash(hash, hash * (long) Math.floor(position.getX() + position.getY() + position.getZ()));
-            if (hash < 0) {
+            if(hash < 0) {
                 hash += HASH_M;
             }
 
@@ -422,10 +445,10 @@ public class CloverNoise implements NoiseGenerator {
 
             Vector3 a, b, c, d;
 
-            if (side_nx < 0 && p.x < c_11.x || side_px > 0 && p.x >= c_11.x) {
+            if(side_nx < 0 && p.x < c_11.x || side_px > 0 && p.x >= c_11.x) {
                 double side_py = m_p_c11.sub(d_p_c11.mult(c_12.xy())).ymx();
 
-                if (side_py > 0.) {
+                if(side_py > 0.) {
                     a = c_01;
                     b = c_02;
                     c = c_12;
@@ -439,7 +462,7 @@ public class CloverNoise implements NoiseGenerator {
             } else {
                 double side_ny = m_p_c11.sub(d_p_c11.mult(c_10.xy())).ymx();
 
-                if (side_ny > 0.) {
+                if(side_ny > 0.) {
                     a = c_10;
                     b = c_11;
                     c = c_21;
@@ -459,7 +482,7 @@ public class CloverNoise implements NoiseGenerator {
             Vector3 ac = a.sub(c);
             Vector3 pa = p.sub(a);
 
-            if (pa.x * ac.y - pa.y * ac.x > 0) {
+            if(pa.x * ac.y - pa.y * ac.x > 0) {
                 h = b;
             }
 
@@ -477,7 +500,8 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates 3D Clover Noise at a specific point.
          *
-         * @param p The point to generate noise at.
+         * @param p
+         *     The point to generate noise at.
          * @return The value of noise, from 0 to 1.
          */
         public double noise(Vector3 p) {
@@ -509,9 +533,9 @@ public class CloverNoise implements NoiseGenerator {
 
             Vector3 a, b, c, d, e, f, g, h;
 
-            if (x_bound) {
-                if (y_bound) {
-                    if (z_bound) {
+            if(x_bound) {
+                if(y_bound) {
+                    if(z_bound) {
                         a = offset(p_floor.add(-1, -1, -1));
                         b = c_001;
                         c = c_010;
@@ -531,7 +555,7 @@ public class CloverNoise implements NoiseGenerator {
                         h = c_112;
                     }
                 } else {
-                    if (z_bound) {
+                    if(z_bound) {
                         a = c_010;
                         b = c_011;
                         c = offset(p_floor.add(-1, 1, -1));
@@ -552,8 +576,8 @@ public class CloverNoise implements NoiseGenerator {
                     }
                 }
             } else {
-                if (y_bound) {
-                    if (z_bound) {
+                if(y_bound) {
+                    if(z_bound) {
                         a = c_100;
                         b = c_101;
                         c = c_110;
@@ -573,7 +597,7 @@ public class CloverNoise implements NoiseGenerator {
                         h = c_212;
                     }
                 } else {
-                    if (z_bound) {
+                    if(z_bound) {
                         a = c_110;
                         b = c_111;
                         c = c_120;
@@ -610,19 +634,19 @@ public class CloverNoise implements NoiseGenerator {
             i = a;
             j = h;
 
-            if (plane_b > 0 && plane_d <= 0) {
+            if(plane_b > 0 && plane_d <= 0) {
                 k = b;
                 l = d;
-            } else if (plane_d > 0 && plane_c <= 0) {
+            } else if(plane_d > 0 && plane_c <= 0) {
                 k = d;
                 l = c;
-            } else if (plane_c > 0 && plane_g <= 0) {
+            } else if(plane_c > 0 && plane_g <= 0) {
                 k = c;
                 l = g;
-            } else if (plane_g > 0 && plane_e <= 0) {
+            } else if(plane_g > 0 && plane_e <= 0) {
                 k = g;
                 l = e;
-            } else if (plane_e > 0 && plane_f <= 0) {
+            } else if(plane_e > 0 && plane_f <= 0) {
                 k = e;
                 l = f;
             } else {
@@ -672,9 +696,12 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates 3D Clover Noise at a specific point.
          *
-         * @param x The x coordinate of the point.
-         * @param y The y coordinate of the point.
-         * @param z The z coordinate of the point.
+         * @param x
+         *     The x coordinate of the point.
+         * @param y
+         *     The y coordinate of the point.
+         * @param z
+         *     The z coordinate of the point.
          * @return The value of noise, from 0 to 1.
          */
         public double noise(double x, double y, double z) {
@@ -684,8 +711,10 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates fractal 3D Clover Noise at a specific point.
          *
-         * @param p          The point to generate noise at.
-         * @param iterations The number of iterations for the fractal noise.
+         * @param p
+         *     The point to generate noise at.
+         * @param iterations
+         *     The number of iterations for the fractal noise.
          * @return The value of noise, from 0 to 1.
          */
         public double fractalNoise(Vector3 p, int iterations) {
@@ -693,7 +722,7 @@ public class CloverNoise implements NoiseGenerator {
             double weight = 1;
             double div = 0;
 
-            for (int i = 0; i < iterations; i++) {
+            for(int i = 0; i < iterations; i++) {
                 total += noise(p.mult(1 / weight)) * weight;
                 div += weight;
 
@@ -706,10 +735,14 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates fractal 3D Clover Noise at a specific point.
          *
-         * @param x          The x coordinate of the point.
-         * @param y          The y coordinate of the point.
-         * @param z          The z coordinate of the point.
-         * @param iterations The number of iterations for the fractal noise.
+         * @param x
+         *     The x coordinate of the point.
+         * @param y
+         *     The y coordinate of the point.
+         * @param z
+         *     The z coordinate of the point.
+         * @param iterations
+         *     The number of iterations for the fractal noise.
          * @return The value of noise, from 0 to 1.
          */
         public double fractalNoise(double x, double y, double z, int iterations) {
@@ -719,7 +752,8 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates curl 3D Clover Noise at a specific point.
          *
-         * @param p The point to generate noise at.
+         * @param p
+         *     The point to generate noise at.
          * @return The value of curl noise, a normalized 3D vector.
          */
         public Vector3 curlNoise(Vector3 p) {
@@ -734,9 +768,12 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates curl 3D Clover Noise at a specific point.
          *
-         * @param x The x coordinate of the point.
-         * @param y The y coordinate of the point.
-         * @param z The z coordinate of the point.
+         * @param x
+         *     The x coordinate of the point.
+         * @param y
+         *     The y coordinate of the point.
+         * @param z
+         *     The z coordinate of the point.
          * @return The value of curl noise, a normalized 3D vector.
          */
         public Vector3 curlNoise(double x, double y, double z) {
@@ -746,8 +783,10 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates fractal curl 3D Clover Noise at a specific point.
          *
-         * @param p          The point to generate noise at.
-         * @param iterations The number of iterations for the fractal noise.
+         * @param p
+         *     The point to generate noise at.
+         * @param iterations
+         *     The number of iterations for the fractal noise.
          * @return The value of curl noise, a normalized 3D vector.
          */
         public Vector3 fractalCurlNoise(Vector3 p, int iterations) {
@@ -762,10 +801,14 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates fractal curl 3D Clover Noise at a specific point.
          *
-         * @param x          The x coordinate of the point.
-         * @param y          The y coordinate of the point.
-         * @param z          The z coordinate of the point.
-         * @param iterations The number of iterations for the fractal noise.
+         * @param x
+         *     The x coordinate of the point.
+         * @param y
+         *     The y coordinate of the point.
+         * @param z
+         *     The z coordinate of the point.
+         * @param iterations
+         *     The number of iterations for the fractal noise.
          * @return The value of curl noise, a normalized 3D vector.
          */
         public Vector3 fractalCurlNoise(double x, double y, double z, int iterations) {
@@ -775,7 +818,8 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates 3D Frost Noise at a specific point. See https://github.com/ValgoBoi/clover-noise/blob/master/variations/frost.md
          *
-         * @param p The point to generate noise at.
+         * @param p
+         *     The point to generate noise at.
          * @return The value of noise, from 0 to 1.
          */
         public double frostNoise(Vector3 p) {
@@ -790,9 +834,12 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates 3D Frost Noise at a specific point. See https://github.com/ValgoBoi/clover-noise/blob/master/variations/frost.md
          *
-         * @param x The x coordinate of the point.
-         * @param y The y coordinate of the point.
-         * @param z The z coordinate of the point.
+         * @param x
+         *     The x coordinate of the point.
+         * @param y
+         *     The y coordinate of the point.
+         * @param z
+         *     The z coordinate of the point.
          * @return The value of noise, from 0 to 1.
          */
         public double frostNoise(double x, double y, double z) {
@@ -802,7 +849,8 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates 3D Marble Noise at a specific point. See https://github.com/ValgoBoi/clover-noise/blob/master/variations/marble.md
          *
-         * @param p The point to generate noise at.
+         * @param p
+         *     The point to generate noise at.
          * @return The value of noise, from 0 to 1.
          */
         public double marbleNoise(Vector3 p) {
@@ -827,9 +875,12 @@ public class CloverNoise implements NoiseGenerator {
         /**
          * Generates 3D Marble Noise at a specific point. See https://github.com/ValgoBoi/clover-noise/blob/master/variations/marble.md
          *
-         * @param x The x coordinate of the point.
-         * @param y The y coordinate of the point.
-         * @param z The z coordinate of the point.
+         * @param x
+         *     The x coordinate of the point.
+         * @param y
+         *     The y coordinate of the point.
+         * @param z
+         *     The z coordinate of the point.
          * @return The value of noise, from 0 to 1.
          */
         public double marbleNoise(double x, double y, double z) {

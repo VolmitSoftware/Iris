@@ -43,7 +43,7 @@ public class PregenTask {
     private int height = 1;
 
     public static void iterateRegion(int xr, int zr, Spiraled s, Position2 pull) {
-        for (Position2 i : ORDERS.computeIfAbsent(pull, PregenTask::computeOrder)) {
+        for(Position2 i : ORDERS.computeIfAbsent(pull, PregenTask::computeOrder)) {
             s.on(i.getX() + (xr << 5), i.getZ() + (zr << 5));
         }
     }
@@ -57,7 +57,7 @@ public class PregenTask {
         new Spiraler(33, 33, (x, z) -> {
             int xx = (x + 15);
             int zz = (z + 15);
-            if (xx < 0 || xx > 31 || zz < 0 || zz > 31) {
+            if(xx < 0 || xx > 31 || zz < 0 || zz > 31) {
                 return;
             }
 
@@ -74,7 +74,7 @@ public class PregenTask {
         new Spiraler(33, 33, (x, z) -> {
             int xx = x + 15;
             int zz = z + 15;
-            if (xx < 0 || xx > 31 || zz < 0 || zz > 31) {
+            if(xx < 0 || xx > 31 || zz < 0 || zz > 31) {
                 return;
             }
 
@@ -86,11 +86,11 @@ public class PregenTask {
 
     public void iterateRegions(Spiraled s) {
         new Spiraler(getWidth() * 2, getHeight() * 2, s)
-                .setOffset(center.getX(), center.getZ()).drain();
+            .setOffset(center.getX(), center.getZ()).drain();
     }
 
     public void iterateAllChunks(Spiraled s) {
         new Spiraler(getWidth() * 2, getHeight() * 2, (x, z) -> iterateRegion(x, z, s))
-                .setOffset(center.getX(), center.getZ()).drain();
+            .setOffset(center.getX(), center.getZ()).drain();
     }
 }

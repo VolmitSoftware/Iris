@@ -40,7 +40,7 @@ public class SyndicateClient {
         DataOutputStream o = new DataOutputStream(socket.getOutputStream());
         SyndicateCommandIO.write(command, o);
 
-        if (output != null) {
+        if(output != null) {
             output.accept(o);
         }
 

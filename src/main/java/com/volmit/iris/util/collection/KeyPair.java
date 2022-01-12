@@ -21,8 +21,10 @@ package com.volmit.iris.util.collection;
 /**
  * Represents a keypair
  *
- * @param <K> the key type
- * @param <V> the value type
+ * @param <K>
+ *     the key type
+ * @param <V>
+ *     the value type
  * @author cyberpwn
  */
 @SuppressWarnings("hiding")
@@ -33,8 +35,10 @@ public class KeyPair<K, V> {
     /**
      * Create a keypair
      *
-     * @param k the key
-     * @param v the value
+     * @param k
+     *     the key
+     * @param v
+     *     the value
      */
     public KeyPair(K k, V v) {
         this.k = k;

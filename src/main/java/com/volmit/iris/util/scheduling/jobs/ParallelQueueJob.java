@@ -25,11 +25,11 @@ import com.volmit.iris.util.parallel.MultiBurst;
 public abstract class ParallelQueueJob<T> extends QueueJob<T> {
     @Override
     public void execute() {
-        while (queue.isNotEmpty()) {
+        while(queue.isNotEmpty()) {
             BurstExecutor b = MultiBurst.burst.burst(queue.size());
             KList<T> q = queue.copy();
             queue.clear();
-            for (T i : q) {
+            for(T i : q) {
                 b.queue(() -> {
                     execute(i);
                     completeWork();

@@ -56,7 +56,7 @@ public class IrisCompatabilityItemFilter {
         {
             Material b = B.getMaterialOrNull(supplement);
 
-            if (b == null) {
+            if(b == null) {
                 return null;
             }
 

@@ -65,13 +65,13 @@ public class IrisAttributeModifier {
     private double chance = 1;
 
     public void apply(RNG rng, ItemMeta meta) {
-        if (rng.nextDouble() < getChance()) {
+        if(rng.nextDouble() < getChance()) {
             meta.addAttributeModifier(getAttribute(), new AttributeModifier(getName(), getAmount(rng), getOperation()));
         }
     }
 
     public void apply(RNG rng, Attributable meta) {
-        if (rng.nextDouble() < getChance()) {
+        if(rng.nextDouble() < getChance()) {
             meta.getAttribute(getAttribute()).addModifier(new AttributeModifier(getName(), getAmount(rng), getOperation()));
         }
     }

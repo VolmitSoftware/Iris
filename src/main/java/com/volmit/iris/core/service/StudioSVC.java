@@ -61,7 +61,7 @@ public class StudioSVC implements IrisService {
             String pack = IrisSettings.get().getGenerator().getDefaultWorldType();
             File f = IrisPack.packsPack(pack);
 
-            if (!f.exists()) {
+            if(!f.exists()) {
                 Iris.info("Downloading Default Pack " + pack);
                 downloadSearch(Iris.getSender(), pack, false);
             }
@@ -72,9 +72,9 @@ public class StudioSVC implements IrisService {
     public void onDisable() {
         Iris.debug("Studio Mode Active: Closing Projects");
 
-        for (World i : Bukkit.getWorlds()) {
-            if (IrisToolbelt.isIrisWorld(i)) {
-                if (IrisToolbelt.isStudio(i)) {
+        for(World i : Bukkit.getWorlds()) {
+            if(IrisToolbelt.isIrisWorld(i)) {
+                if(IrisToolbelt.isStudio(i)) {
                     IrisToolbelt.evacuate(i);
                     IrisToolbelt.access(i).close();
                 }
@@ -88,9 +88,9 @@ public class StudioSVC implements IrisService {
         File irispack = new File(folder, "iris/pack");
         IrisDimension dim = IrisData.loadAnyDimension(type);
 
-        if (dim == null) {
-            for (File i : getWorkspaceFolder().listFiles()) {
-                if (i.isFile() && i.getName().equals(type + ".iris")) {
+        if(dim == null) {
+            for(File i : getWorkspaceFolder().listFiles()) {
+                if(i.isFile() && i.getName().equals(type + ".iris")) {
                     sender.sendMessage("Found " + type + ".iris in " + WORKSPACE_NAME + " folder");
                     ZipUtil.unpack(i, irispack);
                     break;
@@ -102,29 +102,29 @@ public class StudioSVC implements IrisService {
 
             try {
                 FileUtils.copyDirectory(f, irispack);
-            } catch (IOException e) {
+            } catch(IOException e) {
                 Iris.reportError(e);
             }
         }
 
         File dimf = new File(irispack, "dimensions/" + type + ".json");
 
-        if (!dimf.exists() || !dimf.isFile()) {
+        if(!dimf.exists() || !dimf.isFile()) {
             downloadSearch(sender, type, false);
             File downloaded = getWorkspaceFolder(type);
 
-            for (File i : downloaded.listFiles()) {
-                if (i.isFile()) {
+            for(File i : downloaded.listFiles()) {
+                if(i.isFile()) {
                     try {
                         FileUtils.copyFile(i, new File(irispack, i.getName()));
-                    } catch (IOException e) {
+                    } catch(IOException e) {
                         e.printStackTrace();
                         Iris.reportError(e);
                     }
                 } else {
                     try {
                         FileUtils.copyDirectory(i, new File(irispack, i.getName()));
-                    } catch (IOException e) {
+                    } catch(IOException e) {
                         e.printStackTrace();
                         Iris.reportError(e);
                     }
@@ -134,7 +134,7 @@ public class StudioSVC implements IrisService {
             IO.delete(downloaded);
         }
 
-        if (!dimf.exists() || !dimf.isFile()) {
+        if(!dimf.exists() || !dimf.isFile()) {
             sender.sendMessage("Can't find the " + dimf.getName() + " in the dimensions folder of this pack! Failed!");
             return null;
         }
@@ -142,7 +142,7 @@ public class StudioSVC implements IrisService {
         IrisData dm = IrisData.get(irispack);
         dim = dm.getDimensionLoader().load(type);
 
-        if (dim == null) {
+        if(dim == null) {
             sender.sendMessage("Can't load the dimension! Failed!");
             return null;
         }
@@ -161,7 +161,7 @@ public class StudioSVC implements IrisService {
         try {
             url = getListing(false).get(key);
 
-            if (url == null) {
+            if(url == null) {
                 Iris.warn("ITS ULL for " + key);
             }
 
@@ -172,7 +172,7 @@ public class StudioSVC implements IrisService {
             String repo = nodes.length == 1 ? "IrisDimensions/" + nodes[0] : nodes[0] + "/" + nodes[1];
             branch = nodes.length > 2 ? nodes[2] : branch;
             download(sender, repo, branch, trim, forceOverwrite);
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             e.printStackTrace();
             sender.sendMessage("Failed to download '" + key + "' from " + url + ".");
@@ -191,7 +191,7 @@ public class StudioSVC implements IrisService {
         File work = new File(temp, "dl-" + UUID.randomUUID());
         File packs = getWorkspaceFolder();
 
-        if (zip == null || !zip.exists()) {
+        if(zip == null || !zip.exists()) {
             sender.sendMessage("Failed to find pack at " + url);
             sender.sendMessage("Make sure you specified the correct repo and branch!");
             sender.sendMessage("For example: /iris download IrisDimensions/overworld branch=master");
@@ -200,58 +200,58 @@ public class StudioSVC implements IrisService {
         sender.sendMessage("Unpacking " + repo);
         try {
             ZipUtil.unpack(zip, work);
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             e.printStackTrace();
             sender.sendMessage(
-                    """
-                            Issue when unpacking. Please check/do the following:
-                            1. Do you have a functioning internet connection?
-                            2. Did the download corrupt?
-                            3. Try deleting the */plugins/iris/packs folder and re-download.
-                            4. Download the pack from the GitHub repo: https://github.com/IrisDimensions/overworld
-                            5. Contact support (if all other options do not help)"""
+                """
+                    Issue when unpacking. Please check/do the following:
+                    1. Do you have a functioning internet connection?
+                    2. Did the download corrupt?
+                    3. Try deleting the */plugins/iris/packs folder and re-download.
+                    4. Download the pack from the GitHub repo: https://github.com/IrisDimensions/overworld
+                    5. Contact support (if all other options do not help)"""
             );
         }
         File dir = null;
         File[] zipFiles = work.listFiles();
 
-        if (zipFiles == null) {
+        if(zipFiles == null) {
             sender.sendMessage("No files were extracted from the zip file.");
             return;
         }
 
         try {
             dir = zipFiles.length == 1 && zipFiles[0].isDirectory() ? zipFiles[0] : null;
-        } catch (NullPointerException e) {
+        } catch(NullPointerException e) {
             Iris.reportError(e);
             sender.sendMessage("Error when finding home directory. Are there any non-text characters in the file name?");
             return;
         }
 
-        if (dir == null) {
+        if(dir == null) {
             sender.sendMessage("Invalid Format. Missing root folder or too many folders!");
             return;
         }
 
         File dimensions = new File(dir, "dimensions");
 
-        if (!(dimensions.exists() && dimensions.isDirectory())) {
+        if(!(dimensions.exists() && dimensions.isDirectory())) {
             sender.sendMessage("Invalid Format. Missing dimensions folder");
             return;
         }
 
-        if (dimensions.listFiles() == null) {
+        if(dimensions.listFiles() == null) {
             sender.sendMessage("No dimension file found in the extracted zip file.");
             sender.sendMessage("Check it is there on GitHub and report this to staff!");
-        } else if (dimensions.listFiles().length != 1) {
+        } else if(dimensions.listFiles().length != 1) {
             sender.sendMessage("Dimensions folder must have 1 file in it");
             return;
         }
 
         File dim = dimensions.listFiles()[0];
 
-        if (!dim.isFile()) {
+        if(!dim.isFile()) {
             sender.sendMessage("Invalid dimension (folder) in dimensions folder");
             return;
         }
@@ -261,23 +261,23 @@ public class StudioSVC implements IrisService {
         sender.sendMessage("Importing " + d.getName() + " (" + key + ")");
         File packEntry = new File(packs, key);
 
-        if (forceOverwrite) {
+        if(forceOverwrite) {
             IO.delete(packEntry);
         }
 
-        if (IrisData.loadAnyDimension(key) != null) {
+        if(IrisData.loadAnyDimension(key) != null) {
             sender.sendMessage("Another dimension in the packs folder is already using the key " + key + " IMPORT FAILED!");
             return;
         }
 
-        if (packEntry.exists() && packEntry.listFiles().length > 0) {
+        if(packEntry.exists() && packEntry.listFiles().length > 0) {
             sender.sendMessage("Another pack is using the key " + key + ". IMPORT FAILED!");
             return;
         }
 
         FileUtils.copyDirectory(dir, packEntry);
 
-        if (trim) {
+        if(trim) {
             sender.sendMessage("Trimming " + key);
             File cp = compilePackage(sender, key, false, false);
             IO.delete(packEntry);
@@ -292,7 +292,7 @@ public class StudioSVC implements IrisService {
     public KMap<String, String> getListing(boolean cached) {
         JSONObject a;
 
-        if (cached) {
+        if(cached) {
             a = new JSONObject(Iris.getCached("cachedlisting", LISTING));
         } else {
             a = new JSONObject(Iris.getNonCached(true + "listing", LISTING));
@@ -300,8 +300,8 @@ public class StudioSVC implements IrisService {
 
         KMap<String, String> l = new KMap<>();
 
-        for (String i : a.keySet()) {
-            if (a.get(i) instanceof String)
+        for(String i : a.keySet()) {
+            if(a.get(i) instanceof String)
                 l.put(i, a.getString(i));
         }
 
@@ -324,7 +324,7 @@ public class StudioSVC implements IrisService {
         try {
             open(sender, seed, dimm, (w) -> {
             });
-        } catch (Exception e) {
+        } catch(Exception e) {
             Iris.reportError(e);
             sender.sendMessage("Error when creating studio world:");
             e.printStackTrace();
@@ -332,7 +332,7 @@ public class StudioSVC implements IrisService {
     }
 
     public void open(VolmitSender sender, long seed, String dimm, Consumer<World> onDone) throws IrisException {
-        if (isProjectOpen()) {
+        if(isProjectOpen()) {
             close();
         }
 
@@ -354,7 +354,7 @@ public class StudioSVC implements IrisService {
     }
 
     public void close() {
-        if (isProjectOpen()) {
+        if(isProjectOpen()) {
             Iris.debug("Closing Active Project");
             activeProject.close();
             activeProject = null;
@@ -369,14 +369,14 @@ public class StudioSVC implements IrisService {
         File importPack = getWorkspaceFolder(existingPack);
         File newPack = getWorkspaceFolder(newName);
 
-        if (importPack.listFiles().length == 0) {
+        if(importPack.listFiles().length == 0) {
             Iris.warn("Couldn't find the pack to create a new dimension from.");
             return;
         }
 
         try {
             FileUtils.copyDirectory(importPack, newPack, pathname -> !pathname.getAbsolutePath().contains(".git"), false);
-        } catch (IOException e) {
+        } catch(IOException e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
@@ -387,7 +387,7 @@ public class StudioSVC implements IrisService {
 
         try {
             FileUtils.copyFile(dimFile, newDimFile);
-        } catch (IOException e) {
+        } catch(IOException e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
@@ -397,11 +397,11 @@ public class StudioSVC implements IrisService {
         try {
             JSONObject json = new JSONObject(IO.readAll(newDimFile));
 
-            if (json.has("name")) {
+            if(json.has("name")) {
                 json.put("name", Form.capitalizeWords(newName.replaceAll("\\Q-\\E", " ")));
                 IO.writeAll(newDimFile, json.toString(4));
             }
-        } catch (JSONException | IOException e) {
+        } catch(JSONException | IOException e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
@@ -410,7 +410,7 @@ public class StudioSVC implements IrisService {
             IrisProject p = new IrisProject(getWorkspaceFolder(newName));
             JSONObject ws = p.createCodeWorkspaceConfig();
             IO.writeAll(getWorkspaceFile(newName, newName + ".code-workspace"), ws.toString(0));
-        } catch (JSONException | IOException e) {
+        } catch(JSONException | IOException e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
@@ -420,29 +420,29 @@ public class StudioSVC implements IrisService {
         boolean shouldDelete = false;
         File importPack = getWorkspaceFolder(downloadable);
 
-        if (importPack.listFiles().length == 0) {
+        if(importPack.listFiles().length == 0) {
             downloadSearch(sender, downloadable, false);
 
-            if (importPack.listFiles().length > 0) {
+            if(importPack.listFiles().length > 0) {
                 shouldDelete = true;
             }
         }
 
-        if (importPack.listFiles().length == 0) {
+        if(importPack.listFiles().length == 0) {
             sender.sendMessage("Couldn't find the pack to create a new dimension from.");
             return;
         }
 
         File importDimensionFile = new File(importPack, "dimensions/" + downloadable + ".json");
 
-        if (!importDimensionFile.exists()) {
+        if(!importDimensionFile.exists()) {
             sender.sendMessage("Missing Imported Dimension File");
             return;
         }
 
         sender.sendMessage("Importing " + downloadable + " into new Project " + s);
         createFrom(downloadable, s);
-        if (shouldDelete) {
+        if(shouldDelete) {
             importPack.delete();
         }
         open(sender, s);
@@ -457,7 +457,7 @@ public class StudioSVC implements IrisService {
     }
 
     public void updateWorkspace() {
-        if (isProjectOpen()) {
+        if(isProjectOpen()) {
             activeProject.updateWorkspace();
         }
     }

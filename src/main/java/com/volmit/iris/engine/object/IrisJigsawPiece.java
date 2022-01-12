@@ -67,7 +67,7 @@ public class IrisJigsawPiece extends IrisRegistrant {
             try {
                 BlockVector v = IrisObject.sampleSize(getLoader().getObjectLoader().findFile(getObject()));
                 return Math.max(v.getBlockX(), v.getBlockZ());
-            } catch (IOException e) {
+            } catch(IOException e) {
                 Iris.reportError(e);
                 e.printStackTrace();
             }
@@ -81,7 +81,7 @@ public class IrisJigsawPiece extends IrisRegistrant {
             try {
                 BlockVector v = IrisObject.sampleSize(getLoader().getObjectLoader().findFile(getObject()));
                 return Math.max(Math.max(v.getBlockX(), v.getBlockZ()), v.getBlockY());
-            } catch (IOException e) {
+            } catch(IOException e) {
                 Iris.reportError(e);
                 e.printStackTrace();
             }
@@ -92,8 +92,8 @@ public class IrisJigsawPiece extends IrisRegistrant {
 
 
     public IrisJigsawPieceConnector getConnector(IrisPosition relativePosition) {
-        for (IrisJigsawPieceConnector i : connectors) {
-            if (i.getPosition().equals(relativePosition)) {
+        for(IrisJigsawPieceConnector i : connectors) {
+            if(i.getPosition().equals(relativePosition)) {
                 return i;
             }
         }
@@ -110,7 +110,7 @@ public class IrisJigsawPiece extends IrisRegistrant {
         p.setConnectors(new KList<>());
         p.setPlacementOptions(getPlacementOptions());
 
-        for (IrisJigsawPieceConnector i : getConnectors()) {
+        for(IrisJigsawPieceConnector i : getConnectors()) {
             p.getConnectors().add(i.copy());
         }
 

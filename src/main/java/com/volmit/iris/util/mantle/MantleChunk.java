@@ -19,7 +19,6 @@
 package com.volmit.iris.util.mantle;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.matter.IrisMatter;
@@ -48,7 +47,8 @@ public class MantleChunk {
     /**
      * Create a mantle chunk
      *
-     * @param sectionHeight the height of the world in sections (blocks >> 4)
+     * @param sectionHeight
+     *     the height of the world in sections (blocks >> 4)
      */
     @ChunkCoordinates
     public MantleChunk(int sectionHeight, int x, int z) {
@@ -57,7 +57,7 @@ public class MantleChunk {
         this.x = x;
         this.z = z;
 
-        for (int i = 0; i < flags.length(); i++) {
+        for(int i = 0; i < flags.length(); i++) {
             flags.set(i, 0);
         }
     }
@@ -65,22 +65,26 @@ public class MantleChunk {
     /**
      * Load a mantle chunk from a data stream
      *
-     * @param sectionHeight the height of the world in sections (blocks >> 4)
-     * @param din           the data input
-     * @throws IOException            shit happens
-     * @throws ClassNotFoundException shit happens
+     * @param sectionHeight
+     *     the height of the world in sections (blocks >> 4)
+     * @param din
+     *     the data input
+     * @throws IOException
+     *     shit happens
+     * @throws ClassNotFoundException
+     *     shit happens
      */
     public MantleChunk(int sectionHeight, DataInputStream din) throws IOException, ClassNotFoundException {
         this(sectionHeight, din.readByte(), din.readByte());
         int s = din.readByte();
 
-        for (int i = 0; i < flags.length(); i++) {
+        for(int i = 0; i < flags.length(); i++) {
             flags.set(i, din.readBoolean() ? 1 : 0);
         }
 
-        for (int i = 0; i < s; i++) {
+        for(int i = 0; i < s; i++) {
             Iris.addPanic("read.section", "Section[" + i + "]");
-            if (din.readBoolean()) {
+            if(din.readBoolean()) {
                 sections.set(i, Matter.readDin(din));
             }
         }
@@ -91,7 +95,7 @@ public class MantleChunk {
     }
 
     public void raiseFlag(MantleFlag flag, Runnable r) {
-        if (!isFlagged(flag)) {
+        if(!isFlagged(flag)) {
             flag(flag, true);
             r.run();
         }
@@ -104,7 +108,8 @@ public class MantleChunk {
     /**
      * Check if a section exists (same as get(section) != null)
      *
-     * @param section the section (0 - (worldHeight >> 4))
+     * @param section
+     *     the section (0 - (worldHeight >> 4))
      * @return true if it exists
      */
     @ChunkCoordinates
@@ -115,7 +120,8 @@ public class MantleChunk {
     /**
      * Get thje matter at the given section or null if it doesnt exist
      *
-     * @param section the section (0 - (worldHeight >> 4))
+     * @param section
+     *     the section (0 - (worldHeight >> 4))
      * @return the matter or null if it doesnt exist
      */
     @ChunkCoordinates
@@ -127,7 +133,7 @@ public class MantleChunk {
      * Clear all matter from this chunk
      */
     public void clear() {
-        for (int i = 0; i < sections.length(); i++) {
+        for(int i = 0; i < sections.length(); i++) {
             delete(i);
         }
     }
@@ -135,7 +141,8 @@ public class MantleChunk {
     /**
      * Delete the matter from the given section
      *
-     * @param section the section (0 - (worldHeight >> 4))
+     * @param section
+     *     the section (0 - (worldHeight >> 4))
      */
     @ChunkCoordinates
     public void delete(int section) {
@@ -145,14 +152,15 @@ public class MantleChunk {
     /**
      * Get or create a new matter section at the given section
      *
-     * @param section the section (0 - (worldHeight >> 4))
+     * @param section
+     *     the section (0 - (worldHeight >> 4))
      * @return the matter
      */
     @ChunkCoordinates
     public Matter getOrCreate(int section) {
         Matter matter = get(section);
 
-        if (matter == null) {
+        if(matter == null) {
             matter = new IrisMatter(16, 16, 16);
             sections.set(section, matter);
         }
@@ -163,22 +171,24 @@ public class MantleChunk {
     /**
      * Write this chunk to a data stream
      *
-     * @param dos the stream
-     * @throws IOException shit happens
+     * @param dos
+     *     the stream
+     * @throws IOException
+     *     shit happens
      */
     public void write(DataOutputStream dos) throws IOException {
         dos.writeByte(x);
         dos.writeByte(z);
         dos.writeByte(sections.length());
 
-        for (int i = 0; i < flags.length(); i++) {
+        for(int i = 0; i < flags.length(); i++) {
             dos.writeBoolean(flags.get(i) == 1);
         }
 
-        for (int i = 0; i < sections.length(); i++) {
+        for(int i = 0; i < sections.length(); i++) {
             trimSlice(i);
 
-            if (exists(i)) {
+            if(exists(i)) {
                 dos.writeBoolean(true);
                 Matter matter = get(i);
                 matter.writeDos(dos);
@@ -189,14 +199,14 @@ public class MantleChunk {
     }
 
     private void trimSlice(int i) {
-        if (exists(i)) {
+        if(exists(i)) {
             Matter m = get(i);
 
-            if (m.getSliceMap().isEmpty()) {
+            if(m.getSliceMap().isEmpty()) {
                 sections.set(i, null);
             } else {
                 m.trimSlices();
-                if (m.getSliceMap().isEmpty()) {
+                if(m.getSliceMap().isEmpty()) {
                     sections.set(i, null);
                 }
             }
@@ -204,14 +214,14 @@ public class MantleChunk {
     }
 
     public <T> void iterate(Class<T> type, Consumer4<Integer, Integer, Integer, T> iterator) {
-        for (int i = 0; i < sections.length(); i++) {
+        for(int i = 0; i < sections.length(); i++) {
             int bs = (i << 4);
             Matter matter = get(i);
 
-            if (matter != null) {
+            if(matter != null) {
                 MatterSlice<T> t = matter.getSlice(type);
 
-                if (t != null) {
+                if(t != null) {
                     t.iterateSync((a, b, c, f) -> iterator.accept(a, b + bs, c, f));
                 }
             }
@@ -219,17 +229,17 @@ public class MantleChunk {
     }
 
     public void deleteSlices(Class<?> c) {
-        for (int i = 0; i < sections.length(); i++) {
+        for(int i = 0; i < sections.length(); i++) {
             Matter m = sections.get(i);
-            if (m != null && m.hasSlice(c)) {
+            if(m != null && m.hasSlice(c)) {
                 m.deleteSlice(c);
             }
         }
     }
 
     public void trimSlices() {
-        for (int i = 0; i < sections.length(); i++) {
-            if (exists(i)) {
+        for(int i = 0; i < sections.length(); i++) {
+            if(exists(i)) {
                 trimSlice(i);
             }
         }

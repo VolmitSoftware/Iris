@@ -43,7 +43,7 @@ public class FileWatcher {
         boolean mod = false;
         readProperties();
 
-        if (lastModified != m || g != size) {
+        if(lastModified != m || g != size) {
             mod = true;
         }
 

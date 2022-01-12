@@ -45,18 +45,18 @@ public class PregeneratedData {
 
     public Runnable inject(TerrainChunk tc) {
         blocks.iterateSync((x, y, z, b) -> {
-            if (b != null) {
+            if(b != null) {
                 tc.setBlock(x, y, z, b);
             }
 
             Biome bf = biomes.get(x, y, z);
-            if (bf != null) {
+            if(bf != null) {
                 tc.setBiome(x, y, z, bf);
             }
         });
 
-        if (postMod.get()) {
-            return () -> Hunk.view((ChunkGenerator.ChunkData) tc).insertSoftly(0, 0, 0, post, (b) -> b == null || B.isAirOrFluid(b));
+        if(postMod.get()) {
+            return () -> Hunk.view(tc).insertSoftly(0, 0, 0, post, (b) -> b == null || B.isAirOrFluid(b));
         }
 
         return () -> {

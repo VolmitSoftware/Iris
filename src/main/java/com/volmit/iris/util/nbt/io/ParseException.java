@@ -33,7 +33,7 @@ public class ParseException extends IOException {
     private static String formatError(String value, int index) {
         StringBuilder builder = new StringBuilder();
         int i = Math.min(value.length(), index);
-        if (i > 35) {
+        if(i > 35) {
             builder.append("...");
         }
         builder.append(value, Math.max(0, i - 35), i);

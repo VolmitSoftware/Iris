@@ -68,24 +68,24 @@ public class IrisCavePlacer implements IRare {
     }
 
     public void generateCave(MantleWriter mantle, RNG rng, Engine engine, int x, int y, int z, int waterHint) {
-        if (fail.get()) {
+        if(fail.get()) {
             return;
         }
 
-        if (rng.nextInt(rarity) != 0) {
+        if(rng.nextInt(rarity) != 0) {
             return;
         }
 
         IrisData data = engine.getData();
         IrisCave cave = getRealCave(data);
 
-        if (cave == null) {
+        if(cave == null) {
             Iris.warn("Unable to locate cave for generation!");
             fail.set(true);
             return;
         }
 
-        if (y == -1) {
+        if(y == -1) {
             int h = (int) caveStartHeight.get(rng, x, z, data);
             int ma = breakSurface ? h : (int) (engine.getComplex().getHeightStream().get(x, z) - 9);
             y = Math.min(h, ma);
@@ -93,7 +93,7 @@ public class IrisCavePlacer implements IRare {
 
         try {
             cave.generate(mantle, rng, engine, x + rng.nextInt(15), y, z + rng.nextInt(15), waterHint);
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             e.printStackTrace();
             fail.set(true);
         }
@@ -102,7 +102,7 @@ public class IrisCavePlacer implements IRare {
     public int getSize(IrisData data) {
         IrisCave cave = getRealCave(data);
 
-        if (cave != null) {
+        if(cave != null) {
             return cave.getMaxSize(data);
         }
 

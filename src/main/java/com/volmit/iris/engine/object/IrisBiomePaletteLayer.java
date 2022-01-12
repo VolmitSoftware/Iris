@@ -75,11 +75,11 @@ public class IrisBiomePaletteLayer {
     }
 
     public BlockData get(RNG rng, double x, double y, double z, IrisData data) {
-        if (getBlockData(data).isEmpty()) {
+        if(getBlockData(data).isEmpty()) {
             return null;
         }
 
-        if (getBlockData(data).size() == 1) {
+        if(getBlockData(data).size() == 1) {
             return getBlockData(data).get(0);
         }
 
@@ -104,10 +104,10 @@ public class IrisBiomePaletteLayer {
         return blockData.aquire(() ->
         {
             KList<BlockData> blockData = new KList<>();
-            for (IrisBlockData ix : palette) {
+            for(IrisBlockData ix : palette) {
                 BlockData bx = ix.getBlockData(data);
-                if (bx != null) {
-                    for (int i = 0; i < ix.getWeight(); i++) {
+                if(bx != null) {
+                    for(int i = 0; i < ix.getWeight(); i++) {
                         blockData.add(bx);
                     }
                 }

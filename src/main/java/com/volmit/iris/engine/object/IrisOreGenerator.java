@@ -20,11 +20,9 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
-import jdk.jfr.Description;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -50,21 +48,21 @@ public class IrisOreGenerator {
 
     private transient AtomicCache<CNG> chanceCache = new AtomicCache<>();
 
-    public BlockData generate(int x, int y, int z, RNG rng, IrisData data){
-        if(palette.getPalette().isEmpty()){
-            return  null;
+    public BlockData generate(int x, int y, int z, RNG rng, IrisData data) {
+        if(palette.getPalette().isEmpty()) {
+            return null;
         }
 
-        if(!range.contains(y)){
+        if(!range.contains(y)) {
             return null;
         }
 
         CNG chance = chanceCache.aquire(() -> chanceStyle.create(rng, data));
 
-        if (chance.noise(x,y,z ) > threshold){
+        if(chance.noise(x, y, z) > threshold) {
             return null;
         }
 
-        return palette.get( rng, x,y,z, data);
+        return palette.get(rng, x, y, z, data);
     }
 }

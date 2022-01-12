@@ -35,7 +35,7 @@ public abstract class EngineAssignedModifier<T> extends EngineAssignedComponent 
     public void modify(int x, int z, Hunk<T> output, boolean multicore) {
         try {
             onModify(x, z, output, multicore);
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.error("Modifier Failure: " + getName());
             e.printStackTrace();
         }

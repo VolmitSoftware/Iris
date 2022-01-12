@@ -24,7 +24,7 @@ public interface Fallible {
     default void fail(String error) {
         try {
             throw new RuntimeException();
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             fail(error, e);
         }

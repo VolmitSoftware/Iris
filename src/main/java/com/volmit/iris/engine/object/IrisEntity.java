@@ -186,22 +186,22 @@ public class IrisEntity extends IrisRegistrant {
     }
 
     public Entity spawn(Engine gen, Location at, RNG rng) {
-        if (!Chunks.isSafe(at)) {
+        if(!Chunks.isSafe(at)) {
             return null;
         }
-        if (isSpawnEffectRiseOutOfGround()) {
+        if(isSpawnEffectRiseOutOfGround()) {
             AtomicReference<Location> f = new AtomicReference<>(at);
             try {
                 J.sfut(() -> {
-                    if (Chunks.hasPlayersNearby(f.get())) {
+                    if(Chunks.hasPlayersNearby(f.get())) {
                         Location b = f.get().clone();
                         Location start = new Location(b.getWorld(), b.getX(), b.getY() - 5, b.getZ());
                         f.set(start);
                     }
                 }).get();
-            } catch (InterruptedException e) {
+            } catch(InterruptedException e) {
                 e.printStackTrace();
-            } catch (ExecutionException e) {
+            } catch(ExecutionException e) {
                 e.printStackTrace();
             }
             at = f.get();
@@ -209,23 +209,23 @@ public class IrisEntity extends IrisRegistrant {
 
         Entity ee = doSpawn(at);
 
-        if (ee == null && !Chunks.isSafe(at)) {
+        if(ee == null && !Chunks.isSafe(at)) {
             return null;
         }
 
-        if (!spawnerScript.isEmpty() && ee == null) {
-            synchronized (this) {
+        if(!spawnerScript.isEmpty() && ee == null) {
+            synchronized(this) {
                 gen.getExecution().getAPI().setLocation(at);
                 try {
                     ee = (Entity) gen.getExecution().evaluate(spawnerScript);
-                } catch (Throwable ex) {
+                } catch(Throwable ex) {
                     Iris.error("You must return an Entity in your scripts to use entity scripts!");
                     ex.printStackTrace();
                 }
             }
         }
 
-        if (ee == null) {
+        if(ee == null) {
             return null;
         }
 
@@ -239,25 +239,25 @@ public class IrisEntity extends IrisRegistrant {
         e.setPersistent(isKeepEntity() || IrisSettings.get().getWorld().isForcePersistEntities());
 
         int gg = 0;
-        for (IrisEntity i : passengers) {
+        for(IrisEntity i : passengers) {
             Entity passenger = i.spawn(gen, at, rng.nextParallelRNG(234858 + gg++));
-            if (!Bukkit.isPrimaryThread()) {
+            if(!Bukkit.isPrimaryThread()) {
                 J.s(() -> e.addPassenger(passenger));
             }
         }
 
-        if (e instanceof Attributable) {
+        if(e instanceof Attributable) {
             Attributable a = (Attributable) e;
 
-            for (IrisAttributeModifier i : getAttributes()) {
+            for(IrisAttributeModifier i : getAttributes()) {
                 i.apply(rng, a);
             }
         }
 
-        if (e instanceof Lootable) {
+        if(e instanceof Lootable) {
             Lootable l = (Lootable) e;
 
-            if (getLoot().getTables().isNotEmpty()) {
+            if(getLoot().getTables().isNotEmpty()) {
                 Location finalAt = at;
                 l.setLootTable(new LootTable() {
                     @Override
@@ -269,7 +269,7 @@ public class IrisEntity extends IrisRegistrant {
                     public Collection<ItemStack> populateLoot(Random random, LootContext context) {
                         KList<ItemStack> items = new KList<>();
 
-                        for (String fi : getLoot().getTables()) {
+                        for(String fi : getLoot().getTables()) {
                             IrisLootTable i = gen.getData().getLootLoader().load(fi);
                             items.addAll(i.getLoot(gen.isStudio(), false, rng.nextParallelRNG(345911), InventorySlotType.STORAGE, finalAt.getBlockX(), finalAt.getBlockY(), finalAt.getBlockZ(), 8, 4));
                         }
@@ -279,7 +279,7 @@ public class IrisEntity extends IrisRegistrant {
 
                     @Override
                     public void fillInventory(Inventory inventory, Random random, LootContext context) {
-                        for (ItemStack i : populateLoot(random, context)) {
+                        for(ItemStack i : populateLoot(random, context)) {
                             inventory.addItem(i);
                         }
 
@@ -289,52 +289,52 @@ public class IrisEntity extends IrisRegistrant {
             }
         }
 
-        if (e instanceof LivingEntity) {
+        if(e instanceof LivingEntity) {
             LivingEntity l = (LivingEntity) e;
             l.setAI(isAi());
             l.setCanPickupItems(isPickupItems());
 
-            if (getLeashHolder() != null) {
+            if(getLeashHolder() != null) {
                 l.setLeashHolder(getLeashHolder().spawn(gen, at, rng.nextParallelRNG(234548)));
             }
 
             l.setRemoveWhenFarAway(isRemovable());
 
-            if (getHelmet() != null && rng.i(1, getHelmet().getRarity()) == 1) {
+            if(getHelmet() != null && rng.i(1, getHelmet().getRarity()) == 1) {
                 l.getEquipment().setHelmet(getHelmet().get(gen.isStudio(), rng));
             }
 
-            if (getChestplate() != null && rng.i(1, getChestplate().getRarity()) == 1) {
+            if(getChestplate() != null && rng.i(1, getChestplate().getRarity()) == 1) {
                 l.getEquipment().setChestplate(getChestplate().get(gen.isStudio(), rng));
             }
 
-            if (getLeggings() != null && rng.i(1, getLeggings().getRarity()) == 1) {
+            if(getLeggings() != null && rng.i(1, getLeggings().getRarity()) == 1) {
                 l.getEquipment().setLeggings(getLeggings().get(gen.isStudio(), rng));
             }
 
-            if (getBoots() != null && rng.i(1, getBoots().getRarity()) == 1) {
+            if(getBoots() != null && rng.i(1, getBoots().getRarity()) == 1) {
                 l.getEquipment().setBoots(getBoots().get(gen.isStudio(), rng));
             }
 
-            if (getMainHand() != null && rng.i(1, getMainHand().getRarity()) == 1) {
+            if(getMainHand() != null && rng.i(1, getMainHand().getRarity()) == 1) {
                 l.getEquipment().setItemInMainHand(getMainHand().get(gen.isStudio(), rng));
             }
 
-            if (getOffHand() != null && rng.i(1, getOffHand().getRarity()) == 1) {
+            if(getOffHand() != null && rng.i(1, getOffHand().getRarity()) == 1) {
                 l.getEquipment().setItemInOffHand(getOffHand().get(gen.isStudio(), rng));
             }
         }
 
-        if (e instanceof Ageable && isBaby()) {
+        if(e instanceof Ageable && isBaby()) {
             ((Ageable) e).setBaby();
         }
 
-        if (e instanceof Panda) {
+        if(e instanceof Panda) {
             ((Panda) e).setMainGene(getPandaMainGene());
             ((Panda) e).setMainGene(getPandaHiddenGene());
         }
 
-        if (e instanceof Villager) {
+        if(e instanceof Villager) {
             Villager villager = (Villager) e;
             villager.setRemoveWhenFarAway(false);
             Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
@@ -342,27 +342,27 @@ public class IrisEntity extends IrisRegistrant {
             }, 1);
         }
 
-        if (e instanceof Mob) {
+        if(e instanceof Mob) {
             Mob m = (Mob) e;
             m.setAware(isAware());
         }
 
-        if (spawnEffect != null) {
+        if(spawnEffect != null) {
             spawnEffect.apply(e);
         }
 
-        if (postSpawnScripts.isNotEmpty()) {
-            synchronized (this) {
+        if(postSpawnScripts.isNotEmpty()) {
+            synchronized(this) {
                 gen.getExecution().getAPI().setLocation(at);
                 gen.getExecution().getAPI().setEntity(ee);
 
-                for (String i : postSpawnScripts) {
+                for(String i : postSpawnScripts) {
                     gen.getExecution().execute(i);
                 }
             }
         }
 
-        if (rawCommands.isNotEmpty()) {
+        if(rawCommands.isNotEmpty()) {
             final Location fat = at;
             rawCommands.forEach(r -> r.run(fat));
         }
@@ -370,7 +370,7 @@ public class IrisEntity extends IrisRegistrant {
         Location finalAt1 = at;
 
         J.s(() -> {
-            if (isSpawnEffectRiseOutOfGround() && e instanceof LivingEntity && Chunks.hasPlayersNearby(finalAt1)) {
+            if(isSpawnEffectRiseOutOfGround() && e instanceof LivingEntity && Chunks.hasPlayersNearby(finalAt1)) {
                 Location start = finalAt1.clone();
                 e.setInvulnerable(true);
                 ((LivingEntity) e).setAI(false);
@@ -379,17 +379,17 @@ public class IrisEntity extends IrisRegistrant {
                 AtomicInteger t = new AtomicInteger(0);
                 AtomicInteger v = new AtomicInteger(0);
                 v.set(J.sr(() -> {
-                    if (t.get() > 100) {
+                    if(t.get() > 100) {
                         J.csr(v.get());
                         return;
                     }
 
                     t.incrementAndGet();
-                    if (e.getLocation().getBlock().getType().isSolid() || ((LivingEntity) e).getEyeLocation().getBlock().getType().isSolid()) {
+                    if(e.getLocation().getBlock().getType().isSolid() || ((LivingEntity) e).getEyeLocation().getBlock().getType().isSolid()) {
                         e.teleport(start.add(new Vector(0, 0.1, 0)));
                         ItemStack itemCrackData = new ItemStack(((LivingEntity) e).getEyeLocation().clone().subtract(0, 2, 0).getBlock().getBlockData().getMaterial());
                         e.getWorld().spawnParticle(Particle.ITEM_CRACK, ((LivingEntity) e).getEyeLocation(), 6, 0.2, 0.4, 0.2, 0.06f, itemCrackData);
-                        if (M.r(0.2)) {
+                        if(M.r(0.2)) {
                             e.getWorld().playSound(e.getLocation(), Sound.BLOCK_CHORUS_FLOWER_GROW, 0.8f, 0.1f);
                         }
                     } else {
@@ -410,11 +410,11 @@ public class IrisEntity extends IrisRegistrant {
     private int surfaceY(Location l) {
         int m = l.getBlockY();
 
-        while (m-- > 0) {
+        while(m-- > 0) {
             Location ll = l.clone();
             ll.setY(m);
 
-            if (ll.getBlock().getType().isSolid()) {
+            if(ll.getBlock().getType().isSolid()) {
                 return m;
             }
         }
@@ -423,30 +423,30 @@ public class IrisEntity extends IrisRegistrant {
     }
 
     private Entity doSpawn(Location at) {
-        if (!Chunks.isSafe(at)) {
+        if(!Chunks.isSafe(at)) {
             return null;
         }
 
-        if (type.equals(EntityType.UNKNOWN)) {
+        if(type.equals(EntityType.UNKNOWN)) {
             return null;
         }
 
-        if (!Bukkit.isPrimaryThread()) {
+        if(!Bukkit.isPrimaryThread()) {
             // Someone called spawn (worldedit maybe?) on a non server thread
             // Due to the structure of iris, we will call it sync and busy wait until it's done.
             AtomicReference<Entity> ae = new AtomicReference<>();
 
             try {
                 J.s(() -> ae.set(doSpawn(at)));
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 return null;
             }
             PrecisionStopwatch p = PrecisionStopwatch.start();
 
-            while (ae.get() == null) {
+            while(ae.get() == null) {
                 J.sleep(25);
 
-                if (p.getMilliseconds() > 500) {
+                if(p.getMilliseconds() > 500) {
                     return null;
                 }
             }
@@ -454,8 +454,8 @@ public class IrisEntity extends IrisRegistrant {
             return ae.get();
         }
 
-        if (isSpecialType()) {
-            if (specialType.toLowerCase().startsWith("mythicmobs:")) {
+        if(isSpecialType()) {
+            if(specialType.toLowerCase().startsWith("mythicmobs:")) {
                 return Iris.linkMythicMobs.spawnMob(specialType.substring(11), at);
             } else {
                 Iris.warn("Invalid mob type to spawn: '" + specialType + "'!");

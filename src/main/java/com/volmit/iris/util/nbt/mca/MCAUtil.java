@@ -41,9 +41,11 @@ public final class MCAUtil {
     }
 
     /**
-     * @param file The file to read the data from.
+     * @param file
+     *     The file to read the data from.
      * @return An in-memory representation of the MCA file with decompressed chunk data.
-     * @throws IOException if something during deserialization goes wrong.
+     * @throws IOException
+     *     if something during deserialization goes wrong.
      * @see MCAUtil#read(File)
      */
     public static MCAFile read(String file) throws IOException {
@@ -53,19 +55,24 @@ public final class MCAUtil {
     /**
      * Reads an MCA file and loads all of its chunks.
      *
-     * @param file The file to read the data from.
+     * @param file
+     *     The file to read the data from.
      * @return An in-memory representation of the MCA file with decompressed chunk data.
-     * @throws IOException if something during deserialization goes wrong.
+     * @throws IOException
+     *     if something during deserialization goes wrong.
      */
     public static MCAFile read(File file) throws IOException {
         return read(file, LoadFlags.ALL_DATA);
     }
 
     /**
-     * @param file      The file to read the data from.
-     * @param loadFlags A logical or of {@link LoadFlags} constants indicating what data should be loaded
+     * @param file
+     *     The file to read the data from.
+     * @param loadFlags
+     *     A logical or of {@link LoadFlags} constants indicating what data should be loaded
      * @return An in-memory representation of the MCA file with decompressed chunk data.
-     * @throws IOException if something during deserialization goes wrong.
+     * @throws IOException
+     *     if something during deserialization goes wrong.
      * @see MCAUtil#read(File)
      */
     public static MCAFile read(String file, long loadFlags) throws IOException {
@@ -75,14 +82,17 @@ public final class MCAUtil {
     /**
      * Reads an MCA file and loads all of its chunks.
      *
-     * @param file      The file to read the data from.
-     * @param loadFlags A logical or of {@link LoadFlags} constants indicating what data should be loaded
+     * @param file
+     *     The file to read the data from.
+     * @param loadFlags
+     *     A logical or of {@link LoadFlags} constants indicating what data should be loaded
      * @return An in-memory representation of the MCA file with decompressed chunk data
-     * @throws IOException if something during deserialization goes wrong.
+     * @throws IOException
+     *     if something during deserialization goes wrong.
      */
     public static MCAFile read(File file, long loadFlags) throws IOException {
         MCAFile mcaFile = newMCAFile(file);
-        try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+        try(RandomAccessFile raf = new RandomAccessFile(file, "r")) {
             mcaFile.deserialize(raf, loadFlags);
             return mcaFile;
         }
@@ -90,7 +100,7 @@ public final class MCAUtil {
 
     public static KList<Position2> sampleChunkPositions(File file) throws IOException {
         MCAFile mcaFile = newMCAFile(file);
-        try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+        try(RandomAccessFile raf = new RandomAccessFile(file, "r")) {
             return mcaFile.samplePositions(raf);
         }
     }
@@ -98,10 +108,13 @@ public final class MCAUtil {
     /**
      * Calls {@link MCAUtil#write(MCAFile, File, boolean)} without changing the timestamps.
      *
-     * @param file    The file to writeNodeData to.
-     * @param mcaFile The data of the MCA file to writeNodeData.
+     * @param file
+     *     The file to writeNodeData to.
+     * @param mcaFile
+     *     The data of the MCA file to writeNodeData.
      * @return The amount of chunks written to the file.
-     * @throws IOException If something goes wrong during serialization.
+     * @throws IOException
+     *     If something goes wrong during serialization.
      * @see MCAUtil#write(MCAFile, File, boolean)
      */
     public static int write(MCAFile mcaFile, String file) throws IOException {
@@ -111,10 +124,13 @@ public final class MCAUtil {
     /**
      * Calls {@link MCAUtil#write(MCAFile, File, boolean)} without changing the timestamps.
      *
-     * @param file    The file to writeNodeData to.
-     * @param mcaFile The data of the MCA file to writeNodeData.
+     * @param file
+     *     The file to writeNodeData to.
+     * @param mcaFile
+     *     The data of the MCA file to writeNodeData.
      * @return The amount of chunks written to the file.
-     * @throws IOException If something goes wrong during serialization.
+     * @throws IOException
+     *     If something goes wrong during serialization.
      * @see MCAUtil#write(MCAFile, File, boolean)
      */
     public static int write(MCAFile mcaFile, File file) throws IOException {
@@ -122,11 +138,15 @@ public final class MCAUtil {
     }
 
     /**
-     * @param file             The file to writeNodeData to.
-     * @param mcaFile          The data of the MCA file to writeNodeData.
-     * @param changeLastUpdate Whether to adjust the timestamps of when the file was saved.
+     * @param file
+     *     The file to writeNodeData to.
+     * @param mcaFile
+     *     The data of the MCA file to writeNodeData.
+     * @param changeLastUpdate
+     *     Whether to adjust the timestamps of when the file was saved.
      * @return The amount of chunks written to the file.
-     * @throws IOException If something goes wrong during serialization.
+     * @throws IOException
+     *     If something goes wrong during serialization.
      * @see MCAUtil#write(MCAFile, File, boolean)
      */
     public static int write(MCAFile mcaFile, String file, boolean changeLastUpdate) throws IOException {
@@ -139,27 +159,31 @@ public final class MCAUtil {
      * the value set by either loading an already existing MCA file or setting them manually.<br>
      * If the file already exists, it is completely overwritten by the new file (no modification).
      *
-     * @param file             The file to writeNodeData to.
-     * @param mcaFile          The data of the MCA file to writeNodeData.
-     * @param changeLastUpdate Whether to adjust the timestamps of when the file was saved.
+     * @param file
+     *     The file to writeNodeData to.
+     * @param mcaFile
+     *     The data of the MCA file to writeNodeData.
+     * @param changeLastUpdate
+     *     Whether to adjust the timestamps of when the file was saved.
      * @return The amount of chunks written to the file.
-     * @throws IOException If something goes wrong during serialization.
+     * @throws IOException
+     *     If something goes wrong during serialization.
      */
     public static int write(MCAFile mcaFile, File file, boolean changeLastUpdate) throws IOException {
-        if (mcaFile == null) {
+        if(mcaFile == null) {
             return 0;
         }
 
         File to = file;
-        if (file.exists()) {
+        if(file.exists()) {
             to = File.createTempFile(to.getName(), null);
         }
         int chunks;
-        try (RandomAccessFile raf = new RandomAccessFile(to, "rw")) {
+        try(RandomAccessFile raf = new RandomAccessFile(to, "rw")) {
             chunks = mcaFile.serialize(raf, changeLastUpdate);
         }
 
-        if (chunks > 0 && to != file) {
+        if(chunks > 0 && to != file) {
             Files.move(to.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
         }
 
@@ -170,8 +194,10 @@ public final class MCAUtil {
      * Turns the chunks coordinates into region coordinates and calls
      * {@link MCAUtil#createNameFromRegionLocation(int, int)}
      *
-     * @param chunkX The x-value of the location of the chunk.
-     * @param chunkZ The z-value of the location of the chunk.
+     * @param chunkX
+     *     The x-value of the location of the chunk.
+     * @param chunkZ
+     *     The z-value of the location of the chunk.
      * @return A mca filename in the format "r.{regionX}.{regionZ}.mca"
      */
     public static String createNameFromChunkLocation(int chunkX, int chunkZ) {
@@ -182,8 +208,10 @@ public final class MCAUtil {
      * Turns the block coordinates into region coordinates and calls
      * {@link MCAUtil#createNameFromRegionLocation(int, int)}
      *
-     * @param blockX The x-value of the location of the block.
-     * @param blockZ The z-value of the location of the block.
+     * @param blockX
+     *     The x-value of the location of the block.
+     * @param blockZ
+     *     The z-value of the location of the block.
      * @return A mca filename in the format "r.{regionX}.{regionZ}.mca"
      */
     public static String createNameFromBlockLocation(int blockX, int blockZ) {
@@ -193,8 +221,10 @@ public final class MCAUtil {
     /**
      * Creates a filename string from provided chunk coordinates.
      *
-     * @param regionX The x-value of the location of the region.
-     * @param regionZ The z-value of the location of the region.
+     * @param regionX
+     *     The x-value of the location of the region.
+     * @param regionZ
+     *     The z-value of the location of the region.
      * @return A mca filename in the format "r.{regionX}.{regionZ}.mca"
      */
     public static String createNameFromRegionLocation(int regionX, int regionZ) {
@@ -204,7 +234,8 @@ public final class MCAUtil {
     /**
      * Turns a block coordinate value into a chunk coordinate value.
      *
-     * @param block The block coordinate value.
+     * @param block
+     *     The block coordinate value.
      * @return The chunk coordinate value.
      */
     public static int blockToChunk(int block) {
@@ -214,7 +245,8 @@ public final class MCAUtil {
     /**
      * Turns a block coordinate value into a region coordinate value.
      *
-     * @param block The block coordinate value.
+     * @param block
+     *     The block coordinate value.
      * @return The region coordinate value.
      */
     public static int blockToRegion(int block) {
@@ -224,7 +256,8 @@ public final class MCAUtil {
     /**
      * Turns a chunk coordinate value into a region coordinate value.
      *
-     * @param chunk The chunk coordinate value.
+     * @param chunk
+     *     The chunk coordinate value.
      * @return The region coordinate value.
      */
     public static int chunkToRegion(int chunk) {
@@ -234,7 +267,8 @@ public final class MCAUtil {
     /**
      * Turns a region coordinate value into a chunk coordinate value.
      *
-     * @param region The region coordinate value.
+     * @param region
+     *     The region coordinate value.
      * @return The chunk coordinate value.
      */
     public static int regionToChunk(int region) {
@@ -244,7 +278,8 @@ public final class MCAUtil {
     /**
      * Turns a region coordinate value into a block coordinate value.
      *
-     * @param region The region coordinate value.
+     * @param region
+     *     The region coordinate value.
      * @return The block coordinate value.
      */
     public static int regionToBlock(int region) {
@@ -254,7 +289,8 @@ public final class MCAUtil {
     /**
      * Turns a chunk coordinate value into a block coordinate value.
      *
-     * @param chunk The chunk coordinate value.
+     * @param chunk
+     *     The chunk coordinate value.
      * @return The block coordinate value.
      */
     public static int chunkToBlock(int chunk) {
@@ -263,7 +299,7 @@ public final class MCAUtil {
 
     public static MCAFile newMCAFile(File file) {
         Matcher m = mcaFilePattern.matcher(file.getName());
-        if (m.find()) {
+        if(m.find()) {
             return new MCAFile(Integer.parseInt(m.group("regionX")), Integer.parseInt(m.group("regionZ")));
         }
         throw new IllegalArgumentException("invalid mca file name: " + file.getName());

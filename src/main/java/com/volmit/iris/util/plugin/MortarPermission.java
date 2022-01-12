@@ -30,13 +30,13 @@ public abstract class MortarPermission {
     private MortarPermission parent;
 
     public MortarPermission() {
-        for (Field i : getClass().getDeclaredFields()) {
-            if (i.isAnnotationPresent(Permission.class)) {
+        for(Field i : getClass().getDeclaredFields()) {
+            if(i.isAnnotationPresent(Permission.class)) {
                 try {
                     MortarPermission px = (MortarPermission) i.getType().getConstructor().newInstance();
                     px.setParent(this);
                     i.set(Modifier.isStatic(i.getModifiers()) ? null : this, px);
-                } catch (IllegalArgumentException | IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                } catch(IllegalArgumentException | IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
                     e.printStackTrace();
                     Iris.reportError(e);
                 }
@@ -47,11 +47,11 @@ public abstract class MortarPermission {
     public KList<MortarPermission> getChildren() {
         KList<MortarPermission> p = new KList<>();
 
-        for (Field i : getClass().getDeclaredFields()) {
-            if (i.isAnnotationPresent(Permission.class)) {
+        for(Field i : getClass().getDeclaredFields()) {
+            if(i.isAnnotationPresent(Permission.class)) {
                 try {
                     p.add((MortarPermission) i.get(Modifier.isStatic(i.getModifiers()) ? null : this));
-                } catch (IllegalArgumentException | IllegalAccessException | SecurityException e) {
+                } catch(IllegalArgumentException | IllegalAccessException | SecurityException e) {
                     e.printStackTrace();
                     Iris.reportError(e);
                 }
@@ -62,7 +62,7 @@ public abstract class MortarPermission {
     }
 
     public String getFullNode() {
-        if (hasParent()) {
+        if(hasParent()) {
             return getParent().getFullNode() + "." + getNode();
         }
 

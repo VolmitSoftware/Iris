@@ -39,7 +39,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private final KList<Future<?>> future;
 
     public AsyncPregenMethod(World world, int threads) {
-        if (!PaperLib.isPaper()) {
+        if(!PaperLib.isPaper()) {
             throw new UnsupportedOperationException("Cannot use PaperAsync on non paper!");
         }
 
@@ -51,17 +51,17 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private void unloadAndSaveAllChunks() {
         try {
             J.sfut(() -> {
-                if (world == null) {
+                if(world == null) {
                     Iris.warn("World was null somehow...");
                     return;
                 }
 
-                for (Chunk i : world.getLoadedChunks()) {
+                for(Chunk i : world.getLoadedChunks()) {
                     i.unload(true);
                 }
                 world.save();
             }).get();
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             e.printStackTrace();
         }
     }
@@ -71,7 +71,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             PaperLib.getChunkAtAsync(world, x, z, true).get();
             listener.onChunkGenerated(x, z);
             listener.onChunkCleaned(x, z);
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             e.printStackTrace();
             J.sleep(5);
             future.add(burst.complete(() -> completeChunk(x, z, listener)));
@@ -79,11 +79,11 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     }
 
     private void waitForChunks() {
-        for (Future<?> i : future.copy()) {
+        for(Future<?> i : future.copy()) {
             try {
                 i.get();
                 future.remove(i);
-            } catch (Throwable e) {
+            } catch(Throwable e) {
                 e.printStackTrace();
             }
         }
@@ -123,7 +123,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
-        if (future.size() > IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())) { // TODO: FIX
+        if(future.size() > IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())) { // TODO: FIX
             waitForChunks();
         }
 
@@ -133,7 +133,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
     @Override
     public Mantle getMantle() {
-        if (IrisToolbelt.isIrisWorld(world)) {
+        if(IrisToolbelt.isIrisWorld(world)) {
             return IrisToolbelt.access(world).getEngine().getMantle().getMantle();
         }
 

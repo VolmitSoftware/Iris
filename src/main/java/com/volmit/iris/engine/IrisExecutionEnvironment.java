@@ -44,7 +44,7 @@ public class IrisExecutionEnvironment implements EngineExecutionEnvironment {
         try {
             this.manager.declareBean("Iris", api, api.getClass());
             this.javaScriptEngine = (JavaScriptEngine) this.manager.loadScriptingEngine("javascript");
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             e.printStackTrace();
         }
     }
@@ -62,7 +62,7 @@ public class IrisExecutionEnvironment implements EngineExecutionEnvironment {
         Iris.debug("Execute Script (void) " + C.DARK_GREEN + script.getLoadKey());
         try {
             javaScriptEngine.exec("", 0, 0, script);
-        } catch (BSFException e) {
+        } catch(BSFException e) {
             e.printStackTrace();
         }
     }
@@ -71,7 +71,7 @@ public class IrisExecutionEnvironment implements EngineExecutionEnvironment {
         Iris.debug("Execute Script (for result) " + C.DARK_GREEN + script);
         try {
             return javaScriptEngine.eval("", 0, 0, getEngine().getData().getScriptLoader().load(script));
-        } catch (BSFException e) {
+        } catch(BSFException e) {
             e.printStackTrace();
         }
 

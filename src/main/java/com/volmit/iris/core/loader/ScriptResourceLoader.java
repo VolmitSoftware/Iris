@@ -53,7 +53,7 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
             logLoad(j, t);
             tlt.addAndGet(p.getMilliseconds());
             return t;
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
             return null;
@@ -61,24 +61,24 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
     }
 
     public String[] getPossibleKeys() {
-        if (possibleKeys != null) {
+        if(possibleKeys != null) {
             return possibleKeys;
         }
 
         Iris.debug("Building " + resourceTypeName + " Possibility Lists");
         KSet<String> m = new KSet<>();
 
-        for (File i : getFolders()) {
-            for (File j : i.listFiles()) {
-                if (j.isFile() && j.getName().endsWith(".js")) {
+        for(File i : getFolders()) {
+            for(File j : i.listFiles()) {
+                if(j.isFile() && j.getName().endsWith(".js")) {
                     m.add(j.getName().replaceAll("\\Q.js\\E", ""));
-                } else if (j.isDirectory()) {
-                    for (File k : j.listFiles()) {
-                        if (k.isFile() && k.getName().endsWith(".js")) {
+                } else if(j.isDirectory()) {
+                    for(File k : j.listFiles()) {
+                        if(k.isFile() && k.getName().endsWith(".js")) {
                             m.add(j.getName() + "/" + k.getName().replaceAll("\\Q.js\\E", ""));
-                        } else if (k.isDirectory()) {
-                            for (File l : k.listFiles()) {
-                                if (l.isFile() && l.getName().endsWith(".js")) {
+                        } else if(k.isDirectory()) {
+                            for(File l : k.listFiles()) {
+                                if(l.isFile() && l.getName().endsWith(".js")) {
                                     m.add(j.getName() + "/" + k.getName() + "/" + l.getName().replaceAll("\\Q.js\\E", ""));
                                 }
                             }
@@ -94,16 +94,16 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
     }
 
     public File findFile(String name) {
-        for (File i : getFolders(name)) {
-            for (File j : i.listFiles()) {
-                if (j.isFile() && j.getName().endsWith(".js") && j.getName().split("\\Q.\\E")[0].equals(name)) {
+        for(File i : getFolders(name)) {
+            for(File j : i.listFiles()) {
+                if(j.isFile() && j.getName().endsWith(".js") && j.getName().split("\\Q.\\E")[0].equals(name)) {
                     return j;
                 }
             }
 
             File file = new File(i, name + ".js");
 
-            if (file.exists()) {
+            if(file.exists()) {
                 return file;
             }
         }
@@ -114,16 +114,16 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
     }
 
     private IrisScript loadRaw(String name) {
-        for (File i : getFolders(name)) {
-            for (File j : i.listFiles()) {
-                if (j.isFile() && j.getName().endsWith(".js") && j.getName().split("\\Q.\\E")[0].equals(name)) {
+        for(File i : getFolders(name)) {
+            for(File j : i.listFiles()) {
+                if(j.isFile() && j.getName().endsWith(".js") && j.getName().split("\\Q.\\E")[0].equals(name)) {
                     return loadFile(j, name);
                 }
             }
 
             File file = new File(i, name + ".js");
 
-            if (file.exists()) {
+            if(file.exists()) {
                 return loadFile(file, name);
             }
         }

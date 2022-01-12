@@ -39,7 +39,7 @@ public class DataPalette<T> {
         KList<T> palette = new KList<>();
         int s = din.readShort() - Short.MIN_VALUE;
 
-        for (int i = 0; i < s; i++) {
+        for(int i = 0; i < s; i++) {
             palette.add(adapter.read(din));
         }
 
@@ -51,8 +51,8 @@ public class DataPalette<T> {
     }
 
     public T get(int index) {
-        synchronized (palette) {
-            if (!palette.hasIndex(index)) {
+        synchronized(palette) {
+            if(!palette.hasIndex(index)) {
                 return null;
             }
 
@@ -63,10 +63,10 @@ public class DataPalette<T> {
     public int getIndex(T t) {
         int v = 0;
 
-        synchronized (palette) {
+        synchronized(palette) {
             v = palette.indexOf(t);
 
-            if (v == -1) {
+            if(v == -1) {
                 v = palette.size();
                 palette.add(t);
             }
@@ -76,10 +76,10 @@ public class DataPalette<T> {
     }
 
     public void write(IOAdapter<T> adapter, DataOutputStream dos) throws IOException {
-        synchronized (palette) {
+        synchronized(palette) {
             dos.writeShort(getPalette().size() + Short.MIN_VALUE);
 
-            for (T t : palette) {
+            for(T t : palette) {
                 adapter.write(t, dos);
             }
         }

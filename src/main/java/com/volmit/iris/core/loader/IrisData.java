@@ -115,8 +115,8 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     public static int cacheSize() {
         int m = 0;
-        for (IrisData i : dataLoaders.values()) {
-            for (ResourceLoader<?> j : i.getLoaders().values()) {
+        for(IrisData i : dataLoaders.values()) {
+            for(ResourceLoader<?> j : i.getLoaders().values()) {
                 m += j.getLoadCache().getSize();
             }
         }
@@ -206,17 +206,17 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     public static <T extends IrisRegistrant> T loadAny(String key, Function<IrisData, T> v) {
         try {
-            for (File i : Objects.requireNonNull(Iris.instance.getDataFolder("packs").listFiles())) {
-                if (i.isDirectory()) {
+            for(File i : Objects.requireNonNull(Iris.instance.getDataFolder("packs").listFiles())) {
+                if(i.isDirectory()) {
                     IrisData dm = get(i);
                     T t = v.apply(dm);
 
-                    if (t != null) {
+                    if(t != null) {
                         return t;
                     }
                 }
             }
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
@@ -227,9 +227,9 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     public ResourceLoader<?> getTypedLoaderFor(File f) {
         String[] k = f.getPath().split("\\Q" + File.separator + "\\E");
 
-        for (String i : k) {
-            for (ResourceLoader<?> j : loaders.values()) {
-                if (j.getFolderName().equals(i)) {
+        for(String i : k) {
+            for(ResourceLoader<?> j : loaders.values()) {
+                if(j.getFolderName().equals(i)) {
                     return j;
                 }
             }
@@ -239,7 +239,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public void cleanupEngine() {
-        if (engine != null && engine.isClosed()) {
+        if(engine != null && engine.isClosed()) {
             engine = null;
             Iris.debug("Dereferenced Data<Engine> " + getId() + " " + getDataFolder());
         }
@@ -250,30 +250,30 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
             IrisContext ctx = IrisContext.get();
             Engine engine = this.engine;
 
-            if (engine == null && ctx != null && ctx.getEngine() != null) {
+            if(engine == null && ctx != null && ctx.getEngine() != null) {
                 engine = ctx.getEngine();
             }
 
-            if (engine == null && t.getPreprocessors().isNotEmpty()) {
+            if(engine == null && t.getPreprocessors().isNotEmpty()) {
                 Iris.error("Failed to preprocess object " + t.getLoadKey() + " because there is no engine context here. (See stack below)");
                 try {
                     throw new RuntimeException();
-                } catch (Throwable ex) {
+                } catch(Throwable ex) {
                     ex.printStackTrace();
                 }
             }
 
-            if (engine != null && t.getPreprocessors().isNotEmpty()) {
-                synchronized (this) {
+            if(engine != null && t.getPreprocessors().isNotEmpty()) {
+                synchronized(this) {
                     engine.getExecution().getAPI().setPreprocessorObject(t);
 
-                    for (String i : t.getPreprocessors()) {
+                    for(String i : t.getPreprocessors()) {
                         engine.getExecution().execute(i);
                         Iris.debug("Loader<" + C.GREEN + t.getTypeName() + C.LIGHT_PURPLE + "> iprocess " + C.YELLOW + t.getLoadKey() + C.LIGHT_PURPLE + " in <rainbow>" + i);
                     }
                 }
             }
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.error("Failed to preprocess object!");
             e.printStackTrace();
         }
@@ -292,13 +292,13 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         try {
             IrisRegistrant rr = registrant.getConstructor().newInstance();
             ResourceLoader<T> r = null;
-            if (registrant.equals(IrisObject.class)) {
+            if(registrant.equals(IrisObject.class)) {
                 r = (ResourceLoader<T>) new ObjectResourceLoader(dataFolder, this, rr.getFolderName(),
-                        rr.getTypeName());
-            } else if (registrant.equals(IrisScript.class)) {
+                    rr.getTypeName());
+            } else if(registrant.equals(IrisScript.class)) {
                 r = (ResourceLoader<T>) new ScriptResourceLoader(dataFolder, this, rr.getFolderName(),
                     rr.getTypeName());
-            }else if (registrant.equals(IrisImage.class)) {
+            } else if(registrant.equals(IrisImage.class)) {
                 r = (ResourceLoader<T>) new ImageResourceLoader(dataFolder, this, rr.getFolderName(),
                     rr.getTypeName());
             } else {
@@ -309,7 +309,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
             loaders.put(registrant, r);
 
             return r;
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             e.printStackTrace();
             Iris.error("Failed to create loader! " + registrant.getCanonicalName());
         }
@@ -320,11 +320,11 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     public synchronized void hotloaded() {
         possibleSnippets = new KMap<>();
         builder = new GsonBuilder()
-                .addDeserializationExclusionStrategy(this)
-                .addSerializationExclusionStrategy(this)
-                .setLenient()
-                .registerTypeAdapterFactory(this)
-                .setPrettyPrinting();
+            .addDeserializationExclusionStrategy(this)
+            .addSerializationExclusionStrategy(this)
+            .setLenient()
+            .registerTypeAdapterFactory(this)
+            .setPrettyPrinting();
         loaders.clear();
         File packs = dataFolder;
         packs.mkdirs();
@@ -351,26 +351,26 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public void dump() {
-        for (ResourceLoader<?> i : loaders.values()) {
+        for(ResourceLoader<?> i : loaders.values()) {
             i.clearCache();
         }
     }
 
     public void clearLists() {
-        for (ResourceLoader<?> i : loaders.values()) {
+        for(ResourceLoader<?> i : loaders.values()) {
             i.clearList();
         }
     }
 
     public String toLoadKey(File f) {
-        if (f.getPath().startsWith(getDataFolder().getPath())) {
+        if(f.getPath().startsWith(getDataFolder().getPath())) {
             String[] full = f.getPath().split("\\Q" + File.separator + "\\E");
             String[] df = getDataFolder().getPath().split("\\Q" + File.separator + "\\E");
             String g = "";
             boolean m = true;
-            for (int i = 0; i < full.length; i++) {
-                if (i >= df.length) {
-                    if (m) {
+            for(int i = 0; i < full.length; i++) {
+                if(i >= df.length) {
+                    if(m) {
                         m = false;
                         continue;
                     }
@@ -397,14 +397,14 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     @Override
     public boolean shouldSkipClass(Class<?> c) {
-        if (c.equals(AtomicCache.class)) {
+        if(c.equals(AtomicCache.class)) {
             return true;
         } else return c.equals(ChronoLatch.class);
     }
 
     @Override
     public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> typeToken) {
-        if (!typeToken.getRawType().isAnnotationPresent(Snippet.class)) {
+        if(!typeToken.getRawType().isAnnotationPresent(Snippet.class)) {
             return null;
         }
 
@@ -420,17 +420,17 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
             public T read(JsonReader reader) throws IOException {
                 TypeAdapter<T> adapter = gson.getDelegateAdapter(IrisData.this, typeToken);
 
-                if (reader.peek().equals(JsonToken.STRING)) {
+                if(reader.peek().equals(JsonToken.STRING)) {
                     String r = reader.nextString();
 
-                    if (r.startsWith("snippet/" + snippetType + "/")) {
+                    if(r.startsWith("snippet/" + snippetType + "/")) {
                         File f = new File(getDataFolder(), r + ".json");
 
-                        if (f.exists()) {
+                        if(f.exists()) {
                             try {
                                 JsonReader snippetReader = new JsonReader(new FileReader(f));
                                 return adapter.read(snippetReader);
-                            } catch (Throwable e) {
+                            } catch(Throwable e) {
                                 Iris.error("Couldn't read snippet " + r + " in " + reader.getPath() + " (" + e.getMessage() + ")");
                             }
                         } else {
@@ -443,11 +443,11 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
                 try {
                     return adapter.read(reader);
-                } catch (Throwable e) {
+                } catch(Throwable e) {
                     Iris.error("Failed to read " + typeToken.getRawType().getCanonicalName() + "... faking objects a little to load the file at least.");
                     try {
                         return (T) typeToken.getRawType().getConstructor().newInstance();
-                    } catch (Throwable ignored) {
+                    } catch(Throwable ignored) {
 
                     }
                 }
@@ -462,8 +462,8 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
             File snippetFolder = new File(getDataFolder(), "snippet/" + f);
 
-            if (snippetFolder.exists() && snippetFolder.isDirectory()) {
-                for (File i : snippetFolder.listFiles()) {
+            if(snippetFolder.exists() && snippetFolder.isDirectory()) {
+                for(File i : snippetFolder.listFiles()) {
                     l.add("snippet/" + f + "/" + i.getName().split("\\Q.\\E")[0]);
                 }
             }

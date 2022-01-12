@@ -29,13 +29,10 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.noise.ExpressionNoise;
 import com.volmit.iris.util.noise.ImageNoise;
-import com.volmit.iris.util.stream.ProceduralStream;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-
-import java.util.List;
 
 @Snippet("style")
 @Accessors(chain = true)
@@ -84,39 +81,34 @@ public class IrisGeneratorStyle {
     }
 
     public CNG createNoCache(RNG rng, IrisData data) {
-        if (getExpression() != null) {
+        if(getExpression() != null) {
             IrisExpression e = data.getExpressionLoader().load(getExpression());
 
-            if (e != null) {
+            if(e != null) {
                 CNG cng = new CNG(rng, new ExpressionNoise(rng, e), 1D, 1)
-                        .bake().scale(1D / zoom).pow(exponent).bake();
+                    .bake().scale(1D / zoom).pow(exponent).bake();
                 cng.setTrueFracturing(axialFracturing);
 
-                if (fracture != null) {
+                if(fracture != null) {
                     cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
                 }
 
-                if(cellularFrequency > 0)
-                {
-                    return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D/cellularZoom).bake();
+                if(cellularFrequency > 0) {
+                    return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D / cellularZoom).bake();
                 }
 
                 return cng;
             }
-        }
-
-        else if(getImageMap() != null)
-        {
-            CNG cng = new CNG(rng, new ImageNoise(data, getImageMap()), 1D, 1).bake().scale(1D/zoom).pow(exponent).bake();
+        } else if(getImageMap() != null) {
+            CNG cng = new CNG(rng, new ImageNoise(data, getImageMap()), 1D, 1).bake().scale(1D / zoom).pow(exponent).bake();
             cng.setTrueFracturing(axialFracturing);
 
-            if (fracture != null) {
+            if(fracture != null) {
                 cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
             }
 
-            if(cellularFrequency > 0)
-            {
-                return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D/cellularZoom).bake();
+            if(cellularFrequency > 0) {
+                return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D / cellularZoom).bake();
             }
 
             return cng;
@@ -125,13 +117,12 @@ public class IrisGeneratorStyle {
         CNG cng = style.create(rng).bake().scale(1D / zoom).pow(exponent).bake();
         cng.setTrueFracturing(axialFracturing);
 
-        if (fracture != null) {
+        if(fracture != null) {
             cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
         }
 
-        if(cellularFrequency > 0)
-        {
-            return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D/cellularZoom).bake();
+        if(cellularFrequency > 0) {
+            return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D / cellularZoom).bake();
         }
 
         return cng;

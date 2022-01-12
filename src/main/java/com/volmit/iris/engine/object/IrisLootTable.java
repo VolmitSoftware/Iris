@@ -70,15 +70,15 @@ public class IrisLootTable extends IrisRegistrant {
         int m = 0;
         int mx = rng.i(getMinPicked(), getMaxPicked());
 
-        while (m < mx) {
+        while(m < mx) {
             int num = rng.i(loot.size());
 
             IrisLoot l = loot.get(num);
 
-            if (l.getSlotTypes() == slot) {
+            if(l.getSlotTypes() == slot) {
                 ItemStack item = l.get(debug, false, this, rng, x, y, z);
 
-                if (item != null && item.getType() != Material.AIR) {
+                if(item != null && item.getType() != Material.AIR) {
                     lootf.add(item);
                     m++;
                 }

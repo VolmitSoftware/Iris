@@ -43,24 +43,24 @@ public class Wrapper<T> {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) {
+        if(this == obj) {
             return true;
         }
-        if (obj == null) {
+        if(obj == null) {
             return false;
         }
-        if (!(obj instanceof Wrapper<?> other)) {
+        if(!(obj instanceof Wrapper<?> other)) {
             return false;
         }
 
-        if (t == null) {
+        if(t == null) {
             return other.t == null;
         } else return t.equals(other.t);
     }
 
     @Override
     public String toString() {
-        if (t != null) {
+        if(t != null) {
             return get().toString();
         }
 

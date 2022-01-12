@@ -35,10 +35,10 @@ public class JigsawStructureHandler implements DecreeParameterHandler<IrisJigsaw
         KMap<String, IrisJigsawStructure> p = new KMap<>();
 
         //noinspection ConstantConditions
-        for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
-            if (i.isDirectory()) {
+        for(File i : Iris.instance.getDataFolder("packs").listFiles()) {
+            if(i.isDirectory()) {
                 IrisData data = IrisData.get(i);
-                for (IrisJigsawStructure j : data.getJigsawStructureLoader().loadAll(data.getJigsawStructureLoader().getPossibleKeys())) {
+                for(IrisJigsawStructure j : data.getJigsawStructureLoader().loadAll(data.getJigsawStructureLoader().getPossibleKeys())) {
                     p.putIfAbsent(j.getLoadKey(), j);
                 }
 
@@ -56,16 +56,17 @@ public class JigsawStructureHandler implements DecreeParameterHandler<IrisJigsaw
 
     @Override
     public IrisJigsawStructure parse(String in, boolean force) throws DecreeParsingException {
-        if (in.equals("null")) {
+        if(in.equals("null")) {
             return null;
         }
         KList<IrisJigsawStructure> options = getPossibilities(in);
 
-        if (options.isEmpty()) {
+        if(options.isEmpty()) {
             throw new DecreeParsingException("Unable to find Jigsaw Structure \"" + in + "\"");
-        } try {
+        }
+        try {
             return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             throw new DecreeParsingException("Unable to filter which Jigsaw Structure \"" + in + "\"");
         }
     }

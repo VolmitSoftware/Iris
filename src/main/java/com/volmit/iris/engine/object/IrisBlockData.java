@@ -74,18 +74,18 @@ public class IrisBlockData extends IrisRegistrant {
         IrisBlockData b = new IrisBlockData();
         String v = j.toLowerCase().trim();
 
-        if (v.contains("[")) {
+        if(v.contains("[")) {
             KList<String> props = new KList<>();
             String rp = v.split("\\Q[\\E")[1].replaceAll("\\Q]\\E", "");
             b.setBlock(v.split("\\Q[\\E")[0]);
 
-            if (rp.contains(",")) {
+            if(rp.contains(",")) {
                 props.add(rp.split("\\Q,\\E"));
             } else {
                 props.add(rp);
             }
 
-            for (String i : props) {
+            for(String i : props) {
                 Object kg = filter(i.split("\\Q=\\E")[1]);
                 b.data.put(i.split("\\Q=\\E")[0], kg);
             }
@@ -97,23 +97,23 @@ public class IrisBlockData extends IrisRegistrant {
     }
 
     private static Object filter(String string) {
-        if (string.equals("true")) {
+        if(string.equals("true")) {
             return true;
         }
 
-        if (string.equals("false")) {
+        if(string.equals("false")) {
             return false;
         }
 
         try {
             return Integer.parseInt(string);
-        } catch (Throwable ignored) {
+        } catch(Throwable ignored) {
             // Checks
         }
 
         try {
             return Double.valueOf(string).intValue();
-        } catch (Throwable ignored) {
+        } catch(Throwable ignored) {
             // Checks
         }
 
@@ -121,13 +121,13 @@ public class IrisBlockData extends IrisRegistrant {
     }
 
     public String computeProperties(KMap<String, Object> data) {
-        if (data.isEmpty()) {
+        if(data.isEmpty()) {
             return "";
         }
 
         KList<String> r = new KList<>();
 
-        for (Map.Entry<String, Object> entry : data.entrySet()) {
+        for(Map.Entry<String, Object> entry : data.entrySet()) {
             r.add(entry.getKey() + "=" + filter(entry.getValue().toString()));
         }
 
@@ -145,37 +145,37 @@ public class IrisBlockData extends IrisRegistrant {
 
             IrisBlockData customData = data.getBlockLoader().load(getBlock(), false);
 
-            if (customData != null) {
+            if(customData != null) {
                 b = customData.getBlockData(data);
 
-                if (b != null) {
+                if(b != null) {
                     b = b.clone();
 
                     String st = b.getAsString(true);
 
-                    if (st.contains("[")) {
+                    if(st.contains("[")) {
                         st = st.split("\\Q[\\E")[0];
                     }
 
                     KMap<String, Object> cdata = customData.getData().copy();
 
-                    for (String i : getData().keySet()) {
+                    for(String i : getData().keySet()) {
                         cdata.put(i, getData().get(i));
                     }
 
                     String sx = keyify(st) + computeProperties(cdata);
 
-                    if (debug) {
+                    if(debug) {
                         Iris.debug("Block Data used " + sx + " (CUSTOM)");
                     }
 
                     BlockData bx = B.get(sx);
 
-                    if (bx != null) {
+                    if(bx != null) {
                         return bx;
                     }
 
-                    if (b != null) {
+                    if(b != null) {
                         return b;
                     }
                 }
@@ -184,15 +184,15 @@ public class IrisBlockData extends IrisRegistrant {
             String ss = keyify(getBlock()) + computeProperties();
             b = B.get(ss);
 
-            if (debug) {
+            if(debug) {
                 Iris.debug("Block Data used " + ss);
             }
 
-            if (b != null) {
+            if(b != null) {
                 return b;
             }
 
-            if (backup != null) {
+            if(backup != null) {
                 return backup.getBlockData(data);
             }
 
@@ -201,7 +201,7 @@ public class IrisBlockData extends IrisRegistrant {
     }
 
     private String keyify(String dat) {
-        if (dat.contains(":")) {
+        if(dat.contains(":")) {
             return dat;
         }
 

@@ -93,7 +93,7 @@ public class PlannedPiece {
     }
 
     public AxisAlignedBB getBox() {
-        if (box != null) {
+        if(box != null) {
             return box;
         }
 
@@ -111,18 +111,18 @@ public class PlannedPiece {
     }
 
     public KList<IrisJigsawPieceConnector> getAvailableConnectors() {
-        if (connected.isEmpty()) {
+        if(connected.isEmpty()) {
             return piece.getConnectors().copy();
         }
 
-        if (connected.size() == piece.getConnectors().size()) {
+        if(connected.size() == piece.getConnectors().size()) {
             return new KList<>();
         }
 
         KList<IrisJigsawPieceConnector> c = new KList<>();
 
-        for (IrisJigsawPieceConnector i : piece.getConnectors()) {
-            if (!connected.contains(i)) {
+        for(IrisJigsawPieceConnector i : piece.getConnectors()) {
+            if(!connected.contains(i)) {
                 c.add(i);
             }
         }
@@ -131,7 +131,7 @@ public class PlannedPiece {
     }
 
     public boolean connect(IrisJigsawPieceConnector c) {
-        if (piece.getConnectors().contains(c)) {
+        if(piece.getConnectors().contains(c)) {
             return connected.addIfMissing(c);
         }
 
@@ -154,10 +154,10 @@ public class PlannedPiece {
         PlatformChunkGenerator a = IrisToolbelt.access(world);
 
         int minY = 0;
-        if (a != null) {
+        if(a != null) {
             minY = a.getEngine().getMinHeight();
 
-            if (!a.getEngine().getDimension().isBedrock())
+            if(!a.getEngine().getDimension().isBedrock())
                 minY--; //If the dimension has no bedrock, allow it to go a block lower
         }
 
@@ -183,19 +183,19 @@ public class PlannedPiece {
                 Block block = world.getBlockAt(x, y, z);
 
                 //Prevent blocks being set in or bellow bedrock
-                if (y <= finalMinY || block.getType() == Material.BEDROCK) return;
+                if(y <= finalMinY || block.getType() == Material.BEDROCK) return;
 
                 block.setBlockData(d);
 
-                if (a != null && getPiece().getPlacementOptions().getLoot().isNotEmpty() &&
-                        block.getState() instanceof InventoryHolder) {
+                if(a != null && getPiece().getPlacementOptions().getLoot().isNotEmpty() &&
+                    block.getState() instanceof InventoryHolder) {
 
                     IrisLootTable table = getPiece().getPlacementOptions().getTable(block.getBlockData(), getData());
-                    if (table == null) return;
+                    if(table == null) return;
                     Engine engine = a.getEngine();
                     engine.addItems(false, ((InventoryHolder) block.getState()).getInventory(),
-                            rng.nextParallelRNG(BlockPosition.toLong(x, y, z)),
-                            new KList<>(table), InventorySlotType.STORAGE, x, y, z, 15);
+                        rng.nextParallelRNG(BlockPosition.toLong(x, y, z)),
+                        new KList<>(table), InventorySlotType.STORAGE, x, y, z, 15);
                 }
             }
 
@@ -243,7 +243,7 @@ public class PlannedPiece {
 
             @Override
             public Engine getEngine() {
-                if (IrisToolbelt.isIrisWorld(world)) {
+                if(IrisToolbelt.isIrisWorld(world)) {
                     return IrisToolbelt.access(world).getEngine();
                 }
 

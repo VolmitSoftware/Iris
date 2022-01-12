@@ -69,7 +69,8 @@ public class VolmitSender implements CommandSender {
     /**
      * Wrap a command sender
      *
-     * @param s the command sender
+     * @param s
+     *     the command sender
      */
     public VolmitSender(CommandSender s) {
         tag = "";
@@ -103,7 +104,7 @@ public class VolmitSender implements CommandSender {
         hasNext.set(page < totalPages - 1);
         KList<T> d = new KList<>();
 
-        for (int i = linesPerPage * page; i < Math.min(all.size(), linesPerPage * (page + 1)); i++) {
+        for(int i = linesPerPage * page; i < Math.min(all.size(), linesPerPage * (page + 1)); i++) {
             d.add(all.get(i));
         }
 
@@ -122,7 +123,8 @@ public class VolmitSender implements CommandSender {
     /**
      * Set a command tag (prefix for sendMessage)
      *
-     * @param tag the tag
+     * @param tag
+     *     the tag
      */
     public void setTag(String tag) {
         this.tag = tag;
@@ -226,13 +228,13 @@ public class VolmitSender implements CommandSender {
 
     public void sendTitle(String title, String subtitle, int i, int s, int o) {
         Iris.audiences.player(player()).showTitle(Title.title(
-                createComponent(title),
-                createComponent(subtitle),
-                Title.Times.of(Duration.ofMillis(i), Duration.ofMillis(s), Duration.ofMillis(o))));
+            createComponent(title),
+            createComponent(subtitle),
+            Title.Times.of(Duration.ofMillis(i), Duration.ofMillis(s), Duration.ofMillis(o))));
     }
 
     public void sendProgress(double percent, String thing) {
-        if (percent < 0) {
+        if(percent < 0) {
             int l = 44;
             int g = (int) (1D * l);
             sendTitle(C.IRIS + thing + " ", 0, 500, 250);
@@ -255,13 +257,13 @@ public class VolmitSender implements CommandSender {
 
     public void sendTitle(String subtitle, int i, int s, int o) {
         Iris.audiences.player(player()).showTitle(Title.title(
-                createNoPrefixComponent(" "),
-                createNoPrefixComponent(subtitle),
-                Title.Times.of(Duration.ofMillis(i), Duration.ofMillis(s), Duration.ofMillis(o))));
+            createNoPrefixComponent(" "),
+            createNoPrefixComponent(subtitle),
+            Title.Times.of(Duration.ofMillis(i), Duration.ofMillis(s), Duration.ofMillis(o))));
     }
 
     private Component createNoPrefixComponent(String message) {
-        if (!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
+        if(!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
             String t = C.translateAlternateColorCodes('&', MiniMessage.get().stripTokens(message));
             return MiniMessage.get().parse(t);
         }
@@ -276,7 +278,7 @@ public class VolmitSender implements CommandSender {
     }
 
     private Component createComponent(String message) {
-        if (!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
+        if(!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
             String t = C.translateAlternateColorCodes('&', MiniMessage.get().stripTokens(getTag() + message));
             return MiniMessage.get().parse(t);
         }
@@ -287,7 +289,7 @@ public class VolmitSender implements CommandSender {
     }
 
     private Component createComponentRaw(String message) {
-        if (!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
+        if(!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
             String t = C.translateAlternateColorCodes('&', MiniMessage.get().stripTokens(getTag() + message));
             return MiniMessage.get().parse(t);
         }
@@ -300,7 +302,7 @@ public class VolmitSender implements CommandSender {
         AtomicInteger v = new AtomicInteger();
         AtomicReference<T> g = new AtomicReference<>();
         v.set(J.ar(() -> {
-            if (f.isDone() && g.get() != null) {
+            if(f.isDone() && g.get() != null) {
                 J.car(v.get());
                 sendAction(" ");
                 return;
@@ -311,9 +313,9 @@ public class VolmitSender implements CommandSender {
         J.a(() -> {
             try {
                 g.set(f.get());
-            } catch (InterruptedException e) {
+            } catch(InterruptedException e) {
                 e.printStackTrace();
-            } catch (ExecutionException e) {
+            } catch(ExecutionException e) {
                 e.printStackTrace();
             }
         });
@@ -322,23 +324,23 @@ public class VolmitSender implements CommandSender {
 
     @Override
     public void sendMessage(String message) {
-        if (s instanceof CommandDummy) {
+        if(s instanceof CommandDummy) {
             return;
         }
 
-        if ((!IrisSettings.get().getGeneral().isUseCustomColorsIngame() && s instanceof Player) || !IrisSettings.get().getGeneral().isUseConsoleCustomColors()) {
+        if((!IrisSettings.get().getGeneral().isUseCustomColorsIngame() && s instanceof Player) || !IrisSettings.get().getGeneral().isUseConsoleCustomColors()) {
             s.sendMessage(C.translateAlternateColorCodes('&', getTag() + message));
             return;
         }
 
-        if (message.contains("<NOMINI>")) {
+        if(message.contains("<NOMINI>")) {
             s.sendMessage(C.translateAlternateColorCodes('&', getTag() + message.replaceAll("\\Q<NOMINI>\\E", "")));
             return;
         }
 
         try {
             Iris.audiences.sender(s).sendMessage(createComponent(message));
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             String t = C.translateAlternateColorCodes('&', getTag() + message);
             String a = C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb());
 
@@ -352,23 +354,23 @@ public class VolmitSender implements CommandSender {
     }
 
     public void sendMessageRaw(String message) {
-        if (s instanceof CommandDummy) {
+        if(s instanceof CommandDummy) {
             return;
         }
 
-        if ((!IrisSettings.get().getGeneral().isUseCustomColorsIngame() && s instanceof Player) || !IrisSettings.get().getGeneral().isUseConsoleCustomColors()) {
+        if((!IrisSettings.get().getGeneral().isUseCustomColorsIngame() && s instanceof Player) || !IrisSettings.get().getGeneral().isUseConsoleCustomColors()) {
             s.sendMessage(C.translateAlternateColorCodes('&', message));
             return;
         }
 
-        if (message.contains("<NOMINI>")) {
+        if(message.contains("<NOMINI>")) {
             s.sendMessage(message.replaceAll("\\Q<NOMINI>\\E", ""));
             return;
         }
 
         try {
             Iris.audiences.sender(s).sendMessage(createComponentRaw(message));
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             String t = C.translateAlternateColorCodes('&', getTag() + message);
             String a = C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb());
 
@@ -379,7 +381,7 @@ public class VolmitSender implements CommandSender {
 
     @Override
     public void sendMessage(String[] messages) {
-        for (String str : messages)
+        for(String str : messages)
             sendMessage(str);
     }
 
@@ -410,21 +412,21 @@ public class VolmitSender implements CommandSender {
 
     private String pickRandoms(int max, VirtualDecreeCommand i) {
         KList<String> m = new KList<>();
-        for (int ix = 0; ix < max; ix++) {
+        for(int ix = 0; ix < max; ix++) {
             m.add((i.isNode()
-                    ? (i.getNode().getParameters().isNotEmpty())
-                    ? "<#aebef2>✦ <#5ef288>"
-                    + i.getParentPath()
-                    + " <#42ecf5>"
-                    + i.getName() + " "
-                    + i.getNode().getParameters().shuffleCopy(RNG.r).convert((f)
-                            -> (f.isRequired() || RNG.r.b(0.5)
-                            ? "<#f2e15e>" + f.getNames().getRandom() + "="
-                            + "<#d665f0>" + f.example()
-                            : ""))
-                    .toString(" ")
-                    : ""
-                    : ""));
+                ? (i.getNode().getParameters().isNotEmpty())
+                ? "<#aebef2>✦ <#5ef288>"
+                + i.getParentPath()
+                + " <#42ecf5>"
+                + i.getName() + " "
+                + i.getNode().getParameters().shuffleCopy(RNG.r).convert((f)
+                    -> (f.isRequired() || RNG.r.b(0.5)
+                    ? "<#f2e15e>" + f.getNames().getRandom() + "="
+                    + "<#d665f0>" + f.example()
+                    : ""))
+                .toString(" ")
+                : ""
+                : ""));
         }
 
         return m.removeDuplicates().convert((iff) -> iff.replaceAll("\\Q  \\E", " ")).toString("\n");
@@ -439,7 +441,7 @@ public class VolmitSender implements CommandSender {
         String sf = "[";
         String se = "]";
 
-        if (name.trim().isEmpty()) {
+        if(name.trim().isEmpty()) {
             sendMessageRaw("<font:minecraft:uniform><strikethrough><gradient:#34eb6b:#32bfad>" + sf + s + "<reset><font:minecraft:uniform><strikethrough><gradient:#32bfad:#34eb6b>" + s + se);
         } else {
             sendMessageRaw("<font:minecraft:uniform><strikethrough><gradient:#34eb6b:#32bfad>" + sf + s + si + "<reset> <gradient:#3299bf:#323bbf>" + name + "<reset> <font:minecraft:uniform><strikethrough><gradient:#32bfad:#34eb6b>" + so + s + se);
@@ -455,8 +457,8 @@ public class VolmitSender implements CommandSender {
     }
 
     public void sendDecreeHelp(VirtualDecreeCommand v, int page) {
-        if (!isPlayer()) {
-            for (VirtualDecreeCommand i : v.getNodes()) {
+        if(!isPlayer()) {
+            for(VirtualDecreeCommand i : v.getNodes()) {
                 sendDecreeHelpNode(i);
             }
 
@@ -467,27 +469,27 @@ public class VolmitSender implements CommandSender {
 
         sendMessageRaw("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
 
-        if (v.getNodes().isNotEmpty()) {
+        if(v.getNodes().isNotEmpty()) {
             sendHeader(v.getPath() + (page > 0 ? (" {" + (page + 1) + "}") : ""));
-            if (isPlayer() && v.getParent() != null) {
+            if(isPlayer() && v.getParent() != null) {
                 sendMessageRaw("<hover:show_text:'" + "<#b54b38>Click to go back to <#3299bf>" + Form.capitalize(v.getParent().getName()) + " Help" + "'><click:run_command:" + v.getParent().getPath() + "><font:minecraft:uniform><#f58571>〈 Back</click></hover>");
             }
 
             AtomicBoolean next = new AtomicBoolean(false);
-            for (VirtualDecreeCommand i : paginate(v.getNodes(), 17, page, next)) {
+            for(VirtualDecreeCommand i : paginate(v.getNodes(), 17, page, next)) {
                 sendDecreeHelpNode(i);
             }
 
             String s = "";
             int l = 75 - (page > 0 ? 10 : 0) - (next.get() ? 10 : 0);
 
-            if (page > 0) {
+            if(page > 0) {
                 s += "<hover:show_text:'<green>Click to go back to page " + page + "'><click:run_command:" + v.getPath() + " help=" + page + "><gradient:#27b84d:#2770b8>〈 Page " + page + "</click></hover><reset> ";
             }
 
             s += "<reset><font:minecraft:uniform><strikethrough><gradient:#32bfad:#34eb6b>" + Form.repeat(" ", l) + "<reset>";
 
-            if (next.get()) {
+            if(next.get()) {
                 s += " <hover:show_text:'<green>Click to go to back to page " + (page + 2) + "'><click:run_command:" + v.getPath() + " help=" + (page + 2) + "><gradient:#2770b8:#27b84d>Page " + (page + 2) + " ❭</click></hover>";
             }
 
@@ -498,7 +500,7 @@ public class VolmitSender implements CommandSender {
     }
 
     public void sendDecreeHelpNode(VirtualDecreeCommand i) {
-        if (isPlayer() || s instanceof CommandDummy) {
+        if(isPlayer() || s instanceof CommandDummy) {
             sendMessageRaw(helpCache.computeIfAbsent(i.getPath(), (k) -> {
                 String newline = "<reset>\n";
 
@@ -509,8 +511,8 @@ public class VolmitSender implements CommandSender {
                 String description = "<#3fe05a>✎ <#6ad97d><font:minecraft:uniform>" + i.getDescription();
                 String usage = "<#bbe03f>✒ <#a8e0a2><font:minecraft:uniform>";
                 String onClick;
-                if (i.isNode()) {
-                    if (i.getNode().getParameters().isEmpty()) {
+                if(i.isNode()) {
+                    if(i.getNode().getParameters().isEmpty()) {
                         usage += "There are no parameters. Click to type command.";
                         onClick = "suggest_command";
                     } else {
@@ -524,16 +526,16 @@ public class VolmitSender implements CommandSender {
 
                 String suggestion = "";
                 String suggestions = "";
-                if (i.isNode() && i.getNode().getParameters().isNotEmpty()) {
+                if(i.isNode() && i.getNode().getParameters().isNotEmpty()) {
                     suggestion += newline + "<#aebef2>✦ <#5ef288><font:minecraft:uniform>" + i.getParentPath() + " <#42ecf5>" + i.getName() + " "
-                            + i.getNode().getParameters().convert((f) -> "<#d665f0>" + f.example()).toString(" ");
+                        + i.getNode().getParameters().convert((f) -> "<#d665f0>" + f.example()).toString(" ");
                     suggestions += newline + "<font:minecraft:uniform>" + pickRandoms(Math.min(i.getNode().getParameters().size() + 1, 5), i);
                 }
 
                 /// Params
                 StringBuilder nodes = new StringBuilder();
-                if (i.isNode()) {
-                    for (DecreeParameter p : i.getNode().getParameters()) {
+                if(i.isNode()) {
+                    for(DecreeParameter p : i.getNode().getParameters()) {
 
                         String nTitle = "<gradient:#d665f0:#a37feb>" + p.getName();
                         String nHoverTitle = p.getNames().convert((ff) -> "<#d665f0>" + ff).toString(", ");
@@ -541,13 +543,13 @@ public class VolmitSender implements CommandSender {
                         String nUsage;
                         String fullTitle;
                         Iris.debug("Contextual: " + p.isContextual() + " / player: " + isPlayer());
-                        if (p.isContextual() && (isPlayer() || s instanceof CommandDummy)) {
+                        if(p.isContextual() && (isPlayer() || s instanceof CommandDummy)) {
                             fullTitle = "<#ffcc00>[" + nTitle + "<#ffcc00>] ";
                             nUsage = "<#ff9900>➱ <#ffcc00><font:minecraft:uniform>The value may be derived from environment context.";
-                        } else if (p.isRequired()) {
+                        } else if(p.isRequired()) {
                             fullTitle = "<red>[" + nTitle + "<red>] ";
                             nUsage = "<#db4321>⚠ <#faa796><font:minecraft:uniform>This parameter is required.";
-                        } else if (p.hasDefault()) {
+                        } else if(p.hasDefault()) {
                             fullTitle = "<#4f4f4f>⊰" + nTitle + "<#4f4f4f>⊱";
                             nUsage = "<#2181db>✔ <#78dcf0><font:minecraft:uniform>Defaults to \"" + p.getParam().defaultValue() + "\" if undefined.";
                         } else {
@@ -557,14 +559,14 @@ public class VolmitSender implements CommandSender {
                         String type = "<#cc00ff>✢ <#ff33cc><font:minecraft:uniform>This parameter is of type " + p.getType().getSimpleName() + ".";
 
                         nodes
-                                .append("<hover:show_text:'")
-                                .append(nHoverTitle).append(newline)
-                                .append(nDescription).append(newline)
-                                .append(nUsage).append(newline)
-                                .append(type)
-                                .append("'>")
-                                .append(fullTitle)
-                                .append("</hover>");
+                            .append("<hover:show_text:'")
+                            .append(nHoverTitle).append(newline)
+                            .append(nDescription).append(newline)
+                            .append(nUsage).append(newline)
+                            .append(type)
+                            .append("'>")
+                            .append(fullTitle)
+                            .append("</hover>");
                     }
                 } else {
                     nodes = new StringBuilder("<gradient:#afe3d3:#a2dae0> - Category of Commands");
@@ -572,21 +574,21 @@ public class VolmitSender implements CommandSender {
 
                 /// Wrapper
                 String wrapper =
-                        "<hover:show_text:'" +
-                                hoverTitle + newline +
-                                description + newline +
-                                usage +
-                                suggestion + //Newlines for suggestions are added when they're built, to prevent blanklines.
-                                suggestions + // ^
-                                "'>" +
-                                "<click:" +
-                                onClick +
-                                ":" +
-                                realText +
-                                "</click>" +
-                                "</hover>" +
-                                " " +
-                                nodes;
+                    "<hover:show_text:'" +
+                        hoverTitle + newline +
+                        description + newline +
+                        usage +
+                        suggestion + //Newlines for suggestions are added when they're built, to prevent blanklines.
+                        suggestions + // ^
+                        "'>" +
+                        "<click:" +
+                        onClick +
+                        ":" +
+                        realText +
+                        "</click>" +
+                        "</hover>" +
+                        " " +
+                        nodes;
 
                 return wrapper;
             }));
@@ -596,7 +598,7 @@ public class VolmitSender implements CommandSender {
     }
 
     public void playSound(Sound sound, float volume, float pitch) {
-        if (isPlayer()) {
+        if(isPlayer()) {
             player().playSound(player().getLocation(), sound, volume, pitch);
         }
     }

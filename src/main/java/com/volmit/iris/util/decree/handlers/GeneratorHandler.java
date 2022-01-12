@@ -35,10 +35,10 @@ public class GeneratorHandler implements DecreeParameterHandler<IrisGenerator> {
         KMap<String, IrisGenerator> p = new KMap<>();
 
         //noinspection ConstantConditions
-        for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
-            if (i.isDirectory()) {
+        for(File i : Iris.instance.getDataFolder("packs").listFiles()) {
+            if(i.isDirectory()) {
                 IrisData data = IrisData.get(i);
-                for (IrisGenerator j : data.getGeneratorLoader().loadAll(data.getGeneratorLoader().getPossibleKeys())) {
+                for(IrisGenerator j : data.getGeneratorLoader().loadAll(data.getGeneratorLoader().getPossibleKeys())) {
                     p.putIfAbsent(j.getLoadKey(), j);
                 }
 
@@ -58,11 +58,12 @@ public class GeneratorHandler implements DecreeParameterHandler<IrisGenerator> {
     public IrisGenerator parse(String in, boolean force) throws DecreeParsingException {
         KList<IrisGenerator> options = getPossibilities(in);
 
-        if (options.isEmpty()) {
+        if(options.isEmpty()) {
             throw new DecreeParsingException("Unable to find Generator \"" + in + "\"");
-        } try {
+        }
+        try {
             return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             throw new DecreeParsingException("Unable to filter which Biome \"" + in + "\"");
         }
     }

@@ -56,18 +56,18 @@ public class CommandSVC implements IrisService, DecreeSystem {
     public void on(PlayerCommandPreprocessEvent e) {
         String msg = e.getMessage().startsWith("/") ? e.getMessage().substring(1) : e.getMessage();
 
-        if (msg.startsWith("irisdecree ")) {
+        if(msg.startsWith("irisdecree ")) {
             String[] args = msg.split("\\Q \\E");
             CompletableFuture<String> future = futures.get(args[1]);
 
-            if (future != null) {
+            if(future != null) {
                 future.complete(args[2]);
                 e.setCancelled(true);
                 return;
             }
         }
 
-        if ((msg.startsWith("locate ") || msg.startsWith("locatebiome ")) && IrisToolbelt.isIrisWorld(e.getPlayer().getWorld())) {
+        if((msg.startsWith("locate ") || msg.startsWith("locatebiome ")) && IrisToolbelt.isIrisWorld(e.getPlayer().getWorld())) {
             new VolmitSender(e.getPlayer()).sendMessage(C.RED + "Locating biomes & objects is disabled in Iris Worlds. Use /iris studio goto <biome>");
             e.setCancelled(true);
         }
@@ -75,8 +75,8 @@ public class CommandSVC implements IrisService, DecreeSystem {
 
     @EventHandler
     public void on(ServerCommandEvent e) {
-        if (consoleFuture != null && !consoleFuture.isCancelled() && !consoleFuture.isDone()) {
-            if (!e.getCommand().contains(" ")) {
+        if(consoleFuture != null && !consoleFuture.isCancelled() && !consoleFuture.isDone()) {
+            if(!e.getCommand().contains(" ")) {
                 String pick = e.getCommand().trim().toLowerCase(Locale.ROOT);
                 consoleFuture.complete(pick);
                 e.setCancelled(true);

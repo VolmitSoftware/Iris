@@ -38,16 +38,16 @@ public class BoardEntry {
     }
 
     public static BoardEntry translateToEntry(String input) {
-        if (input.isEmpty()) {
+        if(input.isEmpty()) {
             return new BoardEntry("", "");
         }
-        if (input.length() <= 16) {
+        if(input.length() <= 16) {
             return new BoardEntry(input, "");
         } else {
             String prefix = input.substring(0, 16);
             String suffix = "";
 
-            if (prefix.endsWith("\u00a7")) {
+            if(prefix.endsWith("\u00a7")) {
                 prefix = prefix.substring(0, prefix.length() - 1);
                 suffix = "\u00a7" + suffix;
             }

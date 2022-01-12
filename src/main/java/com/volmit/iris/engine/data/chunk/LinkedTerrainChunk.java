@@ -56,7 +56,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
     @Override
     public BiomeBaseInjector getBiomeBaseInjector() {
 
-        if (unsafe) {
+        if(unsafe) {
             return (a, b, c, d) -> {
             };
         }
@@ -67,7 +67,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
 
     @Override
     public Biome getBiome(int x, int z) {
-        if (storage != null) {
+        if(storage != null) {
             return storage.getBiome(x, z);
         }
 
@@ -77,7 +77,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
 
     @Override
     public Biome getBiome(int x, int y, int z) {
-        if (storage != null) {
+        if(storage != null) {
             return storage.getBiome(x, y, z);
         }
 
@@ -86,7 +86,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
 
     @Override
     public void setBiome(int x, int z, Biome bio) {
-        if (storage != null) {
+        if(storage != null) {
             storage.setBiome(x, z, bio);
             return;
         }
@@ -100,7 +100,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
 
     @Override
     public void setBiome(int x, int y, int z, Biome bio) {
-        if (storage != null) {
+        if(storage != null) {
             storage.setBiome(x, y, z, bio);
             return;
         }
@@ -190,7 +190,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
 
     @Override
     public void inject(BiomeGrid biome) {
-        if (biome3D != null) {
+        if(biome3D != null) {
             biome3D.inject(biome);
         }
     }

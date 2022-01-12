@@ -55,19 +55,19 @@ public class BiomeGridHunkView implements Hunk<Biome> {
 
     @Override
     public void setRaw(int x, int y, int z, Biome t) {
-        chunk.setBiome(x, y+minHeight, z, t);
+        chunk.setBiome(x, y + minHeight, z, t);
     }
 
     @Override
     public Biome getRaw(int x, int y, int z) {
-        return chunk.getBiome(x, y+minHeight, z);
+        return chunk.getBiome(x, y + minHeight, z);
     }
 
     public void forceBiomeBaseInto(int x, int y, int z, Object somethingVeryDirty) {
-        if (chunk instanceof LinkedTerrainChunk) {
-            INMS.get().forceBiomeInto(x, y+minHeight, z, somethingVeryDirty, ((LinkedTerrainChunk) chunk).getRawBiome());
+        if(chunk instanceof LinkedTerrainChunk) {
+            INMS.get().forceBiomeInto(x, y + minHeight, z, somethingVeryDirty, ((LinkedTerrainChunk) chunk).getRawBiome());
             return;
         }
-        INMS.get().forceBiomeInto(x, y+minHeight, z, somethingVeryDirty, chunk);
+        INMS.get().forceBiomeInto(x, y + minHeight, z, somethingVeryDirty, chunk);
     }
 }

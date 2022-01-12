@@ -95,7 +95,7 @@ public class IrisNoiseGenerator {
     }
 
     public double getNoise(long superSeed, double xv, double zv, IrisData data) {
-        if (!enabled) {
+        if(!enabled) {
             return offsetY;
         }
 
@@ -103,8 +103,8 @@ public class IrisNoiseGenerator {
         double z = zv;
         int g = 33;
 
-        for (IrisNoiseGenerator i : fracture) {
-            if (i.isEnabled()) {
+        for(IrisNoiseGenerator i : fracture) {
+            if(i.isEnabled()) {
                 x += i.getNoise(superSeed + seed + g, xv, zv, data) - (opacity / 2D);
                 z -= i.getNoise(superSeed + seed + g, zv, xv, data) - (opacity / 2D);
             }
@@ -126,7 +126,7 @@ public class IrisNoiseGenerator {
 
         g.add(this);
 
-        for (IrisNoiseGenerator i : getFracture()) {
+        for(IrisNoiseGenerator i : getFracture()) {
             g.addAll(i.getAllComposites());
         }
 

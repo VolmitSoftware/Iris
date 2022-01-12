@@ -30,8 +30,8 @@ public class WorldHandler implements DecreeParameterHandler<World> {
     @Override
     public KList<World> getPossibilities() {
         KList<World> options = new KList<>();
-        for (World world : Bukkit.getWorlds()) {
-            if (!world.getName().toLowerCase().startsWith("iris/")) {
+        for(World world : Bukkit.getWorlds()) {
+            if(!world.getName().toLowerCase().startsWith("iris/")) {
                 options.add(world);
             }
         }
@@ -47,11 +47,12 @@ public class WorldHandler implements DecreeParameterHandler<World> {
     public World parse(String in, boolean force) throws DecreeParsingException {
         KList<World> options = getPossibilities(in);
 
-        if (options.isEmpty()) {
+        if(options.isEmpty()) {
             throw new DecreeParsingException("Unable to find World \"" + in + "\"");
-        } try {
+        }
+        try {
             return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             throw new DecreeParsingException("Unable to filter which Biome \"" + in + "\"");
         }
     }

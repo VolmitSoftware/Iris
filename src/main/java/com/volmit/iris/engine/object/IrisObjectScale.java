@@ -38,11 +38,11 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisObjectScale {
     private static transient ConcurrentLinkedHashMap<IrisObject, KList<IrisObject>> cache
-            = new ConcurrentLinkedHashMap.Builder<IrisObject, KList<IrisObject>>()
-            .initialCapacity(64)
-            .maximumWeightedCapacity(1024)
-            .concurrencyLevel(32)
-            .build();
+        = new ConcurrentLinkedHashMap.Builder<IrisObject, KList<IrisObject>>()
+        .initialCapacity(64)
+        .maximumWeightedCapacity(1024)
+        .concurrencyLevel(32)
+        .build();
     @MinNumber(1)
     @MaxNumber(32)
     @Desc("Iris Objects are scaled and cached to speed up placements. Because of this extra memory is used, so we evenly distribute variations across the defined scale range, then pick one randomly. If the differences is small, use a lower number. For more possibilities on the scale spectrum, increase this at the cost of memory.")
@@ -69,7 +69,7 @@ public class IrisObjectScale {
     public double getMaxScale() {
         double mx = 0;
 
-        for (double i = minimumScale; i < maximumScale; i += (maximumScale - minimumScale) / (double) (Math.min(variations, 32))) {
+        for(double i = minimumScale; i < maximumScale; i += (maximumScale - minimumScale) / (double) (Math.min(variations, 32))) {
             mx = i;
         }
 
@@ -77,13 +77,13 @@ public class IrisObjectScale {
     }
 
     public IrisObject get(RNG rng, IrisObject origin) {
-        if (shouldScale()) {
+        if(shouldScale()) {
             return origin;
         }
 
         return cache.computeIfAbsent(origin, (k) -> {
             KList<IrisObject> c = new KList<>();
-            for (double i = minimumScale; i < maximumScale; i += (maximumScale - minimumScale) / (double) (Math.min(variations, 32))) {
+            for(double i = minimumScale; i < maximumScale; i += (maximumScale - minimumScale) / (double) (Math.min(variations, 32))) {
                 c.add(origin.scaled(i, getInterpolation()));
             }
 

@@ -49,7 +49,7 @@ public class KochanekBartelsInterpolation implements PathInterpolation {
         coeffC = new Vector[nNodes];
         coeffD = new Vector[nNodes];
 
-        if (nNodes == 0) {
+        if(nNodes == 0) {
             return;
         }
 
@@ -57,12 +57,12 @@ public class KochanekBartelsInterpolation implements PathInterpolation {
         double tensionB = nodeB.getTension();
         double biasB = nodeB.getBias();
         double continuityB = nodeB.getContinuity();
-        for (int i = 0; i < nNodes; ++i) {
+        for(int i = 0; i < nNodes; ++i) {
             final double tensionA = tensionB;
             final double biasA = biasB;
             final double continuityA = continuityB;
 
-            if (i + 1 < nNodes) {
+            if(i + 1 < nNodes) {
                 nodeB = nodes.get(i + 1);
                 tensionB = nodeB.getTension();
                 biasB = nodeB.getBias();
@@ -88,11 +88,16 @@ public class KochanekBartelsInterpolation implements PathInterpolation {
     /**
      * Returns the linear combination of the given coefficients with the nodes adjacent to baseIndex.
      *
-     * @param baseIndex node index
-     * @param f1        coefficient for baseIndex-1
-     * @param f2        coefficient for baseIndex
-     * @param f3        coefficient for baseIndex+1
-     * @param f4        coefficient for baseIndex+2
+     * @param baseIndex
+     *     node index
+     * @param f1
+     *     coefficient for baseIndex-1
+     * @param f2
+     *     coefficient for baseIndex
+     * @param f3
+     *     coefficient for baseIndex+1
+     * @param f4
+     *     coefficient for baseIndex+2
      * @return linear combination of nodes[n-1..n+2] with f1..4
      */
     private Vector linearCombination(int baseIndex, double f1, double f2, double f3, double f4) {
@@ -107,15 +112,16 @@ public class KochanekBartelsInterpolation implements PathInterpolation {
     /**
      * Retrieves a node. Indexes are clamped to the valid range.
      *
-     * @param index node index to retrieve
+     * @param index
+     *     node index to retrieve
      * @return nodes[clamp(0, nodes.length - 1)]
      */
     private Vector retrieve(int index) {
-        if (index < 0) {
+        if(index < 0) {
             return fastRetrieve(0);
         }
 
-        if (index >= nodes.size()) {
+        if(index >= nodes.size()) {
             return fastRetrieve(nodes.size() - 1);
         }
 
@@ -128,11 +134,11 @@ public class KochanekBartelsInterpolation implements PathInterpolation {
 
     @Override
     public Vector getPosition(double position) {
-        if (coeffA == null) {
+        if(coeffA == null) {
             throw new IllegalStateException("Must call setNodes first.");
         }
 
-        if (position > 1) {
+        if(position > 1) {
             return null;
         }
 
@@ -151,11 +157,11 @@ public class KochanekBartelsInterpolation implements PathInterpolation {
 
     @Override
     public Vector get1stDerivative(double position) {
-        if (coeffA == null) {
+        if(coeffA == null) {
             throw new IllegalStateException("Must call setNodes first.");
         }
 
-        if (position > 1) {
+        if(position > 1) {
             return null;
         }
 
@@ -173,11 +179,11 @@ public class KochanekBartelsInterpolation implements PathInterpolation {
 
     @Override
     public double arcLength(double positionA, double positionB) {
-        if (coeffA == null) {
+        if(coeffA == null) {
             throw new IllegalStateException("Must call setNodes first.");
         }
 
-        if (positionA > positionB) {
+        if(positionA > positionB) {
             return arcLength(positionB, positionA);
         }
 
@@ -197,18 +203,18 @@ public class KochanekBartelsInterpolation implements PathInterpolation {
      * Assumes a < b.
      */
     private double arcLengthRecursive(int indexLeft, double remainderLeft, int indexRight, double remainderRight) {
-        switch (indexRight - indexLeft) {
+        switch(indexRight - indexLeft) {
             case 0:
                 return arcLengthRecursive(indexLeft, remainderLeft, remainderRight);
 
             case 1:
                 // This case is merely a speed-up for a very common case
                 return arcLengthRecursive(indexLeft, remainderLeft, 1.0)
-                        + arcLengthRecursive(indexRight, 0.0, remainderRight);
+                    + arcLengthRecursive(indexRight, 0.0, remainderRight);
 
             default:
                 return arcLengthRecursive(indexLeft, remainderLeft, indexRight - 1, 1.0)
-                        + arcLengthRecursive(indexRight, 0.0, remainderRight);
+                    + arcLengthRecursive(indexRight, 0.0, remainderRight);
         }
     }
 
@@ -220,7 +226,7 @@ public class KochanekBartelsInterpolation implements PathInterpolation {
         final int nPoints = 8;
 
         double accum = a.multiply(remainderLeft).add(b).multiply(remainderLeft).add(c).length() / 2.0;
-        for (int i = 1; i < nPoints - 1; ++i) {
+        for(int i = 1; i < nPoints - 1; ++i) {
             double t = ((double) i) / nPoints;
             t = (remainderRight - remainderLeft) * t + remainderLeft;
             accum += a.multiply(t).add(b).multiply(t).add(c).length();
@@ -232,11 +238,11 @@ public class KochanekBartelsInterpolation implements PathInterpolation {
 
     @Override
     public int getSegment(double position) {
-        if (coeffA == null) {
+        if(coeffA == null) {
             throw new IllegalStateException("Must call setNodes first.");
         }
 
-        if (position > 1) {
+        if(position > 1) {
             return Integer.MAX_VALUE;
         }
 

@@ -53,7 +53,7 @@ public class IrisTree {
     private boolean anySize;
 
     public boolean matches(IrisTreeSize size, TreeType type) {
-        if (!matchesSize(size)) {
+        if(!matchesSize(size)) {
             return false;
         }
 
@@ -61,8 +61,8 @@ public class IrisTree {
     }
 
     private boolean matchesSize(IrisTreeSize size) {
-        for (IrisTreeSize i : getSizes()) {
-            if ((i.getDepth() == size.getDepth() && i.getWidth() == size.getWidth()) || (i.getDepth() == size.getWidth() && i.getWidth() == size.getDepth())) {
+        for(IrisTreeSize i : getSizes()) {
+            if((i.getDepth() == size.getDepth() && i.getWidth() == size.getWidth()) || (i.getDepth() == size.getWidth() && i.getWidth() == size.getDepth())) {
                 return true;
             }
         }

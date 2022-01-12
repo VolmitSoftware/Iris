@@ -56,7 +56,7 @@ public abstract class IrisRegistrant {
     public File openInVSCode() {
         try {
             Desktop.getDesktop().open(getLoadFile());
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
         }
 

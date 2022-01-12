@@ -41,7 +41,7 @@ public interface EngineMode extends Staged {
             BurstExecutor e = burst().burst(stages.length);
             e.setMulticore(multicore);
 
-            for (EngineStage i : stages) {
+            for(EngineStage i : stages) {
                 e.queue(() -> i.generate(x, z, blocks, biomes, multicore));
             }
 
@@ -63,7 +63,7 @@ public interface EngineMode extends Staged {
 
     @BlockCoordinates
     default void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes, boolean multicore) {
-        for (EngineStage i : getStages()) {
+        for(EngineStage i : getStages()) {
             i.generate(x, z, blocks, biomes, multicore);
         }
     }

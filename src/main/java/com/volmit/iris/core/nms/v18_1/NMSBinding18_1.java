@@ -35,16 +35,14 @@ import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.mca.palette.MCAPalettedContainer;
 import com.volmit.iris.util.nbt.mca.palette.MCAWrappedPalettedContainer;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
-import com.volmit.iris.util.scheduling.Queue;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.NbtIo;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import org.bukkit.Bukkit;
@@ -53,11 +51,9 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.craftbukkit.v1_18_R1.CraftChunk;
 import org.bukkit.craftbukkit.v1_18_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_18_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_18_R1.block.data.CraftBlockData;
-import org.bukkit.craftbukkit.v1_18_R1.generator.CustomChunkGenerator;
 import org.bukkit.entity.Entity;
 import org.bukkit.generator.ChunkGenerator;
 import org.jetbrains.annotations.NotNull;
@@ -68,7 +64,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -92,7 +87,7 @@ public class NMSBinding18_1 implements INMSBinding {
     public CompoundTag serializeTile(Location location) {
         BlockEntity e = ((CraftWorld) location.getWorld()).getHandle().getBlockEntity(new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()), true);
 
-        if (e == null) {
+        if(e == null) {
             return null;
         }
 
@@ -107,7 +102,7 @@ public class NMSBinding18_1 implements INMSBinding {
             tag.write(dos);
             dos.close();
             return (CompoundTag) NBTUtil.read(new ByteArrayInputStream(boas.toByteArray()), false).getTag();
-        } catch (Throwable ex) {
+        } catch(Throwable ex) {
             ex.printStackTrace();
         }
 
@@ -122,7 +117,7 @@ public class NMSBinding18_1 implements INMSBinding {
             net.minecraft.nbt.CompoundTag c = NbtIo.read(din);
             din.close();
             return c;
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             e.printStackTrace();
         }
 
@@ -149,8 +144,7 @@ public class NMSBinding18_1 implements INMSBinding {
         return true;
     }
 
-    private RegistryAccess registry()
-    {
+    private RegistryAccess registry() {
         return registryAccess.aquire(() -> (RegistryAccess) getFor(RegistryAccess.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()));
     }
 
@@ -205,19 +199,19 @@ public class NMSBinding18_1 implements INMSBinding {
 
     @Override
     public Object getBiomeBase(World world, Biome biome) {
-        return getBiomeBase(((CraftWorld)world).getHandle().registryAccess().registry(Registry.BIOME_REGISTRY).orElse(null), biome);
+        return getBiomeBase(((CraftWorld) world).getHandle().registryAccess().registry(Registry.BIOME_REGISTRY).orElse(null), biome);
     }
 
     @Override
     public Object getBiomeBase(Object registry, Biome biome) {
         Object v = baseBiomeCache.get(biome);
 
-        if (v != null) {
+        if(v != null) {
             return v;
         }
         //noinspection unchecked
         v = org.bukkit.craftbukkit.v1_18_R1.block.CraftBlock.biomeToBiomeBase((Registry<net.minecraft.world.level.biome.Biome>) registry, biome);
-        if (v == null) {
+        if(v == null) {
             // Ok so there is this new biome name called "CUSTOM" in Paper's new releases.
             // But, this does NOT exist within CraftBukkit which makes it return an error.
             // So, we will just return the ID that the plains biome returns instead.
@@ -235,8 +229,8 @@ public class NMSBinding18_1 implements INMSBinding {
 
     @Override
     public int getBiomeId(Biome biome) {
-        for (World i : Bukkit.getWorlds()) {
-            if (i.getEnvironment().equals(World.Environment.NORMAL)) {
+        for(World i : Bukkit.getWorlds()) {
+            if(i.getEnvironment().equals(World.Environment.NORMAL)) {
                 Registry<net.minecraft.world.level.biome.Biome> registry = ((CraftWorld) i).getHandle().registryAccess().registry(Registry.BIOME_REGISTRY).orElse(null);
                 return registry.getId((net.minecraft.world.level.biome.Biome) getBiomeBase(registry, biome));
             }
@@ -302,7 +296,7 @@ public class NMSBinding18_1 implements INMSBinding {
         AtomicInteger a = new AtomicInteger(0);
 
         getCustomBiomeRegistry().keySet().forEach((i) -> {
-            if (i.getNamespace().equals("minecraft")) {
+            if(i.getNamespace().equals("minecraft")) {
                 return;
             }
 
@@ -322,7 +316,7 @@ public class NMSBinding18_1 implements INMSBinding {
         try {
             ChunkAccess s = (ChunkAccess) getFieldForBiomeStorage(chunk).get(chunk);
             s.setBiome(x, y, z, (net.minecraft.world.level.biome.Biome) somethingVeryDirty);
-        } catch (IllegalAccessException e) {
+        } catch(IllegalAccessException e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
@@ -331,7 +325,7 @@ public class NMSBinding18_1 implements INMSBinding {
     private Field getFieldForBiomeStorage(Object storage) {
         Field f = biomeStorageCache;
 
-        if (f != null) {
+        if(f != null) {
             return f;
         }
         try {
@@ -339,7 +333,7 @@ public class NMSBinding18_1 implements INMSBinding {
             f = storage.getClass().getDeclaredField("biome");
             f.setAccessible(true);
             return f;
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
             e.printStackTrace();
             Iris.error(storage.getClass().getCanonicalName());
@@ -377,23 +371,19 @@ public class NMSBinding18_1 implements INMSBinding {
     private static Object getFor(Class<?> type, Object source) {
         Object o = fieldFor(type, source);
 
-        if(o != null)
-        {
+        if(o != null) {
             return o;
         }
 
         return invokeFor(type, source);
     }
 
-    private static Object invokeFor(Class<?> returns, Object in)
-    {
-        for(Method i : in.getClass().getMethods())
-        {
-            if(i.getReturnType().equals(returns))
-            {
+    private static Object invokeFor(Class<?> returns, Object in) {
+        for(Method i : in.getClass().getMethods()) {
+            if(i.getReturnType().equals(returns)) {
                 i.setAccessible(true);
                 try {
-                    Iris.info("[NMS] Found " + returns.getSimpleName() + " in " + in.getClass().getSimpleName() +"."+ i.getName() + "()");
+                    Iris.info("[NMS] Found " + returns.getSimpleName() + " in " + in.getClass().getSimpleName() + "." + i.getName() + "()");
                     return i.invoke(in);
                 } catch(Throwable e) {
                     e.printStackTrace();
@@ -404,15 +394,12 @@ public class NMSBinding18_1 implements INMSBinding {
         return null;
     }
 
-    private static Object fieldFor(Class<?> returns, Object in)
-    {
-        for(Field i : in.getClass().getFields())
-        {
-            if(i.getType().equals(returns))
-            {
+    private static Object fieldFor(Class<?> returns, Object in) {
+        for(Field i : in.getClass().getFields()) {
+            if(i.getType().equals(returns)) {
                 i.setAccessible(true);
                 try {
-                    Iris.info("[NMS] Found " + returns.getSimpleName() + " in " + in.getClass().getSimpleName() +"."+ i.getName());
+                    Iris.info("[NMS] Found " + returns.getSimpleName() + " in " + in.getClass().getSimpleName() + "." + i.getName());
                     return i.get(in);
                 } catch(IllegalAccessException e) {
                     e.printStackTrace();

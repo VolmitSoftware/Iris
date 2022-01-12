@@ -25,12 +25,12 @@ public class PluginRegistryGroup<T> {
     private final KMap<String, PluginRegistry<T>> registries = new KMap<>();
 
     public T resolve(String namespace, String id) {
-        if (registries.isEmpty()) {
+        if(registries.isEmpty()) {
             return null;
         }
 
         PluginRegistry<T> r = registries.get(namespace);
-        if (r == null) {
+        if(r == null) {
             return null;
         }
 
@@ -52,8 +52,8 @@ public class PluginRegistryGroup<T> {
     public KList<String> compile() {
         KList<String> l = new KList<>();
         registries.values().forEach((i)
-                -> i.getRegistries().forEach((j)
-                -> l.add(i.getNamespace() + ":" + j)));
+            -> i.getRegistries().forEach((j)
+            -> l.add(i.getNamespace() + ":" + j)));
         return l;
     }
 }

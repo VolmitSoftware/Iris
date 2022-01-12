@@ -28,7 +28,7 @@ public class GlobalPalette<T> implements Palette<T> {
 
     public GlobalPalette(T... f) {
         IdMapper<T> mapper = new IdMapper<>();
-        for (T i : f) {
+        for(T i : f) {
             mapper.add(i);
         }
         registry = mapper;

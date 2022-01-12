@@ -41,10 +41,10 @@ public class EntityHandler implements DecreeParameterHandler<IrisEntity> {
         KMap<String, IrisEntity> p = new KMap<>();
 
         //noinspection ConstantConditions
-        for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
-            if (i.isDirectory()) {
+        for(File i : Iris.instance.getDataFolder("packs").listFiles()) {
+            if(i.isDirectory()) {
                 IrisData data = IrisData.get(i);
-                for (IrisEntity j : data.getEntityLoader().loadAll(data.getEntityLoader().getPossibleKeys())) {
+                for(IrisEntity j : data.getEntityLoader().loadAll(data.getEntityLoader().getPossibleKeys())) {
                     p.putIfAbsent(j.getLoadKey(), j);
                 }
 
@@ -58,7 +58,8 @@ public class EntityHandler implements DecreeParameterHandler<IrisEntity> {
     /**
      * Converting the type back to a string (inverse of the {@link #parse(String) parse} method)
      *
-     * @param entity The input of the designated type to convert to a String
+     * @param entity
+     *     The input of the designated type to convert to a String
      * @return The resulting string
      */
     @Override
@@ -69,19 +70,22 @@ public class EntityHandler implements DecreeParameterHandler<IrisEntity> {
     /**
      * Should parse a String into the designated type
      *
-     * @param in The string to parse
+     * @param in
+     *     The string to parse
      * @return The value extracted from the string, of the designated type
-     * @throws DecreeParsingException Thrown when the parsing fails (ex: "oop" translated to an integer throws this)
+     * @throws DecreeParsingException
+     *     Thrown when the parsing fails (ex: "oop" translated to an integer throws this)
      */
     @Override
     public IrisEntity parse(String in, boolean force) throws DecreeParsingException {
         KList<IrisEntity> options = getPossibilities(in);
 
-        if (options.isEmpty()) {
+        if(options.isEmpty()) {
             throw new DecreeParsingException("Unable to find Entity \"" + in + "\"");
-        } try {
+        }
+        try {
             return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             throw new DecreeParsingException("Unable to filter which Biome \"" + in + "\"");
         }
     }
@@ -89,7 +93,8 @@ public class EntityHandler implements DecreeParameterHandler<IrisEntity> {
     /**
      * Returns whether a certain type is supported by this handler<br>
      *
-     * @param type The type to check
+     * @param type
+     *     The type to check
      * @return True if supported, false if not
      */
     @Override

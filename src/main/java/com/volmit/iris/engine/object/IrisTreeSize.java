@@ -45,7 +45,8 @@ public class IrisTreeSize {
     /**
      * Does the size match
      *
-     * @param size the size to check match
+     * @param size
+     *     the size to check match
      * @return true if it matches (fits within width and depth)
      */
     public boolean doesMatch(IrisTreeSize size) {

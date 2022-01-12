@@ -38,7 +38,6 @@ import org.bukkit.block.data.type.PointedDripstone;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -59,34 +58,34 @@ public class B {
 
     private static IntSet buildFoliageCache() {
         IntSet b = new IntOpenHashSet();
-        Arrays.stream(new Material[]{
-                POPPY,
-                DANDELION,
-                CORNFLOWER,
-                SWEET_BERRY_BUSH,
-                CRIMSON_ROOTS,
-                WARPED_ROOTS,
-                NETHER_SPROUTS,
-                ALLIUM,
-                AZURE_BLUET,
-                BLUE_ORCHID,
-                OXEYE_DAISY,
-                LILY_OF_THE_VALLEY,
-                WITHER_ROSE,
-                DARK_OAK_SAPLING,
-                ACACIA_SAPLING,
-                JUNGLE_SAPLING,
-                BIRCH_SAPLING,
-                SPRUCE_SAPLING,
-                OAK_SAPLING,
-                ORANGE_TULIP,
-                PINK_TULIP,
-                RED_TULIP,
-                WHITE_TULIP,
-                FERN,
-                LARGE_FERN,
-                GRASS,
-                TALL_GRASS
+        Arrays.stream(new Material[] {
+            POPPY,
+            DANDELION,
+            CORNFLOWER,
+            SWEET_BERRY_BUSH,
+            CRIMSON_ROOTS,
+            WARPED_ROOTS,
+            NETHER_SPROUTS,
+            ALLIUM,
+            AZURE_BLUET,
+            BLUE_ORCHID,
+            OXEYE_DAISY,
+            LILY_OF_THE_VALLEY,
+            WITHER_ROSE,
+            DARK_OAK_SAPLING,
+            ACACIA_SAPLING,
+            JUNGLE_SAPLING,
+            BIRCH_SAPLING,
+            SPRUCE_SAPLING,
+            OAK_SAPLING,
+            ORANGE_TULIP,
+            PINK_TULIP,
+            RED_TULIP,
+            WHITE_TULIP,
+            FERN,
+            LARGE_FERN,
+            GRASS,
+            TALL_GRASS
         }).forEach((i) -> b.add(i.ordinal()));
 
         return IntSets.unmodifiable(b);
@@ -94,17 +93,17 @@ public class B {
 
     private static IntSet buildDeepslateCache() {
         IntSet b = new IntOpenHashSet();
-        Arrays.stream(new Material[]{
-                DEEPSLATE,
-                DEEPSLATE_BRICKS,
-                DEEPSLATE_BRICK_SLAB,
-                DEEPSLATE_BRICK_STAIRS,
-                DEEPSLATE_BRICK_WALL,
-                DEEPSLATE_TILE_SLAB,
-                DEEPSLATE_TILES,
-                DEEPSLATE_TILE_STAIRS,
-                DEEPSLATE_TILE_WALL,
-                CRACKED_DEEPSLATE_TILES
+        Arrays.stream(new Material[] {
+            DEEPSLATE,
+            DEEPSLATE_BRICKS,
+            DEEPSLATE_BRICK_SLAB,
+            DEEPSLATE_BRICK_STAIRS,
+            DEEPSLATE_BRICK_WALL,
+            DEEPSLATE_TILE_SLAB,
+            DEEPSLATE_TILES,
+            DEEPSLATE_TILE_STAIRS,
+            DEEPSLATE_TILE_WALL,
+            CRACKED_DEEPSLATE_TILES
         }).forEach((i) -> b.add(i.ordinal()));
 
         return IntSets.unmodifiable(b);
@@ -142,61 +141,61 @@ public class B {
 
     private static IntSet buildDecorantCache() {
         IntSet b = new IntOpenHashSet();
-        Arrays.stream(new Material[]{
-                GRASS,
-                TALL_GRASS,
-                FERN,
-                LARGE_FERN,
-                CORNFLOWER,
-                SUNFLOWER,
-                CHORUS_FLOWER,
-                POPPY,
-                DANDELION,
-                OXEYE_DAISY,
-                ORANGE_TULIP,
-                PINK_TULIP,
-                RED_TULIP,
-                WHITE_TULIP,
-                LILAC,
-                DEAD_BUSH,
-                SWEET_BERRY_BUSH,
-                ROSE_BUSH,
-                WITHER_ROSE,
-                ALLIUM,
-                BLUE_ORCHID,
-                LILY_OF_THE_VALLEY,
-                CRIMSON_FUNGUS,
-                WARPED_FUNGUS,
-                RED_MUSHROOM,
-                BROWN_MUSHROOM,
-                CRIMSON_ROOTS,
-                AZURE_BLUET,
-                WEEPING_VINES,
-                WEEPING_VINES_PLANT,
-                WARPED_ROOTS,
-                NETHER_SPROUTS,
-                TWISTING_VINES,
-                TWISTING_VINES_PLANT,
-                SUGAR_CANE,
-                WHEAT,
-                POTATOES,
-                CARROTS,
-                BEETROOTS,
-                NETHER_WART,
-                SEA_PICKLE,
-                SEAGRASS,
-                ACACIA_BUTTON,
-                BIRCH_BUTTON,
-                CRIMSON_BUTTON,
-                DARK_OAK_BUTTON,
-                JUNGLE_BUTTON,
-                OAK_BUTTON,
-                POLISHED_BLACKSTONE_BUTTON,
-                SPRUCE_BUTTON,
-                STONE_BUTTON,
-                WARPED_BUTTON,
-                TORCH,
-                SOUL_TORCH
+        Arrays.stream(new Material[] {
+            GRASS,
+            TALL_GRASS,
+            FERN,
+            LARGE_FERN,
+            CORNFLOWER,
+            SUNFLOWER,
+            CHORUS_FLOWER,
+            POPPY,
+            DANDELION,
+            OXEYE_DAISY,
+            ORANGE_TULIP,
+            PINK_TULIP,
+            RED_TULIP,
+            WHITE_TULIP,
+            LILAC,
+            DEAD_BUSH,
+            SWEET_BERRY_BUSH,
+            ROSE_BUSH,
+            WITHER_ROSE,
+            ALLIUM,
+            BLUE_ORCHID,
+            LILY_OF_THE_VALLEY,
+            CRIMSON_FUNGUS,
+            WARPED_FUNGUS,
+            RED_MUSHROOM,
+            BROWN_MUSHROOM,
+            CRIMSON_ROOTS,
+            AZURE_BLUET,
+            WEEPING_VINES,
+            WEEPING_VINES_PLANT,
+            WARPED_ROOTS,
+            NETHER_SPROUTS,
+            TWISTING_VINES,
+            TWISTING_VINES_PLANT,
+            SUGAR_CANE,
+            WHEAT,
+            POTATOES,
+            CARROTS,
+            BEETROOTS,
+            NETHER_WART,
+            SEA_PICKLE,
+            SEAGRASS,
+            ACACIA_BUTTON,
+            BIRCH_BUTTON,
+            CRIMSON_BUTTON,
+            DARK_OAK_BUTTON,
+            JUNGLE_BUTTON,
+            OAK_BUTTON,
+            POLISHED_BLACKSTONE_BUTTON,
+            SPRUCE_BUTTON,
+            STONE_BUTTON,
+            WARPED_BUTTON,
+            TORCH,
+            SOUL_TORCH
         }).forEach((i) -> b.add(i.ordinal()));
         b.addAll(foliageCache);
 
@@ -205,34 +204,34 @@ public class B {
 
     private static IntSet buildLitCache() {
         IntSet b = new IntOpenHashSet();
-        Arrays.stream(new Material[]{
-                GLOWSTONE,
-                AMETHYST_CLUSTER,
-                SMALL_AMETHYST_BUD,
-                MEDIUM_AMETHYST_BUD,
-                LARGE_AMETHYST_BUD,
-                END_ROD,
-                SOUL_SAND,
-                TORCH,
-                REDSTONE_TORCH,
-                SOUL_TORCH,
-                REDSTONE_WALL_TORCH,
-                WALL_TORCH,
-                SOUL_WALL_TORCH,
-                LANTERN,
-                CANDLE,
-                JACK_O_LANTERN,
-                REDSTONE_LAMP,
-                MAGMA_BLOCK,
-                LIGHT,
-                SHROOMLIGHT,
-                SEA_LANTERN,
-                SOUL_LANTERN,
-                FIRE,
-                SOUL_FIRE,
-                SEA_PICKLE,
-                BREWING_STAND,
-                REDSTONE_ORE,
+        Arrays.stream(new Material[] {
+            GLOWSTONE,
+            AMETHYST_CLUSTER,
+            SMALL_AMETHYST_BUD,
+            MEDIUM_AMETHYST_BUD,
+            LARGE_AMETHYST_BUD,
+            END_ROD,
+            SOUL_SAND,
+            TORCH,
+            REDSTONE_TORCH,
+            SOUL_TORCH,
+            REDSTONE_WALL_TORCH,
+            WALL_TORCH,
+            SOUL_WALL_TORCH,
+            LANTERN,
+            CANDLE,
+            JACK_O_LANTERN,
+            REDSTONE_LAMP,
+            MAGMA_BLOCK,
+            LIGHT,
+            SHROOMLIGHT,
+            SEA_LANTERN,
+            SOUL_LANTERN,
+            FIRE,
+            SOUL_FIRE,
+            SEA_PICKLE,
+            BREWING_STAND,
+            REDSTONE_ORE,
         }).forEach((i) -> b.add(i.ordinal()));
 
         return IntSets.unmodifiable(b);
@@ -240,33 +239,33 @@ public class B {
 
     private static IntSet buildStorageCache() {
         IntSet b = new IntOpenHashSet();
-        Arrays.stream(new Material[]{
-                CHEST,
-                SMOKER,
-                TRAPPED_CHEST,
-                SHULKER_BOX,
-                WHITE_SHULKER_BOX,
-                ORANGE_SHULKER_BOX,
-                MAGENTA_SHULKER_BOX,
-                LIGHT_BLUE_SHULKER_BOX,
-                YELLOW_SHULKER_BOX,
-                LIME_SHULKER_BOX,
-                PINK_SHULKER_BOX,
-                GRAY_SHULKER_BOX,
-                LIGHT_GRAY_SHULKER_BOX,
-                CYAN_SHULKER_BOX,
-                PURPLE_SHULKER_BOX,
-                BLUE_SHULKER_BOX,
-                BROWN_SHULKER_BOX,
-                GREEN_SHULKER_BOX,
-                RED_SHULKER_BOX,
-                BLACK_SHULKER_BOX,
-                BARREL,
-                DISPENSER,
-                DROPPER,
-                HOPPER,
-                FURNACE,
-                BLAST_FURNACE
+        Arrays.stream(new Material[] {
+            CHEST,
+            SMOKER,
+            TRAPPED_CHEST,
+            SHULKER_BOX,
+            WHITE_SHULKER_BOX,
+            ORANGE_SHULKER_BOX,
+            MAGENTA_SHULKER_BOX,
+            LIGHT_BLUE_SHULKER_BOX,
+            YELLOW_SHULKER_BOX,
+            LIME_SHULKER_BOX,
+            PINK_SHULKER_BOX,
+            GRAY_SHULKER_BOX,
+            LIGHT_GRAY_SHULKER_BOX,
+            CYAN_SHULKER_BOX,
+            PURPLE_SHULKER_BOX,
+            BLUE_SHULKER_BOX,
+            BROWN_SHULKER_BOX,
+            GREEN_SHULKER_BOX,
+            RED_SHULKER_BOX,
+            BLACK_SHULKER_BOX,
+            BARREL,
+            DISPENSER,
+            DROPPER,
+            HOPPER,
+            FURNACE,
+            BLAST_FURNACE
         }).forEach((i) -> b.add(i.ordinal()));
 
         return IntSets.unmodifiable(b);
@@ -275,12 +274,12 @@ public class B {
     public static BlockData toDeepSlateOre(BlockData block, BlockData ore) {
         int key = ore.getMaterial().ordinal();
 
-        if (isDeepSlate(block)) {
-            if (normal2DeepslateCache.containsKey(key)) {
+        if(isDeepSlate(block)) {
+            if(normal2DeepslateCache.containsKey(key)) {
                 return Material.values()[normal2DeepslateCache.get(key)].createBlockData();
             }
         } else {
-            if (deepslate2NormalCache.containsKey(key)) {
+            if(deepslate2NormalCache.containsKey(key)) {
                 return Material.values()[deepslate2NormalCache.get(key)].createBlockData();
             }
         }
@@ -306,39 +305,39 @@ public class B {
     }
 
     public static boolean canPlaceOnto(Material mat, Material onto) {
-        if ((onto.equals(CRIMSON_NYLIUM) || onto.equals(WARPED_NYLIUM)) &&
-                (mat.equals(CRIMSON_FUNGUS) || mat.equals(CRIMSON_ROOTS) ||mat.equals(WARPED_FUNGUS) || mat.equals(WARPED_ROOTS) ) ){
+        if((onto.equals(CRIMSON_NYLIUM) || onto.equals(WARPED_NYLIUM)) &&
+            (mat.equals(CRIMSON_FUNGUS) || mat.equals(CRIMSON_ROOTS) || mat.equals(WARPED_FUNGUS) || mat.equals(WARPED_ROOTS))) {
             return true;
         }
 
-        if (isFoliage(mat)) {
-            if (!isFoliagePlantable(onto)) {
+        if(isFoliage(mat)) {
+            if(!isFoliagePlantable(onto)) {
                 return false;
             }
         }
 
-        if (onto.equals(Material.AIR) ||
-                onto.equals(B.getMaterial("CAVE_AIR"))
-                || onto.equals(B.getMaterial("VOID_AIR"))) {
+        if(onto.equals(Material.AIR) ||
+            onto.equals(B.getMaterial("CAVE_AIR"))
+            || onto.equals(B.getMaterial("VOID_AIR"))) {
             return false;
         }
 
-        if (onto.equals(Material.GRASS_BLOCK) && mat.equals(Material.DEAD_BUSH)) {
+        if(onto.equals(Material.GRASS_BLOCK) && mat.equals(Material.DEAD_BUSH)) {
             return false;
         }
 
-        if (onto.equals(Material.DIRT_PATH)) {
-            if (!mat.isSolid()) {
+        if(onto.equals(Material.DIRT_PATH)) {
+            if(!mat.isSolid()) {
                 return false;
             }
         }
 
-        if (onto.equals(Material.ACACIA_LEAVES)
-                || onto.equals(Material.BIRCH_LEAVES)
-                || onto.equals(Material.DARK_OAK_LEAVES)
-                || onto.equals(Material.JUNGLE_LEAVES)
-                || onto.equals(Material.OAK_LEAVES)
-                || onto.equals(Material.SPRUCE_LEAVES)) {
+        if(onto.equals(Material.ACACIA_LEAVES)
+            || onto.equals(Material.BIRCH_LEAVES)
+            || onto.equals(Material.DARK_OAK_LEAVES)
+            || onto.equals(Material.JUNGLE_LEAVES)
+            || onto.equals(Material.OAK_LEAVES)
+            || onto.equals(Material.SPRUCE_LEAVES)) {
             return mat.isSolid();
         }
 
@@ -347,25 +346,25 @@ public class B {
 
     public static boolean isFoliagePlantable(BlockData d) {
         return d.getMaterial().equals(Material.GRASS_BLOCK)
-                || d.getMaterial().equals(Material.ROOTED_DIRT)
-                || d.getMaterial().equals(Material.DIRT)
-                || d.getMaterial().equals(Material.COARSE_DIRT)
-                || d.getMaterial().equals(Material.PODZOL);
+            || d.getMaterial().equals(Material.ROOTED_DIRT)
+            || d.getMaterial().equals(Material.DIRT)
+            || d.getMaterial().equals(Material.COARSE_DIRT)
+            || d.getMaterial().equals(Material.PODZOL);
     }
 
     public static boolean isFoliagePlantable(Material d) {
         return d.equals(Material.GRASS_BLOCK)
-                || d.equals(Material.DIRT)
-                || d.equals(TALL_GRASS)
-                || d.equals(TALL_SEAGRASS)
-                || d.equals(LARGE_FERN)
-                || d.equals(SUNFLOWER)
-                || d.equals(PEONY)
-                || d.equals(LILAC)
-                || d.equals(ROSE_BUSH)
-                || d.equals(Material.ROOTED_DIRT)
-                || d.equals(Material.COARSE_DIRT)
-                || d.equals(Material.PODZOL);
+            || d.equals(Material.DIRT)
+            || d.equals(TALL_GRASS)
+            || d.equals(TALL_SEAGRASS)
+            || d.equals(LARGE_FERN)
+            || d.equals(SUNFLOWER)
+            || d.equals(PEONY)
+            || d.equals(LILAC)
+            || d.equals(ROSE_BUSH)
+            || d.equals(Material.ROOTED_DIRT)
+            || d.equals(Material.COARSE_DIRT)
+            || d.equals(Material.PODZOL);
     }
 
     public static boolean isWater(BlockData b) {
@@ -379,9 +378,9 @@ public class B {
     public static Material getMaterialOrNull(String bdx) {
         try {
             return Material.valueOf(bdx.trim().toUpperCase());
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
-            if (clw.flip()) {
+            if(clw.flip()) {
                 Iris.warn("Unknown Material: " + bdx);
             }
             return null;
@@ -391,7 +390,7 @@ public class B {
     public static Material getMaterial(String bdx) {
         Material m = getMaterialOrNull(bdx);
 
-        if (m == null) {
+        if(m == null) {
             return AIR_MATERIAL;
         }
 
@@ -406,28 +405,28 @@ public class B {
         try {
             String bd = bdxf.trim();
 
-            if (bd.startsWith("minecraft:cauldron[level=")) {
+            if(bd.startsWith("minecraft:cauldron[level=")) {
                 bd = bd.replaceAll("\\Q:cauldron[\\E", ":water_cauldron[");
             }
 
-            if (bd.equals("minecraft:grass_path")) {
+            if(bd.equals("minecraft:grass_path")) {
                 return DIRT_PATH.createBlockData();
             }
 
             BlockData bdx = parseBlockData(bd);
 
-            if (bdx == null) {
-                if (clw.flip()) {
+            if(bdx == null) {
+                if(clw.flip()) {
                     Iris.warn("Unknown Block Data '" + bd + "'");
                 }
                 return AIR;
             }
 
             return bdx;
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             Iris.reportError(e);
 
-            if (clw.flip()) {
+            if(clw.flip()) {
                 Iris.warn("Unknown Block Data '" + bdxf + "'");
             }
         }
@@ -438,7 +437,7 @@ public class B {
     public static BlockData get(String bdxf) {
         BlockData bd = getOrNull(bdxf);
 
-        if (bd != null) {
+        if(bd != null) {
             return bd;
         }
 
@@ -453,84 +452,84 @@ public class B {
         try {
             BlockData bx = null;
 
-            if (!ix.startsWith("minecraft:")) {
-                if (ix.startsWith("oraxen:") && Iris.linkOraxen.supported()) {
+            if(!ix.startsWith("minecraft:")) {
+                if(ix.startsWith("oraxen:") && Iris.linkOraxen.supported()) {
                     bx = Iris.linkOraxen.getBlockDataFor(ix.split("\\Q:\\E")[1]);
                 }
 
-                if (bx == null) {
+                if(bx == null) {
                     try {
-                        if (ix.contains(":")) {
+                        if(ix.contains(":")) {
                             String[] v = ix.toLowerCase().split("\\Q:\\E");
                             Supplier<BlockData> b = Iris.service(RegistrySVC.class).getCustomBlockRegistry().resolve(v[0], v[1]);
 
-                            if (b != null) {
+                            if(b != null) {
                                 bx = b.get();
                             }
                         }
-                    } catch (Throwable e) {
+                    } catch(Throwable e) {
                         e.printStackTrace();// TODO: REMOVE
                     }
                 }
             }
 
-            if (bx == null) {
+            if(bx == null) {
                 try {
                     bx = createBlockData(ix.toLowerCase());
-                } catch (Throwable e) {
+                } catch(Throwable e) {
                     e.printStackTrace();
                 }
             }
 
-            if (bx == null) {
+            if(bx == null) {
                 try {
                     bx = createBlockData("minecraft:" + ix.toLowerCase());
-                } catch (Throwable e) {
+                } catch(Throwable e) {
 
                 }
             }
 
-            if (bx == null) {
+            if(bx == null) {
                 try {
                     bx = Material.valueOf(ix.toUpperCase()).createBlockData();
-                } catch (Throwable e) {
+                } catch(Throwable e) {
 
                 }
             }
 
-            if (bx == null) {
+            if(bx == null) {
                 return null;
             }
 
-            if (bx instanceof Leaves && IrisSettings.get().getGenerator().isPreventLeafDecay()) {
+            if(bx instanceof Leaves && IrisSettings.get().getGenerator().isPreventLeafDecay()) {
                 ((Leaves) bx).setPersistent(true);
-            } else if (bx instanceof Leaves) {
+            } else if(bx instanceof Leaves) {
                 ((Leaves) bx).setPersistent(false);
             }
 
             return bx;
-        } catch (Throwable e) {
-            if (clw.flip()) {
+        } catch(Throwable e) {
+            if(clw.flip()) {
                 Iris.warn("Unknown Block Data: " + ix);
             }
 
             String block = ix.contains(":") ? ix.split(":")[1].toLowerCase() : ix.toLowerCase();
             String state = block.contains("[") ? block.split("\\Q[\\E")[1].split("\\Q]\\E")[0] : "";
             Map<String, String> stateMap = new HashMap<>();
-            if (!state.equals("")) {
+            if(!state.equals("")) {
                 Arrays.stream(state.split(",")).forEach(s -> stateMap.put(s.split("=")[0], s.split("=")[1]));
             }
             block = block.split("\\Q[\\E")[0];
 
-            switch (block) {
+            switch(block) {
                 case "cauldron" -> block = "water_cauldron";
                 case "grass_path" -> block = "dirt_path";
                 case "concrete" -> block = "white_concrete";
                 case "wool" -> block = "white_wool";
                 case "beetroots" -> {
-                    if (stateMap.containsKey("age")) {
+                    if(stateMap.containsKey("age")) {
                         String updated = stateMap.get("age");
-                        switch (updated) {
+                        switch(updated) {
                             case "7" -> updated = "3";
                             case "3", "4", "5" -> updated = "2";
                             case "1", "2" -> updated = "1";
@@ -541,25 +540,25 @@ public class B {
             }
 
             Map<String, String> newStates = new HashMap<>();
-            for (String key : stateMap.keySet()) { //Iterate through every state and check if its valid
+            for(String key : stateMap.keySet()) { //Iterate through every state and check if its valid
                 try {
                     String newState = block + "[" + key + "=" + stateMap.get(key) + "]";
                     createBlockData(newState);
                     newStates.put(key, stateMap.get(key));
 
-                } catch (IllegalArgumentException ignored) {
+                } catch(IllegalArgumentException ignored) {
                 }
             }
 
             //Combine all the "good" states again
             state = newStates.entrySet().stream().map(entry -> entry.getKey() + "=" + entry.getValue()).collect(Collectors.joining(","));
-            if (!state.equals("")) state = "[" + state + "]";
+            if(!state.equals("")) state = "[" + state + "]";
             String newBlock = block + state;
             Iris.debug("Converting " + ix + " to " + newBlock);
 
             try {
                 return createBlockData(newBlock);
-            } catch (Throwable e1) {
+            } catch(Throwable e1) {
                 Iris.reportError(e1);
             }
 
@@ -581,9 +580,9 @@ public class B {
 
     public static boolean isUpdatable(BlockData mat) {
         return isLit(mat)
-                || isStorage(mat)
-                || (mat instanceof PointedDripstone
-                && ((PointedDripstone) mat).getThickness().equals(PointedDripstone.Thickness.TIP));
+            || isStorage(mat)
+            || (mat instanceof PointedDripstone
+            && ((PointedDripstone) mat).getThickness().equals(PointedDripstone.Thickness.TIP));
     }
 
     public static boolean isFoliage(Material d) {
@@ -601,10 +600,10 @@ public class B {
     public static KList<BlockData> get(KList<String> find) {
         KList<BlockData> b = new KList<>();
 
-        for (String i : find) {
+        for(String i : find) {
             BlockData bd = get(i);
 
-            if (bd != null) {
+            if(bd != null) {
                 b.add(bd);
             }
         }
@@ -621,7 +620,7 @@ public class B {
     }
 
     public static boolean isAir(BlockData d) {
-        if (d == null) {
+        if(d == null) {
             return true;
         }
 
@@ -632,11 +631,11 @@ public class B {
     public synchronized static String[] getBlockTypes() {
         KList<String> bt = new KList<>();
 
-        for (Material i : Material.values()) {
-            if (i.isBlock()) {
+        for(Material i : Material.values()) {
+            if(i.isBlock()) {
                 String v = i.createBlockData().getAsString(true);
 
-                if (v.contains("[")) {
+                if(v.contains("[")) {
                     v = v.split("\\Q[\\E")[0];
                 }
 
@@ -645,16 +644,16 @@ public class B {
         }
 
         try {
-            for (String i : Iris.linkOraxen.getItemTypes()) {
+            for(String i : Iris.linkOraxen.getItemTypes()) {
                 bt.add("oraxen:" + i);
             }
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             e.printStackTrace();
         }
 
         try {
             bt.addAll(Iris.service(RegistrySVC.class).getCustomBlockRegistry().compile());
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             e.printStackTrace();
         }
 
@@ -664,7 +663,7 @@ public class B {
     public static String[] getItemTypes() {
         KList<String> bt = new KList<>();
 
-        for (Material i : Material.values()) {
+        for(Material i : Material.values()) {
             String v = i.name().toLowerCase().trim();
             bt.add(v);
         }

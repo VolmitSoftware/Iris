@@ -41,7 +41,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
     @BlockCoordinates
     @Override
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1, Hunk<BlockData> data, IrisBiome biome, int height, int max) {
-        if (biome.getInferredType().equals(InferredType.SHORE) && height < getDimension().getFluidHeight()) {
+        if(biome.getInferredType().equals(InferredType.SHORE) && height < getDimension().getFluidHeight()) {
             return;
         }
 
@@ -50,22 +50,22 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
         bdx = data.get(x, height, z);
         boolean underwater = height < getDimension().getFluidHeight();
 
-        if (decorator != null) {
-            if (!decorator.isStacking()) {
+        if(decorator != null) {
+            if(!decorator.isStacking()) {
                 bd = decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData());
 
-                if (!underwater) {
-                    if (!canGoOn(bd, bdx)) {
+                if(!underwater) {
+                    if(!canGoOn(bd, bdx)) {
                         return;
                     }
                 }
 
-                if (bd instanceof Bisected) {
+                if(bd instanceof Bisected) {
                     bd = bd.clone();
                     ((Bisected) bd).setHalf(Bisected.Half.TOP);
                     try {
                         data.set(x, height + 2, z, bd);
-                    } catch (Throwable e) {
+                    } catch(Throwable e) {
                         Iris.reportError(e);
                     }
                     bd = bd.clone();
@@ -75,55 +75,55 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                 data.set(x, height + 1, z, bd);
 
             } else {
-                if (height < getDimension().getFluidHeight()) {
+                if(height < getDimension().getFluidHeight()) {
                     max = getDimension().getFluidHeight();
                 }
 
                 int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
 
-                if (decorator.isScaleStack()) {
+                if(decorator.isScaleStack()) {
                     stack = Math.min((int) Math.ceil((double) max * ((double) stack / 100)), decorator.getAbsoluteMaxStack());
                 } else {
                     stack = Math.min(max, stack);
                 }
 
-                if (stack == 1) {
+                if(stack == 1) {
                     data.set(x, height, z, decorator.getBlockDataForTop(biome, getRng(), realX, height, realZ, getData()));
                     return;
                 }
 
-                for (int i = 0; i < stack; i++) {
+                for(int i = 0; i < stack; i++) {
                     int h = height + i;
                     double threshold = ((double) i) / (stack - 1);
                     bd = threshold >= decorator.getTopThreshold() ?
-                            decorator.getBlockDataForTop(biome, getRng(), realX, h, realZ, getData()) :
-                            decorator.getBlockData100(biome, getRng(), realX, h, realZ, getData());
+                        decorator.getBlockDataForTop(biome, getRng(), realX, h, realZ, getData()) :
+                        decorator.getBlockData100(biome, getRng(), realX, h, realZ, getData());
 
-                    if (bd == null) {
+                    if(bd == null) {
                         break;
                     }
 
-                    if (i == 0 && !underwater && !canGoOn(bd, bdx)) {
+                    if(i == 0 && !underwater && !canGoOn(bd, bdx)) {
                         break;
                     }
 
-                    if (underwater && height + 1 + i > getDimension().getFluidHeight()) {
+                    if(underwater && height + 1 + i > getDimension().getFluidHeight()) {
                         break;
                     }
 
-                    if (bd instanceof PointedDripstone) {
+                    if(bd instanceof PointedDripstone) {
                         PointedDripstone.Thickness th = PointedDripstone.Thickness.BASE;
 
-                        if (stack == 2) {
+                        if(stack == 2) {
                             th = PointedDripstone.Thickness.FRUSTUM;
 
-                            if (i == stack - 1) {
+                            if(i == stack - 1) {
                                 th = PointedDripstone.Thickness.TIP;
                             }
                         } else {
-                            if (i == stack - 1) {
+                            if(i == stack - 1) {
                                 th = PointedDripstone.Thickness.TIP;
-                            } else if (i == stack - 2) {
+                            } else if(i == stack - 2) {
                                 th = PointedDripstone.Thickness.FRUSTUM;
                             }
                         }

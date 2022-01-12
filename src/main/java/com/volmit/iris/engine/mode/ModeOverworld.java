@@ -43,9 +43,9 @@ public class ModeOverworld extends IrisEngineMode implements EngineMode {
         var perfection = new IrisPerfectionModifier(getEngine());
 
         registerStage(burst(
-                (x, z, k, p, m) -> generateMatter(x >> 4, z >> 4, m),
-                (x, z, k, p, m) -> terrain.actuate(x, z, k, m),
-                (x, z, k, p, m) -> biome.actuate(x, z, p, m)
+            (x, z, k, p, m) -> generateMatter(x >> 4, z >> 4, m),
+            (x, z, k, p, m) -> terrain.actuate(x, z, k, m),
+            (x, z, k, p, m) -> biome.actuate(x, z, p, m)
         ));
         registerStage((x, z, k, p, m) -> cave.modify(x >> 4, z >> 4, k, m));
         registerStage((x, z, k, p, m) -> deposit.modify(x, z, k, m));

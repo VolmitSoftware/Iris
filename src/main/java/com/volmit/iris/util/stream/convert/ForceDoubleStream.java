@@ -22,7 +22,7 @@ import com.volmit.iris.util.stream.BasicStream;
 import com.volmit.iris.util.stream.ProceduralStream;
 
 public class ForceDoubleStream extends BasicStream<Double> {
-    private ProceduralStream<?> stream;
+    private final ProceduralStream<?> stream;
 
     public ForceDoubleStream(ProceduralStream<?> stream) {
         super(null);

@@ -33,11 +33,11 @@ public class IrisMathHelper {
     static {
         a = c(2.0f);
         c = new Random();
-        d = new int[]{0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9};
+        d = new int[] {0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9};
         e = Double.longBitsToDouble(4805340802404319232L);
         f = new double[257];
         g = new double[257];
-        for (int var2 = 0; var2 < 257; ++var2) {
+        for(int var2 = 0; var2 < 257; ++var2) {
             final double var3 = var2 / 256.0;
             final double var4 = Math.asin(var3);
             IrisMathHelper.g[var2] = Math.cos(var4);
@@ -87,41 +87,41 @@ public class IrisMathHelper {
     }
 
     public static int clamp(final int var0, final int var1, final int var2) {
-        if (var0 < var1) {
+        if(var0 < var1) {
             return var1;
         }
         return Math.min(var0, var2);
     }
 
     public static float a(final float var0, final float var1, final float var2) {
-        if (var0 < var1) {
+        if(var0 < var1) {
             return var1;
         }
         return Math.min(var0, var2);
     }
 
     public static double a(final double var0, final double var2, final double var4) {
-        if (var0 < var2) {
+        if(var0 < var2) {
             return var2;
         }
         return Math.min(var0, var4);
     }
 
     public static double b(final double var0, final double var2, final double var4) {
-        if (var4 < 0.0) {
+        if(var4 < 0.0) {
             return var0;
         }
-        if (var4 > 1.0) {
+        if(var4 > 1.0) {
             return var2;
         }
         return d(var4, var0, var2);
     }
 
     public static double a(double var0, double var2) {
-        if (var0 < 0.0) {
+        if(var0 < 0.0) {
             var0 = -var0;
         }
-        if (var2 < 0.0) {
+        if(var2 < 0.0) {
             var2 = -var2;
         }
         return Math.max(var0, var2);
@@ -132,21 +132,21 @@ public class IrisMathHelper {
     }
 
     public static int nextInt(final Random var0, final int var1, final int var2) {
-        if (var1 >= var2) {
+        if(var1 >= var2) {
             return var1;
         }
         return var0.nextInt(var2 - var1 + 1) + var1;
     }
 
     public static float a(final Random var0, final float var1, final float var2) {
-        if (var1 >= var2) {
+        if(var1 >= var2) {
             return var1;
         }
         return var0.nextFloat() * (var2 - var1) + var1;
     }
 
     public static double a(final Random var0, final double var1, final double var3) {
-        if (var1 >= var3) {
+        if(var1 >= var3) {
             return var1;
         }
         return var0.nextDouble() * (var3 - var1) + var1;
@@ -154,7 +154,7 @@ public class IrisMathHelper {
 
     public static double a(final long[] var0) {
         long var = 0L;
-        for (final long var2 : var0) {
+        for(final long var2 : var0) {
             var += var2;
         }
         return var / (double) var0.length;
@@ -170,10 +170,10 @@ public class IrisMathHelper {
 
     public static float g(final float var0) {
         float var = var0 % 360.0f;
-        if (var >= 180.0f) {
+        if(var >= 180.0f) {
             var -= 360.0f;
         }
-        if (var < -180.0f) {
+        if(var < -180.0f) {
             var += 360.0f;
         }
         return var;
@@ -181,10 +181,10 @@ public class IrisMathHelper {
 
     public static double g(final double var0) {
         double var = var0 % 360.0;
-        if (var >= 180.0) {
+        if(var >= 180.0) {
             var -= 360.0;
         }
-        if (var < -180.0) {
+        if(var < -180.0) {
             var += 360.0;
         }
         return var;
@@ -206,7 +206,7 @@ public class IrisMathHelper {
 
     public static float c(final float var0, final float var1, float var2) {
         var2 = e(var2);
-        if (var0 < var1) {
+        if(var0 < var1) {
             return a(var0 + var2, var0, var1);
         }
         return a(var0 - var2, var1, var0);
@@ -241,17 +241,17 @@ public class IrisMathHelper {
     }
 
     public static int c(final int var0, int var1) {
-        if (var1 == 0) {
+        if(var1 == 0) {
             return 0;
         }
-        if (var0 == 0) {
+        if(var0 == 0) {
             return var1;
         }
-        if (var0 < 0) {
+        if(var0 < 0) {
             var1 *= -1;
         }
         final int var2 = var0 % var1;
-        if (var2 == 0) {
+        if(var2 == 0) {
             return var0;
         }
         return var0 + var1 - var2;
@@ -287,19 +287,19 @@ public class IrisMathHelper {
 
     public static double d(double var0, double var2) {
         final double var3 = var2 * var2 + var0 * var0;
-        if (Double.isNaN(var3)) {
+        if(Double.isNaN(var3)) {
             return Double.NaN;
         }
         final boolean var4 = var0 < 0.0;
-        if (var4) {
+        if(var4) {
             var0 = -var0;
         }
         final boolean var5 = var2 < 0.0;
-        if (var5) {
+        if(var5) {
             var2 = -var2;
         }
         final boolean var6 = var0 > var2;
-        if (var6) {
+        if(var6) {
             final double var7 = var2;
             var2 = var0;
             var0 = var7;
@@ -315,13 +315,13 @@ public class IrisMathHelper {
         final double var13 = var0 * var11 - var2 * var12;
         final double var14 = (6.0 + var13 * var13) * var13 * 0.16666666666666666;
         double var15 = var10 + var14;
-        if (var6) {
+        if(var6) {
             var15 = 1.5707963267948966 - var15;
         }
-        if (var5) {
+        if(var5) {
             var15 = 3.141592653589793 - var15;
         }
-        if (var4) {
+        if(var4) {
             var15 = -var15;
         }
         return var15;
@@ -345,7 +345,7 @@ public class IrisMathHelper {
         float var8 = 0.0f;
         float var9 = 0.0f;
         float var10 = 0.0f;
-        switch (var3) {
+        switch(var3) {
             case 0 -> {
                 var8 = var2;
                 var9 = var7;
@@ -397,10 +397,10 @@ public class IrisMathHelper {
 
     public static int a(int var0, final int var1, final IntPredicate var2) {
         int var3 = var1 - var0;
-        while (var3 > 0) {
+        while(var3 > 0) {
             final int var4 = var3 / 2;
             final int var5 = var0 + var4;
-            if (var2.test(var5)) {
+            if(var2.test(var5)) {
                 var3 = var4;
             } else {
                 var0 = var5 + 1;
@@ -431,7 +431,7 @@ public class IrisMathHelper {
     }
 
     public static int k(final double var0) {
-        if (var0 == 0.0) {
+        if(var0 == 0.0) {
             return 0;
         }
         return (var0 > 0.0) ? 1 : -1;
@@ -440,9 +440,9 @@ public class IrisMathHelper {
     @Deprecated
     public static float j(final float var0, final float var1, final float var2) {
         float var3;
-        for (var3 = var1 - var0; var3 < -180.0f; var3 += 360.0f) {
+        for(var3 = var1 - var0; var3 < -180.0f; var3 += 360.0f) {
         }
-        while (var3 >= 180.0f) {
+        while(var3 >= 180.0f) {
             var3 -= 360.0f;
         }
         return var0 + var2 * var3;

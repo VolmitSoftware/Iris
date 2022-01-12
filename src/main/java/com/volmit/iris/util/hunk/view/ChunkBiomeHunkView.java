@@ -49,7 +49,7 @@ public class ChunkBiomeHunkView implements Hunk<Biome> {
 
     @Override
     public void setRaw(int x, int y, int z, Biome t) {
-        if (t == null) {
+        if(t == null) {
             return;
         }
 
@@ -59,6 +59,6 @@ public class ChunkBiomeHunkView implements Hunk<Biome> {
     @Override
     public Biome getRaw(int x, int y, int z) {
         return Iris.service(EditSVC.class)
-                .getBiome(chunk.getWorld(), x + (chunk.getX() * 16), y, z + (chunk.getZ() * 16));
+            .getBiome(chunk.getWorld(), x + (chunk.getX() * 16), y, z + (chunk.getZ() * 16));
     }
 }

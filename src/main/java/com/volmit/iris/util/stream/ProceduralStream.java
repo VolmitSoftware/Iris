@@ -29,7 +29,6 @@ import com.volmit.iris.util.function.Function3;
 import com.volmit.iris.util.function.Function4;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.reflect.V;
 import com.volmit.iris.util.stream.arithmetic.AddingStream;
 import com.volmit.iris.util.stream.arithmetic.ClampedStream;
 import com.volmit.iris.util.stream.arithmetic.CoordinateBitShiftLeftStream;
@@ -67,14 +66,13 @@ import com.volmit.iris.util.stream.utility.SynchronizedStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @SuppressWarnings("ALL")
 public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     static ProceduralStream<Double> ofDouble(Function2<Double, Double, Double> f) {
         try {
             return of(f, Interpolated.DOUBLE);
-        } catch (IncompatibleClassChangeError e) {
+        } catch(IncompatibleClassChangeError e) {
             Iris.warn(f.toString());
             Iris.reportError(e);
             e.printStackTrace();
@@ -355,11 +353,11 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     default <V> ProceduralStream<V> selectRarity(V... types) {
         KList<V> rarityTypes = new KList<>();
         int totalRarity = 0;
-        for (V i : types) {
+        for(V i : types) {
             totalRarity += IRare.get(i);
         }
 
-        for (V i : types) {
+        for(V i : types) {
             rarityTypes.addMultiple(i, totalRarity / IRare.get(i));
         }
 
@@ -381,11 +379,11 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     default <V> int countPossibilities(List<V> types, Function<V, IRare> loader) {
         KList<V> rarityTypes = new KList<>();
         int totalRarity = 0;
-        for (V i : types) {
+        for(V i : types) {
             totalRarity += IRare.get(loader.apply(i));
         }
 
-        for (V i : types) {
+        for(V i : types) {
             rarityTypes.addMultiple(i, totalRarity / IRare.get(loader.apply(i)));
         }
 
@@ -418,11 +416,11 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     default <V> void fill2D(Hunk<V> h, double x, double z, V v, int parallelism) {
         h.compute2D(parallelism, (xx, __, zz, hh) ->
         {
-            for (int i = 0; i < hh.getWidth(); i++) {
-                for (int k = 0; k < hh.getDepth(); k++) {
+            for(int i = 0; i < hh.getWidth(); i++) {
+                for(int k = 0; k < hh.getDepth(); k++) {
                     double n = getDouble(i + x + xx, k + z + zz);
 
-                    for (int j = 0; j < Math.min(h.getHeight(), n); j++) {
+                    for(int j = 0; j < Math.min(h.getHeight(), n); j++) {
                         hh.set(i, j, k, v);
                     }
                 }
@@ -433,11 +431,11 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     default <V> void fill2D(Hunk<V> h, double x, double z, ProceduralStream<V> v, int parallelism) {
         h.compute2D(parallelism, (xx, yy, zz, hh) ->
         {
-            for (int i = 0; i < hh.getWidth(); i++) {
-                for (int k = 0; k < hh.getDepth(); k++) {
+            for(int i = 0; i < hh.getWidth(); i++) {
+                for(int k = 0; k < hh.getDepth(); k++) {
                     double n = getDouble(i + x + xx, k + z + zz);
 
-                    for (int j = 0; j < Math.min(h.getHeight(), n); j++) {
+                    for(int j = 0; j < Math.min(h.getHeight(), n); j++) {
                         hh.set(i, j, k, v.get(i + x + xx, j + yy, k + z + zz));
                     }
                 }
@@ -448,11 +446,11 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     default <V> void fill2DYLocked(Hunk<V> h, double x, double z, V v, int parallelism) {
         h.compute2D(parallelism, (xx, yy, zz, hh) ->
         {
-            for (int i = 0; i < hh.getWidth(); i++) {
-                for (int k = 0; k < hh.getDepth(); k++) {
+            for(int i = 0; i < hh.getWidth(); i++) {
+                for(int k = 0; k < hh.getDepth(); k++) {
                     double n = getDouble(i + x + xx, k + z + zz);
 
-                    for (int j = 0; j < Math.min(h.getHeight(), n); j++) {
+                    for(int j = 0; j < Math.min(h.getHeight(), n); j++) {
                         hh.set(i, j, k, v);
                     }
                 }
@@ -463,11 +461,11 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     default <V> void fill2DYLocked(Hunk<V> h, double x, double z, ProceduralStream<V> v, int parallelism) {
         h.compute2D(parallelism, (xx, yy, zz, hh) ->
         {
-            for (int i = 0; i < hh.getWidth(); i++) {
-                for (int k = 0; k < hh.getDepth(); k++) {
+            for(int i = 0; i < hh.getWidth(); i++) {
+                for(int k = 0; k < hh.getDepth(); k++) {
                     double n = getDouble(i + x + xx, k + z + zz);
 
-                    for (int j = 0; j < Math.min(h.getHeight(), n); j++) {
+                    for(int j = 0; j < Math.min(h.getHeight(), n); j++) {
                         hh.set(i, j, k, v.get(i + x + xx, k + z + zz));
                     }
                 }
@@ -478,7 +476,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     default <V> void fill3D(Hunk<V> h, double x, int y, double z, V v, int parallelism) {
         h.compute3D(parallelism, (xx, yy, zz, hh) -> hh.iterate((xv, yv, zv) ->
         {
-            if (getDouble(xx + xv + x, yy + yv + y, zz + zv + z) > 0.5) {
+            if(getDouble(xx + xv + x, yy + yv + y, zz + zv + z) > 0.5) {
                 hh.set(xv, yv, zv, v);
             }
         }));
@@ -487,7 +485,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     default <V> void fill3D(Hunk<V> h, double x, int y, double z, ProceduralStream<V> v, int parallelism) {
         h.compute3D(parallelism, (xx, yy, zz, hh) -> hh.iterate((xv, yv, zv) ->
         {
-            if (getDouble(xx + xv + x, yy + yv + y, zz + zv + z) > 0.5) {
+            if(getDouble(xx + xv + x, yy + yv + y, zz + zv + z) > 0.5) {
                 hh.set(xv, yv, zv, v.get(xx + xv + x, yy + yv + y, zz + zv + z));
             }
         }));

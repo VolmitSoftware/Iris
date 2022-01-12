@@ -21,14 +21,10 @@ package com.volmit.iris.util.nbt.mca.palette;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenCustomHashMap;
-import net.kyori.adventure.identity.Identity;
-import net.minecraft.Util;
 
-import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -55,10 +51,10 @@ public class MCAIdMapper<T> implements MCAIdMap<T> {
 
     public void addMapping(T var0, int var1) {
         this.tToId.put(var0, Integer.valueOf(var1));
-        while (this.idToT.size() <= var1)
+        while(this.idToT.size() <= var1)
             this.idToT.add(null);
         this.idToT.set(var1, var0);
-        if (this.nextId <= var1)
+        if(this.nextId <= var1)
             this.nextId = var1 + 1;
     }
 
@@ -72,7 +68,7 @@ public class MCAIdMapper<T> implements MCAIdMap<T> {
     }
 
     public final T byId(int var0) {
-        if (var0 >= 0 && var0 < this.idToT.size())
+        if(var0 >= 0 && var0 < this.idToT.size())
             return this.idToT.get(var0);
         return null;
     }
@@ -89,10 +85,10 @@ public class MCAIdMapper<T> implements MCAIdMap<T> {
         return this.tToId.size();
     }
 
-    static enum IdentityStrategy implements Hash.Strategy<Object> {
+    enum IdentityStrategy implements Hash.Strategy<Object> {
         INSTANCE;
 
-        private IdentityStrategy() {
+        IdentityStrategy() {
         }
 
         public int hashCode(Object var0) {

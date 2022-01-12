@@ -35,10 +35,10 @@ public class DimensionHandler implements DecreeParameterHandler<IrisDimension> {
         KMap<String, IrisDimension> p = new KMap<>();
 
         //noinspection ConstantConditions
-        for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
-            if (i.isDirectory()) {
+        for(File i : Iris.instance.getDataFolder("packs").listFiles()) {
+            if(i.isDirectory()) {
                 IrisData data = IrisData.get(i);
-                for (IrisDimension j : data.getDimensionLoader().loadAll(data.getDimensionLoader().getPossibleKeys())) {
+                for(IrisDimension j : data.getDimensionLoader().loadAll(data.getDimensionLoader().getPossibleKeys())) {
                     p.putIfAbsent(j.getLoadKey(), j);
                 }
 
@@ -58,11 +58,12 @@ public class DimensionHandler implements DecreeParameterHandler<IrisDimension> {
     public IrisDimension parse(String in, boolean force) throws DecreeParsingException {
         KList<IrisDimension> options = getPossibilities(in);
 
-        if (options.isEmpty()) {
+        if(options.isEmpty()) {
             throw new DecreeParsingException("Unable to find Dimension \"" + in + "\"");
-        } try {
+        }
+        try {
             return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
-        } catch (Throwable e) {
+        } catch(Throwable e) {
             throw new DecreeParsingException("Unable to filter which Biome \"" + in + "\"");
         }
     }

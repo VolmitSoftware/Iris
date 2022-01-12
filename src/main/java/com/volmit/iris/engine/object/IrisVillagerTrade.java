@@ -81,39 +81,39 @@ public class IrisVillagerTrade {
      */
     public boolean isValidItems() {
         KList<String> warnings = new KList<>();
-        if (ingredient1 == null) {
+        if(ingredient1 == null) {
             warnings.add("Ingredient 1 is null");
         }
 
-        if (result == null) {
+        if(result == null) {
             warnings.add("Result is null");
         }
 
-        if (minTrades <= 0) {
+        if(minTrades <= 0) {
             warnings.add("Negative minimal trades");
         }
 
-        if (maxTrades <= 0) {
+        if(maxTrades <= 0) {
             warnings.add("Negative maximal trades");
         }
 
-        if (minTrades > maxTrades) {
+        if(minTrades > maxTrades) {
             warnings.add("More minimal than maximal trades");
         }
 
-        if (ingredient1 != null && !ingredient1.getType().isItem()) {
+        if(ingredient1 != null && !ingredient1.getType().isItem()) {
             warnings.add("Ingredient 1 is not an item");
         }
 
-        if (ingredient2 != null && !ingredient2.getType().isItem()) {
+        if(ingredient2 != null && !ingredient2.getType().isItem()) {
             warnings.add("Ingredient 2 is not an item");
         }
 
-        if (result != null && !result.getType().isItem()) {
+        if(result != null && !result.getType().isItem()) {
             warnings.add("Result is not an item");
         }
 
-        if (warnings.isEmpty()) {
+        if(warnings.isEmpty()) {
             return true;
         } else {
             Iris.warn("Faulty item in cartographer item overrides: " + this);
@@ -128,7 +128,7 @@ public class IrisVillagerTrade {
      * @return The list of 1 or 2 ingredients (depending on if ing2 is null)
      */
     public List<ItemStack> getIngredients() {
-        if (!isValidItems()) {
+        if(!isValidItems()) {
             return null;
         }
         return ingredient2 == null ? new KList<>(ingredient1) : new KList<>(ingredient1, ingredient2);

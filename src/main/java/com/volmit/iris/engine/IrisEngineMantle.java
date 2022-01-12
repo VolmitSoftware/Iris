@@ -89,7 +89,7 @@ public class IrisEngineMantle implements EngineMantle {
     private KList<IrisRegion> getAllRegions() {
         KList<IrisRegion> r = new KList<>();
 
-        for (String i : getEngine().getDimension().getRegions()) {
+        for(String i : getEngine().getDimension().getRegions()) {
             r.add(getEngine().getData().getRegionLoader().load(i));
         }
 
@@ -99,7 +99,7 @@ public class IrisEngineMantle implements EngineMantle {
     private KList<IrisBiome> getAllBiomes() {
         KList<IrisBiome> r = new KList<>();
 
-        for (IrisRegion i : getAllRegions()) {
+        for(IrisRegion i : getAllRegions()) {
             r.addAll(i.getAllBiomes(getEngine()));
         }
 
@@ -107,13 +107,13 @@ public class IrisEngineMantle implements EngineMantle {
     }
 
     private void warn(String ob, BlockVector bv) {
-        if (Math.max(bv.getBlockX(), bv.getBlockZ()) > 128) {
+        if(Math.max(bv.getBlockX(), bv.getBlockZ()) > 128) {
             Iris.warn("Object " + ob + " has a large size (" + bv + ") and may increase memory usage!");
         }
     }
 
     private void warnScaled(String ob, BlockVector bv, double ms) {
-        if (Math.max(bv.getBlockX(), bv.getBlockZ()) > 128) {
+        if(Math.max(bv.getBlockX(), bv.getBlockZ()) > 128) {
             Iris.warn("Object " + ob + " has a large size (" + bv + ") and may increase memory usage! (Object scaled up to " + Form.pc(ms, 2) + ")");
         }
     }
@@ -130,46 +130,46 @@ public class IrisEngineMantle implements EngineMantle {
         int x = xg.get();
         int z = zg.get();
 
-        if (getEngine().getDimension().isUseMantle()) {
+        if(getEngine().getDimension().isUseMantle()) {
             KList<IrisRegion> r = getAllRegions();
             KList<IrisBiome> b = getAllBiomes();
 
-            for (IrisBiome i : b) {
-                for (IrisObjectPlacement j : i.getObjects()) {
-                    if (j.getScale().canScaleBeyond()) {
+            for(IrisBiome i : b) {
+                for(IrisObjectPlacement j : i.getObjects()) {
+                    if(j.getScale().canScaleBeyond()) {
                         scalars.put(j.getScale(), j.getPlace());
                     } else {
                         objects.addAll(j.getPlace());
                     }
                 }
 
-                for (IrisJigsawStructurePlacement j : i.getJigsawStructures()) {
+                for(IrisJigsawStructurePlacement j : i.getJigsawStructures()) {
                     jig = Math.max(jig, getData().getJigsawStructureLoader().load(j.getStructure()).getMaxDimension());
                 }
             }
 
-            for (IrisRegion i : r) {
-                for (IrisObjectPlacement j : i.getObjects()) {
-                    if (j.getScale().canScaleBeyond()) {
+            for(IrisRegion i : r) {
+                for(IrisObjectPlacement j : i.getObjects()) {
+                    if(j.getScale().canScaleBeyond()) {
                         scalars.put(j.getScale(), j.getPlace());
                     } else {
                         objects.addAll(j.getPlace());
                     }
                 }
 
-                for (IrisJigsawStructurePlacement j : i.getJigsawStructures()) {
+                for(IrisJigsawStructurePlacement j : i.getJigsawStructures()) {
                     jig = Math.max(jig, getData().getJigsawStructureLoader().load(j.getStructure()).getMaxDimension());
                 }
             }
 
-            for (IrisJigsawStructurePlacement j : getEngine().getDimension().getJigsawStructures()) {
+            for(IrisJigsawStructurePlacement j : getEngine().getDimension().getJigsawStructures()) {
                 jig = Math.max(jig, getData().getJigsawStructureLoader().load(j.getStructure()).getMaxDimension());
             }
 
-            if (getEngine().getDimension().getStronghold() != null) {
+            if(getEngine().getDimension().getStronghold() != null) {
                 try {
                     jig = Math.max(jig, getData().getJigsawStructureLoader().load(getEngine().getDimension().getStronghold()).getMaxDimension());
-                } catch (Throwable e) {
+                } catch(Throwable e) {
                     Iris.reportError(e);
                     e.printStackTrace();
                 }
@@ -178,13 +178,13 @@ public class IrisEngineMantle implements EngineMantle {
             Iris.verbose("Checking sizes for " + Form.f(objects.size()) + " referenced objects.");
             BurstExecutor e = getEngine().getTarget().getBurster().burst(objects.size());
             KMap<String, BlockVector> sizeCache = new KMap<>();
-            for (String i : objects) {
+            for(String i : objects) {
                 e.queue(() -> {
                     try {
                         BlockVector bv = sizeCache.computeIfAbsent(i, (k) -> {
                             try {
                                 return IrisObject.sampleSize(getData().getObjectLoader().findFile(i));
-                            } catch (IOException ex) {
+                            } catch(IOException ex) {
                                 Iris.reportError(ex);
                                 ex.printStackTrace();
                             }
@@ -192,35 +192,35 @@ public class IrisEngineMantle implements EngineMantle {
                             return null;
                         });
 
-                        if (bv == null) {
+                        if(bv == null) {
                             throw new RuntimeException();
                         }
 
                         warn(i, bv);
 
-                        synchronized (xg) {
+                        synchronized(xg) {
                             xg.getAndSet(Math.max(bv.getBlockX(), xg.get()));
                         }
 
-                        synchronized (zg) {
+                        synchronized(zg) {
                             zg.getAndSet(Math.max(bv.getBlockZ(), zg.get()));
                         }
-                    } catch (Throwable ed) {
+                    } catch(Throwable ed) {
                         Iris.reportError(ed);
 
                     }
                 });
             }
 
-            for (Map.Entry<IrisObjectScale, KList<String>> entry : scalars.entrySet()) {
+            for(Map.Entry<IrisObjectScale, KList<String>> entry : scalars.entrySet()) {
                 double ms = entry.getKey().getMaximumScale();
-                for (String j : entry.getValue()) {
+                for(String j : entry.getValue()) {
                     e.queue(() -> {
                         try {
                             BlockVector bv = sizeCache.computeIfAbsent(j, (k) -> {
                                 try {
                                     return IrisObject.sampleSize(getData().getObjectLoader().findFile(j));
-                                } catch (IOException ioException) {
+                                } catch(IOException ioException) {
                                     Iris.reportError(ioException);
                                     ioException.printStackTrace();
                                 }
@@ -228,20 +228,20 @@ public class IrisEngineMantle implements EngineMantle {
                                 return null;
                             });
 
-                            if (bv == null) {
+                            if(bv == null) {
                                 throw new RuntimeException();
                             }
 
                             warnScaled(j, bv, ms);
 
-                            synchronized (xg) {
+                            synchronized(xg) {
                                 xg.getAndSet((int) Math.max(Math.ceil(bv.getBlockX() * ms), xg.get()));
                             }
 
-                            synchronized (zg) {
+                            synchronized(zg) {
                                 zg.getAndSet((int) Math.max(Math.ceil(bv.getBlockZ() * ms), zg.get()));
                             }
-                        } catch (Throwable ee) {
+                        } catch(Throwable ee) {
                             Iris.reportError(ee);
 
                         }
@@ -254,22 +254,22 @@ public class IrisEngineMantle implements EngineMantle {
             x = xg.get();
             z = zg.get();
 
-            for (IrisDepositGenerator i : getEngine().getDimension().getDeposits()) {
+            for(IrisDepositGenerator i : getEngine().getDimension().getDeposits()) {
                 int max = i.getMaxDimension();
                 x = Math.max(max, x);
                 z = Math.max(max, z);
             }
 
-            for (IrisRegion v : r) {
-                for (IrisDepositGenerator i : v.getDeposits()) {
+            for(IrisRegion v : r) {
+                for(IrisDepositGenerator i : v.getDeposits()) {
                     int max = i.getMaxDimension();
                     x = Math.max(max, x);
                     z = Math.max(max, z);
                 }
             }
 
-            for (IrisBiome v : b) {
-                for (IrisDepositGenerator i : v.getDeposits()) {
+            for(IrisBiome v : b) {
+                for(IrisDepositGenerator i : v.getDeposits()) {
                     int max = i.getMaxDimension();
                     x = Math.max(max, x);
                     z = Math.max(max, z);
@@ -299,11 +299,11 @@ public class IrisEngineMantle implements EngineMantle {
 
         m = Math.max(m, getDimension().getFluidBodies().getMaxRange(getData()));
 
-        for (IrisRegion i : getDimension().getAllRegions(getEngine())) {
+        for(IrisRegion i : getDimension().getAllRegions(getEngine())) {
             m = Math.max(m, i.getFluidBodies().getMaxRange(getData()));
         }
 
-        for (IrisBiome i : getDimension().getAllBiomes(getEngine())) {
+        for(IrisBiome i : getDimension().getAllBiomes(getEngine())) {
             m = Math.max(m, i.getFluidBodies().getMaxRange(getData()));
         }
 
@@ -315,11 +315,11 @@ public class IrisEngineMantle implements EngineMantle {
 
         m = Math.max(m, getDimension().getCarving().getMaxRange(getData()));
 
-        for (IrisRegion i : getDimension().getAllRegions(getEngine())) {
+        for(IrisRegion i : getDimension().getAllRegions(getEngine())) {
             m = Math.max(m, i.getCarving().getMaxRange(getData()));
         }
 
-        for (IrisBiome i : getDimension().getAllBiomes(getEngine())) {
+        for(IrisBiome i : getDimension().getAllBiomes(getEngine())) {
             m = Math.max(m, i.getCarving().getMaxRange(getData()));
         }
 

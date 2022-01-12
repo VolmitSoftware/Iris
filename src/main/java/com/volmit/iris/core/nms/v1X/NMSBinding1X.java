@@ -35,12 +35,12 @@ public class NMSBinding1X implements INMSBinding {
     @SuppressWarnings("ConstantConditions")
     private static boolean testCustomHeight() {
         try {
-            if (World.class.getDeclaredMethod("getMaxHeight") != null && World.class.getDeclaredMethod("getMinHeight") != null)
+            if(World.class.getDeclaredMethod("getMaxHeight") != null && World.class.getDeclaredMethod("getMinHeight") != null)
                 ;
             {
                 return true;
             }
-        } catch (Throwable ignored) {
+        } catch(Throwable ignored) {
 
         }
 

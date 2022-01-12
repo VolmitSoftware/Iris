@@ -64,10 +64,10 @@ public class IrisObjectReplace {
         {
             KList<BlockData> b = new KList<>();
 
-            for (IrisBlockData i : find) {
+            for(IrisBlockData i : find) {
                 BlockData bx = i.getBlockData(rdata);
 
-                if (bx != null) {
+                if(bx != null) {
                     b.add(bx);
                 }
             }

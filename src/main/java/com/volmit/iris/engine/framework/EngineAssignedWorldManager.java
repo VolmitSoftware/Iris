@@ -60,7 +60,7 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
 
     @EventHandler
     public void on(IrisEngineHotloadEvent e) {
-        for (Player i : e.getEngine().getWorld().getPlayers()) {
+        for(Player i : e.getEngine().getWorld().getPlayers()) {
             i.playSound(i.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_BREAK, 1f, 1.8f);
             VolmitSender s = new VolmitSender(i);
             s.sendTitle(C.IRIS + "Engine " + C.AQUA + "<font:minecraft:uniform>Hotloaded", 70, 60, 410);
@@ -71,34 +71,34 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void on(PlayerTeleportEvent e) {
-        if (ignoreTP.get()) {
+        if(ignoreTP.get()) {
             return;
         }
 
-        if (!PaperLib.isPaper() || e.getTo() == null) {
+        if(!PaperLib.isPaper() || e.getTo() == null) {
             return;
         }
 
         try {
-            if (e.getTo().getWorld().equals(getTarget().getWorld().realWorld())) {
+            if(e.getTo().getWorld().equals(getTarget().getWorld().realWorld())) {
                 getEngine().getWorldManager().teleportAsync(e);
             }
-        } catch (Throwable ex) {
+        } catch(Throwable ex) {
 
         }
     }
 
     @EventHandler
     public void on(WorldSaveEvent e) {
-        if (e.getWorld().equals(getTarget().getWorld().realWorld())) {
+        if(e.getWorld().equals(getTarget().getWorld().realWorld())) {
             getEngine().save();
         }
     }
 
     @EventHandler
     public void on(EntitySpawnEvent e) {
-        if (e.getEntity().getWorld().equals(getTarget().getWorld().realWorld())) {
-            if (e.getEntityType().equals(EntityType.ENDER_SIGNAL)) {
+        if(e.getEntity().getWorld().equals(getTarget().getWorld().realWorld())) {
+            if(e.getEntityType().equals(EntityType.ENDER_SIGNAL)) {
                 KList<Position2> p = getEngine().getDimension().getStrongholds(getEngine().getSeedManager().getSpawn());
                 Position2 px = new Position2(e.getEntity().getLocation().getBlockX(), e.getEntity().getLocation().getBlockZ());
                 Position2 pr = null;
@@ -106,19 +106,19 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
 
                 Iris.debug("Ps: " + p.size());
 
-                for (Position2 i : p) {
+                for(Position2 i : p) {
                     Iris.debug("- " + i.getX() + " " + i.getZ());
                 }
 
-                for (Position2 i : p) {
+                for(Position2 i : p) {
                     double dx = i.distance(px);
-                    if (dx < d) {
+                    if(dx < d) {
                         d = dx;
                         pr = i;
                     }
                 }
 
-                if (pr != null) {
+                if(pr != null) {
                     e.getEntity().getWorld().playSound(e.getEntity().getLocation(), Sound.ITEM_TRIDENT_THROW, 1f, 1.6f);
                     Location ll = new Location(e.getEntity().getWorld(), pr.getX(), 40, pr.getZ());
                     Iris.debug("ESignal: " + ll.getBlockX() + " " + ll.getBlockZ());
@@ -130,28 +130,28 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
 
     @EventHandler
     public void on(WorldUnloadEvent e) {
-        if (e.getWorld().equals(getTarget().getWorld().realWorld())) {
+        if(e.getWorld().equals(getTarget().getWorld().realWorld())) {
             getEngine().close();
         }
     }
 
     @EventHandler
     public void on(BlockBreakEvent e) {
-        if (e.getPlayer().getWorld().equals(getTarget().getWorld().realWorld())) {
+        if(e.getPlayer().getWorld().equals(getTarget().getWorld().realWorld())) {
             onBlockBreak(e);
         }
     }
 
     @EventHandler
     public void on(BlockPlaceEvent e) {
-        if (e.getPlayer().getWorld().equals(getTarget().getWorld().realWorld())) {
+        if(e.getPlayer().getWorld().equals(getTarget().getWorld().realWorld())) {
             onBlockPlace(e);
         }
     }
 
     @EventHandler
     public void on(ChunkLoadEvent e) {
-        if (e.getChunk().getWorld().equals(getTarget().getWorld().realWorld())) {
+        if(e.getChunk().getWorld().equals(getTarget().getWorld().realWorld())) {
             onChunkLoad(e.getChunk(), e.isNewChunk());
         }
     }

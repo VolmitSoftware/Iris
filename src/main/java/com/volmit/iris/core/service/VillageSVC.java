@@ -43,25 +43,25 @@ public class VillageSVC implements IrisService {
      */
     @EventHandler
     public void on(VillagerAcquireTradeEvent event) {
-        if (!IrisToolbelt.isIrisWorld((event.getEntity().getWorld()))) {
+        if(!IrisToolbelt.isIrisWorld((event.getEntity().getWorld()))) {
             return;
         }
 
         // Iris.info("Trade event: type " + event.getRecipe().getResult().getType() + " / meta " + event.getRecipe().getResult().getItemMeta() + " / data " + event.getRecipe().getResult().getData());
-        if (!event.getRecipe().getResult().getType().equals(Material.FILLED_MAP)) {
+        if(!event.getRecipe().getResult().getType().equals(Material.FILLED_MAP)) {
             return;
         }
 
         IrisVillagerOverride override = IrisToolbelt.access(event.getEntity().getWorld()).getEngine()
-                .getDimension().getPatchCartographers();
+            .getDimension().getPatchCartographers();
 
-        if (override.isDisableTrade()) {
+        if(override.isDisableTrade()) {
             event.setCancelled(true);
             Iris.debug("Cancelled cartographer trade @ " + event.getEntity().getLocation());
             return;
         }
 
-        if (override.getValidItems() == null) {
+        if(override.getValidItems() == null) {
             event.setCancelled(true);
             Iris.debug("Cancelled cartographer trade because no override items are valid @ " + event.getEntity().getLocation());
             return;

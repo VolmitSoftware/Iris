@@ -48,17 +48,17 @@ public class MCAHashMapPalette<T> implements MCAPalette<T> {
 
     public int idFor(T var0) {
         int var1 = this.values.getId(var0);
-        if (var1 == -1) {
+        if(var1 == -1) {
             var1 = this.values.add(var0);
-            if (var1 >= 1 << this.bits)
+            if(var1 >= 1 << this.bits)
                 var1 = this.resizeHandler.onResize(this.bits + 1, var0);
         }
         return var1;
     }
 
     public boolean maybeHas(Predicate<T> var0) {
-        for (int var1 = 0; var1 < getSize(); var1++) {
-            if (var0.test(this.values.byId(var1)))
+        for(int var1 = 0; var1 < getSize(); var1++) {
+            if(var0.test(this.values.byId(var1)))
                 return true;
         }
         return false;
@@ -74,12 +74,12 @@ public class MCAHashMapPalette<T> implements MCAPalette<T> {
 
     public void read(ListTag var0) {
         this.values.clear();
-        for (int var1 = 0; var1 < var0.size(); var1++)
+        for(int var1 = 0; var1 < var0.size(); var1++)
             this.values.add(this.reader.apply((CompoundTag) var0.get(var1)));
     }
 
     public void write(ListTag var0) {
-        for (int var1 = 0; var1 < getSize(); var1++)
+        for(int var1 = 0; var1 < getSize(); var1++)
             var0.add(this.writer.apply(this.values.byId(var1)));
     }
 }

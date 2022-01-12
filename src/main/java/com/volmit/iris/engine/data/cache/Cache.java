@@ -46,7 +46,7 @@ public interface Cache<V> {
         idx -= (z * w * h);
         final int y = idx / w;
         final int x = idx % w;
-        return new int[]{x, y, z};
+        return new int[] {x, y, z};
     }
 
     int getId();

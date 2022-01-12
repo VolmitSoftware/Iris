@@ -49,7 +49,8 @@ import java.util.regex.Pattern;
  * is no guarantee that {@code MaxDepthReachedException}s are thrown for them. The respective class
  * will document this behavior accordingly.</p>
  *
- * @param <T> The type of the contained value
+ * @param <T>
+ *     The type of the contained value
  */
 public abstract class Tag<T> implements Cloneable {
 
@@ -79,7 +80,8 @@ public abstract class Tag<T> implements Cloneable {
      * Initializes this Tag with some value. If the value is {@code null}, it will
      * throw a {@code NullPointerException}
      *
-     * @param value The value to be set for this Tag.
+     * @param value
+     *     The value to be set for this Tag.
      */
     public Tag(T value) {
         setValue(value);
@@ -89,21 +91,23 @@ public abstract class Tag<T> implements Cloneable {
      * Escapes a string to fit into a JSON-like string representation for Minecraft
      * or to create the JSON string representation of a Tag returned from {@link Tag#toString()}
      *
-     * @param s       The string to be escaped.
-     * @param lenient {@code true} if it should force double quotes ({@code "}) at the start and
-     *                the end of the string.
+     * @param s
+     *     The string to be escaped.
+     * @param lenient
+     *     {@code true} if it should force double quotes ({@code "}) at the start and
+     *     the end of the string.
      * @return The escaped string.
      */
     @SuppressWarnings("StringBufferMayBeStringBuilder")
     protected static String escapeString(String s, @SuppressWarnings("SameParameterValue") boolean lenient) {
         StringBuffer sb = new StringBuffer();
         Matcher m = ESCAPE_PATTERN.matcher(s);
-        while (m.find()) {
+        while(m.find()) {
             m.appendReplacement(sb, ESCAPE_CHARACTERS.get(m.group()));
         }
         m.appendTail(sb);
         m = NON_QUOTE_PATTERN.matcher(s);
-        if (!lenient || !m.matches()) {
+        if(!lenient || !m.matches()) {
             sb.insert(0, "\"").append("\"");
         }
         return sb.toString();
@@ -124,8 +128,10 @@ public abstract class Tag<T> implements Cloneable {
     /**
      * Sets the value for this Tag directly.
      *
-     * @param value The value to be set.
-     * @throws NullPointerException If the value is null
+     * @param value
+     *     The value to be set.
+     * @throws NullPointerException
+     *     If the value is null
      */
     protected void setValue(T value) {
         this.value = checkValue(value);
@@ -134,9 +140,11 @@ public abstract class Tag<T> implements Cloneable {
     /**
      * Checks if the value {@code value} is {@code null}.
      *
-     * @param value The value to check
+     * @param value
+     *     The value to check
      * @return The parameter {@code value}
-     * @throws NullPointerException If {@code value} was {@code null}
+     * @throws NullPointerException
+     *     If {@code value} was {@code null}
      */
     protected T checkValue(T value) {
         return Objects.requireNonNull(value);
@@ -145,7 +153,8 @@ public abstract class Tag<T> implements Cloneable {
     /**
      * Calls {@link Tag#toString(int)} with an initial depth of {@code 0}.
      *
-     * @throws MaxDepthReachedException If the maximum nesting depth is exceeded.
+     * @throws MaxDepthReachedException
+     *     If the maximum nesting depth is exceeded.
      * @see Tag#toString(int)
      */
     @Override
@@ -156,20 +165,23 @@ public abstract class Tag<T> implements Cloneable {
     /**
      * Creates a string representation of this Tag in a valid JSON format.
      *
-     * @param maxDepth The maximum nesting depth.
+     * @param maxDepth
+     *     The maximum nesting depth.
      * @return The string representation of this Tag.
-     * @throws MaxDepthReachedException If the maximum nesting depth is exceeded.
+     * @throws MaxDepthReachedException
+     *     If the maximum nesting depth is exceeded.
      */
     public String toString(int maxDepth) {
         return "{\"type\":\"" + getClass().getSimpleName() + "\"," +
-                "\"value\":" + valueToString(maxDepth) + "}";
+            "\"value\":" + valueToString(maxDepth) + "}";
     }
 
     /**
      * Calls {@link Tag#valueToString(int)} with {@link Tag#DEFAULT_MAX_DEPTH}.
      *
      * @return The string representation of the value of this Tag.
-     * @throws MaxDepthReachedException If the maximum nesting depth is exceeded.
+     * @throws MaxDepthReachedException
+     *     If the maximum nesting depth is exceeded.
      */
     public String valueToString() {
         return valueToString(DEFAULT_MAX_DEPTH);
@@ -178,9 +190,11 @@ public abstract class Tag<T> implements Cloneable {
     /**
      * Returns a JSON representation of the value of this Tag.
      *
-     * @param maxDepth The maximum nesting depth.
+     * @param maxDepth
+     *     The maximum nesting depth.
      * @return The string representation of the value of this Tag.
-     * @throws MaxDepthReachedException If the maximum nesting depth is exceeded.
+     * @throws MaxDepthReachedException
+     *     If the maximum nesting depth is exceeded.
      */
     public abstract String valueToString(int maxDepth);
 
@@ -190,7 +204,8 @@ public abstract class Tag<T> implements Cloneable {
      * Custom Tag implementations should overwrite this but check the result
      * of this {@code super}-method while comparing.
      *
-     * @param other The Tag to compare to.
+     * @param other
+     *     The Tag to compare to.
      * @return {@code true} if they are equal based on the conditions mentioned above.
      */
     @Override

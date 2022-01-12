@@ -57,7 +57,7 @@ public class IrisInterpolator {
 
     @Override
     public boolean equals(Object o) {
-        if (o instanceof IrisInterpolator i) {
+        if(o instanceof IrisInterpolator i) {
             return i.getFunction().equals(function) && i.getHorizontalScale() == horizontalScale;
         }
 

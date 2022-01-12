@@ -49,8 +49,8 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         AtomicInteger i = new AtomicInteger();
         AtomicInteger j = new AtomicInteger();
         Hunk<BlockData> sync = output.synchronize();
-        for (i.set(0); i.get() < output.getWidth(); i.getAndIncrement()) {
-            for (j.set(0); j.get() < output.getDepth(); j.getAndIncrement()) {
+        for(i.set(0); i.get() < output.getWidth(); i.getAndIncrement()) {
+            for(j.set(0); j.get() < output.getDepth(); j.getAndIncrement()) {
                 int ii = i.get();
                 int jj = j.get();
                 post(ii, jj, sync, ii + x, jj + z);
@@ -71,7 +71,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         // Floating Nibs
         int g = 0;
 
-        if (h < 1) {
+        if(h < 1) {
             return;
         }
 
@@ -80,11 +80,11 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         g += hc < h - 1 ? 1 : 0;
         g += hd < h - 1 ? 1 : 0;
 
-        if (g == 4 && isAir(x, h - 1, z, currentPostX, currentPostZ, currentData)) {
+        if(g == 4 && isAir(x, h - 1, z, currentPostX, currentPostZ, currentData)) {
             setPostBlock(x, h, z, AIR, currentPostX, currentPostZ, currentData);
 
-            for (int i = h - 1; i > 0; i--) {
-                if (!isAir(x, i, z, currentPostX, currentPostZ, currentData)) {
+            for(int i = h - 1; i > 0; i--) {
+                if(!isAir(x, i, z, currentPostX, currentPostZ, currentData)) {
                     h = i;
                     break;
                 }
@@ -98,13 +98,13 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         g += hc == h - 1 ? 1 : 0;
         g += hd == h - 1 ? 1 : 0;
 
-        if (g >= 4) {
+        if(g >= 4) {
             BlockData bc = getPostBlock(x, h, z, currentPostX, currentPostZ, currentData);
             BlockData b = getPostBlock(x, h + 1, z, currentPostX, currentPostZ, currentData);
             Material m = bc.getMaterial();
 
-            if ((b.getMaterial().isOccluding() && b.getMaterial().isSolid())) {
-                if (m.isSolid()) {
+            if((b.getMaterial().isOccluding() && b.getMaterial().isSolid())) {
+                if(m.isSolid()) {
                     setPostBlock(x, h, z, b, currentPostX, currentPostZ, currentData);
                     h--;
                 }
@@ -117,7 +117,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
             g += hc == h + 1 ? 1 : 0;
             g += hd == h + 1 ? 1 : 0;
 
-            if (g >= 4) {
+            if(g >= 4) {
                 BlockData ba = getPostBlock(x, ha, z, currentPostX, currentPostZ, currentData);
                 BlockData bb = getPostBlock(x, hb, z, currentPostX, currentPostZ, currentData);
                 BlockData bc = getPostBlock(x, hc, z, currentPostX, currentPostZ, currentData);
@@ -128,7 +128,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
                 g = B.isSolid(bc) ? g + 1 : g;
                 g = B.isSolid(bd) ? g + 1 : g;
 
-                if (g >= 3) {
+                if(g >= 3) {
                     setPostBlock(x, h + 1, z, getPostBlock(x, h, z, currentPostX, currentPostZ, currentData), currentPostX, currentPostZ, currentData);
                     h++;
                 }
@@ -138,18 +138,18 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         // Wall Patcher
         IrisBiome biome = getComplex().getTrueBiomeStream().get(x, z);
 
-        if (getDimension().isPostProcessingWalls()) {
-            if (!biome.getWall().getPalette().isEmpty()) {
-                if (ha < h - 2 || hb < h - 2 || hc < h - 2 || hd < h - 2) {
+        if(getDimension().isPostProcessingWalls()) {
+            if(!biome.getWall().getPalette().isEmpty()) {
+                if(ha < h - 2 || hb < h - 2 || hc < h - 2 || hd < h - 2) {
                     boolean brokeGround = false;
                     int max = Math.abs(Math.max(h - ha, Math.max(h - hb, Math.max(h - hc, h - hd))));
 
-                    for (int i = h; i > h - max; i--) {
+                    for(int i = h; i > h - max; i--) {
                         BlockData d = biome.getWall().get(rng, x + i, i + h, z + i, getData());
 
-                        if (d != null) {
-                            if (isAirOrWater(x, i, z, currentPostX, currentPostZ, currentData)) {
-                                if (brokeGround) {
+                        if(d != null) {
+                            if(isAirOrWater(x, i, z, currentPostX, currentPostZ, currentData)) {
+                                if(brokeGround) {
                                     break;
                                 }
 
@@ -165,28 +165,28 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         }
 
         // Slab
-        if (getDimension().isPostProcessingSlabs()) {
+        if(getDimension().isPostProcessingSlabs()) {
             //@builder
-            if ((ha == h + 1 && isSolidNonSlab(x + 1, ha, z, currentPostX, currentPostZ, currentData))
-                    || (hb == h + 1 && isSolidNonSlab(x, hb, z + 1, currentPostX, currentPostZ, currentData))
-                    || (hc == h + 1 && isSolidNonSlab(x - 1, hc, z, currentPostX, currentPostZ, currentData))
-                    || (hd == h + 1 && isSolidNonSlab(x, hd, z - 1, currentPostX, currentPostZ, currentData)))
+            if((ha == h + 1 && isSolidNonSlab(x + 1, ha, z, currentPostX, currentPostZ, currentData))
+                || (hb == h + 1 && isSolidNonSlab(x, hb, z + 1, currentPostX, currentPostZ, currentData))
+                || (hc == h + 1 && isSolidNonSlab(x - 1, hc, z, currentPostX, currentPostZ, currentData))
+                || (hd == h + 1 && isSolidNonSlab(x, hd, z - 1, currentPostX, currentPostZ, currentData)))
             //@done
             {
                 BlockData d = biome.getSlab().get(rng, x, h, z, getData());
 
-                if (d != null) {
+                if(d != null) {
                     boolean cancel = B.isAir(d);
 
-                    if (d.getMaterial().equals(Material.SNOW) && h + 1 <= getDimension().getFluidHeight()) {
+                    if(d.getMaterial().equals(Material.SNOW) && h + 1 <= getDimension().getFluidHeight()) {
                         cancel = true;
                     }
 
-                    if (isSnowLayer(x, h, z, currentPostX, currentPostZ, currentData)) {
+                    if(isSnowLayer(x, h, z, currentPostX, currentPostZ, currentData)) {
                         cancel = true;
                     }
 
-                    if (!cancel && isAirOrWater(x, h + 1, z, currentPostX, currentPostZ, currentData)) {
+                    if(!cancel && isAirOrWater(x, h + 1, z, currentPostX, currentPostZ, currentData)) {
                         setPostBlock(x, h + 1, z, d, currentPostX, currentPostZ, currentData);
                         h++;
                     }
@@ -197,24 +197,24 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         // Waterlogging
         BlockData b = getPostBlock(x, h, z, currentPostX, currentPostZ, currentData);
 
-        if (b instanceof Waterlogged) {
+        if(b instanceof Waterlogged) {
             Waterlogged ww = (Waterlogged) b.clone();
             boolean w = false;
 
-            if (h <= getDimension().getFluidHeight() + 1) {
-                if (isWaterOrWaterlogged(x, h + 1, z, currentPostX, currentPostZ, currentData)) {
+            if(h <= getDimension().getFluidHeight() + 1) {
+                if(isWaterOrWaterlogged(x, h + 1, z, currentPostX, currentPostZ, currentData)) {
                     w = true;
-                } else if ((isWaterOrWaterlogged(x + 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x - 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z + 1, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z - 1, currentPostX, currentPostZ, currentData))) {
+                } else if((isWaterOrWaterlogged(x + 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x - 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z + 1, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z - 1, currentPostX, currentPostZ, currentData))) {
                     w = true;
                 }
             }
 
-            if (w != ww.isWaterlogged()) {
+            if(w != ww.isWaterlogged()) {
                 ww.setWaterlogged(w);
                 setPostBlock(x, h, z, ww, currentPostX, currentPostZ, currentData);
             }
-        } else if (b.getMaterial().equals(Material.AIR) && h <= getDimension().getFluidHeight()) {
-            if ((isWaterOrWaterlogged(x + 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x - 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z + 1, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z - 1, currentPostX, currentPostZ, currentData))) {
+        } else if(b.getMaterial().equals(Material.AIR) && h <= getDimension().getFluidHeight()) {
+            if((isWaterOrWaterlogged(x + 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x - 1, h, z, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z + 1, currentPostX, currentPostZ, currentData) || isWaterOrWaterlogged(x, h, z - 1, currentPostX, currentPostZ, currentData))) {
                 setPostBlock(x, h, z, WATER, currentPostX, currentPostZ, currentData);
             }
         }
@@ -222,10 +222,10 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         // Foliage
         b = getPostBlock(x, h + 1, z, currentPostX, currentPostZ, currentData);
 
-        if (B.isFoliage(b) || b.getMaterial().equals(Material.DEAD_BUSH)) {
+        if(B.isFoliage(b) || b.getMaterial().equals(Material.DEAD_BUSH)) {
             Material onto = getPostBlock(x, h, z, currentPostX, currentPostZ, currentData).getMaterial();
 
-            if (!B.canPlaceOnto(b.getMaterial(), onto)) {
+            if(!B.canPlaceOnto(b.getMaterial(), onto)) {
                 setPostBlock(x, h + 1, z, AIR, currentPostX, currentPostZ, currentData);
             }
         }
@@ -282,7 +282,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
     }
 
     public void setPostBlock(int x, int y, int z, BlockData d, int currentPostX, int currentPostZ, Hunk<BlockData> currentData) {
-        if (y < currentData.getHeight()) {
+        if(y < currentData.getHeight()) {
             currentData.set(x & 15, y, z & 15, d);
         }
     }

@@ -44,10 +44,10 @@ public class ReactiveFolder {
         checkCycle++;
         boolean modified = false;
 
-        if (checkCycle % 3 == 0 ? fw.checkModified() : fw.checkModifiedFast()) {
-            for (File i : fw.getCreated()) {
-                if (i.getName().endsWith(".iob") || i.getName().endsWith(".json") || i.getName().endsWith(".js")) {
-                    if (i.getPath().contains(".iris")) {
+        if(checkCycle % 3 == 0 ? fw.checkModified() : fw.checkModifiedFast()) {
+            for(File i : fw.getCreated()) {
+                if(i.getName().endsWith(".iob") || i.getName().endsWith(".json") || i.getName().endsWith(".js")) {
+                    if(i.getPath().contains(".iris")) {
                         continue;
                     }
 
@@ -56,26 +56,26 @@ public class ReactiveFolder {
                 }
             }
 
-            if (!modified) {
-                for (File i : fw.getChanged()) {
-                    if (i.getPath().contains(".iris")) {
+            if(!modified) {
+                for(File i : fw.getChanged()) {
+                    if(i.getPath().contains(".iris")) {
                         continue;
                     }
 
-                    if (i.getName().endsWith(".iob") || i.getName().endsWith(".json") || i.getName().endsWith(".js")) {
+                    if(i.getName().endsWith(".iob") || i.getName().endsWith(".json") || i.getName().endsWith(".js")) {
                         modified = true;
                         break;
                     }
                 }
             }
 
-            if (!modified) {
-                for (File i : fw.getDeleted()) {
-                    if (i.getPath().contains(".iris")) {
+            if(!modified) {
+                for(File i : fw.getDeleted()) {
+                    if(i.getPath().contains(".iris")) {
                         continue;
                     }
 
-                    if (i.getName().endsWith(".iob") || i.getName().endsWith(".json") || i.getName().endsWith(".js")) {
+                    if(i.getName().endsWith(".iob") || i.getName().endsWith(".json") || i.getName().endsWith(".js")) {
                         modified = true;
                         break;
                     }
@@ -83,7 +83,7 @@ public class ReactiveFolder {
             }
         }
 
-        if (modified) {
+        if(modified) {
             hotload.accept(fw.getCreated(), fw.getChanged(), fw.getDeleted());
         }
 

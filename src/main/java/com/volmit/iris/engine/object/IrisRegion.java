@@ -182,14 +182,14 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     private KList<IrisOreGenerator> ores = new KList<>();
 
     public BlockData generateOres(int x, int y, int z, RNG rng, IrisData data) {
-        if (ores.isEmpty()) {
+        if(ores.isEmpty()) {
             return null;
         }
         BlockData b = null;
-        for (IrisOreGenerator i : ores) {
+        for(IrisOreGenerator i : ores) {
 
-            b = i.generate(x,y,z,rng,data);
-            if(b != null ){
+            b = i.generate(x, y, z, rng, data);
+            if(b != null) {
                 return b;
             }
         }
@@ -205,8 +205,8 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         {
             KList<IrisObjectPlacement> o = getObjects().copy();
 
-            for (IrisObjectPlacement i : o.copy()) {
-                if (!i.getCarvingSupport().supportsSurface()) {
+            for(IrisObjectPlacement i : o.copy()) {
+                if(!i.getCarvingSupport().supportsSurface()) {
                     o.remove(i);
                 }
             }
@@ -220,8 +220,8 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         {
             KList<IrisObjectPlacement> o = getObjects().copy();
 
-            for (IrisObjectPlacement i : o.copy()) {
-                if (!i.getCarvingSupport().supportsCarving()) {
+            for(IrisObjectPlacement i : o.copy()) {
+                if(!i.getCarvingSupport().supportsCarving()) {
                     o.remove(i);
                 }
             }
@@ -231,7 +231,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     }
 
     public double getBiomeZoom(InferredType t) {
-        switch (t) {
+        switch(t) {
             case CAVE:
                 return caveBiomeZoom;
             case LAND:
@@ -249,7 +249,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
 
     public CNG getShoreHeightGenerator() {
         return shoreHeightGenerator.aquire(() ->
-                CNG.signature(new RNG((long) (getName().length() + getLandBiomeZoom() + getLandBiomes().size() + 3458612))));
+            CNG.signature(new RNG((long) (getName().length() + getLandBiomeZoom() + getLandBiomes().size() + 3458612))));
     }
 
     public double getShoreHeight(double x, double z) {
@@ -270,9 +270,9 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         KMap<String, IrisBiome> b = new KMap<>();
         KSet<String> names = getAllBiomeIds();
 
-        while (!names.isEmpty()) {
-            for (String i : new KList<>(names)) {
-                if (b.containsKey(i)) {
+        while(!names.isEmpty()) {
+            for(String i : new KList<>(names)) {
+                if(b.containsKey(i)) {
                     names.remove(i);
                     continue;
                 }
@@ -280,7 +280,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
                 IrisBiome biome = g.getData().getBiomeLoader().load(i);
 
                 names.remove(i);
-                if (biome == null) {
+                if(biome == null) {
                     continue;
                 }
 
@@ -294,13 +294,13 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     }
 
     public KList<IrisBiome> getBiomes(DataProvider g, InferredType type) {
-        if (type.equals(InferredType.LAND)) {
+        if(type.equals(InferredType.LAND)) {
             return getRealLandBiomes(g);
-        } else if (type.equals(InferredType.SEA)) {
+        } else if(type.equals(InferredType.SEA)) {
             return getRealSeaBiomes(g);
-        } else if (type.equals(InferredType.SHORE)) {
+        } else if(type.equals(InferredType.SHORE)) {
             return getRealShoreBiomes(g);
-        } else if (type.equals(InferredType.CAVE)) {
+        } else if(type.equals(InferredType.CAVE)) {
             return getRealCaveBiomes(g);
         }
 
@@ -312,7 +312,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         {
             KList<IrisBiome> realCaveBiomes = new KList<>();
 
-            for (String i : getCaveBiomes()) {
+            for(String i : getCaveBiomes()) {
                 realCaveBiomes.add(g.getData().getBiomeLoader().load(i));
             }
 
@@ -325,7 +325,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         {
             KList<IrisBiome> realShoreBiomes = new KList<>();
 
-            for (String i : getShoreBiomes()) {
+            for(String i : getShoreBiomes()) {
                 realShoreBiomes.add(g.getData().getBiomeLoader().load(i));
             }
 
@@ -338,7 +338,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         {
             KList<IrisBiome> realSeaBiomes = new KList<>();
 
-            for (String i : getSeaBiomes()) {
+            for(String i : getSeaBiomes()) {
                 realSeaBiomes.add(g.getData().getBiomeLoader().load(i));
             }
 
@@ -351,7 +351,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         {
             KList<IrisBiome> realLandBiomes = new KList<>();
 
-            for (String i : getLandBiomes()) {
+            for(String i : getLandBiomes()) {
                 realLandBiomes.add(g.getData().getBiomeLoader().load(i));
             }
 
@@ -367,9 +367,9 @@ public class IrisRegion extends IrisRegistrant implements IRare {
         names.addAll(seaBiomes);
         names.addAll(shoreBiomes);
 
-        while (!names.isEmpty()) {
-            for (String i : new KList<>(names)) {
-                if (b.containsKey(i)) {
+        while(!names.isEmpty()) {
+            for(String i : new KList<>(names)) {
+                if(b.containsKey(i)) {
                     names.remove(i);
                     continue;
                 }
@@ -377,7 +377,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
                 IrisBiome biome = IrisData.loadAnyBiome(i);
 
                 names.remove(i);
-                if (biome == null) {
+                if(biome == null) {
                     continue;
                 }
 
@@ -392,17 +392,17 @@ public class IrisRegion extends IrisRegistrant implements IRare {
 
     public Color getColor(DataProvider dataProvider, RenderType type) {
         return this.cacheColor.aquire(() -> {
-            if (this.color == null) {
+            if(this.color == null) {
                 Random rand = new Random(getName().hashCode() + getAllBiomeIds().hashCode());
                 RandomColor randomColor = new RandomColor(rand);
 
                 KList<IrisBiome> biomes = getRealLandBiomes(dataProvider);
 
-                while (biomes.size() > 0) {
+                while(biomes.size() > 0) {
                     int index = rand.nextInt(biomes.size());
                     IrisBiome biome = biomes.get(index);
 
-                    if (biome.getVanillaDerivative() != null) {
+                    if(biome.getVanillaDerivative() != null) {
                         RandomColor.Color col = VanillaBiomeMap.getColorType(biome.getVanillaDerivative());
                         RandomColor.Luminosity lum = VanillaBiomeMap.getColorLuminosity(biome.getVanillaDerivative());
                         RandomColor.SaturationType sat = VanillaBiomeMap.getColorSaturatiom(biome.getVanillaDerivative());
@@ -419,7 +419,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
 
             try {
                 return Color.decode(this.color);
-            } catch (NumberFormatException e) {
+            } catch(NumberFormatException e) {
                 Iris.warn("Could not parse color \"" + this.color + "\" for region " + getName());
                 return Color.WHITE;
             }

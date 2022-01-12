@@ -64,7 +64,7 @@ public interface Job {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         CompletableFuture<?> f = J.afut(this::execute);
         int c = J.ar(() -> {
-            if (sender.isPlayer()) {
+            if(sender.isPlayer()) {
                 sender.sendProgress(getProgress(), getName());
             } else {
                 sender.sendMessage(getName() + ": " + getProgressString());
@@ -72,7 +72,7 @@ public interface Job {
         }, sender.isPlayer() ? 0 : 20);
         f.whenComplete((fs, ff) -> {
             J.car(c);
-            if (!silentMsg) {
+            if(!silentMsg) {
                 sender.sendMessage(C.AQUA + "Completed " + getName() + " in " + Form.duration(p.getMilliseconds(), 1));
             }
             whenComplete.run();

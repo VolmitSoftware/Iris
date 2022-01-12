@@ -70,18 +70,18 @@ public class IrisCommandRegistry {
     private boolean commandAllRandomLocations = true;
 
     public void run(Player p) {
-        if (rawCommands.isNotEmpty()) {
+        if(rawCommands.isNotEmpty()) {
             Location part = p.getLocation().clone().add(
-                    commandRandomAltX ? RNG.r.d(-commandOffsetX, commandOffsetX) : commandOffsetX,
-                    commandRandomAltY ? RNG.r.d(-commandOffsetY, commandOffsetY) : commandOffsetY,
-                    commandRandomAltZ ? RNG.r.d(-commandOffsetZ, commandOffsetZ) : commandOffsetZ);
-            for (IrisCommand rawCommand : rawCommands) {
+                commandRandomAltX ? RNG.r.d(-commandOffsetX, commandOffsetX) : commandOffsetX,
+                commandRandomAltY ? RNG.r.d(-commandOffsetY, commandOffsetY) : commandOffsetY,
+                commandRandomAltZ ? RNG.r.d(-commandOffsetZ, commandOffsetZ) : commandOffsetZ);
+            for(IrisCommand rawCommand : rawCommands) {
                 rawCommand.run(part);
-                if (commandAllRandomLocations) {
+                if(commandAllRandomLocations) {
                     part = p.getLocation().clone().add(
-                            commandRandomAltX ? RNG.r.d(-commandOffsetX, commandOffsetX) : commandOffsetX,
-                            commandRandomAltY ? RNG.r.d(-commandOffsetY, commandOffsetY) : commandOffsetY,
-                            commandRandomAltZ ? RNG.r.d(-commandOffsetZ, commandOffsetZ) : commandOffsetZ);
+                        commandRandomAltX ? RNG.r.d(-commandOffsetX, commandOffsetX) : commandOffsetX,
+                        commandRandomAltY ? RNG.r.d(-commandOffsetY, commandOffsetY) : commandOffsetY,
+                        commandRandomAltZ ? RNG.r.d(-commandOffsetZ, commandOffsetZ) : commandOffsetZ);
                 }
             }
         }

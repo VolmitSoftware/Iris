@@ -47,11 +47,11 @@ public class IrisStyledRange {
     private IrisGeneratorStyle style = new IrisGeneratorStyle(NoiseStyle.STATIC);
 
     public double get(RNG rng, double x, double z, IrisData data) {
-        if (min == max) {
+        if(min == max) {
             return min;
         }
 
-        if (style.isFlat()) {
+        if(style.isFlat()) {
             return M.lerp(min, max, 0.5);
         }
 

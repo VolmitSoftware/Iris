@@ -43,7 +43,7 @@ public class IrisSettings {
     private IrisSettingsPerformance performance = new IrisSettingsPerformance();
 
     public static int getThreadCount(int c) {
-        return switch (c) {
+        return switch(c) {
             case -1, -2, -4 -> Runtime.getRuntime().availableProcessors() / -c;
             case 0, 1, 2 -> 1;
             default -> Math.max(c, 2);
@@ -134,7 +134,7 @@ public class IrisSettings {
     }
 
     public static IrisSettings get() {
-        if (settings != null) {
+        if(settings != null) {
             return settings;
         }
 
@@ -142,10 +142,10 @@ public class IrisSettings {
 
         File s = Iris.instance.getDataFile("settings.json");
 
-        if (!s.exists()) {
+        if(!s.exists()) {
             try {
                 IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
-            } catch (JSONException | IOException e) {
+            } catch(JSONException | IOException e) {
                 e.printStackTrace();
                 Iris.reportError(e);
             }
@@ -155,10 +155,10 @@ public class IrisSettings {
                 settings = new Gson().fromJson(ss, IrisSettings.class);
                 try {
                     IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
-                } catch (IOException e) {
+                } catch(IOException e) {
                     e.printStackTrace();
                 }
-            } catch (Throwable ee) {
+            } catch(Throwable ee) {
                 // Iris.reportError(ee); causes a self-reference & stackoverflow
                 Iris.error("Configuration Error in settings.json! " + ee.getClass().getSimpleName() + ": " + ee.getMessage());
             }
@@ -168,7 +168,7 @@ public class IrisSettings {
     }
 
     public static void invalidate() {
-        synchronized (settings) {
+        synchronized(settings) {
             settings = null;
         }
     }
@@ -178,7 +178,7 @@ public class IrisSettings {
 
         try {
             IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
-        } catch (JSONException | IOException e) {
+        } catch(JSONException | IOException e) {
             e.printStackTrace();
             Iris.reportError(e);
         }

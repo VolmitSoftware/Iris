@@ -41,37 +41,37 @@ public class WandSelection {
         double accuracy = M.lerpInverse(0, 64 * 64, p.getLocation().distanceSquared(c.getCenter()));
         double dist = M.lerp(0.125, 3.5, accuracy);
 
-        for (double i = c.getLowerX() - 1; i < c.getUpperX() + 1; i += 0.25) {
-            for (double j = c.getLowerY() - 1; j < c.getUpperY() + 1; j += 0.25) {
-                for (double k = c.getLowerZ() - 1; k < c.getUpperZ() + 1; k += 0.25) {
+        for(double i = c.getLowerX() - 1; i < c.getUpperX() + 1; i += 0.25) {
+            for(double j = c.getLowerY() - 1; j < c.getUpperY() + 1; j += 0.25) {
+                for(double k = c.getLowerZ() - 1; k < c.getUpperZ() + 1; k += 0.25) {
                     boolean ii = i == c.getLowerX() || i == c.getUpperX();
                     boolean jj = j == c.getLowerY() || j == c.getUpperY();
                     boolean kk = k == c.getLowerZ() || k == c.getUpperZ();
 
-                    if ((ii && jj) || (ii && kk) || (kk && jj)) {
+                    if((ii && jj) || (ii && kk) || (kk && jj)) {
                         Vector push = new Vector(0, 0, 0);
 
-                        if (i == c.getLowerX()) {
+                        if(i == c.getLowerX()) {
                             push.add(new Vector(-0.55, 0, 0));
                         }
 
-                        if (j == c.getLowerY()) {
+                        if(j == c.getLowerY()) {
                             push.add(new Vector(0, -0.55, 0));
                         }
 
-                        if (k == c.getLowerZ()) {
+                        if(k == c.getLowerZ()) {
                             push.add(new Vector(0, 0, -0.55));
                         }
 
-                        if (i == c.getUpperX()) {
+                        if(i == c.getUpperX()) {
                             push.add(new Vector(0.55, 0, 0));
                         }
 
-                        if (j == c.getUpperY()) {
+                        if(j == c.getUpperY()) {
                             push.add(new Vector(0, 0.55, 0));
                         }
 
-                        if (k == c.getUpperZ()) {
+                        if(k == c.getUpperZ()) {
                             push.add(new Vector(0, 0, 0.55));
                         }
 
@@ -79,32 +79,32 @@ public class WandSelection {
                         accuracy = M.lerpInverse(0, 64 * 64, p.getLocation().distanceSquared(a));
                         dist = M.lerp(0.125, 3.5, accuracy);
 
-                        if (M.r(M.min(dist * 5, 0.9D) * 0.995)) {
+                        if(M.r(M.min(dist * 5, 0.9D) * 0.995)) {
                             continue;
                         }
 
-                        if (ii && jj) {
+                        if(ii && jj) {
                             a.add(0, 0, RNG.r.d(-0.3, 0.3));
                         }
 
-                        if (kk && jj) {
+                        if(kk && jj) {
                             a.add(RNG.r.d(-0.3, 0.3), 0, 0);
                         }
 
-                        if (ii && kk) {
+                        if(ii && kk) {
                             a.add(0, RNG.r.d(-0.3, 0.3), 0);
                         }
 
-                        if (p.getLocation().distanceSquared(a) < 256 * 256) {
+                        if(p.getLocation().distanceSquared(a) < 256 * 256) {
                             Color color = Color.getHSBColor((float) (0.5f + (Math.sin((i + j + k + (p.getTicksLived() / 2f)) / (20f)) / 2)), 1, 1);
                             int r = color.getRed();
                             int g = color.getGreen();
                             int b = color.getBlue();
 
                             p.spawnParticle(Particle.REDSTONE, a.getX(), a.getY(), a.getZ(),
-                                    1, 0, 0, 0, 0,
-                                    new Particle.DustOptions(org.bukkit.Color.fromRGB(r, g, b),
-                                            (float) dist * 3f));
+                                1, 0, 0, 0, 0,
+                                new Particle.DustOptions(org.bukkit.Color.fromRGB(r, g, b),
+                                    (float) dist * 3f));
                         }
                     }
                 }

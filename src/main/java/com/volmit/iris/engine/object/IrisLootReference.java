@@ -54,7 +54,7 @@ public class IrisLootReference {
         {
             KList<IrisLootTable> t = new KList<>();
 
-            for (String i : tables) {
+            for(String i : tables) {
                 t.add(g.getData().getLootLoader().load(i));
             }
 

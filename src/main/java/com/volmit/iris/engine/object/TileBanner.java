@@ -77,7 +77,7 @@ public class TileBanner implements TileData<Banner> {
         out.writeShort(id);
         out.writeByte(baseColor.ordinal());
         out.writeByte(patterns.size());
-        for (Pattern p : patterns) {
+        for(Pattern p : patterns) {
             out.writeByte(p.getColor().ordinal());
             out.writeByte(p.getPattern().ordinal());
         }
@@ -89,7 +89,7 @@ public class TileBanner implements TileData<Banner> {
         int listSize = in.readByte();
         patterns = new ArrayList<>();
 
-        for (int i = 0; i < listSize; i++) {
+        for(int i = 0; i < listSize; i++) {
             DyeColor color = DyeColor.values()[in.readByte()];
             PatternType type = PatternType.values()[in.readByte()];
             patterns.add(new Pattern(color, type));
@@ -100,7 +100,7 @@ public class TileBanner implements TileData<Banner> {
     @Override
     public void toNBT(CompoundTag tag) {
         @SuppressWarnings("unchecked") ListTag<CompoundTag> listTag = (ListTag<CompoundTag>) ListTag.createUnchecked(CompoundTag.class);
-        for (Pattern p : patterns) {
+        for(Pattern p : patterns) {
             CompoundTag pattern = new CompoundTag();
             pattern.putString("Pattern", p.getPattern().getIdentifier());
             pattern.putByte("Color", p.getColor().getDyeData());
@@ -110,7 +110,7 @@ public class TileBanner implements TileData<Banner> {
     }
 
     public boolean isBanner(Material material) {
-        return switch (material) {
+        return switch(material) {
             case RED_BANNER, RED_WALL_BANNER, ORANGE_BANNER, ORANGE_WALL_BANNER, YELLOW_BANNER, YELLOW_WALL_BANNER, LIME_BANNER, LIME_WALL_BANNER, GREEN_BANNER, GREEN_WALL_BANNER, CYAN_BANNER, CYAN_WALL_BANNER, LIGHT_BLUE_BANNER, LIGHT_BLUE_WALL_BANNER, BLUE_BANNER, BLUE_WALL_BANNER, PURPLE_BANNER, PURPLE_WALL_BANNER, MAGENTA_BANNER, MAGENTA_WALL_BANNER, PINK_BANNER, PINK_WALL_BANNER, WHITE_BANNER, WHITE_WALL_BANNER, LIGHT_GRAY_BANNER, LIGHT_GRAY_WALL_BANNER, GRAY_BANNER, GRAY_WALL_BANNER, BLACK_BANNER, BLACK_WALL_BANNER, BROWN_BANNER, BROWN_WALL_BANNER -> true;
             default -> false;
         };

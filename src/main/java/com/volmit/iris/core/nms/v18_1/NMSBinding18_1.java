@@ -35,8 +35,10 @@ import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.mca.palette.MCAPalettedContainer;
 import com.volmit.iris.util.nbt.mca.palette.MCAWrappedPalettedContainer;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
+import com.volmit.iris.util.scheduling.J;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.IdMap;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.NbtIo;
@@ -63,7 +65,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -76,6 +80,7 @@ public class NMSBinding18_1 implements INMSBinding {
     private final AtomicCache<MCAIdMapper<BlockState>> registryCache = new AtomicCache<>();
     private final AtomicCache<MCAPalette<BlockState>> globalCache = new AtomicCache<>();
     private final AtomicCache<RegistryAccess> registryAccess = new AtomicCache<>();
+    private final AtomicCache<Method> byIdRef = new AtomicCache<>();
     private Field biomeStorageCache = null;
 
     @Override
@@ -159,7 +164,25 @@ public class NMSBinding18_1 implements INMSBinding {
 
     @Override
     public Object getBiomeBaseFromId(int id) {
-        return getCustomBiomeRegistry().byId(id);
+        try {
+            return byIdRef.aquire(() -> {
+                for(Method i : IdMap.class.getDeclaredMethods())
+                {
+                    if(i.getParameterCount() == 1 && i.getParameterTypes()[0].equals(int.class))
+                    {
+                        Iris.info("[NMS] Found byId method in " + IdMap.class.getSimpleName() + "." + i.getName() + "(int) => " + Biome.class.getSimpleName());
+                        return i;
+                    }
+                }
+
+                Iris.error("Cannot find byId method!");
+                return null;
+            }).invoke(getCustomBiomeRegistry(), id);
+        } catch(IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
     @Override
@@ -254,7 +277,7 @@ public class NMSBinding18_1 implements INMSBinding {
 
             @Override
             public net.minecraft.world.level.biome.Biome byId(int paramInt) {
-                return getCustomBiomeRegistry().byId(paramInt);
+                return (net.minecraft.world.level.biome.Biome) getBiomeBaseFromId(paramInt);
             }
         });
     }

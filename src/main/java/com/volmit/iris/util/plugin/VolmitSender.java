@@ -234,6 +234,7 @@ public class VolmitSender implements CommandSender {
     }
 
     public void sendProgress(double percent, String thing) {
+        //noinspection IfStatementWithIdenticalBranches
         if(percent < 0) {
             int l = 44;
             int g = (int) (1D * l);

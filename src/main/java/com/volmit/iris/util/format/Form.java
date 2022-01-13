@@ -330,6 +330,7 @@ public class Form {
                                 suffix = "Month";
                                 div = 12;
 
+                                //noinspection IfStatementWithIdenticalBranches
                                 if(phantom > div) {
                                     phantom /= div;
                                     suffix = "Year";

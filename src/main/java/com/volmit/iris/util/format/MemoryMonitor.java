@@ -75,6 +75,7 @@ public class MemoryMonitor {
         return usedMemory / (double) getMaxBytes();
     }
 
+    @SuppressWarnings("IfStatementWithIdenticalBranches")
     private void sample() {
         long used = getVMUse();
         if(usedMemory == -1) {

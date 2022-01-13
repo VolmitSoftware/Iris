@@ -39,7 +39,6 @@ import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.NastyRunnable;
-import com.volmit.iris.util.hunk.bits.TecTest;
 import com.volmit.iris.util.io.FileWatcher;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.io.InstanceState;
@@ -405,7 +404,6 @@ public class Iris extends VolmitPlugin implements Listener {
             J.ar(this::checkConfigHotload, 60);
             J.sr(this::tickQueue, 0);
             J.s(this::setupPapi);
-            J.s(TecTest::go);
             J.a(ServerConfigurator::configure, 20);
             splash();
             autoStartStudio();

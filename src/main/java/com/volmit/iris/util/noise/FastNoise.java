@@ -1190,9 +1190,6 @@ public class FastNoise {
         return sum;
     }
 
-    // private final static float F2 = (float) (1.0 / 2.0);
-    // private final static float G2 = (float) (1.0 / 4.0);
-
     public float GetSimplex(float x, float y) {
         return SingleSimplex(m_seed, x * m_frequency, y * m_frequency);
     }

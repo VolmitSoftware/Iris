@@ -22,7 +22,6 @@ import java.io.File;
 
 public class FileWatcher {
     protected final File file;
-    private boolean exists;
     private long lastModified;
     private long size;
 
@@ -32,7 +31,7 @@ public class FileWatcher {
     }
 
     protected void readProperties() {
-        exists = file.exists();
+        boolean exists = file.exists();
         lastModified = exists ? file.lastModified() : -1;
         size = exists ? file.isDirectory() ? -2 : file.length() : -1;
     }

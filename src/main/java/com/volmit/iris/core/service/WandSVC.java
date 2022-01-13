@@ -54,7 +54,6 @@ import java.util.ArrayList;
 import java.util.Objects;
 
 public class WandSVC implements IrisService {
-    private static ItemStack wand;
     private static ItemStack dust;
 
     public static void pasteSchematic(IrisObject s, Location at) {
@@ -268,7 +267,7 @@ public class WandSVC implements IrisService {
 
     @Override
     public void onEnable() {
-        wand = createWand();
+        ItemStack wand = createWand();
         dust = createDust();
 
         J.ar(() -> {

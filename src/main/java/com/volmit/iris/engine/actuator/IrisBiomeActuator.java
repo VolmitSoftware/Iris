@@ -81,15 +81,6 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
                             IrisBiomeCustom custom = ib.getCustomBiome(rng, x, 0, z);
                             Object biomeBase = INMS.get().getCustomBiomeBaseFor(getDimension().getLoadKey() + ":" + custom.getId());
 //
-//                            int m = hits.size();
-//                            String str = ib.getLoadKey() + ":custom:" + custom.getId();
-//                            hits.add(str);
-//
-//                            if(m != hits.size())
-//                            {
-//                                Iris.info("Added " + str);
-//                            }
-
                             if(biomeBase == null || !injectBiome(h, x, 0, z, biomeBase)) {
                                 throw new RuntimeException("Cant inject biome!");
                             }

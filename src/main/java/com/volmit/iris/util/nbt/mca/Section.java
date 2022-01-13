@@ -30,7 +30,6 @@ public class Section {
     private MCAPaletteAccess palette;
     private byte[] blockLight;
     private byte[] skyLight;
-    private int dataVersion;
 
     public Section(CompoundTag sectionRoot, int dataVersion) {
         this(sectionRoot, dataVersion, LoadFlags.ALL_DATA);
@@ -38,7 +37,6 @@ public class Section {
 
     public Section(CompoundTag sectionRoot, int dataVersion, long loadFlags) {
         data = sectionRoot;
-        this.dataVersion = dataVersion;
         ListTag<?> rawPalette = sectionRoot.getListTag("Palette");
         if(rawPalette == null) {
             return;

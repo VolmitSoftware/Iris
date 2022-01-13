@@ -90,12 +90,10 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
     private boolean lowtile = false;
     private boolean follow = false;
     private boolean alt = false;
-    private int posX = 0;
     private IrisRenderer renderer;
     private IrisWorld world;
     private double velocity = 0;
     private int lowq = 12;
-    private int posZ = 0;
     private double scale = 128;
     private double mscale = 4D;
     private int w = 0;
@@ -501,8 +499,8 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
         int iscale = (int) scale;
         g.setColor(Color.white);
         g.clearRect(0, 0, w, h);
-        posX = (int) oxp;
-        posZ = (int) ozp;
+        int posX = (int) oxp;
+        int posZ = (int) ozp;
         m.set(3);
 
         for(int r = 0; r < Math.max(w, h); r += iscale) {

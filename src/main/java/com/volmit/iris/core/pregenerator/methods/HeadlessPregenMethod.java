@@ -26,7 +26,6 @@ import com.volmit.iris.util.mantle.Mantle;
 import lombok.Getter;
 
 public class HeadlessPregenMethod implements PregeneratorMethod {
-    private final HeadlessWorld world;
 
     @Getter
     private final HeadlessGenerator generator;
@@ -36,7 +35,6 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
     }
 
     public HeadlessPregenMethod(HeadlessWorld world, HeadlessGenerator generator) {
-        this.world = world;
         this.generator = generator;
     }
 

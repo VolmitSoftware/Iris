@@ -50,7 +50,6 @@ public class Board {
 
     private final Player player;
     private final Objective objective;
-    private final Team team;
     @Setter
     private BoardSettings boardSettings;
     private boolean ready;
@@ -61,11 +60,11 @@ public class Board {
         this.boardSettings = boardSettings;
         this.objective = this.getScoreboard().getObjective("board") == null ? this.getScoreboard().registerNewObjective("board", "dummy") : this.getScoreboard().getObjective("board");
         this.objective.setDisplaySlot(DisplaySlot.SIDEBAR);
-        this.team = this.getScoreboard().getTeam("board") == null ? this.getScoreboard().registerNewTeam("board") : this.getScoreboard().getTeam("board");
-        this.team.setAllowFriendlyFire(true);
-        this.team.setCanSeeFriendlyInvisibles(false);
-        this.team.setPrefix("");
-        this.team.setSuffix("");
+        Team team = this.getScoreboard().getTeam("board") == null ? this.getScoreboard().registerNewTeam("board") : this.getScoreboard().getTeam("board");
+        team.setAllowFriendlyFire(true);
+        team.setCanSeeFriendlyInvisibles(false);
+        team.setPrefix("");
+        team.setSuffix("");
         this.ready = true;
     }
 

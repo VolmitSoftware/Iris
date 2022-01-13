@@ -376,9 +376,7 @@ public class IrisMathHelper {
                 var9 = var5;
                 var10 = var6;
             }
-            default -> {
-                throw new RuntimeException("Something went wrong when converting from HSV to RGB. Input was " + var0 + ", " + var1 + ", " + var2);
-            }
+            default -> throw new RuntimeException("Something went wrong when converting from HSV to RGB. Input was " + var0 + ", " + var1 + ", " + var2);
         }
         final int var11 = clamp((int) (var8 * 255.0f), 0, 255);
         final int var12 = clamp((int) (var9 * 255.0f), 0, 255);

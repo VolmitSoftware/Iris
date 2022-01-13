@@ -96,7 +96,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
 
                     if(height < getDimension().getFluidHeight()) {
                         getSeaSurfaceDecorator().decorate(finalI, j,
-                            realX, Math.round(+finalI + 1), Math.round(x + finalI - 1),
+                            realX, Math.round(finalI + 1), Math.round(x + finalI - 1),
                             realZ, Math.round(z + j + 1), Math.round(z + j - 1),
                             output, biome, getDimension().getFluidHeight(), getEngine().getHeight());
                         getSeaFloorDecorator().decorate(finalI, j,

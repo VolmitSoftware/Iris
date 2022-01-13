@@ -72,7 +72,7 @@ public class MCABitStorage {
         this.mask = (1L << bits) - 1L;
         this.valuesPerLong = (char) (64 / bits);
         int var3 = 3 * (this.valuesPerLong - 1);
-        this.divideMul = MAGIC[var3 + 0];
+        this.divideMul = MAGIC[var3];
         this.divideAdd = MAGIC[var3 + 1];
         this.divideShift = MAGIC[var3 + 2];
         int var4 = (length + this.valuesPerLong - 1) / this.valuesPerLong;

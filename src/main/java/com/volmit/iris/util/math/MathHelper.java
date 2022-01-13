@@ -334,8 +334,8 @@ public class MathHelper {
         int var3 = (var1 & 16711680) >> 16;
         int var4 = (var0 & '\uff00') >> 8;
         int var5 = (var1 & '\uff00') >> 8;
-        int var6 = (var0 & 255) >> 0;
-        int var7 = (var1 & 255) >> 0;
+        int var6 = (var0 & 255);
+        int var7 = (var1 & 255);
         int var8 = (int) ((float) var2 * (float) var3 / 255.0F);
         int var9 = (int) ((float) var4 * (float) var5 / 255.0F);
         int var10 = (int) ((float) var6 * (float) var7 / 255.0F);
@@ -345,7 +345,7 @@ public class MathHelper {
     public static int a(int var0, float var1, float var2, float var3) {
         int var4 = (var0 & 16711680) >> 16;
         int var5 = (var0 & '\uff00') >> 8;
-        int var6 = (var0 & 255) >> 0;
+        int var6 = (var0 & 255);
         int var7 = (int) ((float) var4 * var1);
         int var8 = (int) ((float) var5 * var2);
         int var9 = (int) ((float) var6 * var3);

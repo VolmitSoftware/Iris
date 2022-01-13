@@ -299,6 +299,7 @@ public class CNG {
 
         for(T i : b) {
             for(int j = 0; j < max - i.getRarity(); j++) {
+                //noinspection AssignmentUsedAsCondition
                 if(o = !o) {
                     rarityMapped.add(i);
                 } else {

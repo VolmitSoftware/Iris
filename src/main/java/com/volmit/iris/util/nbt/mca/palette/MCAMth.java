@@ -356,8 +356,8 @@ public class MCAMth {
         int var3 = (var1 & 0xFF0000) >> 16;
         int var4 = (var0 & 0xFF00) >> 8;
         int var5 = (var1 & 0xFF00) >> 8;
-        int var6 = (var0 & 0xFF) >> 0;
-        int var7 = (var1 & 0xFF) >> 0;
+        int var6 = (var0 & 0xFF);
+        int var7 = (var1 & 0xFF);
         int var8 = (int) (var2 * var3 / 255.0F);
         int var9 = (int) (var4 * var5 / 255.0F);
         int var10 = (int) (var6 * var7 / 255.0F);
@@ -367,7 +367,7 @@ public class MCAMth {
     public static int colorMultiply(int var0, float var1, float var2, float var3) {
         int var4 = (var0 & 0xFF0000) >> 16;
         int var5 = (var0 & 0xFF00) >> 8;
-        int var6 = (var0 & 0xFF) >> 0;
+        int var6 = (var0 & 0xFF);
         int var7 = (int) (var4 * var1);
         int var8 = (int) (var5 * var2);
         int var9 = (int) (var6 * var3);

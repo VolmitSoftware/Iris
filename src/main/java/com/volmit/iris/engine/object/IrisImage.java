@@ -59,36 +59,36 @@ public class IrisImage extends IrisRegistrant {
                 return ((color >> 8) & 0xFF) / 255D;
             }
             case BLUE -> {
-                return ((color >> 0) & 0xFF) / 255D;
+                return ((color) & 0xFF) / 255D;
             }
             case SATURATION -> {
-                return Color.RGBtoHSB((color >> 16) & 0xFF, (color >> 8) & 0xFF, (color >> 0) & 0xFF, null)[1];
+                return Color.RGBtoHSB((color >> 16) & 0xFF, (color >> 8) & 0xFF, (color) & 0xFF, null)[1];
             }
             case HUE -> {
-                return Color.RGBtoHSB((color >> 16) & 0xFF, (color >> 8) & 0xFF, (color >> 0) & 0xFF, null)[0];
+                return Color.RGBtoHSB((color >> 16) & 0xFF, (color >> 8) & 0xFF, (color) & 0xFF, null)[0];
             }
             case BRIGHTNESS -> {
-                return Color.RGBtoHSB((color >> 16) & 0xFF, (color >> 8) & 0xFF, (color >> 0) & 0xFF, null)[2];
+                return Color.RGBtoHSB((color >> 16) & 0xFF, (color >> 8) & 0xFF, (color) & 0xFF, null)[2];
             }
             case COMPOSITE_ADD_RGB -> {
-                return ((((color >> 16) & 0xFF) / 255D) + (((color >> 8) & 0xFF) / 255D) + (((color >> 0) & 0xFF) / 255D)) / 3D;
+                return ((((color >> 16) & 0xFF) / 255D) + (((color >> 8) & 0xFF) / 255D) + (((color) & 0xFF) / 255D)) / 3D;
             }
             case COMPOSITE_MUL_RGB -> {
-                return (((color >> 16) & 0xFF) / 255D) * (((color >> 8) & 0xFF) / 255D) * (((color >> 0) & 0xFF) / 255D);
+                return (((color >> 16) & 0xFF) / 255D) * (((color >> 8) & 0xFF) / 255D) * (((color) & 0xFF) / 255D);
             }
             case COMPOSITE_MAX_RGB -> {
-                return Math.max(Math.max((((color >> 16) & 0xFF) / 255D), (((color >> 8) & 0xFF) / 255D)), (((color >> 0) & 0xFF) / 255D));
+                return Math.max(Math.max((((color >> 16) & 0xFF) / 255D), (((color >> 8) & 0xFF) / 255D)), (((color) & 0xFF) / 255D));
             }
             case COMPOSITE_ADD_HSB -> {
-                float[] hsb = Color.RGBtoHSB((color >> 16) & 0xFF, (color >> 8) & 0xFF, (color >> 0) & 0xFF, null);
+                float[] hsb = Color.RGBtoHSB((color >> 16) & 0xFF, (color >> 8) & 0xFF, (color) & 0xFF, null);
                 return (hsb[0] + hsb[1] + hsb[2]) / 3D;
             }
             case COMPOSITE_MUL_HSB -> {
-                float[] hsb = Color.RGBtoHSB((color >> 16) & 0xFF, (color >> 8) & 0xFF, (color >> 0) & 0xFF, null);
+                float[] hsb = Color.RGBtoHSB((color >> 16) & 0xFF, (color >> 8) & 0xFF, (color) & 0xFF, null);
                 return hsb[0] * hsb[1] * hsb[2];
             }
             case COMPOSITE_MAX_HSB -> {
-                float[] hsb = Color.RGBtoHSB((color >> 16) & 0xFF, (color >> 8) & 0xFF, (color >> 0) & 0xFF, null);
+                float[] hsb = Color.RGBtoHSB((color >> 16) & 0xFF, (color >> 8) & 0xFF, (color) & 0xFF, null);
                 return Math.max(hsb[0], Math.max(hsb[1], hsb[2]));
             }
             case RAW -> {

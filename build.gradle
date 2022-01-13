@@ -66,8 +66,8 @@ processResources {
  * Unified repo
  */
 repositories {
-    mavenLocal{
-        content{
+    mavenLocal {
+        content {
             includeGroup("org.bukkit")
             includeGroup("org.spigotmc")
         }
@@ -147,8 +147,7 @@ dependencies {
     implementation 'org.apache.commons:commons-lang3:3.12.0'
 }
 
-if(JavaVersion.current().toString() != "17")
-{
+if (JavaVersion.current().toString() != "17") {
     System.err.println()
     System.err.println("=========================================================================================================")
     System.err.println("You must run gradle on Java 17. You are using " + JavaVersion.current())
@@ -184,16 +183,16 @@ task downloadBuildtools(type: Download) {
     group "remapping"
     src 'https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar'
     dest buildToolsJar
-    onlyIf{
+    onlyIf {
         !buildToolsJar.exists()
     }
 }
 
-task downloadSpecialSource(type: Download){
+task downloadSpecialSource(type: Download) {
     group "remapping"
     src 'https://repo.maven.apache.org/maven2/net/md-5/SpecialSource/1.10.0/SpecialSource-1.10.0-shaded.jar'
     dest specialSourceJar
-    onlyIf{
+    onlyIf {
         !specialSourceJar.exists()
     }
 }
@@ -210,7 +209,7 @@ task executeBuildTools(dependsOn: downloadBuildtools, type: JavaExec)
             "craftbukkit",
             "--remap"
     ]
-    onlyIf{
+    onlyIf {
         !buildToolsHint.exists()
     }
 }
@@ -229,7 +228,7 @@ task specialSourceRemapObfuscate(type: JavaExec)
     dependsOn(copyBuildToSpecialSource, downloadSpecialSource, shadowJar)
     workingDir = specialSourceFolder
     classpath = files(specialSourceJar,
-            new File(m2s + "/org/spigotmc/spigot/"+spigotJarVersion+"/spigot-" + spigotJarVersion + "-remapped-mojang.jar"))
+            new File(m2s + "/org/spigotmc/spigot/" + spigotJarVersion + "/spigot-" + spigotJarVersion + "-remapped-mojang.jar"))
     mainClass = "net.md_5.specialsource.SpecialSource"
     args = [
             "--live",
@@ -238,7 +237,7 @@ task specialSourceRemapObfuscate(type: JavaExec)
             "-o",
             ssobfJar.getName(),
             "-m",
-            m2s + "/org/spigotmc/minecraft-server/"+spigotJarVersion+"/minecraft-server-" + spigotJarVersion + "-maps-mojang.txt",
+            m2s + "/org/spigotmc/minecraft-server/" + spigotJarVersion + "/minecraft-server-" + spigotJarVersion + "-maps-mojang.txt",
             "--reverse",
     ]
 }
@@ -249,7 +248,7 @@ task specialSourceRemap(type: JavaExec)
     dependsOn(specialSourceRemapObfuscate)
     workingDir = specialSourceFolder
     classpath = files(specialSourceJar,
-            new File(m2s + "/org/spigotmc/spigot/"+spigotJarVersion+"/spigot-" + spigotJarVersion + "-remapped-obf.jar"))
+            new File(m2s + "/org/spigotmc/spigot/" + spigotJarVersion + "/spigot-" + spigotJarVersion + "-remapped-obf.jar"))
     mainClass = "net.md_5.specialsource.SpecialSource"
     args = [
             "--live",
@@ -258,7 +257,7 @@ task specialSourceRemap(type: JavaExec)
             "-o",
             ssJar.getName(),
             "-m",
-            m2s + "/org/spigotmc/minecraft-server/"+spigotJarVersion+"/minecraft-server-" + spigotJarVersion + "-maps-spigot.csrg"
+            m2s + "/org/spigotmc/minecraft-server/" + spigotJarVersion + "/minecraft-server-" + spigotJarVersion + "-maps-spigot.csrg"
     ]
 }
 
@@ -282,8 +281,7 @@ task iris(type: Copy)
 }
 
 def registerCustomOutputTask(name, path) {
-    if (!System.properties['os.name'].toLowerCase().contains('windows'))
-    {
+    if (!System.properties['os.name'].toLowerCase().contains('windows')) {
         return;
     }
 
@@ -300,8 +298,7 @@ def registerCustomOutputTask(name, path) {
 }
 
 def registerCustomOutputTaskUnix(name, path) {
-    if(System.properties['os.name'].toLowerCase().contains('windows'))
-    {
+    if (System.properties['os.name'].toLowerCase().contains('windows')) {
         return;
     }
 

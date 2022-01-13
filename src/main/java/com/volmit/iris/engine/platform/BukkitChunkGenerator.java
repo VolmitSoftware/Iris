@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -170,8 +170,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                                     continue;
                                 }
 
-                                c.getBlock(xx, yy + (finalI << 4)+ world.getMinHeight(), zz)
-                                    .setBlockData(tc.getBlockData(xx, yy + (finalI << 4)+ world.getMinHeight(), zz), false);
+                                c.getBlock(xx, yy + (finalI << 4) + world.getMinHeight(), zz)
+                                    .setBlockData(tc.getBlockData(xx, yy + (finalI << 4) + world.getMinHeight(), zz), false);
                             }
                         }
                     }

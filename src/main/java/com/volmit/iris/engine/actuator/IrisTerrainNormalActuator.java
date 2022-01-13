@@ -81,7 +81,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
      */
     @BlockCoordinates
     public void terrainSliver(int x, int z, int xf, Hunk<BlockData> h) {
-        //
         int zf, realX, realZ, hf, he;
         IrisBiome biome;
         IrisRegion region;
@@ -94,7 +93,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
             he = (int) Math.round(Math.min(h.getHeight(), getComplex().getHeightStream().get(realX, realZ)));
             hf = Math.round(Math.max(Math.min(h.getHeight(), getDimension().getFluidHeight()), he));
 
-            // this 0 is where we are going to need to modify the world base height, the Zero, not this instance...
             if(hf < 0) {
                 continue;
             }
@@ -103,13 +101,11 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
             KList<BlockData> fblocks = null;
             int depth, fdepth;
 
-            // Fluid height and lower
             for(int i = hf; i >= 0; i--) {
                 if(i >= h.getHeight()) { // h.getheight is terrain height
                     continue;
                 }
 
-                // will need to change
                 if(i == 0) {
                     if(getDimension().isBedrock()) {
                         h.set(xf, i, zf, BEDROCK);
@@ -134,7 +130,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                     continue;
                 }
 
-                // top of surface
                 if(i <= he) {
                     depth = he - i;
                     if(blocks == null) {

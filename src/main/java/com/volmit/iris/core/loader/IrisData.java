@@ -366,7 +366,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         if(f.getPath().startsWith(getDataFolder().getPath())) {
             String[] full = f.getPath().split("\\Q" + File.separator + "\\E");
             String[] df = getDataFolder().getPath().split("\\Q" + File.separator + "\\E");
-            String g = "";
+            StringBuilder g = new StringBuilder();
             boolean m = true;
             for(int i = 0; i < full.length; i++) {
                 if(i >= df.length) {
@@ -375,7 +375,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                         continue;
                     }
 
-                    g += "/" + full[i];
+                    g.append("/").append(full[i]);
                 }
             }
 

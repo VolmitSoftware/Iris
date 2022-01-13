@@ -337,10 +337,10 @@ public class IrisInterpolation {
         StringBuilder sb = new StringBuilder();
 
         if(array) {
-            fb.append("private static final double[] F" + (int) checks + "A = {");
+            fb.append("private static final double[] F").append((int) checks).append("A = {");
         }
 
-        sb.append("private static double sc" + (int) checks + "(int x, int z, double r, NoiseProvider n) {\n    return (");
+        sb.append("private static double sc").append((int) checks).append("(int x, int z, double r, NoiseProvider n) {\n    return (");
         for(int i = 0; i < 360; i += m) {
             double sin = Math.sin(Math.toRadians(i));
             double cos = Math.cos(Math.toRadians(i));
@@ -350,13 +350,13 @@ public class IrisInterpolation {
             String ss = array ? "F" + (int) checks + "A[" + (igx++) + "]" : "F" + (int) checks + "S" + ig;
 
             if(array) {
-                fb.append((ig > 0 ? (ig % 6 == 0 ? ",\n" : ",") : "") + cof + "," + sif);
+                fb.append(ig > 0 ? (ig % 6 == 0 ? ",\n" : ",") : "").append(cof).append(",").append(sif);
             } else {
-                fb.append("private static final double " + cc + " = " + cof + ";\n");
-                fb.append("private static final double " + ss + " = " + sif + ";\n");
+                fb.append("private static final double ").append(cc).append(" = ").append(cof).append(";\n");
+                fb.append("private static final double ").append(ss).append(" = ").append(sif).append(";\n");
             }
 
-            sb.append((ig > 0 ? "\n    +" : "") + "n.noise(x + ((r * " + cc + ") - (r * " + ss + ")), z + ((r * " + ss + ") + (r * " + cc + ")))");
+            sb.append(ig > 0 ? "\n    +" : "").append("n.noise(x + ((r * ").append(cc).append(") - (r * ").append(ss).append(")), z + ((r * ").append(ss).append(") + (r * ").append(cc).append(")))");
             ig++;
         }
 
@@ -364,7 +364,7 @@ public class IrisInterpolation {
             fb.append("};");
         }
 
-        sb.append(")/" + checks + "D;\n}");
+        sb.append(")/").append(checks).append("D;\n}");
         return fb + "\n" + sb;
     }
 

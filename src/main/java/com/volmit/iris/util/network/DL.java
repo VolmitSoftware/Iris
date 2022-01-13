@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Arrays;
 
 public abstract class DL {
     protected File d;
@@ -65,9 +66,7 @@ public abstract class DL {
         flags = new KSet<>();
         latch = new ChronoLatch(500);
 
-        for(DownloadFlag i : downloadFlags) {
-            flags.add(i);
-        }
+        flags.addAll(Arrays.asList(downloadFlags));
     }
 
     public void monitor(DownloadMonitor m) {

@@ -170,7 +170,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                                     continue;
                                 }
 
-                                c.getBlock(xx, yy + (finalI << 4), zz).setBlockData(tc.getBlockData(xx, yy + (finalI << 4), zz), false);
+                                c.getBlock(xx, yy + (finalI << 4)+ world.getMinHeight(), zz)
+                                    .setBlockData(tc.getBlockData(xx, yy + (finalI << 4)+ world.getMinHeight(), zz), false);
                             }
                         }
                     }

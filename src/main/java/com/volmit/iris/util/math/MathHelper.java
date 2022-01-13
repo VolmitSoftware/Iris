@@ -116,7 +116,7 @@ public class MathHelper {
         if(var0 < var1) {
             return var1;
         } else {
-            return var0 > var2 ? var2 : var0;
+            return Math.min(var0, var2);
         }
     }
 
@@ -124,7 +124,7 @@ public class MathHelper {
         if(var0 < var2) {
             return var2;
         } else {
-            return var0 > var4 ? var4 : var0;
+            return Math.min(var0, var4);
         }
     }
 
@@ -132,7 +132,7 @@ public class MathHelper {
         if(var0 < var1) {
             return var1;
         } else {
-            return var0 > var2 ? var2 : var0;
+            return Math.min(var0, var2);
         }
     }
 
@@ -140,7 +140,7 @@ public class MathHelper {
         if(var0 < var2) {
             return var2;
         } else {
-            return var0 > var4 ? var4 : var0;
+            return Math.min(var0, var4);
         }
     }
 
@@ -169,7 +169,7 @@ public class MathHelper {
             var2 = -var2;
         }
 
-        return var0 > var2 ? var0 : var2;
+        return Math.max(var0, var2);
     }
 
     public static int a(int var0, int var1) {

@@ -721,7 +721,6 @@ public enum C {
             case GREEN -> (byte) 10;
             case LIGHT_PURPLE -> (byte) 13;
             case RED -> (byte) 12;
-            case WHITE -> (byte) 15;
             case YELLOW -> (byte) 14;
             default -> (byte) 15;
         };
@@ -730,7 +729,6 @@ public enum C {
     public byte getItemMeta() {
         return switch(this) {
             case AQUA, DARK_AQUA -> (byte) 9;
-            case BLACK -> (byte) 15;
             case BLUE -> (byte) 3;
             case BOLD, UNDERLINE, RESET, STRIKETHROUGH, MAGIC, ITALIC -> (byte) -1;
             case DARK_BLUE -> (byte) 11;

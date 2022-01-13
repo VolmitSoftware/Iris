@@ -266,71 +266,85 @@ public class VectorMath {
         KList<BlockFace> faces = new KList<>();
 
         switch(f) {
-            case DOWN -> faces.add(BlockFace.DOWN);
-            case EAST -> faces.add(BlockFace.EAST);
-            case EAST_NORTH_EAST -> {
+            case DOWN:
+                faces.add(BlockFace.DOWN);
+                break;
+            case EAST:
+                faces.add(BlockFace.EAST);
+                break;
+            case EAST_NORTH_EAST:
                 faces.add(BlockFace.EAST);
                 faces.add(BlockFace.EAST);
                 faces.add(BlockFace.NORTH);
-            }
-            case EAST_SOUTH_EAST -> {
+                break;
+            case EAST_SOUTH_EAST:
                 faces.add(BlockFace.EAST);
                 faces.add(BlockFace.EAST);
                 faces.add(BlockFace.SOUTH);
-            }
-            case NORTH -> faces.add(BlockFace.NORTH);
-            case NORTH_EAST -> {
+                break;
+            case NORTH:
+                faces.add(BlockFace.NORTH);
+                break;
+            case NORTH_EAST:
                 faces.add(BlockFace.NORTH);
                 faces.add(BlockFace.EAST);
-            }
-            case NORTH_NORTH_EAST -> {
+                break;
+            case NORTH_NORTH_EAST:
                 faces.add(BlockFace.NORTH);
                 faces.add(BlockFace.NORTH);
                 faces.add(BlockFace.EAST);
-            }
-            case NORTH_NORTH_WEST -> {
+                break;
+            case NORTH_NORTH_WEST:
                 faces.add(BlockFace.NORTH);
                 faces.add(BlockFace.NORTH);
                 faces.add(BlockFace.WEST);
-            }
-            case NORTH_WEST -> {
+                break;
+            case NORTH_WEST:
                 faces.add(BlockFace.NORTH);
                 faces.add(BlockFace.WEST);
-            }
-            case SELF -> faces.add(BlockFace.SELF);
-            case SOUTH -> faces.add(BlockFace.SOUTH);
-            case SOUTH_EAST -> {
+                break;
+            case SELF:
+                faces.add(BlockFace.SELF);
+                break;
+            case SOUTH:
+                faces.add(BlockFace.SOUTH);
+                break;
+            case SOUTH_EAST:
                 faces.add(BlockFace.SOUTH);
                 faces.add(BlockFace.EAST);
-            }
-            case SOUTH_SOUTH_EAST -> {
+                break;
+            case SOUTH_SOUTH_EAST:
                 faces.add(BlockFace.SOUTH);
                 faces.add(BlockFace.SOUTH);
                 faces.add(BlockFace.EAST);
-            }
-            case SOUTH_SOUTH_WEST -> {
+                break;
+            case SOUTH_SOUTH_WEST:
                 faces.add(BlockFace.SOUTH);
                 faces.add(BlockFace.SOUTH);
                 faces.add(BlockFace.WEST);
-            }
-            case SOUTH_WEST -> {
+                break;
+            case SOUTH_WEST:
                 faces.add(BlockFace.SOUTH);
                 faces.add(BlockFace.WEST);
-            }
-            case UP -> faces.add(BlockFace.UP);
-            case WEST -> faces.add(BlockFace.WEST);
-            case WEST_NORTH_WEST -> {
+                break;
+            case UP:
+                faces.add(BlockFace.UP);
+                break;
+            case WEST:
+                faces.add(BlockFace.WEST);
+                break;
+            case WEST_NORTH_WEST:
                 faces.add(BlockFace.WEST);
                 faces.add(BlockFace.WEST);
                 faces.add(BlockFace.NORTH);
-            }
-            case WEST_SOUTH_WEST -> {
+                break;
+            case WEST_SOUTH_WEST:
                 faces.add(BlockFace.WEST);
                 faces.add(BlockFace.WEST);
                 faces.add(BlockFace.SOUTH);
-            }
-            default -> {
-            }
+                break;
+            default:
+                break;
         }
 
         return faces;

@@ -325,76 +325,98 @@ public class FastNoiseDouble {
         y *= m_frequency;
         z *= m_frequency;
 
-        return switch(m_noiseType) {
-            case Value -> SingleValue(m_seed, x, y, z);
-            case ValueFractal -> switch(m_fractalType) {
-                case FBM -> SingleValueFractalFBM(x, y, z);
-                case Billow -> SingleValueFractalBillow(x, y, z);
-                case RigidMulti -> SingleValueFractalRigidMulti(x, y, z);
-            };
-            case Perlin -> SinglePerlin(m_seed, x, y, z);
-            case PerlinFractal -> switch(m_fractalType) {
-                case FBM -> SinglePerlinFractalFBM(x, y, z);
-                case Billow -> SinglePerlinFractalBillow(x, y, z);
-                case RigidMulti -> SinglePerlinFractalRigidMulti(x, y, z);
-            };
-            case Simplex -> SingleSimplex(m_seed, x, y, z);
-            case SimplexFractal -> switch(m_fractalType) {
-                case FBM -> SingleSimplexFractalFBM(x, y, z);
-                case Billow -> SingleSimplexFractalBillow(x, y, z);
-                case RigidMulti -> SingleSimplexFractalRigidMulti(x, y, z);
-            };
-            case Cellular -> switch(m_cellularReturnType) {
-                case CellValue, NoiseLookup, Distance -> SingleCellular(x, y, z);
-                default -> SingleCellular2Edge(x, y, z);
-            };
-            case WhiteNoise -> GetWhiteNoise(x, y, z);
-            case Cubic -> SingleCubic(m_seed, x, y, z);
-            case CubicFractal -> switch(m_fractalType) {
-                case FBM -> SingleCubicFractalFBM(x, y, z);
-                case Billow -> SingleCubicFractalBillow(x, y, z);
-                case RigidMulti -> SingleCubicFractalRigidMulti(x, y, z);
-            };
-            default -> 0;
-        };
+        switch(m_noiseType) {
+            case Value:
+                return SingleValue(m_seed, x, y, z);
+            case ValueFractal:
+                return switch(m_fractalType) {
+                    case FBM -> SingleValueFractalFBM(x, y, z);
+                    case Billow -> SingleValueFractalBillow(x, y, z);
+                    case RigidMulti -> SingleValueFractalRigidMulti(x, y, z);
+                };
+            case Perlin:
+                return SinglePerlin(m_seed, x, y, z);
+            case PerlinFractal:
+                return switch(m_fractalType) {
+                    case FBM -> SinglePerlinFractalFBM(x, y, z);
+                    case Billow -> SinglePerlinFractalBillow(x, y, z);
+                    case RigidMulti -> SinglePerlinFractalRigidMulti(x, y, z);
+                };
+            case Simplex:
+                return SingleSimplex(m_seed, x, y, z);
+            case SimplexFractal:
+                return switch(m_fractalType) {
+                    case FBM -> SingleSimplexFractalFBM(x, y, z);
+                    case Billow -> SingleSimplexFractalBillow(x, y, z);
+                    case RigidMulti -> SingleSimplexFractalRigidMulti(x, y, z);
+                };
+            case Cellular:
+                return switch(m_cellularReturnType) {
+                    case CellValue, NoiseLookup, Distance -> SingleCellular(x, y, z);
+                    default -> SingleCellular2Edge(x, y, z);
+                };
+            case WhiteNoise:
+                return GetWhiteNoise(x, y, z);
+            case Cubic:
+                return SingleCubic(m_seed, x, y, z);
+            case CubicFractal:
+                return switch(m_fractalType) {
+                    case FBM -> SingleCubicFractalFBM(x, y, z);
+                    case Billow -> SingleCubicFractalBillow(x, y, z);
+                    case RigidMulti -> SingleCubicFractalRigidMulti(x, y, z);
+                };
+            default:
+                return 0;
+        }
     }
 
     public double GetNoise(double x, double y) {
         x *= m_frequency;
         y *= m_frequency;
 
-        return switch(m_noiseType) {
-            case Value -> SingleValue(m_seed, x, y);
-            case ValueFractal -> switch(m_fractalType) {
-                case FBM -> SingleValueFractalFBM(x, y);
-                case Billow -> SingleValueFractalBillow(x, y);
-                case RigidMulti -> SingleValueFractalRigidMulti(x, y);
-            };
-            case Perlin -> SinglePerlin(m_seed, x, y);
-            case PerlinFractal -> switch(m_fractalType) {
-                case FBM -> SinglePerlinFractalFBM(x, y);
-                case Billow -> SinglePerlinFractalBillow(x, y);
-                case RigidMulti -> SinglePerlinFractalRigidMulti(x, y);
-            };
-            case Simplex -> SingleSimplex(m_seed, x, y);
-            case SimplexFractal -> switch(m_fractalType) {
-                case FBM -> SingleSimplexFractalFBM(x, y);
-                case Billow -> SingleSimplexFractalBillow(x, y);
-                case RigidMulti -> SingleSimplexFractalRigidMulti(x, y);
-            };
-            case Cellular -> switch(m_cellularReturnType) {
-                case CellValue, NoiseLookup, Distance -> SingleCellular(x, y);
-                default -> SingleCellular2Edge(x, y);
-            };
-            case WhiteNoise -> GetWhiteNoise(x, y);
-            case Cubic -> SingleCubic(m_seed, x, y);
-            case CubicFractal -> switch(m_fractalType) {
-                case FBM -> SingleCubicFractalFBM(x, y);
-                case Billow -> SingleCubicFractalBillow(x, y);
-                case RigidMulti -> SingleCubicFractalRigidMulti(x, y);
-            };
-            default -> 0;
-        };
+        switch(m_noiseType) {
+            case Value:
+                return SingleValue(m_seed, x, y);
+            case ValueFractal:
+                return switch(m_fractalType) {
+                    case FBM -> SingleValueFractalFBM(x, y);
+                    case Billow -> SingleValueFractalBillow(x, y);
+                    case RigidMulti -> SingleValueFractalRigidMulti(x, y);
+                };
+            case Perlin:
+                return SinglePerlin(m_seed, x, y);
+            case PerlinFractal:
+                return switch(m_fractalType) {
+                    case FBM -> SinglePerlinFractalFBM(x, y);
+                    case Billow -> SinglePerlinFractalBillow(x, y);
+                    case RigidMulti -> SinglePerlinFractalRigidMulti(x, y);
+                };
+            case Simplex:
+                return SingleSimplex(m_seed, x, y);
+            case SimplexFractal:
+                return switch(m_fractalType) {
+                    case FBM -> SingleSimplexFractalFBM(x, y);
+                    case Billow -> SingleSimplexFractalBillow(x, y);
+                    case RigidMulti -> SingleSimplexFractalRigidMulti(x, y);
+                };
+            case Cellular:
+                return switch(m_cellularReturnType) {
+                    case CellValue, NoiseLookup, Distance -> SingleCellular(x, y);
+                    default -> SingleCellular2Edge(x, y);
+                };
+            case WhiteNoise:
+                return GetWhiteNoise(x, y);
+            case Cubic:
+                return SingleCubic(m_seed, x, y);
+            case CubicFractal:
+                return switch(m_fractalType) {
+                    case FBM -> SingleCubicFractalFBM(x, y);
+                    case Billow -> SingleCubicFractalBillow(x, y);
+                    case RigidMulti -> SingleCubicFractalRigidMulti(x, y);
+                };
+            default:
+                return 0;
+        }
     }
 
     private long DoubleCast2Long(double f) {

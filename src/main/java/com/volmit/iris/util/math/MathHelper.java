@@ -467,37 +467,38 @@ public class MathHelper {
         float var9;
         float var10;
         switch(var3) {
-            case 0 -> {
+            case 0:
                 var8 = var2;
                 var9 = var7;
                 var10 = var5;
-            }
-            case 1 -> {
+                break;
+            case 1:
                 var8 = var6;
                 var9 = var2;
                 var10 = var5;
-            }
-            case 2 -> {
+                break;
+            case 2:
                 var8 = var5;
                 var9 = var2;
                 var10 = var7;
-            }
-            case 3 -> {
+                break;
+            case 3:
                 var8 = var5;
                 var9 = var6;
                 var10 = var2;
-            }
-            case 4 -> {
+                break;
+            case 4:
                 var8 = var7;
                 var9 = var5;
                 var10 = var2;
-            }
-            case 5 -> {
+                break;
+            case 5:
                 var8 = var2;
                 var9 = var5;
                 var10 = var6;
-            }
-            default -> throw new RuntimeException("Something went wrong when converting from HSV to RGB. Input was " + var0 + ", " + var1 + ", " + var2);
+                break;
+            default:
+                throw new RuntimeException("Something went wrong when converting from HSV to RGB. Input was " + var0 + ", " + var1 + ", " + var2);
         }
 
         int var11 = clamp((int) (var8 * 255.0F), 0, 255);

@@ -473,7 +473,7 @@ public class Mth {
         float var6 = var2 * (1.0F - var4 * var1);
         float var7 = var2 * (1.0F - (1.0F - var4) * var1);
         switch(var3) {
-            case 0:
+            case 0 -> {
                 var8 = var2;
                 var9 = var7;
                 var10 = var5;
@@ -481,7 +481,8 @@ public class Mth {
                 var12 = clamp((int) (var9 * 255.0F), 0, 255);
                 var13 = clamp((int) (var10 * 255.0F), 0, 255);
                 return var11 << 16 | var12 << 8 | var13;
-            case 1:
+            }
+            case 1 -> {
                 var8 = var6;
                 var9 = var2;
                 var10 = var5;
@@ -489,7 +490,8 @@ public class Mth {
                 var12 = clamp((int) (var9 * 255.0F), 0, 255);
                 var13 = clamp((int) (var10 * 255.0F), 0, 255);
                 return var11 << 16 | var12 << 8 | var13;
-            case 2:
+            }
+            case 2 -> {
                 var8 = var5;
                 var9 = var2;
                 var10 = var7;
@@ -497,7 +499,8 @@ public class Mth {
                 var12 = clamp((int) (var9 * 255.0F), 0, 255);
                 var13 = clamp((int) (var10 * 255.0F), 0, 255);
                 return var11 << 16 | var12 << 8 | var13;
-            case 3:
+            }
+            case 3 -> {
                 var8 = var5;
                 var9 = var6;
                 var10 = var2;
@@ -505,7 +508,8 @@ public class Mth {
                 var12 = clamp((int) (var9 * 255.0F), 0, 255);
                 var13 = clamp((int) (var10 * 255.0F), 0, 255);
                 return var11 << 16 | var12 << 8 | var13;
-            case 4:
+            }
+            case 4 -> {
                 var8 = var7;
                 var9 = var5;
                 var10 = var2;
@@ -513,7 +517,8 @@ public class Mth {
                 var12 = clamp((int) (var9 * 255.0F), 0, 255);
                 var13 = clamp((int) (var10 * 255.0F), 0, 255);
                 return var11 << 16 | var12 << 8 | var13;
-            case 5:
+            }
+            case 5 -> {
                 var8 = var2;
                 var9 = var5;
                 var10 = var6;
@@ -521,6 +526,7 @@ public class Mth {
                 var12 = clamp((int) (var9 * 255.0F), 0, 255);
                 var13 = clamp((int) (var10 * 255.0F), 0, 255);
                 return var11 << 16 | var12 << 8 | var13;
+            }
         }
         throw new RuntimeException("Something went wrong when converting from HSV to RGB. Input was " + var0 + ", " + var1 + ", " + var2);
     }

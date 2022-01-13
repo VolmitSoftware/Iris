@@ -228,6 +228,10 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Collection of ores to be generated")
     @ArrayType(type = IrisOreGenerator.class, min = 1)
     private KList<IrisOreGenerator> ores = new KList<>();
+    @MinNumber(0)
+    @MaxNumber(318)
+    @Desc("The rock zoom mostly for zooming in on a wispy palette")
+    private int lavaLayer = 25;
 
     public int getMaxHeight() {
         return 320;

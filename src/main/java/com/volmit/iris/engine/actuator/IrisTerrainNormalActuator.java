@@ -35,6 +35,7 @@ import org.bukkit.block.data.BlockData;
 public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData> {
     private static final BlockData AIR = Material.AIR.createBlockData();
     private static final BlockData BEDROCK = Material.BEDROCK.createBlockData();
+    private static final BlockData LAVA = Material.LAVA.createBlockData();
     private static final BlockData GLASS = Material.GLASS.createBlockData();
     private static final BlockData CAVE_AIR = Material.CAVE_AIR.createBlockData();
     @Getter
@@ -102,7 +103,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
             int depth, fdepth;
 
             for(int i = hf; i >= 0; i--) {
-                if(i >= h.getHeight()) { // h.getheight is terrain height
+                if(i >= h.getHeight()) {
                     continue;
                 }
 

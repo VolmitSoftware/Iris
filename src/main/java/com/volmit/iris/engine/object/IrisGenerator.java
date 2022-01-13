@@ -39,7 +39,6 @@ import lombok.experimental.Accessors;
 
 import java.util.List;
 
-@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

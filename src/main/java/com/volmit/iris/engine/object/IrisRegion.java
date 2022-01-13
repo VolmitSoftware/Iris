@@ -50,7 +50,6 @@ import java.awt.Color;
 import java.util.Random;
 
 
-@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

@@ -30,7 +30,6 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 @Snippet("rare-object")
-@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

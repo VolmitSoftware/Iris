@@ -71,7 +71,6 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @EqualsAndHashCode(callSuper = false)
 public class IrisObject extends IrisRegistrant {

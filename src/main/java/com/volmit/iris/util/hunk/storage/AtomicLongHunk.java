@@ -24,7 +24,7 @@ import lombok.EqualsAndHashCode;
 
 import java.util.concurrent.atomic.AtomicLongArray;
 
-@SuppressWarnings({"DefaultAnnotationParam", "Lombok"})
+@SuppressWarnings({"Lombok"})
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class AtomicLongHunk extends StorageHunk<Long> implements Hunk<Long> {

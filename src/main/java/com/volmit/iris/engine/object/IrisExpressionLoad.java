@@ -32,7 +32,6 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
 @Snippet("expression-load")
-@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

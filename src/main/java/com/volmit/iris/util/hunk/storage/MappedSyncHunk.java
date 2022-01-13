@@ -28,7 +28,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-@SuppressWarnings({"DefaultAnnotationParam", "Lombok"})
+@SuppressWarnings({"Lombok"})
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class MappedSyncHunk<T> extends StorageHunk<T> implements Hunk<T> {

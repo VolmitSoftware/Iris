@@ -35,7 +35,6 @@ import lombok.experimental.Accessors;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

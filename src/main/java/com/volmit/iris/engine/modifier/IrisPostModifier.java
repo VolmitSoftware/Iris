@@ -60,7 +60,6 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         getEngine().getMetrics().getPost().put(p.getMilliseconds());
     }
 
-    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     private void post(int currentPostX, int currentPostZ, Hunk<BlockData> currentData, int x, int z) {
         int h = getEngine().getMantle().trueHeight(x, z);
         int ha = getEngine().getMantle().trueHeight(x + 1, z);

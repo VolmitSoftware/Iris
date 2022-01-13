@@ -48,7 +48,6 @@ import org.bukkit.block.data.BlockData;
 import java.io.File;
 import java.io.IOException;
 
-@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @AllArgsConstructor
 @NoArgsConstructor

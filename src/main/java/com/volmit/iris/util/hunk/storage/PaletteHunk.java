@@ -28,7 +28,7 @@ import lombok.EqualsAndHashCode;
 
 import java.io.IOException;
 
-@SuppressWarnings({"DefaultAnnotationParam", "Lombok"})
+@SuppressWarnings({"Lombok"})
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class PaletteHunk<T> extends StorageHunk<T> implements Hunk<T> {

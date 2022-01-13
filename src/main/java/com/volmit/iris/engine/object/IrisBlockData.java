@@ -41,7 +41,6 @@ import org.bukkit.block.data.BlockData;
 
 import java.util.Map;
 
-@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

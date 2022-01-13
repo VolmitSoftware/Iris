@@ -23,7 +23,7 @@ import com.volmit.iris.util.hunk.Hunk;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-@SuppressWarnings({"DefaultAnnotationParam", "Lombok"})
+@SuppressWarnings({"Lombok"})
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class AtomicDoubleHunk extends StorageHunk<Double> implements Hunk<Double> {

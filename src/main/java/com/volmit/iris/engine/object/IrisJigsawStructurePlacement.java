@@ -30,7 +30,6 @@ import lombok.experimental.Accessors;
 
 
 @Snippet("jigsaw-structure-placement")
-@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

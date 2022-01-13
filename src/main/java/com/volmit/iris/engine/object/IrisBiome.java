@@ -54,7 +54,6 @@ import org.bukkit.block.data.BlockData;
 
 import java.awt.Color;
 
-@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

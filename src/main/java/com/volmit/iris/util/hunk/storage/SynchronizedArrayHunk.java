@@ -24,7 +24,7 @@ import lombok.EqualsAndHashCode;
 
 import java.util.Arrays;
 
-@SuppressWarnings({"DefaultAnnotationParam", "Lombok"})
+@SuppressWarnings({"Lombok"})
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class SynchronizedArrayHunk<T> extends StorageHunk<T> implements Hunk<T> {

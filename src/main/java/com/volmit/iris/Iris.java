@@ -480,7 +480,6 @@ public class Iris extends VolmitPlugin implements Listener {
         EnginePanic.add(s, v);
     }
 
-    @SuppressWarnings("unchecked")
     public void onEnable() {
         enable();
         super.onEnable();

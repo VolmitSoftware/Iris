@@ -15,6 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 plugins {
     id 'java'
     id 'io.freefair.lombok' version '5.2.1'
@@ -280,7 +281,6 @@ task iris(type: Copy)
     dependsOn(specialSourceRemap)
 }
 
-
 def registerCustomOutputTask(name, path) {
     if (!System.properties['os.name'].toLowerCase().contains('windows'))
     {
@@ -316,4 +316,3 @@ def registerCustomOutputTaskUnix(name, path) {
         }
     }
 }
-

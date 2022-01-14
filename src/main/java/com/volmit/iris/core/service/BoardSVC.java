@@ -121,7 +121,7 @@ public class BoardSVC implements IrisService, BoardProvider {
 
                 Engine engine = IrisToolbelt.access(player.getWorld()).getEngine();
                 int x = player.getLocation().getBlockX();
-                int y = player.getLocation().getBlockY();
+                int y = player.getLocation().getBlockY() - player.getWorld().getMinHeight();
                 int z = player.getLocation().getBlockZ();
 
                 lines.add("&7&m                   ");

@@ -68,7 +68,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 return;
             }
 
-            if(yy >= 256 || yy <= 0) { // Yes, skip bedrock
+            if(yy >= getEngine().getWorld().maxHeight() - getEngine().getWorld().minHeight() || yy <= 0) { // Yes, skip bedrock
                 return;
             }
 
@@ -110,7 +110,11 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             } else if(c.isLava()) {
                 output.set(rx, yy, rz, LAVA);
             } else {
-                output.set(rx, yy, rz, AIR);
+                if(getEngine().getDimension().getCaveLavaHeight() > yy){
+                    output.set(rx, yy, rz, LAVA);
+                } else {
+                    output.set(rx, yy, rz, AIR);
+                }
             }
         };
 

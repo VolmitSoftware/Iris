@@ -230,8 +230,8 @@ public class IrisDimension extends IrisRegistrant {
     private KList<IrisOreGenerator> ores = new KList<>();
     @MinNumber(0)
     @MaxNumber(318)
-    @Desc("The rock zoom mostly for zooming in on a wispy palette")
-    private int lavaLayer = 25;
+    @Desc("The Subterrain Fluid Layer Height")
+    private int caveLavaHeight = 8;
 
     public int getMaxHeight() {
         return 320;

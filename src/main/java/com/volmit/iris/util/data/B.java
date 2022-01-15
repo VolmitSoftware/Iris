@@ -445,7 +445,21 @@ public class B {
     }
 
     private static synchronized BlockData createBlockData(String s) {
-        return Bukkit.createBlockData(s);
+        try
+        {
+            return Bukkit.createBlockData(s);
+        }
+
+        catch(IllegalArgumentException e)
+        {
+            if(s.contains("["))
+            {
+                return createBlockData(s.split("\\Q[\\E")[0]);
+            }
+        }
+
+        Iris.error("Can't find block data for " + s);
+        return null;
     }
 
     private static BlockData parseBlockData(String ix) {

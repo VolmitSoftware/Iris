@@ -110,7 +110,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             } else if(c.isLava()) {
                 output.set(rx, yy, rz, LAVA);
             } else {
-                if(getEngine().getDimension().getCaveLavaHeight() > yy){
+                if(getEngine().getDimension().getCaveLavaHeight() > yy) {
                     output.set(rx, yy, rz, LAVA);
                 } else {
                     output.set(rx, yy, rz, AIR);

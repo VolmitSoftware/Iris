@@ -445,15 +445,10 @@ public class B {
     }
 
     private static synchronized BlockData createBlockData(String s) {
-        try
-        {
+        try {
             return Bukkit.createBlockData(s);
-        }
-
-        catch(IllegalArgumentException e)
-        {
-            if(s.contains("["))
-            {
+        } catch(IllegalArgumentException e) {
+            if(s.contains("[")) {
                 return createBlockData(s.split("\\Q[\\E")[0]);
             }
         }

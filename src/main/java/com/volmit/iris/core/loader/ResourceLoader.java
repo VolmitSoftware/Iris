@@ -288,8 +288,7 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
     public KList<File> getFolders() {
 
 
-        synchronized(folderCache)
-        {
+        synchronized(folderCache) {
             if(folderCache.get() == null) {
                 KList<File> fc = new KList<>();
 

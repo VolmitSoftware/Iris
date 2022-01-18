@@ -66,9 +66,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.IllegalPluginAccessException;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -560,6 +563,12 @@ public class Iris extends VolmitPlugin implements Listener {
 
     public void imsg(CommandSender s, String msg) {
         s.sendMessage(C.IRIS + "[" + C.DARK_GRAY + "Iris" + C.IRIS + "]" + C.GRAY + ": " + msg);
+    }
+
+    @Nullable
+    @Override
+    public BiomeProvider getDefaultBiomeProvider(@NotNull String worldName, @Nullable String id) {
+        return super.getDefaultBiomeProvider(worldName, id);
     }
 
     @Override

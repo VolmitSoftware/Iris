@@ -28,6 +28,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.EnginePanic;
+import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
@@ -60,8 +61,13 @@ import net.kyori.adventure.text.serializer.ComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.WorldCreator;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.InvalidConfigurationException;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
@@ -410,7 +416,47 @@ public class Iris extends VolmitPlugin implements Listener {
             J.a(ServerConfigurator::configure, 20);
             splash();
             autoStartStudio();
+            checkForBukkitWorlds();
         });
+    }
+
+    private void checkForBukkitWorlds() {
+        FileConfiguration fc = new YamlConfiguration();
+        try {
+            fc.load(new File("bukkit.yml"));
+            searching: for(String i : fc.getKeys(true))
+            {
+                if(i.startsWith("worlds.") && i.endsWith(".generator")) {
+                    String worldName = i.split("\\Q.\\E")[1];
+                    String generator = IrisSettings.get().getGenerator().getDefaultWorldType();
+                    if(fc.getString(i).startsWith("Iris:")) {
+                        generator = fc.getString(i).split("\\Q:\\E")[1];
+                    } else if(fc.getString(i).equals("Iris")) {
+                        generator = IrisSettings.get().getGenerator().getDefaultWorldType();
+                    } else {
+                        continue;
+                    }
+
+                    for(World j : Bukkit.getWorlds())
+                    {
+                        if(j.getName().equals(worldName))
+                        {
+                            continue searching;
+                        }
+                    }
+
+                    Iris.warn("Detected an Iris World in the bukkit yml '" + worldName + "' using Iris that was not loaded by bukkit. Good Guy Iris will load it up for you!");
+                    Iris.info(C.LIGHT_PURPLE + "Preparing Spawn for " + worldName + "' using Iris:" + generator);
+                    World world = new WorldCreator(worldName)
+                        .generator(getDefaultWorldGenerator(worldName, generator))
+                        .environment(IrisData.loadAnyDimension(generator).getEnvironment())
+                        .createWorld();
+                    Iris.info(C.LIGHT_PURPLE + "Loaded " + worldName + "!");
+                }
+            }
+        } catch(Throwable e) {
+            e.printStackTrace();
+        }
     }
 
     private void autoStartStudio() {
@@ -568,11 +614,13 @@ public class Iris extends VolmitPlugin implements Listener {
     @Nullable
     @Override
     public BiomeProvider getDefaultBiomeProvider(@NotNull String worldName, @Nullable String id) {
+        Iris.debug("Biome Provider Called for " + worldName + " using ID: " + id);
         return super.getDefaultBiomeProvider(worldName, id);
     }
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
+        Iris.debug("Default World Generator Called for " + worldName + " using ID: " + id);
         if(worldName.equals("test")) {
             try {
                 throw new RuntimeException();

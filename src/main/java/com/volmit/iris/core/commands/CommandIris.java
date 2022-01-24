@@ -294,7 +294,7 @@ public class CommandIris implements DecreeExecutor {
                     for(int j = -radius; j <= radius; j++) {
                         int finalJ = j;
                         int finalI = i;
-                        b.queue(() -> plat.injectChunkReplacement(player().getWorld(), finalI + cx.getX(), finalJ + cx.getZ(), (f) -> {
+                        b.queue(() -> plat.injectChunkRecoloring(player().getWorld(), finalI + cx.getX(), finalJ + cx.getZ(), (f) -> {
                             synchronized(js) {
                                 js.add(f);
                             }

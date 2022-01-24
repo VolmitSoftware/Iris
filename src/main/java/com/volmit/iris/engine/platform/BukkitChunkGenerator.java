@@ -199,7 +199,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void injectChunkRecoloring(World world, int x, int z, Consumer<Runnable> jobs) {
-        Iris.error("Non-implemented method: InjectChunkRecoloring in " + getClass().getSimpleName());
         try {
             loadLock.acquire();
             IrisBiomeStorage st = new IrisBiomeStorage();

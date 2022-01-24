@@ -43,11 +43,11 @@ public class VillageSVC implements IrisService {
      */
     @EventHandler
     public void on(VillagerAcquireTradeEvent event) {
-        if(!IrisToolbelt.isIrisWorld(event.getEntity().getWorld())) {
+        if(!IrisToolbelt.isIrisWorld((event.getEntity().getWorld()))) {
             return;
         }
 
-        Iris.info("Trade event: type " + event.getRecipe().getResult().getType() + " / meta " + event.getRecipe().getResult().getItemMeta() + " / data " + event.getRecipe().getResult().getData());
+        // Iris.info("Trade event: type " + event.getRecipe().getResult().getType() + " / meta " + event.getRecipe().getResult().getItemMeta() + " / data " + event.getRecipe().getResult().getData());
         if(!event.getRecipe().getResult().getType().equals(Material.FILLED_MAP)) {
             return;
         }

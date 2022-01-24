@@ -24,8 +24,10 @@ import com.volmit.iris.engine.object.IrisVillagerOverride;
 import com.volmit.iris.engine.object.IrisVillagerTrade;
 import com.volmit.iris.util.plugin.IrisService;
 import org.bukkit.Material;
+import org.bukkit.entity.Villager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.entity.VillagerAcquireTradeEvent;
+import org.bukkit.event.entity.VillagerCareerChangeEvent;
 
 public class VillageSVC implements IrisService {
     @Override
@@ -38,9 +40,28 @@ public class VillageSVC implements IrisService {
 
     }
 
-    /**
+    @EventHandler
+    public void on(VillagerCareerChangeEvent event) {
+        if (!IrisToolbelt.isIrisWorld(event.getEntity().getWorld())) {
+            return;
+        }
+
+        if (!IrisToolbelt.access(event.getEntity().getWorld())
+                .getEngine().getDimension().isRemoveCartographersDueToCrash()) {
+            return;
+        }
+
+        if (event.getProfession().equals(Villager.Profession.CARTOGRAPHER)) {
+            event.setCancelled(true);
+            Iris.info("Cancelled Cartographer Villager to prevent server crash!");
+        }
+    }
+
+    /*
      * Replace or disable villager trade add event to prevent explorer map
      */
+    /* Removed due to MC breaking stuff again. This event is now called after the cartographer maps are made,
+    so it can fuck right off.
     @EventHandler
     public void on(VillagerAcquireTradeEvent event) {
         if(!IrisToolbelt.isIrisWorld((event.getEntity().getWorld()))) {
@@ -71,4 +92,5 @@ public class VillageSVC implements IrisService {
         event.setRecipe(trade.convert());
         Iris.debug("Overrode cartographer trade with: " + trade + " to prevent allowing cartography map trades");
     }
+    */
 }

@@ -108,6 +108,11 @@ public class HeadlessGenerator implements PlatformChunkGenerator {
 
     }
 
+    @Override
+    public void injectChunkRecoloring(World world, int x, int z, Consumer<Runnable> jobs) {
+
+    }
+
     @RegionCoordinates
     public void generateRegion(int x, int z) {
         generateRegion(x, z, null);

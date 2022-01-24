@@ -25,6 +25,7 @@ import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
+import com.volmit.iris.engine.mode.ModeRecolor;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.object.StudioMode;
@@ -193,6 +194,29 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                     d.setBlock(i, 0, j, Material.RED_GLAZED_TERRACOTTA.createBlockData());
                 }
             }
+        }
+    }
+
+    @Override
+    public void injectChunkRecoloring(World world, int x, int z, Consumer<Runnable> jobs) {
+        Iris.error("Non-implemented method: InjectChunkRecoloring in " + getClass().getSimpleName());
+        try {
+            loadLock.acquire();
+            IrisBiomeStorage st = new IrisBiomeStorage();
+            TerrainChunk tc = TerrainChunk.createUnsafe(world, st);
+            Hunk<BlockData> blocks = Hunk.view(tc);
+            Hunk<Biome> biomes = Hunk.view(tc, tc.getMinHeight(), tc.getMaxHeight());
+            this.world.bind(world);
+            new ModeRecolor(getEngine()).generate(x << 4, z << 4, blocks, biomes, true);
+            Iris.debug("Recolored " + x + " " + z);
+
+            loadLock.release();
+        } catch(Throwable e) {
+            loadLock.release();
+            Iris.error("======================================");
+            e.printStackTrace();
+            Iris.reportErrorChunk(x, z, e, "CHUNK");
+            Iris.error("======================================");
         }
     }
 

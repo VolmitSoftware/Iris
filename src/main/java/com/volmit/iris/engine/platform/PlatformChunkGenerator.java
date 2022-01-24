@@ -43,6 +43,8 @@ public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
 
     void injectChunkReplacement(World world, int x, int z, Consumer<Runnable> jobs);
 
+    void injectChunkRecoloring(World world, int x, int z, Consumer<Runnable> jobs);
+
     void close();
 
     boolean isStudio();

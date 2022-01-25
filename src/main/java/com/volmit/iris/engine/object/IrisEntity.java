@@ -20,6 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.link.CitizensLink;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.ArrayType;
@@ -180,6 +181,9 @@ public class IrisEntity extends IrisRegistrant {
     @ArrayType(min = 1, type = IrisCommand.class)
     @Desc("Run raw commands when this entity is spawned. Use {x}, {y}, and {z} for location. /summon pig {x} {y} {z}")
     private KList<IrisCommand> rawCommands = new KList<>();
+
+    @Desc("Spawn an Iris Citizen in place of this entity. If Citizens is installed, this entity will be used.")
+    private IrisCitizen irisCitizen = null;
 
     public Entity spawn(Engine gen, Location at) {
         return spawn(gen, at, new RNG(at.hashCode()));
@@ -467,10 +471,8 @@ public class IrisEntity extends IrisRegistrant {
         return at.getWorld().spawnEntity(at, getType());
     }
 
-    public boolean isCitizens() {
-        return false;
-
-        // TODO: return Iris.linkCitizens.supported() && someType is not empty;
+    public boolean useCitizen() {
+        return CitizensLink.supported() && irisCitizen != null;
     }
 
     public boolean isSpecialType() {

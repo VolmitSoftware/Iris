@@ -20,6 +20,7 @@ package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.link.CitizensLink;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
@@ -38,8 +39,12 @@ import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.entity.EntityType;
 
 import java.io.File;
 import java.util.concurrent.ExecutionException;
@@ -297,5 +302,16 @@ public class CommandIris implements DecreeExecutor {
         }
 
         Iris.service(StudioSVC.class).installIntoWorld(sender(), pack.getLoadKey(), folder);
+    }
+
+    @Decree(description = "Create a Citizens NPC using the API")
+    public void placeNPC() {
+        if (!CitizensLink.supported()) {
+            sender().sendMessage("Citizens is not installed. To use this command, install the Citizens plugin!");
+        }
+        NPC harry = CitizensLink.getRegistry().createNPC(EntityType.ZOMBIE_HORSE, "&bHarry");
+        harry.getEntity().teleport(sender().player().getLocation());
+        harry.setFlyable(true);
+        harry.getEntity().setGravity(false);
     }
 }

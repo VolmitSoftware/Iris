@@ -121,7 +121,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Open a new studio world", aliases = "o", sync = true)
     public void open(
-        @Param(defaultValue = "overworld", description = "The dimension to open a studio for", aliases = "dim")
+        @Param(defaultValue = "default", description = "The dimension to open a studio for", aliases = "dim")
             IrisDimension dimension,
         @Param(defaultValue = "1337", description = "The seed to generate the studio with", aliases = "s")
             long seed) {
@@ -131,7 +131,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Open VSCode for a dimension", aliases = {"vsc", "edit"})
     public void vscode(
-        @Param(defaultValue = "overworld", description = "The dimension to open VSCode for", aliases = "dim")
+        @Param(defaultValue = "default", description = "The dimension to open VSCode for", aliases = "dim")
             IrisDimension dimension
     ) {
         sender().sendMessage(C.GREEN + "Opening VSCode for the \"" + dimension.getName() + "\" pack");
@@ -288,7 +288,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Get the version of a pack")
     public void version(
-        @Param(defaultValue = "overworld", description = "The dimension get the version of", aliases = "dim", contextual = true)
+        @Param(defaultValue = "default", description = "The dimension get the version of", aliases = "dim", contextual = true)
             IrisDimension dimension
     ) {
         sender().sendMessage(C.GREEN + "The \"" + dimension.getName() + "\" pack has version: " + dimension.getVersion());
@@ -417,7 +417,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Package a dimension into a compressed format", aliases = "package")
     public void pkg(
-        @Param(name = "dimension", description = "The dimension pack to compress", contextual = true, defaultValue = "overworld")
+        @Param(name = "dimension", description = "The dimension pack to compress", contextual = true, defaultValue = "default")
             IrisDimension dimension,
         @Param(name = "obfuscate", description = "Whether or not to obfuscate the pack", defaultValue = "false")
             boolean obfuscate,
@@ -429,7 +429,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Profiles the performance of a dimension", origin = DecreeOrigin.PLAYER)
     public void profile(
-        @Param(description = "The dimension to profile", contextual = true, defaultValue = "overworld")
+        @Param(description = "The dimension to profile", contextual = true, defaultValue = "default")
             IrisDimension dimension
     ) {
         File pack = dimension.getLoadFile().getParentFile().getParentFile();
@@ -650,7 +650,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Update your dimension projects VSCode workspace")
     public void update(
-        @Param(description = "The dimension to update the workspace of", contextual = true, defaultValue = "overworld")
+        @Param(description = "The dimension to update the workspace of", contextual = true, defaultValue = "default")
             IrisDimension dimension
     ) {
         sender().sendMessage(C.GOLD + "Updating Code Workspace for " + dimension.getName() + "...");

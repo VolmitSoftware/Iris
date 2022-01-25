@@ -42,6 +42,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
@@ -182,8 +183,8 @@ public class IrisEntity extends IrisRegistrant {
     @Desc("Run raw commands when this entity is spawned. Use {x}, {y}, and {z} for location. /summon pig {x} {y} {z}")
     private KList<IrisCommand> rawCommands = new KList<>();
 
-    @Desc("Spawn an Iris Citizen in place of this entity. If Citizens is installed, this entity will be used.")
-    private IrisCitizen irisCitizen = null;
+    @Desc("Whether this is a Citizens NPC (true) or a vanilla mob (false, default).")
+    private boolean citizen = false;
 
     public Entity spawn(Engine gen, Location at) {
         return spawn(gen, at, new RNG(at.hashCode()));
@@ -427,30 +428,30 @@ public class IrisEntity extends IrisRegistrant {
     }
 
     private Entity doSpawn(Location at) {
-        if(!Chunks.isSafe(at)) {
+        if (!Chunks.isSafe(at)) {
             return null;
         }
 
-        if(type.equals(EntityType.UNKNOWN)) {
+        if (type.equals(EntityType.UNKNOWN)) {
             return null;
         }
 
-        if(!Bukkit.isPrimaryThread()) {
+        if (!Bukkit.isPrimaryThread()) {
             // Someone called spawn (worldedit maybe?) on a non server thread
             // Due to the structure of iris, we will call it sync and busy wait until it's done.
             AtomicReference<Entity> ae = new AtomicReference<>();
 
             try {
                 J.s(() -> ae.set(doSpawn(at)));
-            } catch(Throwable e) {
+            } catch (Throwable e) {
                 return null;
             }
             PrecisionStopwatch p = PrecisionStopwatch.start();
 
-            while(ae.get() == null) {
+            while (ae.get() == null) {
                 J.sleep(25);
 
-                if(p.getMilliseconds() > 500) {
+                if (p.getMilliseconds() > 500) {
                     return null;
                 }
             }
@@ -458,21 +459,25 @@ public class IrisEntity extends IrisRegistrant {
             return ae.get();
         }
 
-        if(isSpecialType()) {
-            if(specialType.toLowerCase().startsWith("mythicmobs:")) {
+        if (isSpecialType()) {
+            if (specialType.toLowerCase().startsWith("mythicmobs:")) {
                 return Iris.linkMythicMobs.spawnMob(specialType.substring(11), at);
             } else {
                 Iris.warn("Invalid mob type to spawn: '" + specialType + "'!");
                 return null;
             }
+        } else if (isCitizen()) {
+            if (!CitizensLink.supported()) {
+                Iris.warn("Spawning Citizen NPC failed because Citizens not installed! " + C.GOLD + getLoadFile());
+            } else {
+                NPC npc = CitizensLink.getRegistry().createNPC(type, customName);
+                npc.spawn(at);
+                return npc.getEntity();
+            }
         }
 
 
         return at.getWorld().spawnEntity(at, getType());
-    }
-
-    public boolean useCitizen() {
-        return CitizensLink.supported() && irisCitizen != null;
     }
 
     public boolean isSpecialType() {

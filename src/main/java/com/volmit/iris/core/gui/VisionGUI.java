@@ -192,7 +192,6 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
             if(world.hasRealWorld()) {
                 try {
                     engine = IrisToolbelt.access(world.realWorld()).getEngine();
-                    Iris.info("Updated Renderer");
                     return !engine.isClosed();
                 } catch(Throwable e) {
 

@@ -20,5 +20,9 @@ libraries:
 commands:
   iris:
     aliases: [ ir, irs ]
+softdepend:
+  - Citizens
+  - Oraxen
+  - MythicMobs
 api-version: ${apiversion}
 hotload-dependencies: false

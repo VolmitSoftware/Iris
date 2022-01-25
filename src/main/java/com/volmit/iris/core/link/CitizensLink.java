@@ -16,11 +16,12 @@ public class CitizensLink {
     }
 
     /**
-     * Get the Citizens NPC Registry (to create new NPCs)
+     * Get the Citizens NPC Registry (to create new NPCs).
+     * Make sure to check {@link #supported()} to ensure Citizens is enabled.
      * @return the NPC registry
      */
     public static NPCRegistry getRegistry() {
-        return supported() ? CitizensAPI.getNPCRegistry() : null;
+        return CitizensAPI.getNPCRegistry();
     }
 
     /**

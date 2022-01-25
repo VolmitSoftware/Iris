@@ -57,7 +57,7 @@ public class CommandEdit implements DecreeExecutor {
 
 
     @Decree(description = "Edit the biome you specified", aliases = {"b"}, origin = DecreeOrigin.PLAYER)
-    public void biome(@Param(contextual = false, description = "The biome to edit") IrisBiome biome) {
+    public void biome(@Param(contextual = true, description = "The biome to edit") IrisBiome biome) {
         if(noStudio()) {
             return;
         }
@@ -75,7 +75,7 @@ public class CommandEdit implements DecreeExecutor {
     }
 
     @Decree(description = "Edit the region you specified", aliases = {"r"}, origin = DecreeOrigin.PLAYER)
-    public void region(@Param(contextual = false, description = "The region to edit") IrisRegion region) {
+    public void region(@Param(contextual = true, description = "The region to edit") IrisRegion region) {
         if(noStudio()) {
             return;
         }
@@ -93,7 +93,7 @@ public class CommandEdit implements DecreeExecutor {
     }
 
     @Decree(description = "Edit the dimension you specified", aliases = {"d"}, origin = DecreeOrigin.PLAYER)
-    public void dimension(@Param(contextual = false, description = "The dimension to edit") IrisDimension dimension) {
+    public void dimension(@Param(contextual = true, description = "The dimension to edit") IrisDimension dimension) {
         if(noStudio()) {
             return;
         }

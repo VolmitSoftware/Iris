@@ -434,6 +434,11 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
 
     @Override
     public void paint(Graphics gx) {
+
+        if(engine.isClosed()) {
+            return;
+        }
+
         if(updateEngine()) {
             dump();
         }

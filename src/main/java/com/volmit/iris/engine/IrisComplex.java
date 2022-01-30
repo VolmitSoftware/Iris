@@ -86,13 +86,8 @@ public class IrisComplex implements DataProvider {
     private IrisRegion focusRegion;
 
     public IrisComplex(Engine engine) {
-        this(engine, false);
-    }
-
-    public IrisComplex(Engine engine, boolean simple) {
         int cacheSize = IrisSettings.get().getPerformance().getCacheSize();
         IrisBiome emptyBiome = new IrisBiome();
-        UUID focusUUID = UUID.nameUUIDFromBytes("focus".getBytes());
         this.rng = new RNG(engine.getSeedManager().getComplex());
         this.data = engine.getData();
         double height = engine.getHeight();
@@ -168,7 +163,7 @@ public class IrisComplex implements DataProvider {
                 .cache2D("baseBiomeStream", engine, cacheSize);
         heightStream = ProceduralStream.of((x, z) -> {
             IrisBiome b = focusBiome != null ? focusBiome : baseBiomeStream.get(x, z);
-            return getHeight(engine, b, x, z, engine.getSeedManager().getHeight());
+            return getHeight(engine, x, z, engine.getSeedManager().getHeight());
         }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D("heightStream", engine, cacheSize);
         roundedHeighteightStream = heightStream.round();
         slopeStream = heightStream.slope(3).cache2D("slopeStream", engine, cacheSize);
@@ -273,7 +268,7 @@ public class IrisComplex implements DataProvider {
         return biome;
     }
 
-    private double interpolateGenerators(Engine engine, IrisInterpolator interpolator, KSet<IrisGenerator> generators, double x, double z, long seed) {
+    private double interpolateGenerators(IrisInterpolator interpolator, KSet<IrisGenerator> generators, double x, double z, long seed) {
         if(generators.isEmpty()) {
             return 0;
         }
@@ -325,19 +320,19 @@ public class IrisComplex implements DataProvider {
         return d / generators.size();
     }
 
-    private double getInterpolatedHeight(Engine engine, double x, double z, long seed) {
+    private double getInterpolatedHeight(double x, double z, long seed) {
         double h = 0;
 
         for(IrisInterpolator i : generators.keySet()) {
-            h += interpolateGenerators(engine, i, generators.get(i), x, z, seed);
+            h += interpolateGenerators(i, generators.get(i), x, z, seed);
         }
 
         return h;
     }
 
-    private double getHeight(Engine engine, IrisBiome b, double x, double z, long seed) {
+    private double getHeight(Engine engine, double x, double z, long seed) {
         return Math.min(engine.getHeight(),
-            Math.max(getInterpolatedHeight(engine, x, z, seed) + fluidHeight + overlayStream.get(x, z), 0));
+            Math.max(getInterpolatedHeight(x, z, seed) + fluidHeight + overlayStream.get(x, z), 0));
     }
 
     private void registerGenerator(IrisGenerator cachedGenerator) {

@@ -20,7 +20,7 @@ Consider supporting our development by buying Iris on spigot! We work hard to ma
         2. Advanced > Environment Variables
         3. Under System Variables, click `New...`
         4. Variable Name: `JAVA_HOME`
-        5. Variable Value: `C:\Program Files\Java\jdk-17.0.1` (verify this eixsts after installing java dont just copy
+        5. Variable Value: `C:\Program Files\Java\jdk-17.0.1` (verify this exists after installing java don't just copy
            the example text)
     * MacOS
         1. Run `/usr/libexec/java_home -V` and look for Java 17
@@ -29,8 +29,8 @@ Consider supporting our development by buying Iris on spigot! We work hard to ma
         4. Use `CTRL + X`, then Press `Y`, Then `ENTER`
         5. Quit & Reopen Terminal and verify with `echo $JAVA_HOME`. It should print a directory
 3. If this is your first time building Iris for MC 1.18+ run `gradlew setup` inside the root Iris project folder.
-   Otherwise skip this step. Grab a coffee, this may take up to 5 minutes depending on your cpu & internet connection.
-4. Once the project is setup, run `gradlew iris`
+   Otherwise, skip this step. Grab a coffee, this may take up to 5 minutes depending on your cpu & internet connection.
+4. Once the project has setup, run `gradlew iris`
 5. The Iris jar will be placed in `Iris/build/Iris-XXX-XXX.jar` Enjoy! Consider supporting us by buying it on spigot!
 
 ### IDE Builds (for development)
@@ -43,10 +43,10 @@ Consider supporting our development by buying Iris on spigot! We work hard to ma
 
 # Iris Toolbelt
 
-Everyone needs a toolbelt.
+Everyone needs a tool-belt.
 
 ```java
-package com.volmit.iris.core.tools
+package com.volmit.iris.core.tools;
 
 // Get IrisDataManager from a world
 IrisToolbelt.access(anyWorld).getCompound().getData();

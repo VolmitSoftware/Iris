@@ -128,11 +128,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     @Override
-    public boolean isHeadless() {
-        return false;
-    }
-
-    @Override
     public void injectChunkReplacement(World world, int x, int z, Consumer<Runnable> jobs) {
         try {
             loadLock.acquire();

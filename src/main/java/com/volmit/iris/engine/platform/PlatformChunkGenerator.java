@@ -30,8 +30,6 @@ import java.util.function.Consumer;
 public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
     Engine getEngine();
 
-    boolean isHeadless();
-
     @Override
     default IrisData getData() {
         return getEngine().getData();

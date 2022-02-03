@@ -15,5 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+pluginManagement {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        gradlePluginPortal()
+        maven { url "https://dl.cloudsmith.io/public/arcane/archive/maven/" }
+    }
+}
 rootProject.name = 'Iris'

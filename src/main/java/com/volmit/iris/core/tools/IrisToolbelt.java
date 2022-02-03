@@ -24,12 +24,10 @@ import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
-import com.volmit.iris.core.pregenerator.methods.HeadlessPregenMethod;
 import com.volmit.iris.core.pregenerator.methods.HybridPregenMethod;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.platform.HeadlessGenerator;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.Bukkit;
@@ -141,10 +139,6 @@ public class IrisToolbelt {
      * @return the pregenerator job (already started)
      */
     public static PregeneratorJob pregenerate(PregenTask task, PlatformChunkGenerator gen) {
-        if(gen.isHeadless()) {
-            return pregenerate(task, new HeadlessPregenMethod(((HeadlessGenerator) gen).getWorld(), (HeadlessGenerator) gen), gen.getEngine());
-        }
-
         return pregenerate(task, new HybridPregenMethod(gen.getEngine().getWorld().realWorld(),
             IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())), gen.getEngine());
     }
@@ -215,9 +209,5 @@ public class IrisToolbelt {
 
     public static boolean isStudio(World i) {
         return isIrisWorld(i) && access(i).isStudio();
-    }
-
-    public static boolean isHeadless(World i) {
-        return isIrisWorld(i) && access(i).isHeadless();
     }
 }

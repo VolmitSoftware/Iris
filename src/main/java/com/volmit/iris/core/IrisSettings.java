@@ -120,7 +120,6 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsGenerator {
         public String defaultWorldType = "overworld";
-        public boolean headlessPregeneration = false;
         public int maxBiomeChildDepth = 4;
         public boolean preventLeafDecay = true;
     }

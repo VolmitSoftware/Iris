@@ -699,8 +699,4 @@ public class Iris extends VolmitPlugin implements Listener {
 
         Iris.info("\n\n " + new KList<>(splash).toString("\n") + "\n");
     }
-
-    public boolean isMCA() {
-        return IrisSettings.get().getGenerator().isHeadlessPregeneration();
-    }
 }

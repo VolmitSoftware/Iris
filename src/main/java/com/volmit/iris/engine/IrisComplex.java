@@ -95,7 +95,7 @@ public class IrisComplex implements DataProvider {
         UUID focusUUID = UUID.nameUUIDFromBytes("focus".getBytes());
         this.rng = new RNG(engine.getSeedManager().getComplex());
         this.data = engine.getData();
-        double height = engine.getHeight();
+        double height = engine.getMaxHeight();
         fluidHeight = engine.getDimension().getFluidHeight();
         generators = new KMap<>();
         focusBiome = engine.getFocus();
@@ -336,8 +336,8 @@ public class IrisComplex implements DataProvider {
     }
 
     private double getHeight(Engine engine, IrisBiome b, double x, double z, long seed) {
-        return Math.min(engine.getHeight(),
-            Math.max(getInterpolatedHeight(engine, x, z, seed) + fluidHeight + overlayStream.get(x, z), 0));
+        return Math.min(engine.getWorld().maxHeight(),
+            Math.max(getInterpolatedHeight(engine, x, z, seed) + fluidHeight + overlayStream.get(x, z), engine.getWorld().minHeight()));
     }
 
     private void registerGenerator(IrisGenerator cachedGenerator) {

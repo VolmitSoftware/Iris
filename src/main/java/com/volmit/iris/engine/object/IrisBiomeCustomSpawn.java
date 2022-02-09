@@ -37,7 +37,7 @@ import org.bukkit.entity.EntityType;
 @Data
 public class IrisBiomeCustomSpawn {
     @Required
-    @Desc("The biome's particle type")
+    @Desc("The biome's entity type")
     private EntityType type = EntityType.COW;
 
     @MinNumber(1)

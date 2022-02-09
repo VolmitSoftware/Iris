@@ -125,11 +125,10 @@ public class IrisCreator {
         {
             int req = 441;
             Supplier<Integer> g = () -> {
-                try {
-                    return finalAccess1.getEngine().getGenerated();
-                } catch(Throwable e) {
+                if (finalAccess1 == null || finalAccess1.getEngine() == null) {
                     return 0;
                 }
+                return finalAccess1.getEngine().getGenerated();
             };
             while(g.get() < req) {
                 double v = (double) g.get() / (double) req;
@@ -138,7 +137,7 @@ public class IrisCreator {
                     sender.sendProgress(v, "Generating");
                     J.sleep(16);
                 } else {
-                    sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - finalAccess1.getEngine().getGenerated()) + " Left)")));
+                    sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - g.get()) + " Left)")));
                     J.sleep(1000);
                 }
             }

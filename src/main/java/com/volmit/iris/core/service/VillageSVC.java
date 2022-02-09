@@ -20,12 +20,21 @@ package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisVillagerOverride;
 import com.volmit.iris.engine.object.IrisVillagerTrade;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.plugin.IrisService;
+import com.volmit.iris.util.plugin.VolmitSender;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.Villager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.entity.VillagerAcquireTradeEvent;
+import org.bukkit.event.entity.VillagerCareerChangeEvent;
+
+import java.util.List;
 
 public class VillageSVC implements IrisService {
     @Override
@@ -38,9 +47,55 @@ public class VillageSVC implements IrisService {
 
     }
 
-    /**
+    @EventHandler
+    public void on(VillagerCareerChangeEvent event) {
+
+        if (!IrisToolbelt.isIrisWorld(event.getEntity().getWorld())) {
+            return;
+        }
+
+        IrisDimension dim = IrisToolbelt.access(event.getEntity().getWorld())
+                .getEngine().getDimension();
+
+        if (!dim.isRemoveCartographersDueToCrash()) {
+            return;
+        }
+
+        if (event.getProfession().equals(Villager.Profession.CARTOGRAPHER)) {
+            event.setCancelled(true);
+
+            Location eventLocation = event.getEntity().getLocation();
+
+            int radius = dim.getNotifyPlayersOfCartographerCancelledRadius();
+
+            if (radius == -1) {
+                return;
+            }
+
+            List<Player> playersInWorld = event.getEntity().getWorld().getPlayers();
+
+            String message = C.GOLD + "Iris does not allow cartographers in its world due to crashes.";
+
+            Iris.info("Cancelled Cartographer Villager to prevent server crash at " + eventLocation + "!");
+
+            if (radius == -2) {
+                playersInWorld.stream().map(VolmitSender::new).forEach(v -> v.sendMessage(message));
+            } else {
+                playersInWorld.forEach(p -> {
+                    if (p.getLocation().distance(eventLocation) < radius) {
+                        new VolmitSender(p).sendMessage(message);
+                    }
+                });
+            }
+
+        }
+    }
+
+    /*
      * Replace or disable villager trade add event to prevent explorer map
      */
+    /* Removed due to MC breaking stuff again. This event is now called after the cartographer maps are made,
+    so it can fuck right off.
     @EventHandler
     public void on(VillagerAcquireTradeEvent event) {
         if(!IrisToolbelt.isIrisWorld((event.getEntity().getWorld()))) {
@@ -71,4 +126,5 @@ public class VillageSVC implements IrisService {
         event.setRecipe(trade.convert());
         Iris.debug("Overrode cartographer trade with: " + trade + " to prevent allowing cartography map trades");
     }
+    */
 }

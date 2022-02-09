@@ -136,6 +136,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     EngineTarget getTarget();
 
+    default int getMaxHeight() {
+        return getTarget().getWorld().maxHeight();
+    }
+
     default int getMinHeight() {
         return getTarget().getWorld().minHeight();
     }

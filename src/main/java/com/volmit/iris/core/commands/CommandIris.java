@@ -60,7 +60,7 @@ public class CommandIris implements DecreeExecutor {
     public void create(
         @Param(aliases = "world-name", description = "The name of the world to create")
             String name,
-        @Param(aliases = "dimension", description = "The dimension type to create the world with", defaultValue = "overworld")
+        @Param(aliases = "dimension", description = "The dimension type to create the world with", defaultValue = "default")
             IrisDimension type,
         @Param(description = "The seed to generate the world with", defaultValue = "1337")
             long seed

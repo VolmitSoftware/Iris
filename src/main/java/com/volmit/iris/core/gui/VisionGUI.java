@@ -47,11 +47,7 @@ import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.event.MouseInputListener;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Point;
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -436,6 +432,18 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
     public void paint(Graphics gx) {
 
         if(engine.isClosed()) {
+            EventQueue.invokeLater(() -> {
+                try
+                {
+                    setVisible(false);
+                }
+
+                catch(Throwable e)
+                {
+
+                }
+            });
+
             return;
         }
 

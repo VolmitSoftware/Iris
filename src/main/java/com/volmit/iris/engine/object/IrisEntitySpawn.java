@@ -74,10 +74,8 @@ public class IrisEntitySpawn implements IRare {
             for(int id = 0; id < spawns; id++) {
                 int x = (c.getX() * 16) + rng.i(15);
                 int z = (c.getZ() * 16) + rng.i(15);
-                int h = gen.getHeight(x, z, true) - 64;
-                int hf = gen.getHeight(x, z, false) - 64;
-                //int h = gen.getHeight(x, z, true) + gen.getWorld().minHeight();  Will look into this later
-                //int hf = gen.getHeight(x, z, false) + gen.getWorld().minHeight();
+                int h = gen.getHeight(x, z, true) + (gen.getWorld().tryGetRealWorld() ? gen.getWorld().realWorld().getMinHeight() : -64);
+                int hf = gen.getHeight(x, z, false) + (gen.getWorld().tryGetRealWorld() ? gen.getWorld().realWorld().getMinHeight() : -64);
                 Location l = switch(getReferenceSpawner().getGroup()) {
                     case NORMAL -> new Location(c.getWorld(), x, hf + 1, z);
                     case CAVE -> gen.getMantle().findMarkers(c.getX(), c.getZ(), MarkerMatter.CAVE_FLOOR)

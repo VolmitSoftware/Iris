@@ -127,7 +127,7 @@ public class IrisEngine implements Engine {
         context = new IrisContext(this);
         cleaning = new AtomicBoolean(false);
         context.touch();
-        Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + 256 + " height) Seed: " + getSeedManager().getSeed());
+        Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + 384 + " height) Seed: " + getSeedManager().getSeed());
         getData().setEngine(this);
         minHeight = 0;
         failing = false;

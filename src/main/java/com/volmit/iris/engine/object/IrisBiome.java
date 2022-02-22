@@ -102,10 +102,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private KList<IrisBlockDrops> blockDrops = new KList<>();
     @Desc("Reference loot tables in this area")
     private IrisLootReference loot = new IrisLootReference();
-    @MinNumber(0.0001)
-    @DependsOn({"biomeStyle", "biomeZoom", "biomeScatter"})
-    @Desc("This zooms in the biome colors if multiple derivatives are chosen")
-    private double biomeZoom = 1;
     @Desc("Layers no longer descend from the surface block, they descend from the max possible height the biome can produce (constant) creating mesa like layers.")
     private boolean lockLayers = false;
     @Desc("The max layers to iterate below the surface for locked layer biomes (mesa).")

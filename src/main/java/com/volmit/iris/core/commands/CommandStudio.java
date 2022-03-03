@@ -23,10 +23,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.core.gui.VisionGUI;
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.project.IrisProject;
-import com.volmit.iris.core.project.ProjectTrimmer;
-import com.volmit.iris.core.service.CommandSVC;
 import com.volmit.iris.core.service.ConversionSVC;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -65,7 +62,6 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.parallel.MultiBurst;
-import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -91,24 +87,16 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.attribute.FileTime;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 @Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
 public class CommandStudio implements DecreeExecutor {
@@ -299,128 +287,6 @@ public class CommandStudio implements DecreeExecutor {
         }
 
         new JobCollection("Cleaning", jobs).execute(sender());
-    }
-
-    @Decree(description = "Trim the pack of all unused files")
-    public void trim(
-            @Param(defaultValue = "overworld", description = "The pack to trim")
-                    IrisDimension project
-    ) {
-        sender().sendMessage("Analyzing the " + project.getName() + " pack...");
-
-        ProjectTrimmer trimmer = new ProjectTrimmer(project);
-        long time = System.currentTimeMillis();
-        trimmer.analyze();
-        time = System.currentTimeMillis() - time;
-        sender().sendMessage("Done! Took " + time + "ms!");
-
-        Map<Class<? extends IrisRegistrant>, KList<String>> result = trimmer.getResult();
-        List<Class<? extends IrisRegistrant>> sorted = result.keySet().stream().filter(key -> result.get(key).size() > 0)
-                .sorted(Comparator.comparingInt(key -> result.get(key).size())).collect(Collectors.toList());
-
-        List<String> realFiles = new ArrayList<>();
-
-        int total = result.values().stream().mapToInt(ArrayList::size).sum();
-        if (sorted.size() > 0) {
-            sender().sendMessage("Found total of " + total + " unused files of " + sorted.size() + " different types");
-
-            for (Class<? extends IrisRegistrant> clazz : sorted) {
-                try {
-                    KList<String> files = result.get(clazz);
-
-                    IrisRegistrant dummy = clazz.getConstructor().newInstance();
-                    String filesString1 = String.join(", ", files);
-                    String filesString2 = filesString1.replaceAll(", ", "\n");
-                    String type = dummy.getTypeName();
-                    String chatString = "- " + files.size() + "x " + type + "s (" + filesString1;
-                    chatString = chatString.substring(0, Math.min(chatString.length(), 56)) + "...)";
-
-                    //Add the raw files to a list so we can delete them later
-                    realFiles.addAll(files.stream().map(s -> dummy.getFolderName() + "/" + s + (clazz.equals(IrisObject.class) ? ".iob" : ".json")).collect(Collectors.toList()));
-
-                    sender().sendMessage("<hover:show_text:" + filesString2 + ">" + chatString + "</hover>");
-                } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {}
-            }
-
-            String password = UUID.randomUUID().toString().replaceAll("\\Q-\\E", "");
-            final VolmitSender sender = sender();
-
-            Consumer<String> confirm = (string) -> {
-                if (string.equalsIgnoreCase("delete") || string.equalsIgnoreCase("both")) {
-                    sender.sendMessage(C.RED + "Deleting files...");
-
-                    long time2 = System.currentTimeMillis();
-                    realFiles.forEach(s -> {
-                        File file = new File(Iris.service(StudioSVC.class).getWorkspaceFolder(project.getLoadKey()), s);
-                        if (!file.exists()) Iris.warn("<NOMINI>Couldn't find file " + file.getPath() + " to delete");
-                        else IO.delete(file);
-                    });
-
-                    sender.sendMessage(C.GREEN + "Files deleted! Took " + (System.currentTimeMillis() - time2) + "ms!");
-                    if (!string.equalsIgnoreCase("both")) return;
-                }
-
-                if (!(string.equalsIgnoreCase("file") || string.equalsIgnoreCase("both"))) {
-                    sender.sendMessage(C.RED +"Unknown option \"" + string + "\". Writing to file anyway...");
-                }
-
-                File file = new File(Iris.service(StudioSVC.class).getWorkspaceFolder(project.getLoadKey()) + File.separator + "unused-files.txt");
-                try {
-                    List<String> lines = new ArrayList<>(realFiles);
-                    lines.add(0, "# Unused files in " + project.getLoadKey() + " project");
-                    lines.add(1, "");
-
-                    if (file.exists()) file.delete();
-                    Files.write(file.toPath(), lines);
-
-                    String openFilePassword = UUID.randomUUID().toString().replaceAll("\\Q-\\E", "");
-                    Consumer<String> openFile = (s) -> {
-                        try {
-                            Desktop.getDesktop().open(file);
-                        } catch (IOException e) {
-                            sender.sendMessage(C.RED + "Failed to open file: " + e.getLocalizedMessage());
-                            sender.sendMessage(C.RED + "See the console for details");
-                            e.printStackTrace();
-                        }
-                    };
-
-                    sender.sendMessage("<hover:show_text:" + C.YELLOW + "Click to open the file!><click:run_command:/irisdecree " + openFilePassword + " open>" + C.DARK_GREEN + "Done! File written to " + file.getAbsolutePath() + "</click></hover>");
-
-                    CompletableFuture<String> onReturn2 = new CompletableFuture<>();
-                    onReturn2.thenAccept(openFile);
-
-                    Iris.service(CommandSVC.class).post(openFilePassword, onReturn2);
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            };
-
-            CompletableFuture<String> onReturn = new CompletableFuture<>();
-            onReturn.thenAccept(confirm);
-
-            if (sender().isPlayer()) {
-                sender().sendMessage(C.GREEN + "<click:run_command:/irisdecree " + password + " delete>Click <bold>" + C.RED + "HERE" + C.GREEN + "</bold> to</click> automatically delete these files.");
-                sender().sendMessage(C.GREEN + "Or instead, <click:run_command:/irisdecree " + password + " file>click <bold>" + C.BLUE + "HERE" + C.GREEN + "</bold> to</click> create a file with a list of all the files.");
-                sender().sendMessage(C.GREEN + "Or, you can <click:run_command:/irisdecree " + password + " both>click <bold>" + C.YELLOW + "HERE" + C.GREEN + "</bold> to</click> do both of these");
-
-                Iris.service(CommandSVC.class).post(password, onReturn);
-            } else {
-                sender().sendMessage(C.YELLOW + "Enter an option bellow to continue:");
-                sender().sendMessage(C.GREEN + "DELETE - Delete all the files that are unused");
-                sender().sendMessage(C.GREEN + "FILE - Write the list of all the unused files to a file");
-                sender().sendMessage(C.GREEN + "BOTH - Do both of the above options");
-
-                Iris.service(CommandSVC.class).postConsole(onReturn);
-            }
-
-
-
-
-        } else {
-            sender().sendMessage(C.DARK_GREEN + "Analyzed entire project and found no unused files! Congrats!");
-        }
-
     }
 
     @Decree(description = "Get the version of a pack")

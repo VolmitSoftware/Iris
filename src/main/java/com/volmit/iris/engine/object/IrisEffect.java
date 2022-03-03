@@ -209,8 +209,9 @@ public class IrisEffect {
 
             part.setY(Math.round(g.getHeight(part.getBlockX(), part.getBlockZ())) + 1);
             part.add(RNG.r.d(), 0, RNG.r.d());
+            int offset = p.getWorld().getMinHeight();
             if(extra != 0) {
-                J.s(() -> p.spawnParticle(particleEffect, part.getX(), part.getY() - 64 + RNG.r.i(particleOffset),
+                J.s(() -> p.spawnParticle(particleEffect, part.getX(), part.getY() + offset + RNG.r.i(particleOffset),
                     part.getZ(),
                     particleCount,
                     randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
@@ -218,7 +219,7 @@ public class IrisEffect {
                     randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ,
                     extra));
             } else {
-                J.s(() -> p.spawnParticle(particleEffect, part.getX(), part.getY() - 64 + RNG.r.i(particleOffset), part.getZ(),
+                J.s(() -> p.spawnParticle(particleEffect, part.getX(), part.getY() + offset + RNG.r.i(particleOffset), part.getZ(),
                     particleCount,
                     randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
                     randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY,
@@ -266,8 +267,9 @@ public class IrisEffect {
         if(particleEffect != null) {
             Location part = p.getLocation().clone().add(0, 0.25, 0).add(new Vector(1, 1, 1).multiply(RNG.r.d())).subtract(new Vector(1, 1, 1).multiply(RNG.r.d()));
             part.add(RNG.r.d(), 0, RNG.r.d());
+            int offset = p.getWorld().getMinHeight();
             if(extra != 0) {
-                J.s(() -> p.getWorld().spawnParticle(particleEffect, part.getX(), part.getY() -64 + RNG.r.i(particleOffset),
+                J.s(() -> p.getWorld().spawnParticle(particleEffect, part.getX(), part.getY() + offset + RNG.r.i(particleOffset),
                     part.getZ(),
                     particleCount,
                     randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
@@ -275,7 +277,7 @@ public class IrisEffect {
                     randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ,
                     extra));
             } else {
-                J.s(() -> p.getWorld().spawnParticle(particleEffect, part.getX(), part.getY() -64 + RNG.r.i(particleOffset), part.getZ(),
+                J.s(() -> p.getWorld().spawnParticle(particleEffect, part.getX(), part.getY() + offset + RNG.r.i(particleOffset), part.getZ(),
                     particleCount,
                     randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
                     randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY,

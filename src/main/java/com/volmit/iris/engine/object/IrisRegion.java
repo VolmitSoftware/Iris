@@ -93,10 +93,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @ArrayType(min = 1, type = IrisBlockDrops.class)
     @Desc("Define custom block drops for this region")
     private KList<IrisBlockDrops> blockDrops = new KList<>();
-    @MinNumber(0.0001)
-    @MaxNumber(1)
-    @Desc("The shore ration (How much percent of land should be a shore)")
-    private double shoreRatio = 0.13;
     @RegistryListResource(IrisSpawner.class)
     @ArrayType(min = 1, type = IrisObjectPlacement.class)
     @Desc("Objects define what schematics (iob files) iris will place in this region")
@@ -124,10 +120,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @MinNumber(0.0001)
     @Desc("How large cave biomes are in this region")
     private double caveBiomeZoom = 1;
-    @MinNumber(0.0001)
-    @MaxNumber(1)
-    @Desc("The biome implosion ratio, how much to implode biomes into children (chance)")
-    private double biomeImplosionRatio = 0.4;
     @Desc("Carving configuration for the dimension")
     private IrisCarving carving = new IrisCarving();
     @Desc("Configuration of fluid bodies such as rivers & lakes")
@@ -158,22 +150,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     private IrisGeneratorStyle riverStyle = NoiseStyle.VASCULAR_THIN.style().zoomed(7.77);
     @Desc("The style of lakes")
     private IrisGeneratorStyle lakeStyle = NoiseStyle.CELLULAR_IRIS_THICK.style();
-    @Desc("The style of river chances")
-    private IrisGeneratorStyle riverChanceStyle = NoiseStyle.SIMPLEX.style().zoomed(4);
-    @Desc("Generate lakes in this region")
-    private boolean lakes = true;
-    @Desc("Generate rivers in this region")
-    private boolean rivers = true;
-    @MinNumber(1)
-    @Desc("Generate lakes in this region")
-    private int lakeRarity = 22;
-    @MinNumber(1)
-    @Desc("Generate rivers in this region")
-    private int riverRarity = 3;
-    @MinNumber(0)
-    @MaxNumber(1)
-    @Desc("Generate rivers in this region")
-    private double riverThickness = 0.1;
     @Desc("A color for visualizing this region with a color. I.e. #F13AF5. This will show up on the map.")
     private String color = null;
     @Desc("Collection of ores to be generated")

@@ -284,6 +284,10 @@ public class IrisDimension extends IrisRegistrant {
         });
     }
 
+    public int getFluidHeight() {
+        return fluidHeight - (int)dimensionHeight.getMin();
+    }
+
     public CNG getCoordFracture(RNG rng, int signature) {
         return coordFracture.aquire(() ->
         {

@@ -25,7 +25,7 @@ plugins {
 }
 
 group 'com.volmit.iris'
-version '2.0.1-1.18.X'
+version '2.0.2-1.18.X'
 def nmsVersion = "1.18.1"
 def apiVersion = '1.18'
 def spigotJarVersion = '1.18.1-R0.1-SNAPSHOT'

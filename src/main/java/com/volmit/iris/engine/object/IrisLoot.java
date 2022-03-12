@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.ArrayType;
@@ -28,17 +29,25 @@ import com.volmit.iris.engine.object.annotations.RegistryListItemType;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.noise.CNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.TagParser;
+import net.minecraft.server.commands.GiveCommand;
 import org.bukkit.DyeColor;
 import org.bukkit.Material;
+import org.bukkit.craftbukkit.v1_18_R1.inventory.CraftItemStack;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
@@ -102,6 +111,8 @@ public class IrisLoot {
     private DyeColor dyeColor = null;
     @Desc("The leather armor color")
     private String leatherColor = null;
+    @Desc("Defines a custom NBT Tag for the item.")
+    private KMap<String, Object> customNbt;
 
     public Material getType() {
         return B.getMaterial(type);
@@ -173,7 +184,7 @@ public class IrisLoot {
             }
 
             is.setItemMeta(m);
-            return is;
+            return applyCustomNbt(is);
         } catch(Throwable e) {
             Iris.reportError(e);
 
@@ -250,13 +261,23 @@ public class IrisLoot {
 
                 m.setLore(lore);
                 is.setItemMeta(m);
-                return is;
+                return applyCustomNbt(is);
             } catch(Throwable e) {
                 Iris.reportError(e);
-
             }
         }
 
         return null;
+    }
+
+    private ItemStack applyCustomNbt(ItemStack stack) throws CommandSyntaxException {
+        if(customNbt == null || customNbt.isEmpty())
+            return stack;
+        net.minecraft.world.item.ItemStack s = CraftItemStack.asNMSCopy(stack);
+        CompoundTag tag = TagParser.parseTag(new JSONObject(customNbt).toString());
+        tag.merge(s.getOrCreateTag());
+        s.setTag(tag);
+        System.out.println(customNbt);
+        return CraftItemStack.asBukkitCopy(s);
     }
 }

@@ -35,16 +35,13 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.noise.CNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.TagParser;
-import net.minecraft.server.commands.GiveCommand;
 import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.craftbukkit.v1_18_R1.inventory.CraftItemStack;
@@ -277,7 +274,6 @@ public class IrisLoot {
         CompoundTag tag = TagParser.parseTag(new JSONObject(customNbt).toString());
         tag.merge(s.getOrCreateTag());
         s.setTag(tag);
-        System.out.println(customNbt);
         return CraftItemStack.asBukkitCopy(s);
     }
 }

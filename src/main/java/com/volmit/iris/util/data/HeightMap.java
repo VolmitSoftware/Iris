@@ -21,18 +21,18 @@ package com.volmit.iris.util.data;
 import java.util.Arrays;
 
 public class HeightMap {
-    private final byte[] height;
+    private final int[] height;
 
     public HeightMap() {
-        height = new byte[256];
-        Arrays.fill(height, Byte.MIN_VALUE);
+        height = new int[256];
+        Arrays.fill(height, 0);
     }
 
     public void setHeight(int x, int z, int h) {
-        height[x * 16 + z] = (byte) (h + Byte.MIN_VALUE);
+        height[x * 16 + z] = (h);
     }
 
     public int getHeight(int x, int z) {
-        return height[x * 16 + z] - Byte.MIN_VALUE;
+        return height[x * 16 + z];
     }
 }

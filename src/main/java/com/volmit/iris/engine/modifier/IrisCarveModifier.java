@@ -29,6 +29,7 @@ import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.hunk.Hunk;
@@ -275,7 +276,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         }
 
         public boolean isValid() {
-            return floor < ceiling && ceiling - floor >= 1 && floor >= 0 && ceiling <= engine.getHeight() && airThickness() > 0;
+            return floor < ceiling && ceiling - floor >= 1 && floor >= 0 && ceiling <= IrisContext.get().getEngine().getHeight() && airThickness() > 0;
         }
 
         public String toString() {

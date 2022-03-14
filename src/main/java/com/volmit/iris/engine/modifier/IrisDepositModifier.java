@@ -118,7 +118,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
                 int ny = j.getBlockY() + h;
                 int nz = j.getBlockZ() + z;
 
-                if(ny > height || nx > 15 || nx < 0 || ny > 255 || ny < 0 || nz < 0 || nz > 15) {
+                if(ny > height || nx > 15 || nx < 0 || ny > engine.getHeight() || ny < 0 || nz < 0 || nz > 15) {
                     continue;
                 }
 

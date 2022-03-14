@@ -35,14 +35,14 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisObjectLimit {
     @MinNumber(0)
-    @MaxNumber(255)
+    @MaxNumber(1024)
     @Desc("The minimum height for placement (bottom of object)")
     private int minimumHeight = 0;
 
     @MinNumber(0)
-    @MaxNumber(255)
+    @MaxNumber(1024)
     @Desc("The maximum height for placement (top of object)")
-    private int maximumHeight = 255;
+    private int maximumHeight = 512;
 
     public boolean canPlace(int h, int l) {
         return h <= maximumHeight && l >= minimumHeight;

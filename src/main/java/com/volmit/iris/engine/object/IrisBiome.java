@@ -293,7 +293,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
             height += i.getHeight(xg, x, z, seed);
         }
 
-        return Math.max(0, Math.min(height, 255));
+        return Math.max(0, Math.min(height, xg.getHeight()));
     }
 
     public CNG getBiomeGenerator(RNG random) {
@@ -448,7 +448,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         }
 
         for(int i = 0; i < maxDepth; i++) {
-            int offset = (255 - height) - i;
+            int offset = (512 - height) - i;
             int index = offset % data.size();
             real.add(data.get(Math.max(index, 0)));
         }

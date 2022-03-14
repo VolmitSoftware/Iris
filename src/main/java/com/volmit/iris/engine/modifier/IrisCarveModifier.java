@@ -148,7 +148,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             int buf = v.get(0) - 1;
 
             for(Integer i : v) {
-                if(i < 0 || i > 255) {
+                if(i < 0 || i > getEngine().getHeight()) {
                     continue;
                 }
 
@@ -275,7 +275,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         }
 
         public boolean isValid() {
-            return floor < ceiling && ceiling - floor >= 1 && floor >= 0 && ceiling <= 255 && airThickness() > 0;
+            return floor < ceiling && ceiling - floor >= 1 && floor >= 0 && ceiling <= engine.getHeight() && airThickness() > 0;
         }
 
         public String toString() {

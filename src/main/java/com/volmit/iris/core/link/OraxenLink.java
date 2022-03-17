@@ -62,7 +62,6 @@ public class OraxenLink {
         } else if(m.getFactory() instanceof BlockMechanicFactory) {
             MultipleFacing newBlockData = (MultipleFacing) Bukkit.createBlockData(Material.MUSHROOM_STEM);
             Utils.setBlockFacing(newBlockData, ((BlockMechanic) m).getCustomVariation());
-            return newBlockData;
         }
 
         return null;

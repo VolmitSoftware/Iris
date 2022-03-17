@@ -146,7 +146,7 @@ public class NMSBinding18_2 implements INMSBinding {
     }
 
     private RegistryAccess registry() {
-        return registryAccess.aquire(() -> (RegistryAccess) getFor(RegistryAccess.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()));
+        return registryAccess.aquire(() -> (RegistryAccess) getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()));
     }
 
     private Registry<net.minecraft.world.level.biome.Biome> getCustomBiomeRegistry() {

@@ -69,24 +69,31 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
 
     protected AtomicBoolean ignoreTP = new AtomicBoolean(false);
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void on(PlayerTeleportEvent e) {
-        if(ignoreTP.get()) {
-            return;
-        }
-
-        if(!PaperLib.isPaper() || e.getTo() == null) {
-            return;
-        }
-
-        try {
-            if(e.getTo().getWorld().equals(getTarget().getWorld().realWorld())) {
-                getEngine().getWorldManager().teleportAsync(e);
-            }
-        } catch(Throwable ex) {
-
-        }
-    }
+//    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+//    public void on(PlayerTeleportEvent e) {
+//        if(ignoreTP.get()) {
+//            System.out.println("IgTP1");
+//            return;
+//        }
+//
+//        if(!PaperLib.isPaper() || e.getTo() == null) {
+//            System.out.println("IgTP2");
+//
+////            return;
+//        }
+//
+////        try {
+////            System.out.println("IgTP3");
+////
+////            if(e.getTo().getWorld().equals(getTarget().getWorld().realWorld())) {
+////                System.out.println("IgTP4");
+////
+////                getEngine().getWorldManager().teleportAsync(e);
+////            }
+////        } catch(Throwable ex) {
+////
+////        }
+//    }
 
     @EventHandler
     public void on(WorldSaveEvent e) {

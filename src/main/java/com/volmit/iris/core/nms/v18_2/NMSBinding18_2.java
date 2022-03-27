@@ -208,6 +208,10 @@ public class NMSBinding18_2 implements INMSBinding {
     public Object getCustomBiomeBaseFor(String mckey) {
         return getCustomBiomeRegistry().get(new ResourceLocation(mckey));
     }
+    @Override
+    public Object getCustomBiomeBaseHolderFor(String mckey) {
+        return getCustomBiomeRegistry().getHolder(getTrueBiomeBaseId(getCustomBiomeRegistry().get(new ResourceLocation(mckey)))).get();
+    }
 
     @Override
     public String getKeyForBiomeBase(Object biomeBase) {

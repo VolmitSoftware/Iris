@@ -57,7 +57,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
                 return true;
             }
         } catch(Throwable e) {
-
+            e.printStackTrace();
         }
 
         return false;
@@ -79,7 +79,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
                     if(ib.isCustom()) {
                         try {
                             IrisBiomeCustom custom = ib.getCustomBiome(rng, x, 0, z);
-                            Object biomeBase = INMS.get().getCustomBiomeBaseFor(getDimension().getLoadKey() + ":" + custom.getId());
+                            Object biomeBase = INMS.get().getCustomBiomeBaseHolderFor(getDimension().getLoadKey() + ":" + custom.getId());
 //
                             if(biomeBase == null || !injectBiome(h, x, 0, z, biomeBase)) {
                                 throw new RuntimeException("Cant inject biome!");

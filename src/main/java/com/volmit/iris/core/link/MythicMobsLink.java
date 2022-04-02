@@ -65,7 +65,7 @@ public class MythicMobsLink {
         }
 
         try {
-            Class<?> mythicMobClass = Class.forName("io.lumine.xikage.mythicmobs.MythicMobs");
+            Class<?> mythicMobClass = Class.forName("io.lumine.mythic.bukkit.MythicBukkit");
             Method getInst = mythicMobClass.getDeclaredMethod("inst");
             Object inst = getInst.invoke(null);
             Method getAPIHelper = mythicMobClass.getDeclaredMethod("getAPIHelper");

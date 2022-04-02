@@ -137,15 +137,15 @@ dependencies {
 
     // Dynamically Loaded
     implementation 'io.timeandspace:smoothie-map:2.0.2'
-    implementation 'it.unimi.dsi:fastutil:8.5.6'
+    implementation 'it.unimi.dsi:fastutil:8.5.8'
     implementation 'com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'
     implementation 'org.zeroturnaround:zt-zip:1.14'
-    implementation 'com.google.code.gson:gson:2.8.9'
+    implementation 'com.google.code.gson:gson:2.9.0'
     implementation 'org.ow2.asm:asm:9.2'
-    implementation 'com.google.guava:guava:31.0.1-jre'
+    implementation 'com.google.guava:guava:31.1-jre'
     implementation 'bsf:bsf:2.4.0'
     implementation 'rhino:js:1.7R2'
-    implementation 'com.github.ben-manes.caffeine:caffeine:3.0.5'
+    implementation 'com.github.ben-manes.caffeine:caffeine:3.0.6'
     implementation 'org.apache.commons:commons-lang3:3.12.0'
 }
 

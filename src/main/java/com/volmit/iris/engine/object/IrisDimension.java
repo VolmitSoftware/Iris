@@ -405,7 +405,7 @@ public class IrisDimension extends IrisRegistrant {
             }
         }
 
-        if(!dimensionHeight.equals(new IrisRange(-64, 320))) {
+       /* if(!dimensionHeight.equals(new IrisRange(-64, 320))) {
             File dimType = new File(datapacks, "iris/data/minecraft/dimension_type/" + getLoadKey().toLowerCase() + ".json");
             if(!dimType.exists())
                 changed = true;
@@ -417,8 +417,7 @@ public class IrisDimension extends IrisRegistrant {
             } catch(IOException e) {
                 Iris.reportError(e);
                 e.printStackTrace();
-            }
-        }
+            }*/
 
         if(write) {
             File mcm = new File(datapacks, "iris/pack.mcmeta");
@@ -427,7 +426,7 @@ public class IrisDimension extends IrisRegistrant {
                     {
                         "pack": {
                             "description": "Iris Data Pack. This pack contains all installed Iris Packs' resources.",
-                            "pack_format": 7
+                            "pack_format": 9
                         }
                     }
                     """);

@@ -124,7 +124,6 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.22'
     implementation 'org.spigotmc:spigot-api:1.18.2-R0.1-SNAPSHOT'
     implementation 'me.clip:placeholderapi:2.11.1'
-    implementation 'io.th0rgal:oraxen:1.94.0'
     implementation 'org.bukkit:craftbukkit:1.18.2-R0.1-SNAPSHOT:remapped-mojang'
 
     // Shaded

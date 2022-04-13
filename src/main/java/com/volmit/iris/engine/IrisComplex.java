@@ -336,8 +336,7 @@ public class IrisComplex implements DataProvider {
     }
 
     private double getHeight(Engine engine, IrisBiome b, double x, double z, long seed) {
-        return Math.min(engine.getWorld().maxHeight(),
-            Math.max(getInterpolatedHeight(engine, x, z, seed) + fluidHeight + overlayStream.get(x, z), engine.getWorld().minHeight()));
+        return Math.max(Math.min(getInterpolatedHeight(engine, x, z, seed) + fluidHeight + overlayStream.get(x, z), engine.getHeight()), 0);
     }
 
     private void registerGenerator(IrisGenerator cachedGenerator) {

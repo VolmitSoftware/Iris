@@ -327,7 +327,11 @@ public class CommandObject implements DecreeExecutor {
 
         Map<Block, BlockData> futureChanges = new HashMap<>();
 
-        o = o.scaled(scale, IrisObjectPlacementScaleInterpolator.TRICUBIC);
+        if(scale != 1)
+        {
+            o = o.scaled(scale, IrisObjectPlacementScaleInterpolator.TRICUBIC);
+        }
+
         o.place(block.getBlockX(), block.getBlockY() + (int) o.getCenter().getY(), block.getBlockZ(), createPlacer(block.getWorld(), futureChanges), placement, new RNG(), null);
 
         Iris.service(ObjectSVC.class).addChanges(futureChanges);

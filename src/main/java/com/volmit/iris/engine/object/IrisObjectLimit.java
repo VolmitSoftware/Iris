@@ -42,7 +42,7 @@ public class IrisObjectLimit {
     @MinNumber(0)
     @MaxNumber(1024)
     @Desc("The maximum height for placement (top of object)")
-    private int maximumHeight = 255;
+    private int maximumHeight = 512;
 
     public boolean canPlace(int h, int l) {
         return h <= maximumHeight && l >= minimumHeight;

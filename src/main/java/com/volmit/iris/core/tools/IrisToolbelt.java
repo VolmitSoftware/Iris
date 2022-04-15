@@ -241,12 +241,7 @@ public class IrisToolbelt {
     }
 
     public static boolean hasMantleObject(World world, int x, int y, int z) {
-        try {
-            Method m = Class.forName("com.volmit.iris.core.tools.IrisToolbelt").getDeclaredMethod("getMantleData", World.class, int.class, int.class, int.class, Class.class);
-            String s = (String) m.invoke(null, world, x, y, z, String.class);
-            if(s != null) {return true;}
-        } catch(Throwable ignored) {}
-        return false;
+        return getMantleIdentity(world, x, y, z) != -1;
     }
 
     public static BlockData getMantleBlock(World world, int x, int y, int z) {

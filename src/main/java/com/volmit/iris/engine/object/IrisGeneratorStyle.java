@@ -128,6 +128,11 @@ public class IrisGeneratorStyle {
         return cng;
     }
 
+    public double warp(RNG rng, IrisData data, double value, double... coords)
+    {
+        return create(rng, data).noise(coords) + value;
+    }
+
     public CNG create(RNG rng, IrisData data) {
         return cng.aquire(() -> createNoCache(rng, data));
     }

@@ -255,6 +255,7 @@ public class IrisToolbelt {
         try {
             Method m = Class.forName("com.volmit.iris.core.tools.IrisToolbelt").getDeclaredMethod("deleteMantleData", World.class, int.class, int.class, int.class, Class.class);
             m.invoke(null, world, x, y, z, BlockData.class);
+            m.invoke(null, world, x, y, z, String.class);
         } catch(Throwable ignored) {}
     }
 

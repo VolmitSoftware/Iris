@@ -229,6 +229,13 @@ public class IrisToolbelt {
         return e.getEngine().getMantle().getMantle().get(x, y - world.getMinHeight(), z, of);
     }
 
+    public static <T> void  deleteMantleData(World world, int x, int y, int z, Class<T> of)
+    {
+        PlatformChunkGenerator e = access(world);
+        if(e == null) {return;}
+        e.getEngine().getMantle().getMantle().remove(x, y - world.getMinHeight(), z, of);
+    }
+
     /////////////////// REFLECTIVE METHODS //////////////////////////
     // Copy this stuff to your project, it's safe to use with a
     // bukkit api only.
@@ -242,6 +249,13 @@ public class IrisToolbelt {
 
     public static boolean hasMantleObject(World world, int x, int y, int z) {
         return getMantleIdentity(world, x, y, z) != -1;
+    }
+
+    public static void deleteMantleBlock(World world, int x, int y, int z) {
+        try {
+            Method m = Class.forName("com.volmit.iris.core.tools.IrisToolbelt").getDeclaredMethod("deleteMantleData", World.class, int.class, int.class, int.class, Class.class);
+            m.invoke(null, world, x, y, z, BlockData.class);
+        } catch(Throwable ignored) {}
     }
 
     public static BlockData getMantleBlock(World world, int x, int y, int z) {

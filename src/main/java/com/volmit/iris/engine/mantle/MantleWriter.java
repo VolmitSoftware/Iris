@@ -24,6 +24,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IObjectPlacer;
+import com.volmit.iris.engine.object.IrisGeneratorStyle;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.collection.KMap;
@@ -31,6 +32,7 @@ import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.function.Function3;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
+import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.Matter;
 import lombok.Data;
 import org.bukkit.block.TileState;
@@ -119,6 +121,13 @@ public class MantleWriter implements IObjectPlacer {
 
     private static double lengthSq(double x, double z) {
         return (x * x) + (z * z);
+    }
+
+    public <T> void setDataWarped(int x, int y, int z, T t, RNG rng, IrisData data, IrisGeneratorStyle style)
+    {
+        setData((int)Math.round(style.warp(rng, data, x, x, y, -z)),
+            (int)Math.round(style.warp(rng, data, y, z, -x, y)),
+            (int)Math.round(style.warp(rng, data, z, -y, z, x)), t);
     }
 
     public <T> void setData(int x, int y, int z, T t) {
@@ -233,6 +242,10 @@ public class MantleWriter implements IObjectPlacer {
         setElipsoidFunction(cx, cy, cz, rx, ry, rz, fill, (a, b, c) -> data);
     }
 
+    public <T> void setElipsoidWarped(int cx, int cy, int cz, double rx, double ry, double rz, boolean fill, T data, RNG rng, IrisData idata, IrisGeneratorStyle style) {
+        setElipsoidFunctionWarped(cx, cy, cz, rx, ry, rz, fill, (a, b, c) -> data, rng, idata, style);
+    }
+
     /**
      * Set an elipsoid into the mantle
      *
@@ -307,6 +320,63 @@ public class MantleWriter implements IObjectPlacer {
                     setData(x + cx, -y + cy, -z + cz, data.apply(x + cx, -y + cy, -z + cz));
                     setData(-x + cx, y + cy, -z + cz, data.apply(-x + cx, y + cy, -z + cz));
                     setData(-x + cx, -y + cy, -z + cz, data.apply(-x + cx, -y + cy, -z + cz));
+                }
+            }
+        }
+    }
+
+    public <T> void setElipsoidFunctionWarped(int cx, int cy, int cz, double rx, double ry, double rz, boolean fill, Function3<Integer, Integer, Integer, T> data, RNG rng, IrisData idata, IrisGeneratorStyle style) {
+        rx += 0.5;
+        ry += 0.5;
+        rz += 0.5;
+        final double invRadiusX = 1 / rx;
+        final double invRadiusY = 1 / ry;
+        final double invRadiusZ = 1 / rz;
+        final int ceilRadiusX = (int) Math.ceil(rx);
+        final int ceilRadiusY = (int) Math.ceil(ry);
+        final int ceilRadiusZ = (int) Math.ceil(rz);
+        double nextXn = 0;
+
+        forX:
+        for(int x = 0; x <= ceilRadiusX; ++x) {
+            final double xn = nextXn;
+            nextXn = (x + 1) * invRadiusX;
+            double nextYn = 0;
+            forY:
+            for(int y = 0; y <= ceilRadiusY; ++y) {
+                final double yn = nextYn;
+                nextYn = (y + 1) * invRadiusY;
+                double nextZn = 0;
+                for(int z = 0; z <= ceilRadiusZ; ++z) {
+                    final double zn = nextZn;
+                    nextZn = (z + 1) * invRadiusZ;
+
+                    double distanceSq = lengthSq(xn, yn, zn);
+                    if(distanceSq > 1) {
+                        if(z == 0) {
+                            if(y == 0) {
+                                break forX;
+                            }
+                            break forY;
+                        }
+                        break;
+                    }
+
+                    if(!fill) {
+                        if(lengthSq(nextXn, yn, zn) <= 1 && lengthSq(xn, nextYn, zn) <= 1 && lengthSq(xn, yn, nextZn) <= 1) {
+                            continue;
+                        }
+                    }
+
+                    setDataWarped(x + cx, y + cy, z + cz, data.apply(x + cx, y + cy, z + cz), rng, idata, style);
+                    setDataWarped(-x + cx, y + cy, z + cz, data.apply(-x + cx, y + cy, z + cz), rng, idata, style);
+                    setDataWarped(x + cx, -y + cy, z + cz, data.apply(x + cx, -y + cy, z + cz), rng, idata, style);
+                    setDataWarped(x + cx, y + cy, -z + cz, data.apply(x + cx, y + cy, -z + cz), rng, idata, style);
+                    setDataWarped(-x + cx, y + cy, -z + cz, data.apply(-x + cx, y + cy, -z + cz), rng, idata, style);
+                    setDataWarped(-x + cx, -y + cy, z + cz, data.apply(-x + cx, -y + cy, z + cz), rng, idata, style);
+                    setDataWarped(x + cx, -y + cy, -z + cz, data.apply(x + cx, -y + cy, -z + cz), rng, idata, style);
+                    setDataWarped(-x + cx, y + cy, -z + cz, data.apply(-x + cx, y + cy, -z + cz), rng, idata, style);
+                    setDataWarped(-x + cx, -y + cy, -z + cz, data.apply(-x + cx, -y + cy, -z + cz), rng, idata, style);
                 }
             }
         }

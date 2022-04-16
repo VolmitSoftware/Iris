@@ -29,6 +29,7 @@ import java.io.IOException;
 @Sliced
 public class CavernMatter extends RawMatter<MatterCavern> {
     public static final MatterCavern EMPTY = new MatterCavern(false, "", (byte) 0);
+    public static final MatterCavern BASIC = new MatterCavern(true, "", (byte) 0);
 
     public CavernMatter() {
         this(1, 1, 1);

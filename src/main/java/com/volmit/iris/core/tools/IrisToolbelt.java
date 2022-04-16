@@ -32,15 +32,21 @@ import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
 import java.io.File;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Something you really want to wear if working on Iris. Shit gets pretty hectic down there.
  * Hope you packed snacks & road sodas.
  */
 public class IrisToolbelt {
+    public static Map<String, Boolean> toolbeltConfiguration = new HashMap<>();
+
     /**
      * Will find / download / search for the dimension or return null
      * <p>
@@ -209,5 +215,65 @@ public class IrisToolbelt {
 
     public static boolean isStudio(World i) {
         return isIrisWorld(i) && access(i).isStudio();
+    }
+
+    public static void retainMantleDataForSlice(String className)
+    {
+        toolbeltConfiguration.put("retain.mantle." + className, true);
+    }
+
+    public static <T> T getMantleData(World world, int x, int y, int z, Class<T> of)
+    {
+        PlatformChunkGenerator e = access(world);
+        if(e == null) {return null;}
+        return e.getEngine().getMantle().getMantle().get(x, y - world.getMinHeight(), z, of);
+    }
+
+    public static <T> void  deleteMantleData(World world, int x, int y, int z, Class<T> of)
+    {
+        PlatformChunkGenerator e = access(world);
+        if(e == null) {return;}
+        e.getEngine().getMantle().getMantle().remove(x, y - world.getMinHeight(), z, of);
+    }
+
+    /////////////////// REFLECTIVE METHODS //////////////////////////
+    // Copy this stuff to your project, it's safe to use with a
+    // bukkit api only.
+    /////////////////////////////////////////////////////////////////
+
+    public static void setup() throws Throwable {
+        Method m = Class.forName("com.volmit.iris.core.tools.IrisToolbelt").getDeclaredMethod("retainMantleDataForSlice", String.class);
+        m.invoke(null, String.class.getCanonicalName());
+        m.invoke(null, BlockData.class.getCanonicalName());
+    }
+
+    public static boolean hasMantleObject(World world, int x, int y, int z) {
+        return getMantleIdentity(world, x, y, z) != -1;
+    }
+
+    public static void deleteMantleBlock(World world, int x, int y, int z) {
+        try {
+            Method m = Class.forName("com.volmit.iris.core.tools.IrisToolbelt").getDeclaredMethod("deleteMantleData", World.class, int.class, int.class, int.class, Class.class);
+            m.invoke(null, world, x, y, z, BlockData.class);
+            m.invoke(null, world, x, y, z, String.class);
+        } catch(Throwable ignored) {}
+    }
+
+    public static BlockData getMantleBlock(World world, int x, int y, int z) {
+        try {
+            Method m = Class.forName("com.volmit.iris.core.tools.IrisToolbelt").getDeclaredMethod("getMantleData", World.class, int.class, int.class, int.class, Class.class);
+            BlockData s = (BlockData) m.invoke(null, world, x, y, z, BlockData.class);
+            if(s != null) {return s;}
+        } catch(Throwable ignored) {}
+        return null;
+    }
+
+    public static int getMantleIdentity(World world, int x, int y, int z) {
+        try {
+            Method m = Class.forName("com.volmit.iris.core.tools.IrisToolbelt").getDeclaredMethod("getMantleData", World.class, int.class, int.class, int.class, Class.class);
+            String s = (String) m.invoke(null, world, x, y, z, String.class);
+            if(s != null) {return Integer.parseInt(s.split("\\Q@\\E")[1]);}
+        } catch(Throwable ignored) {}
+        return -1;
     }
 }

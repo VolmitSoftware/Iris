@@ -462,6 +462,10 @@ public class B {
             BlockData bx = null;
 
             if(!ix.startsWith("minecraft:")) {
+                if(ix.startsWith("oraxen:") && Iris.linkOraxen.supported()) {
+                    bx = Iris.linkOraxen.getBlockDataFor(ix.split("\\Q:\\E")[1]);
+                }
+
                 if(bx == null) {
                     try {
                         if(ix.contains(":")) {
@@ -646,6 +650,14 @@ public class B {
 
                 bt.add(v);
             }
+        }
+
+        try {
+            for(String i : Iris.linkOraxen.getItemTypes()) {
+                bt.add("oraxen:" + i);
+            }
+        } catch(Throwable e) {
+            e.printStackTrace();
         }
 
         try {

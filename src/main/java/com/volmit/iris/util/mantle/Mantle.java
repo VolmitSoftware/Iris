@@ -20,6 +20,7 @@ package com.volmit.iris.util.mantle;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.EngineMantle;
@@ -570,6 +571,11 @@ public class Mantle {
     }
 
     public void deleteChunkSlice(int x, int z, Class<?> c) {
+        if(!IrisToolbelt.toolbeltConfiguration.isEmpty() && IrisToolbelt.toolbeltConfiguration.getOrDefault("retain.mantle." + c.getCanonicalName(), false))
+        {
+            return;
+        }
+
         getChunk(x, z).deleteSlices(c);
     }
 

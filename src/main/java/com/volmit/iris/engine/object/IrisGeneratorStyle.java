@@ -25,6 +25,7 @@ import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.noise.ExpressionNoise;
@@ -50,7 +51,6 @@ public class IrisGeneratorStyle {
 
     @Desc("Cell zooms")
     private double cellularZoom = 1;
-
     @MinNumber(0.00001)
     @Desc("The zoom of this style")
     private double zoom = 1;

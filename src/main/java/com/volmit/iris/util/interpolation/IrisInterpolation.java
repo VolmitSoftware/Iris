@@ -19,6 +19,7 @@
 package com.volmit.iris.util.interpolation;
 
 import com.google.common.util.concurrent.AtomicDouble;
+import com.volmit.iris.engine.data.chunk.LinkedTerrainChunk;
 import com.volmit.iris.engine.object.NoiseStyle;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer2;
@@ -1027,7 +1028,6 @@ public class IrisInterpolation {
 
         return n.noise(x, z);
     }
-
     public static double rangeScale(double amin, double amax, double bmin, double bmax, double b) {
         return amin + ((amax - amin) * ((b - bmin) / (bmax - bmin)));
     }

@@ -19,6 +19,7 @@
 package com.volmit.iris.util.noise;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.IRare;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.function.NoiseInjector;
@@ -127,6 +128,17 @@ public class CNG {
                 return noise(x, y + z);
             }
         }, 1D, 1);
+    }
+
+    public CNG cached(int size)
+    {
+        if(size <= 0)
+        {
+            return this;
+        }
+
+        generator = new CachedNoise(generator, size);
+        return this;
     }
 
     public static CNG signature(RNG rng) {

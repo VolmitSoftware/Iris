@@ -285,9 +285,24 @@ public class IrisInterpolation {
         //@done
     }
 
+    public static int getRadiusFactor(int coord, double radius)
+    {
+        if(radius == 2) {return coord >> 1;}
+        if(radius == 4) {return coord >> 2;}
+        if(radius == 8) {return coord >> 3;}
+        if(radius == 16) {return coord >> 4;}
+        if(radius == 32) {return coord >> 5;}
+        if(radius == 64) {return coord >> 6;}
+        if(radius == 128) {return coord >> 7;}
+        if(radius == 256) {return coord >> 8;}
+        if(radius == 512) {return coord >> 9;}
+        if(radius == 1024) {return coord >> 10;}
+        return (int) Math.floor(coord / radius);
+    }
+
     public static double getBilinearNoise(int x, int z, double rad, NoiseProvider n) {
-        int fx = (int) Math.floor(x / rad);
-        int fz = (int) Math.floor(z / rad);
+        int fx = getRadiusFactor(x, rad);
+        int fz = getRadiusFactor(z, rad);
         int x1 = (int) Math.round(fx * rad);
         int z1 = (int) Math.round(fz * rad);
         int x2 = (int) Math.round((fx + 1) * rad);
@@ -376,8 +391,8 @@ public class IrisInterpolation {
     }
 
     public static double getBilinearBezierNoise(int x, int z, double rad, NoiseProvider n) {
-        int fx = (int) Math.floor(x / rad);
-        int fz = (int) Math.floor(z / rad);
+        int fx = getRadiusFactor(x, rad);
+        int fz = getRadiusFactor(z, rad);
         int x1 = (int) Math.round(fx * rad);
         int z1 = (int) Math.round(fz * rad);
         int x2 = (int) Math.round((fx + 1) * rad);
@@ -395,8 +410,8 @@ public class IrisInterpolation {
     }
 
     public static double getBilinearParametricNoise(int x, int z, double rad, NoiseProvider n, double a) {
-        int fx = (int) Math.floor(x / rad);
-        int fz = (int) Math.floor(z / rad);
+        int fx = getRadiusFactor(x, rad);
+        int fz = getRadiusFactor(z, rad);
         int x1 = (int) Math.round(fx * rad);
         int z1 = (int) Math.round(fz * rad);
         int x2 = (int) Math.round((fx + 1) * rad);
@@ -418,9 +433,9 @@ public class IrisInterpolation {
     }
 
     public static double getTrilinear(int x, int y, int z, double radx, double rady, double radz, NoiseProvider3 n) {
-        int fx = (int) Math.floor(x / radx);
-        int fy = (int) Math.floor(y / rady);
-        int fz = (int) Math.floor(z / radz);
+        int fx = getRadiusFactor(x, radx);
+        int fy = getRadiusFactor(y, rady);
+        int fz = getRadiusFactor(z, radz);
         int x1 = (int) Math.round(fx * radx);
         int y1 = (int) Math.round(fy * rady);
         int z1 = (int) Math.round(fz * radz);
@@ -449,9 +464,9 @@ public class IrisInterpolation {
     }
 
     public static double getTricubic(int x, int y, int z, double radx, double rady, double radz, NoiseProvider3 n) {
-        int fx = (int) Math.floor(x / radx);
-        int fy = (int) Math.floor(y / rady);
-        int fz = (int) Math.floor(z / radz);
+        int fx = getRadiusFactor(x, radx);
+        int fy = getRadiusFactor(y, rady);
+        int fz = getRadiusFactor(z, radz);
         int x0 = (int) Math.round((fx - 1) * radx);
         int y0 = (int) Math.round((fy - 1) * rady);
         int z0 = (int) Math.round((fz - 1) * radz);
@@ -552,9 +567,9 @@ public class IrisInterpolation {
     }
 
     public static double getTrihermite(int x, int y, int z, double radx, double rady, double radz, NoiseProvider3 n, double tension, double bias) {
-        int fx = (int) Math.floor(x / radx);
-        int fy = (int) Math.floor(y / rady);
-        int fz = (int) Math.floor(z / radz);
+        int fx = getRadiusFactor(x, radx);
+        int fy = getRadiusFactor(y, rady);
+        int fz = getRadiusFactor(z, radz);
         int x0 = (int) Math.round((fx - 1) * radx);
         int y0 = (int) Math.round((fy - 1) * rady);
         int z0 = (int) Math.round((fz - 1) * radz);
@@ -643,8 +658,8 @@ public class IrisInterpolation {
     }
 
     public static double getBilinearCenterSineNoise(int x, int z, double rad, NoiseProvider n) {
-        int fx = (int) Math.floor(x / rad);
-        int fz = (int) Math.floor(z / rad);
+        int fx = getRadiusFactor(x, rad);
+        int fz = getRadiusFactor(z, rad);
         int x1 = (int) Math.round(fx * rad);
         int z1 = (int) Math.round(fz * rad);
         int x2 = (int) Math.round((fx + 1) * rad);
@@ -662,8 +677,8 @@ public class IrisInterpolation {
     }
 
     public static double getBicubicNoise(int x, int z, double rad, NoiseProvider n) {
-        int fx = (int) Math.floor(x / rad);
-        int fz = (int) Math.floor(z / rad);
+        int fx = getRadiusFactor(x, rad);
+        int fz = getRadiusFactor(z, rad);
         int x0 = (int) Math.round((fx - 1) * rad);
         int z0 = (int) Math.round((fz - 1) * rad);
         int x1 = (int) Math.round(fx * rad);
@@ -697,8 +712,8 @@ public class IrisInterpolation {
     }
 
     public static double getBicubicBezierNoise(int x, int z, double rad, NoiseProvider n) {
-        int fx = (int) Math.floor(x / rad);
-        int fz = (int) Math.floor(z / rad);
+        int fx = getRadiusFactor(x, rad);
+        int fz = getRadiusFactor(z, rad);
         int x0 = (int) Math.round((fx - 1) * rad);
         int z0 = (int) Math.round((fz - 1) * rad);
         int x1 = (int) Math.round(fx * rad);
@@ -732,8 +747,8 @@ public class IrisInterpolation {
     }
 
     public static double getBicubicParametricNoise(int x, int z, double rad, NoiseProvider n, double a) {
-        int fx = (int) Math.floor(x / rad);
-        int fz = (int) Math.floor(z / rad);
+        int fx = getRadiusFactor(x, rad);
+        int fz = getRadiusFactor(z, rad);
         int x0 = (int) Math.round((fx - 1) * rad);
         int z0 = (int) Math.round((fz - 1) * rad);
         int x1 = (int) Math.round(fx * rad);
@@ -779,8 +794,8 @@ public class IrisInterpolation {
     }
 
     public static double getHermiteNoise(int x, int z, double rad, NoiseProvider n, double t, double b) {
-        int fx = (int) Math.floor(x / rad);
-        int fz = (int) Math.floor(z / rad);
+        int fx = getRadiusFactor(x, rad);
+        int fz = getRadiusFactor(z, rad);
         int x0 = (int) Math.round((fx - 1) * rad);
         int z0 = (int) Math.round((fz - 1) * rad);
         int x1 = (int) Math.round(fx * rad);
@@ -814,8 +829,8 @@ public class IrisInterpolation {
     }
 
     public static double getHermiteBezierNoise(int x, int z, double rad, NoiseProvider n, double t, double b) {
-        int fx = (int) Math.floor(x / rad);
-        int fz = (int) Math.floor(z / rad);
+        int fx = getRadiusFactor(x, rad);
+        int fz = getRadiusFactor(z, rad);
         int x0 = (int) Math.round((fx - 1) * rad);
         int z0 = (int) Math.round((fz - 1) * rad);
         int x1 = (int) Math.round(fx * rad);
@@ -849,8 +864,8 @@ public class IrisInterpolation {
     }
 
     public static double getHermiteParametricNoise(int x, int z, double rad, NoiseProvider n, double t, double b, double a) {
-        int fx = (int) Math.floor(x / rad);
-        int fz = (int) Math.floor(z / rad);
+        int fx = getRadiusFactor(x, rad);
+        int fz = getRadiusFactor(z, rad);
         int x0 = (int) Math.round((fx - 1) * rad);
         int z0 = (int) Math.round((fz - 1) * rad);
         int x1 = (int) Math.round(fx * rad);

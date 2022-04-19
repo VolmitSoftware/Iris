@@ -18,8 +18,9 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.core.loader.ObjectResourceLoader;
+import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.util.collection.KList;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -29,8 +30,12 @@ import lombok.experimental.Accessors;
 @EqualsAndHashCode()
 @Accessors(chain = true)
 @NoArgsConstructor
-@Desc("Represents an iris object placer. It places objects.")
+@Desc("Represents an iris object placer. It places matter objects.")
 @Data
 public class IrisMatterPlacement {
-
+    @RegistryListResource(IrisMatterObject.class)
+    @Required
+    @ArrayType(min = 1, type = String.class)
+    @Desc("List of objects to place")
+    private KList<String> place = new KList<>();
 }

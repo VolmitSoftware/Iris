@@ -1,12 +1,11 @@
-package com.volmit.iris.engine.object;
+package com.volmit.iris.engine.object.matter;
 
-import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.plugin.VolmitSender;
-import jdk.jfr.DataAmount;
 import lombok.Data;
 
 import java.io.File;

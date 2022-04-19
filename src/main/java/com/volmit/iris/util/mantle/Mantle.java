@@ -379,6 +379,14 @@ public class Mantle {
         return closed.get();
     }
 
+    public void set(int x, int y, int z, Matter matter)
+    {
+        for(MatterSlice<?> i : matter.getSliceMap().values())
+        {
+            i.iterate((mx, my, mz, v) -> set(mx + x, my + y, mz + z, v));
+        }
+    }
+
     /**
      * Closes the Mantle. By closing the mantle, you can no longer read or writeNodeData
      * any data to the mantle or it's Tectonic Plates. Closing will also flush any

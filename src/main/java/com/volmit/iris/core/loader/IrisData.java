@@ -33,6 +33,7 @@ import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.matter.IrisMatterObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;

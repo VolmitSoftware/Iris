@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.service.RegistrySVC;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
@@ -34,6 +35,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.block.data.type.PointedDripstone;
+import org.checkerframework.checker.units.qual.K;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -44,6 +46,8 @@ import java.util.stream.Collectors;
 import static org.bukkit.Material.*;
 
 public class B {
+    private static final KMap<String, BlockData> custom = new KMap<>();
+
     private static final Material AIR_MATERIAL = Material.AIR;
     private static final BlockData AIR = AIR_MATERIAL.createBlockData();
     private static final IntSet foliageCache = buildFoliageCache();
@@ -405,6 +409,11 @@ public class B {
         try {
             String bd = bdxf.trim();
 
+            if(!custom.isEmpty() && custom.containsKey(bd))
+            {
+                return custom.get(bd);
+            }
+
             if(bd.startsWith("minecraft:cauldron[level=")) {
                 bd = bd.replaceAll("\\Q:cauldron[\\E", ":water_cauldron[");
             }
@@ -660,6 +669,8 @@ public class B {
             e.printStackTrace();
         }
 
+        bt.addAll(custom.k());
+
         try {
             bt.addAll(Iris.service(RegistrySVC.class).getCustomBlockRegistry().compile());
         } catch(Throwable e) {
@@ -682,5 +693,9 @@ public class B {
 
     public static boolean isWaterLogged(BlockData b) {
         return (b instanceof Waterlogged) && ((Waterlogged) b).isWaterlogged();
+    }
+
+    public static void registerCustomBlockData(String namespace, String key, BlockData blockData) {
+        custom.put(namespace + ":" + key, blockData);
     }
 }

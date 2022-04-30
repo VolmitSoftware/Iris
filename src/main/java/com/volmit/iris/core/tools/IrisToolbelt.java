@@ -235,45 +235,4 @@ public class IrisToolbelt {
         if(e == null) {return;}
         e.getEngine().getMantle().getMantle().remove(x, y - world.getMinHeight(), z, of);
     }
-
-    /////////////////// REFLECTIVE METHODS //////////////////////////
-    // Copy this stuff to your project, it's safe to use with a
-    // bukkit api only.
-    /////////////////////////////////////////////////////////////////
-
-    public static void setup() throws Throwable {
-        Method m = Class.forName("com.volmit.iris.core.tools.IrisToolbelt").getDeclaredMethod("retainMantleDataForSlice", String.class);
-        m.invoke(null, String.class.getCanonicalName());
-        m.invoke(null, BlockData.class.getCanonicalName());
-    }
-
-    public static boolean hasMantleObject(World world, int x, int y, int z) {
-        return getMantleIdentity(world, x, y, z) != -1;
-    }
-
-    public static void deleteMantleBlock(World world, int x, int y, int z) {
-        try {
-            Method m = Class.forName("com.volmit.iris.core.tools.IrisToolbelt").getDeclaredMethod("deleteMantleData", World.class, int.class, int.class, int.class, Class.class);
-            m.invoke(null, world, x, y, z, BlockData.class);
-            m.invoke(null, world, x, y, z, String.class);
-        } catch(Throwable ignored) {}
-    }
-
-    public static BlockData getMantleBlock(World world, int x, int y, int z) {
-        try {
-            Method m = Class.forName("com.volmit.iris.core.tools.IrisToolbelt").getDeclaredMethod("getMantleData", World.class, int.class, int.class, int.class, Class.class);
-            BlockData s = (BlockData) m.invoke(null, world, x, y, z, BlockData.class);
-            if(s != null) {return s;}
-        } catch(Throwable ignored) {}
-        return null;
-    }
-
-    public static int getMantleIdentity(World world, int x, int y, int z) {
-        try {
-            Method m = Class.forName("com.volmit.iris.core.tools.IrisToolbelt").getDeclaredMethod("getMantleData", World.class, int.class, int.class, int.class, Class.class);
-            String s = (String) m.invoke(null, world, x, y, z, String.class);
-            if(s != null) {return Integer.parseInt(s.split("\\Q@\\E")[1]);}
-        } catch(Throwable ignored) {}
-        return -1;
-    }
 }

@@ -34,6 +34,8 @@ import com.volmit.iris.util.math.AxisAlignedBB;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.IrisMatter;
+import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterMarker;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;

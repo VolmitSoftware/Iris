@@ -68,6 +68,10 @@ public class JigsawEditor implements Listener {
         }
 
         editors.put(player, this);
+        if(object == null)
+        {
+            throw new RuntimeException("Object is null! " + piece.getObject());
+        }
         this.object = object;
         this.player = player;
         origin = player.getLocation().clone().add(0, 7, 0);
@@ -77,7 +81,7 @@ public class JigsawEditor implements Listener {
         this.piece.setObject(object.getLoadKey());
         cuboid = new Cuboid(origin.clone(), origin.clone().add(object.getW() - 1, object.getH() - 1, object.getD() - 1));
         ticker = J.sr(this::onTick, 0);
-        object.placeCenterY(origin);
+        J.s(() -> object.placeCenterY(origin));
         Iris.instance.registerListener(this);
     }
 

@@ -16,21 +16,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.object;
+package com.volmit.iris.util.noise;
 
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.Snippet;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
+import com.volmit.iris.util.math.RNG;
 
-@Snippet("matter-placer")
-@EqualsAndHashCode()
-@Accessors(chain = true)
-@NoArgsConstructor
-@Desc("Represents an iris object placer. It places objects.")
-@Data
-public class IrisMatterPlacement {
+public class CachedNoise implements NoiseGenerator {
+    private final CachedNoiseMap n;
 
+    public CachedNoise(NoiseGenerator generator, int size) {
+     n = new CachedNoiseMap(size, generator);
+    }
+
+    @Override
+    public double noise(double x) {
+        return n.get((int)Math.round(x), 0);
+    }
+
+    @Override
+    public double noise(double x, double z) {
+        return n.get((int)Math.round(x),(int)Math.round(z));
+    }
+
+    @Override
+    public double noise(double x, double y, double z) {
+        return n.get((int)Math.round(x),(int)Math.round(z));
+    }
 }

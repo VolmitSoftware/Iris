@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.hunk;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.function.Consumer2;
@@ -1254,6 +1255,12 @@ public interface Hunk<T> {
      *     the value
      */
     default void set(int x, int y, int z, T t) {
+        if(!contains(x, y, z))
+        {
+            Iris.warn("OUT OF BOUNDS " + x + " " + y +  " "+  z + " in bounds " + getWidth() + " " + getHeight() + " " + getDepth() );
+            return;
+        }
+
         setRaw(x, y, z, t);
     }
 
@@ -1560,5 +1567,10 @@ public interface Hunk<T> {
 
     default boolean contains(int x, int y, int z) {
         return x < getWidth() && x >= 0 && y < getHeight() && y >= 0 && z < getDepth() && z >= 0;
+    }
+
+    default int volume()
+    {
+        return getWidth() * getDepth() * getHeight();
     }
 }

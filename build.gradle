@@ -24,7 +24,7 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '2.0.6-1.18.2' // Needs to be version specific
+version '2.0.7-1.18.2' // Needs to be version specific
 def nmsVersion = "1.18.2"
 def apiVersion = '1.18'
 def spigotJarVersion = '1.18.2-R0.1-SNAPSHOT'
@@ -40,7 +40,7 @@ registerCustomOutputTask('Coco', 'D://Documents/MC/plugins')
 registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins')
 registerCustomOutputTask('Vatuu', 'D://Minecraft/Servers/1.18.2/plugins')
 // ========================== UNIX ==============================
-registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/Documents/development/server/plugins')
+registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/development/server/plugins')
 registerCustomOutputTaskUnix('PsychoLT', '/Users/brianfopiano/Desktop/REMOTES/RemoteMinecraft/plugins')
 // ==============================================================
 

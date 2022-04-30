@@ -31,26 +31,9 @@ import com.google.gson.stream.JsonWriter;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBlockData;
-import com.volmit.iris.engine.object.IrisCave;
-import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisEntity;
-import com.volmit.iris.engine.object.IrisExpression;
-import com.volmit.iris.engine.object.IrisGenerator;
-import com.volmit.iris.engine.object.IrisImage;
-import com.volmit.iris.engine.object.IrisJigsawPiece;
-import com.volmit.iris.engine.object.IrisJigsawPool;
-import com.volmit.iris.engine.object.IrisJigsawStructure;
-import com.volmit.iris.engine.object.IrisLootTable;
-import com.volmit.iris.engine.object.IrisMarker;
-import com.volmit.iris.engine.object.IrisMod;
-import com.volmit.iris.engine.object.IrisObject;
-import com.volmit.iris.engine.object.IrisRavine;
-import com.volmit.iris.engine.object.IrisRegion;
-import com.volmit.iris.engine.object.IrisScript;
-import com.volmit.iris.engine.object.IrisSpawner;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.matter.IrisMatterObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
@@ -87,6 +70,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private ResourceLoader<IrisBlockData> blockLoader;
     private ResourceLoader<IrisExpression> expressionLoader;
     private ResourceLoader<IrisObject> objectLoader;
+    private ResourceLoader<IrisMatterObject> matterLoader;
     private ResourceLoader<IrisImage> imageLoader;
     private ResourceLoader<IrisScript> scriptLoader;
     private ResourceLoader<IrisCave> caveLoader;
@@ -130,6 +114,9 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     public static IrisObject loadAnyObject(String key) {
         return loadAny(key, (dm) -> dm.getObjectLoader().load(key, false));
+    }
+    public static IrisMatterObject loadAnyMatter(String key) {
+        return loadAny(key, (dm) -> dm.getMatterLoader().load(key, false));
     }
 
     public static IrisBiome loadAnyBiome(String key) {
@@ -295,9 +282,12 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
             if(registrant.equals(IrisObject.class)) {
                 r = (ResourceLoader<T>) new ObjectResourceLoader(dataFolder, this, rr.getFolderName(),
                     rr.getTypeName());
+            } else if(registrant.equals(IrisMatterObject.class)) {
+                r = (ResourceLoader<T>) new MatterObjectResourceLoader(dataFolder, this, rr.getFolderName(),
+                        rr.getTypeName());
             } else if(registrant.equals(IrisScript.class)) {
                 r = (ResourceLoader<T>) new ScriptResourceLoader(dataFolder, this, rr.getFolderName(),
-                    rr.getTypeName());
+                        rr.getTypeName());
             } else if(registrant.equals(IrisImage.class)) {
                 r = (ResourceLoader<T>) new ImageResourceLoader(dataFolder, this, rr.getFolderName(),
                     rr.getTypeName());

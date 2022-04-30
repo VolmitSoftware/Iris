@@ -32,7 +32,7 @@ import java.io.IOException;
 @SuppressWarnings("SynchronizeOnNonFinalField")
 @Data
 public class IrisSettings {
-    public static transient IrisSettings settings;
+    public static IrisSettings settings;
     private IrisSettingsGeneral general = new IrisSettingsGeneral();
     private IrisSettingsWorld world = new IrisSettingsWorld();
     private IrisSettingsGUI gui = new IrisSettingsGUI();

@@ -43,10 +43,7 @@ import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.NastyRunnable;
-import com.volmit.iris.util.io.FileWatcher;
-import com.volmit.iris.util.io.IO;
-import com.volmit.iris.util.io.InstanceState;
-import com.volmit.iris.util.io.JarScanner;
+import com.volmit.iris.util.io.*;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.IrisMatter;
@@ -197,7 +194,6 @@ public class Iris extends VolmitPlugin implements Listener {
             }
         }
     }
-
     public static File getCached(String name, String url) {
         String h = IO.hash(name + "@" + url);
         File f = Iris.instance.getDataFile("cache", h.substring(0, 2), h.substring(3, 5), h);

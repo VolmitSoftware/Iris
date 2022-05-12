@@ -20,7 +20,7 @@ package com.volmit.iris.util.data;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.service.RegistrySVC;
+import com.volmit.iris.core.service.CustomBlockDataSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.scheduling.ChronoLatch;
@@ -35,12 +35,11 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.block.data.type.PointedDripstone;
-import org.checkerframework.checker.units.qual.K;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Supplier;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.bukkit.Material.*;
@@ -471,23 +470,19 @@ public class B {
             BlockData bx = null;
 
             if(!ix.startsWith("minecraft:")) {
-                if(ix.startsWith("oraxen:") && Iris.linkOraxen.supported()) {
-                    bx = Iris.linkOraxen.getBlockDataFor(ix.split("\\Q:\\E")[1]);
-                }
-
-                if(bx == null) {
-                    try {
-                        if(ix.contains(":")) {
-                            String[] v = ix.toLowerCase().split("\\Q:\\E");
-                            Supplier<BlockData> b = Iris.service(RegistrySVC.class).getCustomBlockRegistry().resolve(v[0], v[1]);
-
-                            if(b != null) {
-                                bx = b.get();
-                            }
+                try {
+                    if(ix.contains(":")) {
+                        String[] id = ix.toLowerCase().split("\\Q:\\E");
+                        Optional<BlockData> bd = Iris.service(CustomBlockDataSVC.class).getBlockData(id[0], id[1]);
+                        if(bd.isPresent()) {
+                            bx = bd.get();
+                        } else {
+                            /*Supplier<BlockData> sup = Iris.service(RegistrySVC.class).getCustomBlockRegistry().resolve(id[0], id[1]);
+                            bx = sup == null ? null : sup.get();*/
                         }
-                    } catch(Throwable e) {
-                        e.printStackTrace();// TODO: REMOVE
                     }
+                } catch(Throwable e) {
+                    e.printStackTrace();// TODO: REMOVE
                 }
             }
 
@@ -661,21 +656,8 @@ public class B {
             }
         }
 
-        try {
-            for(String i : Iris.linkOraxen.getItemTypes()) {
-                bt.add("oraxen:" + i);
-            }
-        } catch(Throwable e) {
-            e.printStackTrace();
-        }
-
+        bt.add(Iris.service(CustomBlockDataSVC.class).getAllIdentifiers());
         bt.addAll(custom.k());
-
-        try {
-            bt.addAll(Iris.service(RegistrySVC.class).getCustomBlockRegistry().compile());
-        } catch(Throwable e) {
-            e.printStackTrace();
-        }
 
         return bt.toArray(new String[0]);
     }

@@ -31,6 +31,7 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.ints.IntSets;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
@@ -469,21 +470,11 @@ public class B {
         try {
             BlockData bx = null;
 
-            if(!ix.startsWith("minecraft:")) {
-                try {
-                    if(ix.contains(":")) {
-                        String[] id = ix.toLowerCase().split("\\Q:\\E");
-                        Optional<BlockData> bd = Iris.service(CustomBlockDataSVC.class).getBlockData(id[0], id[1]);
-                        if(bd.isPresent()) {
-                            bx = bd.get();
-                        } else {
-                            /*Supplier<BlockData> sup = Iris.service(RegistrySVC.class).getCustomBlockRegistry().resolve(id[0], id[1]);
-                            bx = sup == null ? null : sup.get();*/
-                        }
-                    }
-                } catch(Throwable e) {
-                    e.printStackTrace();// TODO: REMOVE
-                }
+            if(!ix.startsWith("minecraft:") && ix.contains(":")) {
+                NamespacedKey key = NamespacedKey.fromString(ix);
+                Optional<BlockData> bd = Iris.service(CustomBlockDataSVC.class).getBlockData(key);
+                if(bd.isPresent())
+                    bx = bd.get();
             }
 
             if(bx == null) {
@@ -656,7 +647,8 @@ public class B {
             }
         }
 
-        bt.add(Iris.service(CustomBlockDataSVC.class).getAllIdentifiers());
+        for(NamespacedKey id : Iris.service(CustomBlockDataSVC.class).getAllIdentifiers())
+            bt.add(id.toString());
         bt.addAll(custom.k());
 
         return bt.toArray(new String[0]);

@@ -25,6 +25,7 @@ import com.volmit.iris.core.link.OraxenDataProvider;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.IrisService;
 import lombok.Data;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.BlockData;
 
 import java.util.MissingResourceException;
@@ -47,8 +48,8 @@ public class CustomBlockDataSVC implements IrisService {
         providers.add(provider);
     }
 
-    public Optional<BlockData> getBlockData(String namespace, String key) {
-        Optional<BlockDataProvider> provider = providers.stream().filter(p -> p.isPresent() && p.getIdentifierPrefix().equalsIgnoreCase(namespace)).findFirst();
+    public Optional<BlockData> getBlockData(NamespacedKey key) {
+        Optional<BlockDataProvider> provider = providers.stream().filter(p -> p.isPresent() && p.isProviderBlock(key)).findFirst();
         if(provider.isEmpty())
             return Optional.empty();
         try {
@@ -59,9 +60,9 @@ public class CustomBlockDataSVC implements IrisService {
         }
     }
 
-    public String[] getAllIdentifiers() {
-        KList<String> names = new KList<>();
-        providers.forEach(p -> names.add(p.getBlockIdentifiers()));
-        return names.toArray(new String[0]);
+    public NamespacedKey[] getAllIdentifiers() {
+        KList<NamespacedKey> names = new KList<>();
+        providers.forEach(p -> names.add(p.getBlockTypes()));
+        return names.toArray(new NamespacedKey[0]);
     }
 }

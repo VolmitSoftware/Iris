@@ -75,6 +75,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private ResourceLoader<IrisScript> scriptLoader;
     private ResourceLoader<IrisCave> caveLoader;
     private ResourceLoader<IrisRavine> ravineLoader;
+    private ResourceLoader<IrisMatterObject> matterObjectLoader;
     private KMap<String, KList<String>> possibleSnippets;
     private Gson gson;
     private Gson snippetLoader;
@@ -337,6 +338,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.objectLoader = registerLoader(IrisObject.class);
         this.imageLoader = registerLoader(IrisImage.class);
         this.scriptLoader = registerLoader(IrisScript.class);
+        this.matterObjectLoader = registerLoader(IrisMatterObject.class);
         gson = builder.create();
     }
 

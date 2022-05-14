@@ -7,11 +7,13 @@ import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.io.File;
 import java.io.IOException;
 
 @Data
+@EqualsAndHashCode(callSuper = false)
 public class IrisMatterObject extends IrisRegistrant {
     private final Matter matter;
 

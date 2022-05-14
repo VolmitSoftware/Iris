@@ -10,9 +10,9 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.MissingResourceException;
 
-public class ItemAdderLink extends BlockDataProvider {
+public class ItemAdderDataProvider extends ExternalDataProvider {
 
-    public ItemAdderLink() {
+    public ItemAdderDataProvider() {
         super("ItemsAdder");
     }
 

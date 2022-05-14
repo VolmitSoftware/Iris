@@ -20,7 +20,7 @@ package com.volmit.iris.util.data;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.service.CustomBlockDataSVC;
+import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.scheduling.ChronoLatch;
@@ -472,7 +472,7 @@ public class B {
 
             if(!ix.startsWith("minecraft:") && ix.contains(":")) {
                 NamespacedKey key = NamespacedKey.fromString(ix);
-                Optional<BlockData> bd = Iris.service(CustomBlockDataSVC.class).getBlockData(key);
+                Optional<BlockData> bd = Iris.service(ExternalDataSVC.class).getBlockData(key);
                 if(bd.isPresent())
                     bx = bd.get();
             }
@@ -647,7 +647,7 @@ public class B {
             }
         }
 
-        for(NamespacedKey id : Iris.service(CustomBlockDataSVC.class).getAllIdentifiers())
+        for(NamespacedKey id : Iris.service(ExternalDataSVC.class).getAllIdentifiers())
             bt.add(id.toString());
         bt.addAll(custom.k());
 

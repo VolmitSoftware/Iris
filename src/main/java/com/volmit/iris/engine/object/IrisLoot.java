@@ -20,7 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.service.CustomBlockDataSVC;
+import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
@@ -37,7 +37,6 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
-import com.volmit.iris.util.plugin.IrisService;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -55,7 +54,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.material.Colorable;
 
-import javax.xml.stream.events.Namespace;
 import java.awt.Color;
 import java.util.Optional;
 
@@ -124,8 +122,9 @@ public class IrisLoot {
         try {
             ItemStack is;
             if(!type.startsWith("minecraft:") && type.contains(":")) {
-                Optional<ItemStack> opt = Iris.service(CustomBlockDataSVC.class).getItemStack(NamespacedKey.fromString(type));
+                Optional<ItemStack> opt = Iris.service(ExternalDataSVC.class).getItemStack(NamespacedKey.fromString(type));
                 if(opt.isEmpty()) {
+                    //TODO Better third party provider
                     Iris.warn("Unknown Material: " + type);
                     return null;
                 }
@@ -215,7 +214,7 @@ public class IrisLoot {
             try {
                 ItemStack is;
                 if(!type.startsWith("minecraft:") && type.contains(":")) {
-                    Optional<ItemStack> opt = Iris.service(CustomBlockDataSVC.class).getItemStack(NamespacedKey.fromString(type));
+                    Optional<ItemStack> opt = Iris.service(ExternalDataSVC.class).getItemStack(NamespacedKey.fromString(type));
                     if(opt.isEmpty()) {
                         Iris.warn("Unknown Material: " + type);
                         return null;

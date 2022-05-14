@@ -40,7 +40,7 @@ import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Optional;
 
-public class OraxenDataProvider extends BlockDataProvider {
+public class OraxenDataProvider extends ExternalDataProvider {
 
     private static final String FIELD_FACTORIES_MAP = "FACTORIES_BY_MECHANIC_ID";
 

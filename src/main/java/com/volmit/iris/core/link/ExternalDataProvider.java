@@ -11,7 +11,7 @@ import org.bukkit.plugin.Plugin;
 import java.util.MissingResourceException;
 
 @RequiredArgsConstructor
-public abstract class BlockDataProvider {
+public abstract class ExternalDataProvider {
 
     @Getter
     private final String pluginId;

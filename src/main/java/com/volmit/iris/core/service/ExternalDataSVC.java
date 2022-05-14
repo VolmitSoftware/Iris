@@ -19,8 +19,8 @@
 package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.link.BlockDataProvider;
-import com.volmit.iris.core.link.ItemAdderLink;
+import com.volmit.iris.core.link.ExternalDataProvider;
+import com.volmit.iris.core.link.ItemAdderDataProvider;
 import com.volmit.iris.core.link.OraxenDataProvider;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.IrisService;
@@ -33,20 +33,20 @@ import java.util.MissingResourceException;
 import java.util.Optional;
 
 @Data
-public class CustomBlockDataSVC implements IrisService {
+public class ExternalDataSVC implements IrisService {
 
-    private KList<BlockDataProvider> providers = new KList<>();
+    private KList<ExternalDataProvider> providers = new KList<>();
 
     @Override
     public void onEnable() {
-        addProvider(new OraxenDataProvider(), new ItemAdderLink());
+        addProvider(new OraxenDataProvider(), new ItemAdderDataProvider());
     }
 
     @Override
     public void onDisable() { }
 
-    public void addProvider(BlockDataProvider... provider) {
-        for(BlockDataProvider p : provider) {
+    public void addProvider(ExternalDataProvider... provider) {
+        for(ExternalDataProvider p : provider) {
             if(p.getPlugin() != null) {
                 providers.add(p);
                 p.init();
@@ -55,7 +55,7 @@ public class CustomBlockDataSVC implements IrisService {
     }
 
     public Optional<BlockData> getBlockData(NamespacedKey key) {
-        Optional<BlockDataProvider> provider = providers.stream().filter(p -> p.isPresent() && p.isValidProvider(key)).findFirst();
+        Optional<ExternalDataProvider> provider = providers.stream().filter(p -> p.isPresent() && p.isValidProvider(key)).findFirst();
         if(provider.isEmpty())
             return Optional.empty();
         try {
@@ -67,7 +67,7 @@ public class CustomBlockDataSVC implements IrisService {
     }
 
     public Optional<ItemStack> getItemStack(NamespacedKey key) {
-        Optional<BlockDataProvider> provider = providers.stream().filter(p -> p.isPresent() && p.isValidProvider(key)).findFirst();
+        Optional<ExternalDataProvider> provider = providers.stream().filter(p -> p.isPresent() && p.isValidProvider(key)).findFirst();
         if(provider.isEmpty())
             return Optional.empty();
         try {
@@ -80,7 +80,7 @@ public class CustomBlockDataSVC implements IrisService {
 
     public NamespacedKey[] getAllIdentifiers() {
         KList<NamespacedKey> names = new KList<>();
-        providers.stream().filter(BlockDataProvider::isPresent).forEach(p -> names.add(p.getBlockTypes()));
+        providers.stream().filter(ExternalDataProvider::isPresent).forEach(p -> names.add(p.getBlockTypes()));
         return names.toArray(new NamespacedKey[0]);
     }
 }

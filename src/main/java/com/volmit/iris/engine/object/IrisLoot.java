@@ -20,6 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.service.CustomBlockDataSVC;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
@@ -36,6 +37,7 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
+import com.volmit.iris.util.plugin.IrisService;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -44,6 +46,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.TagParser;
 import org.bukkit.DyeColor;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.craftbukkit.v1_18_R2.inventory.CraftItemStack;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -52,7 +55,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.material.Colorable;
 
+import javax.xml.stream.events.Namespace;
 import java.awt.Color;
+import java.util.Optional;
 
 @Snippet("loot")
 @Accessors(chain = true)
@@ -117,7 +122,16 @@ public class IrisLoot {
 
     public ItemStack get(boolean debug, RNG rng) {
         try {
-            ItemStack is = new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
+            ItemStack is;
+            Iris.warn(type);
+            if(!type.startsWith("minecraft:") && type.contains(":")) {
+                Optional<ItemStack> opt = Iris.service(CustomBlockDataSVC.class).getItemStack(NamespacedKey.fromString(type));
+                is = opt.orElse(new ItemStack(getType()));
+                is.setAmount(Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
+            } else {
+                is = new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
+            }
+
             ItemMeta m = is.getItemMeta();
 
             if(getType().getMaxDurability() > 0 && m instanceof Damageable d) {
@@ -184,7 +198,6 @@ public class IrisLoot {
             return applyCustomNbt(is);
         } catch(Throwable e) {
             Iris.reportError(e);
-
         }
 
         return new ItemStack(Material.AIR);

@@ -20,6 +20,7 @@ package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
+import io.th0rgal.oraxen.items.ItemBuilder;
 import io.th0rgal.oraxen.items.OraxenItems;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
@@ -32,10 +33,12 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.MultipleFacing;
+import org.bukkit.inventory.ItemStack;
 
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.MissingResourceException;
+import java.util.Optional;
 
 public class OraxenDataProvider extends BlockDataProvider {
 
@@ -71,6 +74,12 @@ public class OraxenDataProvider extends BlockDataProvider {
     }
 
     @Override
+    public ItemStack getItemStack(NamespacedKey itemId) throws MissingResourceException {
+        Optional<ItemBuilder> opt = OraxenItems.getOptionalItemById(itemId.getKey());
+        return opt.orElseThrow(() -> new MissingResourceException("Failed to find ItemData!", itemId.getNamespace(), itemId.getKey())).build();
+    }
+
+    @Override
     public NamespacedKey[] getBlockTypes() {
         KList<NamespacedKey> names = new KList<>();
         for(String name : OraxenItems.getItemNames()) {
@@ -90,7 +99,7 @@ public class OraxenDataProvider extends BlockDataProvider {
     }
 
     @Override
-    public boolean isProviderBlock(NamespacedKey key) {
+    public boolean isValidProvider(NamespacedKey key) {
         return key.getNamespace().equalsIgnoreCase("oraxen");
     }
 

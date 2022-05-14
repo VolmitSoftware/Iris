@@ -2,9 +2,11 @@ package com.volmit.iris.core.link;
 
 import com.volmit.iris.util.collection.KList;
 import dev.lone.itemsadder.api.CustomBlock;
+import dev.lone.itemsadder.api.CustomStack;
 import dev.lone.itemsadder.api.ItemsAdder;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.MissingResourceException;
 
@@ -23,6 +25,14 @@ public class ItemAdderLink extends BlockDataProvider {
     }
 
     @Override
+    public ItemStack getItemStack(NamespacedKey itemId) throws MissingResourceException {
+        CustomStack stack = CustomStack.getInstance(itemId.toString());
+        if(stack == null)
+            throw new MissingResourceException("Failed to find ItemData!", itemId.getNamespace(), itemId.getKey());
+        return stack.getItemStack();
+    }
+
+    @Override
     public NamespacedKey[] getBlockTypes() {
         KList<NamespacedKey> keys = new KList<>();
         for(String s : ItemsAdder.getNamespacedBlocksNamesInConfig())
@@ -31,7 +41,7 @@ public class ItemAdderLink extends BlockDataProvider {
     }
 
     @Override
-    public boolean isProviderBlock(NamespacedKey blockId) {
+    public boolean isValidProvider(NamespacedKey blockId) {
         for(NamespacedKey k : getBlockTypes())
             if(k.equals(blockId)) {
                 return true;

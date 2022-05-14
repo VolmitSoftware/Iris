@@ -27,6 +27,7 @@ import com.volmit.iris.util.plugin.IrisService;
 import lombok.Data;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.MissingResourceException;
 import java.util.Optional;
@@ -46,18 +47,31 @@ public class CustomBlockDataSVC implements IrisService {
 
     public void addProvider(BlockDataProvider... provider) {
         for(BlockDataProvider p : provider) {
-            if(p.getPlugin() != null)
+            if(p.getPlugin() != null) {
                 providers.add(p);
-            p.init();
+                p.init();
+            }
         }
     }
 
     public Optional<BlockData> getBlockData(NamespacedKey key) {
-        Optional<BlockDataProvider> provider = providers.stream().filter(p -> p.isPresent() && p.isProviderBlock(key)).findFirst();
+        Optional<BlockDataProvider> provider = providers.stream().filter(p -> p.isPresent() && p.isValidProvider(key)).findFirst();
         if(provider.isEmpty())
             return Optional.empty();
         try {
             return Optional.of(provider.get().getBlockData(key));
+        } catch(MissingResourceException e) {
+            Iris.error(e.getMessage() + " - [" + e.getClassName() + ":" + e.getKey() + "]");
+            return Optional.empty();
+        }
+    }
+
+    public Optional<ItemStack> getItemStack(NamespacedKey key) {
+        Optional<BlockDataProvider> provider = providers.stream().filter(p -> p.isPresent() && p.isValidProvider(key)).findFirst();
+        if(provider.isEmpty())
+            return Optional.empty();
+        try {
+            return Optional.of(provider.get().getItemStack(key));
         } catch(MissingResourceException e) {
             Iris.error(e.getMessage() + " - [" + e.getClassName() + ":" + e.getKey() + "]");
             return Optional.empty();

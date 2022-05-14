@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import java.util.MissingResourceException;
@@ -27,7 +28,9 @@ public abstract class BlockDataProvider {
 
     public abstract BlockData getBlockData(NamespacedKey blockId) throws MissingResourceException;
 
+    public abstract ItemStack getItemStack(NamespacedKey itemId) throws MissingResourceException;
+
     public abstract NamespacedKey[] getBlockTypes();
 
-    public abstract boolean isProviderBlock(NamespacedKey namespace);
+    public abstract boolean isValidProvider(NamespacedKey namespace);
 }

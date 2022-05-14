@@ -165,6 +165,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                                     continue;
                                 }
 
+                                Iris.warn("Min: " + world.getMinHeight() + " | Max: " + world.getMaxHeight());
                                 c.getBlock(xx, yy + (finalI << 4) + world.getMinHeight(), zz)
                                     .setBlockData(tc.getBlockData(xx, yy + (finalI << 4) + world.getMinHeight(), zz), false);
                             }

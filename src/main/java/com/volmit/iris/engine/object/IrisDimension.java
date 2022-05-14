@@ -74,6 +74,7 @@ public class IrisDimension extends IrisRegistrant {
     @MaxNumber(2032)
     @Desc("Maximum height at which players can be teleported to through gameplay.")
     private int logicalHeight = 256;
+
     @RegistryListResource(IrisJigsawStructure.class)
     @Desc("If defined, Iris will place the given jigsaw structure where minecraft should place the overworld stronghold.")
     private String stronghold;
@@ -405,19 +406,20 @@ public class IrisDimension extends IrisRegistrant {
             }
         }
 
-       /* if(!dimensionHeight.equals(new IrisRange(-64, 320))) {
-            File dimType = new File(datapacks, "iris/data/minecraft/dimension_type/" + getLoadKey().toLowerCase() + ".json");
-            if(!dimType.exists())
-                changed = true;
+       if(!dimensionHeight.equals(new IrisRange(-64, 320)) && this.name.equalsIgnoreCase("overworld")) {
+           File dimType = new File(datapacks, "iris/data/minecraft/dimension_type/overworld.json");
+           if(!dimType.exists())
+               changed = true;
 
-            Iris.verbose("    Installing Data Pack Dimension Type: " + dimType.getPath());
-            dimType.getParentFile().mkdirs();
-            try {
-                IO.writeAll(dimType, generateDatapackJson());
-            } catch(IOException e) {
-                Iris.reportError(e);
-                e.printStackTrace();
-            }*/
+           Iris.verbose("    Installing Data Pack Dimension Type: " + dimType.getPath());
+           dimType.getParentFile().mkdirs();
+           try {
+               IO.writeAll(dimType, generateDatapackJson());
+           } catch(IOException e) {
+               Iris.reportError(e);
+               e.printStackTrace();
+           }
+       }
 
         if(write) {
             File mcm = new File(datapacks, "iris/pack.mcmeta");
@@ -465,19 +467,17 @@ public class IrisDimension extends IrisRegistrant {
 
     private static final String DP_OVERWORLD_DEFAULT = """
             {
-                "name": "minecraft:overworld",
                 "ultrawarm": false,
                 "natural": true,
                 "coordinate_scale": 1.0,
                 "has_skylight": true,
                 "has_ceiling": false,
                 "ambient_light": 0,
-                "fixed_time": false,
                 "piglin_safe": false,
                 "bed_works": true,
                 "respawn_anchor_works": false,
                 "has_raids": true,
-                "infiniburn": "infiniburn_overworld",
+                "infiniburn": "#minecraft:infiniburn_overworld",
                 "effects": "minecraft:overworld"
             }""";
 }

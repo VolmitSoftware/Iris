@@ -62,7 +62,7 @@ public class CustomBlockDataSVC implements IrisService {
 
     public NamespacedKey[] getAllIdentifiers() {
         KList<NamespacedKey> names = new KList<>();
-        providers.forEach(p -> names.add(p.getBlockTypes()));
+        providers.stream().filter(BlockDataProvider::isPresent).forEach(p -> names.add(p.getBlockTypes()));
         return names.toArray(new NamespacedKey[0]);
     }
 }

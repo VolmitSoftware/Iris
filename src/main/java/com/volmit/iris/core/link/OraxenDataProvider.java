@@ -45,14 +45,15 @@ public class OraxenDataProvider extends BlockDataProvider {
 
     public OraxenDataProvider() {
         super("Oraxen");
-
-        try {
-            Field f = MechanicsManager.class.getDeclaredField(FIELD_FACTORIES_MAP);
-            f.setAccessible(true);
-            factories = (Map<String, MechanicFactory>) f.get(null);
-        } catch(NoSuchFieldException | IllegalAccessException e) {
-            Iris.error("Failed to set up Oraxen Link:");
-            Iris.error("\t" + e.getClass().getSimpleName());
+        if(getPlugin() != null) {
+            try {
+                Field f = MechanicsManager.class.getDeclaredField(FIELD_FACTORIES_MAP);
+                f.setAccessible(true);
+                factories = (Map<String, MechanicFactory>) f.get(null);
+            } catch(NoSuchFieldException | IllegalAccessException e) {
+                Iris.error("Failed to set up Oraxen Link:");
+                Iris.error("\t" + e.getClass().getSimpleName());
+            }
         }
     }
 

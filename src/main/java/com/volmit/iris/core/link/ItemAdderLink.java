@@ -15,6 +15,9 @@ public class ItemAdderLink extends BlockDataProvider {
     }
 
     @Override
+    public void init() { }
+
+    @Override
     public BlockData getBlockData(NamespacedKey blockId) throws MissingResourceException {
         return CustomBlock.getBaseBlockData(blockId.toString());
     }

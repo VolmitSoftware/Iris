@@ -45,7 +45,11 @@ public class CustomBlockDataSVC implements IrisService {
     public void onDisable() { }
 
     public void addProvider(BlockDataProvider... provider) {
-        providers.add(provider);
+        for(BlockDataProvider p : provider) {
+            if(p.getPlugin() != null)
+                providers.add(p);
+            p.init();
+        }
     }
 
     public Optional<BlockData> getBlockData(NamespacedKey key) {

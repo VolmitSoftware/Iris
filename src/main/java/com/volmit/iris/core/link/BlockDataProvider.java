@@ -23,6 +23,8 @@ public abstract class BlockDataProvider {
         return getPlugin() != null;
     }
 
+    public abstract void init();
+
     public abstract BlockData getBlockData(NamespacedKey blockId) throws MissingResourceException;
 
     public abstract NamespacedKey[] getBlockTypes();

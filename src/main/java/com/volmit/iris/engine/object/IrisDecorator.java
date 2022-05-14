@@ -65,12 +65,12 @@ public class IrisDecorator {
     private IrisDecorationPart partOf = IrisDecorationPart.NONE;
     @DependsOn({"stackMin", "stackMax"})
     @MinNumber(1)
-    @MaxNumber(256) // TODO: WARNING HEIGHT
+    @MaxNumber(2032) // TODO: WARNING HEIGHT
     @Desc("The minimum repeat stack height (setting to 3 would stack 3 of <block> on top of each other")
     private int stackMin = 1;
     @DependsOn({"stackMin", "stackMax"})
     @MinNumber(1)
-    @MaxNumber(256) // TODO: WARNING HEIGHT
+    @MaxNumber(2032) // TODO: WARNING HEIGHT
     @Desc("The maximum repeat stack height")
     private int stackMax = 1;
     @DependsOn({"stackMin", "stackMax"})

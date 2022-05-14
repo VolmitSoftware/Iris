@@ -472,6 +472,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
         int b = 4;
         for(IrisLootTable i : tables) {
+            if(i == null)
+                continue;
             b++;
             items.addAll(i.getLoot(debug, items.isEmpty(), rng, slot, x, y, z, b + b, mgf + b));
         }

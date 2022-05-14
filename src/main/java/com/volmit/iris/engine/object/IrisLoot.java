@@ -123,10 +123,13 @@ public class IrisLoot {
     public ItemStack get(boolean debug, RNG rng) {
         try {
             ItemStack is;
-            Iris.warn(type);
             if(!type.startsWith("minecraft:") && type.contains(":")) {
                 Optional<ItemStack> opt = Iris.service(CustomBlockDataSVC.class).getItemStack(NamespacedKey.fromString(type));
-                is = opt.orElse(new ItemStack(getType()));
+                if(opt.isEmpty()) {
+                    Iris.warn("Unknown Material: " + type);
+                    return null;
+                }
+                is = opt.get();
                 is.setAmount(Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
             } else {
                 is = new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
@@ -134,8 +137,8 @@ public class IrisLoot {
 
             ItemMeta m = is.getItemMeta();
 
-            if(getType().getMaxDurability() > 0 && m instanceof Damageable d) {
-                int max = getType().getMaxDurability();
+            if(is.getType().getMaxDurability() > 0 && m instanceof Damageable d) {
+                int max = is.getType().getMaxDurability();
                 d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
             }
 
@@ -209,17 +212,25 @@ public class IrisLoot {
         }
 
         if(giveSomething || chance.aquire(() -> NoiseStyle.STATIC.create(rng)).fit(1, rarity * table.getRarity(), x, y, z) == 1) {
-            if(getType() == null) {
-                Iris.warn("Cant find item type " + type);
-                return null;
-            }
-
             try {
-                ItemStack is = new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
+                ItemStack is;
+                if(!type.startsWith("minecraft:") && type.contains(":")) {
+                    Optional<ItemStack> opt = Iris.service(CustomBlockDataSVC.class).getItemStack(NamespacedKey.fromString(type));
+                    if(opt.isEmpty()) {
+                        Iris.warn("Unknown Material: " + type);
+                        return null;
+                    }
+                    is = opt.get();
+                    is.setAmount(Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
+                    return is;
+                } else {
+                    is = new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
+                }
+
                 ItemMeta m = is.getItemMeta();
 
-                if(getType().getMaxDurability() > 0 && m instanceof Damageable d) {
-                    int max = getType().getMaxDurability();
+                if(is.getType().getMaxDurability() > 0 && m instanceof Damageable d) {
+                    int max = is.getType().getMaxDurability();
                     d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
                 }
 
@@ -273,7 +284,8 @@ public class IrisLoot {
                 is.setItemMeta(m);
                 return applyCustomNbt(is);
             } catch(Throwable e) {
-                Iris.reportError(e);
+                //Iris.reportError(e);
+                e.printStackTrace();
             }
         }
 

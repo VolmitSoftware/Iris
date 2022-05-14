@@ -50,13 +50,13 @@ public class IrisBiomePaletteLayer {
     private IrisGeneratorStyle style = NoiseStyle.STATIC.style();
     @DependsOn({"minHeight", "maxHeight"})
     @MinNumber(0)
-    @MaxNumber(256) // TODO: WARNING HEIGHT
+    @MaxNumber(2032) // TODO: WARNING HEIGHT
 
     @Desc("The min thickness of this layer")
     private int minHeight = 1;
     @DependsOn({"minHeight", "maxHeight"})
     @MinNumber(1)
-    @MaxNumber(256) // TODO: WARNING HEIGHT
+    @MaxNumber(2032) // TODO: WARNING HEIGHT
 
     @Desc("The max thickness of this layer")
     private int maxHeight = 1;

@@ -315,7 +315,6 @@ public class StudioSVC implements IrisService {
         return activeProject != null && activeProject.isOpen();
     }
 
-
     public void open(VolmitSender sender, String dimm) {
         open(sender, 1337, dimm);
     }

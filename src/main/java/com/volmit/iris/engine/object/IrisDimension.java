@@ -407,18 +407,8 @@ public class IrisDimension extends IrisRegistrant {
         }
 
        if(!dimensionHeight.equals(new IrisRange(-64, 320)) && this.name.equalsIgnoreCase("overworld")) {
-           File dimType = new File(datapacks, "iris/data/minecraft/dimension_type/overworld.json");
-           if(!dimType.exists())
-               changed = true;
-
-           Iris.verbose("    Installing Data Pack Dimension Type: " + dimType.getPath());
-           dimType.getParentFile().mkdirs();
-           try {
-               IO.writeAll(dimType, generateDatapackJson());
-           } catch(IOException e) {
-               Iris.reportError(e);
-               e.printStackTrace();
-           }
+           Iris.verbose("    Installing Data Pack Dimension Type: \"minecraft:overworld\"");
+           changed = writeDimensionType(changed, datapacks);
        }
 
         if(write) {
@@ -455,6 +445,20 @@ public class IrisDimension extends IrisRegistrant {
     @Override
     public void scanForErrors(JSONObject p, VolmitSender sender) {
 
+    }
+
+    public boolean writeDimensionType(boolean changed, File datapacks) {
+        File dimType = new File(datapacks, "iris/data/minecraft/dimension_type/overworld.json");
+        if(!dimType.exists())
+            changed = true;
+        dimType.getParentFile().mkdirs();
+        try {
+            IO.writeAll(dimType, generateDatapackJson());
+        } catch(IOException e) {
+            Iris.reportError(e);
+            e.printStackTrace();
+        }
+        return changed;
     }
 
     private String generateDatapackJson() {

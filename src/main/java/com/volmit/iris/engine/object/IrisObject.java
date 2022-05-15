@@ -719,7 +719,7 @@ public class IrisObject extends IrisRegistrant {
                 i = config.getRotation().rotate(i.clone(), spinx, spiny, spinz).clone();
                 i = config.getTranslate().translate(i.clone(), config.getRotation(), spinx, spiny, spinz).clone();
 
-                if(stilting && i.getBlockY() < lowest && !B.isAir(data)) {
+                if(stilting && i.getBlockY() < lowest && !B.isAirOrFluid(data)) {
                     lowest = i.getBlockY();
                 }
 
@@ -825,7 +825,7 @@ public class IrisObject extends IrisRegistrant {
                 }
 
 
-                if(d == null || B.isAir(d)) {
+                if(d == null || B.isAirOrFluid(d)) {
                     continue;
                 }
 

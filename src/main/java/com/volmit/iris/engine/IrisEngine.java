@@ -234,10 +234,7 @@ public class IrisEngine implements Engine {
         getTarget().setDimension(getData().getDimensionLoader().load(getDimension().getLoadKey()));
         prehotload();
         setupEngine();
-        J.a(() -> {
-            Iris.warn("Meme.");
-            synchronized(ServerConfigurator.class) { ServerConfigurator.installDataPacks(false); }
-        });
+        J.a(() -> { synchronized(ServerConfigurator.class) { ServerConfigurator.installDataPacks(false); } });
     }
 
     @Override

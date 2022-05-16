@@ -99,7 +99,6 @@ public class DustRevealer {
 
         if(access != null) {
             String a = access.getObjectPlacementKey(block.getX(), block.getY(), block.getZ());
-
             if(a != null) {
                 world.playSound(block.getLocation(), Sound.ITEM_LODESTONE_COMPASS_LOCK, 1f, 0.1f);
 

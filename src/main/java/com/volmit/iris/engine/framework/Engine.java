@@ -748,7 +748,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     default PlacedObject getObjectPlacement(int x, int y, int z) {
         String objectAt = getMantle().getMantle().get(x, y, z, String.class);
-
         if(objectAt == null || objectAt.isEmpty()) {
             return null;
         }

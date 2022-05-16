@@ -408,7 +408,6 @@ public class WandSVC implements IrisService {
                     e.setCancelled(true);
                     e.getPlayer().playSound(Objects.requireNonNull(e.getClickedBlock()).getLocation(), Sound.ENTITY_ENDER_EYE_DEATH, 2f, 1.97f);
                     DustRevealer.spawn(e.getClickedBlock(), new VolmitSender(e.getPlayer(), Iris.instance.getTag()));
-
                 }
             }
         } catch(Throwable xx) {

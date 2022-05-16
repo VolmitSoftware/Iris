@@ -60,7 +60,7 @@ public class IrisEngineMantle implements EngineMantle {
 
     public IrisEngineMantle(Engine engine) {
         this.engine = engine;
-        this.mantle = new Mantle(new File(engine.getWorld().worldFolder(), "mantle"), engine.getTarget().getHeight(), engine.getTarget().getMinY());
+        this.mantle = new Mantle(new File(engine.getWorld().worldFolder(), "mantle"), engine.getTarget().getHeight());
         radius = radCache.aquire(this::computeParallaxSize);
         components = new KList<>();
         registerComponent(new MantleCarvingComponent(this));

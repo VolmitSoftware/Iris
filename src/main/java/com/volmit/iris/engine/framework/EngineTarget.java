@@ -42,8 +42,6 @@ public class EngineTarget {
         return world.maxHeight() - world.minHeight();
     }
 
-    public int getMinY() { return world.minHeight(); }
-
     public void close() {
 
     }

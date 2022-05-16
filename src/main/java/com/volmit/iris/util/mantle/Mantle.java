@@ -58,7 +58,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class Mantle {
     private final File dataFolder;
     private final int worldHeight;
-    private final int minY;
     private final Map<Long, Long> lastUse;
     @Getter
     private final Map<Long, TectonicPlate> loadedRegions;
@@ -77,12 +76,11 @@ public class Mantle {
      *     the world's height (in blocks)
      */
     @BlockCoordinates
-    public Mantle(File dataFolder, int worldHeight, int minY) {
+    public Mantle(File dataFolder, int worldHeight) {
         this.hyperLock = new HyperLock();
         this.closed = new AtomicBoolean(false);
         this.dataFolder = dataFolder;
         this.worldHeight = worldHeight;
-        this.minY = minY;
         this.io = new AtomicBoolean(false);
         dataFolder.mkdirs();
         unload = new KSet<>();
@@ -354,7 +352,6 @@ public class Mantle {
     @SuppressWarnings("unchecked")
     @BlockCoordinates
     public <T> T get(int x, int y, int z, Class<T> t) {
-        y -= minY;
         if(closed.get()) {
             throw new RuntimeException("The Mantle is closed");
         }

@@ -585,7 +585,7 @@ public class IrisObject extends IrisRegistrant {
                     }
                 }
             } else if(config.getMode().equals(ObjectPlaceMode.FAST_MIN_HEIGHT)) {
-                y = 257;
+                y = rdata.getEngine().getHeight() + 1;
                 BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
                 BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
 

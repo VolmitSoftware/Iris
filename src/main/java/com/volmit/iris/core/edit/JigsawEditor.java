@@ -19,6 +19,7 @@
 package com.volmit.iris.core.edit;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.engine.object.IrisDirection;
@@ -157,7 +158,14 @@ public class JigsawEditor implements Listener {
     public void close() {
         exit();
         try {
-            IO.writeAll(targetSaveLocation, new JSONObject(new Gson().toJson(piece)).toString(4));
+            JSONObject j = new JSONObject(new Gson().toJson(piece));
+            // Remove sub-key
+            // J.attempt(() -> j.getJSONObject("placementOptions").remove("translateCenter"));
+
+            // remove root key
+           // j.remove("placementOptions");
+
+            IO.writeAll(targetSaveLocation, j.toString(4));
         } catch(IOException e) {
             Iris.reportError(e);
             e.printStackTrace();

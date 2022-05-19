@@ -19,6 +19,7 @@
 package com.volmit.iris.core.edit;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.engine.object.IrisDirection;
@@ -26,6 +27,7 @@ import com.volmit.iris.engine.object.IrisJigsawPiece;
 import com.volmit.iris.engine.object.IrisJigsawPieceConnector;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisPosition;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.io.IO;
@@ -47,6 +49,7 @@ import org.bukkit.util.Vector;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 public class JigsawEditor implements Listener {
@@ -154,10 +157,50 @@ public class JigsawEditor implements Listener {
         }
     }
 
+    private void removeKey(JSONObject o, String... path)
+    {
+        if(path.length == 1)
+        {
+            o.remove(path[0]);
+            return;
+        }
+
+        List<String> s = new java.util.ArrayList<>(List.of(path));
+        s.remove(0);
+        removeKey(o.getJSONObject(path[0]), s.toArray(new String[0]));
+    }
+
+    private List<JSONObject> getObjectsInArray(JSONObject a, String key)
+    {
+        KList<JSONObject> o = new KList<>();
+
+        for(int i = 0; i < a.getJSONArray(key).length(); i++)
+        {
+            o.add(a.getJSONArray(key).getJSONObject(i));
+        }
+
+        return o;
+    }
+
     public void close() {
         exit();
         try {
-            IO.writeAll(targetSaveLocation, new JSONObject(new Gson().toJson(piece)).toString(4));
+            JSONObject j = new JSONObject(new Gson().toJson(piece));
+            // Remove sub-key
+            removeKey(j, "placementOptions", "translateCenter"); // should work
+            J.attempt(() -> j.getJSONObject("placementOptions").remove("translateCenter")); // otherwise
+
+            // remove root key
+            removeKey(j, "placementOptions"); // should work
+           j.remove("placementOptions"); // otherwise
+
+           // Remove key in all objects in array
+           for(JSONObject i : getObjectsInArray(j, "connectors"))
+           {
+               removeKey(i, "rotateConnector");
+           }
+
+            IO.writeAll(targetSaveLocation, j.toString(4));
         } catch(IOException e) {
             Iris.reportError(e);
             e.printStackTrace();

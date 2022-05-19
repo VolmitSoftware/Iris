@@ -21,6 +21,7 @@ package com.volmit.iris.engine;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.project.IrisProject;
@@ -233,6 +234,7 @@ public class IrisEngine implements Engine {
         getTarget().setDimension(getData().getDimensionLoader().load(getDimension().getLoadKey()));
         prehotload();
         setupEngine();
+        J.a(() -> { synchronized(ServerConfigurator.class) { ServerConfigurator.installDataPacks(false); } });
     }
 
     @Override

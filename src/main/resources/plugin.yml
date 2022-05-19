@@ -22,3 +22,4 @@ commands:
     aliases: [ ir, irs ]
 api-version: ${apiversion}
 hotload-dependencies: false
+softdepend: [ "Oraxen", "ItemsAdder", "IrisFeller"]

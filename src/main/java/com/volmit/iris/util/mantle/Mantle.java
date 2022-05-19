@@ -330,7 +330,7 @@ public class Mantle {
     }
 
     /**
-     * Gets the data tat the current block position This method will attempt to find a
+     * Gets the data at the current block position This method will attempt to find a
      * Tectonic Plate either by loading it or creating a new one. This method uses
      * the hyper lock packaged with each Mantle. The hyperlock allows locking of multiple
      * threads at a single region while still allowing other threads to continue

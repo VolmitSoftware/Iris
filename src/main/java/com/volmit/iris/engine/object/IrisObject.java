@@ -585,7 +585,7 @@ public class IrisObject extends IrisRegistrant {
                     }
                 }
             } else if(config.getMode().equals(ObjectPlaceMode.FAST_MIN_HEIGHT)) {
-                y = 257;
+                y = rdata.getEngine().getHeight() + 1;
                 BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
                 BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
 
@@ -820,14 +820,27 @@ public class IrisObject extends IrisRegistrant {
                 i = config.getRotation().rotate(i.clone(), spinx, spiny, spinz).clone();
                 i = config.getTranslate().translate(i.clone(), config.getRotation(), spinx, spiny, spinz).clone();
 
-                if(i.getBlockY() != lowest) {
+                if(i.getBlockY() != lowest)
                     continue;
+
+                for(IrisObjectReplace j : config.getEdit()) {
+                    if(rng.chance(j.getChance())) {
+                        for(BlockData k : j.getFind(rdata)) {
+                            if(j.isExact() ? k.matches(d) : k.getMaterial().equals(d.getMaterial())) {
+                                BlockData newData = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata).clone();
+
+                                if(newData.getMaterial() == d.getMaterial()) {
+                                    d = d.merge(newData);
+                                } else {
+                                    d = newData;
+                                }
+                            }
+                        }
+                    }
                 }
 
-
-                if(d == null || B.isAir(d)) {
+                if(d == null || B.isAir(d))
                     continue;
-                }
 
                 xx = x + (int) Math.round(i.getX());
                 zz = z + (int) Math.round(i.getZ());
@@ -837,7 +850,11 @@ public class IrisObject extends IrisRegistrant {
                     zz += config.warp(rng, i.getZ() + z, i.getY() + y, i.getX() + x, getLoader());
                 }
 
-                int yg = placer.getHighest(xx, zz, getLoader(), config.isUnderwater());
+                int yg = placer.getHighest(xx, zz, getLoader(), true);
+
+                if(config.isWaterloggable() && yg <= placer.getFluidHeight() && d instanceof Waterlogged) {
+                    ((Waterlogged) d).setWaterlogged(true);
+                }
 
                 if(yv >= 0 && config.isBottom()) {
                     y += Math.floorDiv(h, 2);
@@ -1118,7 +1135,5 @@ public class IrisObject extends IrisRegistrant {
     }
 
     @Override
-    public void scanForErrors(JSONObject p, VolmitSender sender) {
-
-    }
+    public void scanForErrors(JSONObject p, VolmitSender sender) { }
 }

@@ -20,7 +20,7 @@ package com.volmit.iris.util.data;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.service.RegistrySVC;
+import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.scheduling.ChronoLatch;
@@ -31,16 +31,16 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.ints.IntSets;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.block.data.type.PointedDripstone;
-import org.checkerframework.checker.units.qual.K;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Supplier;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.bukkit.Material.*;
@@ -470,25 +470,11 @@ public class B {
         try {
             BlockData bx = null;
 
-            if(!ix.startsWith("minecraft:")) {
-                if(ix.startsWith("oraxen:") && Iris.linkOraxen.supported()) {
-                    bx = Iris.linkOraxen.getBlockDataFor(ix.split("\\Q:\\E")[1]);
-                }
-
-                if(bx == null) {
-                    try {
-                        if(ix.contains(":")) {
-                            String[] v = ix.toLowerCase().split("\\Q:\\E");
-                            Supplier<BlockData> b = Iris.service(RegistrySVC.class).getCustomBlockRegistry().resolve(v[0], v[1]);
-
-                            if(b != null) {
-                                bx = b.get();
-                            }
-                        }
-                    } catch(Throwable e) {
-                        e.printStackTrace();// TODO: REMOVE
-                    }
-                }
+            if(!ix.startsWith("minecraft:") && ix.contains(":")) {
+                NamespacedKey key = NamespacedKey.fromString(ix);
+                Optional<BlockData> bd = Iris.service(ExternalDataSVC.class).getBlockData(key);
+                if(bd.isPresent())
+                    bx = bd.get();
             }
 
             if(bx == null) {
@@ -661,21 +647,9 @@ public class B {
             }
         }
 
-        try {
-            for(String i : Iris.linkOraxen.getItemTypes()) {
-                bt.add("oraxen:" + i);
-            }
-        } catch(Throwable e) {
-            e.printStackTrace();
-        }
-
+        for(NamespacedKey id : Iris.service(ExternalDataSVC.class).getAllIdentifiers())
+            bt.add(id.toString());
         bt.addAll(custom.k());
-
-        try {
-            bt.addAll(Iris.service(RegistrySVC.class).getCustomBlockRegistry().compile());
-        } catch(Throwable e) {
-            e.printStackTrace();
-        }
 
         return bt.toArray(new String[0]);
     }

@@ -42,6 +42,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -388,6 +389,8 @@ public class WandSVC implements IrisService {
 
     @EventHandler
     public void on(PlayerInteractEvent e) {
+        if(e.getHand() != EquipmentSlot.HAND)
+            return;
         try {
             if(isHoldingWand(e.getPlayer())) {
                 if(e.getAction().equals(Action.LEFT_CLICK_BLOCK)) {
@@ -408,7 +411,6 @@ public class WandSVC implements IrisService {
                     e.setCancelled(true);
                     e.getPlayer().playSound(Objects.requireNonNull(e.getClickedBlock()).getLocation(), Sound.ENTITY_ENDER_EYE_DEATH, 2f, 1.97f);
                     DustRevealer.spawn(e.getClickedBlock(), new VolmitSender(e.getPlayer(), Iris.instance.getTag()));
-
                 }
             }
         } catch(Throwable xx) {

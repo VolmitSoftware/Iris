@@ -46,12 +46,12 @@ public class IrisDepositGenerator {
     private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
     @Required
     @MinNumber(0)
-    @MaxNumber(256) // TODO: WARNING HEIGHT
+    @MaxNumber(2032) // TODO: WARNING HEIGHT
     @Desc("The minimum height this deposit can generate at")
     private int minHeight = 7;
     @Required
     @MinNumber(0)
-    @MaxNumber(256) // TODO: WARNING HEIGHT
+    @MaxNumber(2032) // TODO: WARNING HEIGHT
     @Desc("The maximum height this deposit can generate at")
     private int maxHeight = 55;
     @Required

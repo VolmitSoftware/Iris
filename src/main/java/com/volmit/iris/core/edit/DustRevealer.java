@@ -49,7 +49,7 @@ public class DustRevealer {
         this.hits = hits;
 
         J.s(() -> {
-            new BlockSignal(world.getBlockAt(block.getX(), block.getY(), block.getZ()), 7);
+            new BlockSignal(world.getBlockAt(block.getX(), block.getY(), block.getZ()), 10);
             if(M.r(0.25)) {
                 world.playSound(block.toBlock(world).getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, RNG.r.f(0.2f, 2f));
             }
@@ -98,8 +98,7 @@ public class DustRevealer {
         Engine access = IrisToolbelt.access(world).getEngine();
 
         if(access != null) {
-            String a = access.getObjectPlacementKey(block.getX(), block.getY(), block.getZ());
-
+            String a = access.getObjectPlacementKey(block.getX(), block.getY() - block.getWorld().getMinHeight(), block.getZ());
             if(a != null) {
                 world.playSound(block.getLocation(), Sound.ITEM_LODESTONE_COMPASS_LOCK, 1f, 0.1f);
 
@@ -112,7 +111,8 @@ public class DustRevealer {
     }
 
     private boolean is(BlockPosition a) {
-        if(isValidTry(a) && engine.getObjectPlacementKey(a.getX(), a.getY(), a.getZ()) != null && engine.getObjectPlacementKey(a.getX(), a.getY(), a.getZ()).equals(key)) {
+        int betterY = a.getY() - world.getMinHeight();
+        if(isValidTry(a) && engine.getObjectPlacementKey(a.getX(), betterY, a.getZ()) != null && engine.getObjectPlacementKey(a.getX(), betterY, a.getZ()).equals(key)) {
             hits.add(a);
             new DustRevealer(engine, world, a, key, hits);
             return true;

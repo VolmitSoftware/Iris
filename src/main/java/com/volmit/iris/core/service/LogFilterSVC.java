@@ -13,12 +13,13 @@ import org.apache.logging.log4j.message.Message;
 public class LogFilterSVC implements IrisService, Filter {
 
     private static final String HEIGHTMAP_MISMATCH = "Ignoring heightmap data for chunk";
+    private static final String RAID_PERSISTENCE = "Could not save data net.minecraft.world.entity.raid.PersistentRaid";
 
     private static final KList<String> FILTERS = new KList<>();
 
     public void onEnable() {
-        FILTERS.add(HEIGHTMAP_MISMATCH);
-        ((Logger) LogManager.getRootLogger()).addFilter(this);
+        FILTERS.add(HEIGHTMAP_MISMATCH, RAID_PERSISTENCE);
+        ((Logger)LogManager.getRootLogger()).addFilter(this);
     }
 
     public void initialize() { }

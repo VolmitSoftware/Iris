@@ -534,12 +534,14 @@ public class IrisObject extends IrisRegistrant {
             } else if(config.getMode().equals(ObjectPlaceMode.MAX_HEIGHT) || config.getMode().equals(ObjectPlaceMode.STILT)) {
                 BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
                 BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
-                int x1 = x - (rotatedDimensions.getBlockX() / 2) + offset.getBlockX();
-                int x2 = x + (rotatedDimensions.getBlockX() / 2) + offset.getBlockX();
-                for(int i = Math.min(x1, x2); i <= Math.max(x1, x2); i++) {
-                    int z1 = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ();
-                    int z2 = z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ();
-                    for(int ii = Math.min(z1, z2); ii <= Math.max(z1, z2); ii++) {
+                int xLength = (rotatedDimensions.getBlockX() / 2) + offset.getBlockX();
+                int minX = Math.min(x - xLength, x + xLength);
+                int maxX = Math.max(x - xLength, x + xLength);
+                int zLength = (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ();
+                int minZ = Math.min(z - zLength, z + zLength);
+                int maxZ = Math.max(z - zLength, z + zLength);
+                for(int i = minX; i <= maxX; i++) {
+                    for(int ii = minZ; ii <= maxZ; ii++) {
                         int h = placer.getHighest(i, ii, getLoader(), config.isUnderwater()) + rty;
                         if(placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
                             bail = true;
@@ -552,12 +554,16 @@ public class IrisObject extends IrisRegistrant {
             } else if(config.getMode().equals(ObjectPlaceMode.FAST_MAX_HEIGHT) || config.getMode().equals(ObjectPlaceMode.FAST_STILT)) {
                 BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
                 BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
-                int x1 = x - (rotatedDimensions.getBlockX() / 2) + offset.getBlockX();
-                int x2 = x + (rotatedDimensions.getBlockX() / 2) + offset.getBlockX();
-                for(int i = Math.min(x1, x2); i <= Math.max(x1, x2); i += (rotatedDimensions.getBlockX() / 2) + 1) {
-                    int z1 = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ();
-                    int z2 = z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ();
-                    for(int ii = Math.min(z1, z2); ii <= Math.max(z1, z2); ii += (rotatedDimensions.getBlockX() / 2) + 1) {
+                int xRadius = (rotatedDimensions.getBlockX() / 2);
+                int xLength = xRadius + offset.getBlockX();
+                int minX = Math.min(x - xLength, x + xLength);
+                int maxX = Math.max(x - xLength, x + xLength);
+                int zRadius = (rotatedDimensions.getBlockZ() / 2);
+                int zLength = zRadius + offset.getBlockZ();
+                int minZ = Math.min(z - zLength, z + zLength);
+                int maxZ = Math.max(z - zLength, z + zLength);
+                for(int i = minX; i <= maxX; i += xRadius + 1) {
+                    for(int ii = minZ; ii <= maxZ; ii += zRadius + 1) {
                         int h = placer.getHighest(i, ii, getLoader(), config.isUnderwater()) + rty;
                         if(placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
                             bail = true;

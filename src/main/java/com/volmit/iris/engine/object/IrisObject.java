@@ -554,7 +554,7 @@ public class IrisObject extends IrisRegistrant {
                 BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
                 int x1 = x - (rotatedDimensions.getBlockX() / 2) + offset.getBlockX();
                 int x2 = x + (rotatedDimensions.getBlockX() / 2) + offset.getBlockX();
-                for(int i = Math.min(x1, x2); i <= Math.max(x1, x2); i +=(rotatedDimensions.getBlockX() / 2) + 1) {
+                for(int i = Math.min(x1, x2); i <= Math.max(x1, x2); i += (rotatedDimensions.getBlockX() / 2) + 1) {
                     int z1 = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ();
                     int z2 = z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ();
                     for(int ii = Math.min(z1, z2); ii <= Math.max(z1, z2); ii += (rotatedDimensions.getBlockX() / 2) + 1) {

@@ -244,12 +244,12 @@ public class Iris extends VolmitPlugin implements Listener {
         return f;
     }
 
-    public static void warn(String string) {
-        msg(C.YELLOW + string);
+    public static void warn(String format, Object... objs) {
+        msg(C.YELLOW + String.format(format, objs));
     }
 
-    public static void error(String string) {
-        msg(C.RED + string);
+    public static void error(String format, Object... objs) {
+        msg(C.RED + String.format(format, objs));
     }
 
     public static void debug(String string) {

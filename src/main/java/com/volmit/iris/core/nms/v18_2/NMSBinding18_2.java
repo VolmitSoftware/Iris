@@ -416,18 +416,21 @@ public class NMSBinding18_2 implements INMSBinding {
     }
 
     private static Object fieldFor(Class<?> returns, Object in) {
-        for(Field i : in.getClass().getFields()) {
-            if(i.getType().equals(returns)) {
+        return fieldForClass(returns, in.getClass(), in);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T fieldForClass(Class<T> returnType, Class<?> sourceType, Object in) {
+        for(Field i : sourceType.getFields())
+            if(i.getType().equals(returnType)) {
                 i.setAccessible(true);
                 try {
-                    Iris.info("[NMS] Found " + returns.getSimpleName() + " in " + in.getClass().getSimpleName() + "." + i.getName());
-                    return i.get(in);
+                    Iris.info("[NMS] Found " + returnType.getSimpleName() + " in " + sourceType.getSimpleName() + "." + i.getName());
+                    return (T)i.get(in);
                 } catch(IllegalAccessException e) {
                     e.printStackTrace();
                 }
             }
-        }
-
         return null;
     }
 }

@@ -562,8 +562,8 @@ public class IrisObject extends IrisRegistrant {
                 int zLength = zRadius + offset.getBlockZ();
                 int minZ = Math.min(z - zLength, z + zLength);
                 int maxZ = Math.max(z - zLength, z + zLength);
-                for(int i = minX; i <= maxX; i += xRadius + 1) {
-                    for(int ii = minZ; ii <= maxZ; ii += zRadius + 1) {
+                for(int i = minX; i <= maxX; i += Math.abs(xRadius) + 1) {
+                    for(int ii = minZ; ii <= maxZ; ii += Math.abs(zRadius) + 1) {
                         int h = placer.getHighest(i, ii, getLoader(), config.isUnderwater()) + rty;
                         if(placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
                             bail = true;

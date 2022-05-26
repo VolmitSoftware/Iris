@@ -18,7 +18,9 @@
 
 package com.volmit.iris.core.commands;
 
+import com.mojang.datafixers.util.Pair;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.link.WorldEditLink;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.service.ObjectSVC;
 import com.volmit.iris.core.service.StudioSVC;
@@ -41,12 +43,7 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.Direction;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.Queue;
-import org.bukkit.ChatColor;
-import org.bukkit.HeightMap;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
@@ -424,6 +421,24 @@ public class CommandObject implements DecreeExecutor {
         int actualReverts = Math.min(service.getUndos().size(), amount);
         service.revertChanges(actualReverts);
         sender().sendMessage("Reverted " + actualReverts + " pastes!");
+    }
+
+    @Decree(description = "Gets an object wand and grabs the current WorldEdit selection.", aliases = "we", origin = DecreeOrigin.PLAYER, studio = true)
+    public void we() {
+        if(!Bukkit.getPluginManager().isPluginEnabled("WorldEdit")) {
+            sender().sendMessage(C.RED + "You can't get a WorldEdit selection without WorldEdit, you know.");
+            return;
+        }
+
+        Pair<Location, Location> locs = WorldEditLink.getSelection(sender().player());
+        if(locs.getFirst() == null)
+            sender().sendMessage(C.RED + "You don't have a WorldEdit selection!");
+        else if(locs.getSecond() == null)
+            sender().sendMessage(C.RED + "You need a valid WorldRegion selection in the current world!");
+        else {
+            sender().player().getInventory().addItem(WandSVC.createWand(locs.getFirst(), locs.getSecond()));
+            sender().sendMessage(C.GREEN + "A fresh wand with your current WorldEdit selection on it!");
+        }
     }
 
     @Decree(description = "Get an object wand", sync = true)

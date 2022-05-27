@@ -79,7 +79,6 @@ import java.util.stream.Stream;
 public class IrisWorldManager extends EngineAssignedWorldManager {
     private final Looper looper;
     private final int id;
-    private final KMap<Long, Long> chunkCooldowns;
     private final KList<Runnable> updateQueue = new KList<>();
     private final ChronoLatch cl;
     private final ChronoLatch clw;
@@ -99,7 +98,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         ecl = null;
         cln = null;
         clw = null;
-        chunkCooldowns = null;
         looper = null;
         chunkUpdater = null;
         id = -1;
@@ -112,7 +110,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         cl = new ChronoLatch(3000);
         ecl = new ChronoLatch(250);
         clw = new ChronoLatch(1000, true);
-        chunkCooldowns = new KMap<>();
         id = engine.getCacheID();
         energy = 25;
         looper = new Looper() {
@@ -255,14 +252,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             }
         }
 
-        int chunkCooldownSeconds = 60;
-
-        for(Long i : chunkCooldowns.k()) {
-            if(M.ms() - chunkCooldowns.get(i) > TimeUnit.SECONDS.toMillis(chunkCooldownSeconds)) {
-                chunkCooldowns.remove(i);
-            }
-        }
-
         int spawnBuffer = RNG.r.i(2, 12);
 
         Chunk[] cc = getEngine().getWorld().realWorld().getLoadedChunks();
@@ -279,7 +268,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             }
 
             spawnIn(c, false);
-            chunkCooldowns.put(Cache.key(c), M.ms());
         }
 
         energy -= (actuallySpawned / 2D);

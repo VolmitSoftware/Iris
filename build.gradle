@@ -24,7 +24,7 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '2.1.1-1.18.2' // Needs to be version specific
+version '2.1.2-1.18.2' // Needs to be version specific
 def nmsVersion = "1.18.2"
 def apiVersion = '1.18'
 def spigotJarVersion = '1.18.2-R0.1-SNAPSHOT'
@@ -74,6 +74,7 @@ repositories {
         }
     }
     maven { url "https://dl.cloudsmith.io/public/arcane/archive/maven/" }
+    maven { url "https://maven.enginehub.org/repo/" }
     mavenCentral()
     mavenLocal()
     maven { url "https://jitpack.io"}
@@ -128,6 +129,7 @@ dependencies {
     implementation 'io.th0rgal:oraxen:1.94.0'
     implementation 'org.bukkit:craftbukkit:1.18.2-R0.1-SNAPSHOT:remapped-mojang'
     implementation 'com.github.LoneDev6:api-itemsadder:3.1.0b'
+    implementation 'com.sk89q.worldedit:worldedit-bukkit:7.2.9'
 
     // Shaded
     implementation 'com.dfsek:Paralithic:0.4.0'

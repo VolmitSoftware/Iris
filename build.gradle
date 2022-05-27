@@ -24,7 +24,7 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '2.1.1-1.18.2' // Needs to be version specific
+version '2.1.2-1.18.2' // Needs to be version specific
 def nmsVersion = "1.18.2"
 def apiVersion = '1.18'
 def spigotJarVersion = '1.18.2-R0.1-SNAPSHOT'

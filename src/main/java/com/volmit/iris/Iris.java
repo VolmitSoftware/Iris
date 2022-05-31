@@ -382,6 +382,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
     private void enable() {
         instance = this;
+        checkVersion();
         services = new KMap<>();
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
         INMS.get();
@@ -408,6 +409,16 @@ public class Iris extends VolmitPlugin implements Listener {
             autoStartStudio();
             checkForBukkitWorlds();
         });
+    }
+
+    private void checkVersion() {
+        Iris.info(Bukkit.getVersion());
+        if (Bukkit.getVersion().contains("Spigot") || Bukkit.getVersion().contains("CraftBukkit")){
+            Iris.error("=================================================================================");
+            Iris.error("Iris is incompatible with Spigot/Bukkit/CraftBukkit. Use Paper or Purpur instead!");
+            Iris.error("=================================================================================");
+            System.exit(0);
+        }
     }
 
     private void checkForBukkitWorlds() {

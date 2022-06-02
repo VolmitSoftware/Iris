@@ -126,8 +126,8 @@ public class NMSBinding18_2 implements INMSBinding {
     }
 
     @Override
-    public void deserializeTile(CompoundTag c, Location newPosition) {
-        ((CraftWorld) newPosition.getWorld()).getHandle().getChunkAt(new BlockPos(newPosition.getBlockX(), 0, newPosition.getBlockZ())).setBlockEntityNbt(convert(c));
+    public void deserializeTile(CompoundTag c, Location pos) {
+        ((CraftWorld) pos.getWorld()).getHandle().getChunkAt(new BlockPos(pos.getBlockX(), 0, pos.getBlockZ())).setBlockEntityNbt(convert(c));
     }
 
     @Override

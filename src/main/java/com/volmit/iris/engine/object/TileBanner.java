@@ -98,7 +98,7 @@ public class TileBanner implements TileData<Banner> {
 
     @SuppressWarnings("deprecation")
     @Override
-    public void toNBT(CompoundTag tag) {
+    public CompoundTag toNBT(CompoundTag tag) {
         @SuppressWarnings("unchecked") ListTag<CompoundTag> listTag = (ListTag<CompoundTag>) ListTag.createUnchecked(CompoundTag.class);
         for(Pattern p : patterns) {
             CompoundTag pattern = new CompoundTag();
@@ -107,6 +107,7 @@ public class TileBanner implements TileData<Banner> {
             listTag.add(pattern);
         }
         tag.put("Patterns", listTag);
+        return tag;
     }
 
     public boolean isBanner(Material material) {

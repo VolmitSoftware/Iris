@@ -32,7 +32,8 @@ public enum MantleFlag {
     INITIAL_SPAWNED_MARKER,
     CLEANED,
     PLANNED,
-    ETCHED;
+    ETCHED,
+    TILE;
 
     static StateList getStateList() {
         return new StateList(MantleFlag.values());

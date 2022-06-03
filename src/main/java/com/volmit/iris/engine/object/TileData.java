@@ -57,10 +57,10 @@ public interface TileData<T extends TileState> extends Cloneable {
         }
     }
 
-    static void setTileState(Block block, TileData<? extends TileState> data) {
-        if(data.isApplicable(block.getBlockData())) {
-            data.toBukkitTry(block.getState());
-        }
+    static boolean setTileState(Block block, TileData<? extends TileState> data) {
+        if(block.getState() instanceof TileState && data.isApplicable(block.getBlockData()))
+            return data.toBukkitTry(block.getState());
+        return false;
     }
 
     static TileData<? extends TileState> getTileState(Block block) {
@@ -94,6 +94,7 @@ public interface TileData<T extends TileState> extends Cloneable {
         try {
             //noinspection unchecked
             toBukkit((T) t);
+            t.update();
             return true;
         } catch(Throwable e) {
             Iris.reportError(e);

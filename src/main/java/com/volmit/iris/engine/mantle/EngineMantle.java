@@ -38,10 +38,7 @@ import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
 import com.volmit.iris.util.mantle.MantleFlag;
-import com.volmit.iris.util.matter.Matter;
-import com.volmit.iris.util.matter.MatterCavern;
-import com.volmit.iris.util.matter.MatterFluidBody;
-import com.volmit.iris.util.matter.MatterMarker;
+import com.volmit.iris.util.matter.*;
 import com.volmit.iris.util.matter.slices.UpdateMatter;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -109,17 +106,14 @@ public interface EngineMantle extends IObjectPlacer {
 
     @Override
     default void setTile(int x, int y, int z, TileData<? extends TileState> d) {
-        // TODO SET TILE
+        getMantle().set(x, y, z, new TileWrapper(d));
     }
 
     @Override
     default BlockData get(int x, int y, int z) {
         BlockData block = getMantle().get(x, y, z, BlockData.class);
-
-        if(block == null) {
+        if(block == null)
             return AIR;
-        }
-
         return block;
     }
 

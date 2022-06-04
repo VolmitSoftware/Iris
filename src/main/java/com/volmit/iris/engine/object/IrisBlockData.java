@@ -38,6 +38,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.EntityType;
 
 import java.util.Map;
 
@@ -197,6 +198,19 @@ public class IrisBlockData extends IrisRegistrant {
 
             return B.get("AIR");
         });
+    }
+
+    public TileData<?> tryGetTile() {
+        //TODO Do like a registry thing with the tile data registry. Also update the parsing of data to include **block** entities.
+        if(data.containsKey("entitySpawn")) {
+            TileSpawner spawner = new TileSpawner();
+            String name = (String)data.get("entitySpawn");
+            if(name.contains(":"))
+                name = name.split(":")[1];
+            spawner.setEntityType(EntityType.fromName(name));
+            return spawner;
+        }
+        return null;
     }
 
     private String keyify(String dat) {

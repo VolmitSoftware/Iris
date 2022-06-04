@@ -34,8 +34,6 @@ import com.volmit.iris.util.math.AxisAlignedBB;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.matter.IrisMatter;
-import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterMarker;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -65,11 +63,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -739,10 +733,16 @@ public class IrisObject extends IrisRegistrant {
                             if(j.isExact() ? k.matches(data) : k.getMaterial().equals(data.getMaterial())) {
                                 BlockData newData = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata).clone();
 
-                                if(newData.getMaterial() == data.getMaterial()) {
+                                if(newData.getMaterial() == data.getMaterial())
                                     data = data.merge(newData);
-                                } else {
+                                else
                                     data = newData;
+
+                                if(newData.getMaterial() == Material.SPAWNER) {
+                                    Optional<TileData<?>> t = j.getReplace().getTile(rng, x, y, z, rdata);
+                                    if(t.isPresent()) {
+                                        tile = t.get();
+                                    }
                                 }
                             }
                         }

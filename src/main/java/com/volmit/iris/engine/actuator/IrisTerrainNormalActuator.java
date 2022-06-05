@@ -156,7 +156,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                     } else {
                         h.set(xf, i, zf, getComplex().getRockStream().get(realX, realZ));
                     }
-
                 }
             }
         }

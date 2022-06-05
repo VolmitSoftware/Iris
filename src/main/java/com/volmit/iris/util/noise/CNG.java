@@ -123,7 +123,7 @@ public class CNG {
 
             @Override
             public double noise(double x, double z) {
-                return (cellularFilter.GetCellular((float) x, (float) z, str, 1) / 2D) + 0.5D;
+                return (cellularFilter.GetCellular((float) x, (float) z, str, 1) * 0.5) + 0.5D;
             }
 
             @Override

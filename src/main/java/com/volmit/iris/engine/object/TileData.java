@@ -29,11 +29,12 @@ import org.bukkit.block.data.BlockData;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 
 @SuppressWarnings("ALL")
 public interface TileData<T extends TileState> extends Cloneable {
 
-    KList<TileData<? extends TileState>> registry = setup();
+    static final KList<TileData<? extends TileState>> registry = setup();
 
     static KList<TileData<? extends TileState>> setup() {
         KList<TileData<? extends TileState>> registry = new KList<>();
@@ -45,17 +46,21 @@ public interface TileData<T extends TileState> extends Cloneable {
         return registry;
     }
 
-    static TileData<? extends TileState> read(DataInputStream s) throws Throwable {
-        int id = s.readShort();
-        @SuppressWarnings("unchecked") TileData<? extends TileState> d = registry.get(id).getClass().getConstructor().newInstance();
-        d.fromBinary(s);
-        return d;
+    static TileData<? extends TileState> read(DataInputStream s) throws IOException {
+        try {
+            int id = s.readShort();
+            @SuppressWarnings("unchecked") TileData<? extends TileState> d = registry.get(id).getClass().getConstructor().newInstance();
+            d.fromBinary(s);
+            return d;
+        } catch(InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException e) {
+            throw new IOException("Failed to create TileData instance due to missing type registrar!");
+        }
     }
 
-    static void setTileState(Block block, TileData<? extends TileState> data) {
-        if(data.isApplicable(block.getBlockData())) {
-            data.toBukkitTry(block.getState());
-        }
+    static boolean setTileState(Block block, TileData<? extends TileState> data) {
+        if(block.getState() instanceof TileState && data.isApplicable(block.getBlockData()))
+            return data.toBukkitTry(block.getState());
+        return false;
     }
 
     static TileData<? extends TileState> getTileState(Block block) {
@@ -89,6 +94,7 @@ public interface TileData<T extends TileState> extends Cloneable {
         try {
             //noinspection unchecked
             toBukkit((T) t);
+            t.update();
             return true;
         } catch(Throwable e) {
             Iris.reportError(e);
@@ -111,11 +117,11 @@ public interface TileData<T extends TileState> extends Cloneable {
         return false;
     }
 
-    TileData<T> clone();
+    CompoundTag toNBT(CompoundTag parent);
 
     void toBinary(DataOutputStream out) throws IOException;
 
-    void toNBT(CompoundTag tag);
-
     void fromBinary(DataInputStream in) throws IOException;
+
+    TileData<T> clone();
 }

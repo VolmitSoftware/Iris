@@ -18,11 +18,12 @@
 
 package com.volmit.iris.util.matter.slices;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.data.palette.Palette;
-import com.volmit.iris.util.matter.MatterTile;
 import com.volmit.iris.util.matter.Sliced;
-import com.volmit.iris.util.nbt.io.NBTUtil;
+import com.volmit.iris.util.matter.TileWrapper;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -31,43 +32,49 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+@SuppressWarnings("rawtypes")
 @Sliced
-public class TileMatter extends RawMatter<MatterTile> {
-    public static final MatterTile EMPTY = new MatterTile(new CompoundTag());
+public class TileMatter extends RawMatter<TileWrapper> {
 
     public TileMatter() {
         this(1, 1, 1);
     }
 
     @Override
-    public Palette<MatterTile> getGlobalPalette() {
+    public Palette<TileWrapper> getGlobalPalette() {
         return null;
     }
 
     public TileMatter(int width, int height, int depth) {
-        super(width, height, depth, MatterTile.class);
-        registerWriter(World.class, ((w, d, x, y, z) -> INMS.get().deserializeTile(d.getTileData(), new Location(w, x, y, z))));
+        super(width, height, depth, TileWrapper.class);
+        registerWriter(World.class, (w, d, x, y, z) -> {
+            CompoundTag tag = commonNbt(x, y, z, d.getData().getTileId());
+            INMS.get().deserializeTile(d.getData().toNBT(d.getData().toNBT(tag)), new Location(w, x, y, z));
+            Iris.warn("S: " + tag);
+        });
         registerReader(World.class, (w, x, y, z) -> {
-            Location l = new Location(w, x, y, z);
-            if(INMS.get().hasTile(l)) {
-                CompoundTag tag = INMS.get().serializeTile(l);
-
-                if(tag != null) {
-                    return new MatterTile(tag);
-                }
-            }
-
-            return null;
+            TileData d = TileData.getTileState(w.getBlockAt(new Location(w, x, y, z)));
+            if(d == null)
+                return null;
+            return new TileWrapper(d);
         });
     }
 
-    @Override
-    public void writeNode(MatterTile b, DataOutputStream dos) throws IOException {
-        NBTUtil.write(b.getTileData(), dos, false);
+    public void writeNode(TileWrapper b, DataOutputStream dos) throws IOException {
+        b.getData().toBinary(dos);
     }
 
-    @Override
-    public MatterTile readNode(DataInputStream din) throws IOException {
-        return new MatterTile((CompoundTag) NBTUtil.read(din, false).getTag());
+    public TileWrapper readNode(DataInputStream din) throws IOException {
+        return new TileWrapper(TileData.read(din));
+    }
+
+    private CompoundTag commonNbt(int x, int y, int z, String mobId) {
+        CompoundTag tag = new CompoundTag();
+        tag.putInt("x", x);
+        tag.putInt("y", y);
+        tag.putInt("z", z);
+        tag.putBoolean("keepPacked", false);
+        tag.putString("id", mobId);
+        return tag;
     }
 }

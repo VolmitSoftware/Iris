@@ -34,6 +34,8 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
 
+import java.util.Optional;
+
 @Snippet("palette")
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -64,6 +66,14 @@ public class IrisMaterialPalette {
         }
 
         return getLayerGenerator(rng, rdata).fit(getBlockData(rdata), x / zoom, y / zoom, z / zoom);
+    }
+
+    public Optional<TileData<?>> getTile(RNG rng, double x, double y, double z, IrisData rdata) {
+        if(getBlockData(rdata).isEmpty())
+            return Optional.empty();
+
+        TileData<?> tile = getBlockData(rdata).size() == 1 ? palette.get(0).tryGetTile() : palette.getRandom(rng).tryGetTile();
+        return tile != null ? Optional.of(tile) : Optional.empty();
     }
 
     public CNG getLayerGenerator(RNG rng, IrisData rdata) {

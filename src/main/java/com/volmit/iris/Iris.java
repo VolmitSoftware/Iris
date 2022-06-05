@@ -28,6 +28,7 @@ import com.volmit.iris.core.link.*;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.service.StudioSVC;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -60,6 +61,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -407,6 +409,8 @@ public class Iris extends VolmitPlugin implements Listener {
             splash();
             autoStartStudio();
             checkForBukkitWorlds();
+            IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
+            IrisToolbelt.retainMantleDataForSlice(BlockData.class.getCanonicalName());
         });
     }
 

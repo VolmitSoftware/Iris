@@ -469,18 +469,4 @@ public class CNG {
     public boolean isStatic() {
         return generator != null && generator.isStatic();
     }
-
-    public static void main(String[] a)
-    {
-        CNG cng = NoiseStyle.SIMPLEX.create(new RNG(1234));
-        PrecisionStopwatch p = PrecisionStopwatch.start();
-        double r = 0;
-
-        for(int i = 0; i < 30000000 * 10; i++)
-        {
-            r += cng.fit(-1000, 1000, i, i);
-        }
-
-        System.out.println(Form.duration(p.getMilliseconds(), 10) + " merged = " + r);
-    }
 }

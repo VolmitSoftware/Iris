@@ -21,10 +21,13 @@ package com.volmit.iris.util.noise;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.IRare;
+import com.volmit.iris.engine.object.NoiseStyle;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.NoiseInjector;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.stream.ProceduralStream;
 import com.volmit.iris.util.stream.arithmetic.FittedStream;
 import com.volmit.iris.util.stream.sources.CNGStream;
@@ -465,5 +468,19 @@ public class CNG {
 
     public boolean isStatic() {
         return generator != null && generator.isStatic();
+    }
+
+    public static void main(String[] a)
+    {
+        CNG cng = NoiseStyle.SIMPLEX.create(new RNG(1234));
+        PrecisionStopwatch p = PrecisionStopwatch.start();
+        double r = 0;
+
+        for(int i = 0; i < 10000000; i++)
+        {
+            r += cng.fit(-1000, 1000, i, i);
+        }
+
+        System.out.println(Form.duration(p.getMilliseconds(), 4) + " merged = " + r);
     }
 }

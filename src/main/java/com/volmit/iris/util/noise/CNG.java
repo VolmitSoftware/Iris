@@ -476,11 +476,11 @@ public class CNG {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         double r = 0;
 
-        for(int i = 0; i < 10000000; i++)
+        for(int i = 0; i < 30000000 * 10; i++)
         {
             r += cng.fit(-1000, 1000, i, i);
         }
 
-        System.out.println(Form.duration(p.getMilliseconds(), 4) + " merged = " + r);
+        System.out.println(Form.duration(p.getMilliseconds(), 10) + " merged = " + r);
     }
 }

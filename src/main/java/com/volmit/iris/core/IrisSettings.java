@@ -74,6 +74,7 @@ public class IrisSettings {
         public double targetSpawnEntitiesPerChunk = 0.95;
         public boolean markerEntitySpawningSystem = true;
         public boolean effectSystem = true;
+        public boolean worldEditWandCUI = true;
     }
 
     @Data

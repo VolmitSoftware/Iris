@@ -1,32 +1,37 @@
 package com.volmit.iris.core.link;
 
-import com.mojang.datafixers.util.Pair;
-import com.sk89q.worldedit.IncompleteRegionException;
-import com.sk89q.worldedit.LocalSession;
-import com.sk89q.worldedit.WorldEdit;
-import com.sk89q.worldedit.bukkit.BukkitAdapter;
-import com.sk89q.worldedit.math.BlockVector3;
-import com.sk89q.worldedit.regions.Region;
-import com.sk89q.worldedit.session.MissingSessionException;
-import org.bukkit.Location;
+import com.volmit.iris.util.data.Cuboid;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 public class WorldEditLink {
-
-    public static Pair<Location, Location> getSelection(Player p) {
-        LocalSession session = WorldEdit.getInstance().getSessionManager().getIfPresent(BukkitAdapter.adapt(p));
-        try {
-            if(session == null)
-                throw new MissingSessionException();
-            Region r = session.getSelection(BukkitAdapter.adapt(p.getWorld()));
-            BlockVector3 p1 = r.getMinimumPoint();
-            BlockVector3 p2 = r.getMaximumPoint();
-            return new Pair<>(new Location(p.getWorld(), p1.getX(), p1.getY(), p1.getZ()), new Location(p.getWorld(), p2.getX(), p2.getY(), p2.getZ()));
-        } catch(MissingSessionException e) {
-            return new Pair<>(null, new Location(null, 0, 0, 0));
-        } catch(IncompleteRegionException e) {
-            return new Pair<>(new Location(null, 0, 0, 0), null);
+    public static Cuboid getSelection(Player p)
+    {
+        try
+        {
+            Object instance = Class.forName("com.sk89q.worldedit.WorldEdit").getDeclaredMethod("getInstance").invoke(null);
+            Object sessionManager = instance.getClass().getDeclaredMethod("getSessionManager").invoke(instance);
+            Object player = Class.forName("com.sk89q.worldedit.bukkit.BukkitAdapter").getDeclaredMethod("adapt", Player.class).invoke(null, p);
+            Object localSession = sessionManager.getClass().getDeclaredMethod("getIfPresent", Class.forName("com.sk89q.worldedit.session.SessionOwner")).invoke(sessionManager, player);
+            Object world = Class.forName("com.sk89q.worldedit.bukkit.BukkitAdapter").getDeclaredMethod("adapt", World.class).invoke(null, p.getWorld());
+            Object region = localSession.getClass().getDeclaredMethod("getSelection", world.getClass()).invoke(localSession, world);
+            Object min = region.getClass().getDeclaredMethod("getMinimumPoint").invoke(region);
+            Object max = region.getClass().getDeclaredMethod("getMaximumPoint").invoke(region);
+            return new Cuboid(p.getWorld(),
+                    (int)min.getClass().getDeclaredMethod("getX").invoke(min),
+                    (int)min.getClass().getDeclaredMethod("getY").invoke(min),
+                    (int)min.getClass().getDeclaredMethod("getZ").invoke(min),
+                    (int)min.getClass().getDeclaredMethod("getX").invoke(max),
+                    (int)min.getClass().getDeclaredMethod("getY").invoke(max),
+                    (int)min.getClass().getDeclaredMethod("getZ").invoke(max)
+            );
         }
 
+        catch(Throwable e)
+        {
+
+        }
+
+        return null;
     }
 }

@@ -129,7 +129,6 @@ dependencies {
     implementation 'io.th0rgal:oraxen:1.94.0'
     implementation 'org.bukkit:craftbukkit:1.18.2-R0.1-SNAPSHOT:remapped-mojang'
     implementation 'com.github.LoneDev6:api-itemsadder:3.1.0b'
-    implementation 'com.sk89q.worldedit:worldedit-bukkit:7.2.9'
 
     // Shaded
     implementation 'com.dfsek:Paralithic:0.4.0'

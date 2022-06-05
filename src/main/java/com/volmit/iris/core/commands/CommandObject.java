@@ -229,7 +229,7 @@ public class CommandObject implements DecreeExecutor {
         }
 
 
-        Location[] b = WandSVC.getCuboid(player().getInventory().getItemInMainHand());
+        Location[] b = WandSVC.getCuboid(player());
         Location a1 = b[0].clone();
         Location a2 = b[1].clone();
         Cuboid cursor = new Cuboid(a1, a2);
@@ -253,10 +253,8 @@ public class CommandObject implements DecreeExecutor {
             return;
         }
 
-        ItemStack wand = player().getInventory().getItemInMainHand();
-
-        if(WandSVC.isWand(wand)) {
-            Location[] g = WandSVC.getCuboid(wand);
+        if(WandSVC.isHoldingWand(player())) {
+            Location[] g = WandSVC.getCuboid(player());
 
             if(!here) {
                 // TODO: WARNING HEIGHT
@@ -278,10 +276,8 @@ public class CommandObject implements DecreeExecutor {
             return;
         }
 
-        ItemStack wand = player().getInventory().getItemInMainHand();
-
-        if(WandSVC.isWand(wand)) {
-            Location[] g = WandSVC.getCuboid(wand);
+        if(WandSVC.isHoldingIrisWand(player())) {
+            Location[] g = WandSVC.getCuboid(player());
 
             if(!here) {
                 // TODO: WARNING HEIGHT
@@ -364,7 +360,7 @@ public class CommandObject implements DecreeExecutor {
         @Param(description = "Overwrite existing object files", defaultValue = "false", aliases = "force")
             boolean overwrite
     ) {
-        IrisObject o = WandSVC.createSchematic(player().getInventory().getItemInMainHand());
+        IrisObject o = WandSVC.createSchematic(player());
 
         if(o == null) {
             sender().sendMessage(C.YELLOW + "You need to hold your wand!");
@@ -398,7 +394,7 @@ public class CommandObject implements DecreeExecutor {
             return;
         }
 
-        Location[] b = WandSVC.getCuboid(player().getInventory().getItemInMainHand());
+        Location[] b = WandSVC.getCuboid(player());
         Location a1 = b[0].clone();
         Location a2 = b[1].clone();
         Direction d = Direction.closest(player().getLocation().getDirection()).reverse();
@@ -430,15 +426,16 @@ public class CommandObject implements DecreeExecutor {
             return;
         }
 
-        Pair<Location, Location> locs = WorldEditLink.getSelection(sender().player());
-        if(locs.getFirst() == null)
-            sender().sendMessage(C.RED + "You don't have a WorldEdit selection!");
-        else if(locs.getSecond() == null)
-            sender().sendMessage(C.RED + "You need a valid WorldRegion selection in the current world!");
-        else {
-            sender().player().getInventory().addItem(WandSVC.createWand(locs.getFirst(), locs.getSecond()));
-            sender().sendMessage(C.GREEN + "A fresh wand with your current WorldEdit selection on it!");
+        Cuboid locs = WorldEditLink.getSelection(sender().player());
+
+        if(locs == null)
+        {
+            sender().sendMessage(C.RED + "You don't have a WorldEdit selection in this world.");
+            return;
         }
+
+        sender().player().getInventory().addItem(WandSVC.createWand(locs.getLowerNE(), locs.getUpperSW()));
+        sender().sendMessage(C.GREEN + "A fresh wand with your current WorldEdit selection on it!");
     }
 
     @Decree(description = "Get an object wand", sync = true)
@@ -455,7 +452,7 @@ public class CommandObject implements DecreeExecutor {
             return;
         }
 
-        Location[] b = WandSVC.getCuboid(player().getInventory().getItemInMainHand());
+        Location[] b = WandSVC.getCuboid(player());
         Location a1 = b[0].clone();
         Location a2 = b[1].clone();
         Location a1x = b[0].clone();
@@ -502,7 +499,7 @@ public class CommandObject implements DecreeExecutor {
             return;
         }
 
-        Location[] b = WandSVC.getCuboid(player().getInventory().getItemInMainHand());
+        Location[] b = WandSVC.getCuboid(player());
         b[0].add(new Vector(0, 1, 0));
         b[1].add(new Vector(0, 1, 0));
         Location a1 = b[0].clone();

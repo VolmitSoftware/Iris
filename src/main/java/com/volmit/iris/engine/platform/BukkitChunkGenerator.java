@@ -64,7 +64,7 @@ import java.util.function.Consumer;
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChunkGenerator {
-    private static final int LOAD_LOCKS = 1_000_000;
+    private static final int LOAD_LOCKS = Runtime.getRuntime().availableProcessors() * 4;
     private final Semaphore loadLock;
     private final IrisWorld world;
     private final File dataLocation;
@@ -270,7 +270,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     public @NotNull ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
         try {
             getEngine(world);
-            //loadLock.acquire();
+            loadLock.acquire();
             computeStudioGenerator();
             TerrainChunk tc = TerrainChunk.create(world, biome);
             this.world.bind(world);
@@ -285,10 +285,10 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
             ChunkData c = tc.getRaw();
             Iris.debug("Generated " + x + " " + z);
-            //loadLock.release();
+            loadLock.release();
             return c;
         } catch(Throwable e) {
-            //loadLock.release();
+            loadLock.release();
             Iris.error("======================================");
             e.printStackTrace();
             Iris.reportErrorChunk(x, z, e, "CHUNK");

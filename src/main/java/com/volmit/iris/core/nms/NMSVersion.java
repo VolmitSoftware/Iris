@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public enum NMSVersion {
+    R1_19_1,
     R1_18_2,
     R1_18,
     R1_17,
@@ -101,6 +102,9 @@ public enum NMSVersion {
         }
         if(tryVersion("1_18_R2")) {
             return R1_18_2;
+        }
+        if(tryVersion("1_19_R1")) {
+            return R1_19_1;
         }
         return null;
     }

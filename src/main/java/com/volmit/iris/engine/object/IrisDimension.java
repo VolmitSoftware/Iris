@@ -418,7 +418,7 @@ public class IrisDimension extends IrisRegistrant {
                     {
                         "pack": {
                             "description": "Iris Data Pack. This pack contains all installed Iris Packs' resources.",
-                            "pack_format": 9
+                            "pack_format": 10
                         }
                     }
                     """);
@@ -481,6 +481,8 @@ public class IrisDimension extends IrisRegistrant {
                 "bed_works": true,
                 "respawn_anchor_works": false,
                 "has_raids": true,
+                "monster_spawn_block_light_limit": 7,
+                "monster_spawn_light_level": 1,
                 "infiniburn": "#minecraft:infiniburn_overworld",
                 "effects": "minecraft:overworld"
             }""";

@@ -39,10 +39,15 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.core.*;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.BitStorage;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.chunk.Palette;
+import net.minecraft.world.level.chunk.PalettedContainer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -337,11 +342,44 @@ public class NMSBinding19_1 implements INMSBinding {
     public void forceBiomeInto(int x, int y, int z, Object somethingVeryDirty, ChunkGenerator.BiomeGrid chunk) {
         try {
             ChunkAccess s = (ChunkAccess) getFieldForBiomeStorage(chunk).get(chunk);
-            s.setBiome(x, y, z, (Holder<net.minecraft.world.level.biome.Biome>) somethingVeryDirty); // probably not safe? it said it wanted a holder, so i made it a holder...
+            Holder<net.minecraft.world.level.biome.Biome> biome = (Holder<net.minecraft.world.level.biome.Biome>) somethingVeryDirty;
+            s.setBiome(x, y, z, biome);
+            /*int l = QuartPos.fromBlock(s.getMinBuildHeight());
+            int i1 = l + QuartPos.fromBlock(s.getHeight()) - 1;
+            PalettedContainer<Holder<net.minecraft.world.level.biome.Biome>> palette = getPalette(s, s.getSectionIndex(QuartPos.toBlock(Mth.clamp(y, l, i1))));
+            int index = getPaletteIndex(x, y, z, s, palette);
+            int data = getPaletteDataId(palette, biome);
+            setPaletteData(palette, index, data);*/
         } catch(IllegalAccessException e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
+    }
+
+    private PalettedContainer<Holder<net.minecraft.world.level.biome.Biome>> getPalette(ChunkAccess ca, int index) {
+        LevelChunkSection[] sections = fieldForClass(LevelChunkSection[].class, ChunkAccess.class, ca);
+        return fieldForClass(PalettedContainer.class, LevelChunkSection.class, sections[index]);
+    }
+
+    private int getPaletteIndex(int x, int y, int z, ChunkAccess s, PalettedContainer<?> palette) {
+        int l = QuartPos.fromBlock(s.getMinBuildHeight());
+        int i1 = l + QuartPos.fromBlock(s.getHeight()) - 1;
+        int j1 = Mth.clamp(y, l, i1);
+        return fieldForClass(PalettedContainer.Strategy.class, PalettedContainer.class, palette).getIndex(x & 3, j1 & 3, z & 3);
+    }
+
+    private <T extends Holder<?>> int getPaletteDataId(PalettedContainer<T> palette, T data) throws ClassNotFoundException {
+        Class<?> dataType = getClassType(PalettedContainer.class, 1);
+        Object paletteData = fieldFor(dataType, palette);
+        Palette<T> fuckinFinally = fieldForClass(Palette.class,dataType, paletteData);
+        return fuckinFinally.idFor(data);
+    }
+
+    private void setPaletteData(PalettedContainer<?> palette, int index, int data) throws ClassNotFoundException {
+        Class<?> dataType = getClassType(PalettedContainer.class, 1);
+        Object paletteData = fieldFor(dataType, palette);
+        BitStorage storage = fieldForClass(BitStorage.class, dataType, paletteData);
+        storage.set(index, data);
     }
 
     private Field getFieldForBiomeStorage(Object storage) {
@@ -405,7 +443,7 @@ public class NMSBinding19_1 implements INMSBinding {
             if(i.getReturnType().equals(returns)) {
                 i.setAccessible(true);
                 try {
-                    Iris.info("[NMS] Found " + returns.getSimpleName() + " in " + in.getClass().getSimpleName() + "." + i.getName() + "()");
+                    Iris.debug("[NMS] Found " + returns.getSimpleName() + " in " + in.getClass().getSimpleName() + "." + i.getName() + "()");
                     return i.invoke(in);
                 } catch(Throwable e) {
                     e.printStackTrace();
@@ -422,16 +460,21 @@ public class NMSBinding19_1 implements INMSBinding {
 
     @SuppressWarnings("unchecked")
     private static <T> T fieldForClass(Class<T> returnType, Class<?> sourceType, Object in) {
-        for(Field i : sourceType.getFields())
+        for(Field i : sourceType.getDeclaredFields()) {
             if(i.getType().equals(returnType)) {
                 i.setAccessible(true);
                 try {
-                    Iris.info("[NMS] Found " + returnType.getSimpleName() + " in " + sourceType.getSimpleName() + "." + i.getName());
-                    return (T)i.get(in);
+                    Iris.debug("[NMS] Found " + returnType.getSimpleName() + " in " + sourceType.getSimpleName() + "." + i.getName());
+                    return (T) i.get(in);
                 } catch(IllegalAccessException e) {
                     e.printStackTrace();
                 }
             }
+        }
         return null;
+    }
+
+    private static Class<?> getClassType(Class<?> type, int ordinal) {
+        return type.getDeclaredClasses()[ordinal];
     }
 }

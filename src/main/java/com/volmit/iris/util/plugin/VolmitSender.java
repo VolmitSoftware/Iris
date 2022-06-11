@@ -51,6 +51,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 /**
  * Represents a volume sender. A command sender with extra crap in it
@@ -275,7 +276,7 @@ public class VolmitSender implements CommandSender {
     }
 
     private Component createNoPrefixComponentNoProcessing(String message) {
-        return MiniMessage.miniMessage().deserialize(message);
+        return MiniMessage.builder().postProcessor(c -> c).build().deserialize(message);
     }
 
     private Component createComponent(String message) {

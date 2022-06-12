@@ -826,18 +826,22 @@ public class IrisObject extends IrisRegistrant {
             for(BlockVector g : getBlocks().keySet()) {
                 BlockData d;
 
-                try {
-                    d = getBlocks().get(g);
-                } catch(Throwable e) {
-                    Iris.reportError(e);
-                    Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (stilt cme)");
-                    d = AIR;
-                }
+                if(config.getStiltOverride() == null) {
+                    try {
+                        d = getBlocks().get(g);
+                    } catch(Throwable e) {
+                        Iris.reportError(e);
+                        Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (stilt cme)");
+                        d = AIR;
+                    }
 
-                if(d == null) {
-                    Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (stilt null)");
-                    d = AIR;
-                }
+                    if(d == null) {
+                        Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (stilt null)");
+                        d = AIR;
+                    }
+                } else
+                    d = config.getStiltOverride().getBlockData(rdata);
+
 
                 BlockVector i = g.clone();
                 i = config.getRotation().rotate(i.clone(), spinx, spiny, spinz).clone();

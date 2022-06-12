@@ -228,8 +228,6 @@ public class IrisDimension extends IrisRegistrant {
     private IrisMaterialPalette rockPalette = new IrisMaterialPalette().qclear().qadd("stone");
     @Desc("The palette of blocks for 'water'")
     private IrisMaterialPalette fluidPalette = new IrisMaterialPalette().qclear().qadd("water");
-//    @Desc("Cartographer map trade overrides")
-//    private IrisVillagerOverride patchCartographers = new IrisVillagerOverride().setDisableTrade(false);
     @Desc("Remove cartographers so they do not crash the server (Iris worlds only)")
     private boolean removeCartographersDueToCrash = true;
     @Desc("Notify players of cancelled cartographer villager in this radius in blocks (set to -1 to disable, -2 for everyone)")

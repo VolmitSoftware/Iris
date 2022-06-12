@@ -574,10 +574,16 @@ public class IrisObject extends IrisRegistrant {
                 BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
                 BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
 
-                for(int i = x - (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i <= x + (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i++) {
-                    for(int j = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j <= z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j++) {
-                        int h = placer.getHighest(i, j, getLoader(), config.isUnderwater()) + rty;
-                        if(placer.isCarved(i, h, j) || placer.isCarved(i, h - 1, j) || placer.isCarved(i, h - 2, j) || placer.isCarved(i, h - 3, j)) {
+                int xLength = (rotatedDimensions.getBlockX() / 2) + offset.getBlockX();
+                int minX = Math.min(x - xLength, x + xLength);
+                int maxX = Math.max(x - xLength, x + xLength);
+                int zLength = (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ();
+                int minZ = Math.min(z - zLength, z + zLength);
+                int maxZ = Math.max(z - zLength, z + zLength);
+                for(int i = minX; i <= maxX; i++) {
+                    for(int ii = minZ; ii <= maxZ; ii++) {
+                        int h = placer.getHighest(i, ii, getLoader(), config.isUnderwater()) + rty;
+                        if(placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
                             bail = true;
                             break;
                         }

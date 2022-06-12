@@ -79,6 +79,8 @@ public class IrisObjectPlacement {
     @MinNumber(0)
     @Desc("If the place mode is set to stilt, you can over-stilt it even further into the ground. Especially useful when using fast stilt due to inaccuracies.")
     private int overStilt = 0;
+    @Desc("If defined, stilting will be done using this block rather than the last layer of the object.")
+    private IrisBlockData stiltOverride;
     @MaxNumber(64)
     @MinNumber(0)
     @Desc("When bore is enabled, expand max-y of the cuboid it removes")

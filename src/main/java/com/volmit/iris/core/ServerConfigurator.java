@@ -69,7 +69,7 @@ public class ServerConfigurator {
     }
 
     private static void increasePaperWatchdog() throws IOException, InvalidConfigurationException {
-        File spigotConfig = new File("paper.yml");
+        File spigotConfig = new File("config/paper-global.yml");
         FileConfiguration f = new YamlConfiguration();
         f.load(spigotConfig);
         long tt = f.getLong("settings.watchdog.early-warning-delay");

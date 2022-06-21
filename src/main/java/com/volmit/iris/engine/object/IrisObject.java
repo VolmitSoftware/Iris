@@ -506,7 +506,9 @@ public class IrisObject extends IrisRegistrant {
         }
 
         boolean warped = !config.getWarp().isFlat();
-        boolean stilting = (config.getMode().equals(ObjectPlaceMode.STILT) || config.getMode().equals(ObjectPlaceMode.FAST_STILT));
+        boolean stilting = (config.getMode().equals(ObjectPlaceMode.STILT) || config.getMode().equals(ObjectPlaceMode.FAST_STILT) ||
+                config.getMode() == ObjectPlaceMode.MIN_STILT || config.getMode() == ObjectPlaceMode.FAST_MIN_STILT ||
+                config.getMode() == ObjectPlaceMode.CENTER_STILT);
         KMap<Position2, Integer> heightmap = config.getSnow() > 0 ? new KMap<>() : null;
         int spinx = rng.imax() / 1000;
         int spiny = rng.imax() / 1000;
@@ -520,7 +522,7 @@ public class IrisObject extends IrisRegistrant {
         boolean bail = false;
 
         if(yv < 0) {
-            if(config.getMode().equals(ObjectPlaceMode.CENTER_HEIGHT)) {
+            if(config.getMode().equals(ObjectPlaceMode.CENTER_HEIGHT) || config.getMode() == ObjectPlaceMode.CENTER_STILT) {
                 y = (c != null ? c.getSurface() : placer.getHighest(x, z, getLoader(), config.isUnderwater())) + rty;
                 if(placer.isCarved(x, y, z) || placer.isCarved(x, y - 1, z) || placer.isCarved(x, y - 2, z) || placer.isCarved(x, y - 3, z)) {
                     bail = true;
@@ -569,7 +571,7 @@ public class IrisObject extends IrisRegistrant {
                             y = h;
                     }
                 }
-            } else if(config.getMode().equals(ObjectPlaceMode.MIN_HEIGHT)) {
+            } else if(config.getMode().equals(ObjectPlaceMode.MIN_HEIGHT) || config.getMode() == ObjectPlaceMode.MIN_STILT) {
                 y = rdata.getEngine().getHeight() + 1;
                 BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
                 BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
@@ -592,7 +594,7 @@ public class IrisObject extends IrisRegistrant {
                         }
                     }
                 }
-            } else if(config.getMode().equals(ObjectPlaceMode.FAST_MIN_HEIGHT)) {
+            } else if(config.getMode().equals(ObjectPlaceMode.FAST_MIN_HEIGHT) || config.getMode() == ObjectPlaceMode.FAST_MIN_STILT) {
                 y = rdata.getEngine().getHeight() + 1;
                 BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
                 BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
@@ -823,10 +825,11 @@ public class IrisObject extends IrisRegistrant {
 
         if(stilting) {
             readLock.lock();
+            IrisStiltSettings settings = config.getStiltSettings();
             for(BlockVector g : getBlocks().keySet()) {
                 BlockData d;
 
-                if(config.getStiltOverride() == null) {
+                if(settings == null || settings.getPalette() == null) {
                     try {
                         d = getBlocks().get(g);
                     } catch(Throwable e) {
@@ -840,7 +843,7 @@ public class IrisObject extends IrisRegistrant {
                         d = AIR;
                     }
                 } else
-                    d = config.getStiltOverride().getBlockData(rdata);
+                    d = config.getStiltSettings().getPalette().get(rng, x, y, z, rdata);
 
 
                 BlockVector i = g.clone();
@@ -877,15 +880,21 @@ public class IrisObject extends IrisRegistrant {
                     zz += config.warp(rng, i.getZ() + z, i.getY() + y, i.getX() + x, getLoader());
                 }
 
-                int yg = placer.getHighest(xx, zz, getLoader(), true);
+                int highest = placer.getHighest(xx, zz, getLoader(), true);
 
-                if(config.isWaterloggable() && yg <= placer.getFluidHeight() && d instanceof Waterlogged)
+                if(config.isWaterloggable() && highest <= placer.getFluidHeight() && d instanceof Waterlogged)
                     ((Waterlogged) d).setWaterlogged(true);
 
                 if(yv >= 0 && config.isBottom())
                     y += Math.floorDiv(h, 2);
 
-                for(int j = lowest + y; j > yg - config.getOverStilt() - 1; j--)
+                int lowerBound = highest - 1;
+                if(settings != null) {
+                    lowerBound -= config.getStiltSettings().getOverStilt() - rng.i(0, config.getStiltSettings().getYRand());
+                    if(settings.getYMax() != 0)
+                        lowerBound -= Math.min(config.getStiltSettings().getYMax() - (lowest + y - highest), 0);
+                }
+                for(int j = lowest + y; j > lowerBound; j--)
                     placer.set(xx, j, zz, d);
             }
 

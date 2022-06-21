@@ -75,12 +75,8 @@ public class IrisObjectPlacement {
     private int density = 1;
     @Desc("If the chance check passes, and you specify this, it picks a number in the range based on noise, and 'density' is ignored.")
     private IrisStyledRange densityStyle = null;
-    @MaxNumber(64)
-    @MinNumber(0)
-    @Desc("If the place mode is set to stilt, you can over-stilt it even further into the ground. Especially useful when using fast stilt due to inaccuracies.")
-    private int overStilt = 0;
-    @Desc("If defined, stilting will be done using this block rather than the last layer of the object.")
-    private IrisBlockData stiltOverride;
+    @Desc("When stilting is enabled, this object will define various properties related to it.")
+    private IrisStiltSettings stiltSettings;
     @MaxNumber(64)
     @MinNumber(0)
     @Desc("When bore is enabled, expand max-y of the cuboid it removes")
@@ -148,7 +144,7 @@ public class IrisObjectPlacement {
         p.setUnderwater(underwater);
         p.setBoreExtendMaxY(boreExtendMaxY);
         p.setBoreExtendMinY(boreExtendMinY);
-        p.setOverStilt(overStilt);
+        p.setStiltSettings(stiltSettings);
         p.setDensity(density);
         p.setChance(chance);
         p.setSnow(snow);

@@ -50,6 +50,18 @@ public enum ObjectPlaceMode {
 
     FAST_STILT,
 
+    @Desc("Stilting is MIN_HEIGHT but it repeats the bottom most block of your object until it hits the surface. This is expensive because it has to first sample every height value for each x,z position of your object. Avoid using this unless its structures for performance reasons.")
+
+    MIN_STILT,
+
+    @Desc("Just like MIN_STILT but very inaccurate. Useful for stilting a lot of objects without too much care on accuracy (you can use the over-stilt value to force stilts under ground further)")
+
+    FAST_MIN_STILT,
+
+    @Desc("Stilting is CENTER_HEIGHT but it repeats the bottom most block of your object until it hits the surface. This is expensive because it has to first sample every height value for each x,z position of your object. Avoid using this unless its structures for performance reasons.")
+
+    CENTER_STILT,
+
     @Desc("Samples the height of the terrain at every x,z position of your object and pushes it down to the surface. It's pretty much like a melt function over the terrain.")
 
     PAINT

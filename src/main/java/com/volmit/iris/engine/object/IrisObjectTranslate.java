@@ -44,7 +44,7 @@ public class IrisObjectTranslate {
     @Required
     @MinNumber(-128) // TODO: WARNING HEIGHT
     @MaxNumber(128) // TODO: WARNING HEIGHT
-    @Desc("The x shift in blocks")
+    @Desc("The y shift in blocks")
     private int y = 0;
 
     @MinNumber(-128) // TODO: WARNING HEIGHT
@@ -54,7 +54,7 @@ public class IrisObjectTranslate {
 
     @MinNumber(-128) // TODO: WARNING HEIGHT
     @MaxNumber(128) // TODO: WARNING HEIGHT
-    @Desc("The x shift in blocks")
+    @Desc("The z shift in blocks")
     private int z = 0;
 
     public boolean canTranslate() {

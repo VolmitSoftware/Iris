@@ -101,7 +101,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
             KList<BlockData> blocks = null;
             KList<BlockData> fblocks = null;
             int depth, fdepth;
-
             for(int i = hf; i >= 0; i--) {
                 if(i >= h.getHeight()) {
                     continue;
@@ -156,7 +155,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                     } else {
                         h.set(xf, i, zf, getComplex().getRockStream().get(realX, realZ));
                     }
-
                 }
             }
         }

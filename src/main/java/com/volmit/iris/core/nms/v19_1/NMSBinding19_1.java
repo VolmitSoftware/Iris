@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.nms.v18_2;
+package com.volmit.iris.core.nms.v19_1;
 
 
 import com.volmit.iris.Iris;
@@ -39,10 +39,15 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.core.*;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.BitStorage;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.chunk.Palette;
+import net.minecraft.world.level.chunk.PalettedContainer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -50,9 +55,10 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
-import org.bukkit.craftbukkit.v1_18_R2.CraftServer;
-import org.bukkit.craftbukkit.v1_18_R2.CraftWorld;
-import org.bukkit.craftbukkit.v1_18_R2.block.data.CraftBlockData;
+
+import org.bukkit.craftbukkit.v1_19_R1.CraftServer;
+import org.bukkit.craftbukkit.v1_19_R1.CraftWorld;
+import org.bukkit.craftbukkit.v1_19_R1.block.data.CraftBlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.generator.ChunkGenerator;
 import org.jetbrains.annotations.NotNull;
@@ -68,7 +74,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class NMSBinding18_2 implements INMSBinding {
+public class NMSBinding19_1 implements INMSBinding {
 
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
     private final BlockData AIR = Material.AIR.createBlockData();
@@ -126,8 +132,8 @@ public class NMSBinding18_2 implements INMSBinding {
     }
 
     @Override
-    public void deserializeTile(CompoundTag c, Location newPosition) {
-        ((CraftWorld) newPosition.getWorld()).getHandle().getChunkAt(new BlockPos(newPosition.getBlockX(), 0, newPosition.getBlockZ())).setBlockEntityNbt(convert(c));
+    public void deserializeTile(CompoundTag c, Location pos) {
+        ((CraftWorld) pos.getWorld()).getHandle().getChunkAt(new BlockPos(pos.getBlockX(), 0, pos.getBlockZ())).setBlockEntityNbt(convert(c));
     }
 
     @Override
@@ -231,13 +237,13 @@ public class NMSBinding18_2 implements INMSBinding {
             return v;
         }
         //noinspection unchecked
-        v = org.bukkit.craftbukkit.v1_18_R2.block.CraftBlock.biomeToBiomeBase((Registry<net.minecraft.world.level.biome.Biome>) registry, biome);
+        v = org.bukkit.craftbukkit.v1_19_R1.block.CraftBlock.biomeToBiomeBase((Registry<net.minecraft.world.level.biome.Biome>) registry, biome);
         if(v == null) {
             // Ok so there is this new biome name called "CUSTOM" in Paper's new releases.
             // But, this does NOT exist within CraftBukkit which makes it return an error.
             // So, we will just return the ID that the plains biome returns instead.
             //noinspection unchecked
-            return org.bukkit.craftbukkit.v1_18_R2.block.CraftBlock.biomeToBiomeBase((Registry<net.minecraft.world.level.biome.Biome>) registry, Biome.PLAINS);
+            return org.bukkit.craftbukkit.v1_19_R1.block.CraftBlock.biomeToBiomeBase((Registry<net.minecraft.world.level.biome.Biome>) registry, Biome.PLAINS);
         }
         baseBiomeCache.put(biome, v);
         return v;
@@ -336,11 +342,44 @@ public class NMSBinding18_2 implements INMSBinding {
     public void forceBiomeInto(int x, int y, int z, Object somethingVeryDirty, ChunkGenerator.BiomeGrid chunk) {
         try {
             ChunkAccess s = (ChunkAccess) getFieldForBiomeStorage(chunk).get(chunk);
-            s.setBiome(x, y, z, (Holder<net.minecraft.world.level.biome.Biome>) somethingVeryDirty); // probably not safe? it said it wanted a holder, so i made it a holder...
+            Holder<net.minecraft.world.level.biome.Biome> biome = (Holder<net.minecraft.world.level.biome.Biome>) somethingVeryDirty;
+            s.setBiome(x, y, z, biome);
+            /*int l = QuartPos.fromBlock(s.getMinBuildHeight());
+            int i1 = l + QuartPos.fromBlock(s.getHeight()) - 1;
+            PalettedContainer<Holder<net.minecraft.world.level.biome.Biome>> palette = getPalette(s, s.getSectionIndex(QuartPos.toBlock(Mth.clamp(y, l, i1))));
+            int index = getPaletteIndex(x, y, z, s, palette);
+            int data = getPaletteDataId(palette, biome);
+            setPaletteData(palette, index, data);*/
         } catch(IllegalAccessException e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
+    }
+
+    private PalettedContainer<Holder<net.minecraft.world.level.biome.Biome>> getPalette(ChunkAccess ca, int index) {
+        LevelChunkSection[] sections = fieldForClass(LevelChunkSection[].class, ChunkAccess.class, ca);
+        return fieldForClass(PalettedContainer.class, LevelChunkSection.class, sections[index]);
+    }
+
+    private int getPaletteIndex(int x, int y, int z, ChunkAccess s, PalettedContainer<?> palette) {
+        int l = QuartPos.fromBlock(s.getMinBuildHeight());
+        int i1 = l + QuartPos.fromBlock(s.getHeight()) - 1;
+        int j1 = Mth.clamp(y, l, i1);
+        return fieldForClass(PalettedContainer.Strategy.class, PalettedContainer.class, palette).getIndex(x & 3, j1 & 3, z & 3);
+    }
+
+    private <T extends Holder<?>> int getPaletteDataId(PalettedContainer<T> palette, T data) throws ClassNotFoundException {
+        Class<?> dataType = getClassType(PalettedContainer.class, 1);
+        Object paletteData = fieldFor(dataType, palette);
+        Palette<T> fuckinFinally = fieldForClass(Palette.class,dataType, paletteData);
+        return fuckinFinally.idFor(data);
+    }
+
+    private void setPaletteData(PalettedContainer<?> palette, int index, int data) throws ClassNotFoundException {
+        Class<?> dataType = getClassType(PalettedContainer.class, 1);
+        Object paletteData = fieldFor(dataType, palette);
+        BitStorage storage = fieldForClass(BitStorage.class, dataType, paletteData);
+        storage.set(index, data);
     }
 
     private Field getFieldForBiomeStorage(Object storage) {
@@ -404,7 +443,7 @@ public class NMSBinding18_2 implements INMSBinding {
             if(i.getReturnType().equals(returns)) {
                 i.setAccessible(true);
                 try {
-                    Iris.info("[NMS] Found " + returns.getSimpleName() + " in " + in.getClass().getSimpleName() + "." + i.getName() + "()");
+                    Iris.debug("[NMS] Found " + returns.getSimpleName() + " in " + in.getClass().getSimpleName() + "." + i.getName() + "()");
                     return i.invoke(in);
                 } catch(Throwable e) {
                     e.printStackTrace();
@@ -416,18 +455,26 @@ public class NMSBinding18_2 implements INMSBinding {
     }
 
     private static Object fieldFor(Class<?> returns, Object in) {
-        for(Field i : in.getClass().getFields()) {
-            if(i.getType().equals(returns)) {
+        return fieldForClass(returns, in.getClass(), in);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T fieldForClass(Class<T> returnType, Class<?> sourceType, Object in) {
+        for(Field i : sourceType.getDeclaredFields()) {
+            if(i.getType().equals(returnType)) {
                 i.setAccessible(true);
                 try {
-                    Iris.info("[NMS] Found " + returns.getSimpleName() + " in " + in.getClass().getSimpleName() + "." + i.getName());
-                    return i.get(in);
+                    Iris.debug("[NMS] Found " + returnType.getSimpleName() + " in " + sourceType.getSimpleName() + "." + i.getName());
+                    return (T) i.get(in);
                 } catch(IllegalAccessException e) {
                     e.printStackTrace();
                 }
             }
         }
-
         return null;
+    }
+
+    private static Class<?> getClassType(Class<?> type, int ordinal) {
+        return type.getDeclaredClasses()[ordinal];
     }
 }

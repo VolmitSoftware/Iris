@@ -55,7 +55,7 @@ public class ServerConfigurator {
     }
 
     private static void increaseKeepAliveSpigot() throws IOException, InvalidConfigurationException {
-        File spigotConfig = new File("spigot.yml");
+        File spigotConfig = new File("config/spigot.yml");
         FileConfiguration f = new YamlConfiguration();
         f.load(spigotConfig);
         long tt = f.getLong("settings.timeout-time");
@@ -69,15 +69,15 @@ public class ServerConfigurator {
     }
 
     private static void increasePaperWatchdog() throws IOException, InvalidConfigurationException {
-        File spigotConfig = new File("paper.yml");
+        File spigotConfig = new File("config/paper-global.yml");
         FileConfiguration f = new YamlConfiguration();
         f.load(spigotConfig);
-        long tt = f.getLong("settings.watchdog.early-warning-delay");
+        long tt = f.getLong("watchdog.early-warning-delay");
 
         if(tt < TimeUnit.MINUTES.toMillis(3)) {
             Iris.warn("Updating paper.yml watchdog early-warning-delay: " + tt + " -> " + TimeUnit.MINUTES.toMillis(3) + " (3 minutes)");
             Iris.warn("You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
-            f.set("settings.watchdog.early-warning-delay", TimeUnit.MINUTES.toMillis(3));
+            f.set("watchdog.early-warning-delay", TimeUnit.MINUTES.toMillis(3));
             f.save(spigotConfig);
         }
     }

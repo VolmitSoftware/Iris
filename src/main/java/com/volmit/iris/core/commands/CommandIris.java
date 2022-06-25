@@ -76,7 +76,7 @@ public class CommandIris implements DecreeExecutor {
             return;
         }
 
-        sender().sendMessage(C.RED + "You should not be using this command to create new worlds. Instead, use /mvc " + name + " NORMAL -g Iris:" + type.getName());
+        sender().sendMessage(C.RED + "You should not be using this command to create new worlds. Instead, use the tutorial: https://docs.volmit.com/iris/getting-started");
 
         try {
             IrisToolbelt.createWorld()
@@ -163,7 +163,7 @@ public class CommandIris implements DecreeExecutor {
     public void download(
         @Param(name = "pack", description = "The pack to download", defaultValue = "overworld", aliases = "project")
             String pack,
-        @Param(name = "branch", description = "The branch to download from", defaultValue = "master")
+        @Param(name = "branch", description = "The branch to download from", defaultValue = "main")
             String branch,
         @Param(name = "trim", description = "Whether or not to download a trimmed version (do not enable when editing)", defaultValue = "false")
             boolean trim,

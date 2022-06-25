@@ -33,8 +33,8 @@ public class WorldMatter {
             matter.slice(MatterEntityGroup.class).writeInto(at);
         }
 
-        if(matter.hasSlice(MatterTile.class)) {
-            matter.slice(MatterTile.class).writeInto(at);
+        if(matter.hasSlice(TileWrapper.class)) {
+            matter.slice(TileWrapper.class).writeInto(at);
         }
     }
 
@@ -45,7 +45,7 @@ public class WorldMatter {
         s.getHeader().setAuthor(author);
         s.slice(BlockData.class).readFrom(c.getLowerNE());
         s.slice(MatterEntityGroup.class).readFrom(c.getLowerNE());
-        s.slice(MatterTile.class).readFrom(c.getLowerNE());
+        s.slice(TileWrapper.class).readFrom(c.getLowerNE());
         s.trimSlices();
 
         return s;

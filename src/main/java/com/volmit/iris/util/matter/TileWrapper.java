@@ -18,12 +18,10 @@
 
 package com.volmit.iris.util.matter;
 
-import com.volmit.iris.util.nbt.tag.CompoundTag;
-import lombok.AllArgsConstructor;
+import com.volmit.iris.engine.object.TileData;
 import lombok.Data;
 
 @Data
-@AllArgsConstructor
-public class MatterTile {
-    private final CompoundTag tileData;
+public class TileWrapper {
+    private final TileData<?> data;
 }

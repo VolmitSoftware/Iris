@@ -32,6 +32,7 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import io.papermc.lib.PaperLib;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator;
 
@@ -67,7 +68,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
     @Override
     public void onActuate(int x, int z, Hunk<Biome> h, boolean multicore) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        BurstExecutor burst = burst().burst(multicore);
+        BurstExecutor burst = burst().burst(PaperLib.isPaper() && multicore);
 
         for(int xf = 0; xf < h.getWidth(); xf++) {
             int finalXf = xf;
@@ -80,7 +81,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
                         try {
                             IrisBiomeCustom custom = ib.getCustomBiome(rng, x, 0, z);
                             Object biomeBase = INMS.get().getCustomBiomeBaseHolderFor(getDimension().getLoadKey() + ":" + custom.getId());
-//
+
                             if(biomeBase == null || !injectBiome(h, x, 0, z, biomeBase)) {
                                 throw new RuntimeException("Cant inject biome!");
                             }

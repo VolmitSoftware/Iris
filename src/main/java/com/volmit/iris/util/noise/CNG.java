@@ -21,15 +21,25 @@ package com.volmit.iris.util.noise;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.IRare;
+import com.volmit.iris.engine.object.NoiseStyle;
+import com.volmit.iris.util.cache.FloatBitCache;
+import com.volmit.iris.util.cache.FloatCache;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.NoiseInjector;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.stream.ProceduralStream;
 import com.volmit.iris.util.stream.arithmetic.FittedStream;
 import com.volmit.iris.util.stream.sources.CNGStream;
 import lombok.Data;
 
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.List;
 
 @Data
@@ -53,6 +63,7 @@ public class CNG {
     private boolean trueFracturing = false;
     private KList<CNG> children;
     private CNG fracture;
+    private FloatCache cache;
     private NoiseGenerator generator;
     private NoiseInjector injector;
     private RNG rng;
@@ -120,7 +131,7 @@ public class CNG {
 
             @Override
             public double noise(double x, double z) {
-                return (cellularFilter.GetCellular((float) x, (float) z, str, 1) / 2D) + 0.5D;
+                return (cellularFilter.GetCellular((float) x, (float) z, str, 1) * 0.5) + 0.5D;
             }
 
             @Override
@@ -130,14 +141,55 @@ public class CNG {
         }, 1D, 1);
     }
 
-    public CNG cached(int size)
+    public CNG cached(int size, String key, File cacheFolder)
     {
         if(size <= 0)
         {
             return this;
         }
 
-        generator = new CachedNoise(generator, size);
+        cache = null;
+
+        File f = new File(new File(cacheFolder, ".cache"), key + ".cnm");
+        FloatCache fbc;
+        boolean cached = false;
+        if(f.exists())
+        {
+            try {
+                fbc = new FloatCache(f);
+                cached = true;
+            } catch(IOException e) {
+                fbc = new FloatCache(size, size);
+            }
+        }
+
+        else {
+            fbc = new FloatCache(size, size);
+        }
+
+        if(!cached)
+        {
+            for(int i = 0; i < size; i++)
+            {
+                for(int j = 0; j < size; j++)
+                {
+                    fbc.set(i, j, (float) noise(i, j));
+                }
+            }
+
+            try {
+                f.getParentFile().mkdirs();
+                FileOutputStream fos = new FileOutputStream(f);
+                DataOutputStream dos = new DataOutputStream(fos);
+                fbc.writeCache(dos);
+                dos.close();
+                Iris.info("Saved Noise Cache " + f.getName());
+            } catch(IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        cache = fbc;
         return this;
     }
 
@@ -432,6 +484,11 @@ public class CNG {
     }
 
     public double noise(double... dim) {
+        if(cache != null && dim.length == 2)
+        {
+            return cache.get((int)dim[0], (int)dim[1]);
+        }
+
         double n = getNoise(dim);
         n = power != 1D ? (n < 0 ? -Math.pow(Math.abs(n), power) : Math.pow(n, power)) : n;
         double m = 1;
@@ -465,5 +522,19 @@ public class CNG {
 
     public boolean isStatic() {
         return generator != null && generator.isStatic();
+    }
+
+    public static void main(String[] a)
+    {
+        CNG cng = NoiseStyle.SIMPLEX.create(new RNG(1234));
+        PrecisionStopwatch p = PrecisionStopwatch.start();
+        double r = 0;
+
+        for(int i = 0; i < 30000000 * 10; i++)
+        {
+            r += cng.fit(-1000, 1000, i, i);
+        }
+
+        System.out.println(Form.duration(p.getMilliseconds(), 10) + " merged = " + r);
     }
 }

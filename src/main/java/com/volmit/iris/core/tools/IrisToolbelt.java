@@ -233,20 +233,17 @@ public class IrisToolbelt {
         return isIrisWorld(i) && access(i).isStudio();
     }
 
-    public static void retainMantleDataForSlice(String className)
-    {
+    public static void retainMantleDataForSlice(String className) {
         toolbeltConfiguration.put("retain.mantle." + className, true);
     }
 
-    public static <T> T getMantleData(World world, int x, int y, int z, Class<T> of)
-    {
+    public static <T> T getMantleData(World world, int x, int y, int z, Class<T> of) {
         PlatformChunkGenerator e = access(world);
         if(e == null) {return null;}
         return e.getEngine().getMantle().getMantle().get(x, y - world.getMinHeight(), z, of);
     }
 
-    public static <T> void  deleteMantleData(World world, int x, int y, int z, Class<T> of)
-    {
+    public static <T> void  deleteMantleData(World world, int x, int y, int z, Class<T> of) {
         PlatformChunkGenerator e = access(world);
         if(e == null) {return;}
         e.getEngine().getMantle().getMantle().remove(x, y - world.getMinHeight(), z, of);

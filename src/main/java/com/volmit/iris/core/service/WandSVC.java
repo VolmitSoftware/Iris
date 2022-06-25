@@ -19,7 +19,9 @@
 package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.edit.DustRevealer;
+import com.volmit.iris.core.link.WorldEditLink;
 import com.volmit.iris.core.wand.WandSelection;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.util.collection.KList;
@@ -64,17 +66,17 @@ public class WandSVC implements IrisService {
     /**
      * Creates an Iris Object from the 2 coordinates selected with a wand
      *
-     * @param wand
-     *     The wand itemstack
+     * @param p
+     *     The wand player
      * @return The new object
      */
-    public static IrisObject createSchematic(ItemStack wand) {
-        if(!isWand(wand)) {
+    public static IrisObject createSchematic(Player p) {
+        if(!isHoldingWand(p)) {
             return null;
         }
 
         try {
-            Location[] f = getCuboid(wand);
+            Location[] f = getCuboid(p);
             Cuboid c = new Cuboid(f[0], f[1]);
             IrisObject s = new IrisObject(c.getSizeX(), c.getSizeY(), c.getSizeZ());
             for(Block b : c) {
@@ -98,17 +100,15 @@ public class WandSVC implements IrisService {
     /**
      * Creates an Iris Object from the 2 coordinates selected with a wand
      *
-     * @param wand
-     *     The wand itemstack
      * @return The new object
      */
-    public static Matter createMatterSchem(Player p, ItemStack wand) {
-        if(!isWand(wand)) {
+    public static Matter createMatterSchem(Player p) {
+        if(!isHoldingWand(p)) {
             return null;
         }
 
         try {
-            Location[] f = getCuboid(wand);
+            Location[] f = getCuboid(p);
 
             return WorldMatter.createMatter(p.getName(), f[0], f[1]);
         } catch(Throwable e) {
@@ -226,26 +226,32 @@ public class WandSVC implements IrisService {
         return is;
     }
 
-    /**
-     * Get a pair of locations that are selected in an Iris wand
-     *
-     * @param is
-     *     The wand item
-     * @return An array with the 2 locations
-     */
-    public static Location[] getCuboid(ItemStack is) {
+    public static Location[] getCuboidFromItem(ItemStack is) {
         ItemMeta im = is.getItemMeta();
         return new Location[] {stringToLocation(im.getLore().get(0)), stringToLocation(im.getLore().get(1))};
     }
 
-    /**
-     * Is a player holding an Iris wand
-     *
-     * @param p
-     *     The player
-     * @return True if they are
-     */
+    public static Location[] getCuboid(Player p) {
+        if(isHoldingIrisWand(p))
+        {
+            return getCuboidFromItem(p.getInventory().getItemInMainHand());
+        }
+
+        Cuboid c = WorldEditLink.getSelection(p);
+
+        if(c != null)
+        {
+            return new Location[] {c.getLowerNE(), c.getUpperSW()};
+        }
+
+        return null;
+    }
+
     public static boolean isHoldingWand(Player p) {
+        return isHoldingIrisWand(p) || WorldEditLink.getSelection(p) != null;
+    }
+
+    public static boolean isHoldingIrisWand(Player p) {
         ItemStack is = p.getInventory().getItemInMainHand();
         return is != null && isWand(is);
     }
@@ -286,8 +292,8 @@ public class WandSVC implements IrisService {
     public void tick(Player p) {
         try {
             try {
-                if(isWand(p.getInventory().getItemInMainHand())) {
-                    Location[] d = getCuboid(p.getInventory().getItemInMainHand());
+                if((IrisSettings.get().getWorld().worldEditWandCUI && isHoldingWand(p)) || isWand(p.getInventory().getItemInMainHand())) {
+                    Location[] d = getCuboid(p);
                     new WandSelection(new Cuboid(d[0], d[1]), p).draw();
                 }
             } catch(Throwable e) {
@@ -457,7 +463,7 @@ public class WandSVC implements IrisService {
             return item;
         }
 
-        Location[] f = getCuboid(item);
+        Location[] f = getCuboidFromItem(item);
         Location other = left ? f[1] : f[0];
 
         if(other != null && !other.getWorld().getName().equals(a.getWorld().getName())) {

@@ -98,11 +98,12 @@ public class TileSign implements TileData<Sign> {
     }
 
     @Override
-    public void toNBT(CompoundTag tag) {
+    public CompoundTag toNBT(CompoundTag tag) {
         tag.putString("Text1", line1);
         tag.putString("Text2", line2);
         tag.putString("Text3", line3);
         tag.putString("Text4", line4);
         tag.putString("Color", dyeColor.name().toLowerCase());
+        return tag;
     }
 }

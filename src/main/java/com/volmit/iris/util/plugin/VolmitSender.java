@@ -51,6 +51,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 /**
  * Represents a volume sender. A command sender with extra crap in it
@@ -230,7 +231,7 @@ public class VolmitSender implements CommandSender {
         Iris.audiences.player(player()).showTitle(Title.title(
             createComponent(title),
             createComponent(subtitle),
-            Title.Times.of(Duration.ofMillis(i), Duration.ofMillis(s), Duration.ofMillis(o))));
+            Title.Times.times(Duration.ofMillis(i), Duration.ofMillis(s), Duration.ofMillis(o))));
     }
 
     public void sendProgress(double percent, String thing) {
@@ -260,43 +261,43 @@ public class VolmitSender implements CommandSender {
         Iris.audiences.player(player()).showTitle(Title.title(
             createNoPrefixComponent(" "),
             createNoPrefixComponent(subtitle),
-            Title.Times.of(Duration.ofMillis(i), Duration.ofMillis(s), Duration.ofMillis(o))));
+            Title.Times.times(Duration.ofMillis(i), Duration.ofMillis(s), Duration.ofMillis(o))));
     }
 
     private Component createNoPrefixComponent(String message) {
         if(!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
-            String t = C.translateAlternateColorCodes('&', MiniMessage.get().stripTokens(message));
-            return MiniMessage.get().parse(t);
+            String t = C.translateAlternateColorCodes('&', MiniMessage.miniMessage().stripTags(message));
+            return MiniMessage.miniMessage().deserialize(t);
         }
 
         String t = C.translateAlternateColorCodes('&', message);
         String a = C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb(), 0.36);
-        return MiniMessage.get().parse(a);
+        return MiniMessage.miniMessage().deserialize(a);
     }
 
     private Component createNoPrefixComponentNoProcessing(String message) {
-        return MiniMessage.get().parse(message);
+        return MiniMessage.builder().postProcessor(c -> c).build().deserialize(message);
     }
 
     private Component createComponent(String message) {
         if(!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
-            String t = C.translateAlternateColorCodes('&', MiniMessage.get().stripTokens(getTag() + message));
-            return MiniMessage.get().parse(t);
+            String t = C.translateAlternateColorCodes('&', MiniMessage.miniMessage().stripTags(getTag() + message));
+            return MiniMessage.miniMessage().deserialize(t);
         }
 
         String t = C.translateAlternateColorCodes('&', getTag() + message);
         String a = C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb());
-        return MiniMessage.get().parse(a);
+        return MiniMessage.miniMessage().deserialize(a);
     }
 
     private Component createComponentRaw(String message) {
         if(!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
-            String t = C.translateAlternateColorCodes('&', MiniMessage.get().stripTokens(getTag() + message));
-            return MiniMessage.get().parse(t);
+            String t = C.translateAlternateColorCodes('&', MiniMessage.miniMessage().stripTags(getTag() + message));
+            return MiniMessage.miniMessage().deserialize(t);
         }
 
         String t = C.translateAlternateColorCodes('&', getTag() + message);
-        return MiniMessage.get().parse(t);
+        return MiniMessage.miniMessage().deserialize(t);
     }
 
     public <T> void showWaiting(String passive, CompletableFuture<T> f) {

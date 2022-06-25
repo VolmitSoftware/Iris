@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.hunk.view;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.data.chunk.LinkedTerrainChunk;
 import com.volmit.iris.util.hunk.Hunk;
@@ -31,6 +32,7 @@ public class BiomeGridHunkView implements Hunk<Biome> {
     private final BiomeGrid chunk;
     private final int minHeight;
     private final int maxHeight;
+    private int highest = -1000;
 
     public BiomeGridHunkView(BiomeGrid chunk, int minHeight, int maxHeight) {
         this.chunk = chunk;
@@ -56,6 +58,12 @@ public class BiomeGridHunkView implements Hunk<Biome> {
     @Override
     public void setRaw(int x, int y, int z, Biome t) {
         chunk.setBiome(x, y + minHeight, z, t);
+
+        if(y > highest)
+        {
+            highest = y;
+            Iris.info("Highest = " + highest);
+        }
     }
 
     @Override

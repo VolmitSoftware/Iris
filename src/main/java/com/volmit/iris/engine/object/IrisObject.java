@@ -34,8 +34,6 @@ import com.volmit.iris.util.math.AxisAlignedBB;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.matter.IrisMatter;
-import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterMarker;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -65,11 +63,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -512,7 +506,9 @@ public class IrisObject extends IrisRegistrant {
         }
 
         boolean warped = !config.getWarp().isFlat();
-        boolean stilting = (config.getMode().equals(ObjectPlaceMode.STILT) || config.getMode().equals(ObjectPlaceMode.FAST_STILT));
+        boolean stilting = (config.getMode().equals(ObjectPlaceMode.STILT) || config.getMode().equals(ObjectPlaceMode.FAST_STILT) ||
+                config.getMode() == ObjectPlaceMode.MIN_STILT || config.getMode() == ObjectPlaceMode.FAST_MIN_STILT ||
+                config.getMode() == ObjectPlaceMode.CENTER_STILT);
         KMap<Position2, Integer> heightmap = config.getSnow() > 0 ? new KMap<>() : null;
         int spinx = rng.imax() / 1000;
         int spiny = rng.imax() / 1000;
@@ -526,7 +522,7 @@ public class IrisObject extends IrisRegistrant {
         boolean bail = false;
 
         if(yv < 0) {
-            if(config.getMode().equals(ObjectPlaceMode.CENTER_HEIGHT)) {
+            if(config.getMode().equals(ObjectPlaceMode.CENTER_HEIGHT) || config.getMode() == ObjectPlaceMode.CENTER_STILT) {
                 y = (c != null ? c.getSurface() : placer.getHighest(x, z, getLoader(), config.isUnderwater())) + rty;
                 if(placer.isCarved(x, y, z) || placer.isCarved(x, y - 1, z) || placer.isCarved(x, y - 2, z) || placer.isCarved(x, y - 3, z)) {
                     bail = true;
@@ -534,48 +530,62 @@ public class IrisObject extends IrisRegistrant {
             } else if(config.getMode().equals(ObjectPlaceMode.MAX_HEIGHT) || config.getMode().equals(ObjectPlaceMode.STILT)) {
                 BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
                 BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
-
-                for(int i = x - (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i <= x + (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i++) {
-                    for(int j = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j <= z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j++) {
-                        int h = placer.getHighest(i, j, getLoader(), config.isUnderwater()) + rty;
-
-                        if(placer.isCarved(i, h, j) || placer.isCarved(i, h - 1, j) || placer.isCarved(i, h - 2, j) || placer.isCarved(i, h - 3, j)) {
+                int xLength = (rotatedDimensions.getBlockX() / 2) + offset.getBlockX();
+                int minX = Math.min(x - xLength, x + xLength);
+                int maxX = Math.max(x - xLength, x + xLength);
+                int zLength = (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ();
+                int minZ = Math.min(z - zLength, z + zLength);
+                int maxZ = Math.max(z - zLength, z + zLength);
+                for(int i = minX; i <= maxX; i++) {
+                    for(int ii = minZ; ii <= maxZ; ii++) {
+                        int h = placer.getHighest(i, ii, getLoader(), config.isUnderwater()) + rty;
+                        if(placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
                             bail = true;
                             break;
                         }
-
-                        if(h > y) {
+                        if(h > y)
                             y = h;
-                        }
                     }
                 }
             } else if(config.getMode().equals(ObjectPlaceMode.FAST_MAX_HEIGHT) || config.getMode().equals(ObjectPlaceMode.FAST_STILT)) {
                 BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
                 BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
 
-                for(int i = x - (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i <= x + (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i += (rotatedDimensions.getBlockX() / 2) + 1) {
-                    for(int j = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j <= z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j += (rotatedDimensions.getBlockZ() / 2) + 1) {
-                        int h = placer.getHighest(i, j, getLoader(), config.isUnderwater()) + rty;
+                int xRadius = (rotatedDimensions.getBlockX() / 2);
+                int xLength = xRadius + offset.getBlockX();
+                int minX = Math.min(x - xLength, x + xLength);
+                int maxX = Math.max(x - xLength, x + xLength);
+                int zRadius = (rotatedDimensions.getBlockZ() / 2);
+                int zLength = zRadius + offset.getBlockZ();
+                int minZ = Math.min(z - zLength, z + zLength);
+                int maxZ = Math.max(z - zLength, z + zLength);
 
-                        if(placer.isCarved(i, h, j) || placer.isCarved(i, h - 1, j) || placer.isCarved(i, h - 2, j) || placer.isCarved(i, h - 3, j)) {
+                for(int i = minX; i <= maxX; i += Math.abs(xRadius) + 1) {
+                    for(int ii = minZ; ii <= maxZ; ii += Math.abs(zRadius) + 1) {
+                        int h = placer.getHighest(i, ii, getLoader(), config.isUnderwater()) + rty;
+                        if(placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
                             bail = true;
                             break;
                         }
-
-                        if(h > y) {
+                        if(h > y)
                             y = h;
-                        }
                     }
                 }
-            } else if(config.getMode().equals(ObjectPlaceMode.MIN_HEIGHT)) {
-                y = 257;
+            } else if(config.getMode().equals(ObjectPlaceMode.MIN_HEIGHT) || config.getMode() == ObjectPlaceMode.MIN_STILT) {
+                y = rdata.getEngine().getHeight() + 1;
                 BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
                 BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
 
-                for(int i = x - (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i <= x + (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i++) {
-                    for(int j = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j <= z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j++) {
-                        int h = placer.getHighest(i, j, getLoader(), config.isUnderwater()) + rty;
-                        if(placer.isCarved(i, h, j) || placer.isCarved(i, h - 1, j) || placer.isCarved(i, h - 2, j) || placer.isCarved(i, h - 3, j)) {
+                int xLength = (rotatedDimensions.getBlockX() / 2) + offset.getBlockX();
+                int minX = Math.min(x - xLength, x + xLength);
+                int maxX = Math.max(x - xLength, x + xLength);
+                int zLength = (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ();
+                int minZ = Math.min(z - zLength, z + zLength);
+                int maxZ = Math.max(z - zLength, z + zLength);
+                for(int i = minX; i <= maxX; i++) {
+                    for(int ii = minZ; ii <= maxZ; ii++) {
+                        int h = placer.getHighest(i, ii, getLoader(), config.isUnderwater()) + rty;
+                        if(placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
                             bail = true;
                             break;
                         }
@@ -584,15 +594,24 @@ public class IrisObject extends IrisRegistrant {
                         }
                     }
                 }
-            } else if(config.getMode().equals(ObjectPlaceMode.FAST_MIN_HEIGHT)) {
-                y = 257;
+            } else if(config.getMode().equals(ObjectPlaceMode.FAST_MIN_HEIGHT) || config.getMode() == ObjectPlaceMode.FAST_MIN_STILT) {
+                y = rdata.getEngine().getHeight() + 1;
                 BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
                 BlockVector rotatedDimensions = config.getRotation().rotate(new BlockVector(getW(), getH(), getD()), spinx, spiny, spinz).clone();
 
-                for(int i = x - (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i <= x + (rotatedDimensions.getBlockX() / 2) + offset.getBlockX(); i += (rotatedDimensions.getBlockX() / 2) + 1) {
-                    for(int j = z - (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j <= z + (rotatedDimensions.getBlockZ() / 2) + offset.getBlockZ(); j += (rotatedDimensions.getBlockZ() / 2) + 1) {
-                        int h = placer.getHighest(i, j, getLoader(), config.isUnderwater()) + rty;
-                        if(placer.isCarved(i, h, j) || placer.isCarved(i, h - 1, j) || placer.isCarved(i, h - 2, j) || placer.isCarved(i, h - 3, j)) {
+                int xRadius = (rotatedDimensions.getBlockX() / 2);
+                int xLength = xRadius + offset.getBlockX();
+                int minX = Math.min(x - xLength, x + xLength);
+                int maxX = Math.max(x - xLength, x + xLength);
+                int zRadius = (rotatedDimensions.getBlockZ() / 2);
+                int zLength = zRadius + offset.getBlockZ();
+                int minZ = Math.min(z - zLength, z + zLength);
+                int maxZ = Math.max(z - zLength, z + zLength);
+
+                for(int i = minX; i <= maxX; i += Math.abs(xRadius) + 1) {
+                    for(int ii = minZ; ii <= maxZ; ii += Math.abs(zRadius) + 1) {
+                        int h = placer.getHighest(i, ii, getLoader(), config.isUnderwater()) + rty;
+                        if(placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
                             bail = true;
                             break;
                         }
@@ -733,10 +752,16 @@ public class IrisObject extends IrisRegistrant {
                             if(j.isExact() ? k.matches(data) : k.getMaterial().equals(data.getMaterial())) {
                                 BlockData newData = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata).clone();
 
-                                if(newData.getMaterial() == data.getMaterial()) {
+                                if(newData.getMaterial() == data.getMaterial())
                                     data = data.merge(newData);
-                                } else {
+                                else
                                     data = newData;
+
+                                if(newData.getMaterial() == Material.SPAWNER) {
+                                    Optional<TileData<?>> t = j.getReplace().getTile(rng, x, y, z, rdata);
+                                    if(t.isPresent()) {
+                                        tile = t.get();
+                                    }
                                 }
                             }
                         }
@@ -745,6 +770,7 @@ public class IrisObject extends IrisRegistrant {
 
                 data = config.getRotation().rotate(data, spinx, spiny, spinz);
                 xx = x + (int) Math.round(i.getX());
+
                 int yy = y + (int) Math.round(i.getY());
                 zz = z + (int) Math.round(i.getZ());
 
@@ -787,7 +813,6 @@ public class IrisObject extends IrisRegistrant {
 
                 if(!data.getMaterial().equals(Material.AIR) && !data.getMaterial().equals(Material.CAVE_AIR)) {
                     placer.set(xx, yy, zz, data);
-
                     if(tile != null) {
                         placer.setTile(xx, yy, zz, tile);
                     }
@@ -800,21 +825,26 @@ public class IrisObject extends IrisRegistrant {
 
         if(stilting) {
             readLock.lock();
+            IrisStiltSettings settings = config.getStiltSettings();
             for(BlockVector g : getBlocks().keySet()) {
                 BlockData d;
 
-                try {
-                    d = getBlocks().get(g);
-                } catch(Throwable e) {
-                    Iris.reportError(e);
-                    Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (stilt cme)");
-                    d = AIR;
-                }
+                if(settings == null || settings.getPalette() == null) {
+                    try {
+                        d = getBlocks().get(g);
+                    } catch(Throwable e) {
+                        Iris.reportError(e);
+                        Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (stilt cme)");
+                        d = AIR;
+                    }
 
-                if(d == null) {
-                    Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (stilt null)");
-                    d = AIR;
-                }
+                    if(d == null) {
+                        Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (stilt null)");
+                        d = AIR;
+                    }
+                } else
+                    d = config.getStiltSettings().getPalette().get(rng, x, y, z, rdata);
+
 
                 BlockVector i = g.clone();
                 i = config.getRotation().rotate(i.clone(), spinx, spiny, spinz).clone();
@@ -850,19 +880,22 @@ public class IrisObject extends IrisRegistrant {
                     zz += config.warp(rng, i.getZ() + z, i.getY() + y, i.getX() + x, getLoader());
                 }
 
-                int yg = placer.getHighest(xx, zz, getLoader(), true);
+                int highest = placer.getHighest(xx, zz, getLoader(), true);
 
-                if(config.isWaterloggable() && yg <= placer.getFluidHeight() && d instanceof Waterlogged) {
+                if(config.isWaterloggable() && highest <= placer.getFluidHeight() && d instanceof Waterlogged)
                     ((Waterlogged) d).setWaterlogged(true);
-                }
 
-                if(yv >= 0 && config.isBottom()) {
+                if(yv >= 0 && config.isBottom())
                     y += Math.floorDiv(h, 2);
-                }
 
-                for(int j = lowest + y; j > yg - config.getOverStilt() - 1; j--) {
-                    placer.set(xx, j, zz, d);
+                int lowerBound = highest - 1;
+                if(settings != null) {
+                    lowerBound -= config.getStiltSettings().getOverStilt() - rng.i(0, config.getStiltSettings().getYRand());
+                    if(settings.getYMax() != 0)
+                        lowerBound -= Math.min(config.getStiltSettings().getYMax() - (lowest + y - highest), 0);
                 }
+                for(int j = lowest + y; j > lowerBound; j--)
+                    placer.set(xx, j, zz, d);
             }
 
             readLock.unlock();

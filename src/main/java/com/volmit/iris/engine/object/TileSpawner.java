@@ -32,12 +32,13 @@ import java.io.IOException;
 
 @Data
 public class TileSpawner implements TileData<CreatureSpawner> {
-    public static final int id = 1;
-    private EntityType entityType;
 
+    public static final int id = 1;
+
+    private EntityType entityType;
     @Override
     public String getTileId() {
-        return "minecraft:spawner";
+        return "minecraft:mob_spawner";
     }
 
     @Override
@@ -75,7 +76,7 @@ public class TileSpawner implements TileData<CreatureSpawner> {
     }
 
     @Override
-    public void toNBT(CompoundTag tag) {
+    public CompoundTag toNBT(CompoundTag parent) {
         @SuppressWarnings("unchecked") ListTag<CompoundTag> potentials = (ListTag<CompoundTag>) ListTag.createUnchecked(CompoundTag.class);
         CompoundTag t = new CompoundTag();
         CompoundTag ent = new CompoundTag();
@@ -83,6 +84,7 @@ public class TileSpawner implements TileData<CreatureSpawner> {
         t.put("Entity", ent);
         t.putInt("Weight", 1);
         potentials.add(t);
-        tag.put("SpawnPotentials", potentials);
+        parent.put("SpawnPotentials", potentials);
+        return parent;
     }
 }

@@ -463,7 +463,9 @@ public enum NoiseStyle {
     }
 
     public CNG create(RNG seed) {
-        return f.create(seed).bake();
+        CNG cng = f.create(seed).bake();
+        cng.setLeakStyle(this);
+        return cng;
     }
 
     public IrisGeneratorStyle style() {

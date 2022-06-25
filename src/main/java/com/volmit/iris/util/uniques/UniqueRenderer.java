@@ -42,7 +42,7 @@ public class UniqueRenderer {
     private KList<NoiseStyle> sortedStyles = new KList<NoiseStyle>();
     private KList<InterpolationMethod> sortedInterpolators = new KList<InterpolationMethod>();
     int cores = Runtime.getRuntime().availableProcessors();
-    private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
     
     public UniqueRenderer(String seed, int width, int height)
     {
@@ -290,8 +290,8 @@ private void overlay(UImage layer, BufferedImage layerBuf, UImage onto)
     public void writeCollectionFrames(File folder, int fromId, int toId)
     {
         folder.mkdirs();
-        BurstExecutor burst = new BurstExecutor(executor, 10);
-        burst.setMulticore(false);
+        BurstExecutor burst = new BurstExecutor(executor, Math.min(toId - fromId, 1000));
+        burst.setMulticore(true);
         AtomicInteger ai = new AtomicInteger(0);
         int max = toId - fromId;
 

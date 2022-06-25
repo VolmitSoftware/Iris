@@ -41,7 +41,6 @@ public class UFeatureMeta {
     public UFeatureMetaGenerator buildGenerator(CNG cng)
     {
         UFeatureMetaGenerator g = new UFeatureMetaGenerator();
-        g.setStyle(cng.getLeakStyle());
         g.setScale(cng.getScale());
         g.setOctaves(cng.getOct());
 

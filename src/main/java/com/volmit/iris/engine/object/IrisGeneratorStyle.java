@@ -35,6 +35,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+import java.util.Objects;
+
 @Snippet("style")
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -70,6 +72,10 @@ public class IrisGeneratorStyle {
     @MaxNumber(64)
     @Desc("The exponent")
     private double exponent = 1;
+    @MinNumber(0)
+    @MaxNumber(8192)
+    @Desc("If the cache size is set above 0, this generator will be cached")
+    private int cacheSize = 0;
 
     public IrisGeneratorStyle(NoiseStyle s) {
         this.style = s;
@@ -81,6 +87,18 @@ public class IrisGeneratorStyle {
     }
 
     public CNG createNoCache(RNG rng, IrisData data) {
+     return createNoCache(rng, data, false);
+    }
+
+
+    private int hash()
+    {
+        return Objects.hash(expression, imageMap, multiplier, axialFracturing, fracture != null ? fracture.hash() : 0, exponent, cacheSize, zoom, cellularZoom, cellularFrequency, style);
+    }
+
+    public CNG createNoCache(RNG rng, IrisData data, boolean actuallyCached) {
+        String cacheKey = hash() + "";
+
         if(getExpression() != null) {
             IrisExpression e = data.getExpressionLoader().load(getExpression());
 
@@ -134,7 +152,7 @@ public class IrisGeneratorStyle {
     }
 
     public CNG create(RNG rng, IrisData data) {
-        return cng.aquire(() -> createNoCache(rng, data));
+        return cng.aquire(() -> createNoCache(rng, data, true));
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")

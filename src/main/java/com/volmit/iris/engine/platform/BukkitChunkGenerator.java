@@ -31,11 +31,15 @@ import com.volmit.iris.engine.object.StudioMode;
 import com.volmit.iris.engine.platform.studio.StudioGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.IrisBiomeStorage;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.hunk.view.BiomeGridHunkHolder;
+import com.volmit.iris.util.hunk.view.ChunkDataHunkHolder;
 import com.volmit.iris.util.io.ReactiveFolder;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Setter;
@@ -278,9 +282,11 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             if(studioGenerator != null) {
                 studioGenerator.generateChunk(getEngine(), tc, x, z);
             } else {
-                Hunk<BlockData> blocks = Hunk.view(tc);
-                Hunk<Biome> biomes = Hunk.view(tc, tc.getMinHeight(), tc.getMaxHeight());
+                ChunkDataHunkHolder blocks = new ChunkDataHunkHolder(tc);
+                BiomeGridHunkHolder biomes = new BiomeGridHunkHolder(tc, tc.getMinHeight(), tc.getMaxHeight());
                 getEngine().generate(x << 4, z << 4, blocks, biomes, true);
+                blocks.apply();
+                biomes.apply();
             }
 
             ChunkData c = tc.getRaw();

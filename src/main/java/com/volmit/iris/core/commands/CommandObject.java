@@ -18,7 +18,6 @@
 
 package com.volmit.iris.core.commands;
 
-import com.mojang.datafixers.util.Pair;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.link.WorldEditLink;
 import com.volmit.iris.core.loader.IrisData;

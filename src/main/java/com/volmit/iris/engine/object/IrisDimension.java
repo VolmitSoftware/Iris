@@ -228,8 +228,6 @@ public class IrisDimension extends IrisRegistrant {
     private IrisMaterialPalette rockPalette = new IrisMaterialPalette().qclear().qadd("stone");
     @Desc("The palette of blocks for 'water'")
     private IrisMaterialPalette fluidPalette = new IrisMaterialPalette().qclear().qadd("water");
-//    @Desc("Cartographer map trade overrides")
-//    private IrisVillagerOverride patchCartographers = new IrisVillagerOverride().setDisableTrade(false);
     @Desc("Remove cartographers so they do not crash the server (Iris worlds only)")
     private boolean removeCartographersDueToCrash = true;
     @Desc("Notify players of cancelled cartographer villager in this radius in blocks (set to -1 to disable, -2 for everyone)")
@@ -418,7 +416,7 @@ public class IrisDimension extends IrisRegistrant {
                     {
                         "pack": {
                             "description": "Iris Data Pack. This pack contains all installed Iris Packs' resources.",
-                            "pack_format": 9
+                            "pack_format": 10
                         }
                     }
                     """);
@@ -481,6 +479,8 @@ public class IrisDimension extends IrisRegistrant {
                 "bed_works": true,
                 "respawn_anchor_works": false,
                 "has_raids": true,
+                "monster_spawn_block_light_limit": 7,
+                "monster_spawn_light_level": 1,
                 "infiniburn": "#minecraft:infiniburn_overworld",
                 "effects": "minecraft:overworld"
             }""";

@@ -18,23 +18,22 @@
 
 package com.volmit.iris.util.hunk.view;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.data.chunk.LinkedTerrainChunk;
-import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.hunk.storage.AtomicHunk;
 import lombok.Getter;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 
 @SuppressWarnings("ClassCanBeRecord")
-public class BiomeGridHunkView implements Hunk<Biome> {
+public class BiomeGridHunkHolder extends AtomicHunk<Biome> {
     @Getter
     private final BiomeGrid chunk;
     private final int minHeight;
     private final int maxHeight;
-    private int highest = -1000;
 
-    public BiomeGridHunkView(BiomeGrid chunk, int minHeight, int maxHeight) {
+    public BiomeGridHunkHolder(BiomeGrid chunk, int minHeight, int maxHeight) {
+        super(16, maxHeight - minHeight, 16);
         this.chunk = chunk;
         this.minHeight = minHeight;
         this.maxHeight = maxHeight;
@@ -55,20 +54,26 @@ public class BiomeGridHunkView implements Hunk<Biome> {
         return maxHeight - minHeight;
     }
 
-    @Override
-    public void setRaw(int x, int y, int z, Biome t) {
-        chunk.setBiome(x, y + minHeight, z, t);
+    public void apply() {
+        for(int i = 0; i < getHeight(); i++) {
+            for(int j = 0; j < getWidth(); j++) {
+                for(int k = 0; k < getDepth(); k++) {
+                    Biome b = super.getRaw(j, i, k);
 
-        if(y > highest)
-        {
-            highest = y;
-            Iris.info("Highest = " + highest);
+                    if(b != null)
+                    {
+                        chunk.setBiome(j, i + minHeight, k, b);
+                    }
+                }
+            }
         }
     }
 
     @Override
     public Biome getRaw(int x, int y, int z) {
-        return chunk.getBiome(x, y + minHeight, z);
+        Biome b = super.getRaw(x, y, z);
+
+        return b != null ? b : Biome.PLAINS;
     }
 
     public void forceBiomeBaseInto(int x, int y, int z, Object somethingVeryDirty) {

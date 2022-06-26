@@ -8,7 +8,7 @@ version '1.0-SNAPSHOT'
 
 jar {
     manifest {
-        attributes('Contains-Sources':'java,class')
+        attributes('Contains-Sources': 'java,class')
     }
 }
 
@@ -44,7 +44,7 @@ allprojects {
     }
 
     if (JavaVersion.current() != JavaVersion.VERSION_1_8 &&
-            sourceSets.main.allJava.files.any {it.name == "module-info.java"}) {
+            sourceSets.main.allJava.files.any { it.name == "module-info.java" }) {
         tasks.withType(JavaCompile) {
             options.compilerArgs += ['-Xplugin:Manifold', '--module-path', it.classpath.asPath]
         }

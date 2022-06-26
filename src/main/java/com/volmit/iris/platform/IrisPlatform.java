@@ -1,15 +1,15 @@
 package com.volmit.iris.platform;
 
-import com.volmit.iris.engine.object.NSKey;
-import com.volmit.iris.engine.object.biome.NativeBiome;
-import com.volmit.iris.engine.object.block.IrisBlock;
+import java.util.stream.Stream;
 
-public interface IrisPlatform<NS, BLOCK, BIOME> {
+public interface IrisPlatform {
     String getPlatformName();
 
-    PlatformTransformer<NS, NSKey> getNamespaceTransformer();
+    Stream<PlatformBlock> getBlocks();
 
-    PlatformDataTransformer<BLOCK, IrisBlock> getBlockDataTransformer();
+    Stream<PlatformBiome> getBiomes();
 
-    PlatformDataTransformer<BIOME, NativeBiome> getBiomeTransformer();
+    boolean isWorldLoaded(String name);
+
+    PlatformWorld getWorld(String name);
 }

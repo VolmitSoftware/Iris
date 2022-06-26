@@ -1,0 +1,11 @@
+plugins {
+    id 'java'
+}
+
+group rootProject.group
+version rootProject.version
+
+dependencies {
+    implementation 'org.spigotmc:spigot-api:1.19-R0.1-SNAPSHOT'
+    implementation 'com.volmit:Fukkit:22.6.13'
+}

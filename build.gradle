@@ -1,0 +1,70 @@
+plugins {
+    id 'java'
+    id "io.freefair.lombok" version "6.3.0"
+}
+
+group 'com.volmit.iris'
+version '1.0-SNAPSHOT'
+
+jar {
+    manifest {
+        attributes('Contains-Sources':'java,class')
+    }
+}
+
+allprojects {
+    apply plugin: 'java'
+    apply plugin: 'io.freefair.lombok'
+
+    configurations {
+        testImplementation.extendsFrom annotationProcessor
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
+    }
+
+    repositories {
+        maven { url "https://dl.cloudsmith.io/public/arcane/archive/maven/" }
+        mavenCentral()
+    }
+
+    dependencies {
+        compileOnly 'org.projectlombok:lombok:1.18.24'
+        annotationProcessor 'org.projectlombok:lombok:1.18.24'
+        implementation 'art.arcane.source:Source:22.6.4'
+        implementation 'art.arcane:Amulet:22.6.7'
+        annotationProcessor 'systems.manifold:manifold-ext:2022.1.18'
+        testAnnotationProcessor 'systems.manifold:manifold-ext:2022.1.18'
+        implementation 'systems.manifold:manifold-rt:2022.1.18'
+        testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+        testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
+    }
+
+    if (JavaVersion.current() != JavaVersion.VERSION_1_8 &&
+            sourceSets.main.allJava.files.any {it.name == "module-info.java"}) {
+        tasks.withType(JavaCompile) {
+            options.compilerArgs += ['-Xplugin:Manifold', '--module-path', it.classpath.asPath]
+        }
+    } else {
+        tasks.withType(JavaCompile) {
+            options.compilerArgs += ['-Xplugin:Manifold']
+        }
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'io.freefair.lombok'
+
+    dependencies {
+        implementation rootProject
+    }
+}
+
+dependencies {
+
+}
+

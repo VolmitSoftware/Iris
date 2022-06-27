@@ -1,3 +1,14 @@
+pluginManagement {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        gradlePluginPortal()
+        maven { url "https://dl.cloudsmith.io/public/arcane/archive/maven/" }
+    }
+}
+
 rootProject.name = 'Iris'
 include 'bukkit'
+include 'engine'
+include 'engine'
 

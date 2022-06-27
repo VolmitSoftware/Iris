@@ -12,19 +12,9 @@ jar {
     }
 }
 
-allprojects {
+allprojects
+{
     apply plugin: 'java'
-    apply plugin: 'io.freefair.lombok'
-
-    configurations {
-        testImplementation.extendsFrom annotationProcessor
-    }
-
-    java {
-        toolchain {
-            languageVersion = JavaLanguageVersion.of(17)
-        }
-    }
 
     repositories {
         maven { url "https://dl.cloudsmith.io/public/arcane/archive/maven/" }
@@ -41,26 +31,6 @@ allprojects {
         implementation 'systems.manifold:manifold-rt:2022.1.18'
         testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
         testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
-    }
-
-    if (JavaVersion.current() != JavaVersion.VERSION_1_8 &&
-            sourceSets.main.allJava.files.any { it.name == "module-info.java" }) {
-        tasks.withType(JavaCompile) {
-            options.compilerArgs += ['-Xplugin:Manifold', '--module-path', it.classpath.asPath]
-        }
-    } else {
-        tasks.withType(JavaCompile) {
-            options.compilerArgs += ['-Xplugin:Manifold']
-        }
-    }
-}
-
-subprojects {
-    apply plugin: 'java'
-    apply plugin: 'io.freefair.lombok'
-
-    dependencies {
-        implementation rootProject
     }
 }
 

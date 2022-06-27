@@ -1,0 +1,3 @@
+name: Iris
+main: com.volmit.iris.platform.bukkit.IrisBukkit
+version: 1.0.0

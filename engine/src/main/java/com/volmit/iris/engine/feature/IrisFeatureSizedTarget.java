@@ -9,6 +9,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+import java.util.stream.Stream;
+
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -26,6 +29,48 @@ public class IrisFeatureSizedTarget {
     private final int offsetY = 0;
     @Builder.Default
     private final int offsetZ = 0;
+
+    Stream<IrisFeatureSizedTarget> splitX()
+    {
+        if(width <= 1) {
+            return Stream.of(this);
+        }
+
+        return Stream.of(IrisFeatureSizedTarget.builder()
+                .width(width/2).height(height).depth(depth)
+                .offsetX(offsetX).offsetY(offsetY).offsetZ(offsetZ).build(),
+            IrisFeatureSizedTarget.builder()
+                .width(width - (width/2)).height(height).depth(depth)
+                .offsetX(offsetX + (width/2)).offsetY(offsetY).offsetZ(offsetZ).build());
+    }
+
+    Stream<IrisFeatureSizedTarget> splitY()
+    {
+        if(height <= 1) {
+            return Stream.of(this);
+        }
+
+        return Stream.of(IrisFeatureSizedTarget.builder()
+                .width(width).height(height/2).depth(depth)
+                .offsetX(offsetX).offsetY(offsetY).offsetZ(offsetZ).build(),
+            IrisFeatureSizedTarget.builder()
+                .width(width).height(height - (height / 2)).depth(depth)
+                .offsetX(offsetX).offsetY(offsetY + (height/2)).offsetZ(offsetZ).build());
+    }
+
+    Stream<IrisFeatureSizedTarget> splitZ()
+    {
+        if(depth <= 1) {
+            return Stream.of(this);
+        }
+
+        return Stream.of(IrisFeatureSizedTarget.builder()
+                .width(width).height(height).depth(depth/2)
+                .offsetX(offsetX).offsetY(offsetY).offsetZ(offsetZ).build(),
+            IrisFeatureSizedTarget.builder()
+                .width(width).height(height).depth(depth - (depth/2))
+                .offsetX(offsetX).offsetY(offsetY).offsetZ(offsetZ + (depth/2)).build());
+    }
 
     public int getAbsoluteMaxX()
     {

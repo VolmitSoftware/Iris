@@ -29,7 +29,7 @@ public class FeatureTerrain extends IrisFeature<PlatformBlock, FeatureTerrain.Te
     }
 
     @Override
-    public TerrainFeatureState prepare(IrisEngine engine, IrisFeatureSizedTarget target) {
+    public TerrainFeatureState onPrepare(IrisEngine engine, IrisFeatureSizedTarget target) {
         final ShortNoiseCache noise = new ShortNoiseCache(target.getWidth(), target.getDepth());
         int cx,cz;
 
@@ -48,7 +48,7 @@ public class FeatureTerrain extends IrisFeature<PlatformBlock, FeatureTerrain.Te
     }
 
     @Override
-    public void generate(IrisEngine engine, TerrainFeatureState state, IrisFeatureTarget<PlatformBlock> target) {
+    public void onGenerate(IrisEngine engine, TerrainFeatureState state, IrisFeatureTarget<PlatformBlock> target) {
         for(int x : target.localX()) {
             for(int z : target.localZ()) {
                 int h = state.getNoise().get(x, z);

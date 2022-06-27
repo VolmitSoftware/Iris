@@ -8,9 +8,15 @@ import com.volmit.iris.platform.PlatformNamespaceKey;
 import com.volmit.iris.platform.PlatformRegistry;
 import com.volmit.iris.platform.PlatformWorld;
 import lombok.Data;
+import manifold.util.concurrent.ConcurrentWeakHashMap;
+
+import java.lang.ref.WeakReference;
+import java.util.Map;
+import java.util.Optional;
 
 @Data
 public class IrisEngine {
+    private static final Map<Thread, WeakReference<IrisEngine>> engineContext = new ConcurrentWeakHashMap<>();
     private final IrisPlatform platform;
     private final EngineRegistry registry;
     private final EngineConfiguration configuration;
@@ -40,5 +46,17 @@ public class IrisEngine {
     public PlatformNamespaceKey key(String nsk)
     {
         return getPlatform().key(nsk);
+    }
+
+    public static Optional<IrisEngine> context()
+    {
+        WeakReference<IrisEngine> reference = engineContext.get(Thread.currentThread());
+
+        if(reference != null)
+        {
+            return Optional.ofNullable(reference.get());
+        }
+
+        return Optional.empty();
     }
 }

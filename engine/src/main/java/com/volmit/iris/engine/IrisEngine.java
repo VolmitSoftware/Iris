@@ -13,6 +13,7 @@ import manifold.util.concurrent.ConcurrentWeakHashMap;
 import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ForkJoinPool;
 
 @Data
 public class IrisEngine {
@@ -22,11 +23,13 @@ public class IrisEngine {
     private final EngineConfiguration configuration;
     private final PlatformWorld world;
     private final EngineBlockCache blockCache;
+    private final ForkJoinPool forks;
 
     private final FeatureTerrain terrainFeature;
 
     public IrisEngine(IrisPlatform platform, PlatformWorld world, EngineConfiguration configuration) {
         this.configuration = configuration;
+        this.forks = new ForkJoinPool(configuration.getThreads());
         this.platform = platform;
         this.world = world;
         this.blockCache = new EngineBlockCache(this);

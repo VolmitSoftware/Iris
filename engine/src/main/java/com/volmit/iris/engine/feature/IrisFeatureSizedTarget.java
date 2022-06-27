@@ -1,6 +1,7 @@
 package com.volmit.iris.engine.feature;
 
 import art.arcane.amulet.collections.hunk.Hunk;
+import art.arcane.amulet.collections.hunk.storage.ArrayHunk;
 import art.arcane.amulet.geometry.Vec;
 import art.arcane.amulet.range.IntegerRange;
 import com.volmit.iris.platform.PlatformNamespaced;
@@ -10,6 +11,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Builder
@@ -30,8 +32,12 @@ public class IrisFeatureSizedTarget {
     @Builder.Default
     private final int offsetZ = 0;
 
-    Stream<IrisFeatureSizedTarget> splitX()
+    public <T extends PlatformNamespaced> IrisFeatureTarget<T> hunked()
     {
+        return new IrisFeatureTarget<>(new ArrayHunk<>(width, height, depth), this);
+    }
+
+    Stream<IrisFeatureSizedTarget> splitX() {
         if(width <= 1) {
             return Stream.of(this);
         }
@@ -44,8 +50,7 @@ public class IrisFeatureSizedTarget {
                 .offsetX(offsetX + (width/2)).offsetY(offsetY).offsetZ(offsetZ).build());
     }
 
-    Stream<IrisFeatureSizedTarget> splitY()
-    {
+    Stream<IrisFeatureSizedTarget> splitY() {
         if(height <= 1) {
             return Stream.of(this);
         }
@@ -58,8 +63,7 @@ public class IrisFeatureSizedTarget {
                 .offsetX(offsetX).offsetY(offsetY + (height/2)).offsetZ(offsetZ).build());
     }
 
-    Stream<IrisFeatureSizedTarget> splitZ()
-    {
+    Stream<IrisFeatureSizedTarget> splitZ() {
         if(depth <= 1) {
             return Stream.of(this);
         }
@@ -115,5 +119,17 @@ public class IrisFeatureSizedTarget {
     public IntegerRange localZ()
     {
         return new IntegerRange(0, getDepth() - 1);
+    }
+
+    public static IrisFeatureSizedTarget mergedSize(Stream<IrisFeatureSizedTarget> targets) {
+        List<IrisFeatureSizedTarget> t = targets.toList();
+        return IrisFeatureSizedTarget.builder()
+            .width(t.stream().mapToInt(IrisFeatureSizedTarget::getWidth).sum())
+            .height(t.stream().mapToInt(IrisFeatureSizedTarget::getHeight).sum())
+            .depth(t.stream().mapToInt(IrisFeatureSizedTarget::getDepth).sum())
+            .offsetX(t.stream().mapToInt(IrisFeatureSizedTarget::getOffsetX).min().orElse(0))
+            .offsetY(t.stream().mapToInt(IrisFeatureSizedTarget::getOffsetY).min().orElse(0))
+            .offsetZ(t.stream().mapToInt(IrisFeatureSizedTarget::getOffsetZ).min().orElse(0))
+            .build();
     }
 }

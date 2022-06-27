@@ -18,5 +18,8 @@ public class EngineConfiguration {
     private boolean timings = false;
 
     @Builder.Default
-    private int threads = 4;
+    private int threads = Runtime.getRuntime().availableProcessors();
+
+    @Builder.Default
+    private int threadPriority = 3;
 }

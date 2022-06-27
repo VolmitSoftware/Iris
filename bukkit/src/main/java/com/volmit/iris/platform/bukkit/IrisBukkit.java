@@ -29,9 +29,6 @@ public class IrisBukkit extends JavaPlugin implements IrisPlatform {
 
         getServer().getScheduler().scheduleSyncDelayedTask(this, () -> {
             World world = Bukkit.createWorld(new WorldCreator("iristests/" + UUID.randomUUID()).generator(new IrisBukkitChunkGenerator(this, EngineConfiguration.builder()
-                .threads(4)
-                .mutable(true)
-                .timings(true)
                 .build())));
         }, 10);
     }

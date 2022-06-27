@@ -7,16 +7,16 @@ import com.volmit.iris.engine.EngineConfiguration;
 import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.feature.IrisFeatureSizedTarget;
 import com.volmit.iris.engine.feature.IrisFeatureTarget;
-import com.volmit.iris.engine.feature.standard.FeatureTerrain;
+import com.volmit.iris.engine.feature.features.FeatureTerrain;
+import com.volmit.iris.engine.pipeline.PipedHunkStack;
 import com.volmit.iris.platform.IrisPlatform;
 import com.volmit.iris.platform.PlatformBlock;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.generator.ChunkGenerator;
 import com.volmit.iris.platform.bukkit.util.ChunkDataHunkView;
-import org.bukkit.generator.WorldInfo;
 
+import java.nio.channels.Pipe;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -46,6 +46,8 @@ public class IrisBukkitChunkGenerator extends ChunkGenerator {
         initEngine(world);
         ChunkData data = Bukkit.createChunkData(world);
         Hunk<PlatformBlock> chunk = new ChunkDataHunkView(data);
+        PipedHunkStack stack = new PipedHunkStack();
+        stack.register(PlatformBlock.class, chunk);
         IrisFeatureSizedTarget targetSize = IrisFeatureSizedTarget.builder()
             .width(chunk.getWidth())
             .height(chunk.getHeight())
@@ -54,8 +56,7 @@ public class IrisBukkitChunkGenerator extends ChunkGenerator {
             .offsetZ(z << 4)
             .offsetY(0)
             .build();
-        FeatureTerrain.TerrainFeatureState state = engine.get().getTerrainFeature().prepare(engine.get(), targetSize);
-        engine.get().getTerrainFeature().generate(engine.get(), state, new IrisFeatureTarget<>(chunk, targetSize));
+        engine.get().getPlumbing().generate(engine.get(), targetSize, stack);
         perSecond.incrementAndGet();
         a.put(pp.getMilliseconds());
 

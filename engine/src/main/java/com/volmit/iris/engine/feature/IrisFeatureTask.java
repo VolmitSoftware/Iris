@@ -1,10 +1,12 @@
 package com.volmit.iris.engine.feature;
 
+import art.arcane.amulet.collections.hunk.Hunk;
 import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.platform.PlatformNamespaced;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.RecursiveTask;
 import java.util.stream.Collectors;
 
@@ -16,7 +18,7 @@ import java.util.stream.Collectors;
  */
 @Builder
 @AllArgsConstructor
-public class IrisFeatureTask<T extends PlatformNamespaced, S extends IrisFeatureState> extends RecursiveTask<IrisPreparedFeature<T, S>> {
+public class IrisFeatureTask<T extends PlatformNamespaced, S extends IrisFeatureState> extends RecursiveTask<IrisFeatureTarget<T>> implements Callable<IrisFeatureTarget<T>> {
     private final IrisEngine engine;
     private final IrisFeature<T, S> feature;
     private final IrisFeatureSizedTarget size;
@@ -25,28 +27,30 @@ public class IrisFeatureTask<T extends PlatformNamespaced, S extends IrisFeature
     private final boolean heightAgnostic;
 
     @Override
-    protected IrisPreparedFeature<T, S> compute() {
+    protected IrisFeatureTarget<T> compute() {
         if(!heightAgnostic && size.getHeight() > verticalPrepareSize * 2) {
-            invokeAll(size.splitY().map(this::with).collect(Collectors.toList()));
+            return IrisFeatureTarget.mergedTarget(size.splitY().map(i -> engine.getExecutor().getForks().invoke(with(i))));
         }
 
         else if(size.getWidth() > horizontalPrepareSize * 2) {
-            invokeAll(size.splitX().map(this::with).collect(Collectors.toList()));
+            return IrisFeatureTarget.mergedTarget(size.splitX().map(i -> engine.getExecutor().getForks().invoke(with(i))));
         }
 
         else if(size.getDepth() > horizontalPrepareSize * 2) {
-            invokeAll(size.splitZ().map(this::with).collect(Collectors.toList()));
+            return IrisFeatureTarget.mergedTarget(size.splitZ().map(i -> engine.getExecutor().getForks().invoke(with(i))));
         }
 
-        else {
-            return new IrisPreparedFeature<>(feature, size, feature.prepare(engine, size));
-        }
-
-        return null;
+        IrisPreparedFeature<T, S> preparedFeature = new IrisPreparedFeature<>(engine, feature, size, feature.prepare(engine, size));
+        return preparedFeature.generate();
     }
 
     private IrisFeatureTask<T, S> with(IrisFeatureSizedTarget size)
     {
         return new IrisFeatureTask<>(engine, feature, size, verticalPrepareSize, horizontalPrepareSize, heightAgnostic);
+    }
+
+    @Override
+    public IrisFeatureTarget<T> call() throws Exception {
+        return compute();
     }
 }

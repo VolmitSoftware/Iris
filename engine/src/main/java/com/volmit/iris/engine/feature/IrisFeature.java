@@ -7,25 +7,27 @@ import lombok.Data;
 @Data
 public abstract class IrisFeature<T extends PlatformNamespaced, S extends IrisFeatureState> {
     private final String name;
+    private final IrisEngine engine;
     private boolean heightAgnostic;
 
     public IrisFeature(String name, IrisEngine engine)
     {
+        this.engine = engine;
         this.name = name;
         this.heightAgnostic = true;
     }
 
-    public S prepare(IrisEngine engine, IrisFeatureSizedTarget target)
+    public IrisFeatureTask<T, S> task(IrisFeatureSizedTarget target, int verticalExecutionSize, int horizontalExecutionSize)
     {
-        return onPrepare(engine, target);
+        return new IrisFeatureTask<>(engine, this, target, verticalExecutionSize, horizontalExecutionSize, heightAgnostic);
     }
 
-    public void generate(IrisEngine engine, S state, IrisFeatureTarget<T> target)
+    public IrisFeatureTask<T, S> task(IrisFeatureSizedTarget target, int horizontalExecutionSize)
     {
-        onGenerate(engine, state, target);
+        return new IrisFeatureTask<>(engine, this, target, Integer.MAX_VALUE, horizontalExecutionSize, heightAgnostic);
     }
 
-    public abstract S onPrepare(IrisEngine engine, IrisFeatureSizedTarget target);
+    public abstract S prepare(IrisEngine engine, IrisFeatureSizedTarget target);
 
-    public abstract void onGenerate(IrisEngine engine, S state, IrisFeatureTarget<T> target);
+    public abstract void generate(IrisEngine engine, S state, IrisFeatureTarget<T> target);
 }

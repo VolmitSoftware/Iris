@@ -29,11 +29,13 @@ public class Engine implements Closeable {
     private final EngineBlockCache blockCache;
     private final EngineExecutor executor;
     private final EnginePlumbing plumbing;
+    private final EngineSeedManager seedManager;
 
     public Engine(IrisPlatform platform, PlatformWorld world, EngineConfiguration configuration) {
         this.configuration = configuration;
         this.platform = platform;
         this.world = world;
+        this.seedManager = getSeedManager();
         this.registry = EngineRegistry.builder()
             .blockRegistry(new PlatformRegistry<>(platform.getBlocks()))
             .biomeRegistry(new PlatformRegistry<>(platform.getBiomes()))

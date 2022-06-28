@@ -7,10 +7,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class EngineBlockCache
 {
-    private final IrisEngine engine;
+    private final Engine engine;
     private final Map<String, PlatformBlock> cache;
 
-    public EngineBlockCache(IrisEngine engine)
+    public EngineBlockCache(Engine engine)
     {
         this.engine = engine;
         this.cache = new ConcurrentHashMap<>();

@@ -9,13 +9,13 @@ import java.util.concurrent.ForkJoinWorkerThread;
 
 @Data
 public class EngineExecutor implements ForkJoinPool.ForkJoinWorkerThreadFactory, Thread.UncaughtExceptionHandler, Closeable {
-    private final IrisEngine engine;
+    private final Engine engine;
     private final ForkJoinPool forks;
 
-    public EngineExecutor(IrisEngine engine)
+    public EngineExecutor(Engine engine)
     {
         this.engine = engine;
-        forks = new ForkJoinPool(engine.getConfiguration().getThreads(), this, this, false);
+        forks = new ForkJoinPool(engine.getConfiguration().getThreads(), this, this, true);
     }
 
     @Override

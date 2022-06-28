@@ -20,8 +20,8 @@ import java.util.Map;
 import java.util.Optional;
 
 @Data
-public class IrisEngine implements Closeable {
-    private static final Map<Thread, WeakReference<IrisEngine>> engineContext = new ConcurrentWeakHashMap<>();
+public class Engine implements Closeable {
+    private static final Map<Thread, WeakReference<Engine>> engineContext = new ConcurrentWeakHashMap<>();
     private final IrisPlatform platform;
     private final EngineRegistry registry;
     private final EngineConfiguration configuration;
@@ -30,7 +30,7 @@ public class IrisEngine implements Closeable {
     private final EngineExecutor executor;
     private final EnginePlumbing plumbing;
 
-    public IrisEngine(IrisPlatform platform, PlatformWorld world, EngineConfiguration configuration) {
+    public Engine(IrisPlatform platform, PlatformWorld world, EngineConfiguration configuration) {
         this.configuration = configuration;
         this.platform = platform;
         this.world = world;
@@ -43,7 +43,7 @@ public class IrisEngine implements Closeable {
         this.plumbing = EnginePlumbing.builder().engine(this)
             .pipeline(EnginePipeline.builder()
                 .phase(PipelinePhase.builder()
-                    .task(PipelineTask.<PlatformBlock>builder().target(PlatformBlock.class).feature(new FeatureTerrain(this)).build())
+                    .task(new PipelineTask<>(new FeatureTerrain(this), PlatformBlock.class))
                     .build())
                 .build())
             .build();
@@ -59,9 +59,9 @@ public class IrisEngine implements Closeable {
         return getPlatform().key(nsk);
     }
 
-    public static Optional<IrisEngine> context()
+    public static Optional<Engine> context()
     {
-        WeakReference<IrisEngine> reference = engineContext.get(Thread.currentThread());
+        WeakReference<Engine> reference = engineContext.get(Thread.currentThread());
 
         if(reference != null)
         {

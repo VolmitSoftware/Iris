@@ -4,10 +4,9 @@ import art.arcane.amulet.collections.hunk.Hunk;
 import art.arcane.amulet.metric.Average;
 import art.arcane.amulet.metric.PrecisionStopwatch;
 import com.volmit.iris.engine.EngineConfiguration;
-import com.volmit.iris.engine.IrisEngine;
+import com.volmit.iris.engine.Engine;
 import com.volmit.iris.engine.feature.IrisFeatureSizedTarget;
 import com.volmit.iris.engine.feature.IrisFeatureTarget;
-import com.volmit.iris.engine.feature.features.FeatureTerrain;
 import com.volmit.iris.engine.pipeline.PipedHunkStack;
 import com.volmit.iris.platform.IrisPlatform;
 import com.volmit.iris.platform.PlatformBlock;
@@ -16,16 +15,17 @@ import org.bukkit.World;
 import org.bukkit.generator.ChunkGenerator;
 import com.volmit.iris.platform.bukkit.util.ChunkDataHunkView;
 
-import java.nio.channels.Pipe;
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class IrisBukkitChunkGenerator extends ChunkGenerator {
+public class IrisBukkitChunkGenerator extends ChunkGenerator implements Closeable {
     private final IrisPlatform platform;
     private final EngineConfiguration configuration;
-    private final AtomicReference<IrisEngine> engine;
+    private final AtomicReference<Engine> engine;
     private final ReentrantLock engineLock;
     private final AtomicInteger perSecond;
     private final PrecisionStopwatch p = PrecisionStopwatch.start();
@@ -46,8 +46,6 @@ public class IrisBukkitChunkGenerator extends ChunkGenerator {
         initEngine(world);
         ChunkData data = Bukkit.createChunkData(world);
         Hunk<PlatformBlock> chunk = new ChunkDataHunkView(data);
-        PipedHunkStack stack = new PipedHunkStack();
-        stack.register(PlatformBlock.class, chunk);
         IrisFeatureSizedTarget targetSize = IrisFeatureSizedTarget.builder()
             .width(chunk.getWidth())
             .height(chunk.getHeight())
@@ -56,6 +54,9 @@ public class IrisBukkitChunkGenerator extends ChunkGenerator {
             .offsetZ(z << 4)
             .offsetY(0)
             .build();
+        IrisFeatureTarget<PlatformBlock> blockTarget = new IrisFeatureTarget<>(chunk, targetSize);
+        PipedHunkStack stack = new PipedHunkStack();
+        stack.register(PlatformBlock.class, blockTarget);
         engine.get().getPlumbing().generate(engine.get(), targetSize, stack);
         perSecond.incrementAndGet();
         a.put(pp.getMilliseconds());
@@ -77,7 +78,7 @@ public class IrisBukkitChunkGenerator extends ChunkGenerator {
 
             if(engine.get() == null)
             {
-                engine.set(new IrisEngine(platform, world.bukkitWorld(), configuration));
+                engine.set(new Engine(platform, world.bukkitWorld(), configuration));
             }
 
             engineLock.unlock();
@@ -87,5 +88,10 @@ public class IrisBukkitChunkGenerator extends ChunkGenerator {
     @Override
     public boolean canSpawn(World world, int x, int z) {
         return false;
+    }
+
+    @Override
+    public void close() throws IOException {
+        engine.get().close();
     }
 }

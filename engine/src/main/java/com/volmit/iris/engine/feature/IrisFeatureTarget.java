@@ -1,6 +1,7 @@
 package com.volmit.iris.engine.feature;
 
 import art.arcane.amulet.collections.hunk.Hunk;
+import art.arcane.amulet.collections.hunk.view.HunkView;
 import com.volmit.iris.platform.PlatformNamespaced;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,15 +29,14 @@ public class IrisFeatureTarget<T extends PlatformNamespaced> extends IrisFeature
         this(hunk, target.getOffsetX(), target.getOffsetY(), target.getOffsetZ());
     }
 
-    public static <V extends PlatformNamespaced> IrisFeatureTarget<V> mergedTarget(Stream<IrisFeatureTarget<V>> targets)
+    public static <V extends PlatformNamespaced> IrisFeatureTarget<V> mergedTarget(Stream<IrisFeatureTarget<V>> targets, IrisFeatureTarget<V> origin, boolean x, boolean y, boolean z)
     {
         List<IrisFeatureTarget<V>> t = targets.toList();
-        IrisFeatureSizedTarget mergedSize = IrisFeatureSizedTarget.mergedSize(t.stream().map(i -> i));
-        Hunk<V> hunk = Hunk.newArrayHunk(mergedSize.getWidth(), mergedSize.getHeight(), mergedSize.getDepth());
-        t.forEach(i -> hunk.insert(
-            i.getOffsetX() - mergedSize.getOffsetX(),
-            i.getOffsetY() - mergedSize.getOffsetY(),
-            i.getOffsetZ() - mergedSize.getOffsetZ(), i.getHunk()));
+        IrisFeatureSizedTarget mergedSize = IrisFeatureSizedTarget.mergedSize(t.stream().map(i -> i), x, y, z);
+        Hunk<V> hunk = new HunkView<>(origin.getHunk(), mergedSize.getWidth(), mergedSize.getHeight(), mergedSize.getDepth(),
+            mergedSize.getOffsetX() - origin.getOffsetX(),
+            mergedSize.getOffsetY() - origin.getOffsetY(),
+            mergedSize.getOffsetZ() - origin.getOffsetZ());
         return new IrisFeatureTarget<>(hunk, mergedSize);
     }
 }

@@ -29,7 +29,7 @@ public class ChunkDataHunkView implements Hunk<PlatformBlock> {
     }
 
     @Override
-    public void set(int x1, int y1, int z1, int x2, int y2, int z2, PlatformBlock t) {
+    public synchronized void set(int x1, int y1, int z1, int x2, int y2, int z2, PlatformBlock t) {
         if(t == null) {
             return;
         }
@@ -38,7 +38,7 @@ public class ChunkDataHunkView implements Hunk<PlatformBlock> {
     }
 
     @Override
-    public void setRaw(int x, int y, int z, PlatformBlock t) {
+    public synchronized void setRaw(int x, int y, int z, PlatformBlock t) {
         if(t == null) {
             return;
         }

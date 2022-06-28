@@ -1,5 +1,6 @@
 package com.volmit.iris.platform.bukkit;
 
+import art.arcane.amulet.io.IO;
 import com.volmit.iris.engine.EngineConfiguration;
 import com.volmit.iris.platform.IrisPlatform;
 import com.volmit.iris.platform.PlatformBiome;
@@ -14,9 +15,13 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
+import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -30,11 +35,45 @@ public class IrisBukkit extends JavaPlugin implements IrisPlatform {
         getServer().getScheduler().scheduleSyncDelayedTask(this, () -> {
             World world = Bukkit.createWorld(new WorldCreator("iristests/" + UUID.randomUUID()).generator(new IrisBukkitChunkGenerator(this, EngineConfiguration.builder()
                 .build())));
+            for(Player i : Bukkit.getOnlinePlayers())
+            {
+                i.teleport(world.getSpawnLocation());
+            }
         }, 10);
     }
 
     public void onDisable() {
+        World w = null;
+        for(World i : Bukkit.getWorlds()) {
+            if(!i.getName().startsWith("iristest")) {
+                w = i;
+                break;
+            }
+        }
 
+        for(World i : Bukkit.getWorlds()) {
+            if(i.getName().startsWith("iristest"))
+            {
+                for(Player j : i.getPlayers())
+                {
+                    j.teleport(w.getSpawnLocation());
+                }
+
+                if(i.getGenerator() instanceof Closeable c)
+                {
+                    try {
+                        c.close();
+                    } catch(IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                i.bukkitWorld().unloadChunks(false, true);
+                File folder = i.getWorldFolder();
+                Bukkit.unloadWorld(i, false);
+                IO.delete(folder);
+            }
+        }
     }
 
     public static IrisBukkit getInstance() {

@@ -1,9 +1,13 @@
 package com.volmit.iris.engine.feature.features;
 
 import art.arcane.amulet.range.IntegerRange;
+import art.arcane.source.api.NoisePlane;
+import art.arcane.source.api.fractal.FractalFBMProvider;
+import art.arcane.source.api.interpolator.StarcastInterpolator;
 import art.arcane.source.api.noise.Generator;
+import art.arcane.source.api.noise.provider.CellularProvider;
 import art.arcane.source.api.noise.provider.SimplexProvider;
-import com.volmit.iris.engine.IrisEngine;
+import com.volmit.iris.engine.Engine;
 import com.volmit.iris.engine.feature.IrisFeature;
 import com.volmit.iris.engine.feature.IrisFeatureSizedTarget;
 import com.volmit.iris.engine.feature.IrisFeatureState;
@@ -16,20 +20,22 @@ import lombok.Data;
 public class FeatureTerrain extends IrisFeature<PlatformBlock, FeatureTerrain.TerrainFeatureState>
 {
     private final PlatformBlock stone;
-    private final Generator generator;
+    private final NoisePlane generator;
 
-    public FeatureTerrain(IrisEngine engine)
+    public FeatureTerrain(Engine engine)
     {
         super("terrain", engine);
         stone = engine.block("stone");
-        this.generator = new Generator(new SimplexProvider(engine.getWorld().getSeed()))
+        Generator g = new Generator(new FractalFBMProvider((s) -> new CellularProvider(s), 1234));
+        g.scale(0.01);
+        this.generator = new StarcastInterpolator(new Generator(new SimplexProvider(engine.getWorld().getSeed()))
             .maxOutput(64)
             .minOutput(0)
-            .scale(0.01);
+            .scale(0.01).warp(g), 8, 96);
     }
 
     @Override
-    public TerrainFeatureState prepare(IrisEngine engine, IrisFeatureSizedTarget target) {
+    public TerrainFeatureState prepare(Engine engine, IrisFeatureSizedTarget target) {
         final ShortNoiseCache noise = new ShortNoiseCache(target.getWidth(), target.getDepth());
         int cx,cz;
 
@@ -48,7 +54,7 @@ public class FeatureTerrain extends IrisFeature<PlatformBlock, FeatureTerrain.Te
     }
 
     @Override
-    public void generate(IrisEngine engine, TerrainFeatureState state, IrisFeatureTarget<PlatformBlock> target) {
+    public void generate(Engine engine, TerrainFeatureState state, IrisFeatureTarget<PlatformBlock> target) {
         for(int x : target.localX()) {
             for(int z : target.localZ()) {
                 int h = state.getNoise().get(x, z);

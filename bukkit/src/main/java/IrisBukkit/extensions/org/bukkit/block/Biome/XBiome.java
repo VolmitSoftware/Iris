@@ -1,4 +1,4 @@
-package Iris.extensions.org.bukkit.block.Biome;
+package IrisBukkit.extensions.org.bukkit.block.Biome;
 
 import com.volmit.iris.platform.bukkit.wrapper.BukkitBiome;
 import com.volmit.iris.platform.bukkit.wrapper.BukkitKey;

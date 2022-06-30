@@ -10,15 +10,17 @@ import lombok.experimental.Accessors;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Data
 @NoArgsConstructor
 @Builder
 @AllArgsConstructor
 @Accessors(fluent = true, chain = true)
-public class IrisDimension implements Mutated
+public class IrisDimensionMeta implements Mutated
 {
-    @Builder.Default
-    private IrisDimensionMeta meta = new IrisDimensionMeta();
+    private String name;
+    private String description;
+    private String version;
+    @Singular
+    private List<IrisDimensionAuthor> authors = new ArrayList<>();
 }

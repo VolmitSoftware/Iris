@@ -1,5 +1,7 @@
 package com.volmit.iris.engine;
 
+import art.arcane.amulet.format.Form;
+import art.arcane.amulet.metric.PrecisionStopwatch;
 import com.volmit.iris.engine.feature.features.FeatureTerrain;
 import com.volmit.iris.engine.pipeline.EnginePipeline;
 import com.volmit.iris.engine.pipeline.EnginePlumbing;
@@ -30,17 +32,23 @@ public class Engine implements Closeable {
     private final EngineExecutor executor;
     private final EnginePlumbing plumbing;
     private final EngineSeedManager seedManager;
+    private final EngineEditor editor;
 
     public Engine(IrisPlatform platform, PlatformWorld world, EngineConfiguration configuration) {
+        PrecisionStopwatch p = PrecisionStopwatch.start();
         this.configuration = configuration;
         this.platform = platform;
         this.world = world;
+        i("Initializing Iris Engine for " + platform.getPlatformName() + " in " + world.getName()
+            + " with " + configuration.getThreads() + " priority " + configuration.getThreadPriority()
+            + " threads in " + (configuration.isMutable() ? "edit mode" : "production mode"));
+        this.editor = configuration.isMutable() ? new EngineEditor(this) : null;
         this.seedManager = getSeedManager();
-        this.registry = EngineRegistry.builder()
-            .blockRegistry(new PlatformRegistry<>(platform.getBlocks()))
-            .biomeRegistry(new PlatformRegistry<>(platform.getBiomes()))
-            .build();
         this.blockCache = new EngineBlockCache(this);
+        this.registry = EngineRegistry.builder()
+            .blockRegistry(new PlatformRegistry<>("Block", platform.getBlocks()))
+            .biomeRegistry(new PlatformRegistry<>("Biome", platform.getBiomes()))
+            .build();
         this.executor = new EngineExecutor(this);
         this.plumbing = EnginePlumbing.builder().engine(this)
             .pipeline(EnginePipeline.builder()

@@ -4,9 +4,9 @@ import art.arcane.amulet.range.IntegerRange;
 import art.arcane.source.api.NoisePlane;
 import art.arcane.source.api.fractal.FractalFBMProvider;
 import art.arcane.source.api.interpolator.StarcastInterpolator;
-import art.arcane.source.api.noise.Generator;
 import art.arcane.source.api.noise.provider.CellularProvider;
 import art.arcane.source.api.noise.provider.SimplexProvider;
+import art.arcane.source.api.util.NoisePreset;
 import com.volmit.iris.engine.Engine;
 import com.volmit.iris.engine.feature.IrisFeature;
 import com.volmit.iris.engine.feature.IrisFeatureSizedTarget;
@@ -26,12 +26,7 @@ public class FeatureTerrain extends IrisFeature<PlatformBlock, FeatureTerrain.Te
     {
         super("terrain", engine);
         stone = engine.block("stone");
-        Generator g = new Generator(new FractalFBMProvider((s) -> new CellularProvider(s), 1234));
-        g.scale(0.01);
-        this.generator = new StarcastInterpolator(new Generator(new SimplexProvider(engine.getWorld().getSeed()))
-            .maxOutput(64)
-            .minOutput(0)
-            .scale(0.01).warp(g), 8, 96);
+        this.generator = NoisePreset.NATURAL.create(1234).fit(0, 64).scale(0.2);
     }
 
     @Override

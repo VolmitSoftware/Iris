@@ -5,11 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Singular;
 import lombok.experimental.Accessors;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 @Data
@@ -17,8 +14,8 @@ import java.util.Map;
 @Builder
 @AllArgsConstructor
 @Accessors(fluent = true, chain = true)
-public class IrisDimension implements Mutated
+public class IrisDimensionAuthor implements Mutated
 {
-    @Builder.Default
-    private IrisDimensionMeta meta = new IrisDimensionMeta();
+    private String name;
+    private Map<String, String> social;
 }

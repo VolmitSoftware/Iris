@@ -59,14 +59,21 @@ compileJava {
 shadowJar {
     //minimize()
     append("plugin.yml")
-    relocate 'com.volmit.fukkit', 'com.volmit.iris.util.fukkit'
+    relocate 'com.dfsek.paralithic', 'com.volmit.iris.util.paralithic'
     relocate 'art.arcane.amulet', 'com.volmit.iris.util.amulet'
+    relocate 'com.volmit.fukkit', 'com.volmit.iris.util.fukkit'
+    relocate 'manifold', 'com.volmit.iris.util.manifold'
     relocate 'art.arcane.source', 'com.volmit.iris.util.source'
+    relocate 'ChumBukkit.extensions', 'com.volmit.iris.util.extensions'
+    relocate 'Fukkit.extensions', 'com.volmit.iris.util.extensions'
+    relocate 'Amulet.extensions', 'com.volmit.iris.util.extensions'
+    relocate 'Iris.extensions', 'com.volmit.iris.util.extensions'
     dependencies {
         include(dependency('art.arcane.source:Source'))
         include(dependency('art.arcane:Amulet'))
         include(dependency('com.volmit:Fukkit'))
         include(dependency('systems.manifold:'))
+        include(dependency("com.dfsek:Paralithic:"))
         include(dependency(":engine"))
     }
 }

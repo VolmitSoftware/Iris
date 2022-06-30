@@ -1,4 +1,4 @@
-package Iris.extensions.org.bukkit.NamespacedKey;
+package IrisBukkit.extensions.org.bukkit.NamespacedKey;
 
 import com.volmit.iris.platform.bukkit.wrapper.BukkitKey;
 import manifold.ext.rt.api.Extension;

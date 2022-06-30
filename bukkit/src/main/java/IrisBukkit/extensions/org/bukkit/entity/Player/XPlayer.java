@@ -1,4 +1,4 @@
-package Iris.extensions.org.bukkit.entity.Player;
+package IrisBukkit.extensions.org.bukkit.entity.Player;
 
 import com.volmit.iris.platform.bukkit.wrapper.BukkitPlayer;
 import manifold.ext.rt.api.Extension;

@@ -1,4 +1,4 @@
-package Iris.extensions.org.bukkit.Chunk;
+package IrisBukkit.extensions.org.bukkit.Chunk;
 
 import com.volmit.iris.platform.bukkit.wrapper.BukkitChunk;
 import manifold.ext.rt.api.Extension;

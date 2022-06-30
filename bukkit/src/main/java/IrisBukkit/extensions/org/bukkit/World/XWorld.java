@@ -1,4 +1,4 @@
-package Iris.extensions.org.bukkit.World;
+package IrisBukkit.extensions.org.bukkit.World;
 
 import com.volmit.iris.platform.bukkit.wrapper.BukkitWorld;
 import manifold.ext.rt.api.Extension;

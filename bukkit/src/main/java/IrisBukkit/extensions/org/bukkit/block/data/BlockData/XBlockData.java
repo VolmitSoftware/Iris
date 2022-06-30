@@ -1,4 +1,4 @@
-package Iris.extensions.org.bukkit.block.data.BlockData;
+package IrisBukkit.extensions.org.bukkit.block.data.BlockData;
 
 import com.volmit.iris.platform.bukkit.wrapper.BukkitBlock;
 import com.volmit.iris.platform.bukkit.wrapper.BukkitKey;

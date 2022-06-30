@@ -34,6 +34,7 @@ public class IrisBukkit extends JavaPlugin implements IrisPlatform {
 
         getServer().getScheduler().scheduleSyncDelayedTask(this, () -> {
             World world = Bukkit.createWorld(new WorldCreator("iristests/" + UUID.randomUUID()).generator(new IrisBukkitChunkGenerator(this, EngineConfiguration.builder()
+                .timings(true).mutable(true)
                 .build())));
             for(Player i : Bukkit.getOnlinePlayers())
             {
@@ -89,7 +90,8 @@ public class IrisBukkit extends JavaPlugin implements IrisPlatform {
     public Stream<PlatformBlock> getBlocks() {
         //This is because it's a method extension
         //noinspection Convert2MethodRef
-        return Arrays.stream(Material.values()).parallel().filter((i) -> !i.isLegacy())
+        return Arrays.stream(Material.values())
+            .filter(i -> !i.isLegacy())
             .filter(Material::isBlock)
             .map(Material::createBlockData).map(i -> i.bukkitBlock());
     }

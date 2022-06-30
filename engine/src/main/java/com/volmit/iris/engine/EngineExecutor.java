@@ -1,5 +1,6 @@
 package com.volmit.iris.engine;
 
+import art.arcane.amulet.concurrent.J;
 import lombok.Data;
 
 import java.io.Closeable;
@@ -16,6 +17,7 @@ public class EngineExecutor implements ForkJoinPool.ForkJoinWorkerThreadFactory,
     {
         this.engine = engine;
         forks = new ForkJoinPool(engine.getConfiguration().getThreads(), this, this, true);
+        i("Started Pool with " + engine.getConfiguration().getThreads() + " priority " + engine.getConfiguration().getThreadPriority() + " threads.");
     }
 
     @Override
@@ -32,6 +34,18 @@ public class EngineExecutor implements ForkJoinPool.ForkJoinWorkerThreadFactory,
 
     @Override
     public void close() throws IOException {
-        forks.shutdownNow().forEach(Runnable::run);
+        i("Shutting down generator pool");
+        forks.shutdownNow().forEach((i) -> {
+            try
+            {
+                i.run();
+            }
+
+            catch(Throwable e)
+            {
+                e.printStackTrace();
+            }
+        });
+        i("Generator pool shutdown");
     }
 }

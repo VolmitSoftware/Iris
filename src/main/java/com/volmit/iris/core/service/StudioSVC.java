@@ -171,7 +171,7 @@ public class StudioSVC implements IrisService {
             String[] nodes = url.split("\\Q/\\E");
             String repo = nodes.length == 1 ? "IrisDimensions/" + nodes[0] : nodes[0] + "/" + nodes[1];
             branch = nodes.length > 2 ? nodes[2] : branch;
-            download(sender, repo, branch, trim, forceOverwrite);
+            download(sender, repo, branch, trim, forceOverwrite, false);
         } catch(Throwable e) {
             Iris.reportError(e);
             e.printStackTrace();
@@ -179,12 +179,22 @@ public class StudioSVC implements IrisService {
         }
     }
 
-    public void download(VolmitSender sender, String repo, String branch, boolean trim) throws JsonSyntaxException, IOException {
-        download(sender, repo, branch, trim, false);
+    public void downloadRelease(VolmitSender sender, String url, boolean trim, boolean forceOverwrite) {
+        try {
+            download(sender, "IrisDimensions", url, trim, forceOverwrite, true);
+        } catch(Throwable e) {
+            Iris.reportError(e);
+            e.printStackTrace();
+            sender.sendMessage("Failed to download 'IrisDimensions/overworld' from " + url + ".");
+        }
     }
 
-    public void download(VolmitSender sender, String repo, String branch, boolean trim, boolean forceOverwrite) throws JsonSyntaxException, IOException {
-        String url = "https://codeload.github.com/" + repo + "/zip/refs/heads/" + branch;
+    public void download(VolmitSender sender, String repo, String branch, boolean trim) throws JsonSyntaxException, IOException {
+        download(sender, repo, branch, trim, false, false);
+    }
+
+    public void download(VolmitSender sender, String repo, String branch, boolean trim, boolean forceOverwrite, boolean directUrl) throws JsonSyntaxException, IOException {
+        String url = directUrl ? branch : "https://codeload.github.com/" + repo + "/zip/refs/heads/" + branch;
         sender.sendMessage("Downloading " + url + " "); //The extra space stops a bug in adventure API from repeating the last letter of the URL
         File zip = Iris.getNonCachedFile("pack-" + trim + "-" + repo, url);
         File temp = Iris.getTemp();

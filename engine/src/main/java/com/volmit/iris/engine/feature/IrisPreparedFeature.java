@@ -17,7 +17,6 @@ public class IrisPreparedFeature<T extends PlatformNamespaced, S extends IrisFea
     {
         IrisFeatureTarget<T> target = size.hunked(origin);
         feature.generate(engine, state, target);
-
         return target;
     }
 }

@@ -1,6 +1,6 @@
 package com.volmit.iris.engine.dimension;
 
-import com.volmit.iris.engine.editor.Mutated;
+import com.volmit.iris.engine.editor.Resolvable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,7 +14,7 @@ import java.util.Map;
 @Builder
 @AllArgsConstructor
 @Accessors(fluent = true, chain = true)
-public class IrisDimensionAuthor implements Mutated
+public class IrisDimensionAuthor implements Resolvable
 {
     private String name;
     private Map<String, String> social;

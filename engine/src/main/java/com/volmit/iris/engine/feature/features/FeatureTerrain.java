@@ -2,10 +2,6 @@ package com.volmit.iris.engine.feature.features;
 
 import art.arcane.amulet.range.IntegerRange;
 import art.arcane.source.api.NoisePlane;
-import art.arcane.source.api.fractal.FractalFBMProvider;
-import art.arcane.source.api.interpolator.StarcastInterpolator;
-import art.arcane.source.api.noise.provider.CellularProvider;
-import art.arcane.source.api.noise.provider.SimplexProvider;
 import art.arcane.source.api.util.NoisePreset;
 import com.volmit.iris.engine.Engine;
 import com.volmit.iris.engine.feature.IrisFeature;

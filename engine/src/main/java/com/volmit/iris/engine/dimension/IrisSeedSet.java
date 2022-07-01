@@ -1,7 +1,7 @@
 package com.volmit.iris.engine.dimension;
 
 import com.volmit.iris.engine.Engine;
-import com.volmit.iris.engine.editor.Mutated;
+import com.volmit.iris.engine.editor.Resolvable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,7 +11,7 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(fluent = true, chain = true)
-public class IrisSeedSet  implements Mutated {
+public class IrisSeedSet  implements Resolvable {
     private IrisSeedSetMode mode = IrisSeedSetMode.LOCAL_OFFSET;
     private long offset = 1337;
 

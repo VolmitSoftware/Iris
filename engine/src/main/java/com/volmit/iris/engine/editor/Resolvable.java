@@ -7,7 +7,7 @@ import com.google.gson.stream.JsonWriter;
 
 import java.io.IOException;
 
-public interface Mutated {
+public interface Resolvable {
     default void apply(GsonBuilder builder) {
         if(this instanceof TypeAdapterFactory f) {
             builder.registerTypeAdapterFactory(f);

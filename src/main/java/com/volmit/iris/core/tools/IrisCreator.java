@@ -38,8 +38,11 @@ import org.bukkit.GameRule;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -174,7 +177,8 @@ public class IrisCreator {
                     world.get().setTime(6000);
                 }
             });
-        }
+        } else
+            addToBukkitYml();
 
         if(pregen != null) {
             CompletableFuture<Boolean> ff = new CompletableFuture<>();
@@ -204,7 +208,24 @@ public class IrisCreator {
                 e.printStackTrace();
             }
         }
-
         return world.get();
+    }
+
+    private static final File BUKKIT_YML = new File(Bukkit.getServer().getWorldContainer(), "bukkit.yml");
+
+    private void addToBukkitYml() {
+        YamlConfiguration yml = YamlConfiguration.loadConfiguration(BUKKIT_YML);
+        String gen = "Iris:" + dimension;
+        ConfigurationSection section = yml.contains("worlds") ? yml.getConfigurationSection("worlds") : yml.createSection("worlds");
+        if(!section.contains(name)) {
+            section.createSection(name).set("generator", gen);
+            try {
+                yml.save(BUKKIT_YML);
+                Iris.info("Registered \"" + name + "\" in bukkit.yml");
+            } catch(IOException e) {
+                Iris.error("Failed to update bukkit.yml!");
+                e.printStackTrace();
+            }
+        }
     }
 }

@@ -5,4 +5,4 @@ api-version: 1.19
 libraries:
 - org.apache-extras.beanshell:bsh:2.0b6
 - com.google.code.gson:gson:2.8.9
-- com.github.ben-manes.caffeine:caffeine:3.0.6
+- com.github.ben-manes.caffeine:caffeine:3.1.1

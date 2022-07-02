@@ -1,13 +1,21 @@
 package com.volmit.iris.engine.editor;
 
+import art.arcane.amulet.format.Form;
 import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
+import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
+import com.volmit.iris.platform.PlatformNamespaced;
+import lombok.AllArgsConstructor;
 
 import java.io.IOException;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public interface Resolvable {
+public interface Resolvable extends PlatformNamespaced {
     default void apply(GsonBuilder builder) {
         if(this instanceof TypeAdapterFactory f) {
             builder.registerTypeAdapterFactory(f);
@@ -24,5 +32,51 @@ public interface Resolvable {
                 throw new RuntimeException(ex);
             }
         }
+    }
+
+    @Target({ElementType.FIELD, ElementType.TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @interface Entity {
+        String id();
+        String name() default "";
+        String namePlural() default "";
+        JsonToken[] jsonTypes() default JsonToken.BEGIN_OBJECT;
+
+        @AllArgsConstructor
+        @lombok.Data
+        class ResolverEntityData
+        {
+            private final Entity annotation;
+
+            public String getId() {
+                return annotation.id();
+            }
+
+            public String getName() {
+                return annotation.name().isEmpty() ? Form.capitalizeWords(getId().replaceAll("\\Q-\\E", " ")) : annotation.name();
+            }
+
+            public String getNamePlural() {
+                return annotation.namePlural().isEmpty() ? getName() + "s" : annotation.namePlural();
+            }
+        }
+    }
+
+    @Target({ElementType.FIELD, ElementType.TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @interface TokenConstructor {
+        JsonToken[] value();
+    }
+
+    @Target({ElementType.FIELD, ElementType.TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @interface Type {
+        Class<? extends Resolvable> value();
+    }
+
+    @Target({ElementType.FIELD, ElementType.TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @interface PlatformType {
+        Class<? extends PlatformNamespaced> value();
     }
 }

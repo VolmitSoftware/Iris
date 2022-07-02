@@ -4,6 +4,7 @@ import com.volmit.iris.engine.editor.Resolvable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
@@ -13,8 +14,10 @@ import java.util.Map;
 @NoArgsConstructor
 @Builder
 @AllArgsConstructor
+@EqualsAndHashCode(callSuper=false)
 @Accessors(fluent = true, chain = true)
-public class IrisDimensionAuthor implements Resolvable
+@Resolvable.Entity(id = "author")
+public class IrisAuthor extends IrisResolvable
 {
     private String name;
     private Map<String, String> social;

@@ -1,8 +1,5 @@
 package com.volmit.iris.engine.dimension;
 
-import art.arcane.source.api.NoisePlane;
-import art.arcane.source.api.script.NoisePlaneConstructor;
-import art.arcane.source.api.util.NoisePreset;
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
@@ -18,36 +15,25 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-import javax.script.ScriptException;
 import java.io.IOException;
 
-@Data
-@NoArgsConstructor
 @Builder
+@Data
 @AllArgsConstructor
+@NoArgsConstructor
 @EqualsAndHashCode(callSuper=false)
 @Accessors(fluent = true, chain = true)
-@Resolvable.Entity(id = "generator", jsonTypes = {JsonToken.STRING, JsonToken.BEGIN_OBJECT})
-public class IrisGenerator  extends IrisResolvable implements TypeAdapterFactory {
-    public static final IrisGenerator NATURAL = IrisGenerator.builder().java("art.arcane.source.api.util.NoisePreset.NATURAL.create(seed)").build();
-    public static final IrisGenerator WHITE = IrisGenerator.builder().java("Noise.white(seed)").build();
-    public static final IrisGenerator FLAT = IrisGenerator.builder().java("Noise.flat(seed)").build();
+@Resolvable.Entity(id = "range", jsonTypes = {JsonToken.NUMBER, JsonToken.BEGIN_OBJECT})
+public class IrisRange extends IrisResolvable implements TypeAdapterFactory {
+    @Builder.Default
+    @TokenConstructor(JsonToken.NUMBER)
+    private double max = 1;
 
     @Builder.Default
-    private String java = "art.arcane.source.api.util.NoisePreset.NATURAL.create(seed)";
+    private double min = 1;
 
     @Builder.Default
-    private IrisSeed seed = new IrisSeed();
-
-    public NoisePlane getNoisePlane(long seed)
-    {
-        try {
-            return NoisePlaneConstructor.execute(seed, java);
-        } catch(ScriptException e) {
-            e.printStackTrace();
-            return NoisePreset.NATURAL.create(seed);
-        }
-    }
+    private IrisGenerator generator = IrisGenerator.NATURAL;
 
     @Override
     public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
@@ -64,12 +50,21 @@ public class IrisGenerator  extends IrisResolvable implements TypeAdapterFactory
             public T read(JsonReader in) throws IOException {
                 JsonToken token = in.peek();
 
-                if(token == JsonToken.STRING) {
-                    return (T) IrisGenerator.builder().java(in.nextString()).build();
+                if(token == JsonToken.NUMBER) {
+                    double d = in.nextDouble();
+                    return (T) IrisRange.builder().min(d).max(d).generator(IrisGenerator.FLAT).build();
                 }
 
                 return delegate.read(in);
             }
         };
+    }
+
+    public static IrisRange flat(double v) {
+        return IrisRange.builder()
+            .max(v)
+            .min(v)
+            .generator(IrisGenerator.FLAT)
+            .build();
     }
 }

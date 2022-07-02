@@ -1,8 +1,5 @@
 package com.volmit.iris.engine.dimension;
 
-import art.arcane.source.api.NoisePlane;
-import art.arcane.source.api.script.NoisePlaneConstructor;
-import art.arcane.source.api.util.NoisePreset;
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
@@ -10,6 +7,7 @@ import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
+import com.volmit.iris.engine.Engine;
 import com.volmit.iris.engine.editor.Resolvable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,7 +16,6 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-import javax.script.ScriptException;
 import java.io.IOException;
 
 @Data
@@ -27,26 +24,36 @@ import java.io.IOException;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper=false)
 @Accessors(fluent = true, chain = true)
-@Resolvable.Entity(id = "generator", jsonTypes = {JsonToken.STRING, JsonToken.BEGIN_OBJECT})
-public class IrisGenerator  extends IrisResolvable implements TypeAdapterFactory {
-    public static final IrisGenerator NATURAL = IrisGenerator.builder().java("art.arcane.source.api.util.NoisePreset.NATURAL.create(seed)").build();
-    public static final IrisGenerator WHITE = IrisGenerator.builder().java("Noise.white(seed)").build();
-    public static final IrisGenerator FLAT = IrisGenerator.builder().java("Noise.flat(seed)").build();
+@Resolvable.Entity(id = "seed", jsonTypes = {JsonToken.NUMBER, JsonToken.STRING, JsonToken.BEGIN_OBJECT})
+public class IrisSeed extends IrisResolvable implements TypeAdapterFactory {
+    @Builder.Default
+    private IrisSeedSetMode mode = IrisSeedSetMode.LOCAL_OFFSET;
 
     @Builder.Default
-    private String java = "art.arcane.source.api.util.NoisePreset.NATURAL.create(seed)";
+    @TokenConstructor(JsonToken.NUMBER)
+    private long offset = 0;
 
-    @Builder.Default
-    private IrisSeed seed = new IrisSeed();
+    @TokenConstructor(JsonToken.STRING)
+    private String hashOffset;
 
-    public NoisePlane getNoisePlane(long seed)
-    {
-        try {
-            return NoisePlaneConstructor.execute(seed, java);
-        } catch(ScriptException e) {
-            e.printStackTrace();
-            return NoisePreset.NATURAL.create(seed);
+    public long getOffset() {
+        if(hashOffset != null && hashOffset.isNotEmpty()) {
+            return hashOffset.hashCode() + offset;
         }
+
+        return offset;
+    }
+
+    public double getSeed(Engine engine, long localSeed) {
+        return switch(mode)
+            {
+                case WORLD -> engine.getSeedManager().getWorldSeed();
+                case LOCAL -> localSeed;
+                case LOCAL_OFFSET -> localSeed + getOffset();
+                case RAW -> getOffset();
+                case WORLD_OFFSET -> engine.getSeedManager().getWorldSeed() + getOffset();
+                case RANDOM -> (Math.random() * Long.MAX_VALUE) + (Math.random() * Long.MAX_VALUE);
+            };
     }
 
     @Override
@@ -65,7 +72,11 @@ public class IrisGenerator  extends IrisResolvable implements TypeAdapterFactory
                 JsonToken token = in.peek();
 
                 if(token == JsonToken.STRING) {
-                    return (T) IrisGenerator.builder().java(in.nextString()).build();
+                    return (T) IrisSeed.builder().hashOffset(in.nextString()).build();
+                }
+
+                if(token == JsonToken.NUMBER) {
+                    return (T) IrisSeed.builder().offset(Double.doubleToLongBits(in.nextDouble())).build();
                 }
 
                 return delegate.read(in);

@@ -9,7 +9,6 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Builder
@@ -18,10 +17,11 @@ import java.util.List;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper=false)
 @Accessors(fluent = true, chain = true)
-@Resolvable.Entity(id = "biome")
-public class IrisBiome extends IrisResolvable {
-    private String name;
+@Resolvable.Entity(id = "surface-layer")
+public class IrisSurfaceLayer extends IrisResolvable {
+   @Builder.Default
+   private IrisPalette palette = IrisPalette.flat("minecraft:stone");
 
-    @Builder.Default
-    private IrisSurface surface = new IrisSurface();
+   @Builder.Default
+   private IrisRange thickness = IrisRange.flat(1);
 }

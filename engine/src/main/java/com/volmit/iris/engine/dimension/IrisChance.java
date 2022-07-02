@@ -1,8 +1,5 @@
 package com.volmit.iris.engine.dimension;
 
-import art.arcane.source.api.NoisePlane;
-import art.arcane.source.api.script.NoisePlaneConstructor;
-import art.arcane.source.api.util.NoisePreset;
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
@@ -18,36 +15,23 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-import javax.script.ScriptException;
 import java.io.IOException;
 
-@Data
-@NoArgsConstructor
 @Builder
+@Data
 @AllArgsConstructor
+@NoArgsConstructor
 @EqualsAndHashCode(callSuper=false)
 @Accessors(fluent = true, chain = true)
-@Resolvable.Entity(id = "generator", jsonTypes = {JsonToken.STRING, JsonToken.BEGIN_OBJECT})
-public class IrisGenerator  extends IrisResolvable implements TypeAdapterFactory {
-    public static final IrisGenerator NATURAL = IrisGenerator.builder().java("art.arcane.source.api.util.NoisePreset.NATURAL.create(seed)").build();
-    public static final IrisGenerator WHITE = IrisGenerator.builder().java("Noise.white(seed)").build();
-    public static final IrisGenerator FLAT = IrisGenerator.builder().java("Noise.flat(seed)").build();
-
+@Resolvable.Entity(id = "chance", jsonTypes = {JsonToken.STRING, JsonToken.BEGIN_OBJECT})
+public class IrisChance extends IrisResolvable implements TypeAdapterFactory {
     @Builder.Default
-    private String java = "art.arcane.source.api.util.NoisePreset.NATURAL.create(seed)";
+    @TokenConstructor(JsonToken.NUMBER)
+    private double threshold = 0.5;
 
+    @TokenConstructor(JsonToken.STRING)
     @Builder.Default
-    private IrisSeed seed = new IrisSeed();
-
-    public NoisePlane getNoisePlane(long seed)
-    {
-        try {
-            return NoisePlaneConstructor.execute(seed, java);
-        } catch(ScriptException e) {
-            e.printStackTrace();
-            return NoisePreset.NATURAL.create(seed);
-        }
-    }
+    private IrisGenerator generator = IrisGenerator.WHITE;
 
     @Override
     public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
@@ -65,11 +49,25 @@ public class IrisGenerator  extends IrisResolvable implements TypeAdapterFactory
                 JsonToken token = in.peek();
 
                 if(token == JsonToken.STRING) {
-                    return (T) IrisGenerator.builder().java(in.nextString()).build();
+                    return (T) IrisChance.half(gson.fromJson(in.nextString(), IrisGenerator.class));
                 }
 
                 return delegate.read(in);
             }
         };
+    }
+
+    public static IrisChance half(IrisGenerator generator) {
+        return IrisChance.builder()
+            .threshold(0.5)
+            .generator(generator)
+            .build();
+    }
+
+    public static IrisChance white(double chance) {
+        return IrisChance.builder()
+            .threshold(chance)
+            .generator(IrisGenerator.WHITE)
+            .build();
     }
 }

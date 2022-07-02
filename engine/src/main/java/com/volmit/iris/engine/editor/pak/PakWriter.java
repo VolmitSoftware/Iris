@@ -32,7 +32,7 @@ public class PakWriter {
     }
 
     public PakWriter(File folder, String name) throws IOException {
-        this(folder, name, 1MB);
+        this(folder, name, 1LMB);
     }
 
     public void write() throws IOException, UnserializableClassException, IllegalAccessException {

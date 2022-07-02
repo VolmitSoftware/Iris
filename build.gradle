@@ -24,7 +24,7 @@ allprojects {
         compileOnly 'org.projectlombok:lombok:1.18.24'
         annotationProcessor 'org.projectlombok:lombok:1.18.24'
         implementation 'art.arcane.source:Source:22.6.9'
-        implementation 'art.arcane:Amulet:22.7.1'
+        implementation 'art.arcane:Amulet:22.7.2'
         implementation 'com.github.ben-manes.caffeine:caffeine:3.1.1'
         annotationProcessor 'systems.manifold:manifold-ext:2022.1.18'
         testAnnotationProcessor 'systems.manifold:manifold-ext:2022.1.18'

@@ -17,10 +17,8 @@ public class EnginePipeline
     @Singular
     private final List<PipelinePhase> phases;
 
-    public void generate(Engine engine, IrisFeatureSizedTarget target, PipedHunkStack stack)
-    {
-        for(PipelinePhase i : phases)
-        {
+    public void generate(Engine engine, IrisFeatureSizedTarget target, PipedHunkStack stack) {
+        for(PipelinePhase i : phases) {
             i.generate(engine, target, stack);
         }
     }

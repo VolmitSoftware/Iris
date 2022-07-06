@@ -61,7 +61,6 @@ shadowJar {
     append("plugin.yml")
     relocate 'com.dfsek.paralithic', 'com.volmit.iris.util.paralithic'
     relocate 'art.arcane', 'com.volmit.iris.util.arcane'
-    relocate 'com.volmit.fukkit', 'com.volmit.iris.util.fukkit'
     relocate 'manifold', 'com.volmit.iris.util.manifold'
     relocate 'art.arcane.source', 'com.volmit.iris.util.source'
     relocate 'ChumBukkit.extensions', 'com.volmit.iris.util.extensions'
@@ -69,9 +68,7 @@ shadowJar {
     relocate 'Amulet.extensions', 'com.volmit.iris.util.extensions'
     relocate 'Iris.extensions', 'com.volmit.iris.util.extensions'
     dependencies {
-        include(dependency('art.arcane.source:Source'))
         include(dependency('art.arcane:'))
-        include(dependency('com.volmit:Fukkit'))
         include(dependency('systems.manifold:'))
         include(dependency("com.dfsek:Paralithic:"))
         include(dependency(":engine"))
@@ -103,7 +100,7 @@ repositories {
 
 dependencies {
     implementation 'org.spigotmc:spigot-api:1.19-R0.1-SNAPSHOT'
-    implementation 'com.volmit:Fukkit:22.6.13'
+    implementation 'art.arcane:Fukkit:22.7.4'
     implementation project(":engine")
 }
 

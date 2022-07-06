@@ -1,7 +1,7 @@
 package com.volmit.iris.platform.bukkit;
 
-import art.arcane.amulet.metric.Average;
-import art.arcane.amulet.metric.PrecisionStopwatch;
+import art.arcane.chrono.Average;
+import art.arcane.chrono.PrecisionStopwatch;
 import art.arcane.spatial.hunk.Hunk;
 import com.volmit.iris.engine.EngineConfiguration;
 import com.volmit.iris.engine.Engine;

@@ -1,6 +1,6 @@
 package com.volmit.iris.engine.optimizer;
 
-import art.arcane.amulet.metric.Average;
+import art.arcane.chrono.Average;
 import lombok.Data;
 
 import java.util.concurrent.atomic.AtomicInteger;

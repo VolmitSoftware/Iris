@@ -1,8 +1,8 @@
 package com.volmit.iris.engine.dimension;
 
-import art.arcane.source.api.NoisePlane;
-import art.arcane.source.api.script.NoisePlaneConstructor;
-import art.arcane.source.api.util.NoisePreset;
+import art.arcane.source.NoisePlane;
+import art.arcane.source.script.NoisePlaneConstructor;
+import art.arcane.source.util.NoisePreset;
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;

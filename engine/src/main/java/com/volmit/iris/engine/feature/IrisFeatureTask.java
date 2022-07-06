@@ -1,6 +1,6 @@
 package com.volmit.iris.engine.feature;
 
-import art.arcane.amulet.metric.PrecisionStopwatch;
+import art.arcane.chrono.PrecisionStopwatch;
 import com.volmit.iris.engine.Engine;
 import com.volmit.iris.platform.PlatformNamespaced;
 import lombok.AllArgsConstructor;

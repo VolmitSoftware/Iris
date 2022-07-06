@@ -1,9 +1,10 @@
 package com.volmit.iris.engine.editor.pak;
 
-import art.arcane.amulet.io.nbt.nbt.io.NBTUtil;
-import art.arcane.amulet.io.nbt.nbt.io.NamedTag;
-import art.arcane.amulet.io.nbt.objects.NBTObjectSerializer;
-import art.arcane.amulet.io.nbt.objects.UnserializableClassException;
+import art.arcane.nbtson.NBTSon;
+import art.arcane.nbtson.io.NBTOutputStream;
+import art.arcane.nbtson.io.NBTUtil;
+import art.arcane.nbtson.io.NamedTag;
+import art.arcane.nbtson.io.UnserializableClassException;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -35,7 +36,7 @@ public class PakWriter {
         this(folder, name, 1LMB);
     }
 
-    public void write() throws IOException, UnserializableClassException, IllegalAccessException {
+    public void write() throws IOException {
         PakMetadata.PakMetadataBuilder meta = PakMetadata.builder().namespace(name).pakSize(pakSize);
         long totalWritten = 0;
 
@@ -50,7 +51,7 @@ public class PakWriter {
             totalWritten += written;
         }
 
-        NBTUtil.write(new NamedTag("Package " + name, NBTObjectSerializer.serialize(meta.build())), new File(folder, name + ".dat"), true);
+        NBTUtil.write(new NamedTag("Package " + name, NBTSon.toNBT(meta.build())), new File(folder, name + ".dat"), true);
         output.close();
     }
 

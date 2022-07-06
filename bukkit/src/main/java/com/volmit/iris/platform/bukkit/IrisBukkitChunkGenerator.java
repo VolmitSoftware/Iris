@@ -1,8 +1,8 @@
 package com.volmit.iris.platform.bukkit;
 
-import art.arcane.amulet.collections.hunk.Hunk;
 import art.arcane.amulet.metric.Average;
 import art.arcane.amulet.metric.PrecisionStopwatch;
+import art.arcane.spatial.hunk.Hunk;
 import com.volmit.iris.engine.EngineConfiguration;
 import com.volmit.iris.engine.Engine;
 import com.volmit.iris.engine.feature.IrisFeatureSizedTarget;
@@ -31,8 +31,7 @@ public class IrisBukkitChunkGenerator extends ChunkGenerator implements Closeabl
     private final PrecisionStopwatch p = PrecisionStopwatch.start();
     private final Average a = new Average(128);
 
-    public IrisBukkitChunkGenerator(IrisPlatform platform, EngineConfiguration configuration)
-    {
+    public IrisBukkitChunkGenerator(IrisPlatform platform, EngineConfiguration configuration) {
         this.perSecond = new AtomicInteger(0);
         this.platform = platform;
         this.configuration = configuration;

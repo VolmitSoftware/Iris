@@ -1,10 +1,9 @@
 package com.volmit.iris.engine.feature;
 
-import art.arcane.amulet.collections.hunk.Hunk;
-import art.arcane.amulet.collections.hunk.storage.ArrayHunk;
-import art.arcane.amulet.collections.hunk.view.HunkView;
 import art.arcane.amulet.geometry.Vec;
 import art.arcane.amulet.range.IntegerRange;
+import art.arcane.spatial.hunk.storage.ArrayHunk;
+import art.arcane.spatial.hunk.view.HunkView;
 import com.volmit.iris.platform.PlatformNamespaced;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -60,7 +60,7 @@ shadowJar {
     //minimize()
     append("plugin.yml")
     relocate 'com.dfsek.paralithic', 'com.volmit.iris.util.paralithic'
-    relocate 'art.arcane.amulet', 'com.volmit.iris.util.amulet'
+    relocate 'art.arcane', 'com.volmit.iris.util.arcane'
     relocate 'com.volmit.fukkit', 'com.volmit.iris.util.fukkit'
     relocate 'manifold', 'com.volmit.iris.util.manifold'
     relocate 'art.arcane.source', 'com.volmit.iris.util.source'
@@ -70,7 +70,7 @@ shadowJar {
     relocate 'Iris.extensions', 'com.volmit.iris.util.extensions'
     dependencies {
         include(dependency('art.arcane.source:Source'))
-        include(dependency('art.arcane:Amulet'))
+        include(dependency('art.arcane:'))
         include(dependency('com.volmit:Fukkit'))
         include(dependency('systems.manifold:'))
         include(dependency("com.dfsek:Paralithic:"))

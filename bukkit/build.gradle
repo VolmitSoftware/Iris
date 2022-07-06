@@ -64,6 +64,7 @@ shadowJar {
     relocate 'manifold', 'com.volmit.iris.util.manifold'
     relocate 'art.arcane.source', 'com.volmit.iris.util.source'
     relocate 'ChumBukkit.extensions', 'com.volmit.iris.util.extensions'
+    relocate 'IrisBukkit.extensions', 'com.volmit.iris.util.extensions'
     relocate 'Fukkit.extensions', 'com.volmit.iris.util.extensions'
     relocate 'Amulet.extensions', 'com.volmit.iris.util.extensions'
     relocate 'Iris.extensions', 'com.volmit.iris.util.extensions'
@@ -100,7 +101,7 @@ repositories {
 
 dependencies {
     implementation 'org.spigotmc:spigot-api:1.19-R0.1-SNAPSHOT'
-    implementation 'art.arcane:Fukkit:22.7.4'
+    implementation 'art.arcane:Fukkit:22.7.5'
     implementation project(":engine")
 }
 

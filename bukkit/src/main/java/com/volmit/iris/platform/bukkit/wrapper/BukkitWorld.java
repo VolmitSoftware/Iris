@@ -10,6 +10,7 @@ import lombok.Data;
 import org.bukkit.World;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.stream.Collectors;
 
 @Data
@@ -40,28 +41,28 @@ public class BukkitWorld implements PlatformWorld {
     @Override
     public Iterable<PlatformPlayer> getPlayers() {
         //noinspection Convert2MethodRef
-        return delegate.getPlayers().stream().map(i -> i.bukkitPlayer()).collect(Collectors.toList());
+        return delegate.getPlayers().stream().map(i -> BukkitPlayer.of(i)).collect(Collectors.toList());
     }
 
     @Override
     public Iterable<PlatformChunk> getLoadedChunks() {
         //noinspection Convert2MethodRef
-        return delegate.getLoadedChunks().stream().map(i -> i.bukkitChunk()).collect(Collectors.toList());
+        return Arrays.stream(delegate.getLoadedChunks()).map(i -> BukkitChunk.of(i)).collect(Collectors.toList());
     }
 
     @Override
     public PlatformChunk getOrLoadChunk(int x, int z) {
-        return delegate.getChunkAt(x, z).bukkitChunk();
+        return BukkitChunk.of(delegate.getChunkAt(x, z));
     }
 
     @Override
     public PlatformBlock getBlock(int x, int y, int z) {
-        return delegate.getBlockAt(x, y, z).getBlockData().bukkitBlock();
+        return BukkitBlock.of(delegate.getBlockAt(x, y, z).getBlockData());
     }
 
     @Override
     public PlatformBiome getBiome(int x, int y, int z) {
-        return delegate.getBiome(x, y, z).bukkitBiome();
+        return BukkitBiome.of(delegate.getBiome(x, y, z));
     }
 
     @Override

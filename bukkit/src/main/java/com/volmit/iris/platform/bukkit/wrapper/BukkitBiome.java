@@ -15,7 +15,7 @@ public class BukkitBiome implements PlatformBiome {
 
     @Override
     public PlatformNamespaceKey getKey() {
-        return delegate.getKey().bukkitKey();
+        return BukkitKey.of(delegate.getKey());
     }
 
     public static BukkitBiome of(Biome biome) {

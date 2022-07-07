@@ -42,7 +42,9 @@ public interface PlatformWorld {
     }
 
     default File getIrisDataFolder() {
-        return new File(getWorldFolder("iris"), "data");
+        File f = new File(getWorldFolder("iris"), "data");
+        f.mkdirs();
+        return f;
     }
 
     default boolean isRegionLoaded(int x, int z) {

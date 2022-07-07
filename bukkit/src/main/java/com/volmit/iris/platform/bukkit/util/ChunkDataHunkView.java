@@ -48,6 +48,6 @@ public class ChunkDataHunkView implements Hunk<PlatformBlock> {
 
     @Override
     public PlatformBlock getRaw(int x, int y, int z) {
-        return chunk.getBlockData(x, y + chunk.getMinHeight(), z).bukkitBlock();
+        return BukkitBlock.of(chunk.getBlockData(x, y + chunk.getMinHeight(), z));
     }
 }

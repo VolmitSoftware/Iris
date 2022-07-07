@@ -52,7 +52,7 @@ public class BukkitBlock implements PlatformBlock {
 
     @Override
     public PlatformNamespaceKey getKey() {
-        return delegate.getMaterial().getKey().bukkitKey();
+        return BukkitKey.of(delegate.getMaterial().getKey());
     }
 
     public static BukkitBlock of(BlockData blockData) {

@@ -22,4 +22,7 @@ public class EngineConfiguration {
 
     @Builder.Default
     private int threadPriority = 3;
+
+    @Builder.Default
+    private String dimension = "overworld";
 }

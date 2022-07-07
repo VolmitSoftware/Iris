@@ -31,7 +31,7 @@ public class BukkitPlayer implements PlatformPlayer {
 
     @Override
     public PlatformWorld getWorld() {
-        return delegate.getWorld().bukkitWorld();
+        return BukkitWorld.of(delegate.getWorld());
     }
 
     @Override

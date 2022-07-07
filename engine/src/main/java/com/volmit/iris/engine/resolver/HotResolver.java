@@ -1,5 +1,6 @@
 package com.volmit.iris.engine.resolver;
 
+import art.arcane.amulet.format.Form;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
@@ -54,5 +55,19 @@ public class HotResolver<T extends Resolvable> implements Resolver<T>, CacheLoad
     @Override
     public @Nullable T load(String key) {
         return loader.apply(key);
+    }
+
+    @Override
+    public Resolver<T> and(String namespace, Resolver<T> resolver) {
+        if(!namespace.equals(getNamespace())) {
+            return new CompositeResolver<>(Map.of(namespace, resolver, getNamespace(), this));
+        }
+
+        return new MergedNamespaceResolver<>(namespace, this, resolver);
+    }
+
+    @Override
+    public void print(String type, Object printer, int indent) {
+        printer.i(Form.repeat(" ", indent) + "Hot[" + namespace + "] " + type);
     }
 }

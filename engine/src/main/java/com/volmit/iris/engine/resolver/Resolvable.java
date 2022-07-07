@@ -24,6 +24,10 @@ public interface Resolvable extends PlatformNamespaced, PlatformNamespacedMutabl
         }
     }
 
+    default Entity.ResolverEntityData entity() {
+        return new Entity.ResolverEntityData(getClass().getDeclaredAnnotation(Resolvable.Entity.class));
+    }
+
     default <T> void writeSafeJson(TypeAdapter<T> delegate, JsonWriter out, T value) {
         try {
             delegate.write(out, value);

@@ -1,5 +1,6 @@
 package com.volmit.iris.platform;
 
+import java.io.File;
 import java.util.stream.Stream;
 
 public interface IrisPlatform {
@@ -21,4 +22,6 @@ public interface IrisPlatform {
     {
         return key("minecraft", nsk);
     }
+
+    File getStudioFolder(String dimension);
 }

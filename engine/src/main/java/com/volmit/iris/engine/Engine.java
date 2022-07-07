@@ -33,7 +33,7 @@ public class Engine implements Closeable {
     private final EngineSeedManager seedManager;
     private final EngineData data;
 
-    public Engine(IrisPlatform platform, PlatformWorld world, EngineConfiguration configuration) {
+    public Engine(IrisPlatform platform, PlatformWorld world, EngineConfiguration configuration) throws IOException {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         this.configuration = configuration;
         this.platform = platform;
@@ -56,6 +56,9 @@ public class Engine implements Closeable {
                     .build())
                 .build())
             .build();
+        data.loadData(getConfiguration().isMutable()
+                ? getPlatform().getStudioFolder(getConfiguration().getDimension())
+                : getWorld().getIrisDataFolder());
     }
 
     public PlatformBlock block(String block)

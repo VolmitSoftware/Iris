@@ -17,7 +17,7 @@ import java.util.function.Predicate;
 
 public interface Resolver<T extends Resolvable> {
     @SuppressWarnings("unchecked")
-    static <F extends Resolvable> Resolver<F> frozen(Map<PakKey, PakResource> resources, Predicate<PakResource> isTypePredicate) {
+    static <F extends Resolvable> CompositeResolver<F> frozen(Map<PakKey, PakResource> resources, Predicate<PakResource> isTypePredicate) {
         Map<String, Map<String, F>> resolvables = new HashMap<>();
         Map<String, Resolver<F>> resolvers = new HashMap<>();
 
@@ -85,7 +85,12 @@ public interface Resolver<T extends Resolvable> {
         return hasNamespace(key.getNamespace()) && resolve(key) != null;
     }
 
-    default Resolver<T> addResolver(Resolver<T> resolver, String namespace) {
-        return new MergedResolver<>(resolver, this);
+    Resolver<T> and(String namespace, Resolver<T> resolver);
+
+    default void print(String type, Object printer)
+    {
+        print(type, printer, 0);
     }
+
+    void print(String type, Object printer, int index);
 }

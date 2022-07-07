@@ -10,6 +10,7 @@ import com.volmit.iris.engine.feature.IrisFeatureTarget;
 import com.volmit.iris.engine.pipeline.PipedHunkStack;
 import com.volmit.iris.platform.IrisPlatform;
 import com.volmit.iris.platform.PlatformBlock;
+import com.volmit.iris.platform.bukkit.wrapper.BukkitWorld;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.generator.ChunkGenerator;
@@ -77,7 +78,11 @@ public class IrisBukkitChunkGenerator extends ChunkGenerator implements Closeabl
 
             if(engine.get() == null)
             {
-                engine.set(new Engine(platform, world.bukkitWorld(), configuration));
+                try {
+                    engine.set(new Engine(platform, BukkitWorld.of(world), configuration));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
 
             engineLock.unlock();

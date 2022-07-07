@@ -7,7 +7,10 @@ import com.volmit.iris.platform.PlatformBiome;
 import com.volmit.iris.platform.PlatformBlock;
 import com.volmit.iris.platform.PlatformNamespaceKey;
 import com.volmit.iris.platform.PlatformWorld;
+import com.volmit.iris.platform.bukkit.wrapper.BukkitBiome;
+import com.volmit.iris.platform.bukkit.wrapper.BukkitBlock;
 import com.volmit.iris.platform.bukkit.wrapper.BukkitKey;
+import com.volmit.iris.platform.bukkit.wrapper.BukkitWorld;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.bukkit.Bukkit;
@@ -69,7 +72,7 @@ public class IrisBukkit extends JavaPlugin implements IrisPlatform {
                     }
                 }
 
-                i.bukkitWorld().unloadChunks(false, true);
+                BukkitWorld.of(i).unloadChunks(false, true);
                 File folder = i.getWorldFolder();
                 Bukkit.unloadWorld(i, false);
                 IO.delete(folder);
@@ -93,14 +96,14 @@ public class IrisBukkit extends JavaPlugin implements IrisPlatform {
         return Arrays.stream(Material.values())
             .filter(i -> !i.isLegacy())
             .filter(Material::isBlock)
-            .map(Material::createBlockData).map(i -> i.bukkitBlock());
+            .map(Material::createBlockData).map(i -> BukkitBlock.of(i));
     }
 
     @Override
     public Stream<PlatformBiome> getBiomes() {
         //This is because it's a method extension
         //noinspection Convert2MethodRef
-        return Arrays.stream(Biome.values()).parallel().filter((i) -> i != Biome.CUSTOM).map(i -> i.bukkitBiome());
+        return Arrays.stream(Biome.values()).parallel().filter((i) -> i != Biome.CUSTOM).map(i -> BukkitBiome.of(i));
     }
 
     @Override
@@ -117,17 +120,24 @@ public class IrisBukkit extends JavaPlugin implements IrisPlatform {
             return null;
         }
 
-        return w.bukkitWorld();
+        return BukkitWorld.of(w);
     }
 
     @Override
     public PlatformBlock parseBlock(String raw) {
-        return Bukkit.createBlockData(raw).bukkitBlock();
+        return BukkitBlock.of(Bukkit.createBlockData(raw));
     }
 
     @Override
     public PlatformNamespaceKey key(String namespace, String key) {
         return BukkitKey.of(namespace, key);
+    }
+
+    @Override
+    public File getStudioFolder(String dimension) {
+        File f = new File(getDataFolder(), "packs/" + dimension);
+        f.mkdirs();
+        return f;
     }
 
     @Override

@@ -1,7 +1,11 @@
 package com.volmit.iris.engine;
 
 import art.arcane.amulet.concurrent.J;
+import art.arcane.amulet.io.IO;
 import art.arcane.amulet.io.JarLoader;
+import art.arcane.cram.PakFile;
+import art.arcane.cram.PakKey;
+import art.arcane.cram.PakResource;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapterFactory;
@@ -9,6 +13,7 @@ import com.volmit.iris.engine.resolver.*;
 import lombok.Data;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,10 +24,9 @@ public class EngineData {
     private final Engine engine;
     private final Gson gson;
     private List<Resolvable> resolvableTypes;
-    private final Map<Class<? extends Resolvable>, Resolver<? extends Resolvable>> resolvers;
+    private final Map<Class<?>, Resolver<?>> resolvers;
 
-    public EngineData(Engine engine)
-    {
+    public EngineData(Engine engine) throws IOException {
         this.engine = engine;
         this.resolvers = new HashMap<>();
         this.resolvableTypes =  J.attempt(() -> new JarLoader(getClass()).all().parallel()
@@ -37,44 +41,77 @@ public class EngineData {
         i("Registered " + resolvableTypes.size() + " Mutators with " + resolvableTypes.stream().filter(i -> i instanceof TypeAdapterFactory).count() + " Type Adapter Factories");
     }
 
-    public <T extends Resolvable> void registerResolver(Class<T> type, Resolver<T> resolver, String... namespaces)
+    public void registerResolver(Class<?> type, Resolver<?> resolver, String namespace)
     {
         if(resolvers.containsKey(type)) {
-            Resolver<T> existing = (Resolver<T>) resolvers.get(type);
-
-            if(existing instanceof CompositeResolver<T> c) {
-                Map<String, Resolver<T>> oresolvers = c.getResolvers();
-
-                if(namespaces.length > 1) {
-                    CompositeResolver<T> n = (CompositeResolver<T>) resolver;
-
-                    for(String i : n.getResolvers().keySet()) {
-                        if(oresolvers.containsKey(i)) {
-                            oresolvers.put(i, new MergedResolver<>(oresolvers.get(i), n.getResolvers().get(i)));
-                        }
-
-                        else
-                        {
-                            oresolvers.put(i, n.getResolvers().get(i));
-                        }
-                    }
-                }
-
-                else
-                {
-
-                }
-            }
+            Resolver r = resolvers.get(type);
+            resolvers.put(type, r.and(namespace, r));
         }
 
-        else
-        {
+        else {
             resolvers.put(type, resolver);
         }
     }
 
-    public void loadData(File folder)
-    {
+    public void loadData(File folder) throws IOException {
+        i("Loading Data in " + folder.getPath());
+        for(File i : folder.listFiles()) {
+            if(i.isDirectory()) {
+                loadDataNamespaced(i, i.getName());
+            }
+        }
+    }
 
+    public void loadDataNamespaced(File folder, String namespace) throws IOException {
+        i("Loading Namespace " + namespace + " in " + folder.getPath());
+        for(Resolvable i : resolvableTypes)
+        {
+            new File(folder, i.entity().getId()).mkdirs();
+            IO.writeAll(
+                    new File(new File(folder, i.entity().getId()), "example.json"), gson.toJson(i));
+        }
+
+        for(File i : folder.listFiles())
+        {
+            if(i.isDirectory()) {
+                loadDataFolder(i, namespace);
+            }
+
+            else if(i.getName().endsWith(".dat")) {
+                loadPakFile(folder, i.getName().split("\\Q.\\E")[0]);
+            }
+        }
+    }
+
+    public void loadDataFolder(File folder, String namespace) {
+        for(Resolvable i : resolvableTypes)
+        {
+            if(!folder.getName().equals(i.entity().getId())) {
+                continue;
+            }
+
+            registerResolver(i.getClass(), Resolver.hotDirectoryJson(namespace, i.getClass(), folder, gson), namespace);
+        }
+    }
+
+    public void loadPakFile(File folder, String name) throws IOException {
+        PakFile pakFile = new PakFile(folder, name);
+        Map<PakKey, PakResource> resources = pakFile.getAllResources();
+
+        for(Resolvable i : resolvableTypes)
+        {
+            Class<? extends Resolvable> resolvableClass = i.getClass();
+            CompositeResolver<?> composite = Resolver.frozen(resources, (p) -> p.getClass().equals(resolvableClass));
+
+            for(String j : composite.getResolvers().keySet())
+            {
+                Resolver<? extends Resolvable> resolver = composite.getResolvers().get(i);
+                this.registerResolver(i.getClass(), resolver, j);
+            }
+        }
+    }
+
+    public void printResolvers() {
+        resolvers.forEach((k, i) -> i.print(k.simpleName(), this));
     }
 }

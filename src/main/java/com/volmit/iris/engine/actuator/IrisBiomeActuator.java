@@ -27,6 +27,7 @@ import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.hunk.view.BiomeGridHunkHolder;
 import com.volmit.iris.util.hunk.view.BiomeGridHunkView;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
@@ -56,10 +57,14 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
                     hh.forceBiomeBaseInto(x, y, z, bb);
                 }
                 return true;
-            }
-
-            else{
-                System.out.println("H is not a BiomeGridHunkView!")
+            } else if(h instanceof BiomeGridHunkHolder hh) {
+                ChunkGenerator.BiomeGrid g = hh.getChunk();
+                if(g instanceof TerrainChunk) {
+                    ((TerrainChunk) g).getBiomeBaseInjector().setBiome(x, y, z, bb);
+                } else {
+                    hh.forceBiomeBaseInto(x, y, z, bb);
+                }
+                return true;
             }
         } catch(Throwable e) {
             e.printStackTrace();

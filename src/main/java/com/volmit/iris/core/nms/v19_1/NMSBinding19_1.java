@@ -344,42 +344,10 @@ public class NMSBinding19_1 implements INMSBinding {
             ChunkAccess s = (ChunkAccess) getFieldForBiomeStorage(chunk).get(chunk);
             Holder<net.minecraft.world.level.biome.Biome> biome = (Holder<net.minecraft.world.level.biome.Biome>) somethingVeryDirty;
             s.setBiome(x, y, z, biome);
-            /*int l = QuartPos.fromBlock(s.getMinBuildHeight());
-            int i1 = l + QuartPos.fromBlock(s.getHeight()) - 1;
-            PalettedContainer<Holder<net.minecraft.world.level.biome.Biome>> palette = getPalette(s, s.getSectionIndex(QuartPos.toBlock(Mth.clamp(y, l, i1))));
-            int index = getPaletteIndex(x, y, z, s, palette);
-            int data = getPaletteDataId(palette, biome);
-            setPaletteData(palette, index, data);*/
         } catch(IllegalAccessException e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
-    }
-
-    private PalettedContainer<Holder<net.minecraft.world.level.biome.Biome>> getPalette(ChunkAccess ca, int index) {
-        LevelChunkSection[] sections = fieldForClass(LevelChunkSection[].class, ChunkAccess.class, ca);
-        return fieldForClass(PalettedContainer.class, LevelChunkSection.class, sections[index]);
-    }
-
-    private int getPaletteIndex(int x, int y, int z, ChunkAccess s, PalettedContainer<?> palette) {
-        int l = QuartPos.fromBlock(s.getMinBuildHeight());
-        int i1 = l + QuartPos.fromBlock(s.getHeight()) - 1;
-        int j1 = Mth.clamp(y, l, i1);
-        return fieldForClass(PalettedContainer.Strategy.class, PalettedContainer.class, palette).getIndex(x & 3, j1 & 3, z & 3);
-    }
-
-    private <T extends Holder<?>> int getPaletteDataId(PalettedContainer<T> palette, T data) throws ClassNotFoundException {
-        Class<?> dataType = getClassType(PalettedContainer.class, 1);
-        Object paletteData = fieldFor(dataType, palette);
-        Palette<T> fuckinFinally = fieldForClass(Palette.class,dataType, paletteData);
-        return fuckinFinally.idFor(data);
-    }
-
-    private void setPaletteData(PalettedContainer<?> palette, int index, int data) throws ClassNotFoundException {
-        Class<?> dataType = getClassType(PalettedContainer.class, 1);
-        Object paletteData = fieldFor(dataType, palette);
-        BitStorage storage = fieldForClass(BitStorage.class, dataType, paletteData);
-        storage.set(index, data);
     }
 
     private Field getFieldForBiomeStorage(Object storage) {

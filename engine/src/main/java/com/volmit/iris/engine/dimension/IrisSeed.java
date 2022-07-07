@@ -8,7 +8,8 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import com.volmit.iris.engine.Engine;
-import com.volmit.iris.engine.editor.Resolvable;
+import com.volmit.iris.engine.resolver.EngineResolvable;
+import com.volmit.iris.engine.resolver.Resolvable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,7 +26,7 @@ import java.io.IOException;
 @EqualsAndHashCode(callSuper=false)
 @Accessors(fluent = true, chain = true)
 @Resolvable.Entity(id = "seed", jsonTypes = {JsonToken.NUMBER, JsonToken.STRING, JsonToken.BEGIN_OBJECT})
-public class IrisSeed extends IrisResolvable implements TypeAdapterFactory {
+public class IrisSeed extends EngineResolvable implements TypeAdapterFactory {
     @Builder.Default
     private IrisSeedSetMode mode = IrisSeedSetMode.LOCAL_OFFSET;
 

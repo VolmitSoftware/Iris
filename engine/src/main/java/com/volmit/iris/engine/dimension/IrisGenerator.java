@@ -10,7 +10,8 @@ import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
-import com.volmit.iris.engine.editor.Resolvable;
+import com.volmit.iris.engine.resolver.EngineResolvable;
+import com.volmit.iris.engine.resolver.Resolvable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -28,7 +29,7 @@ import java.io.IOException;
 @EqualsAndHashCode(callSuper=false)
 @Accessors(fluent = true, chain = true)
 @Resolvable.Entity(id = "generator", jsonTypes = {JsonToken.STRING, JsonToken.BEGIN_OBJECT})
-public class IrisGenerator  extends IrisResolvable implements TypeAdapterFactory {
+public class IrisGenerator  extends EngineResolvable implements TypeAdapterFactory {
     public static final IrisGenerator NATURAL = IrisGenerator.builder().java("art.arcane.source.api.util.NoisePreset.NATURAL.create(seed)").build();
     public static final IrisGenerator WHITE = IrisGenerator.builder().java("Noise.white(seed)").build();
     public static final IrisGenerator FLAT = IrisGenerator.builder().java("Noise.flat(seed)").build();

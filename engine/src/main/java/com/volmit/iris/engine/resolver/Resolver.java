@@ -1,8 +1,8 @@
-package com.volmit.iris.engine.editor.resolver;
+package com.volmit.iris.engine.resolver;
 
+import art.arcane.cram.PakKey;
+import art.arcane.cram.PakResource;
 import com.google.gson.Gson;
-import com.volmit.iris.engine.Engine;
-import com.volmit.iris.engine.editor.Resolvable;
 import com.volmit.iris.platform.PlatformNamespaceKey;
 
 import java.io.File;
@@ -10,10 +10,33 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public interface Resolver<T extends Resolvable> {
+    @SuppressWarnings("unchecked")
+    static <F extends Resolvable> Resolver<F> frozen(Map<PakKey, PakResource> resources, Predicate<PakResource> isTypePredicate) {
+        Map<String, Map<String, F>> resolvables = new HashMap<>();
+        Map<String, Resolver<F>> resolvers = new HashMap<>();
+
+        for(PakKey i : resources.keySet()) {
+            PakResource r = resources.get(i);
+
+            if(isTypePredicate.test(r)) {
+                Map<String, F> rs = resolvables.computeIfAbsent(i.getNamespace(), (k) -> new HashMap<>());
+                rs.put(i.getKey(), (F) i);
+            }
+        }
+
+        for(String i : resolvables.keySet()) {
+            resolvers.put(i, frozen(i, resolvables.get(i)));
+        }
+
+        return new CompositeResolver<>(resolvers);
+    }
+
     static <F extends Resolvable> Resolver<F> frozen(String namespace, Map<String, F> map) {
         return new FrozenResolver<>(namespace, map);
     }
@@ -60,5 +83,9 @@ public interface Resolver<T extends Resolvable> {
 
     default boolean contains(PlatformNamespaceKey key){
         return hasNamespace(key.getNamespace()) && resolve(key) != null;
+    }
+
+    default Resolver<T> addResolver(Resolver<T> resolver, String namespace) {
+        return new MergedResolver<>(resolver, this);
     }
 }

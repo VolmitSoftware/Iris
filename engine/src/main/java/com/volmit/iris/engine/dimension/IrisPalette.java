@@ -7,7 +7,8 @@ import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
-import com.volmit.iris.engine.editor.Resolvable;
+import com.volmit.iris.engine.resolver.EngineResolvable;
+import com.volmit.iris.engine.resolver.Resolvable;
 import com.volmit.iris.platform.PlatformBlock;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,7 +16,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.Singular;
-import lombok.ToString;
 import lombok.experimental.Accessors;
 
 import java.io.IOException;
@@ -29,7 +29,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper=false)
 @Accessors(fluent = true, chain = true)
 @Resolvable.Entity(id = "palette")
-public class IrisPalette extends IrisResolvable implements TypeAdapterFactory {
+public class IrisPalette extends EngineResolvable implements TypeAdapterFactory {
     @Singular
     @PlatformType(PlatformBlock.class)
     @TokenConstructor(JsonToken.STRING)

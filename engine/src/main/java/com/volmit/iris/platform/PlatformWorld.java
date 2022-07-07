@@ -41,6 +41,10 @@ public interface PlatformWorld {
         return getWorldFolder("iris");
     }
 
+    default File getIrisDataFolder() {
+        return new File(getWorldFolder("iris"), "data");
+    }
+
     default boolean isRegionLoaded(int x, int z) {
         for(PlatformChunk i : getLoadedChunks()) {
             if(i.getX() >> 5 == x && i.getZ() >> 5 == z) {

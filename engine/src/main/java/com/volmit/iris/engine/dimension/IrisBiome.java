@@ -1,16 +1,13 @@
 package com.volmit.iris.engine.dimension;
 
-import com.google.gson.stream.JsonToken;
-import com.volmit.iris.engine.editor.Resolvable;
+import com.volmit.iris.engine.resolver.EngineResolvable;
+import com.volmit.iris.engine.resolver.Resolvable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Builder
 @Data
@@ -19,7 +16,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper=false)
 @Accessors(fluent = true, chain = true)
 @Resolvable.Entity(id = "biome")
-public class IrisBiome extends IrisResolvable {
+public class IrisBiome extends EngineResolvable {
     private String name;
 
     @Builder.Default

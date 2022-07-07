@@ -1,14 +1,7 @@
 package com.volmit.iris.engine.dimension;
 
-import com.google.gson.Gson;
-import com.google.gson.TypeAdapter;
-import com.google.gson.TypeAdapterFactory;
-import com.google.gson.reflect.TypeToken;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonToken;
-import com.google.gson.stream.JsonWriter;
-import com.volmit.iris.engine.editor.Resolvable;
-import com.volmit.iris.platform.PlatformBlock;
+import com.volmit.iris.engine.resolver.EngineResolvable;
+import com.volmit.iris.engine.resolver.Resolvable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,7 +10,6 @@ import lombok.NoArgsConstructor;
 import lombok.Singular;
 import lombok.experimental.Accessors;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,7 +20,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper=false)
 @Accessors(fluent = true, chain = true)
 @Resolvable.Entity(id = "surface-layer")
-public class IrisSurface extends IrisResolvable {
+public class IrisSurface extends EngineResolvable {
     @Singular
     @Type(IrisSurfaceLayer.class)
     private List<IrisSurfaceLayer> layers = new ArrayList<>();

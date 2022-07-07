@@ -7,7 +7,8 @@ import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
-import com.volmit.iris.engine.editor.Resolvable;
+import com.volmit.iris.engine.resolver.EngineResolvable;
+import com.volmit.iris.engine.resolver.Resolvable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,7 +25,7 @@ import java.io.IOException;
 @EqualsAndHashCode(callSuper=false)
 @Accessors(fluent = true, chain = true)
 @Resolvable.Entity(id = "chance", jsonTypes = {JsonToken.STRING, JsonToken.BEGIN_OBJECT})
-public class IrisChance extends IrisResolvable implements TypeAdapterFactory {
+public class IrisChance extends EngineResolvable implements TypeAdapterFactory {
     @Builder.Default
     @TokenConstructor(JsonToken.NUMBER)
     private double threshold = 0.5;

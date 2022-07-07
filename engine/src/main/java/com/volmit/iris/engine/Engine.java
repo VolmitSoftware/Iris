@@ -31,7 +31,7 @@ public class Engine implements Closeable {
     private final EngineExecutor executor;
     private final EnginePlumbing plumbing;
     private final EngineSeedManager seedManager;
-    private final EngineEditor editor;
+    private final EngineData data;
 
     public Engine(IrisPlatform platform, PlatformWorld world, EngineConfiguration configuration) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
@@ -41,7 +41,7 @@ public class Engine implements Closeable {
         i("Initializing Iris Engine for " + platform.getPlatformName() + " in " + world.getName()
             + " with " + configuration.getThreads() + " priority " + configuration.getThreadPriority()
             + " threads in " + (configuration.isMutable() ? "edit mode" : "production mode"));
-        this.editor = configuration.isMutable() ? new EngineEditor(this) : null;
+        this.data = new EngineData(this);
         this.seedManager = getSeedManager();
         this.blockCache = new EngineBlockCache(this);
         this.registry = EngineRegistry.builder()

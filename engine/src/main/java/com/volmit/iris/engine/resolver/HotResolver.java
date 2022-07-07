@@ -1,9 +1,8 @@
-package com.volmit.iris.engine.editor.resolver;
+package com.volmit.iris.engine.resolver;
 
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.volmit.iris.engine.editor.Resolvable;
 import com.volmit.iris.platform.PlatformNamespaceKey;
 import lombok.Data;
 import org.checkerframework.checker.nullness.qual.Nullable;

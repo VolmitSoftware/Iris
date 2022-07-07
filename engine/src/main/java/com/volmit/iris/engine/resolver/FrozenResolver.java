@@ -1,6 +1,5 @@
-package com.volmit.iris.engine.editor.resolver;
+package com.volmit.iris.engine.resolver;
 
-import com.volmit.iris.engine.editor.Resolvable;
 import com.volmit.iris.platform.PlatformNamespaceKey;
 import lombok.Data;
 

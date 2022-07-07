@@ -1,6 +1,7 @@
 package com.volmit.iris.engine.dimension;
 
-import com.volmit.iris.engine.editor.Resolvable;
+import com.volmit.iris.engine.resolver.EngineResolvable;
+import com.volmit.iris.engine.resolver.Resolvable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,7 +20,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper=false)
 @Accessors(fluent = true, chain = true)
 @Resolvable.Entity(id = "dimension")
-public class IrisDimension  extends IrisResolvable {
+public class IrisDimension  extends EngineResolvable {
     @Builder.Default
     private IrisDimensionMeta meta = new IrisDimensionMeta();
 

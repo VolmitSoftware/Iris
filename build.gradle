@@ -25,6 +25,7 @@ allprojects {
         annotationProcessor 'org.projectlombok:lombok:1.18.24'
         annotationProcessor 'systems.manifold:manifold-ext:2022.1.18'
         implementation 'art.arcane:Source:22.7.2'
+        implementation 'art.arcane:Cram:22.7.3'
         implementation 'art.arcane:Amulet:22.7.13'
         implementation 'com.google.code.gson:gson:2.9.0'
         implementation 'com.github.ben-manes.caffeine:caffeine:3.1.1'

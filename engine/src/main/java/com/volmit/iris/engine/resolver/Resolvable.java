@@ -1,12 +1,14 @@
-package com.volmit.iris.engine.editor;
+package com.volmit.iris.engine.resolver;
 
 import art.arcane.amulet.format.Form;
+import art.arcane.cram.PakResource;
 import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import com.volmit.iris.platform.PlatformNamespaced;
+import com.volmit.iris.platform.PlatformNamespacedMutable;
 import lombok.AllArgsConstructor;
 
 import java.io.IOException;
@@ -15,7 +17,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-public interface Resolvable extends PlatformNamespaced {
+public interface Resolvable extends PlatformNamespaced, PlatformNamespacedMutable, PakResource {
     default void apply(GsonBuilder builder) {
         if(this instanceof TypeAdapterFactory f) {
             builder.registerTypeAdapterFactory(f);

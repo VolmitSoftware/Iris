@@ -30,6 +30,7 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.Queue;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -38,6 +39,7 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class ServerConfigurator {
@@ -82,43 +84,21 @@ public class ServerConfigurator {
         }
     }
 
-    private static File getDatapacksFolder() {
+    private static List<File> getDatapacksFolder() {
         if(!IrisSettings.get().getGeneral().forceMainWorld.isEmpty()) {
-            return new File(IrisSettings.get().getGeneral().forceMainWorld + "/datapacks");
+            return new KList<File>().qadd(new File(IrisSettings.get().getGeneral().forceMainWorld + "/datapacks"));
         }
-
-        File props = new File("server.properties");
-
-        if(props.exists()) {
-            try {
-                KList<String> m = new KList<>(IO.readAll(props).split("\\Q\n\\E"));
-
-                for(String i : m) {
-                    if(i.trim().startsWith("level-name=")) {
-                        return new File(i.trim().split("\\Q=\\E")[1] + "/datapacks");
-                    }
-                }
-            } catch(IOException e) {
-                Iris.reportError(e);
-                e.printStackTrace();
-            }
-        }
-
-        return null;
+        KList<File> worlds = new KList<>();
+        Bukkit.getServer().getWorlds().forEach(w -> worlds.add(new File(w.getWorldFolder(), "datapacks")));
+        return worlds;
     }
+
 
     public static void installDataPacks(boolean fullInstall) {
         Iris.info("Checking Data Packs...");
-        boolean reboot = false;
         File packs = new File("plugins/Iris/packs");
-        File dpacks = getDatapacksFolder();
 
-        if(dpacks == null) {
-            Iris.error("Cannot find the datapacks folder! Please try generating a default world first maybe? Is this a new server?");
-            return;
-        }
-
-        if(packs.exists()) {
+         if(packs.exists()) {
             for(File i : packs.listFiles()) {
                 if(i.isDirectory()) {
                     Iris.verbose("Checking Pack: " + i.getPath());
@@ -135,8 +115,8 @@ public class ServerConfigurator {
                                 }
 
                                 Iris.verbose("  Checking Dimension " + dim.getLoadFile().getPath());
-                                if(dim.installDataPack(() -> data, dpacks)) {
-                                    reboot = true;
+                                for(File dpack : getDatapacksFolder()) {
+                                    dim.installDataPack(() -> data, dpack);
                                 }
                             }
                         }
@@ -147,19 +127,12 @@ public class ServerConfigurator {
 
         Iris.info("Data Packs Setup!");
 
-        if(fullInstall) {
+        if(fullInstall)
             verifyDataPacksPost(IrisSettings.get().getAutoConfiguration().isAutoRestartOnCustomBiomeInstall());
-        }
     }
 
     private static void verifyDataPacksPost(boolean allowRestarting) {
         File packs = new File("plugins/Iris/packs");
-        File dpacks = getDatapacksFolder();
-
-        if(dpacks == null) {
-            Iris.error("Cannot find the datapacks folder! Please try generating a default world first maybe? Is this a new server?");
-            return;
-        }
 
         boolean bad = false;
         if(packs.exists()) {

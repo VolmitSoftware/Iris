@@ -57,6 +57,10 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
                 }
                 return true;
             }
+
+            else{
+                System.out.println("H is not a BiomeGridHunkView!")
+            }
         } catch(Throwable e) {
             e.printStackTrace();
         }

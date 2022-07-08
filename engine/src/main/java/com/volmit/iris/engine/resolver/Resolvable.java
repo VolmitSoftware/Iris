@@ -1,13 +1,11 @@
 package com.volmit.iris.engine.resolver;
 
-import art.arcane.amulet.concurrent.J;
 import art.arcane.amulet.format.Form;
 import art.arcane.cram.PakResource;
 import com.google.gson.*;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import com.volmit.iris.engine.EngineData;
-import com.volmit.iris.engine.dimension.IrisSeedSetMode;
 import com.volmit.iris.platform.PlatformBiome;
 import com.volmit.iris.platform.PlatformBlock;
 import com.volmit.iris.platform.PlatformNamespaced;
@@ -164,6 +162,11 @@ public interface Resolvable extends PlatformNamespaced, PlatformNamespacedMutabl
                 object.add("minimum", new JsonPrimitive(Byte.MIN_VALUE));
                 object.add("maximum", new JsonPrimitive(Byte.MAX_VALUE));
             }
+        }
+
+        if(anyOf.size() == 1)
+        {
+            return object;
         }
 
         main.add("anyOf", anyOf);

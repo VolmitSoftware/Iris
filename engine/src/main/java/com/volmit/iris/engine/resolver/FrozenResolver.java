@@ -2,9 +2,11 @@ package com.volmit.iris.engine.resolver;
 
 import art.arcane.amulet.format.Form;
 import com.volmit.iris.platform.PlatformNamespaceKey;
+import com.volmit.iris.util.NSK;
 import lombok.Data;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -35,6 +37,11 @@ public class FrozenResolver<T extends Resolvable> implements Resolver<T> {
     @Override
     public void print(String type, Object printer, int indent) {
         printer.i(Form.repeat(" ", indent) + "Frozen[" + namespace + "] " + type);
+    }
+
+    @Override
+    public void addAllKeys(List<PlatformNamespaceKey> keys) {
+        registry.keySet().forEach((k) -> keys.add(new NSK(getNamespace(), k)));
     }
 
     @Override

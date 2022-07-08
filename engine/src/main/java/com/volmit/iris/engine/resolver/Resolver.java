@@ -10,10 +10,14 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public interface Resolver<T extends Resolvable> {
     @SuppressWarnings("unchecked")
@@ -41,8 +45,8 @@ public interface Resolver<T extends Resolvable> {
         return new FrozenResolver<>(namespace, map);
     }
 
-    static <F extends Resolvable> Resolver<F> hot(String namespace, Function<String, F> loader) {
-        return new HotResolver<>(namespace, loader);
+    static <F extends Resolvable> Resolver<F> hot(String namespace, Function<String, F> loader, Supplier<List<String>> keyGetter) {
+        return new HotResolver<>(namespace, loader, keyGetter);
     }
 
     static <F extends Resolvable> Resolver<F> hotDirectoryJson(String namespace, Class<?> resolvableClass, File folder, Gson gson) {
@@ -68,6 +72,24 @@ public interface Resolver<T extends Resolvable> {
             }
 
             return null;
+        }, () -> {
+            List<String> s = new ArrayList<>();
+
+            for(File i : folder.listFiles())
+            {
+                if(i.isFile()) {
+                    for(String j : extensions)
+                    {
+                        if(i.getName().endsWith(j))
+                        {
+                            s.add(i.getName().split("\\Q.\\E")[0]);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return s;
         });
     }
 
@@ -93,4 +115,6 @@ public interface Resolver<T extends Resolvable> {
     }
 
     void print(String type, Object printer, int index);
+
+    void addAllKeys(List<PlatformNamespaceKey> keys);
 }

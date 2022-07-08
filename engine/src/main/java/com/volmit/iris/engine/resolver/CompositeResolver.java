@@ -5,6 +5,7 @@ import com.volmit.iris.platform.PlatformNamespaceKey;
 import lombok.Data;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -61,5 +62,10 @@ public class CompositeResolver<T extends Resolvable> implements Resolver<T> {
         for(Resolver<T> i : getResolvers().values()) {
             i.print(type, printer, indent + 2);
         }
+    }
+
+    @Override
+    public void addAllKeys(List<PlatformNamespaceKey> keys) {
+        resolvers.forEach((k, v) -> v.addAllKeys(keys));
     }
 }

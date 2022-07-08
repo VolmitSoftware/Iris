@@ -1,6 +1,8 @@
 package com.volmit.iris.engine;
 
+import com.volmit.iris.platform.PlatformNamespaceKey;
 import com.volmit.iris.platform.PlatformWorld;
+import com.volmit.iris.util.NSK;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,5 +26,5 @@ public class EngineConfiguration {
     private int threadPriority = 3;
 
     @Builder.Default
-    private String dimension = "overworld";
+    private PlatformNamespaceKey dimension = new NSK("overworld", "main");
 }

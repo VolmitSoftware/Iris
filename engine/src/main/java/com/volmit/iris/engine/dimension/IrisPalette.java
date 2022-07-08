@@ -28,10 +28,11 @@ import java.util.List;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper=false)
 @Accessors(fluent = true, chain = true)
-@Resolvable.Entity(id = "palette")
+@Resolvable.Entity(id = "palette", jsonTypes = {JsonToken.STRING, JsonToken.BEGIN_OBJECT})
 public class IrisPalette extends EngineResolvable implements TypeAdapterFactory {
     @Singular
     @PlatformType(PlatformBlock.class)
+    @Type(String.class)
     @TokenConstructor(JsonToken.STRING)
     private List<String> blocks = new ArrayList<>();
 

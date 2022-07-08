@@ -67,6 +67,11 @@ public class MergedNamespaceResolver<T extends Resolvable> implements Resolver<T
     }
 
     @Override
+    public void addAllKeys(List<PlatformNamespaceKey> keys) {
+        resolvers.forEach(i -> i.addAllKeys(keys));
+    }
+
+    @Override
     public Resolver<T> and(String namespace, Resolver<T> resolver) {
         if(namespace.equals(getNamespace()))
         {

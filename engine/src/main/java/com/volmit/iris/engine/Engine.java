@@ -1,6 +1,7 @@
 package com.volmit.iris.engine;
 
 import art.arcane.chrono.PrecisionStopwatch;
+import com.volmit.iris.engine.dimension.IrisBiome;
 import com.volmit.iris.engine.feature.features.FeatureTerrain;
 import com.volmit.iris.engine.pipeline.EnginePipeline;
 import com.volmit.iris.engine.pipeline.EnginePlumbing;
@@ -11,6 +12,7 @@ import com.volmit.iris.platform.PlatformBlock;
 import com.volmit.iris.platform.PlatformNamespaceKey;
 import com.volmit.iris.platform.PlatformRegistry;
 import com.volmit.iris.platform.PlatformWorld;
+import com.volmit.iris.util.NSK;
 import lombok.Data;
 import manifold.util.concurrent.ConcurrentWeakHashMap;
 
@@ -57,8 +59,8 @@ public class Engine implements Closeable {
                 .build())
             .build();
         data.loadData(getConfiguration().isMutable()
-                ? getPlatform().getStudioFolder(getConfiguration().getDimension())
-                : getWorld().getIrisDataFolder());
+                ? getPlatform().getStudioFolder()
+                : getWorld().getIrisDataFolder(), getConfiguration().getDimension());
     }
 
     public PlatformBlock block(String block)

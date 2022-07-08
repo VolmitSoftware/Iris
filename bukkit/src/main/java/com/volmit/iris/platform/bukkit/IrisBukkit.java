@@ -141,6 +141,13 @@ public class IrisBukkit extends JavaPlugin implements IrisPlatform {
     }
 
     @Override
+    public File getStudioFolder() {
+        File f = new File(getDataFolder(), "packs/");
+        f.mkdirs();
+        return f;
+    }
+
+    @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
         return new IrisBukkitChunkGenerator(this, EngineConfiguration.builder()
             .threads(4)

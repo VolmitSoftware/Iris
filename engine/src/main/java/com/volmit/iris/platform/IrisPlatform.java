@@ -23,5 +23,7 @@ public interface IrisPlatform {
         return key("minecraft", nsk);
     }
 
+    File getStudioFolder();
+
     File getStudioFolder(String dimension);
 }

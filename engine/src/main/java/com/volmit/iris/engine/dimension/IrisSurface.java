@@ -19,7 +19,7 @@ import java.util.List;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper=false)
 @Accessors(fluent = true, chain = true)
-@Resolvable.Entity(id = "surface-layer")
+@Resolvable.Entity(id = "surface")
 public class IrisSurface extends EngineResolvable {
     @Singular
     @Type(IrisSurfaceLayer.class)

@@ -5,23 +5,29 @@ import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.volmit.iris.platform.PlatformNamespaceKey;
+import com.volmit.iris.util.NSK;
 import lombok.Data;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 @Data
 public class HotResolver<T extends Resolvable> implements Resolver<T>, CacheLoader<String, T> {
     private final LoadingCache<String, T> cache;
     private final String namespace;
     private final Function<String, T> loader;
+    private final Supplier<List<String>> keyGetter;
 
-    public HotResolver(String namespace, Function<String, T> loader)
+    public HotResolver(String namespace, Function<String, T> loader, Supplier<List<String>> keyGetter)
     {
         this.namespace = namespace;
+        this.keyGetter = keyGetter;
         this.loader = loader;
         cache = Caffeine.newBuilder().build(this);
     }
@@ -69,5 +75,10 @@ public class HotResolver<T extends Resolvable> implements Resolver<T>, CacheLoad
     @Override
     public void print(String type, Object printer, int indent) {
         printer.i(Form.repeat(" ", indent) + "Hot[" + namespace + "] " + type);
+    }
+
+    @Override
+    public void addAllKeys(List<PlatformNamespaceKey> keys) {
+        keys.addAll(keyGetter.get().stream().map(i -> new NSK(getNamespace(), i)).toList());
     }
 }

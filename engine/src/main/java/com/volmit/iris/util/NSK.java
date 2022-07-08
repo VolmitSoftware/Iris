@@ -25,4 +25,8 @@ public class NSK implements PlatformNamespaceKey {
     public String getKey() {
         return key;
     }
+
+    public String toString() {
+        return namespace + ":" + key;
+    }
 }

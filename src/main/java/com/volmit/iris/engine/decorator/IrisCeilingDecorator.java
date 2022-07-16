@@ -28,6 +28,7 @@ import com.volmit.iris.util.hunk.Hunk;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.MultipleFacing;
 import org.bukkit.block.data.type.PointedDripstone;
 
 public class IrisCeilingDecorator extends IrisEngineDecorator {
@@ -39,11 +40,10 @@ public class IrisCeilingDecorator extends IrisEngineDecorator {
     @Override
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1, Hunk<BlockData> data, IrisBiome biome, int height, int max) {
         IrisDecorator decorator = getDecorator(biome, realX, realZ);
-
         if(decorator != null) {
             if(!decorator.isStacking()) {
                 if(height >= 0 || height < getEngine().getHeight()) {
-                    data.set(x, height, z, decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData()));
+                    data.set(x, height, z, fixFaces(decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData()), realX, height, realZ));
                 }
             } else {
                 int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
@@ -97,5 +97,26 @@ public class IrisCeilingDecorator extends IrisEngineDecorator {
                 }
             }
         }
+    }
+
+    private BlockData fixFaces(BlockData b, int x, int y, int z) {
+        Material mat = b.getMaterial();
+        if(mat == Material.VINE || mat == Material.GLOW_LICHEN) {
+            MultipleFacing data = (MultipleFacing)b.clone();
+            boolean found = false;
+            for(BlockFace f : BlockFace.values()) {
+                if(!f.isCartesian())
+                    continue;
+                Material m = getEngine().getMantle().get(x, y, z).getMaterial();
+                if(m.isSolid()) {
+                    found = true;
+                    data.setFace(f, m.isSolid());
+                }
+            }
+            if(!found)
+                data.setFace(BlockFace.UP, true);
+            return data;
+        }
+        return b;
     }
 }

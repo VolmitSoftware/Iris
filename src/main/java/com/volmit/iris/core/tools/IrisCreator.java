@@ -105,6 +105,9 @@ public class IrisCreator {
             throw new IrisException("Dimension cannot be found null for id " + dimension());
         }
 
+        if(sender == null)
+            sender = Iris.getSender();
+
         if(!studio()) {
             Iris.service(StudioSVC.class).installIntoWorld(sender, d.getLoadKey(), new File(name()));
         }

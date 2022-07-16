@@ -98,7 +98,7 @@ public class CommandIris implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Successfully created your world!");
     }
 
-    @Decree(description = "Remove an Iris world", aliases = {"del", "rm"})
+    @Decree(description = "Remove an Iris world", aliases = {"del", "rm"}, sync = true)
     public void remove(
             @Param(description = "The world to remove")
             World world,

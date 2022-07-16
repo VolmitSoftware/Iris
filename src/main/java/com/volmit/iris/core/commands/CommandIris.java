@@ -45,7 +45,7 @@ import java.io.File;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-@Decree(name = "iris", aliases = {"ir", "irs", "i"}, description = "Basic Command")
+@Decree(name = "iris", aliases = {"ir", "irs"}, description = "Basic Command")
 public class CommandIris implements DecreeExecutor {
     private CommandStudio studio;
     private CommandPregen pregen;
@@ -105,12 +105,6 @@ public class CommandIris implements DecreeExecutor {
     public void height() {
         sender().sendMessage(C.GREEN + "" + sender().player().getWorld().getMinHeight() + " to " + sender().player().getWorld().getMaxHeight());
         sender().sendMessage(C.GREEN + "Total Height: " + (sender().player().getWorld().getMaxHeight() - sender().player().getWorld().getMinHeight()));
-    }
-
-    @Decree(description = "QOL command to open a overworld studio world.")
-    public void so() {
-        sender().sendMessage(C.GREEN + "Opening studio for the \"Overworld\" pack (seed: 1337)");
-        Iris.service(StudioSVC.class).open(sender(), 1337, "overworld");
     }
 
     @Decree(description = "Set aura spins")

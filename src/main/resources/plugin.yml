@@ -19,7 +19,7 @@ libraries:
   - bsf:bsf:2.4.0
 commands:
   iris:
-    aliases: [ ir, irs, i ]
+    aliases: [ ir, irs ]
 api-version: ${apiversion}
 hotload-dependencies: false
 softdepend: [ "Oraxen", "ItemsAdder", "IrisFeller", "WorldEdit", "PlaceholderAPI"]

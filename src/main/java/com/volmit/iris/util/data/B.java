@@ -199,7 +199,9 @@ public class B {
             STONE_BUTTON,
             WARPED_BUTTON,
             TORCH,
-            SOUL_TORCH
+            SOUL_TORCH,
+            GLOW_LICHEN,
+            VINE
         }).forEach((i) -> b.add(i.ordinal()));
         b.addAll(foliageCache);
 

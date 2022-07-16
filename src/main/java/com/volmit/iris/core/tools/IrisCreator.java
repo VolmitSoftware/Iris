@@ -231,4 +231,18 @@ public class IrisCreator {
             }
         }
     }
+
+    public static boolean removeFromBukkitYml(String name) throws IOException {
+        YamlConfiguration yml = YamlConfiguration.loadConfiguration(BUKKIT_YML);
+        ConfigurationSection section = yml.getConfigurationSection("worlds");
+        if (section == null) {
+            return false;
+        }
+        section.set(name, null);
+        if (section.getValues(false).keySet().stream().noneMatch(k -> section.get(k) != null)) {
+            yml.set("worlds", null);
+        }
+        yml.save(BUKKIT_YML);
+        return true;
+    }
 }

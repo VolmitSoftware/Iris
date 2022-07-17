@@ -36,6 +36,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
@@ -221,7 +222,6 @@ public class IrisToolbelt {
                     new VolmitSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world. " + m);
                     j.teleport(i.getSpawnLocation());
                 }
-
                 return true;
             }
         }
@@ -247,5 +247,9 @@ public class IrisToolbelt {
         PlatformChunkGenerator e = access(world);
         if(e == null) {return;}
         e.getEngine().getMantle().getMantle().remove(x, y - world.getMinHeight(), z, of);
+    }
+
+    public static boolean removeWorld(World world) throws IOException {
+        return IrisCreator.removeFromBukkitYml(world.getName());
     }
 }

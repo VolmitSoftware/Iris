@@ -45,7 +45,7 @@ import java.io.File;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-@Decree(name = "iris", aliases = {"ir", "irs", "i"}, description = "Basic Command")
+@Decree(name = "iris", aliases = {"ir", "irs"}, description = "Basic Command")
 public class CommandIris implements DecreeExecutor {
     private CommandStudio studio;
     private CommandPregen pregen;

@@ -75,4 +75,14 @@ public class Spiraler {
         z += dz;
         i++;
     }
+
+    public int count() {
+        int c = 0;
+        while(hasNext()) {
+            next();
+            c++;
+        }
+
+        return c;
+    }
 }

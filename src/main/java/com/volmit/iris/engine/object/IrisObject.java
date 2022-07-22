@@ -849,6 +849,7 @@ public class IrisObject extends IrisRegistrant {
                 BlockVector i = g.clone();
                 i = config.getRotation().rotate(i.clone(), spinx, spiny, spinz).clone();
                 i = config.getTranslate().translate(i.clone(), config.getRotation(), spinx, spiny, spinz).clone();
+                d = config.getRotation().rotate(d, spinx, spiny, spinz);
 
                 if(i.getBlockY() != lowest)
                     continue;

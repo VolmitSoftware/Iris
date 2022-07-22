@@ -26,6 +26,7 @@ import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.link.*;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.pregenerator.LazyPregenerator;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.EnginePanic;
@@ -404,6 +405,7 @@ public class Iris extends VolmitPlugin implements Listener {
         J.s(() -> {
             J.a(() -> PaperLib.suggestPaper(this));
             J.a(() -> IO.delete(getTemp()));
+            J.a(LazyPregenerator::loadLazyGenerators, 100);
             J.a(this::bstats);
             J.ar(this::checkConfigHotload, 60);
             J.sr(this::tickQueue, 0);

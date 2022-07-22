@@ -799,7 +799,7 @@ public class IrisObject extends IrisRegistrant {
                     continue;
                 }
 
-                if(config.isWaterloggable() && yy <= placer.getFluidHeight() && data instanceof Waterlogged) {
+                if((config.isWaterloggable() || config.isUnderwater()) && yy <= placer.getFluidHeight() && data instanceof Waterlogged) {
                     ((Waterlogged) data).setWaterlogged(true);
                 }
 
@@ -849,6 +849,7 @@ public class IrisObject extends IrisRegistrant {
                 BlockVector i = g.clone();
                 i = config.getRotation().rotate(i.clone(), spinx, spiny, spinz).clone();
                 i = config.getTranslate().translate(i.clone(), config.getRotation(), spinx, spiny, spinz).clone();
+                d = config.getRotation().rotate(d, spinx, spiny, spinz);
 
                 if(i.getBlockY() != lowest)
                     continue;
@@ -882,7 +883,7 @@ public class IrisObject extends IrisRegistrant {
 
                 int highest = placer.getHighest(xx, zz, getLoader(), true);
 
-                if(config.isWaterloggable() && highest <= placer.getFluidHeight() && d instanceof Waterlogged)
+                if((config.isWaterloggable() || config.isUnderwater()) && highest <= placer.getFluidHeight() && d instanceof Waterlogged)
                     ((Waterlogged) d).setWaterlogged(true);
 
                 if(yv >= 0 && config.isBottom())

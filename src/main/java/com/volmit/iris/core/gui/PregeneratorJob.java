@@ -83,7 +83,6 @@ public class PregeneratorJob implements PregenListener {
         this.pregenerator = new IrisPregenerator(task, method, this);
         max = new Position2(0, 0);
         min = new Position2(0, 0);
-        KList<Runnable> draw = new KList<>();
         task.iterateRegions((xx, zz) -> {
             min.setX(Math.min(xx << 5, min.getX()));
             min.setZ(Math.min(zz << 5, min.getZ()));

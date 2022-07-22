@@ -799,7 +799,7 @@ public class IrisObject extends IrisRegistrant {
                     continue;
                 }
 
-                if(config.isWaterloggable() && yy <= placer.getFluidHeight() && data instanceof Waterlogged) {
+                if((config.isWaterloggable() || config.isUnderwater()) && yy <= placer.getFluidHeight() && data instanceof Waterlogged) {
                     ((Waterlogged) data).setWaterlogged(true);
                 }
 
@@ -882,7 +882,7 @@ public class IrisObject extends IrisRegistrant {
 
                 int highest = placer.getHighest(xx, zz, getLoader(), true);
 
-                if(config.isWaterloggable() && highest <= placer.getFluidHeight() && d instanceof Waterlogged)
+                if((config.isWaterloggable() || config.isUnderwater()) && highest <= placer.getFluidHeight() && d instanceof Waterlogged)
                     ((Waterlogged) d).setWaterlogged(true);
 
                 if(yv >= 0 && config.isBottom())

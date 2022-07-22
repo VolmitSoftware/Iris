@@ -169,10 +169,10 @@ public class LazyPregenerator extends Thread implements Listener
     public static class LazyPregenJob
     {
         private String world;
-        private int healingPosition = 0;
-        private boolean healing = false;
-        private int chunksPerMinute = 32; // 48 hours is roughly 5000 radius
-        private int radiusBlocks = 5000;
-        private int position = 0;
+        @Builder.Default private int healingPosition = 0;
+        @Builder.Default private boolean healing = false;
+        @Builder.Default private int chunksPerMinute = 32; // 48 hours is roughly 5000 radius
+        @Builder.Default private int radiusBlocks = 5000;
+        @Builder.Default private int position = 0;
     }
 }

@@ -53,6 +53,8 @@ public class IrisDecorator {
     private IrisGeneratorStyle variance = NoiseStyle.STATIC.style();
     @Desc("Forcefully place this decorant anywhere it is supposed to go even if it should not go on a specific surface block. For example, you could force tallgrass to place on top of stone by using this.")
     private boolean forcePlace = false;
+    @Desc("Forced the surface block of this decorant to be the specified block. Assumes forcePlace.")
+    private IrisBlockData forceBlock;
     @DependsOn({"scaleStack", "stackMin", "stackMax"})
     @Desc("If stackMax is set to true, use this to limit its max height for large caverns")
     private int absoluteMaxStack = 30;

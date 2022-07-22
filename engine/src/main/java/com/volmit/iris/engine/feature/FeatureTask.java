@@ -18,19 +18,20 @@ import java.util.concurrent.RecursiveTask;
  */
 @Builder
 @AllArgsConstructor
-public class IrisFeatureTask<T extends PlatformNamespaced, S extends IrisFeatureState> extends RecursiveTask<IrisFeatureTarget<T>> implements Callable<IrisFeatureTarget<T>> {
+public class FeatureTask<T extends PlatformNamespaced, S extends FeatureState> extends RecursiveTask<FeatureTarget<T>> implements Callable<FeatureTarget<T>> {
     private final Engine engine;
-    private final IrisFeature<T, S> feature;
-    private final IrisFeatureSizedTarget size;
-    private final IrisFeatureTarget<T> origin;
+    private final Feature<T, S> feature;
+    private final FeatureStorage storage;
+    private final FeatureSizedTarget size;
+    private final FeatureTarget<T> origin;
     private final int verticalPrepareSize;
     private final int horizontalPrepareSize;
     private final boolean heightAgnostic;
-    private final IrisFeatureTaskTiming timings;
+    private final FeatureTaskTiming timings;
 
     @Override
-    protected IrisFeatureTarget<T> compute() {
-        IrisFeatureTarget<T> result;
+    protected FeatureTarget<T> compute() {
+        FeatureTarget<T> result;
         PrecisionStopwatch p = null;
 
         if(timings != null)
@@ -40,24 +41,24 @@ public class IrisFeatureTask<T extends PlatformNamespaced, S extends IrisFeature
 
         if(!heightAgnostic && size.getHeight() > verticalPrepareSize * 2) {
 
-            result = IrisFeatureTarget.mergedTarget(size.splitY()
-                .map(i -> engine.getExecutor().getForks().submit((ForkJoinTask<IrisFeatureTarget<T>>) with(i)))
+            result = FeatureTarget.mergedTarget(size.splitY()
+                .map(i -> engine.getExecutor().getForks().submit((ForkJoinTask<FeatureTarget<T>>) with(i)))
                 .map(ForkJoinTask::join), origin, false, true, false);
         }
 
         else if(size.getWidth() > horizontalPrepareSize * 2) {
-            result = IrisFeatureTarget.mergedTarget(size.splitX().map(i -> engine.getExecutor().getForks().submit((ForkJoinTask<IrisFeatureTarget<T>>) with(i)))
+            result = FeatureTarget.mergedTarget(size.splitX().map(i -> engine.getExecutor().getForks().submit((ForkJoinTask<FeatureTarget<T>>) with(i)))
                 .map(ForkJoinTask::join), origin, true, false, false);
         }
 
         else if(size.getDepth() > horizontalPrepareSize * 2) {
-            result = IrisFeatureTarget.mergedTarget(size.splitZ().map(i -> engine.getExecutor().getForks().submit((ForkJoinTask<IrisFeatureTarget<T>>) with(i)))
+            result = FeatureTarget.mergedTarget(size.splitZ().map(i -> engine.getExecutor().getForks().submit((ForkJoinTask<FeatureTarget<T>>) with(i)))
                 .map(ForkJoinTask::join), origin, false, false, true);
         }
 
         else {
-            IrisPreparedFeature<T, S> preparedFeature = new IrisPreparedFeature<>(engine, feature, size, feature.prepare(engine, size));
-            result = preparedFeature.generate(origin);
+            IrisPreparedFeature<T, S> preparedFeature = new IrisPreparedFeature<>(engine, feature, size, feature.prepare(engine, size, storage));
+            result = preparedFeature.generate(origin, storage);
         }
 
         if(timings != null)
@@ -68,13 +69,13 @@ public class IrisFeatureTask<T extends PlatformNamespaced, S extends IrisFeature
         return result;
     }
 
-    private IrisFeatureTask<T, S> with(IrisFeatureSizedTarget size)
+    private FeatureTask<T, S> with(FeatureSizedTarget size)
     {
-        return new IrisFeatureTask<>(engine, feature, size, origin, verticalPrepareSize, horizontalPrepareSize, heightAgnostic, null);
+        return new FeatureTask<>(engine, feature, storage, size, origin, verticalPrepareSize, horizontalPrepareSize, heightAgnostic, null);
     }
 
     @Override
-    public IrisFeatureTarget<T> call() throws Exception {
+    public FeatureTarget<T> call() throws Exception {
         return compute();
     }
 }

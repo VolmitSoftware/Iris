@@ -5,8 +5,8 @@ import art.arcane.chrono.PrecisionStopwatch;
 import art.arcane.spatial.hunk.Hunk;
 import com.volmit.iris.engine.EngineConfiguration;
 import com.volmit.iris.engine.Engine;
-import com.volmit.iris.engine.feature.IrisFeatureSizedTarget;
-import com.volmit.iris.engine.feature.IrisFeatureTarget;
+import com.volmit.iris.engine.feature.FeatureSizedTarget;
+import com.volmit.iris.engine.feature.FeatureTarget;
 import com.volmit.iris.engine.pipeline.PipedHunkStack;
 import com.volmit.iris.platform.IrisPlatform;
 import com.volmit.iris.platform.PlatformBlock;
@@ -46,7 +46,7 @@ public class IrisBukkitChunkGenerator extends ChunkGenerator implements Closeabl
         initEngine(world);
         ChunkData data = Bukkit.createChunkData(world);
         Hunk<PlatformBlock> chunk = new ChunkDataHunkView(data);
-        IrisFeatureSizedTarget targetSize = IrisFeatureSizedTarget.builder()
+        FeatureSizedTarget targetSize = FeatureSizedTarget.builder()
             .width(chunk.getWidth())
             .height(chunk.getHeight())
             .depth(chunk.getDepth())
@@ -54,7 +54,7 @@ public class IrisBukkitChunkGenerator extends ChunkGenerator implements Closeabl
             .offsetZ(z << 4)
             .offsetY(0)
             .build();
-        IrisFeatureTarget<PlatformBlock> blockTarget = new IrisFeatureTarget<>(chunk, targetSize);
+        FeatureTarget<PlatformBlock> blockTarget = new FeatureTarget<>(chunk, targetSize);
         PipedHunkStack stack = new PipedHunkStack();
         stack.register(PlatformBlock.class, blockTarget);
         engine.get().getPlumbing().generate(engine.get(), targetSize, stack);

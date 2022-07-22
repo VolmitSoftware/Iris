@@ -21,4 +21,7 @@ public class IrisBiome extends EngineResolvable {
 
     @Builder.Default
     private IrisSurface surface = new IrisSurface();
+
+    @Builder.Default
+    private IrisRange height = IrisRange.flat(1);
 }

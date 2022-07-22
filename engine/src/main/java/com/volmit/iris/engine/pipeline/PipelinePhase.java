@@ -1,8 +1,9 @@
 package com.volmit.iris.engine.pipeline;
 
 import com.volmit.iris.engine.Engine;
-import com.volmit.iris.engine.feature.IrisFeatureSizedTarget;
-import com.volmit.iris.engine.feature.IrisFeatureTarget;
+import com.volmit.iris.engine.feature.FeatureSizedTarget;
+import com.volmit.iris.engine.feature.FeatureStorage;
+import com.volmit.iris.engine.feature.FeatureTarget;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,8 +21,8 @@ public class PipelinePhase
     @Singular
     private final List<PipelineTask<?>> tasks;
 
-    public List<IrisFeatureTarget<?>> generate(Engine engine, IrisFeatureSizedTarget target, PipedHunkStack stack) {
-        return engine.getExecutor().getForks().invokeAll(tasks.stream().map(i -> i.task(target, stack.hunk(i.getTarget())))
+    public List<FeatureTarget<?>> generate(Engine engine, FeatureSizedTarget target, PipedHunkStack stack, FeatureStorage storage) {
+        return engine.getExecutor().getForks().invokeAll(tasks.stream().map(i -> i.task(target, stack.hunk(i.getTarget()), storage))
             .collect(Collectors.toList())).stream().map(i -> {
             try {
                 return i.get();

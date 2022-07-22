@@ -77,7 +77,7 @@ public class EngineData implements TypeAdapterFactory {
         }
     }
 
-    public void loadData(File folder, PlatformNamespaceKey dimension) throws IOException {
+    public EngineData loadData(File folder, PlatformNamespaceKey dimension) throws IOException {
         i("Loading Data in " + folder.getPath());
         for(File i : folder.listFiles()) {
             if(i.isDirectory() && i.getName().equals(dimension.getNamespace())) {
@@ -101,6 +101,8 @@ public class EngineData implements TypeAdapterFactory {
         if(dim == null) {
             f("Failed to load dimension " + dimension);
         }
+
+        return this;
     }
 
     private void generateCodeWorkspace(File file) throws IOException {

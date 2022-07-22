@@ -36,20 +36,22 @@ public class Engine implements Closeable {
     private final EngineData data;
 
     public Engine(IrisPlatform platform, PlatformWorld world, EngineConfiguration configuration) throws IOException {
-        PrecisionStopwatch p = PrecisionStopwatch.start();
-        this.configuration = configuration;
+        this.configuration = configuration.validate();
         this.platform = platform;
         this.world = world;
         i("Initializing Iris Engine for " + platform.getPlatformName() + " in " + world.getName()
             + " with " + configuration.getThreads() + " priority " + configuration.getThreadPriority()
             + " threads in " + (configuration.isMutable() ? "edit mode" : "production mode"));
-        this.data = new EngineData(this);
-        this.seedManager = getSeedManager();
         this.blockCache = new EngineBlockCache(this);
         this.registry = EngineRegistry.builder()
-            .blockRegistry(new PlatformRegistry<>("Block", platform.getBlocks()))
-            .biomeRegistry(new PlatformRegistry<>("Biome", platform.getBiomes()))
-            .build();
+                .blockRegistry(new PlatformRegistry<>("Block", platform.getBlocks()))
+                .biomeRegistry(new PlatformRegistry<>("Biome", platform.getBiomes()))
+                .build();
+        this.data = new EngineData(this).loadData(
+            getConfiguration().isMutable()
+                ? getPlatform().getStudioFolder()
+                : getWorld().getIrisDataFolder(), getConfiguration().getDimension());
+        this.seedManager = getSeedManager();
         this.executor = new EngineExecutor(this);
         this.plumbing = EnginePlumbing.builder().engine(this)
             .pipeline(EnginePipeline.builder()
@@ -58,9 +60,6 @@ public class Engine implements Closeable {
                     .build())
                 .build())
             .build();
-        data.loadData(getConfiguration().isMutable()
-                ? getPlatform().getStudioFolder()
-                : getWorld().getIrisDataFolder(), getConfiguration().getDimension());
     }
 
     public PlatformBlock block(String block)

@@ -7,16 +7,15 @@ import lombok.Data;
 
 @Builder
 @Data
-public class IrisPreparedFeature<T extends PlatformNamespaced, S extends IrisFeatureState> {
+public class IrisPreparedFeature<T extends PlatformNamespaced, S extends FeatureState> {
     private final Engine engine;
-    private final IrisFeature<T, S> feature;
-    private final IrisFeatureSizedTarget size;
+    private final Feature<T, S> feature;
+    private final FeatureSizedTarget size;
     private final S state;
 
-    public IrisFeatureTarget<T> generate(IrisFeatureTarget<T> origin)
-    {
-        IrisFeatureTarget<T> target = size.hunked(origin);
-        feature.generate(engine, state, target);
+    public FeatureTarget<T> generate(FeatureTarget<T> origin, FeatureStorage storage) {
+        FeatureTarget<T> target = size.hunked(origin);
+        feature.generate(engine, state, target, storage);
         return target;
     }
 }

@@ -1,7 +1,7 @@
 package com.volmit.iris.engine.pipeline;
 
 import com.volmit.iris.engine.Engine;
-import com.volmit.iris.engine.feature.IrisFeatureSizedTarget;
+import com.volmit.iris.engine.feature.FeatureSizedTarget;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,7 +17,7 @@ public class EnginePlumbing {
     @Singular
     private final List<EnginePipeline> pipelines;
 
-    public void generate(Engine engine, IrisFeatureSizedTarget target, PipedHunkStack stack)
+    public void generate(Engine engine, FeatureSizedTarget target, PipedHunkStack stack)
     {
         for(EnginePipeline i : pipelines)
         {

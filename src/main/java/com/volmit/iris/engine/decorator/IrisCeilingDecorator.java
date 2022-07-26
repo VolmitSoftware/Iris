@@ -23,6 +23,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDecorationPart;
 import com.volmit.iris.engine.object.IrisDecorator;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import org.bukkit.Material;
@@ -100,14 +101,13 @@ public class IrisCeilingDecorator extends IrisEngineDecorator {
     }
 
     private BlockData fixFaces(BlockData b, int x, int y, int z) {
-        Material mat = b.getMaterial();
-        if(mat == Material.VINE || mat == Material.GLOW_LICHEN) {
+        if(B.isVineBlock(b)) {
             MultipleFacing data = (MultipleFacing)b.clone();
             boolean found = false;
             for(BlockFace f : BlockFace.values()) {
                 if(!f.isCartesian())
                     continue;
-                Material m = getEngine().getMantle().get(x, y, z).getMaterial();
+                Material m = getEngine().getMantle().get(x + f.getModX(), y + f.getModY(), z + f.getModZ()).getMaterial();
                 if(m.isSolid()) {
                     found = true;
                     data.setFace(f, m.isSolid());

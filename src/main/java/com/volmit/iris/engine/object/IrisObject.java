@@ -47,9 +47,11 @@ import lombok.experimental.Accessors;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.MultipleFacing;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.util.BlockVector;
@@ -803,6 +805,16 @@ public class IrisObject extends IrisRegistrant {
                     ((Waterlogged) data).setWaterlogged(true);
                 }
 
+                if(B.isVineBlock(data)) {
+                    MultipleFacing f = (MultipleFacing)data;
+                    for(BlockFace face : f.getAllowedFaces()) {
+                        BlockData facingBlock = placer.get(xx + face.getModX(), yy + face.getModY(), zz + face.getModZ());
+                        if(B.isSolid(facingBlock) && !B.isVineBlock(facingBlock)) {
+                            f.setFace(face, true);
+                        }
+                    }
+                }
+
                 if(listener != null) {
                     listener.accept(new BlockPosition(xx, yy, zz));
                 }
@@ -895,8 +907,20 @@ public class IrisObject extends IrisRegistrant {
                     if(settings.getYMax() != 0)
                         lowerBound -= Math.min(config.getStiltSettings().getYMax() - (lowest + y - highest), 0);
                 }
-                for(int j = lowest + y; j > lowerBound; j--)
+                for(int j = lowest + y; j > lowerBound; j--) {
+                    if(B.isVineBlock(d)) {
+                        MultipleFacing f = (MultipleFacing)d;
+                        for(BlockFace face : f.getAllowedFaces()) {
+                            BlockData facingBlock = placer.get(xx + face.getModX(), j + face.getModY(), zz + face.getModZ());
+                            Iris.warn(facingBlock.getAsString());
+                            if(B.isSolid(facingBlock) && !B.isVineBlock(facingBlock)) {
+                                f.setFace(face, true);
+                            }
+                        }
+                    }
                     placer.set(xx, j, zz, d);
+                }
+
             }
 
             readLock.unlock();

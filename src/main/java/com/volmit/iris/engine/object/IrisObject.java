@@ -912,7 +912,6 @@ public class IrisObject extends IrisRegistrant {
                         MultipleFacing f = (MultipleFacing)d;
                         for(BlockFace face : f.getAllowedFaces()) {
                             BlockData facingBlock = placer.get(xx + face.getModX(), j + face.getModY(), zz + face.getModZ());
-                            Iris.warn(facingBlock.getAsString());
                             if(B.isSolid(facingBlock) && !B.isVineBlock(facingBlock)) {
                                 f.setFace(face, true);
                             }

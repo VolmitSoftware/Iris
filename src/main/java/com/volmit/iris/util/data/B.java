@@ -201,7 +201,8 @@ public class B {
             TORCH,
             SOUL_TORCH,
             GLOW_LICHEN,
-            VINE
+            VINE,
+            SCULK_VEIN
         }).forEach((i) -> b.add(i.ordinal()));
         b.addAll(foliageCache);
 
@@ -673,5 +674,12 @@ public class B {
 
     public static void registerCustomBlockData(String namespace, String key, BlockData blockData) {
         custom.put(namespace + ":" + key, blockData);
+    }
+
+    public static boolean isVineBlock(BlockData data) {
+        return switch(data.getMaterial()) {
+            case VINE, SCULK_VEIN, GLOW_LICHEN -> true;
+            default -> false;
+        };
     }
 }

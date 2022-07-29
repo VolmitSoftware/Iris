@@ -62,7 +62,6 @@ public class BiomeGridHunkView implements Hunk<Biome> {
         if(y > highest)
         {
             highest = y;
-            Iris.info("Highest = " + highest);
         }
     }
 

@@ -73,6 +73,7 @@ public class CNG {
     private double up;
     private double down;
     private double power;
+    private NoiseStyle leakStyle;
     private ProceduralStream<Double> customGenerator;
 
     public CNG(RNG random) {

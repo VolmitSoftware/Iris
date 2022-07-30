@@ -96,6 +96,37 @@ public class CommandIris implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Successfully created your world!");
     }
 
+    @Decree(description = "Overwrite an existing world to use a (new) Iris pack", aliases = "setup")
+    public void overwrite(
+            @Param(aliases = "world-name", description = "The name of the world to create", defaultValue = "main-world")
+            World world,
+            @Param(aliases = "dimension", description = "The dimension type to overwrite the world's with", defaultValue = "default")
+            IrisDimension type,
+            @Param(description = "The seed to generate the world with", defaultValue = "1337")
+            long seed
+    ) {
+        if (IrisToolbelt.isIrisWorld(world)) {
+            sender().sendMessage(C.GREEN + "Already installed!");
+            return;
+        }
+
+        try {
+            IrisToolbelt.createWorld()
+                    .dimension(type.getLoadKey())
+                    .name(world.getName())
+                    .sender(sender())
+                    .studio(false)
+                    .seed(seed)
+                    .create();
+            sender().sendMessage(C.GREEN + "Installed '" + type.getLoadKey() + "' into world '" + Bukkit.getWorlds().get(0).getName() + "'");
+            sender().sendMessage(C.RED + "You have to now stop the server & delete everything from the '" + Bukkit.getWorlds().get(0).getName() + "' folder except the 'datapacks' and 'iris' folder!");
+        } catch (Throwable e) {
+            sender().sendMessage(C.RED + "Exception raised during creation. See the console for more details.");
+            Iris.error("Exception raised during world creation: " + e.getMessage());
+            Iris.reportError(e);
+        }
+    }
+
     @Decree(description = "Remove an Iris world", aliases = {"del", "rm"}, sync = true)
     public void remove(
             @Param(description = "The world to remove")

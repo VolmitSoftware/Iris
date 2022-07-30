@@ -45,15 +45,26 @@ public class WorldHandler implements DecreeParameterHandler<World> {
 
     @Override
     public World parse(String in, boolean force) throws DecreeParsingException {
-        KList<World> options = getPossibilities(in);
 
+        switch (in) {
+            case "main-world" -> {
+                return Bukkit.getWorlds().get(0);
+            }
+            case "main-nether" -> {
+                return Bukkit.getWorlds().get(1);
+            }
+            case "main-end" -> {
+                return Bukkit.getWorlds().get(2);
+            }
+        };
+        KList<World> options = getPossibilities(in);
         if(options.isEmpty()) {
             throw new DecreeParsingException("Unable to find World \"" + in + "\"");
         }
         try {
-            return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
+            return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).toList().get(0);
         } catch(Throwable e) {
-            throw new DecreeParsingException("Unable to filter which Biome \"" + in + "\"");
+            throw new DecreeParsingException("Unable to filter which World \"" + in + "\"");
         }
     }
 

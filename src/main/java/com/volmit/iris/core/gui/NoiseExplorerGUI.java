@@ -148,7 +148,7 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener, List
         JFrame frame = new JFrame("Noise Explorer");
         NoiseExplorerGUI nv = new NoiseExplorerGUI();
         frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-        KList<String> li = new KList<>(NoiseStyle.values()).toStringList();
+        KList<String> li = new KList<>(NoiseStyle.values()).toStringList().sort();
         combo = new JComboBox<>(li.toArray(new String[0]));
         combo.setSelectedItem("STATIC");
         combo.setFocusable(false);

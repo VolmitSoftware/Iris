@@ -29,6 +29,7 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
 
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -55,10 +56,12 @@ public class IrisPregenerator {
     private final KSet<Position2> retry;
     private final KSet<Position2> net;
     private final ChronoLatch cl;
+    private final Semaphore limiter;
 
     public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener) {
         this.listener = listenify(listener);
         cl = new ChronoLatch(5000);
+        limiter = new Semaphore(Runtime.getRuntime().availableProcessors());
         generatedRegions = new KSet<>();
         this.shutdown = new AtomicBoolean(false);
         this.paused = new AtomicBoolean(false);
@@ -163,12 +166,26 @@ public class IrisPregenerator {
         boolean hit = false;
         if(generator.supportsRegions(x, z, listener) && regions) {
             hit = true;
-            listener.onRegionGenerating(x, z);
-            generator.generateRegion(x, z, listener);
+            try {
+                limiter.acquire();
+                listener.onRegionGenerating(x, z);
+                generator.generateRegion(x, z, listener);
+                limiter.release();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         } else if(!regions) {
             hit = true;
             listener.onRegionGenerating(x, z);
-            PregenTask.iterateRegion(x, z, (xx, zz) -> generator.generateChunk(xx, zz, listener));
+            PregenTask.iterateRegion(x, z, (xx, zz) -> {
+                try {
+                    limiter.acquire();
+                    generator.generateChunk(xx, zz, listener);
+                    limiter.release();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            });
         }
 
         if(hit) {

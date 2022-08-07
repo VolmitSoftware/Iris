@@ -24,8 +24,8 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '2.2.7-1.19.1' // Needs to be version specific
-def nmsVersion = "1.19.1"
+version '2.2.8-1.19.2' // Needs to be version specific
+def nmsVersion = "1.19.2"
 def apiVersion = '1.19'
 def spigotJarVersion = '1.19.1-R0.1-SNAPSHOT'
 def name = getRootProject().getName() // Defined in settings.gradle

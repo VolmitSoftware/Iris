@@ -10,45 +10,32 @@ import com.volmit.iris.util.ShortNoiseCache;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
-public class FeatureTerrain extends Feature<PlatformBlock, FeatureTerrain.TerrainFeatureState> {
+public class FeatureTerrain extends Feature<PlatformBlock, FeatureTerrain.State> {
     private final PlatformBlock stone;
     private final NoisePlane generator;
 
-    public FeatureTerrain(Engine engine)
-    {
+    public FeatureTerrain(Engine engine) {
         super("terrain", engine);
         stone = engine.block("stone");
         this.generator = NoisePreset.NATURAL.create(1234).fit(0, 64).scale(0.2);
     }
 
     @Override
-    public TerrainFeatureState prepare(Engine engine, FeatureSizedTarget target, FeatureStorage storage) {
-        final ShortNoiseCache noise = storage.getHeightmap();
-
-        for(int x : target.x()) {
-            for(int z : target.z()) {
-                noise.set(x & storage.getWidth() - 1, z & storage.getHeight() - 1, (short) generator.noise(x, z));
-            }
-        }
-
-        return new TerrainFeatureState(noise);
+    public State prepare(Engine engine, FeatureSizedTarget target, FeatureStorage storage) {
+        target.forXZ((x, z) -> storage.getHeight().set(x & storage.getW() - 1, z & storage.getH() - 1, (short) generator.noise(x, z)));
+        return new State(storage.getHeight());
     }
 
     @Override
-    public void generate(Engine engine, TerrainFeatureState state, FeatureTarget<PlatformBlock> target, FeatureStorage storage) {
-        for(int x : target.x()) {
-            for(int z : target.z()) {
-                int h = state.getNoise().get(x, z);
-                for(int y : new IntegerRange(target.y().getLeftEndpoint(), Math.min(target.y().getRightEndpoint(), h))) {
-                    target.getHunk().set(x, y, z, stone);
-                }
-            }
-        }
+    public void generate(Engine engine, State state, FeatureTarget<PlatformBlock> target, FeatureStorage storage) {
+        target.forXZ((x, z) -> target.forYCap((y -> {
+            target.getHunk().set(x, y, z, stone);
+        }), state.getNoise().get(x, z)));
     }
 
     @Data
     @AllArgsConstructor
-    public static class TerrainFeatureState implements FeatureState {
+    public static class State implements FeatureState {
         private final ShortNoiseCache noise;
     }
 }

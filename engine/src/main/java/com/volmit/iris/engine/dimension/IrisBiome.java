@@ -2,6 +2,7 @@ package com.volmit.iris.engine.dimension;
 
 import com.volmit.iris.engine.resolver.EngineResolvable;
 import com.volmit.iris.engine.resolver.Resolvable;
+import com.volmit.iris.platform.PlatformBiome;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,4 +25,9 @@ public class IrisBiome extends EngineResolvable {
 
     @Builder.Default
     private IrisRange height = IrisRange.flat(1);
+
+    public PlatformBiome toPlatformBiome()
+    {
+        return null;
+    }
 }

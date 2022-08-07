@@ -3,6 +3,7 @@ package com.volmit.iris.engine.feature;
 import art.arcane.amulet.range.IntegerRange;
 import art.arcane.spatial.hunk.storage.ArrayHunk;
 import art.arcane.spatial.hunk.view.HunkView;
+import art.arcane.spatial.util.Consume;
 import com.volmit.iris.platform.PlatformNamespaced;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -92,6 +93,24 @@ public class FeatureSizedTarget {
     public int getAbsoluteMaxZ()
     {
         return getOffsetZ() + getDepth() - 1;
+    }
+
+    public IntegerRange yCap(int max) {
+        return new IntegerRange(y().getLeftEndpoint(), Math.min(y().getRightEndpoint(), max));
+    }
+
+    public void forYCap(Consume.One<Integer> consumer, int max) {
+        for(int y : yCap(max)) {
+            consumer.accept(y);
+        }
+    }
+
+    public void forXZ(Consume.Two<Integer, Integer> consumer) {
+        for(int x : x()) {
+            for(int z : z()) {
+                consumer.accept(x, z);
+            }
+        }
     }
 
     public IntegerRange x()

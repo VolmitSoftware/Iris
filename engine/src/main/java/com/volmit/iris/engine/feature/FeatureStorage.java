@@ -7,16 +7,16 @@ import lombok.Data;
 
 @Data
 public class FeatureStorage {
-    private ShortNoiseCache heightmap;
-    private NoiseCache<IrisBiome> biomemap;
-    private final int width;
-    private final int height;
+    private ShortNoiseCache height;
+    private NoiseCache<IrisBiome> biome;
+    private final int w;
+    private final int h;
 
-    public FeatureStorage(int width, int height)
+    public FeatureStorage(int w, int h)
     {
-        this.width = width;
-        this.height = height;
-        this.heightmap = new ShortNoiseCache(width, height);
-        this.biomemap = new NoiseCache<>(width, height);
+        this.w = w;
+        this.h = h;
+        this.height = new ShortNoiseCache(w, h);
+        this.biome = new NoiseCache<>(w, h);
     }
 }

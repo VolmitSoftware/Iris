@@ -20,6 +20,7 @@ package com.volmit.iris.util.stream;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IRare;
 import com.volmit.iris.engine.object.IrisStyledRange;
@@ -530,6 +531,21 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     ProceduralStream<T> getTypedSource();
 
     ProceduralStream<?> getSource();
+
+    default void fillChunk(int x, int z, T[] c) {
+        if(c.length != 256) {
+            throw new RuntimeException("Not 256 Length for chunk get");
+        }
+
+        int xs = x << 4;
+        int zs = z << 4;
+
+        for(int i = 0; i < 16; i++) {
+            for(int j = 0; j < 16; j++) {
+                c[Cache.to1D(i+xs, j+zs, 0, 16, 16)] = get(i+xs, j+zs);
+            }
+        }
+    }
 
     T get(double x, double z);
 

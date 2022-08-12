@@ -781,7 +781,7 @@ public class IrisObject extends IrisRegistrant {
                     zz += config.warp(rng, i.getZ() + z, i.getY() + y, i.getX() + x, getLoader());
                 }
 
-                if(yv < 0 && (config.getMode().equals(ObjectPlaceMode.PAINT))) {
+                if(yv < 0 && (config.getMode().equals(ObjectPlaceMode.PAINT)) && !B.isVineBlock(data)) {
                     yy = (int) Math.round(i.getY()) + Math.floorDiv(h, 2) + placer.getHighest(xx, zz, getLoader(), config.isUnderwater());
                 }
 
@@ -823,7 +823,9 @@ public class IrisObject extends IrisRegistrant {
                     placer.getEngine().getMantle().getMantle().set(xx, yy, zz, new MatterMarker(markers.get(g)));
                 }
 
-                if(!data.getMaterial().equals(Material.AIR) && !data.getMaterial().equals(Material.CAVE_AIR)) {
+                boolean wouldReplace = B.isSolid(placer.get(xx, yy, zz)) && B.isVineBlock(data);
+
+                if(!data.getMaterial().equals(Material.AIR) && !data.getMaterial().equals(Material.CAVE_AIR) && !wouldReplace) {
                     placer.set(xx, yy, zz, data);
                     if(tile != null) {
                         placer.setTile(xx, yy, zz, tile);

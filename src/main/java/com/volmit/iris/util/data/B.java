@@ -405,6 +405,8 @@ public class B {
     }
 
     public static boolean isSolid(BlockData mat) {
+        if(mat == null)
+            return false;
         return mat.getMaterial().isSolid();
     }
 

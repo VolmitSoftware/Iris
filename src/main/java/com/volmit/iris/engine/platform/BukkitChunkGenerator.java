@@ -81,12 +81,14 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private Engine engine;
     private Looper hotloader;
     private StudioMode lastMode;
+    private DummyBiomeProvider dummyBiomeProvider;
     @Setter
     private StudioGenerator studioGenerator;
 
     public BukkitChunkGenerator(IrisWorld world, boolean studio, File dataLocation, String dimensionKey) {
         setup = new AtomicBoolean(false);
         studioGenerator = null;
+        dummyBiomeProvider = new DummyBiomeProvider();
         populators = new KList<>();
         loadLock = new Semaphore(LOAD_LOCKS);
         this.world = world;
@@ -368,6 +370,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @Nullable
     @Override
     public BiomeProvider getDefaultBiomeProvider(@NotNull WorldInfo worldInfo) {
-        return null;
+        return dummyBiomeProvider;
     }
 }

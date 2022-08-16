@@ -19,21 +19,17 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.Required;
-import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.lang.reflect.Field;
 
 @Snippet("enchantment")
 @Accessors(chain = true)
@@ -61,32 +57,22 @@ public class IrisEnchantment {
 
     public void apply(RNG rng, ItemMeta meta) {
         try {
+            Enchantment enchant = Enchantment.getByKey(NamespacedKey.minecraft(getEnchantment()));
+            if(enchant == null) {
+                Iris.warn("Unknown Enchantment: " + getEnchantment());
+                return;
+            }
             if(rng.nextDouble() < chance) {
                 if(meta instanceof EnchantmentStorageMeta) {
-                    ((EnchantmentStorageMeta) meta).addStoredEnchant(getEnchant(), getLevel(rng), true);
+                    ((EnchantmentStorageMeta) meta).addStoredEnchant(enchant, getLevel(rng), true);
                     return;
                 }
-                meta.addEnchant(getEnchant(), getLevel(rng), true);
+                meta.addEnchant(enchant, getLevel(rng), true);
             }
         } catch(Throwable e) {
             Iris.reportError(e);
 
         }
-    }
-
-    public Enchantment getEnchant() {
-        for(Field i : Enchantment.class.getDeclaredFields()) {
-            if(i.getType().equals(Enchantment.class) && i.getName().equals(getEnchantment())) {
-                try {
-                    return (Enchantment) i.get(null);
-                } catch(IllegalArgumentException | IllegalAccessException e) {
-                    e.printStackTrace();
-                    Iris.reportError(e);
-                }
-            }
-        }
-
-        return null;
     }
 
     public int getLevel(RNG rng) {

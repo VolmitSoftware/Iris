@@ -105,7 +105,7 @@ public class IrisLoot {
     private KList<String> lore = new KList<>();
     @RegistryListItemType
     @Required
-    @Desc("This is the item or block type. Does not accept minecraft:*. Only materials such as DIAMOND_SWORD or DIRT.")
+    @Desc("This is the item or block type. Does not accept minecraft:*, only materials such as DIAMOND_SWORD or DIRT. The exception are modded materials, as they require a namespace.")
     private String type = "";
     @Desc("The dye color")
     private DyeColor dyeColor = null;
@@ -120,89 +120,15 @@ public class IrisLoot {
 
     public ItemStack get(boolean debug, RNG rng) {
         try {
-            ItemStack is;
-            if(!type.startsWith("minecraft:") && type.contains(":")) {
-                Optional<ItemStack> opt = Iris.service(ExternalDataSVC.class).getItemStack(NamespacedKey.fromString(type));
-                if(opt.isEmpty()) {
-                    //TODO Better third party provider
-                    Iris.warn("Unknown Material: " + type);
-                    return null;
-                }
-                is = opt.get();
-                is.setAmount(Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
-            } else {
-                is = new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
-            }
-
-            ItemMeta m = is.getItemMeta();
-
-            if(is.getType().getMaxDurability() > 0 && m instanceof Damageable d) {
-                int max = is.getType().getMaxDurability();
-                d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
-            }
-
-            for(IrisEnchantment i : getEnchantments()) {
-                i.apply(rng, m);
-            }
-
-            for(IrisAttributeModifier i : getAttributes()) {
-                i.apply(rng, m);
-            }
-
-            try {
-                m.setCustomModelData(getCustomModel());
-            } catch(Throwable e) {
-                Iris.reportError(e);
-            }
-            m.setLocalizedName(C.translateAlternateColorCodes('&', displayName));
-            m.setDisplayName(C.translateAlternateColorCodes('&', displayName));
-            m.setUnbreakable(isUnbreakable());
-
-            for(ItemFlag i : getItemFlags()) {
-                m.addItemFlags(i);
-            }
-
-            KList<String> lore = new KList<>();
-
-            getLore().forEach((i) ->
-            {
-                String mf = C.translateAlternateColorCodes('&', i);
-
-                if(mf.length() > 24) {
-                    for(String g : Form.wrapWords(mf, 24).split("\\Q\n\\E")) {
-                        lore.add(g.trim());
-                    }
-                } else {
-                    lore.add(mf);
-                }
-            });
-
-            if(debug) {
-                if(lore.isNotEmpty()) {
-                    lore.add(C.GRAY + "--------------------");
-                }
-
-                lore.add(C.GRAY + "1 in " + (getRarity()) + " Chance (" + Form.pc(1D / (getRarity()), 5) + ")");
-            }
-
-            m.setLore(lore);
-
-            if(getLeatherColor() != null && m instanceof LeatherArmorMeta) {
-                Color c = Color.decode(getLeatherColor());
-                ((LeatherArmorMeta) m).setColor(org.bukkit.Color.fromRGB(c.getRed(), c.getGreen(), c.getBlue()));
-            }
-
-            if(getDyeColor() != null && m instanceof Colorable) {
-                ((Colorable) m).setColor(getDyeColor());
-            }
-
-            is.setItemMeta(m);
+            ItemStack is = getItemStack(rng);
+            if(is == null)
+                return new ItemStack(Material.AIR);
+            is.setItemMeta(applyProperties(is, rng, debug, null));
             return applyCustomNbt(is);
         } catch(Throwable e) {
             Iris.reportError(e);
+            return new ItemStack(Material.AIR);
         }
-
-        return new ItemStack(Material.AIR);
     }
 
     public ItemStack get(boolean debug, boolean giveSomething, IrisLootTable table, RNG rng, int x, int y, int z) {
@@ -212,75 +138,10 @@ public class IrisLoot {
 
         if(giveSomething || chance.aquire(() -> NoiseStyle.STATIC.create(rng)).fit(1, rarity * table.getRarity(), x, y, z) == 1) {
             try {
-                ItemStack is;
-                if(!type.startsWith("minecraft:") && type.contains(":")) {
-                    Optional<ItemStack> opt = Iris.service(ExternalDataSVC.class).getItemStack(NamespacedKey.fromString(type));
-                    if(opt.isEmpty()) {
-                        Iris.warn("Unknown Material: " + type);
-                        return null;
-                    }
-                    is = opt.get();
-                    is.setAmount(Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
-                    return is;
-                } else {
-                    is = new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
-                }
-
-                ItemMeta m = is.getItemMeta();
-
-                if(is.getType().getMaxDurability() > 0 && m instanceof Damageable d) {
-                    int max = is.getType().getMaxDurability();
-                    d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
-                }
-
-                for(IrisEnchantment i : getEnchantments()) {
-                    i.apply(rng, m);
-                }
-
-                for(IrisAttributeModifier i : getAttributes()) {
-                    i.apply(rng, m);
-                }
-
-                try {
-                    m.setCustomModelData(getCustomModel());
-                } catch(Throwable e) {
-                    Iris.reportError(e);
-                }
-
-                m.setLocalizedName(C.translateAlternateColorCodes('&', displayName));
-                m.setDisplayName(C.translateAlternateColorCodes('&', displayName));
-                m.setUnbreakable(isUnbreakable());
-
-                for(ItemFlag i : getItemFlags()) {
-                    m.addItemFlags(i);
-                }
-
-                KList<String> lore = new KList<>();
-
-                getLore().forEach((i) ->
-                {
-                    String mf = C.translateAlternateColorCodes('&', i);
-
-                    if(mf.length() > 24) {
-                        for(String g : Form.wrapWords(mf, 24).split("\\Q\n\\E")) {
-                            lore.add(g.trim());
-                        }
-                    } else {
-                        lore.add(mf);
-                    }
-                });
-
-                if(debug) {
-                    if(lore.isNotEmpty()) {
-                        lore.add(C.GRAY + "--------------------");
-                    }
-
-                    lore.add(C.GRAY + "From: " + table.getName() + " (" + Form.pc(1D / table.getRarity(), 5) + ")");
-                    lore.add(C.GRAY + "1 in " + (table.getRarity() * getRarity()) + " Chance (" + Form.pc(1D / (table.getRarity() * getRarity()), 5) + ")");
-                }
-
-                m.setLore(lore);
-                is.setItemMeta(m);
+                ItemStack is = getItemStack(rng);
+                if(is == null)
+                    return null;
+                is.setItemMeta(applyProperties(is, rng, debug, table));
                 return applyCustomNbt(is);
             } catch(Throwable e) {
                 //Iris.reportError(e);
@@ -290,6 +151,98 @@ public class IrisLoot {
 
         return null;
     }
+
+    // TODO Better Third Party Item Acquisition
+    private ItemStack getItemStack(RNG rng) {
+        if(!type.startsWith("minecraft:") && type.contains(":")) {
+            Optional<ItemStack> opt = Iris.service(ExternalDataSVC.class).getItemStack(NamespacedKey.fromString(type));
+            if(opt.isEmpty()) {
+                Iris.warn("Unknown Material: " + type);
+                return null;
+            }
+            ItemStack is = opt.get();
+            is.setAmount(Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
+            return is;
+        }
+        return new ItemStack(getType(), Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
+    }
+
+    private ItemMeta applyProperties(ItemStack is, RNG rng, boolean debug, IrisLootTable table) {
+        ItemMeta m = is.getItemMeta();
+        if(m == null) {
+            return null;
+        }
+
+        for(IrisEnchantment i : getEnchantments()) {
+            i.apply(rng, m);
+        }
+
+        for(IrisAttributeModifier i : getAttributes()) {
+            i.apply(rng, m);
+        }
+
+        m.setUnbreakable(isUnbreakable());
+        for(ItemFlag i : getItemFlags()) {
+            m.addItemFlags(i);
+        }
+
+        if(getCustomModel() != null) {
+            m.setCustomModelData(getCustomModel());
+        }
+
+        if(is.getType().getMaxDurability() > 0 && m instanceof Damageable d) {
+            int max = is.getType().getMaxDurability();
+            d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
+        }
+
+        if(getLeatherColor() != null && m instanceof LeatherArmorMeta leather) {
+            Color c = Color.decode(getLeatherColor());
+            leather.setColor(org.bukkit.Color.fromRGB(c.getRed(), c.getGreen(), c.getBlue()));
+        }
+
+        if(getDyeColor() != null && m instanceof Colorable colorable) {
+            colorable.setColor(getDyeColor());
+        }
+
+        m.setLocalizedName(C.translateAlternateColorCodes('&', displayName));
+        m.setDisplayName(C.translateAlternateColorCodes('&', displayName));
+
+        KList<String> lore = new KList<>();
+
+        getLore().forEach((i) ->
+        {
+            String mf = C.translateAlternateColorCodes('&', i);
+
+            if(mf.length() > 24) {
+                for(String g : Form.wrapWords(mf, 24).split("\\Q\n\\E")) {
+                    lore.add(g.trim());
+                }
+            } else {
+                lore.add(mf);
+            }
+        });
+
+        if(debug) {
+            if(table == null) {
+                if(lore.isNotEmpty()) {
+                    lore.add(C.GRAY + "--------------------");
+                }
+                lore.add(C.GRAY + "1 in " + (getRarity()) + " Chance (" + Form.pc(1D / (getRarity()), 5) + ")");
+            } else {
+                if(lore.isNotEmpty()) {
+                    lore.add(C.GRAY + "--------------------");
+                }
+
+                lore.add(C.GRAY + "From: " + table.getName() + " (" + Form.pc(1D / table.getRarity(), 5) + ")");
+                lore.add(C.GRAY + "1 in " + (table.getRarity() * getRarity()) + " Chance (" + Form.pc(1D / (table.getRarity() * getRarity()), 5) + ")");
+            }
+        }
+
+        m.setLore(lore);
+
+        return m;
+    }
+
 
     private ItemStack applyCustomNbt(ItemStack stack) throws CommandSyntaxException {
         if(customNbt == null || customNbt.isEmpty())

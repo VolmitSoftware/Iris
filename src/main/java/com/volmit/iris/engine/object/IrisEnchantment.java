@@ -39,8 +39,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 @Data
 public class IrisEnchantment {
     @Required
+    @RegistryListEnchantment
     @Desc("The enchantment")
-    private String enchantment = "";
+    private String enchantment;
 
     @MinNumber(1)
     @Desc("Minimum amount of this loot")

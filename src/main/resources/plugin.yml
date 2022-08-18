@@ -2,7 +2,7 @@ name: ${name}
 version: ${version}
 main: ${main}
 load: STARTUP
-authors: [ cyberpwn, NextdoorPsycho. Vatuu ]
+authors: [ cyberpwn, NextdoorPsycho, Vatuu ]
 website: volmit.com
 description: More than a Dimension!
 libraries:
@@ -22,4 +22,3 @@ commands:
     aliases: [ ir, irs]
 api-version: ${apiversion}
 hotload-dependencies: false
-softdepend: [ "Oraxen", "ItemsAdder", "IrisFeller", "WorldEdit", "PlaceholderAPI"]

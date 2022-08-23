@@ -387,6 +387,8 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     private void enable() {
+        IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
+        IrisToolbelt.retainMantleDataForSlice(BlockData.class.getCanonicalName());
         instance = this;
         services = new KMap<>();
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
@@ -414,8 +416,6 @@ public class Iris extends VolmitPlugin implements Listener {
             splash();
             autoStartStudio();
             checkForBukkitWorlds();
-            IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
-            IrisToolbelt.retainMantleDataForSlice(BlockData.class.getCanonicalName());
         });
     }
 

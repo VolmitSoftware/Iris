@@ -20,20 +20,10 @@ package com.volmit.iris.engine;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedWorldManager;
-import com.volmit.iris.engine.object.IRare;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBlockDrops;
-import com.volmit.iris.engine.object.IrisEngineChunkData;
-import com.volmit.iris.engine.object.IrisEngineData;
-import com.volmit.iris.engine.object.IrisEngineSpawnerCooldown;
-import com.volmit.iris.engine.object.IrisEntitySpawn;
-import com.volmit.iris.engine.object.IrisMarker;
-import com.volmit.iris.engine.object.IrisPosition;
-import com.volmit.iris.engine.object.IrisRegion;
-import com.volmit.iris.engine.object.IrisSpawner;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -55,6 +45,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -69,7 +60,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -617,7 +607,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     @Override
     public void onBlockBreak(BlockBreakEvent e) {
         if(e.getBlock().getWorld().equals(getTarget().getWorld().realWorld())) {
-
             J.a(() -> {
                 MatterMarker marker = getMantle().get(e.getBlock().getX(), e.getBlock().getY(), e.getBlock().getZ(), MatterMarker.class);
 
@@ -635,52 +624,30 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             });
 
             KList<ItemStack> d = new KList<>();
-            Runnable drop = () -> J.s(() -> d.forEach((i) -> e.getBlock().getWorld().dropItemNaturally(e.getBlock().getLocation().clone().add(0.5, 0.5, 0.5), i)));
             IrisBiome b = getEngine().getBiome(e.getBlock().getLocation());
+            List<IrisBlockDrops> dropProviders = filterDrops(b.getBlockDrops(), e, getData());
 
-            if(dropItems(e, d, drop, b.getBlockDrops(), b)) {
-                return;
+            if(dropProviders.stream().noneMatch(IrisBlockDrops::isSkipParents)) {
+                IrisRegion r = getEngine().getRegion(e.getBlock().getLocation());
+                dropProviders.addAll(filterDrops(r.getBlockDrops(), e, getData()));
+                dropProviders.addAll(filterDrops(getEngine().getDimension().getBlockDrops(), e, getData()));
             }
 
-            IrisRegion r = getEngine().getRegion(e.getBlock().getLocation());
+            dropProviders.forEach(provider -> provider.fillDrops(false, d));
 
-            if(dropItems(e, d, drop, r.getBlockDrops(), b)) {
-                return;
+            if(dropProviders.stream().anyMatch(IrisBlockDrops::isReplaceVanillaDrops)) {
+                e.setDropItems(false);
             }
 
-            for(IrisBlockDrops i : getEngine().getDimension().getBlockDrops()) {
-                if(i.shouldDropFor(e.getBlock().getBlockData(), getData())) {
-                    if(i.isReplaceVanillaDrops()) {
-                        e.setDropItems(false);
-                    }
-
-                    i.fillDrops(false, d);
-
-                    if(i.isSkipParents()) {
-                        drop.run();
-                        return;
-                    }
-                }
+            if(d.isNotEmpty()) {
+                World w = e.getBlock().getWorld();
+                J.s(() -> d.forEach(item -> w.dropItemNaturally(e.getBlock().getLocation().clone().add(.5, .5, .5), item)));
             }
         }
     }
 
-    private boolean dropItems(BlockBreakEvent e, KList<ItemStack> d, Runnable drop, KList<IrisBlockDrops> blockDrops, IrisBiome b) {
-        for(IrisBlockDrops i : blockDrops) {
-            if(i.shouldDropFor(e.getBlock().getBlockData(), getData())) {
-                if(i.isReplaceVanillaDrops()) {
-                    e.setDropItems(false);
-                }
-
-                i.fillDrops(false, d);
-
-                if(i.isSkipParents()) {
-                    drop.run();
-                    return true;
-                }
-            }
-        }
-        return false;
+    private List<IrisBlockDrops> filterDrops(KList<IrisBlockDrops> drops, BlockBreakEvent e, IrisData data) {
+        return new KList<>(drops.stream().filter(d -> d.shouldDropFor(e.getBlock().getBlockData(), data)).toList());
     }
 
     @Override

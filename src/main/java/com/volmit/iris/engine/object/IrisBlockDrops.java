@@ -56,8 +56,7 @@ public class IrisBlockDrops {
     private boolean replaceVanillaDrops = false;
 
     public boolean shouldDropFor(BlockData data, IrisData rdata) {
-        KList<BlockData> list = this.data.aquire(() ->
-        {
+        KList<BlockData> list = this.data.aquire(() -> {
             KList<BlockData> b = new KList<>();
 
             for(IrisBlockData i : getBlocks()) {

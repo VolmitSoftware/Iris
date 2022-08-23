@@ -1,6 +1,5 @@
 package com.volmit.iris.engine.feature.features;
 
-import art.arcane.amulet.range.IntegerRange;
 import art.arcane.source.NoisePlane;
 import art.arcane.source.util.NoisePreset;
 import com.volmit.iris.engine.Engine;

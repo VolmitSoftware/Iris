@@ -9,7 +9,7 @@ import com.volmit.iris.engine.feature.FeatureSizedTarget;
 import com.volmit.iris.engine.feature.FeatureTarget;
 import com.volmit.iris.engine.pipeline.PipedHunkStack;
 import com.volmit.iris.platform.IrisPlatform;
-import com.volmit.iris.platform.PlatformBlock;
+import com.volmit.iris.platform.block.PlatformBlock;
 import com.volmit.iris.platform.bukkit.wrapper.BukkitWorld;
 import org.bukkit.Bukkit;
 import org.bukkit.World;

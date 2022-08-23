@@ -1,7 +1,7 @@
 package com.volmit.iris.platform.bukkit.wrapper;
 
 import com.volmit.iris.platform.PlatformBiome;
-import com.volmit.iris.platform.PlatformBlock;
+import com.volmit.iris.platform.block.PlatformBlock;
 import com.volmit.iris.platform.PlatformChunk;
 import com.volmit.iris.platform.PlatformPlayer;
 import com.volmit.iris.platform.PlatformWorld;

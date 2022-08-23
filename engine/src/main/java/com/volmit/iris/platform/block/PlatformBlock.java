@@ -1,4 +1,6 @@
-package com.volmit.iris.platform;
+package com.volmit.iris.platform.block;
+
+import com.volmit.iris.platform.PlatformNamespaced;
 
 import java.util.Map;
 

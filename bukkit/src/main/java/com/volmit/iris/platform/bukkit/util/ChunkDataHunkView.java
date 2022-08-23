@@ -1,7 +1,7 @@
 package com.volmit.iris.platform.bukkit.util;
 
 import art.arcane.spatial.hunk.Hunk;
-import com.volmit.iris.platform.PlatformBlock;
+import com.volmit.iris.platform.block.PlatformBlock;
 import com.volmit.iris.platform.bukkit.wrapper.BukkitBlock;
 import org.bukkit.generator.ChunkGenerator;
 

@@ -579,8 +579,7 @@ public class Mantle {
     }
 
     public void deleteChunkSlice(int x, int z, Class<?> c) {
-        if(!IrisToolbelt.toolbeltConfiguration.isEmpty() && IrisToolbelt.toolbeltConfiguration.getOrDefault("retain.mantle." + c.getCanonicalName(), false))
-        {
+        if(!IrisToolbelt.toolbeltConfiguration.isEmpty() && IrisToolbelt.toolbeltConfiguration.getOrDefault("retain.mantle." + c.getCanonicalName(), false)) {
             return;
         }
 

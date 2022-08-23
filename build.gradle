@@ -24,7 +24,7 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '2.2.8-1.19.2' // Needs to be version specific
+version '2.2.10-1.19.2' // Needs to be version specific
 def nmsVersion = "1.19.2"
 def apiVersion = '1.19'
 def spigotJarVersion = '1.19.1-R0.1-SNAPSHOT'
@@ -127,7 +127,7 @@ dependencies {
     implementation 'org.spigotmc:spigot-api:1.19.1-R0.1-SNAPSHOT'
     implementation 'me.clip:placeholderapi:2.11.1'
     implementation 'io.th0rgal:oraxen:1.94.0'
-    implementation 'org.bukkit:craftbukkit:1.19.1-R0.1-SNAPSHOT:remapped-mojang'
+    implementation 'org.bukkit:craftbukkit:1.19.2-R0.1-SNAPSHOT:remapped-mojang'
     implementation 'com.github.LoneDev6:api-itemsadder:3.1.0b'
 
     // Shaded

@@ -91,14 +91,6 @@ public class IrisGenerator extends IrisRegistrant {
     @Desc("The noise gen for cliff height.")
     private IrisNoiseGenerator cliffHeightGenerator = new IrisNoiseGenerator();
 
-    boolean seedAdjusted = false;
-
-    public long getSeed() {
-        if(!seedAdjusted)
-            seed += (long)(cliffHeightMax + cliffHeightMin + (offsetX * offsetZ) - zoom + (multiplicitive ? 82 : 21) * cellPercentSize);
-        return seed;
-    }
-
     public double getMax() {
         return opacity;
     }

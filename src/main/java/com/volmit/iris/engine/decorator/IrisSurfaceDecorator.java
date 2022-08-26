@@ -57,10 +57,13 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                 bd = decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData());
 
                 if(!underwater) {
-                    if(!canGoOn(bd, bdx) && !decorator.isForcePlace()) {
+                    if(!canGoOn(bd, bdx) && (!decorator.isForcePlace() && decorator.getForceBlock() == null) ) {
                         return;
                     }
                 }
+
+                if(decorator.getForceBlock() != null)
+                    data.set(x, height, z, fixFaces(decorator.getForceBlock().getBlockData(getData()), x, height, z));
 
                 if(bd instanceof Bisected) {
                     bd = bd.clone();
@@ -74,9 +77,8 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                     ((Bisected) bd).setHalf(Bisected.Half.BOTTOM);
                 }
 
-                if(decorator.getForceBlock() != null)
-                    data.set(x, height, z, fixFaces(decorator.getForceBlock().getBlockData(getData()), x, height, z));
-                data.set(x, height + 1, z, fixFaces(bd, x, height, z));
+                data.set(x, height + 1, z, fixFaces(bd, x, height + 1, z));
+
             } else {
                 if(height < getDimension().getFluidHeight()) {
                     max = getDimension().getFluidHeight();

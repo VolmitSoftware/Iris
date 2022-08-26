@@ -224,7 +224,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         if(B.isFoliage(b) || b.getMaterial().equals(Material.DEAD_BUSH)) {
             Material onto = getPostBlock(x, h, z, currentPostX, currentPostZ, currentData).getMaterial();
 
-            if(!B.canPlaceOnto(b.getMaterial(), onto)) {
+            if(!B.canPlaceOnto(b.getMaterial(), onto) && !B.isDecorant(b)) {
                 setPostBlock(x, h + 1, z, AIR, currentPostX, currentPostZ, currentData);
             }
         }

@@ -91,6 +91,14 @@ public class IrisGenerator extends IrisRegistrant {
     @Desc("The noise gen for cliff height.")
     private IrisNoiseGenerator cliffHeightGenerator = new IrisNoiseGenerator();
 
+    boolean seedAdjusted = false;
+
+    public long getSeed() {
+        if(!seedAdjusted)
+            seed += (long)(cliffHeightMax + cliffHeightMin + (offsetX * offsetZ) - zoom + (multiplicitive ? 82 : 21) * cellPercentSize);
+        return seed;
+    }
+
     public double getMax() {
         return opacity;
     }
@@ -213,24 +221,24 @@ public class IrisGenerator extends IrisRegistrant {
             return 0;
         }
 
-        int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax * seed + offsetX + offsetZ);
+        int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax * getSeed() + offsetX + offsetZ);
         double h = multiplicitive ? 1 : 0;
         double tp = 0;
 
         if(composite.size() == 1) {
             if(multiplicitive) {
-                h *= composite.get(0).getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
+                h *= composite.get(0).getNoise(getSeed() + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
             } else {
                 tp += composite.get(0).getOpacity();
-                h += composite.get(0).getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
+                h += composite.get(0).getNoise(getSeed() + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
             }
         } else {
             for(IrisNoiseGenerator i : composite) {
                 if(multiplicitive) {
-                    h *= i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
+                    h *= i.getNoise(getSeed() + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
                 } else {
                     tp += i.getOpacity();
-                    h += i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
+                    h += i.getNoise(getSeed() + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
                 }
             }
         }
@@ -248,8 +256,8 @@ public class IrisGenerator extends IrisRegistrant {
     }
 
     public double cell(double rx, double rz, double v, double superSeed) {
-        getCellGenerator(seed + 46222).setShuffle(getCellFractureShuffle());
-        return getCellGenerator(seed + 46222).getDistance(rx / getCellFractureZoom(), rz / getCellFractureZoom()) > getCellPercentSize() ? (v * getCellFractureHeight()) : v;
+        getCellGenerator(getSeed() + 46222).setShuffle(getCellFractureShuffle());
+        return getCellGenerator(getSeed() + 46222).getDistance(rx / getCellFractureZoom(), rz / getCellFractureZoom()) > getCellPercentSize() ? (v * getCellFractureHeight()) : v;
     }
 
     private boolean hasCellCracks() {
@@ -257,8 +265,8 @@ public class IrisGenerator extends IrisRegistrant {
     }
 
     public double getCliffHeight(double rx, double rz, double superSeed) {
-        int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax * seed + offsetX + offsetZ);
-        double h = cliffHeightGenerator.getNoise((long) (seed + superSeed + hc), (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
+        int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax * getSeed() + offsetX + offsetZ);
+        double h = cliffHeightGenerator.getNoise((long) (getSeed() + superSeed + hc), (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
         return IrisInterpolation.lerp(cliffHeightMin, cliffHeightMax, h);
     }
 

@@ -28,6 +28,7 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Levelled;
+import org.bukkit.block.data.MultipleFacing;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Slab;
 
@@ -221,6 +222,16 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         // Foliage
         b = getPostBlock(x, h + 1, z, currentPostX, currentPostZ, currentData);
 
+        if(B.isVineBlock(b) && b instanceof MultipleFacing f) {
+            int finalH = h + 1;
+
+            f.getAllowedFaces().forEach(face -> {
+                BlockData d = getPostBlock(x + face.getModX(), finalH + face.getModY(), z + face.getModZ(), currentPostX, currentPostZ, currentData);
+                f.setFace(face, !B.isAir(d) && !B.isVineBlock(d));
+            });
+            setPostBlock(x, h + 1, z, b, currentPostX, currentPostZ, currentData);
+        }
+
         if(B.isFoliage(b) || b.getMaterial().equals(Material.DEAD_BUSH)) {
             Material onto = getPostBlock(x, h, z, currentPostX, currentPostZ, currentData).getMaterial();
 
@@ -242,7 +253,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
 
     public boolean isSolid(int x, int y, int z, int currentPostX, int currentPostZ, Hunk<BlockData> currentData) {
         BlockData d = getPostBlock(x, y, z, currentPostX, currentPostZ, currentData);
-        return d.getMaterial().isSolid();
+        return d.getMaterial().isSolid() && !B.isVineBlock(d);
     }
 
     public boolean isSolidNonSlab(int x, int y, int z, int currentPostX, int currentPostZ, Hunk<BlockData> currentData) {

@@ -27,7 +27,7 @@ plugins {
 version '2.2.14-1.19.2' // Needs to be version specific
 def nmsVersion = "1.19.2"
 def apiVersion = '1.19'
-def spigotJarVersion = '1.19.1-R0.1-SNAPSHOT'
+def spigotJarVersion = '1.19.2-R0.1-SNAPSHOT'
 def name = getRootProject().getName() // Defined in settings.gradle
 def main = 'com.volmit.iris.Iris'
 

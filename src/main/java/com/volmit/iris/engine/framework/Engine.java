@@ -24,7 +24,6 @@ import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.core.gui.components.Renderer;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
-import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
@@ -422,21 +421,27 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     default KList<IrisLootTable> getLootTables(RNG rng, Block b) {
         int rx = b.getX();
         int rz = b.getZ();
+        int ry = b.getY() - getWorld().minHeight();
         double he = getComplex().getHeightStream().get(rx, rz);
-        PlacedObject po = getObjectPlacement(rx, b.getY(), rz);
-        if(po != null && po.getPlacement() != null) {
+        KList<IrisLootTable> tables = new KList<>();
 
+        PlacedObject po = getObjectPlacement(rx, ry, rz);
+        if(po != null && po.getPlacement() != null) {
             if(B.isStorageChest(b.getBlockData())) {
                 IrisLootTable table = po.getPlacement().getTable(b.getBlockData(), getData());
                 if(table != null) {
-                    return new KList<>(table);
+                    tables.add(table);
+                    if(po.getPlacement().isOverrideGlobalLoot()) {
+                        return new KList<>(table);
+                    }
                 }
             }
         }
+
         IrisRegion region = getComplex().getRegionStream().get(rx, rz);
         IrisBiome biomeSurface = getComplex().getTrueBiomeStream().get(rx, rz);
-        IrisBiome biomeUnder = b.getY() < he ? getComplex().getCaveBiomeStream().get(rx, rz) : biomeSurface;
-        KList<IrisLootTable> tables = new KList<>();
+        IrisBiome biomeUnder = ry < he ? getComplex().getCaveBiomeStream().get(rx, rz) : biomeSurface;
+
         double multiplier = 1D * getDimension().getLoot().getMultiplier() * region.getLoot().getMultiplier() * biomeSurface.getLoot().getMultiplier() * biomeUnder.getLoot().getMultiplier();
         injectTables(tables, getDimension().getLoot());
         injectTables(tables, region.getLoot());

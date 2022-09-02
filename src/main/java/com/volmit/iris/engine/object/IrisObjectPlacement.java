@@ -122,6 +122,8 @@ public class IrisObjectPlacement {
     @ArrayType(min = 1, type = IrisObjectLoot.class)
     @Desc("The loot tables to apply to these objects")
     private KList<IrisObjectLoot> loot = new KList<>();
+    @Desc("Whether the given loot tables override any and all other loot tables available in the dimension, region or biome.")
+    private boolean overrideGlobalLoot = false;
     @Desc("This object / these objects override the following trees when they grow...")
     @ArrayType(min = 1, type = IrisTree.class)
     private KList<IrisTree> trees = new KList<>();

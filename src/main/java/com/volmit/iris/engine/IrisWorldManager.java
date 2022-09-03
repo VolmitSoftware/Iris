@@ -624,7 +624,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             });
 
             KList<ItemStack> d = new KList<>();
-            IrisBiome b = getEngine().getBiome(e.getBlock().getLocation());
+            IrisBiome b = getEngine().getBiome(e.getBlock().getLocation().clone().subtract(0, getEngine().getWorld().minHeight(), 0));
             List<IrisBlockDrops> dropProviders = filterDrops(b.getBlockDrops(), e, getData());
 
             if(dropProviders.stream().noneMatch(IrisBlockDrops::isSkipParents)) {

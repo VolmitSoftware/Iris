@@ -74,7 +74,7 @@ repositories {
         }
     }
     maven { url "https://arcanearts.jfrog.io/artifactory/archives" }
-    //mavenLocal()
+
 }
 
 /**

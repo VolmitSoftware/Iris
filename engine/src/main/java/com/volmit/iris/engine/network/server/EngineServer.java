@@ -8,6 +8,7 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class EngineServer extends Thread {
     private final Engine engine;
@@ -37,8 +38,7 @@ public class EngineServer extends Thread {
         }
     }
 
-    public void close()
-    {
+    public void close() throws IOException {
         this.interrupt();
         server.close();
     }

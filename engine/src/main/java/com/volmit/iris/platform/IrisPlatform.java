@@ -1,5 +1,7 @@
 package com.volmit.iris.platform;
 
+import com.volmit.iris.platform.block.PlatformBlock;
+
 import java.io.File;
 import java.util.stream.Stream;
 

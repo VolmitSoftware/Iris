@@ -16,22 +16,22 @@ allprojects {
     apply plugin: 'java'
 
     repositories {
-        maven { url "https://dl.cloudsmith.io/public/arcane/archive/maven/" }
+        maven { url "https://arcanearts.jfrog.io/artifactory/archives" }
         mavenCentral()
     }
 
     dependencies {
         compileOnly 'org.projectlombok:lombok:1.18.24'
         annotationProcessor 'org.projectlombok:lombok:1.18.24'
-        annotationProcessor 'systems.manifold:manifold-ext:2022.1.18'
-        implementation 'art.arcane:Source:22.7.2'
-        implementation 'art.arcane:Cram:22.7.3'
-        implementation 'art.arcane:Amulet:22.7.13'
+        annotationProcessor 'systems.manifold:manifold-ext:2022.1.19'
+        implementation 'art.arcane:Source:22.9.3'
+        implementation 'art.arcane:Cram:22.9.3'
+        implementation 'art.arcane:Amulet:22.9.5'
         implementation 'com.google.code.gson:gson:2.9.0'
         implementation 'com.github.ben-manes.caffeine:caffeine:3.1.1'
         testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
         testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
-        testAnnotationProcessor 'systems.manifold:manifold-ext:2022.1.18'
+        testAnnotationProcessor 'systems.manifold:manifold-ext:2022.1.19'
     }
 }
 

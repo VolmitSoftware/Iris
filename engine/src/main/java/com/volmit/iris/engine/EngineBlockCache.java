@@ -1,6 +1,6 @@
 package com.volmit.iris.engine;
 
-import com.volmit.iris.platform.PlatformBlock;
+import com.volmit.iris.platform.block.PlatformBlock;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

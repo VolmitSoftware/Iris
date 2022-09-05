@@ -4,7 +4,7 @@ import art.arcane.amulet.io.IO;
 import com.volmit.iris.engine.EngineConfiguration;
 import com.volmit.iris.platform.IrisPlatform;
 import com.volmit.iris.platform.PlatformBiome;
-import com.volmit.iris.platform.PlatformBlock;
+import com.volmit.iris.platform.block.PlatformBlock;
 import com.volmit.iris.platform.PlatformNamespaceKey;
 import com.volmit.iris.platform.PlatformWorld;
 import com.volmit.iris.platform.bukkit.wrapper.BukkitBiome;

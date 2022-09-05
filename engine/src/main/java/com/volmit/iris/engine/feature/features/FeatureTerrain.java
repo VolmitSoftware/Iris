@@ -4,7 +4,7 @@ import art.arcane.source.NoisePlane;
 import art.arcane.source.util.NoisePreset;
 import com.volmit.iris.engine.Engine;
 import com.volmit.iris.engine.feature.*;
-import com.volmit.iris.platform.PlatformBlock;
+import com.volmit.iris.platform.block.PlatformBlock;
 import com.volmit.iris.util.ShortNoiseCache;
 import lombok.AllArgsConstructor;
 import lombok.Data;

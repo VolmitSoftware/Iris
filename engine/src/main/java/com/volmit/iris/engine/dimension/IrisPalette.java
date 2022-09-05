@@ -9,7 +9,7 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import com.volmit.iris.engine.resolver.EngineResolvable;
 import com.volmit.iris.engine.resolver.Resolvable;
-import com.volmit.iris.platform.PlatformBlock;
+import com.volmit.iris.platform.block.PlatformBlock;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

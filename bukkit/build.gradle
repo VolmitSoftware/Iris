@@ -95,13 +95,13 @@ java {
 }
 
 repositories {
-    maven { url "https://dl.cloudsmith.io/public/arcane/archive/maven/" }
+    maven { url "https://arcanearts.jfrog.io/artifactory/archives" }
     mavenCentral()
 }
 
 dependencies {
     implementation 'org.spigotmc:spigot-api:1.19-R0.1-SNAPSHOT'
-    implementation 'art.arcane:Fukkit:22.7.5'
+    implementation 'art.arcane:Fukkit:22.9.2'
     implementation project(":engine")
 }
 

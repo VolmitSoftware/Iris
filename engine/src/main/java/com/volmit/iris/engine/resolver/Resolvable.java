@@ -7,7 +7,7 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import com.volmit.iris.engine.EngineData;
 import com.volmit.iris.platform.PlatformBiome;
-import com.volmit.iris.platform.PlatformBlock;
+import com.volmit.iris.platform.block.PlatformBlock;
 import com.volmit.iris.platform.PlatformNamespaced;
 import com.volmit.iris.platform.PlatformNamespacedMutable;
 import lombok.AllArgsConstructor;

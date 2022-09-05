@@ -1,8 +1,7 @@
 package com.volmit.iris.platform.bukkit.wrapper;
 
-import com.volmit.iris.platform.PlatformBlock;
+import com.volmit.iris.platform.block.PlatformBlock;
 import com.volmit.iris.platform.PlatformNamespaceKey;
-import com.volmit.iris.platform.block.PlatformAgeable;
 import com.volmit.iris.platform.block.PlatformBlock;
 import lombok.Data;
 import org.bukkit.Bukkit;

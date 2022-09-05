@@ -1,5 +1,6 @@
 package com.volmit.iris.platform;
 
+import com.volmit.iris.platform.block.PlatformBlock;
 import com.volmit.iris.util.WorldHeight;
 
 import java.io.File;

@@ -73,11 +73,8 @@ repositories {
             includeGroup("org.spigotmc")
         }
     }
-    maven { url "https://dl.cloudsmith.io/public/arcane/archive/maven/" }
-    maven { url "https://maven.enginehub.org/repo/" }
-    mavenCentral()
-    mavenLocal()
-    maven { url "https://jitpack.io"}
+    maven { url "https://arcanearts.jfrog.io/artifactory/archives" }
+    //mavenLocal()
 }
 
 /**

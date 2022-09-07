@@ -24,10 +24,11 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '2.2.15-1.19.2' // Needs to be version specific
-def nmsVersion = "1.19.2"
+version '2.2.16-1.19.2' // Needs to be version specific
+def nmsVersion = "1.19.2" //[NMS]
 def apiVersion = '1.19'
-def spigotJarVersion = '1.19.2-R0.1-SNAPSHOT'
+def specialSourceVersion = '1.11.0' //[NMS]
+def spigotJarVersion = '1.19.2-R0.1-SNAPSHOT' //[NMS]
 def name = getRootProject().getName() // Defined in settings.gradle
 def main = 'com.volmit.iris.Iris'
 
@@ -121,10 +122,10 @@ dependencies {
     // Provided or Classpath
     compileOnly 'org.projectlombok:lombok:1.18.24'
     annotationProcessor 'org.projectlombok:lombok:1.18.24'
-    implementation 'org.spigotmc:spigot-api:1.19.1-R0.1-SNAPSHOT'
+    implementation 'org.spigotmc:spigot-api:1.19.2-R0.1-SNAPSHOT' //[NMS]
     implementation 'me.clip:placeholderapi:2.11.1'
     implementation 'io.th0rgal:oraxen:1.94.0'
-    implementation 'org.bukkit:craftbukkit:1.19.2-R0.1-SNAPSHOT:remapped-mojang'
+    implementation 'org.bukkit:craftbukkit:1.19.2-R0.1-SNAPSHOT:remapped-mojang' //[NMS]
     implementation 'com.github.LoneDev6:api-itemsadder:3.1.0b'
 
     // Shaded
@@ -191,7 +192,7 @@ task downloadBuildtools(type: Download) {
 
 task downloadSpecialSource(type: Download) {
     group "remapping"
-    src 'https://repo.maven.apache.org/maven2/net/md-5/SpecialSource/1.10.0/SpecialSource-1.10.0-shaded.jar'
+    src 'https://repo.maven.apache.org/maven2/net/md-5/SpecialSource/' + specialSourceVersion + '/SpecialSource-'+specialSourceVersion+'-shaded.jar'
     dest specialSourceJar
     onlyIf {
         !specialSourceJar.exists()
@@ -297,7 +298,7 @@ def registerCustomOutputTask(name, path) {
         from(new File(buildDir, "Iris-" + version + ".jar"))
         into(file(path))
         rename { String fileName ->
-            fileName.replace("Iris-" + version + ".jar", "Iris.jar")
+            fileName.replace("Iris-" + version + ".jar", "Iris- "+ version +".jar")
         }
     }
 }
@@ -314,7 +315,7 @@ def registerCustomOutputTaskUnix(name, path) {
         from(new File(buildDir, "Iris-" + version + ".jar"))
         into(file(path))
         rename { String fileName ->
-            fileName.replace("Iris-" + version + ".jar", "Iris.jar")
+            fileName.replace("Iris-" + version + ".jar", "Iris- "+ version +".jar")
         }
     }
 }

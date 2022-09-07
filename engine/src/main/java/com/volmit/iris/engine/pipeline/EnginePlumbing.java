@@ -16,12 +16,18 @@ public class EnginePlumbing {
     private final Engine engine;
     @Singular
     private final List<EnginePipeline> pipelines;
+    private final EnginePipeline errorPipeline;
 
-    public void generate(Engine engine, FeatureSizedTarget target, PipedHunkStack stack)
-    {
-        for(EnginePipeline i : pipelines)
-        {
+    public void generate(Engine engine, FeatureSizedTarget target, PipedHunkStack stack) {
+        for(EnginePipeline i : pipelines) {
             i.generate(engine, target, stack);
+        }
+        try {
+        }
+
+        catch(Throwable e) {
+            e.printStackTrace();
+            getErrorPipeline().generate(engine, target, stack);
         }
     }
 }

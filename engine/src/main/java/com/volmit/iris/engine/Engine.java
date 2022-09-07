@@ -1,5 +1,6 @@
 package com.volmit.iris.engine;
 
+import com.volmit.iris.engine.feature.features.FeatureError;
 import com.volmit.iris.engine.feature.features.FeatureTerrain;
 import com.volmit.iris.engine.pipeline.EnginePipeline;
 import com.volmit.iris.engine.pipeline.EnginePlumbing;
@@ -51,6 +52,11 @@ public class Engine implements Closeable {
         this.seedManager = getSeedManager();
         this.executor = new EngineExecutor(this);
         this.plumbing = EnginePlumbing.builder().engine(this)
+            .errorPipeline(EnginePipeline.builder()
+                .phase(PipelinePhase.builder()
+                    .task(new PipelineTask<>(new FeatureError(this), PlatformBlock.class))
+                    .build())
+                .build())
             .pipeline(EnginePipeline.builder()
                 .phase(PipelinePhase.builder()
                     .task(new PipelineTask<>(new FeatureTerrain(this), PlatformBlock.class))
@@ -59,18 +65,15 @@ public class Engine implements Closeable {
             .build();
     }
 
-    public PlatformBlock block(String block)
-    {
+    public PlatformBlock block(String block) {
         return blockCache.get(block);
     }
 
-    public PlatformNamespaceKey key(String nsk)
-    {
+    public PlatformNamespaceKey key(String nsk) {
         return getPlatform().key(nsk);
     }
 
-    public static Optional<Engine> context()
-    {
+    public static Optional<Engine> context() {
         WeakReference<Engine> reference = engineContext.get(Thread.currentThread());
 
         if(reference != null)

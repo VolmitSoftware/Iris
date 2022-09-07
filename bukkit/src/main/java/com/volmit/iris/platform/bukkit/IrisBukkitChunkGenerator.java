@@ -10,11 +10,15 @@ import com.volmit.iris.engine.feature.FeatureTarget;
 import com.volmit.iris.engine.pipeline.PipedHunkStack;
 import com.volmit.iris.platform.IrisPlatform;
 import com.volmit.iris.platform.block.PlatformBlock;
+import com.volmit.iris.platform.bukkit.util.StaticBiomeProvider;
 import com.volmit.iris.platform.bukkit.wrapper.BukkitWorld;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.block.Biome;
+import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
 import com.volmit.iris.platform.bukkit.util.ChunkDataHunkView;
+import org.bukkit.generator.WorldInfo;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -31,13 +35,15 @@ public class IrisBukkitChunkGenerator extends ChunkGenerator implements Closeabl
     private final AtomicInteger perSecond;
     private final PrecisionStopwatch p = PrecisionStopwatch.start();
     private final Average a = new Average(128);
+    private final StaticBiomeProvider staticBiomeProvider;
 
     public IrisBukkitChunkGenerator(IrisPlatform platform, EngineConfiguration configuration) {
         this.perSecond = new AtomicInteger(0);
         this.platform = platform;
         this.configuration = configuration;
-        engine = new AtomicReference<>();
-        engineLock = new ReentrantLock();
+        this.staticBiomeProvider = new StaticBiomeProvider(Biome.PLAINS);
+        this.engine = new AtomicReference<>();
+        this.engineLock = new ReentrantLock();
     }
 
     @Override
@@ -95,7 +101,47 @@ public class IrisBukkitChunkGenerator extends ChunkGenerator implements Closeabl
     }
 
     @Override
+    public BiomeProvider getDefaultBiomeProvider(WorldInfo worldInfo) {
+        return staticBiomeProvider;
+    }
+
+    @Override
     public void close() throws IOException {
         engine.get().close();
+    }
+
+    @Override
+    public boolean shouldGenerateNoise() {
+        return super.shouldGenerateNoise();
+    }
+
+    @Override
+    public boolean shouldGenerateSurface() {
+        return super.shouldGenerateSurface();
+    }
+
+    @Override
+    public boolean shouldGenerateBedrock() {
+        return super.shouldGenerateBedrock();
+    }
+
+    @Override
+    public boolean shouldGenerateCaves() {
+        return super.shouldGenerateCaves();
+    }
+
+    @Override
+    public boolean shouldGenerateDecorations() {
+        return super.shouldGenerateDecorations();
+    }
+
+    @Override
+    public boolean shouldGenerateMobs() {
+        return super.shouldGenerateMobs();
+    }
+
+    @Override
+    public boolean shouldGenerateStructures() {
+        return super.shouldGenerateStructures();
     }
 }

@@ -13,6 +13,11 @@ public class HunkSlizeConfiguration {
     private final int verticalSlice;
     private final int horizontalSlize;
 
+    public String toString()
+    {
+        return "H" + horizontalSlize + "" + ((verticalSlice < 8192) ? ("V" + verticalSlice) : "");
+    }
+
     public static List<HunkSlizeConfiguration> generateConfigurations(IntegerRange vertical, IntegerRange horizontal)
     {
         List<HunkSlizeConfiguration> configurations = new ArrayList<>();

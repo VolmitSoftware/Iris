@@ -8,12 +8,14 @@ import lombok.Data;
 public abstract class Feature<T extends PlatformNamespaced, S extends FeatureState> {
     private final String name;
     private final Engine engine;
+    private boolean optimize;
     private boolean heightAgnostic;
 
     public Feature(String name, Engine engine)
     {
         this.engine = engine;
         this.name = name;
+        this.optimize = true;
         this.heightAgnostic = true;
     }
 

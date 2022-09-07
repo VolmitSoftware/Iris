@@ -26,7 +26,7 @@ public class PipelinePhase
             .collect(Collectors.toList())).stream().map(i -> {
             try {
                 return i.get();
-            } catch(InterruptedException | ExecutionException e) {
+            } catch(Throwable e) {
                 throw new RuntimeException(e);
             }
         }).collect(Collectors.toList());

@@ -1,6 +1,7 @@
 package com.volmit.iris.platform.bukkit;
 
 import art.arcane.amulet.io.IO;
+import art.arcane.amulet.logging.LogListener;
 import com.volmit.iris.engine.EngineConfiguration;
 import com.volmit.iris.platform.IrisPlatform;
 import com.volmit.iris.platform.PlatformBiome;
@@ -14,10 +15,13 @@ import com.volmit.iris.platform.bukkit.wrapper.BukkitWorld;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Warning;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -29,11 +33,16 @@ import java.util.Arrays;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-public class IrisBukkit extends JavaPlugin implements IrisPlatform {
+public class IrisBukkit extends JavaPlugin implements IrisPlatform, LogListener {
+    private static final String TAG = ChatColor.DARK_GRAY + "[" + ChatColor.GREEN + "Iris" + ChatColor.DARK_GREEN + "/";
+    private static final String TAG_STRIPPED = ChatColor.stripColor(TAG);
     private static IrisBukkit instance;
+    private ConsoleCommandSender consoleSender;
 
     public void onEnable() {
         instance = this;
+        consoleSender = Bukkit.getConsoleSender();
+        LogListener.listener.set(this);
 
         getServer().getScheduler().scheduleSyncDelayedTask(this, () -> {
             World world = Bukkit.createWorld(new WorldCreator("iristests/" + UUID.randomUUID()).generator(new IrisBukkitChunkGenerator(this, EngineConfiguration.builder()
@@ -82,6 +91,36 @@ public class IrisBukkit extends JavaPlugin implements IrisPlatform {
 
     public static IrisBukkit getInstance() {
         return instance;
+    }
+
+    private void messageConsole(String color, String key, Object o) {
+        try {
+            consoleSender.sendMessage(TAG + key + ChatColor.DARK_GRAY + "]: " + color + o.toString());
+        }
+
+        catch(Throwable e) {
+            System.out.println(TAG_STRIPPED + key + "]: " + o.toString());
+        }
+    }
+
+    @Override
+    public void logError(String k, Object o) {
+        messageConsole(ChatColor.RED.toString(), k, o);
+    }
+
+    @Override
+    public void logInfo(String k, Object o) {
+        messageConsole(ChatColor.WHITE.toString(), k, o);
+    }
+
+    @Override
+    public void logWarning(String k, Object o) {
+        messageConsole(ChatColor.YELLOW.toString(), k, o);
+    }
+
+    @Override
+    public void logDebug(String k, Object o) {
+        messageConsole(ChatColor.GRAY.toString(), k, o);
     }
 
     @Override
@@ -154,5 +193,25 @@ public class IrisBukkit extends JavaPlugin implements IrisPlatform {
             .mutable(true)
             .timings(true)
             .build());
+    }
+
+    @Override
+    public void i(String s, Object o) {
+        logInfo(s, o);
+    }
+
+    @Override
+    public void f(String s, Object o) {
+        logError(s, o);
+    }
+
+    @Override
+    public void w(String s, Object o) {
+        logWarning(s, o);
+    }
+
+    @Override
+    public void d(String s, Object o) {
+        logDebug(s, o);
     }
 }

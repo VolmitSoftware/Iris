@@ -34,13 +34,11 @@ public class FeatureTask<T extends PlatformNamespaced, S extends FeatureState> e
         FeatureTarget<T> result;
         PrecisionStopwatch p = null;
 
-        if(timings != null)
-        {
+        if(timings != null) {
             p = PrecisionStopwatch.start();
         }
 
         if(!heightAgnostic && size.getHeight() > verticalPrepareSize * 2) {
-
             result = FeatureTarget.mergedTarget(size.splitY()
                 .map(i -> engine.getExecutor().getForks().submit((ForkJoinTask<FeatureTarget<T>>) with(i)))
                 .map(ForkJoinTask::join), origin, false, true, false);
@@ -61,8 +59,7 @@ public class FeatureTask<T extends PlatformNamespaced, S extends FeatureState> e
             result = preparedFeature.generate(origin, storage);
         }
 
-        if(timings != null)
-        {
+        if(timings != null) {
             timings.onCompleted(p.getMilliseconds());
         }
 

@@ -13,10 +13,10 @@ public class ShortNoiseCache {
     }
 
     public void set(int x, int y, short v) {
-        this.cache[y % this.height * this.width + x % this.width] = v;
+        this.cache[(Math.floorMod(y,this.height) * this.width) + Math.floorMod(x, this.width)] = v;
     }
 
     public short get(int x, int y) {
-        return this.cache[y % this.height * this.width + x % this.width];
+        return this.cache[(Math.floorMod(y,this.height) * this.width) + Math.floorMod(x,this.width)];
     }
 }

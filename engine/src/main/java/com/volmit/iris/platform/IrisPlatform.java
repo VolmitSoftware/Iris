@@ -6,6 +6,14 @@ import java.io.File;
 import java.util.stream.Stream;
 
 public interface IrisPlatform {
+    void logError(String k, Object o);
+
+    void logInfo(String k, Object o);
+
+    void logWarning(String k, Object o);
+
+    void logDebug(String k, Object o);
+
     String getPlatformName();
 
     Stream<PlatformBlock> getBlocks();

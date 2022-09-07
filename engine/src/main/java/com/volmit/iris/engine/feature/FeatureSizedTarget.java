@@ -45,13 +45,13 @@ public class FeatureSizedTarget {
         if(width <= 1) {
             return Stream.of(this);
         }
-
+        int wo2 = width/2;
         return Stream.of(FeatureSizedTarget.builder()
-                .width(width/2).height(height).depth(depth)
+                .width(wo2).height(height).depth(depth)
                 .offsetX(offsetX).offsetY(offsetY).offsetZ(offsetZ).build(),
             FeatureSizedTarget.builder()
-                .width(width - (width/2)).height(height).depth(depth)
-                .offsetX(offsetX + (width/2)).offsetY(offsetY).offsetZ(offsetZ).build());
+                .width(width - wo2).height(height).depth(depth)
+                .offsetX(offsetX + wo2).offsetY(offsetY).offsetZ(offsetZ).build());
     }
 
     Stream<FeatureSizedTarget> splitY() {
@@ -59,12 +59,13 @@ public class FeatureSizedTarget {
             return Stream.of(this);
         }
 
+        int ho2 = height / 2;
         return Stream.of(FeatureSizedTarget.builder()
-                .width(width).height(height/2).depth(depth)
+                .width(width).height(ho2).depth(depth)
                 .offsetX(offsetX).offsetY(offsetY).offsetZ(offsetZ).build(),
             FeatureSizedTarget.builder()
-                .width(width).height(height - (height / 2)).depth(depth)
-                .offsetX(offsetX).offsetY(offsetY + (height/2)).offsetZ(offsetZ).build());
+                .width(width).height(height - ho2).depth(depth)
+                .offsetX(offsetX).offsetY(offsetY + ho2).offsetZ(offsetZ).build());
     }
 
     Stream<FeatureSizedTarget> splitZ() {
@@ -72,12 +73,13 @@ public class FeatureSizedTarget {
             return Stream.of(this);
         }
 
+        int do2 = depth / 2;
         return Stream.of(FeatureSizedTarget.builder()
-                .width(width).height(height).depth(depth/2)
+                .width(width).height(height).depth(do2)
                 .offsetX(offsetX).offsetY(offsetY).offsetZ(offsetZ).build(),
             FeatureSizedTarget.builder()
-                .width(width).height(height).depth(depth - (depth/2))
-                .offsetX(offsetX).offsetY(offsetY).offsetZ(offsetZ + (depth/2)).build());
+                .width(width).height(height).depth(depth - do2)
+                .offsetX(offsetX).offsetY(offsetY).offsetZ(offsetZ + do2).build());
     }
 
     public int getAbsoluteMaxX()

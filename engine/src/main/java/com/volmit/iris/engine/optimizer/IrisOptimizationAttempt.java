@@ -1,13 +1,14 @@
 package com.volmit.iris.engine.optimizer;
 
 import art.arcane.chrono.Average;
+import art.arcane.spatial.hunk.storage.AtomicDoubleHunk;
 import lombok.Data;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Data
 public class IrisOptimizationAttempt<T> {
-    private final Average average;
+    private double value;
     private final AtomicInteger runs;
     private final int testRuns;
     private final T parameters;
@@ -16,13 +17,13 @@ public class IrisOptimizationAttempt<T> {
     {
         this.parameters = parameters;
         this.testRuns = testRuns;
-        this.average = new Average(testRuns);
+        this.value = 0;
         this.runs = new AtomicInteger(0);
     }
 
     public double getAverageTime()
     {
-        return average.getAverage();
+        return value;
     }
 
     public boolean isComplete()
@@ -31,7 +32,7 @@ public class IrisOptimizationAttempt<T> {
     }
 
     public void report(double ms) {
-        average.put(ms);
+        value += ms;
         runs.incrementAndGet();
     }
 }

@@ -290,7 +290,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         return new To3DStream<T>(this);
     }
 
-    default ProceduralStream<T> cache2D(String name, Engine engine, int size) {
+    default CachedStream2D<T> cache2D(String name, Engine engine, int size) {
         return new CachedStream2D<T>(name, engine, this, size);
     }
 

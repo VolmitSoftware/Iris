@@ -24,6 +24,8 @@ import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.MeteredCache;
 import com.volmit.iris.util.data.KCache;
+import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.hunk.storage.ArrayHunk;
 import com.volmit.iris.util.stream.BasicStream;
 import com.volmit.iris.util.stream.ProceduralStream;
 
@@ -31,6 +33,7 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
     private final ProceduralStream<T> stream;
     private final KCache<Long, T> cache;
     private final Engine engine;
+    private boolean chunked = true;
 
     public CachedStream2D(String name, Engine engine, ProceduralStream<T> stream, int size) {
         super();

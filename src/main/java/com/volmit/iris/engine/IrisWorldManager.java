@@ -623,7 +623,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 }
             });
 
-            KList<ItemStack> d = new KList<>();
+            /*KList<ItemStack> d = new KList<>();
             IrisBiome b = getEngine().getBiome(e.getBlock().getLocation().clone().subtract(0, getEngine().getWorld().minHeight(), 0));
             List<IrisBlockDrops> dropProviders = filterDrops(b.getBlockDrops(), e, getData());
 
@@ -642,7 +642,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             if(d.isNotEmpty()) {
                 World w = e.getBlock().getWorld();
                 J.s(() -> d.forEach(item -> w.dropItemNaturally(e.getBlock().getLocation().clone().add(.5, .5, .5), item)));
-            }
+            }*/
         }
     }
 

@@ -24,6 +24,7 @@ import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisJigsawStructure;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
@@ -175,7 +176,7 @@ public interface Locator<T> {
     static Locator<IrisBiome> caveOrMantleBiome(String loadKey) {
         return (e, c) -> {
             AtomicBoolean found = new AtomicBoolean(false);
-            e.generateMatter(c.getX(), c.getZ(), true);
+            e.generateMatter(c.getX(), c.getZ(), true, new ChunkContext(c.getX() << 4, c.getZ() << 4, e.getComplex(), false));
             e.getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, y, z, t) -> {
                 if(found.get()) {
                     return;

@@ -29,6 +29,7 @@ import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.function.Consumer4;
@@ -58,7 +59,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     }
 
     @Override
-    public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore) {
+    public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         Mantle mantle = getEngine().getMantle().getMantle();
         MantleChunk mc = getEngine().getMantle().getMantle().getChunk(x, z);
@@ -130,7 +131,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 biome.setInferredType(InferredType.CAVE);
                 BlockData d = biome.getWall().get(rng, i.getX() + (x << 4), i.getY(), i.getZ() + (z << 4), getData());
 
-                if(d != null && B.isSolid(output.get(i.getX(), i.getY(), i.getZ())) && i.getY() <= getComplex().getHeightStream().get(i.getX() + (x << 4), i.getZ() + (z << 4))) {
+                if(d != null && B.isSolid(output.get(i.getX(), i.getY(), i.getZ())) && i.getY() <= context.getHeight().get(i.getX(), i.getZ())) {
                     output.set(i.getX(), i.getY(), i.getZ(), d);
                 }
             }

@@ -25,6 +25,7 @@ import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisFluidBodies;
 import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.RNG;
@@ -35,12 +36,10 @@ public class MantleFluidBodyComponent extends IrisMantleComponent {
     }
 
     @Override
-    public void generateLayer(MantleWriter writer, int x, int z) {
+    public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
         RNG rng = new RNG(Cache.key(x, z) + seed() + 405666);
-        int xxx = 8 + (x << 4);
-        int zzz = 8 + (z << 4);
-        IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
-        IrisBiome biome = getComplex().getTrueBiomeStream().get(xxx, zzz);
+        IrisRegion region = context.getRegion().get(8, 8);
+        IrisBiome biome = context.getBiome().get(8, 8);
         generate(writer, rng, x, z, region, biome);
     }
 

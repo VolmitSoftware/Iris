@@ -30,6 +30,9 @@ import com.volmit.iris.util.function.Function3;
 import com.volmit.iris.util.function.Function4;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.GridLock;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.stream.arithmetic.AddingStream;
 import com.volmit.iris.util.stream.arithmetic.ClampedStream;
 import com.volmit.iris.util.stream.arithmetic.CoordinateBitShiftLeftStream;
@@ -63,9 +66,11 @@ import com.volmit.iris.util.stream.utility.NullSafeStream;
 import com.volmit.iris.util.stream.utility.ProfiledStream;
 import com.volmit.iris.util.stream.utility.SemaphoreStream;
 import com.volmit.iris.util.stream.utility.SynchronizedStream;
+import com.volmit.iris.util.stream.utility.WasteDetector;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 @SuppressWarnings("ALL")
@@ -111,7 +116,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     }
 
     default ProceduralStream<T> profile() {
-        return profile(10);
+        return profile(256);
     }
 
     default ProceduralStream<T> profile(int memory) {
@@ -132,6 +137,10 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
 
     default ProceduralStream<T> add(ProceduralStream<Double> a) {
         return add2D((x, z) -> a.get(x, z));
+    }
+
+    default ProceduralStream<T> waste(String name) {
+        return new WasteDetector<T>(this, name);
     }
 
     default ProceduralStream<T> subtract(ProceduralStream<Double> a) {
@@ -290,7 +299,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         return new To3DStream<T>(this);
     }
 
-    default ProceduralStream<T> cache2D(String name, Engine engine, int size) {
+    default CachedStream2D<T> cache2D(String name, Engine engine, int size) {
         return new CachedStream2D<T>(name, engine, this, size);
     }
 
@@ -404,6 +413,48 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
             double d = getDouble(x, z);
             return range.get(rng, d, -d, data);
         }, Interpolated.DOUBLE);
+    }
+
+    default Hunk<T> fastFill2DParallel(int x, int z) {
+        Hunk<T> hunk = Hunk.newAtomicHunk(16, 16, 1);
+        BurstExecutor e = MultiBurst.burst.burst(256);
+        int i,j;
+
+        for(i = 0; i < 16; i++) {
+            for(j = 0; j < 16; j++) {
+                int fi = i;
+                int fj = j;
+                e.queue(() -> hunk.setRaw(fi, fj, 0, get(x+ fi, z+ fj)));
+            }
+        }
+
+        e.complete();
+        return hunk;
+    }
+
+    default void fastFill2DParallel(Hunk<T> hunk, BurstExecutor e, int x, int z) {
+        int i,j;
+
+        for(i = 0; i < 16; i++) {
+            for(j = 0; j < 16; j++) {
+                int fi = i;
+                int fj = j;
+                e.queue(() -> hunk.setRaw(fi, fj, 0, get(x+ fi, z+ fj)));
+            }
+        }
+    }
+
+    default Hunk<T> fastFill2D(int x, int z) {
+        Hunk<T> hunk = Hunk.newArrayHunk(16, 16, 1);
+        int i,j;
+
+        for(i = 0; i < 16; i++) {
+            for(j = 0; j < 16; j++) {
+                hunk.setRaw(i, j, 0, get(x+ i, z+ j));
+            }
+        }
+
+        return hunk;
     }
 
     default ProceduralStream<T> fit(double inMin, double inMax, double min, double max) {

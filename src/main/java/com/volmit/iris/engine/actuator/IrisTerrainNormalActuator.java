@@ -23,6 +23,7 @@ import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
@@ -50,13 +51,13 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
 
     @BlockCoordinates
     @Override
-    public void onActuate(int x, int z, Hunk<BlockData> h, boolean multicore) {
+    public void onActuate(int x, int z, Hunk<BlockData> h, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
 
         BurstExecutor e = burst().burst(multicore);
         for(int xf = 0; xf < h.getWidth(); xf++) {
             int finalXf = xf;
-            e.queue(() -> terrainSliver(x, z, finalXf, h));
+            e.queue(() -> terrainSliver(x, z, finalXf, h, context));
         }
 
         e.complete();
@@ -81,7 +82,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
      *     the blockdata
      */
     @BlockCoordinates
-    public void terrainSliver(int x, int z, int xf, Hunk<BlockData> h) {
+    public void terrainSliver(int x, int z, int xf, Hunk<BlockData> h, ChunkContext context) {
         int zf, realX, realZ, hf, he;
         IrisBiome biome;
         IrisRegion region;
@@ -89,9 +90,9 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
         for(zf = 0; zf < h.getDepth(); zf++) {
             realX = xf + x;
             realZ = zf + z;
-            biome = getComplex().getTrueBiomeStream().get(realX, realZ);
-            region = getComplex().getRegionStream().get(realX, realZ);
-            he = (int) Math.round(Math.min(h.getHeight(), getComplex().getHeightStream().get(realX, realZ)));
+            biome = context.getBiome().get(xf, zf);
+            region = context.getRegion().get(xf, zf);
+            he = (int) Math.round(Math.min(h.getHeight(), context.getHeight().get(xf, zf)));
             hf = Math.round(Math.max(Math.min(h.getHeight(), getDimension().getFluidHeight()), he));
 
             if(hf < 0) {
@@ -126,7 +127,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                         continue;
                     }
 
-                    h.set(xf, i, zf, getComplex().getFluidStream().get(realX, +realZ));
+                    h.set(xf, i, zf, context.getFluid().get(xf,zf));
                     continue;
                 }
 
@@ -153,7 +154,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                     if(ore != null) {
                         h.set(xf, i, zf, ore);
                     } else {
-                        h.set(xf, i, zf, getComplex().getRockStream().get(realX, realZ));
+                        h.set(xf, i, zf, context.getRock().get(xf, zf));
                     }
                 }
             }

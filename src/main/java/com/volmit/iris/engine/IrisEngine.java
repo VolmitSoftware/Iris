@@ -46,6 +46,7 @@ import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.atomics.AtomicRollingSequence;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.format.C;
@@ -192,8 +193,8 @@ public class IrisEngine implements Engine {
     }
 
     @Override
-    public void generateMatter(int x, int z, boolean multicore) {
-        getMantle().generateMatter(x, z, multicore);
+    public void generateMatter(int x, int z, boolean multicore, ChunkContext context) {
+        getMantle().generateMatter(x, z, multicore, context);
     }
 
     @Override

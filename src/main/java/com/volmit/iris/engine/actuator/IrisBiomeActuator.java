@@ -25,6 +25,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.hunk.view.BiomeGridHunkHolder;
@@ -75,7 +76,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
 
     @BlockCoordinates
     @Override
-    public void onActuate(int x, int z, Hunk<Biome> h, boolean multicore) {
+    public void onActuate(int x, int z, Hunk<Biome> h, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         BurstExecutor burst = burst().burst(PaperLib.isPaper() && multicore);
 
@@ -84,7 +85,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
             burst.queue(() -> {
                 IrisBiome ib;
                 for(int zf = 0; zf < h.getDepth(); zf++) {
-                    ib = getComplex().getTrueBiomeStream().get(finalXf + x, zf + z);
+                    ib = context.getBiome().get(finalXf, zf);
                     int maxHeight = (int) (getComplex().getFluidHeight() + ib.getMaxWithObjectHeight(getData()));
                     if(ib.isCustom()) {
                         try {

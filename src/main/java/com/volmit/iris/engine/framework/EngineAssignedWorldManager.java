@@ -24,6 +24,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.stream.utility.WasteDetector;
 import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -145,6 +146,9 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
     @EventHandler
     public void on(BlockBreakEvent e) {
         if(e.getPlayer().getWorld().equals(getTarget().getWorld().realWorld())) {
+
+            WasteDetector.printAll();
+
             onBlockBreak(e);
         }
     }

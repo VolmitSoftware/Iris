@@ -21,6 +21,7 @@ package com.volmit.iris.engine.modifier;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
 import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
@@ -45,7 +46,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
     }
 
     @Override
-    public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore) {
+    public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         AtomicInteger i = new AtomicInteger();
         AtomicInteger j = new AtomicInteger();
@@ -54,14 +55,14 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
             for(j.set(0); j.get() < output.getDepth(); j.getAndIncrement()) {
                 int ii = i.get();
                 int jj = j.get();
-                post(ii, jj, sync, ii + x, jj + z);
+                post(ii, jj, sync, ii + x, jj + z, context);
             }
         }
 
         getEngine().getMetrics().getPost().put(p.getMilliseconds());
     }
 
-    private void post(int currentPostX, int currentPostZ, Hunk<BlockData> currentData, int x, int z) {
+    private void post(int currentPostX, int currentPostZ, Hunk<BlockData> currentData, int x, int z, ChunkContext context) {
         int h = getEngine().getMantle().trueHeight(x, z);
         int ha = getEngine().getMantle().trueHeight(x + 1, z);
         int hb = getEngine().getMantle().trueHeight(x, z + 1);
@@ -136,7 +137,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         }
 
         // Wall Patcher
-        IrisBiome biome = getComplex().getTrueBiomeStream().get(x, z);
+        IrisBiome biome = context.getBiome().get(currentPostX, currentPostZ);
 
         if(getDimension().isPostProcessingWalls()) {
             if(!biome.getWall().getPalette().isEmpty()) {

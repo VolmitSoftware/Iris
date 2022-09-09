@@ -55,6 +55,7 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
 
     @Override
     public T get(double x, double z) {
+        //return stream.get(x, z);
         return cache.get(Cache.key((int) x, (int) z));
     }
 

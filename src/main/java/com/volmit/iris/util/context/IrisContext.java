@@ -28,11 +28,26 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
-@AllArgsConstructor
 public class IrisContext {
     private static final KMap<Thread, IrisContext> context = new KMap<>();
     private static ChronoLatch cl = new ChronoLatch(60000);
     private final Engine engine;
+    private ChunkContext chunkContext;
+
+    public IrisContext(Engine engine) {
+        this.engine = engine;
+    }
+
+    public static IrisContext getOr(Engine engine) {
+        IrisContext c = get();
+
+        if(c == null) {
+            c = new IrisContext(engine);
+            touch(c);
+        }
+
+        return c;
+    }
 
     public static IrisContext get() {
         return context.get(Thread.currentThread());

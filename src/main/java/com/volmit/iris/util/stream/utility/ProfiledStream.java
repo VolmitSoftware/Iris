@@ -34,11 +34,13 @@ public class ProfiledStream<T> extends BasicStream<T> {
     public static final AtomicInteger ids = new AtomicInteger();
     private final int id;
     private final RollingSequence metrics;
+    public static final KList<ProfiledStream<?>> profiles = new KList<>();
 
     public ProfiledStream(ProceduralStream<T> stream, int memory) {
         super(stream);
         this.metrics = new RollingSequence(memory);
         this.id = ids.getAndAdd(1);
+        profiles.add(this);
     }
 
     public static void print(Consumer<String> printer, ProceduralStream<?> stream) {

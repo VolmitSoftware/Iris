@@ -126,8 +126,7 @@ public class PlannedStructure {
         }
 
         int id = rng.i(0, Integer.MAX_VALUE);
-        vo.place(xx, height, zz, placer, options, rng, e.shouldReduce(eng) ? null : (b)
-            -> e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id), null, getData());
+        vo.place(xx, height, zz, placer, options, rng, (b) -> e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id), null, getData());
     }
 
     public void place(World world) {

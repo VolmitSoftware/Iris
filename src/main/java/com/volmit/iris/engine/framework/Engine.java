@@ -32,6 +32,7 @@ import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
@@ -194,7 +195,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return getComplex().getRegionStream().get(x, z);
     }
 
-    void generateMatter(int x, int z, boolean multicore);
+    void generateMatter(int x, int z, boolean multicore, ChunkContext context);
 
     @BlockCoordinates
     default IrisBiome getCaveOrMantleBiome(int x, int y, int z) {

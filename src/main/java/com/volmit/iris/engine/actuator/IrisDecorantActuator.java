@@ -27,6 +27,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.framework.EngineDecorator;
 import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
@@ -66,7 +67,7 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
 
     @BlockCoordinates
     @Override
-    public void onActuate(int x, int z, Hunk<BlockData> output, boolean multicore) {
+    public void onActuate(int x, int z, Hunk<BlockData> output, boolean multicore, ChunkContext context) {
         if(!getEngine().getDimension().isDecorate()) {
             return;
         }
@@ -86,9 +87,9 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
                     int emptyFor = 0;
                     int lastSolid = 0;
                     realZ = Math.round(z + j);
-                    height = (int) Math.round(getComplex().getHeightStream().get(realX, realZ));
-                    biome = getComplex().getTrueBiomeStream().get(realX, realZ);
-                    cave = shouldRay ? getComplex().getCaveBiomeStream().get(realX, realZ) : null;
+                    height = (int) Math.round(context.getHeight().get(finalI, j));
+                    biome = context.getBiome().get(finalI, j);
+                    cave = shouldRay ? context.getCave().get(finalI, j) : null;
 
                     if(biome.getDecorators().isEmpty() && (cave == null || cave.getDecorators().isEmpty())) {
                         continue;

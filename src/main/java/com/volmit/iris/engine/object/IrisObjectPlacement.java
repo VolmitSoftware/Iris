@@ -203,6 +203,8 @@ public class IrisObjectPlacement {
             TableCache tc = new TableCache();
 
             for(IrisObjectLoot loot : getLoot()) {
+                if(loot == null)
+                    continue;
                 IrisLootTable table = manager.getLootLoader().load(loot.getName());
                 if(table == null) {
                     Iris.warn("Couldn't find loot table " + loot.getName());

@@ -39,11 +39,14 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.stream.ProceduralStream;
 import com.volmit.iris.util.stream.interpolation.Interpolated;
+import com.volmit.iris.util.stream.utility.WasteDetector;
 import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
+import java.lang.reflect.Field;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -112,96 +115,97 @@ public class IrisComplex implements DataProvider {
             .getAllBiomes(this).forEach((b) -> b
                 .getGenerators()
                 .forEach((c) -> registerGenerator(c.getCachedGenerator(this)))));
-        overlayStream = ProceduralStream.ofDouble((x, z) -> 0.0D);
+        overlayStream = ProceduralStream.ofDouble((x, z) -> 0.0D).waste("Overlay Stream");
         engine.getDimension().getOverlayNoise().forEach(i -> overlayStream = overlayStream.add((x, z) -> i.get(rng, getData(), x, z)));
         rockStream = engine.getDimension().getRockPalette().getLayerGenerator(rng.nextParallelRNG(45), data).stream()
-            .select(engine.getDimension().getRockPalette().getBlockData(data));
+            .select(engine.getDimension().getRockPalette().getBlockData(data)).waste("Rock Stream");
         fluidStream = engine.getDimension().getFluidPalette().getLayerGenerator(rng.nextParallelRNG(78), data).stream()
-            .select(engine.getDimension().getFluidPalette().getBlockData(data));
+            .select(engine.getDimension().getFluidPalette().getBlockData(data)).waste("Fluid Stream");
         regionStyleStream = engine.getDimension().getRegionStyle().create(rng.nextParallelRNG(883), getData()).stream()
-            .zoom(engine.getDimension().getRegionZoom());
-        regionIdentityStream = regionStyleStream.fit(Integer.MIN_VALUE, Integer.MAX_VALUE);
+            .zoom(engine.getDimension().getRegionZoom()).waste("Region Style");
+        regionIdentityStream = regionStyleStream.fit(Integer.MIN_VALUE, Integer.MAX_VALUE).waste("Region Identity Stream");
         regionStream = focusRegion != null ?
             ProceduralStream.of((x, z) -> focusRegion,
                 Interpolated.of(a -> 0D, a -> focusRegion))
             : regionStyleStream
             .selectRarity(data.getRegionLoader().loadAll(engine.getDimension().getRegions()))
-            .cache2D("regionStream", engine, cacheSize);
-        regionIDStream = regionIdentityStream.convertCached((i) -> new UUID(Double.doubleToLongBits(i), String.valueOf(i * 38445).hashCode() * 3245556666L));
+            .cache2D("regionStream", engine, cacheSize).waste("Region Stream");
+        regionIDStream = regionIdentityStream.convertCached((i) -> new UUID(Double.doubleToLongBits(i),
+            String.valueOf(i * 38445).hashCode() * 3245556666L)).waste("Region ID Stream");
         caveBiomeStream = regionStream.convert((r)
             -> engine.getDimension().getCaveBiomeStyle().create(rng.nextParallelRNG(InferredType.CAVE.ordinal()), getData()).stream()
             .zoom(r.getCaveBiomeZoom())
             .selectRarity(data.getBiomeLoader().loadAll(r.getCaveBiomes()))
             .onNull(emptyBiome)
-        ).convertAware2D(ProceduralStream::get).cache2D("caveBiomeStream", engine, cacheSize);
+        ).convertAware2D(ProceduralStream::get).cache2D("caveBiomeStream", engine, cacheSize).waste("Cave Biome Stream");
         inferredStreams.put(InferredType.CAVE, caveBiomeStream);
         landBiomeStream = regionStream.convert((r)
                 -> engine.getDimension().getLandBiomeStyle().create(rng.nextParallelRNG(InferredType.LAND.ordinal()), getData()).stream()
                 .zoom(r.getLandBiomeZoom())
                 .selectRarity(data.getBiomeLoader().loadAll(r.getLandBiomes(), (t) -> t.setInferredType(InferredType.LAND)))
             ).convertAware2D(ProceduralStream::get)
-            .cache2D("landBiomeStream", engine, cacheSize);
+            .cache2D("landBiomeStream", engine, cacheSize).waste("Land Biome Stream");
         inferredStreams.put(InferredType.LAND, landBiomeStream);
         seaBiomeStream = regionStream.convert((r)
                 -> engine.getDimension().getSeaBiomeStyle().create(rng.nextParallelRNG(InferredType.SEA.ordinal()), getData()).stream()
                 .zoom(r.getSeaBiomeZoom())
                 .selectRarity(data.getBiomeLoader().loadAll(r.getSeaBiomes(), (t) -> t.setInferredType(InferredType.SEA)))
             ).convertAware2D(ProceduralStream::get)
-            .cache2D("seaBiomeStream", engine, cacheSize);
+            .cache2D("seaBiomeStream", engine, cacheSize).waste("Sea Biome Stream");
         inferredStreams.put(InferredType.SEA, seaBiomeStream);
         shoreBiomeStream = regionStream.convert((r)
             -> engine.getDimension().getShoreBiomeStyle().create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), getData()).stream()
             .zoom(r.getShoreBiomeZoom())
             .selectRarity(data.getBiomeLoader().loadAll(r.getShoreBiomes(), (t) -> t.setInferredType(InferredType.SHORE)))
-        ).convertAware2D(ProceduralStream::get).cache2D("shoreBiomeStream", engine, cacheSize);
+        ).convertAware2D(ProceduralStream::get).cache2D("shoreBiomeStream", engine, cacheSize).waste("Shore Biome Stream");
         inferredStreams.put(InferredType.SHORE, shoreBiomeStream);
         bridgeStream = focusBiome != null ? ProceduralStream.of((x, z) -> focusBiome.getInferredType(),
             Interpolated.of(a -> 0D, a -> focusBiome.getInferredType())) :
             engine.getDimension().getContinentalStyle().create(rng.nextParallelRNG(234234565), getData())
                 .bake().scale(1D / engine.getDimension().getContinentZoom()).bake().stream()
                 .convert((v) -> v >= engine.getDimension().getLandChance() ? InferredType.SEA : InferredType.LAND)
-                .cache2D("bridgeStream", engine, cacheSize);
+                .cache2D("bridgeStream", engine, cacheSize).waste("Bridge Stream");
         baseBiomeStream = focusBiome != null ? ProceduralStream.of((x, z) -> focusBiome,
             Interpolated.of(a -> 0D, a -> focusBiome)) :
             bridgeStream.convertAware2D((t, x, z) -> inferredStreams.get(t).get(x, z))
                 .convertAware2D(this::implode)
-                .cache2D("baseBiomeStream", engine, cacheSize);
+                .cache2D("baseBiomeStream", engine, cacheSize).waste("Base Biome Stream");
         heightStream = ProceduralStream.of((x, z) -> {
             IrisBiome b = focusBiome != null ? focusBiome : baseBiomeStream.get(x, z);
             return getHeight(engine, b, x, z, engine.getSeedManager().getHeight());
-        }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D("heightStream", engine, cacheSize);
-        roundedHeighteightStream = heightStream.round();
-        slopeStream = heightStream.slope(3).cache2D("slopeStream", engine, cacheSize);
+        }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D("heightStream", engine, cacheSize).waste("Height Stream");
+        roundedHeighteightStream = heightStream.round().waste("Rounded Height Stream");
+        slopeStream = heightStream.slope(3).cache2D("slopeStream", engine, cacheSize).waste("Slope Stream");
         trueBiomeStream = focusBiome != null ? ProceduralStream.of((x, y) -> focusBiome, Interpolated.of(a -> 0D,
                 b -> focusBiome))
             .cache2D("trueBiomeStream-focus", engine, cacheSize) : heightStream
             .convertAware2D((h, x, z) ->
                 fixBiomeType(h, baseBiomeStream.get(x, z),
                     regionStream.get(x, z), x, z, fluidHeight))
-            .cache2D("trueBiomeStream", engine, cacheSize);
-        trueBiomeDerivativeStream = trueBiomeStream.convert(IrisBiome::getDerivative).cache2D("trueBiomeDerivativeStream", engine, cacheSize);
-        heightFluidStream = heightStream.max(fluidHeight).cache2D("heightFluidStream", engine, cacheSize);
-        maxHeightStream = ProceduralStream.ofDouble((x, z) -> height);
+            .cache2D("trueBiomeStream", engine, cacheSize).waste("True Biome Stream");
+        trueBiomeDerivativeStream = trueBiomeStream.convert(IrisBiome::getDerivative).cache2D("trueBiomeDerivativeStream", engine, cacheSize).waste("True Biome Derivative Stream");
+        heightFluidStream = heightStream.max(fluidHeight).cache2D("heightFluidStream", engine, cacheSize).waste("Height Fluid Stream");
+        maxHeightStream = ProceduralStream.ofDouble((x, z) -> height).waste("Max Height Stream");
         terrainSurfaceDecoration = trueBiomeStream
-            .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.NONE)).cache2D("terrainSurfaceDecoration", engine, cacheSize);
+            .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.NONE)).cache2D("terrainSurfaceDecoration", engine, cacheSize).waste("Surface Decoration Stream");
         terrainCeilingDecoration = trueBiomeStream
-            .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.CEILING)).cache2D("terrainCeilingDecoration", engine, cacheSize);
+            .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.CEILING)).cache2D("terrainCeilingDecoration", engine, cacheSize).waste("Ceiling Decoration Stream");
         terrainCaveSurfaceDecoration = caveBiomeStream
-            .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.NONE)).cache2D("terrainCaveSurfaceDecoration", engine, cacheSize);
+            .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.NONE)).cache2D("terrainCaveSurfaceDecoration", engine, cacheSize).waste("Cave Surface Stream");
         terrainCaveCeilingDecoration = caveBiomeStream
-            .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.CEILING)).cache2D("terrainCaveCeilingDecoration", engine, cacheSize);
+            .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.CEILING)).cache2D("terrainCaveCeilingDecoration", engine, cacheSize).waste("Cave Ceiling Stream");
         shoreSurfaceDecoration = trueBiomeStream
-            .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.SHORE_LINE)).cache2D("shoreSurfaceDecoration", engine, cacheSize);
+            .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.SHORE_LINE)).cache2D("shoreSurfaceDecoration", engine, cacheSize).waste("Shore Surface Stream");
         seaSurfaceDecoration = trueBiomeStream
-            .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.SEA_SURFACE)).cache2D("seaSurfaceDecoration", engine, cacheSize);
+            .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.SEA_SURFACE)).cache2D("seaSurfaceDecoration", engine, cacheSize).waste("Sea Surface Stream");
         seaFloorDecoration = trueBiomeStream
-            .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.SEA_FLOOR)).cache2D("seaFloorDecoration", engine, cacheSize);
+            .convertAware2D((b, xx, zz) -> decorateFor(b, xx, zz, IrisDecorationPart.SEA_FLOOR)).cache2D("seaFloorDecoration", engine, cacheSize).waste("Sea Floor Stream");
         baseBiomeIDStream = trueBiomeStream.convertAware2D((b, x, z) -> {
                 UUID d = regionIDStream.get(x, z);
                 return new UUID(b.getLoadKey().hashCode() * 818223L,
                     d.hashCode());
             })
-            .cache2D("", engine, cacheSize);
+            .cache2D("", engine, cacheSize).waste("Biome ID Stream");
         //@done
     }
 

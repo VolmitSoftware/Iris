@@ -24,7 +24,7 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '2.2.17-1.19.2' // Needs to be version specific
+version '2.2.18-1.19.2' // Needs to be version specific
 def nmsVersion = "1.19.2" //[NMS]
 def apiVersion = '1.19'
 def specialSourceVersion = '1.11.0' //[NMS]
@@ -122,7 +122,7 @@ dependencies {
     // Provided or Classpath
     compileOnly 'org.projectlombok:lombok:1.18.24'
     annotationProcessor 'org.projectlombok:lombok:1.18.24'
-    implementation 'org.spigotmc:spigot-api:1.19.2-R0.1-SNAPSHOT' //[NMS]
+    implementation 'org.spigotmc:spigot-api:1.19.2-R0.1-SNAPSHOT'
     implementation 'me.clip:placeholderapi:2.11.1'
     implementation 'io.th0rgal:oraxen:1.94.0'
     implementation 'org.bukkit:craftbukkit:1.19.2-R0.1-SNAPSHOT:remapped-mojang' //[NMS]

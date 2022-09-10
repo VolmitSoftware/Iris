@@ -40,6 +40,7 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import com.volmit.iris.util.stream.utility.ProfiledStream;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Setter;
@@ -276,7 +277,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     public @NotNull ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
         try {
             getEngine(world);
-            loadLock.acquire();
             computeStudioGenerator();
             TerrainChunk tc = TerrainChunk.create(world, biome);
             this.world.bind(world);
@@ -293,10 +293,9 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
             ChunkData c = tc.getRaw();
             Iris.debug("Generated " + x + " " + z);
-            loadLock.release();
+
             return c;
         } catch(Throwable e) {
-            loadLock.release();
             Iris.error("======================================");
             e.printStackTrace();
             Iris.reportErrorChunk(x, z, e, "CHUNK");

@@ -21,6 +21,7 @@ package com.volmit.iris.engine.mantle;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleFlag;
@@ -60,5 +61,5 @@ public interface MantleComponent {
     MantleFlag getFlag();
 
     @ChunkCoordinates
-    void generateLayer(MantleWriter writer, int x, int z);
+    void generateLayer(MantleWriter writer, int x, int z, ChunkContext context);
 }

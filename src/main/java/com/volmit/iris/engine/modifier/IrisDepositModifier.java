@@ -24,6 +24,7 @@ import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDepositGenerator;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.HeightMap;
 import com.volmit.iris.util.hunk.Hunk;
@@ -42,41 +43,41 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
     }
 
     @Override
-    public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore) {
+    public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        generateDeposits(rng, output, Math.floorDiv(x, 16), Math.floorDiv(z, 16), multicore);
+        generateDeposits(rng, output, Math.floorDiv(x, 16), Math.floorDiv(z, 16), multicore, context);
         getEngine().getMetrics().getDeposit().put(p.getMilliseconds());
     }
 
-    public void generateDeposits(RNG rx, Hunk<BlockData> terrain, int x, int z, boolean multicore) {
+    public void generateDeposits(RNG rx, Hunk<BlockData> terrain, int x, int z, boolean multicore, ChunkContext context) {
         RNG ro = rx.nextParallelRNG(x * x).nextParallelRNG(z * z);
-        IrisRegion region = getComplex().getRegionStream().get((x * 16) + 7, (z * 16) + 7);
-        IrisBiome biome = getComplex().getTrueBiomeStream().get((x * 16) + 7, (z * 16) + 7);
+        IrisRegion region = context.getRegion().get(7,7);
+        IrisBiome biome = context.getBiome().get(7,7);
         BurstExecutor burst = burst().burst(multicore);
 
         for(IrisDepositGenerator k : getDimension().getDeposits()) {
-            burst.queue(() -> generate(k, terrain, ro, x, z, false));
+            burst.queue(() -> generate(k, terrain, ro, x, z, false, context));
         }
 
         for(IrisDepositGenerator k : region.getDeposits()) {
             for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++) {
-                burst.queue(() -> generate(k, terrain, ro, x, z, false));
+                burst.queue(() -> generate(k, terrain, ro, x, z, false, context));
             }
         }
 
         for(IrisDepositGenerator k : biome.getDeposits()) {
             for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++) {
-                burst.queue(() -> generate(k, terrain, ro, x, z, false));
+                burst.queue(() -> generate(k, terrain, ro, x, z, false, context));
             }
         }
         burst.complete();
     }
 
-    public void generate(IrisDepositGenerator k, Hunk<BlockData> data, RNG rng, int cx, int cz, boolean safe) {
-        generate(k, data, rng, cx, cz, safe, null);
+    public void generate(IrisDepositGenerator k, Hunk<BlockData> data, RNG rng, int cx, int cz, boolean safe, ChunkContext context) {
+        generate(k, data, rng, cx, cz, safe, null, context);
     }
 
-    public void generate(IrisDepositGenerator k, Hunk<BlockData> data, RNG rng, int cx, int cz, boolean safe, HeightMap he) {
+    public void generate(IrisDepositGenerator k, Hunk<BlockData> data, RNG rng, int cx, int cz, boolean safe, HeightMap he, ChunkContext context) {
         for(int l = 0; l < rng.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++) {
             IrisObject clump = k.getClump(rng, getData());
 
@@ -92,7 +93,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
             int x = rng.i(af, bf);
             int z = rng.i(af, bf);
             int height = (he != null ? he.getHeight((cx << 4) + x, (cz << 4) + z) : (int) (Math.round(
-                getComplex().getHeightStream().get((cx << 4) + x, (cz << 4) + z)
+                context.getHeight().get( x, z)
             ))) - 7;
 
             if(height <= 0) {

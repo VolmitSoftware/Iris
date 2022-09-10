@@ -30,6 +30,7 @@ import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.documentation.BlockCoordinates;
@@ -188,7 +189,7 @@ public interface EngineMantle extends IObjectPlacer {
 
 
     @ChunkCoordinates
-    default void generateMatter(int x, int z, boolean multicore) {
+    default void generateMatter(int x, int z, boolean multicore, ChunkContext context) {
         if(!getEngine().getDimension().isUseMantle()) {
             return;
         }
@@ -206,7 +207,7 @@ public interface EngineMantle extends IObjectPlacer {
                         MantleChunk mc = getMantle().getChunk(xx, zz);
 
                         for(MantleComponent k : getComponents()) {
-                            generateMantleComponent(writer, xx, zz, k, mc);
+                            generateMantleComponent(writer, xx, zz, k, mc, context);
                         }
                     });
                 });
@@ -216,8 +217,8 @@ public interface EngineMantle extends IObjectPlacer {
         burst.complete();
     }
 
-    default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, MantleChunk mc) {
-        mc.raiseFlag(c.getFlag(), () -> c.generateLayer(writer, x, z));
+    default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, MantleChunk mc, ChunkContext context) {
+        mc.raiseFlag(c.getFlag(), () -> c.generateLayer(writer, x, z, context));
     }
 
     @ChunkCoordinates

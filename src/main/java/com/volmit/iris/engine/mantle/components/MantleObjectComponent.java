@@ -28,6 +28,7 @@ import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.MantleFlag;
@@ -41,12 +42,10 @@ public class MantleObjectComponent extends IrisMantleComponent {
     }
 
     @Override
-    public void generateLayer(MantleWriter writer, int x, int z) {
+    public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
         RNG rng = new RNG(Cache.key(x, z) + seed());
-        int xxx = 8 + (x << 4);
-        int zzz = 8 + (z << 4);
-        IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
-        IrisBiome biome = getComplex().getTrueBiomeStream().get(xxx, zzz);
+        IrisRegion region = context.getRegion().get(8, 8);
+        IrisBiome biome = context.getBiome().get(8, 8);
         placeObjects(writer, rng, x, z, biome, region);
     }
 
@@ -95,9 +94,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
             int xx = rng.i(x, x + 15);
             int zz = rng.i(z, z + 15);
             int id = rng.i(0, Integer.MAX_VALUE);
-            v.place(xx, -1, zz, writer, objectPlacement, rng,
-                getMantle().shouldReduce(getEngineMantle().getEngine()) ? null : (b) -> writer.setData(b.getX(), b.getY(), b.getZ(),
-                    v.getLoadKey() + "@" + id), null, getData());
+            v.place(xx, -1, zz, writer, objectPlacement, rng, (b) -> writer.setData(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id), null, getData());
         }
     }
 

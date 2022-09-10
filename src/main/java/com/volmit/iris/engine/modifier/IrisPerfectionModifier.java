@@ -20,6 +20,7 @@ package com.volmit.iris.engine.modifier;
 
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.parallel.BurstExecutor;
@@ -41,7 +42,7 @@ public class IrisPerfectionModifier extends EngineAssignedModifier<BlockData> {
     }
 
     @Override
-    public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore) {
+    public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         AtomicBoolean changed = new AtomicBoolean(true);
         int passes = 0;

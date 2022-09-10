@@ -146,9 +146,6 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
     @EventHandler
     public void on(BlockBreakEvent e) {
         if(e.getPlayer().getWorld().equals(getTarget().getWorld().realWorld())) {
-
-            WasteDetector.printAll();
-
             onBlockBreak(e);
         }
     }

@@ -25,6 +25,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IRare;
 import com.volmit.iris.engine.object.IrisStyledRange;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.function.Function3;
 import com.volmit.iris.util.function.Function4;
@@ -62,6 +63,7 @@ import com.volmit.iris.util.stream.interpolation.Interpolated;
 import com.volmit.iris.util.stream.sources.FunctionStream;
 import com.volmit.iris.util.stream.utility.CachedStream2D;
 import com.volmit.iris.util.stream.utility.CachedStream3D;
+import com.volmit.iris.util.stream.utility.ContextInjectingStream;
 import com.volmit.iris.util.stream.utility.NullSafeStream;
 import com.volmit.iris.util.stream.utility.ProfiledStream;
 import com.volmit.iris.util.stream.utility.SemaphoreStream;
@@ -133,6 +135,10 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
 
     default ProceduralStream<T> add(Function2<Double, Double, Double> a) {
         return new AddingStream<>(this, a);
+    }
+
+    default ProceduralStream<T> contextInjecting(Function3<ChunkContext, Integer, Integer, T> contextAccessor) {
+        return new ContextInjectingStream<>(this, contextAccessor);
     }
 
     default ProceduralStream<T> add(ProceduralStream<Double> a) {

@@ -118,9 +118,9 @@ public class IrisComplex implements DataProvider {
         overlayStream = ProceduralStream.ofDouble((x, z) -> 0.0D).waste("Overlay Stream");
         engine.getDimension().getOverlayNoise().forEach(i -> overlayStream = overlayStream.add((x, z) -> i.get(rng, getData(), x, z)));
         rockStream = engine.getDimension().getRockPalette().getLayerGenerator(rng.nextParallelRNG(45), data).stream()
-            .select(engine.getDimension().getRockPalette().getBlockData(data)).waste("Rock Stream");
+            .select(engine.getDimension().getRockPalette().getBlockData(data)).waste("Rock Stream").contextInjecting((c,x,z)->c.getRock().get(x, z));
         fluidStream = engine.getDimension().getFluidPalette().getLayerGenerator(rng.nextParallelRNG(78), data).stream()
-            .select(engine.getDimension().getFluidPalette().getBlockData(data)).waste("Fluid Stream");
+            .select(engine.getDimension().getFluidPalette().getBlockData(data)).waste("Fluid Stream").contextInjecting((c,x,z)->c.getFluid().get(x, z));
         regionStyleStream = engine.getDimension().getRegionStyle().create(rng.nextParallelRNG(883), getData()).stream()
             .zoom(engine.getDimension().getRegionZoom()).waste("Region Style");
         regionIdentityStream = regionStyleStream.fit(Integer.MIN_VALUE, Integer.MAX_VALUE).waste("Region Identity Stream");
@@ -129,7 +129,8 @@ public class IrisComplex implements DataProvider {
                 Interpolated.of(a -> 0D, a -> focusRegion))
             : regionStyleStream
             .selectRarity(data.getRegionLoader().loadAll(engine.getDimension().getRegions()))
-            .cache2D("regionStream", engine, cacheSize).waste("Region Stream");
+            .cache2D("regionStream", engine, cacheSize).waste("Region Stream")
+            .contextInjecting((c,x,z)->c.getRegion().get(x, z));
         regionIDStream = regionIdentityStream.convertCached((i) -> new UUID(Double.doubleToLongBits(i),
             String.valueOf(i * 38445).hashCode() * 3245556666L)).waste("Region ID Stream");
         caveBiomeStream = regionStream.convert((r)
@@ -137,7 +138,8 @@ public class IrisComplex implements DataProvider {
             .zoom(r.getCaveBiomeZoom())
             .selectRarity(data.getBiomeLoader().loadAll(r.getCaveBiomes()))
             .onNull(emptyBiome)
-        ).convertAware2D(ProceduralStream::get).cache2D("caveBiomeStream", engine, cacheSize).waste("Cave Biome Stream");
+        ).convertAware2D(ProceduralStream::get).cache2D("caveBiomeStream", engine, cacheSize).waste("Cave Biome Stream")
+            .contextInjecting((c,x,z)->c.getCave().get(x, z));
         inferredStreams.put(InferredType.CAVE, caveBiomeStream);
         landBiomeStream = regionStream.convert((r)
                 -> engine.getDimension().getLandBiomeStyle().create(rng.nextParallelRNG(InferredType.LAND.ordinal()), getData()).stream()
@@ -173,8 +175,10 @@ public class IrisComplex implements DataProvider {
         heightStream = ProceduralStream.of((x, z) -> {
             IrisBiome b = focusBiome != null ? focusBiome : baseBiomeStream.get(x, z);
             return getHeight(engine, b, x, z, engine.getSeedManager().getHeight());
-        }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D("heightStream", engine, cacheSize).waste("Height Stream");
-        roundedHeighteightStream = heightStream.round().waste("Rounded Height Stream");
+        }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D("heightStream", engine, cacheSize).waste("Height Stream")
+            .contextInjecting((c,x,z)->c.getHeight().get(x, z));
+        roundedHeighteightStream = heightStream.round().waste("Rounded Height Stream")
+            .contextInjecting((c,x,z)->(int)Math.round(c.getHeight().get(x, z)));
         slopeStream = heightStream.slope(3).cache2D("slopeStream", engine, cacheSize).waste("Slope Stream");
         trueBiomeStream = focusBiome != null ? ProceduralStream.of((x, y) -> focusBiome, Interpolated.of(a -> 0D,
                 b -> focusBiome))
@@ -182,7 +186,8 @@ public class IrisComplex implements DataProvider {
             .convertAware2D((h, x, z) ->
                 fixBiomeType(h, baseBiomeStream.get(x, z),
                     regionStream.get(x, z), x, z, fluidHeight))
-            .cache2D("trueBiomeStream", engine, cacheSize).waste("True Biome Stream");
+            .cache2D("trueBiomeStream", engine, cacheSize).waste("True Biome Stream")
+            .contextInjecting((c,x,z)->c.getBiome().get(x, z));
         trueBiomeDerivativeStream = trueBiomeStream.convert(IrisBiome::getDerivative).cache2D("trueBiomeDerivativeStream", engine, cacheSize).waste("True Biome Derivative Stream");
         heightFluidStream = heightStream.max(fluidHeight).cache2D("heightFluidStream", engine, cacheSize).waste("Height Fluid Stream");
         maxHeightStream = ProceduralStream.ofDouble((x, z) -> height).waste("Max Height Stream");

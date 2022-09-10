@@ -73,16 +73,11 @@ public interface EngineMode extends Staged {
 
     @BlockCoordinates
     default void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes, boolean multicore) {
-        PrecisionStopwatch p = PrecisionStopwatch.start();
-        PrecisionStopwatch p2 = PrecisionStopwatch.start();
         ChunkContext ctx = new ChunkContext(x, z, getComplex());
         IrisContext.getOr(getEngine()).setChunkContext(ctx);
-        r.put(p.getMilliseconds());
 
         for(EngineStage i : getStages()) {
             i.generate(x, z, blocks, biomes, multicore, ctx);
         }
-        r2.put(p2.getMilliseconds());
-        // Iris.warn(Form.duration(r.getAverage(), 2) + " Prep: TOTAL: " + C.RED + Form.duration(r2.getAverage(), 2));
     }
 }

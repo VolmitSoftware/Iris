@@ -39,6 +39,8 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
@@ -466,5 +468,39 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     public boolean isClosed() {
         return closed;
+    }
+
+    public void savePrefetch(Engine engine) {
+        BurstExecutor b = MultiBurst.burst.burst(loaders.size());
+
+        for(ResourceLoader<?> i : loaders.values()) {
+            b.queue(() -> {
+                try {
+                    i.saveFirstAccess(engine);
+                } catch(IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+
+        b.complete();
+        Iris.info("Saved Prefetch Cache to speed up future world startups");
+    }
+
+    public void loadPrefetch(Engine engine) {
+        BurstExecutor b = MultiBurst.burst.burst(loaders.size());
+
+        for(ResourceLoader<?> i : loaders.values()) {
+            b.queue(() -> {
+                try {
+                    i.loadFirstAccess(engine);
+                } catch(IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+
+        b.complete();
+        Iris.info("Loaded Prefetch Cache to reduce generation disk use.");
     }
 }

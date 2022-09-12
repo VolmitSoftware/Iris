@@ -3,6 +3,7 @@ package com.volmit.iris.util.context;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -28,6 +29,7 @@ public class ChunkContext {
     public ChunkContext(int x, int z, IrisComplex c, boolean cache) {
         this.x = x;
         this.z = z;
+
         if(cache) {
             BurstExecutor b = MultiBurst.burst.burst();
             height = new ChunkedDataCache<>(b, c.getHeightStream(), x, z);

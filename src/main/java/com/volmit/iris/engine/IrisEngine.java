@@ -147,6 +147,7 @@ public class IrisEngine implements Engine {
     }
 
     private void tickRandomPlayer() {
+        recycle();
         if(perSecondBudLatch.flip()) {
             buds.set(bud.get());
             bud.set(0);
@@ -459,8 +460,6 @@ public class IrisEngine implements Engine {
             if(generated.get() == 661) {
                 J.a(() -> getData().savePrefetch(this));
             }
-
-            recycle();
         } catch(Throwable e) {
             Iris.reportError(e);
             fail("Failed to generate " + x + ", " + z, e);

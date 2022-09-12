@@ -38,8 +38,10 @@ public class MantleFluidBodyComponent extends IrisMantleComponent {
     @Override
     public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
         RNG rng = new RNG(Cache.key(x, z) + seed() + 405666);
-        IrisRegion region = context.getRegion().get(8, 8);
-        IrisBiome biome = context.getBiome().get(8, 8);
+        int xxx = 8 + (x << 4);
+        int zzz = 8 + (z << 4);
+        IrisRegion region =getComplex().getRegionStream().get(xxx, zzz);
+        IrisBiome biome = getComplex().getTrueBiomeStream().get(xxx, zzz);
         generate(writer, rng, x, z, region, biome);
     }
 

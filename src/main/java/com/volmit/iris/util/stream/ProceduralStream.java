@@ -138,6 +138,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     }
 
     default ProceduralStream<T> contextInjecting(Function3<ChunkContext, Integer, Integer, T> contextAccessor) {
+        //return this;
         return new ContextInjectingStream<>(this, contextAccessor);
     }
 
@@ -146,7 +147,8 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     }
 
     default ProceduralStream<T> waste(String name) {
-        return new WasteDetector<T>(this, name);
+        return this;
+        //return new WasteDetector<T>(this, name);
     }
 
     default ProceduralStream<T> subtract(ProceduralStream<Double> a) {

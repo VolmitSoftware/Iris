@@ -175,8 +175,7 @@ public class IrisComplex implements DataProvider {
         heightStream = ProceduralStream.of((x, z) -> {
             IrisBiome b = focusBiome != null ? focusBiome : baseBiomeStream.get(x, z);
             return getHeight(engine, b, x, z, engine.getSeedManager().getHeight());
-        }, Interpolated.DOUBLE).clamp(0, engine.getHeight()).cache2D("heightStream", engine, cacheSize)
-            .waste("Height Stream")
+        }, Interpolated.DOUBLE).cache2D("heightStream", engine, cacheSize).waste("Height Stream")
             .contextInjecting((c,x,z)->c.getHeight().get(x, z));
         roundedHeighteightStream = heightStream.round().waste("Rounded Height Stream")
             .contextInjecting((c,x,z)->(int)Math.round(c.getHeight().get(x, z)));
@@ -324,7 +323,7 @@ public class IrisComplex implements DataProvider {
             }
 
             return 0;
-        });
+        });;
 
         double d = 0;
 

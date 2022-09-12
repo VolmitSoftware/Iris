@@ -25,7 +25,11 @@ public class ContextInjectingStream<T> extends BasicStream<T> {
             ChunkContext chunkContext = context.getChunkContext();
 
             if(chunkContext != null && (int)x >> 4 == chunkContext.getX() >> 4 && (int)z >> 4 == chunkContext.getZ() >> 4) {
-                return contextAccessor.apply(chunkContext, (int)x&15, (int)z&15);
+                T t = contextAccessor.apply(chunkContext, (int)x&15, (int)z&15);
+
+                if(t != null) {
+                    return t;
+                }
             }
         }
 

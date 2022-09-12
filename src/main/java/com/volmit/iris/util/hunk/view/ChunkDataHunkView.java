@@ -18,12 +18,14 @@
 
 package com.volmit.iris.util.hunk.view;
 
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.hunk.Hunk;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 @SuppressWarnings("ClassCanBeRecord")
 public class ChunkDataHunkView implements Hunk<BlockData> {
+    private static final BlockData AIR = B.getAir();
     private final ChunkData chunk;
 
     public ChunkDataHunkView(ChunkData chunk) {
@@ -54,17 +56,44 @@ public class ChunkDataHunkView implements Hunk<BlockData> {
         chunk.setRegion(x1, y1 + chunk.getMinHeight(), z1, x2, y2 + chunk.getMinHeight(), z2, t);
     }
 
+
+    public BlockData get(int x, int y, int z) {
+        return getRaw(x, y, z);
+    }
+
+    public void set(int x, int y, int z, BlockData t) {
+        setRaw(x, y, z, t);
+    }
+
     @Override
     public void setRaw(int x, int y, int z, BlockData t) {
         if(t == null) {
             return;
         }
 
-        chunk.setBlock(x, y + chunk.getMinHeight(), z, t);
+        try {
+
+            chunk.setBlock(x, y + chunk.getMinHeight(), z, t);
+        }
+
+        catch(Throwable ignored)
+        {
+
+        }
     }
 
     @Override
     public BlockData getRaw(int x, int y, int z) {
-        return chunk.getBlockData(x, y + chunk.getMinHeight(), z);
+        try {
+
+            return chunk.getBlockData(x, y + chunk.getMinHeight(), z);
+        }
+
+        catch(Throwable e)
+        {
+
+        }
+
+        return AIR;
     }
 }

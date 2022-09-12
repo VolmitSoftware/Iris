@@ -78,50 +78,45 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
     @Override
     public void onActuate(int x, int z, Hunk<Biome> h, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        BurstExecutor burst = burst().burst(PaperLib.isPaper() && multicore);
 
         for(int xf = 0; xf < h.getWidth(); xf++) {
-            int finalXf = xf;
-            burst.queue(() -> {
-                IrisBiome ib;
-                for(int zf = 0; zf < h.getDepth(); zf++) {
-                    ib = context.getBiome().get(finalXf, zf);
-                    int maxHeight = (int) (getComplex().getFluidHeight() + ib.getMaxWithObjectHeight(getData()));
-                    if(ib.isCustom()) {
-                        try {
-                            IrisBiomeCustom custom = ib.getCustomBiome(rng, x, 0, z);
-                            Object biomeBase = INMS.get().getCustomBiomeBaseHolderFor(getDimension().getLoadKey() + ":" + custom.getId());
+            IrisBiome ib;
+            for(int zf = 0; zf < h.getDepth(); zf++) {
+                ib = context.getBiome().get(xf, zf);
+                int maxHeight = (int) (getComplex().getFluidHeight() + ib.getMaxWithObjectHeight(getData()));
+                if(ib.isCustom()) {
+                    try {
+                        IrisBiomeCustom custom = ib.getCustomBiome(rng, x, 0, z);
+                        Object biomeBase = INMS.get().getCustomBiomeBaseHolderFor(getDimension().getLoadKey() + ":" + custom.getId());
 
-                            if(biomeBase == null || !injectBiome(h, x, 0, z, biomeBase)) {
-                                throw new RuntimeException("Cant inject biome!");
-                            }
-
-                            for(int i = 0; i < maxHeight; i++) {
-                                injectBiome(h, finalXf, i, zf, biomeBase);
-                            }
-                        } catch(Throwable e) {
-                            Iris.reportError(e);
-                            Biome v = ib.getSkyBiome(rng, x, 0, z);
-                            for(int i = 0; i < maxHeight; i++) {
-                                h.set(finalXf, i, zf, v);
-                            }
+                        if(biomeBase == null || !injectBiome(h, x, 0, z, biomeBase)) {
+                            throw new RuntimeException("Cant inject biome!");
                         }
-                    } else {
-                        Biome v = ib.getSkyBiome(rng, x, 0, z);
 
-                        if(v != null) {
-                            for(int i = 0; i < maxHeight; i++) {
-                                h.set(finalXf, i, zf, v);
-                            }
-                        } else if(cl.flip()) {
-                            Iris.error("No biome provided for " + ib.getLoadKey());
+                        for(int i = 0; i < maxHeight; i++) {
+                            injectBiome(h, xf, i, zf, biomeBase);
+                        }
+                    } catch(Throwable e) {
+                        Iris.reportError(e);
+                        Biome v = ib.getSkyBiome(rng, x, 0, z);
+                        for(int i = 0; i < maxHeight; i++) {
+                            h.set(xf, i, zf, v);
                         }
                     }
+                } else {
+                    Biome v = ib.getSkyBiome(rng, x, 0, z);
+
+                    if(v != null) {
+                        for(int i = 0; i < maxHeight; i++) {
+                            h.set(xf, i, zf, v);
+                        }
+                    } else if(cl.flip()) {
+                        Iris.error("No biome provided for " + ib.getLoadKey());
+                    }
                 }
-            });
+            }
         }
 
-        burst.complete();
         getEngine().getMetrics().getBiome().put(p.getMilliseconds());
     }
 }

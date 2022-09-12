@@ -129,8 +129,9 @@ public class IrisEngine implements Engine {
         context = new IrisContext(this);
         cleaning = new AtomicBoolean(false);
         context.touch();
-        Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + target.getDimension().getDimensionHeight() + " height) Seed: " + getSeedManager().getSeed());
         getData().setEngine(this);
+        getData().loadPrefetch(this);
+        Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + target.getDimension().getDimensionHeight() + " height) Seed: " + getSeedManager().getSeed());
         minHeight = 0;
         failing = false;
         closed = false;
@@ -146,6 +147,7 @@ public class IrisEngine implements Engine {
     }
 
     private void tickRandomPlayer() {
+        recycle();
         if(perSecondBudLatch.flip()) {
             buds.set(bud.get());
             bud.set(0);
@@ -454,7 +456,10 @@ public class IrisEngine implements Engine {
             getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.REAL, true);
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();
-            recycle();
+
+            if(generated.get() == 661) {
+                J.a(() -> getData().savePrefetch(this));
+            }
         } catch(Throwable e) {
             Iris.reportError(e);
             fail("Failed to generate " + x + ", " + z, e);

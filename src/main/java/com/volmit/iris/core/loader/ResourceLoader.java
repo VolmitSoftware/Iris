@@ -23,32 +23,51 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.project.SchemaBuilder;
 import com.volmit.iris.core.service.PreservationSVC;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.MeteredCache;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.io.CustomOutputStream;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 
+import java.io.DataInput;
+import java.io.DataInputStream;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 @Data
 public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
     public static final AtomicDouble tlt = new AtomicDouble(0);
     private static final int CACHE_SIZE = 100000;
+    protected KSet<String> firstAccess;
     protected File root;
     protected String folderName;
     protected String resourceTypeName;
@@ -63,6 +82,7 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
 
     public ResourceLoader(File root, IrisData manager, String folderName, String resourceTypeName, Class<? extends T> objectClass) {
         this.manager = manager;
+        firstAccess = new KSet<>();
         folderCache = new AtomicReference<>();
         sec = new ChronoLatch(5000);
         loads = new AtomicInteger();
@@ -221,6 +241,24 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
         return m;
     }
 
+    public KList<T> loadAllParallel(KList<String> s) {
+        KList<T> m = new KList<>();
+        BurstExecutor burst = MultiBurst.burst.burst(s.size());
+
+        for(String i : s) {
+            burst.queue(() -> {
+                T t = load(i);
+
+                if(t != null) {
+                    m.add(t);
+                }
+            });
+        }
+
+        burst.complete();
+        return m;
+    }
+
     public KList<T> loadAll(KList<String> s, Consumer<T> postLoad) {
         KList<T> m = new KList<>();
 
@@ -282,12 +320,52 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
             return null;
         }
 
+        firstAccess.add(name);
         return loadCache.get(name);
     }
 
+    public void loadFirstAccess(Engine engine) throws IOException
+    {
+        String id = "DIM" + Math.abs(engine.getSeedManager().getSeed() + engine.getDimension().getVersion() + engine.getDimension().getLoadKey().hashCode());
+        File file = Iris.instance.getDataFile("prefetch/" + id + "/" + Math.abs(getFolderName().hashCode()) + ".ipfch");
+
+        if(!file.exists()) {
+            return;
+        }
+
+        FileInputStream fin = new FileInputStream(file);
+        GZIPInputStream gzi = new GZIPInputStream(fin);
+        DataInputStream din = new DataInputStream(gzi);
+        int m = din.readInt();
+        KList<String> s = new KList<>();
+
+        for(int i = 0; i < m; i++) {
+            s.add(din.readUTF());
+        }
+
+        din.close();
+        file.deleteOnExit();
+        Iris.info("Loading " + s.size() + " prefetch " + getFolderName());
+        loadAllParallel(s);
+    }
+    public void saveFirstAccess(Engine engine) throws IOException {
+        String id = "DIM" + Math.abs(engine.getSeedManager().getSeed() + engine.getDimension().getVersion() + engine.getDimension().getLoadKey().hashCode());
+        File file = Iris.instance.getDataFile("prefetch/" + id + "/" + Math.abs(getFolderName().hashCode()) + ".ipfch");
+        file.getParentFile().mkdirs();
+        FileOutputStream fos = new FileOutputStream(file);
+        GZIPOutputStream gzo = new CustomOutputStream(fos, 9);
+        DataOutputStream dos = new DataOutputStream(gzo);
+        dos.writeInt(firstAccess.size());
+
+        for(String i : firstAccess) {
+            dos.writeUTF(i);
+        }
+
+        dos.flush();
+        dos.close();
+    }
+
     public KList<File> getFolders() {
-
-
         synchronized(folderCache) {
             if(folderCache.get() == null) {
                 KList<File> fc = new KList<>();

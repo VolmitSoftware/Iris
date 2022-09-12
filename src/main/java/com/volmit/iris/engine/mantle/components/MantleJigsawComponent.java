@@ -49,8 +49,10 @@ public class MantleJigsawComponent extends IrisMantleComponent {
     @Override
     public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
         RNG rng = new RNG(cng.fit(-Integer.MAX_VALUE, Integer.MAX_VALUE, x, z));
-        IrisRegion region = context.getRegion().get(8, 8);
-        IrisBiome biome = context.getBiome().get(8, 8);
+        int xxx = 8 + (x << 4);
+        int zzz = 8 + (z << 4);
+        IrisRegion region =getComplex().getRegionStream().get(xxx, zzz);
+        IrisBiome biome = getComplex().getTrueBiomeStream().get(xxx, zzz);
         generateJigsaw(writer, rng, x, z, biome, region);
     }
 

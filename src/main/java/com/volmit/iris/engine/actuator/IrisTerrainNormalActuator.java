@@ -27,7 +27,6 @@ import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
 import org.bukkit.Material;
@@ -54,13 +53,9 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     public void onActuate(int x, int z, Hunk<BlockData> h, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
 
-        BurstExecutor e = burst().burst(multicore);
         for(int xf = 0; xf < h.getWidth(); xf++) {
-            int finalXf = xf;
-            e.queue(() -> terrainSliver(x, z, finalXf, h, context));
+            terrainSliver(x, z, xf, h, context);
         }
-
-        e.complete();
 
         getEngine().getMetrics().getTerrain().put(p.getMilliseconds());
     }

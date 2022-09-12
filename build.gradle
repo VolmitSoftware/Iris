@@ -298,7 +298,7 @@ def registerCustomOutputTask(name, path) {
         from(new File(buildDir, "Iris-" + version + ".jar"))
         into(file(path))
         rename { String fileName ->
-            fileName.replace("Iris-" + version + ".jar", "Iris- "+ version +".jar")
+            fileName.replace("Iris-" + version + ".jar", "Iris.jar")
         }
     }
 }
@@ -315,7 +315,7 @@ def registerCustomOutputTaskUnix(name, path) {
         from(new File(buildDir, "Iris-" + version + ".jar"))
         into(file(path))
         rename { String fileName ->
-            fileName.replace("Iris-" + version + ".jar", "Iris- "+ version +".jar")
+            fileName.replace("Iris-" + version + ".jar", "Iris.jar")
         }
     }
 }

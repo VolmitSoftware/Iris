@@ -157,7 +157,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 if(i == buf + 1) {
                     buf = i;
                     zone.ceiling = buf;
-                } else if(zone.isValid()) {
+                } else if(zone.isValid(getEngine())) {
                     processZone(output, mc, mantle, zone, rx, rz, rx + (x << 4), rz + (z << 4));
                     zone = new CaveZone();
                     zone.setFloor(i);
@@ -165,7 +165,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 }
             }
 
-            if(zone.isValid()) {
+            if(zone.isValid(getEngine())) {
                 processZone(output, mc, mantle, zone, rx, rz, rx + (x << 4), rz + (z << 4));
             }
         });
@@ -276,8 +276,8 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             return (ceiling - floor) - 1;
         }
 
-        public boolean isValid() {
-            return floor < ceiling && ceiling - floor >= 1 && floor >= 0 && ceiling <= IrisContext.get().getEngine().getHeight() && airThickness() > 0;
+        public boolean isValid(Engine engine) {
+            return floor < ceiling && ceiling - floor >= 1 && floor >= 0 && ceiling <= engine.getHeight() && airThickness() > 0;
         }
 
         public String toString() {

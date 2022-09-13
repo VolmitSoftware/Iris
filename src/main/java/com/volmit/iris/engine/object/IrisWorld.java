@@ -32,6 +32,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.generator.WorldInfo;
 
 import java.io.File;
 import java.util.Collection;
@@ -107,6 +108,14 @@ public class IrisWorld {
         if(hasRealWorld()) {
             IrisToolbelt.evacuate(realWorld());
         }
+    }
+
+    public void bind(WorldInfo worldInfo) {
+        name(worldInfo.getName())
+            .worldFolder(new File(worldInfo.getName()))
+            .minHeight(worldInfo.getMinHeight())
+            .maxHeight(worldInfo.getMaxHeight())
+            .environment(worldInfo.getEnvironment());
     }
 
     public void bind(World world) {

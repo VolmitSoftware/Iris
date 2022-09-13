@@ -46,6 +46,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.HeightMap;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -64,6 +65,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 @EqualsAndHashCode(callSuper = true)
@@ -75,6 +78,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final File dataLocation;
     private final String dimensionKey;
     private final ReactiveFolder folder;
+    private final ReentrantLock lock = new ReentrantLock();
     private final KList<BlockPopulator> populators;
     private final ChronoLatch hotloadChecker;
     private final AtomicBoolean setup;
@@ -197,33 +201,41 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         }
     }
 
-    private Engine getEngine(World world) {
+    private Engine getEngine(WorldInfo world) {
         if(setup.get()) {
             return getEngine();
         }
 
-        synchronized(this) {
-            getWorld().setRawWorldSeed(world.getSeed());
-            setupEngine();
-            this.hotloader = studio ? new Looper() {
-                @Override
-                protected long loop() {
-                    if(hotloadChecker.flip()) {
-                        folder.check();
-                    }
+        lock.lock();
 
-                    return 250;
-                }
-            } : null;
-
-            if(studio) {
-                hotloader.setPriority(Thread.MIN_PRIORITY);
-                hotloader.start();
-                hotloader.setName(getTarget().getWorld().name() + " Hotloader");
-            }
-
-            setup.set(true);
+        if(setup.get())
+        {
+            return getEngine();
         }
+
+
+        setup.set(true);
+        getWorld().setRawWorldSeed(world.getSeed());
+        setupEngine();
+        this.hotloader = studio ? new Looper() {
+            @Override
+            protected long loop() {
+                if(hotloadChecker.flip()) {
+                    folder.check();
+                }
+
+                return 250;
+            }
+        } : null;
+
+        if(studio) {
+            hotloader.setPriority(Thread.MIN_PRIORITY);
+            hotloader.start();
+            hotloader.setName(getTarget().getWorld().name() + " Hotloader");
+        }
+
+        lock.unlock();
+
 
         return engine;
     }
@@ -273,8 +285,51 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         getEngine(world);
     }
 
+    private final AtomicInteger a = new AtomicInteger(0);
+
+    @Override
+    public void generateNoise(@NotNull WorldInfo world, @NotNull Random random, int x, int z, @NotNull ChunkGenerator.ChunkData d) {
+        try {
+            getEngine(world);
+            computeStudioGenerator();
+            TerrainChunk tc = TerrainChunk.create(d, new IrisBiomeStorage());
+            this.world.bind(world);
+            if(studioGenerator != null) {
+                studioGenerator.generateChunk(getEngine(), tc, x, z);
+            } else {
+                ChunkDataHunkHolder blocks = new ChunkDataHunkHolder(tc);
+                BiomeGridHunkHolder biomes = new BiomeGridHunkHolder(tc, tc.getMinHeight(), tc.getMaxHeight());
+                getEngine().generate(x << 4, z << 4, blocks, biomes, true);
+                blocks.apply();
+                biomes.apply();
+            }
+
+            Iris.debug("Generated " + x + " " + z);
+        } catch(Throwable e) {
+            Iris.error("======================================");
+            e.printStackTrace();
+            Iris.reportErrorChunk(x, z, e, "CHUNK");
+            Iris.error("======================================");
+
+            for(int i = 0; i < 16; i++) {
+                for(int j = 0; j < 16; j++) {
+                    d.setBlock(i, 0, j, Material.RED_GLAZED_TERRACOTTA.createBlockData());
+                }
+            }
+        }
+    }
+
+    @Override
+    public int getBaseHeight(@NotNull WorldInfo worldInfo, @NotNull Random random, int x, int z, @NotNull HeightMap heightMap) {
+        return 4;
+    }
+
     @Override
     public @NotNull ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
+        if(true) {
+            super.generateChunkData(world, ignored, x, z, biome);
+        }
+
         try {
             getEngine(world);
             computeStudioGenerator();

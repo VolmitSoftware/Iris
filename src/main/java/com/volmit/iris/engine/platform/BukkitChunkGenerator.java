@@ -299,7 +299,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             } else {
                 ChunkDataHunkHolder blocks = new ChunkDataHunkHolder(tc);
                 BiomeGridHunkHolder biomes = new BiomeGridHunkHolder(tc, tc.getMinHeight(), tc.getMaxHeight());
-                getEngine().generate(x << 4, z << 4, blocks, biomes, true);
+                getEngine().generate(x << 4, z << 4, blocks, biomes, false);
                 blocks.apply();
                 biomes.apply();
             }
@@ -322,50 +322,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @Override
     public int getBaseHeight(@NotNull WorldInfo worldInfo, @NotNull Random random, int x, int z, @NotNull HeightMap heightMap) {
         return 4;
-    }
-
-    @Override
-    public @NotNull ChunkData generateChunkData(@NotNull World world, @NotNull Random ignored, int x, int z, @NotNull BiomeGrid biome) {
-        if(true) {
-            super.generateChunkData(world, ignored, x, z, biome);
-        }
-
-        try {
-            getEngine(world);
-            computeStudioGenerator();
-            TerrainChunk tc = TerrainChunk.create(world, biome);
-            this.world.bind(world);
-
-            if(studioGenerator != null) {
-                studioGenerator.generateChunk(getEngine(), tc, x, z);
-            } else {
-                ChunkDataHunkHolder blocks = new ChunkDataHunkHolder(tc);
-                BiomeGridHunkHolder biomes = new BiomeGridHunkHolder(tc, tc.getMinHeight(), tc.getMaxHeight());
-                getEngine().generate(x << 4, z << 4, blocks, biomes, true);
-                blocks.apply();
-                biomes.apply();
-            }
-
-            ChunkData c = tc.getRaw();
-            Iris.debug("Generated " + x + " " + z);
-
-            return c;
-        } catch(Throwable e) {
-            Iris.error("======================================");
-            e.printStackTrace();
-            Iris.reportErrorChunk(x, z, e, "CHUNK");
-            Iris.error("======================================");
-
-            ChunkData d = Bukkit.createChunkData(world);
-
-            for(int i = 0; i < 16; i++) {
-                for(int j = 0; j < 16; j++) {
-                    d.setBlock(i, 0, j, Material.RED_GLAZED_TERRACOTTA.createBlockData());
-                }
-            }
-
-            return d;
-        }
     }
 
     private void computeStudioGenerator() {

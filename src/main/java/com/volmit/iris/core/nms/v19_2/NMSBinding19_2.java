@@ -22,7 +22,9 @@ package com.volmit.iris.core.nms.v19_2;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
@@ -37,20 +39,20 @@ import com.volmit.iris.util.nbt.mca.palette.MCAWrappedPalettedContainer;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.core.*;
+import net.minecraft.core.Registry;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import net.minecraft.world.level.chunk.LevelChunk;
+import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 
+import org.bukkit.craftbukkit.v1_19_R1.CraftChunk;
 import org.bukkit.craftbukkit.v1_19_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_19_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_19_R1.block.data.CraftBlockData;
@@ -331,6 +333,12 @@ public class NMSBinding19_2 implements INMSBinding {
 
     public boolean supportsDataPacks() {
         return true;
+    }
+
+    public void setBiomes(int cx, int cz, World world, Hunk<Object> biomes) {
+        LevelChunk c = ((CraftWorld)world).getHandle().getChunk(cx, cz);
+        biomes.iterateSync((x,y,z,b) -> c.setBiome(x, y, z, (Holder<net.minecraft.world.level.biome.Biome>)b));
+        c.setUnsaved(true);
     }
 
     @Override

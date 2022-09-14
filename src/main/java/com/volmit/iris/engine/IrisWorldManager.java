@@ -21,6 +21,7 @@ package com.volmit.iris.engine;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedWorldManager;
 import com.volmit.iris.engine.object.*;
@@ -31,14 +32,14 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.MatterBiomeInject;
 import com.volmit.iris.util.matter.MatterMarker;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.Chunks;
 import com.volmit.iris.util.plugin.VolmitSender;
-import com.volmit.iris.util.scheduling.ChronoLatch;
-import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.Looper;
+import com.volmit.iris.util.scheduling.*;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import io.papermc.lib.PaperLib;
 import lombok.Data;
@@ -81,6 +82,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     private int actuallySpawned = 0;
     private int cooldown = 0;
     private List<Entity> precount = new KList<>();
+    private KSet<Position2> injectBiomes = new KSet<>();
 
     public IrisWorldManager() {
         super(null);
@@ -463,6 +465,10 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         getEngine().getMantle().save();
     }
 
+    public void requestBiomeInject(Position2 p) {
+        injectBiomes.add(p);
+    }
+
     @Override
     public void onChunkLoad(Chunk e, boolean generated) {
         if(getEngine().isClosed()) {
@@ -472,6 +478,14 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         energy += 0.3;
         fixEnergy();
         getEngine().cleanupMantleChunk(e.getX(), e.getZ());
+
+        if(generated && !injectBiomes.isEmpty()) {
+            Position2 p = new Position2(e.getX(), e.getZ());
+
+            if(injectBiomes.remove(p)) {
+                INMS.get().injectBiomesFromMantle(e, getMantle());
+            }
+        }
     }
 
     private void spawn(IrisPosition block, IrisSpawner spawner, boolean initial) {

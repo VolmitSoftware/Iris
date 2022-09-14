@@ -31,6 +31,8 @@ import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.hunk.view.BiomeGridHunkHolder;
 import com.volmit.iris.util.hunk.view.BiomeGridHunkView;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.MatterBiomeInject;
+import com.volmit.iris.util.matter.slices.BiomeInjectMatter;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -48,33 +50,6 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
     }
 
     @BlockCoordinates
-    private boolean injectBiome(Hunk<Biome> h, int x, int y, int z, Object bb) {
-        try {
-            if(h instanceof BiomeGridHunkView hh) {
-                ChunkGenerator.BiomeGrid g = hh.getChunk();
-                if(g instanceof TerrainChunk) {
-                    ((TerrainChunk) g).getBiomeBaseInjector().setBiome(x, y, z, bb);
-                } else {
-                    hh.forceBiomeBaseInto(x, y, z, bb);
-                }
-                return true;
-            } else if(h instanceof BiomeGridHunkHolder hh) {
-                ChunkGenerator.BiomeGrid g = hh.getChunk();
-                if(g instanceof TerrainChunk) {
-                    ((TerrainChunk) g).getBiomeBaseInjector().setBiome(x, y, z, bb);
-                } else {
-                    hh.forceBiomeBaseInto(x, y, z, bb);
-                }
-                return true;
-            }
-        } catch(Throwable e) {
-            e.printStackTrace();
-        }
-
-        return false;
-    }
-
-    @BlockCoordinates
     @Override
     public void onActuate(int x, int z, Hunk<Biome> h, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
@@ -84,35 +59,19 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
             for(int zf = 0; zf < h.getDepth(); zf++) {
                 ib = context.getBiome().get(xf, zf);
                 int maxHeight = (int) (getComplex().getFluidHeight() + ib.getMaxWithObjectHeight(getData()));
+                MatterBiomeInject matter = null;
+
                 if(ib.isCustom()) {
-                    try {
-                        IrisBiomeCustom custom = ib.getCustomBiome(rng, x, 0, z);
-                        Object biomeBase = INMS.get().getCustomBiomeBaseHolderFor(getDimension().getLoadKey() + ":" + custom.getId());
-
-                        if(biomeBase == null || !injectBiome(h, x, 0, z, biomeBase)) {
-                            throw new RuntimeException("Cant inject biome!");
-                        }
-
-                        for(int i = 0; i < maxHeight; i++) {
-                            injectBiome(h, xf, i, zf, biomeBase);
-                        }
-                    } catch(Throwable e) {
-                        Iris.reportError(e);
-                        Biome v = ib.getSkyBiome(rng, x, 0, z);
-                        for(int i = 0; i < maxHeight; i++) {
-                            h.set(xf, i, zf, v);
-                        }
-                    }
+                    IrisBiomeCustom custom = ib.getCustomBiome(rng, x, 0, z);
+                    Object biomeBase = INMS.get().getCustomBiomeBaseHolderFor(getDimension().getLoadKey() + ":" + custom.getId());
+                    matter = BiomeInjectMatter.get(INMS.get().getTrueBiomeBaseId(biomeBase));
                 } else {
                     Biome v = ib.getSkyBiome(rng, x, 0, z);
+                    matter = BiomeInjectMatter.get(v);
+                }
 
-                    if(v != null) {
-                        for(int i = 0; i < maxHeight; i++) {
-                            h.set(xf, i, zf, v);
-                        }
-                    } else if(cl.flip()) {
-                        Iris.error("No biome provided for " + ib.getLoadKey());
-                    }
+                for(int i = 0; i < maxHeight; i++) {
+                    getEngine().getMantle().getMantle().set(x, i, z, matter);
                 }
             }
         }

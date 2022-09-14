@@ -25,6 +25,8 @@ import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.matter.MatterBiomeInject;
 import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
@@ -397,6 +399,24 @@ public class NMSBinding19_2 implements INMSBinding {
         return new MCAWrappedPalettedContainer<>(container,
             i -> NBTWorld.getCompound(CraftBlockData.fromData(i)),
             i -> ((CraftBlockData) NBTWorld.getBlockData(i)).getState());
+    }
+
+    @Override
+    public void injectBiomesFromMantle(Chunk e, Mantle mantle) {
+        LevelChunk chunk = ((CraftChunk)e).getHandle();
+        mantle.iterateChunk(e.getX(), e.getZ(), MatterBiomeInject.class, (x,y,z,b) -> {
+            if(b != null) {
+                if(b.isCustom()) {
+                    chunk.setBiome(x, y, z, (Holder<net.minecraft.world.level.biome.Biome>) getBiomeBaseFromId(b.getBiomeId()));
+                }
+
+                else {
+                    chunk.setBiome(x, y, z, (Holder<net.minecraft.world.level.biome.Biome>) getBiomeBase(e.getWorld(), b.getBiome()));
+                }
+            }
+        });
+
+        chunk.setUnsaved(true);
     }
 
     private static Object getFor(Class<?> type, Object source) {

@@ -479,12 +479,8 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         fixEnergy();
         getEngine().cleanupMantleChunk(e.getX(), e.getZ());
 
-        if(generated && !injectBiomes.isEmpty()) {
-            Position2 p = new Position2(e.getX(), e.getZ());
-
-            if(injectBiomes.remove(p)) {
-                INMS.get().injectBiomesFromMantle(e, getMantle());
-            }
+        if(generated) {
+            INMS.get().injectBiomesFromMantle(e, getMantle());
         }
     }
 

@@ -22,7 +22,6 @@ package com.volmit.iris.core.nms.v19_2;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
@@ -196,7 +195,7 @@ public class NMSBinding19_2 implements INMSBinding {
 
     @Override
     public int getTrueBiomeBaseId(Object biomeBase) {
-        return getCustomBiomeRegistry().getId((net.minecraft.world.level.biome.Biome) biomeBase);
+        return getCustomBiomeRegistry().getId(((Holder<net.minecraft.world.level.biome.Biome>) biomeBase).value());
     }
 
     @Override
@@ -216,6 +215,10 @@ public class NMSBinding19_2 implements INMSBinding {
     @Override
     public Object getCustomBiomeBaseHolderFor(String mckey) {
         return getCustomBiomeRegistry().getHolder(getTrueBiomeBaseId(getCustomBiomeRegistry().get(new ResourceLocation(mckey)))).get();
+    }
+
+    public int getBiomeBaseIdForKey(String key) {
+        return getCustomBiomeRegistry().getId(getCustomBiomeRegistry().get(new ResourceLocation(key)));
     }
 
     @Override
@@ -404,19 +407,23 @@ public class NMSBinding19_2 implements INMSBinding {
     @Override
     public void injectBiomesFromMantle(Chunk e, Mantle mantle) {
         LevelChunk chunk = ((CraftChunk)e).getHandle();
+        AtomicInteger c = new AtomicInteger();
+        AtomicInteger r = new AtomicInteger();
         mantle.iterateChunk(e.getX(), e.getZ(), MatterBiomeInject.class, (x,y,z,b) -> {
             if(b != null) {
                 if(b.isCustom()) {
                     chunk.setBiome(x, y, z, (Holder<net.minecraft.world.level.biome.Biome>) getBiomeBaseFromId(b.getBiomeId()));
+                    c.getAndIncrement();
                 }
 
                 else {
                     chunk.setBiome(x, y, z, (Holder<net.minecraft.world.level.biome.Biome>) getBiomeBase(e.getWorld(), b.getBiome()));
+                    r.getAndIncrement();
                 }
             }
         });
 
-        chunk.setUnsaved(true);
+        Iris.info("Injected " + c.get() + " custom biomes and " + r.get() + " vanilla biomes into chunk " + e.getX() + "," + e.getZ());
     }
 
     private static Object getFor(Class<?> type, Object source) {

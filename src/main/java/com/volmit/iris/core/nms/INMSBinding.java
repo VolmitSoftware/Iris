@@ -58,6 +58,8 @@ public interface INMSBinding {
     Object getCustomBiomeBaseFor(String mckey);
     Object getCustomBiomeBaseHolderFor(String mckey);
 
+    int getBiomeBaseIdForKey(String key);
+
     String getKeyForBiomeBase(Object biomeBase);
 
     Object getBiomeBase(World world, Biome biome);

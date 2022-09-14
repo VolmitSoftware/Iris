@@ -52,30 +52,42 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
     @BlockCoordinates
     @Override
     public void onActuate(int x, int z, Hunk<Biome> h, boolean multicore, ChunkContext context) {
-        PrecisionStopwatch p = PrecisionStopwatch.start();
+        try
+        {
+            PrecisionStopwatch p = PrecisionStopwatch.start();
 
-        for(int xf = 0; xf < h.getWidth(); xf++) {
-            IrisBiome ib;
-            for(int zf = 0; zf < h.getDepth(); zf++) {
-                ib = context.getBiome().get(xf, zf);
-                int maxHeight = (int) (getComplex().getFluidHeight() + ib.getMaxWithObjectHeight(getData()));
-                MatterBiomeInject matter = null;
+            int m = 0;
+            for(int xf = 0; xf < h.getWidth(); xf++) {
+                IrisBiome ib;
+                for(int zf = 0; zf < h.getDepth(); zf++) {
+                    ib = context.getBiome().get(xf, zf);
+                    int maxHeight = (int) (getComplex().getFluidHeight() + ib.getMaxWithObjectHeight(getData()));
+                    MatterBiomeInject matter = null;
 
-                if(ib.isCustom()) {
-                    IrisBiomeCustom custom = ib.getCustomBiome(rng, x, 0, z);
-                    Object biomeBase = INMS.get().getCustomBiomeBaseHolderFor(getDimension().getLoadKey() + ":" + custom.getId());
-                    matter = BiomeInjectMatter.get(INMS.get().getTrueBiomeBaseId(biomeBase));
-                } else {
-                    Biome v = ib.getSkyBiome(rng, x, 0, z);
-                    matter = BiomeInjectMatter.get(v);
-                }
+                    if(ib.isCustom()) {
+                        IrisBiomeCustom custom = ib.getCustomBiome(rng, x, 0, z);
+                        matter = BiomeInjectMatter.get(INMS.get().getBiomeBaseIdForKey(getDimension().getLoadKey() + ":" + custom.getId()));
+                    } else {
+                        Biome v = ib.getSkyBiome(rng, x, 0, z);
+                        matter = BiomeInjectMatter.get(v);
+                    }
 
-                for(int i = 0; i < maxHeight; i++) {
-                    getEngine().getMantle().getMantle().set(x, i, z, matter);
+                    for(int i = 0; i < maxHeight; i++) {
+                        getEngine().getMantle().getMantle().set(x, i, z, matter);
+                        m++;
+                    }
+
                 }
             }
+
+            getEngine().getMetrics().getBiome().put(p.getMilliseconds());
+            Iris.info("Biome Actuator: " + p.getMilliseconds() + "ms");
+            Iris.info("Mantle: " + m + " blocks");
         }
 
-        getEngine().getMetrics().getBiome().put(p.getMilliseconds());
+        catch(Throwable e)
+        {
+            e.printStackTrace();
+        }
     }
 }

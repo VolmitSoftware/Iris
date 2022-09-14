@@ -125,6 +125,11 @@ public class NMSBinding1X implements INMSBinding {
     }
 
     @Override
+    public int getBiomeBaseIdForKey(String key) {
+        return 0;
+    }
+
+    @Override
     public String getKeyForBiomeBase(Object biomeBase) {
         return null;
     }

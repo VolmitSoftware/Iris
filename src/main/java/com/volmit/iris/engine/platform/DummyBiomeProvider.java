@@ -1,5 +1,6 @@
 package com.volmit.iris.engine.platform;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.BiomeProvider;
@@ -14,6 +15,20 @@ public class DummyBiomeProvider extends BiomeProvider {
     @NotNull
     @Override
     public Biome getBiome(@NotNull WorldInfo worldInfo, int x, int y, int z) {
+        if(x == 10000 && z == 10000) {
+            try
+            {
+                Iris.error("Im biome provider, who am i?");
+                Iris.error(getClass().getCanonicalName());
+                throw new RuntimeException("WHATS GOING ON");
+            }
+
+            catch(Throwable e)
+            {
+                e.printStackTrace();
+            }
+        }
+
         return Biome.PLAINS;
     }
 

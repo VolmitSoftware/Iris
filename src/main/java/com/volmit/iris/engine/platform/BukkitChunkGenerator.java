@@ -299,7 +299,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             } else {
                 ChunkDataHunkHolder blocks = new ChunkDataHunkHolder(tc);
                 BiomeGridHunkHolder biomes = new BiomeGridHunkHolder(tc, tc.getMinHeight(), tc.getMaxHeight());
-                getEngine().generate(x << 4, z << 4, blocks, biomes, false);
+                getEngine().generate(x << 4, z << 4, blocks, biomes, true);
                 blocks.apply();
                 biomes.apply();
             }

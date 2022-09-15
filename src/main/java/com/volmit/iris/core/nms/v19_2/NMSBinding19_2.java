@@ -164,23 +164,7 @@ public class NMSBinding19_2 implements INMSBinding {
 
     @Override
     public Object getBiomeBaseFromId(int id) {
-        try {
-            return byIdRef.aquire(() -> {
-                for(Method i : IdMap.class.getDeclaredMethods()) {
-                    if(i.getParameterCount() == 1 && i.getParameterTypes()[0].equals(int.class)) {
-                        Iris.info("[NMS] Found byId method in " + IdMap.class.getSimpleName() + "." + i.getName() + "(int) => " + Biome.class.getSimpleName());
-                        return i;
-                    }
-                }
-
-                Iris.error("Cannot find byId method!");
-                return null;
-            }).invoke(getCustomBiomeRegistry(), id);
-        } catch(IllegalAccessException | InvocationTargetException e) {
-            e.printStackTrace();
-        }
-
-        return null;
+        return getCustomBiomeRegistry().getHolder(id);
     }
 
     @Override
@@ -228,7 +212,8 @@ public class NMSBinding19_2 implements INMSBinding {
 
     @Override
     public Object getBiomeBase(World world, Biome biome) {
-        return getBiomeBase(((CraftWorld) world).getHandle().registryAccess().registry(Registry.BIOME_REGISTRY).orElse(null), biome);
+        return org.bukkit.craftbukkit.v1_19_R1.block.CraftBlock.biomeToBiomeBase(((CraftWorld) world).getHandle()
+            .registryAccess().registry(Registry.BIOME_REGISTRY).orElse(null), biome);
     }
 
     @Override
@@ -412,7 +397,7 @@ public class NMSBinding19_2 implements INMSBinding {
         mantle.iterateChunk(e.getX(), e.getZ(), MatterBiomeInject.class, (x,y,z,b) -> {
             if(b != null) {
                 if(b.isCustom()) {
-                    chunk.setBiome(x, y, z, (Holder<net.minecraft.world.level.biome.Biome>) getBiomeBaseFromId(b.getBiomeId()));
+                    chunk.setBiome(x, y, z, getCustomBiomeRegistry().getHolder(b.getBiomeId()).get());
                     c.getAndIncrement();
                 }
 
@@ -422,8 +407,6 @@ public class NMSBinding19_2 implements INMSBinding {
                 }
             }
         });
-
-        Iris.info("Injected " + c.get() + " custom biomes and " + r.get() + " vanilla biomes into chunk " + e.getX() + "," + e.getZ());
     }
 
     private static Object getFor(Class<?> type, Object source) {

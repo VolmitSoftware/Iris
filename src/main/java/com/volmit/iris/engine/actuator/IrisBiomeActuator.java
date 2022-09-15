@@ -18,9 +18,7 @@
 
 package com.volmit.iris.engine.actuator;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.object.IrisBiome;
@@ -28,17 +26,12 @@ import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.hunk.view.BiomeGridHunkHolder;
-import com.volmit.iris.util.hunk.view.BiomeGridHunkView;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterBiomeInject;
 import com.volmit.iris.util.matter.slices.BiomeInjectMatter;
-import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import io.papermc.lib.PaperLib;
 import org.bukkit.block.Biome;
-import org.bukkit.generator.ChunkGenerator;
 
 public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
     private final RNG rng;
@@ -52,8 +45,7 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
     @BlockCoordinates
     @Override
     public void onActuate(int x, int z, Hunk<Biome> h, boolean multicore, ChunkContext context) {
-        try
-        {
+        try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
 
             int m = 0;
@@ -61,7 +53,6 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
                 IrisBiome ib;
                 for(int zf = 0; zf < h.getDepth(); zf++) {
                     ib = context.getBiome().get(xf, zf);
-                    int maxHeight = (int) (getComplex().getFluidHeight() + ib.getMaxWithObjectHeight(getData()));
                     MatterBiomeInject matter = null;
 
                     if(ib.isCustom()) {
@@ -72,21 +63,13 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
                         matter = BiomeInjectMatter.get(v);
                     }
 
-                    for(int i = 0; i < maxHeight; i++) {
-                        getEngine().getMantle().getMantle().set(x, i, z, matter);
-                        m++;
-                    }
-
+                    getEngine().getMantle().getMantle().set(x + xf, 0, z + zf, matter);
+                    m++;
                 }
             }
 
             getEngine().getMetrics().getBiome().put(p.getMilliseconds());
-            Iris.info("Biome Actuator: " + p.getMilliseconds() + "ms");
-            Iris.info("Mantle: " + m + " blocks");
-        }
-
-        catch(Throwable e)
-        {
+        } catch(Throwable e) {
             e.printStackTrace();
         }
     }

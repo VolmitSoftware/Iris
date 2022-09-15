@@ -480,7 +480,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         getEngine().cleanupMantleChunk(e.getX(), e.getZ());
 
         if(generated) {
-            INMS.get().injectBiomesFromMantle(e, getMantle());
+            //INMS.get().injectBiomesFromMantle(e, getMantle());
         }
     }
 

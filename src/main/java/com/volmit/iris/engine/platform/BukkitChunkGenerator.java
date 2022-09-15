@@ -20,6 +20,7 @@ package com.volmit.iris.engine.platform;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.nms.v19_2.CustomBiomeSource;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
@@ -44,6 +45,10 @@ import com.volmit.iris.util.stream.utility.ProfiledStream;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Setter;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.WorldGenLevel;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.HeightMap;
@@ -51,16 +56,26 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.craftbukkit.v1_19_R1.CraftServer;
+import org.bukkit.craftbukkit.v1_19_R1.CraftWorld;
+import org.bukkit.craftbukkit.v1_19_R1.generator.CustomChunkGenerator;
+import org.bukkit.craftbukkit.v1_19_R1.generator.InternalChunkGenerator;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.world.WorldInitEvent;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.generator.WorldInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import sun.misc.Unsafe;
 
 import java.io.File;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Semaphore;
@@ -71,7 +86,7 @@ import java.util.function.Consumer;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChunkGenerator {
+public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChunkGenerator, Listener {
     private static final int LOAD_LOCKS = Runtime.getRuntime().availableProcessors() * 4;
     private final Semaphore loadLock;
     private final IrisWorld world;
@@ -102,6 +117,43 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         this.dataLocation = dataLocation;
         this.dimensionKey = dimensionKey;
         this.folder = new ReactiveFolder(dataLocation, (_a, _b, _c) -> hotload());
+        Bukkit.getServer().getPluginManager().registerEvents(this, Iris.instance);
+    }
+
+    @EventHandler
+    public void onWorldInit(WorldInitEvent event) {
+        try {
+            ServerLevel serverLevel = ((CraftWorld)event.getWorld()).getHandle();
+            Engine engine = getEngine(event.getWorld());
+            Class<?> clazz = serverLevel.getChunkSource().chunkMap.generator.getClass();
+            Field biomeSource = getField(clazz, "c");
+            biomeSource.setAccessible(true);
+            Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+            unsafeField.setAccessible(true);
+            Unsafe unsafe = (Unsafe) unsafeField.get(null);
+            CustomBiomeSource customBiomeSource = new CustomBiomeSource(event.getWorld().getSeed(), engine, event.getWorld());
+            unsafe.putObject(biomeSource.get(serverLevel.getChunkSource().chunkMap.generator), unsafe.objectFieldOffset(biomeSource), customBiomeSource);
+            biomeSource.set(serverLevel.getChunkSource().chunkMap.generator, customBiomeSource);
+            Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
+        }
+
+        catch(Throwable e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static Field getField(Class clazz, String fieldName)
+        throws NoSuchFieldException {
+        try {
+            return clazz.getDeclaredField(fieldName);
+        } catch (NoSuchFieldException e) {
+            Class superClass = clazz.getSuperclass();
+            if (superClass == null) {
+                throw e;
+            } else {
+                return getField(superClass, fieldName);
+            }
+        }
     }
 
     private void setupEngine() {
@@ -235,7 +287,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         }
 
         lock.unlock();
-
 
         return engine;
     }

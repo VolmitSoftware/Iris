@@ -61,7 +61,7 @@ public class IrisPregenerator {
     public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener) {
         this.listener = listenify(listener);
         cl = new ChronoLatch(5000);
-        limiter = new Semaphore(Runtime.getRuntime().availableProcessors() * 4);
+        limiter = new Semaphore(1024);
         generatedRegions = new KSet<>();
         this.shutdown = new AtomicBoolean(false);
         this.paused = new AtomicBoolean(false);

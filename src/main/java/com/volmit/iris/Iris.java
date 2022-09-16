@@ -87,7 +87,7 @@ import java.util.Objects;
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
 
-    public static final String OVERWORLD_TAG = "2086";
+    public static final String OVERWORLD_TAG = "2087";
 
     private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
 

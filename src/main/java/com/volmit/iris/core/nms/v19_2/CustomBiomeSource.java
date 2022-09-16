@@ -143,11 +143,11 @@ public class CustomBiomeSource extends BiomeSource {
 
     @Override
     public Holder<Biome> getNoiseBiome(int x, int y, int z, Climate.Sampler sampler) {
-        IrisBiome ib = engine.getComplex().getTrueBiomeStream().get(x, z);
+        IrisBiome ib = engine.getBiome(x << 2, y << 2, z << 2);
         if(ib.isCustom()) {
-            return customBiomes.get(ib.getCustomBiome(rng, x<<2, 0, z<<2).getId());
+            return customBiomes.get(ib.getCustomBiome(rng, x << 2, 0, z << 2).getId());
         } else {
-            org.bukkit.block.Biome v = ib.getSkyBiome(rng, x<<2, 0, z<<2);
+            org.bukkit.block.Biome v = ib.getSkyBiome(rng, x << 2, 0, z << 2);
             return CraftBlock.biomeToBiomeBase(biomeRegistry, v);
         }
     }

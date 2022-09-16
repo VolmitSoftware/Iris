@@ -12,6 +12,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.Climate;
@@ -20,6 +21,9 @@ import org.bukkit.World;
 import org.bukkit.craftbukkit.v1_19_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_19_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_19_R1.block.CraftBlock;
+import org.bukkit.craftbukkit.v1_19_R1.generator.CustomChunkGenerator;
+import org.bukkit.craftbukkit.v1_19_R1.generator.InternalChunkGenerator;
+import org.bukkit.generator.BiomeProvider;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -141,9 +145,9 @@ public class CustomBiomeSource extends BiomeSource {
     public Holder<Biome> getNoiseBiome(int x, int y, int z, Climate.Sampler sampler) {
         IrisBiome ib = engine.getComplex().getTrueBiomeStream().get(x, z);
         if(ib.isCustom()) {
-            return customBiomes.get(ib.getCustomBiome(rng, x, 0, z).getId());
+            return customBiomes.get(ib.getCustomBiome(rng, x>>2, 0, z>>2).getId());
         } else {
-            org.bukkit.block.Biome v = ib.getSkyBiome(rng, x, 0, z);
+            org.bukkit.block.Biome v = ib.getSkyBiome(rng, x>>2, 0, z>>2);
             return CraftBlock.biomeToBiomeBase(biomeRegistry, v);
         }
     }

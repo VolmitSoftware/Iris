@@ -49,7 +49,7 @@ public class PregenTask {
     }
 
     public static void iterateRegion(int xr, int zr, Spiraled s) {
-        iterateRegion(xr, zr, s, new Position2(0, 0));
+        iterateRegion(xr, zr, s, new Position2(-(xr << 5), -(zr << 5)));
     }
 
     private static KList<Position2> computeOrder(Position2 pull) {

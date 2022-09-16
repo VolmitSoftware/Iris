@@ -56,12 +56,11 @@ public class IrisPregenerator {
     private final KSet<Position2> retry;
     private final KSet<Position2> net;
     private final ChronoLatch cl;
-    private final Semaphore limiter;
+    private final ChronoLatch saveLatch = new ChronoLatch(30000);
 
     public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener) {
         this.listener = listenify(listener);
         cl = new ChronoLatch(5000);
-        limiter = new Semaphore(1024);
         generatedRegions = new KSet<>();
         this.shutdown = new AtomicBoolean(false);
         this.paused = new AtomicBoolean(false);
@@ -166,32 +165,27 @@ public class IrisPregenerator {
         boolean hit = false;
         if(generator.supportsRegions(x, z, listener) && regions) {
             hit = true;
-            try {
-                limiter.acquire();
-                listener.onRegionGenerating(x, z);
-                generator.generateRegion(x, z, listener);
-                limiter.release();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            listener.onRegionGenerating(x, z);
+            generator.generateRegion(x, z, listener);
         } else if(!regions) {
             hit = true;
             listener.onRegionGenerating(x, z);
             PregenTask.iterateRegion(x, z, (xx, zz) -> {
-                try {
-                    limiter.acquire();
-                    generator.generateChunk(xx, zz, listener);
-                    limiter.release();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+                while(paused.get() && !shutdown.get()) {
+                    J.sleep(50);
                 }
-            });
+
+                generator.generateChunk(xx, zz, listener);});
         }
 
         if(hit) {
             listener.onRegionGenerated(x, z);
-            listener.onSaving();
-            generator.save();
+
+            if(saveLatch.flip()) {
+                listener.onSaving();
+                generator.save();
+            }
+
             generatedRegions.add(pos);
             checkRegions();
         }

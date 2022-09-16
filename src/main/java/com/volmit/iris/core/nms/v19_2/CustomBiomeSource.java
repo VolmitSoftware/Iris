@@ -144,7 +144,7 @@ public class CustomBiomeSource extends BiomeSource {
     @Override
     public Holder<Biome> getNoiseBiome(int x, int y, int z, Climate.Sampler sampler) {
         int m = (y - engine.getMinHeight()) << 2;
-        IrisBiome ib = engine.getBiome(x << 2, m, z << 2);
+        IrisBiome ib = engine.getComplex().getTrueBiomeStream().get(x << 2, z << 2);
         if(ib.isCustom()) {
             return customBiomes.get(ib.getCustomBiome(rng, x << 2, m, z << 2).getId());
         } else {

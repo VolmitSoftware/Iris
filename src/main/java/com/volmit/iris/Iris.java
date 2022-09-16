@@ -23,7 +23,9 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.ServerConfigurator;
-import com.volmit.iris.core.link.*;
+import com.volmit.iris.core.link.IrisPapiExpansion;
+import com.volmit.iris.core.link.MultiverseCoreLink;
+import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
@@ -41,7 +43,10 @@ import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.NastyRunnable;
-import com.volmit.iris.util.io.*;
+import com.volmit.iris.util.io.FileWatcher;
+import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.io.InstanceState;
+import com.volmit.iris.util.io.JarScanner;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -56,11 +61,7 @@ import com.volmit.iris.util.scheduling.ShurikenQueue;
 import io.papermc.lib.PaperLib;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
-import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.WorldCreator;
+import org.bukkit.*;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -82,12 +83,11 @@ import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.util.Date;
 import java.util.Map;
-import java.util.Objects;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
 
-    public static final String OVERWORLD_TAG = "2086";
+    public static final String OVERWORLD_TAG = "2087";
 
     private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
 

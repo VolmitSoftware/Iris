@@ -52,7 +52,6 @@ public class ModeOverworld extends IrisEngineMode implements EngineMode {
         EngineStage sPerfection =   (x, z, k, p, m, c) -> perfection.modify(x, z, k, m, c);
 
         registerStage(burst(
-            sBiome,
             sGenMatter,
             sTerrain
         ));

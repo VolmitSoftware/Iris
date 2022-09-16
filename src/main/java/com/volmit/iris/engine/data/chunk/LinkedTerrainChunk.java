@@ -38,7 +38,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
     private final BiomeGrid storage;
     private ChunkData rawChunkData;
     @Setter
-    private boolean unsafe = false;
+    private boolean unsafe = true;
 
     public LinkedTerrainChunk(World world) {
         this(null, Bukkit.createChunkData(world));

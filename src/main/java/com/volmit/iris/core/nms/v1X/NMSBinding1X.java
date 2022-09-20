@@ -20,9 +20,11 @@ package com.volmit.iris.core.nms.v1X;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
+import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
 import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -55,6 +57,11 @@ public class NMSBinding1X implements INMSBinding {
     @Override
     public CompoundTag serializeTile(Location location) {
         return null;
+    }
+
+    @Override
+    public void injectBiomesFromMantle(Chunk e, Mantle mantle) {
+
     }
 
     @Override
@@ -115,6 +122,11 @@ public class NMSBinding1X implements INMSBinding {
     @Override
     public Object getCustomBiomeBaseHolderFor(String mckey) {
         return null;
+    }
+
+    @Override
+    public int getBiomeBaseIdForKey(String key) {
+        return 0;
     }
 
     @Override

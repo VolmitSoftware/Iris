@@ -23,6 +23,9 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.matter.MatterBiomeInject;
 import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
@@ -37,20 +40,20 @@ import com.volmit.iris.util.nbt.mca.palette.MCAWrappedPalettedContainer;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.core.*;
+import net.minecraft.core.Registry;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import net.minecraft.world.level.chunk.LevelChunk;
+import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 
+import org.bukkit.craftbukkit.v1_19_R1.CraftChunk;
 import org.bukkit.craftbukkit.v1_19_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_19_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_19_R1.block.data.CraftBlockData;
@@ -161,23 +164,7 @@ public class NMSBinding19_2 implements INMSBinding {
 
     @Override
     public Object getBiomeBaseFromId(int id) {
-        try {
-            return byIdRef.aquire(() -> {
-                for(Method i : IdMap.class.getDeclaredMethods()) {
-                    if(i.getParameterCount() == 1 && i.getParameterTypes()[0].equals(int.class)) {
-                        Iris.info("[NMS] Found byId method in " + IdMap.class.getSimpleName() + "." + i.getName() + "(int) => " + Biome.class.getSimpleName());
-                        return i;
-                    }
-                }
-
-                Iris.error("Cannot find byId method!");
-                return null;
-            }).invoke(getCustomBiomeRegistry(), id);
-        } catch(IllegalAccessException | InvocationTargetException e) {
-            e.printStackTrace();
-        }
-
-        return null;
+        return getCustomBiomeRegistry().getHolder(id);
     }
 
     @Override
@@ -192,7 +179,7 @@ public class NMSBinding19_2 implements INMSBinding {
 
     @Override
     public int getTrueBiomeBaseId(Object biomeBase) {
-        return getCustomBiomeRegistry().getId((net.minecraft.world.level.biome.Biome) biomeBase);
+        return getCustomBiomeRegistry().getId(((Holder<net.minecraft.world.level.biome.Biome>) biomeBase).value());
     }
 
     @Override
@@ -214,6 +201,10 @@ public class NMSBinding19_2 implements INMSBinding {
         return getCustomBiomeRegistry().getHolder(getTrueBiomeBaseId(getCustomBiomeRegistry().get(new ResourceLocation(mckey)))).get();
     }
 
+    public int getBiomeBaseIdForKey(String key) {
+        return getCustomBiomeRegistry().getId(getCustomBiomeRegistry().get(new ResourceLocation(key)));
+    }
+
     @Override
     public String getKeyForBiomeBase(Object biomeBase) {
         return getCustomBiomeRegistry().getKey((net.minecraft.world.level.biome.Biome) biomeBase).getPath(); // something, not something:something
@@ -221,7 +212,8 @@ public class NMSBinding19_2 implements INMSBinding {
 
     @Override
     public Object getBiomeBase(World world, Biome biome) {
-        return getBiomeBase(((CraftWorld) world).getHandle().registryAccess().registry(Registry.BIOME_REGISTRY).orElse(null), biome);
+        return org.bukkit.craftbukkit.v1_19_R1.block.CraftBlock.biomeToBiomeBase(((CraftWorld) world).getHandle()
+            .registryAccess().registry(Registry.BIOME_REGISTRY).orElse(null), biome);
     }
 
     @Override
@@ -333,6 +325,12 @@ public class NMSBinding19_2 implements INMSBinding {
         return true;
     }
 
+    public void setBiomes(int cx, int cz, World world, Hunk<Object> biomes) {
+        LevelChunk c = ((CraftWorld)world).getHandle().getChunk(cx, cz);
+        biomes.iterateSync((x,y,z,b) -> c.setBiome(x, y, z, (Holder<net.minecraft.world.level.biome.Biome>)b));
+        c.setUnsaved(true);
+    }
+
     @Override
     public void forceBiomeInto(int x, int y, int z, Object somethingVeryDirty, ChunkGenerator.BiomeGrid chunk) {
         try {
@@ -389,6 +387,26 @@ public class NMSBinding19_2 implements INMSBinding {
         return new MCAWrappedPalettedContainer<>(container,
             i -> NBTWorld.getCompound(CraftBlockData.fromData(i)),
             i -> ((CraftBlockData) NBTWorld.getBlockData(i)).getState());
+    }
+
+    @Override
+    public void injectBiomesFromMantle(Chunk e, Mantle mantle) {
+        LevelChunk chunk = ((CraftChunk)e).getHandle();
+        AtomicInteger c = new AtomicInteger();
+        AtomicInteger r = new AtomicInteger();
+        mantle.iterateChunk(e.getX(), e.getZ(), MatterBiomeInject.class, (x,y,z,b) -> {
+            if(b != null) {
+                if(b.isCustom()) {
+                    chunk.setBiome(x, y, z, getCustomBiomeRegistry().getHolder(b.getBiomeId()).get());
+                    c.getAndIncrement();
+                }
+
+                else {
+                    chunk.setBiome(x, y, z, (Holder<net.minecraft.world.level.biome.Biome>) getBiomeBase(e.getWorld(), b.getBiome()));
+                    r.getAndIncrement();
+                }
+            }
+        });
     }
 
     private static Object getFor(Class<?> type, Object source) {

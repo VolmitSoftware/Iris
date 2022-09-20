@@ -65,8 +65,7 @@ public class ChunkDataHunkHolder extends AtomicHunk<BlockData> {
                 for(int k = 0; k < getDepth(); k++) {
                     BlockData b = super.getRaw(j, i, k);
 
-                    if(b != null)
-                    {
+                    if(b != null) {
                         chunk.setBlock(j, i + chunk.getMinHeight(), k, b);
                     }
                 }

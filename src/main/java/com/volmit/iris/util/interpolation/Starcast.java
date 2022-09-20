@@ -22,31 +22,7 @@ import com.volmit.iris.util.function.NoiseProvider;
 
 public class Starcast {
     public static double starcast(int x, int z, double r, double checks, boolean optimized, NoiseProvider n) {
-        if(optimized) {
-            if(checks == 3) return sc3(x, z, r, n);
-            else if(checks == 5) return sc5(x, z, r, n);
-            else if(checks == 6) return sc6(x, z, r, n);
-            else if(checks == 7) return sc7(x, z, r, n);
-            else if(checks == 9) return sc9(x, z, r, n);
-            else if(checks == 12) return sc12(x, z, r, n);
-            else if(checks == 24) return sc24(x, z, r, n);
-            else if(checks == 32) return sc32(x, z, r, n);
-            else if(checks == 48) return sc48(x, z, r, n);
-            else if(checks == 64) return sc64(x, z, r, n);
-        }
-
-        double m = 360D / checks;
-        double v = 0;
-
-        for(int i = 0; i < 360; i += m) {
-            double sin = Math.sin(Math.toRadians(i));
-            double cos = Math.cos(Math.toRadians(i));
-            double cx = x + ((r * cos) - (r * sin));
-            double cz = z + ((r * sin) + (r * cos));
-            v += n.noise(cx, cz);
-        }
-
-        return v / checks;
+        return CompiledStarcast.getStarcast((float)x, (float)z, (float)r, (float)checks, n);
     }
 
     public static double starcast(int x, int z, double r, double checks, NoiseProvider n) {

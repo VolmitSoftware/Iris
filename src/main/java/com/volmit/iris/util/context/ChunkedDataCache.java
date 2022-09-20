@@ -1,12 +1,18 @@
 package com.volmit.iris.util.context;
 
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.stream.ProceduralStream;
+import lombok.Data;
 
+import java.util.HashSet;
+
+@Data
 public class ChunkedDataCache<T> {
     private final int x;
     private final int z;
+    private final KSet<T> uniques;
     private final Object[] data;
     private final boolean cache;
     private final ProceduralStream<T> stream;
@@ -21,6 +27,7 @@ public class ChunkedDataCache<T> {
         this.cache = cache;
         this.x = x;
         this.z = z;
+        this.uniques = cache ? new KSet<>() : null;
         if(cache) {
             data = new Object[256];
             int i,j;
@@ -29,7 +36,11 @@ public class ChunkedDataCache<T> {
                 int finalI = i;
                 for(j = 0; j < 16; j++) {
                     int finalJ = j;
-                    burst.queue(() -> data[(finalJ * 16) + finalI] = stream.get(x+ finalI, z+ finalJ));
+                    burst.queue(() -> {
+                        T t = stream.get(x+ finalI, z+ finalJ);
+                        data[(finalJ * 16) + finalI] = t;
+                        uniques.add(t);
+                    });
                 }
             }
         }

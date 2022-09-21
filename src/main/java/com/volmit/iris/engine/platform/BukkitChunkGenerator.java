@@ -205,7 +205,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             Hunk<BlockData> blocks = Hunk.view(tc);
             Hunk<Biome> biomes = Hunk.view(tc, tc.getMinHeight(), tc.getMaxHeight());
             this.world.bind(world);
-            getEngine().generate(x << 4, z << 4, blocks, biomes, false);
+            getEngine().generate(x << 4, z << 4, blocks, biomes, true);
             Iris.debug("Regenerated " + x + " " + z);
             int t = 0;
             for(int i = getEngine().getHeight() >> 4; i >= 0; i--) {
@@ -356,7 +356,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             } else {
                 ChunkDataHunkHolder blocks = new ChunkDataHunkHolder(tc);
                 BiomeGridHunkHolder biomes = new BiomeGridHunkHolder(tc, tc.getMinHeight(), tc.getMaxHeight());
-                getEngine().generate(x << 4, z << 4, blocks, biomes, true);
+                getEngine().generate(x << 4, z << 4, blocks, biomes, false);
                 blocks.apply();
                 biomes.apply();
             }

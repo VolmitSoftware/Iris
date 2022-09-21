@@ -205,8 +205,7 @@ public class PregeneratorJob implements PregenListener {
                 renderer.l = new ReentrantLock();
                 renderer.frame = frame;
                 renderer.job = this;
-                renderer.func = (c, b) ->
-                {
+                renderer.func = (c, b) -> {
                     renderer.l.lock();
                     renderer.order.add(() -> renderer.draw(c, b, renderer.bg));
                     renderer.l.unlock();
@@ -238,10 +237,6 @@ public class PregeneratorJob implements PregenListener {
 
     @Override
     public void onChunkGenerating(int x, int z) {
-        if(engine != null) {
-            return;
-        }
-
         draw(x, z, COLOR_GENERATING);
     }
 

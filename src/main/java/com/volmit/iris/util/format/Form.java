@@ -568,7 +568,7 @@ public class Form {
         }
 
         if(ms / 1000.0 / 60.0 / 60.0 / 24.0 < 7) {
-            return Form.f(ms / 1000.0 / 60.0 / 24.0, prec) + " days";
+            return Form.f(ms / 1000.0 / 60.0 / 60.0 / 24.0, prec) + " days";
         }
 
         return Form.f(ms, prec) + "ms";

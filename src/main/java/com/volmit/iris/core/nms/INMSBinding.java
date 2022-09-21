@@ -18,9 +18,11 @@
 
 package com.volmit.iris.core.nms;
 
+import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
 import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
@@ -56,6 +58,8 @@ public interface INMSBinding {
     Object getCustomBiomeBaseFor(String mckey);
     Object getCustomBiomeBaseHolderFor(String mckey);
 
+    int getBiomeBaseIdForKey(String key);
+
     String getKeyForBiomeBase(Object biomeBase);
 
     Object getBiomeBase(World world, Biome biome);
@@ -83,4 +87,6 @@ public interface INMSBinding {
     }
 
     MCAPaletteAccess createPalette();
+
+    void injectBiomesFromMantle(Chunk e, Mantle mantle);
 }

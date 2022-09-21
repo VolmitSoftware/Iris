@@ -513,7 +513,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     @BlockCoordinates
     default IrisBiome getBiome(Location l) {
-        return getBiome(l.getBlockX(), l.getBlockY(), l.getBlockZ());
+        return getBiome(l.getBlockX(), l.getBlockY() - getWorld().minHeight() , l.getBlockZ());
     }
 
     @BlockCoordinates

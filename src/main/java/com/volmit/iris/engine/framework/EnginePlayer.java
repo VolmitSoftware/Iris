@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisEffect;
 import com.volmit.iris.engine.object.IrisRegion;
@@ -47,6 +48,9 @@ public class EnginePlayer {
 
     public void tick() {
         sample();
+
+        if(!IrisSettings.get().getWorld().isEffectSystem())
+            return;
 
         J.a(() -> {
             if(region != null) {

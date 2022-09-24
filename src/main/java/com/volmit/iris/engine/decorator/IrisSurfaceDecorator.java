@@ -77,8 +77,9 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                     ((Bisected) bd).setHalf(Bisected.Half.BOTTOM);
                 }
 
-                data.set(x, height + 1, z, fixFaces(bd, x, height + 1, z));
-
+                if(!B.isAir(data.get(x, height + 1, z))) {
+                    data.set(x, height + 1, z, fixFaces(bd, x, height + 1, z));
+                }
             } else {
                 if(height < getDimension().getFluidHeight()) {
                     max = getDimension().getFluidHeight();

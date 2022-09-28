@@ -55,6 +55,12 @@ public class IrisDecorator {
     private boolean forcePlace = false;
     @Desc("Forced the surface block of this decorant to be the specified block. Assumes forcePlace.")
     private IrisBlockData forceBlock;
+    @ArrayType(min = 1, type = IrisBlockData.class)
+    @Desc("When set, the decorator can only place onto any of these blocks.")
+    private KList<IrisBlockData> whitelist;
+    @ArrayType(min = 1, type = IrisBlockData.class)
+    @Desc("When set, the decorator will never place onto any of these blocks.")
+    private KList<IrisBlockData> blacklist;
     @DependsOn({"scaleStack", "stackMin", "stackMax"})
     @Desc("If stackMax is set to true, use this to limit its max height for large caverns")
     private int absoluteMaxStack = 30;

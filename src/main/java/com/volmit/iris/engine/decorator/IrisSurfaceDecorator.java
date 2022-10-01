@@ -62,8 +62,16 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                     }
                 }
 
-                if(decorator.getForceBlock() != null)
+                if(decorator.getForceBlock() != null) {
                     data.set(x, height, z, fixFaces(decorator.getForceBlock().getBlockData(getData()), x, height, z));
+                } else if(!decorator.isForcePlace()) {
+                    if(decorator.getWhitelist() != null && decorator.getWhitelist().stream().noneMatch(d -> d.getBlockData(getData()).equals(bdx))) {
+                        return;
+                    }
+                    if(decorator.getBlacklist() != null && decorator.getWhitelist().stream().anyMatch(d -> d.getBlockData(getData()).equals(bdx))) {
+                        return;
+                    }
+                }
 
                 if(bd instanceof Bisected) {
                     bd = bd.clone();

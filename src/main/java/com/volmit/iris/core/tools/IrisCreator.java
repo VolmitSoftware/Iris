@@ -21,6 +21,7 @@ package com.volmit.iris.core.tools;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -123,6 +124,7 @@ public class IrisCreator {
             .seed(seed)
             .studio(studio)
             .create();
+        ServerConfigurator.installDataPacks(false);
 
         access = (PlatformChunkGenerator) wc.generator();
         PlatformChunkGenerator finalAccess1 = access;

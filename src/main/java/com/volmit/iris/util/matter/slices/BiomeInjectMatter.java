@@ -20,7 +20,6 @@ package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.MatterBiomeInject;
-import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.matter.Sliced;
 import org.bukkit.block.Biome;
 

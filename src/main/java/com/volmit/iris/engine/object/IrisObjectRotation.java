@@ -29,11 +29,7 @@ import lombok.experimental.Accessors;
 import org.bukkit.Axis;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.Directional;
-import org.bukkit.block.data.MultipleFacing;
-import org.bukkit.block.data.Orientable;
-import org.bukkit.block.data.Rotatable;
+import org.bukkit.block.data.*;
 import org.bukkit.util.BlockVector;
 
 import java.util.List;

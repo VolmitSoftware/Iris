@@ -18,8 +18,6 @@
 
 package com.volmit.iris.util.noise;
 
-import com.volmit.iris.util.math.RNG;
-
 public class CachedNoise implements NoiseGenerator {
     private final CachedNoiseMap n;
 

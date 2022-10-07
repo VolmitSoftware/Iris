@@ -1,16 +1,11 @@
 package com.volmit.iris.util.uniques;
 
-import com.volmit.iris.engine.object.NoiseStyle;
-import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.function.NoiseInjector;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
-import com.volmit.iris.util.stream.ProceduralStream;
-import com.volmit.iris.util.stream.interpolation.Interpolated;
 
 import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.util.List;
 import java.util.function.Consumer;
 

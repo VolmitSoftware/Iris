@@ -18,7 +18,6 @@
 
 package com.volmit.iris.engine.data.chunk;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.BiomeBaseInjector;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.util.data.IrisBiomeStorage;

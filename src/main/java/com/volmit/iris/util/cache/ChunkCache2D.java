@@ -1,10 +1,8 @@
 package com.volmit.iris.util.cache;
 
-import com.volmit.iris.util.data.ChunkCache;
 import com.volmit.iris.util.function.Function2;
 
 import java.util.concurrent.atomic.AtomicReferenceArray;
-import java.util.function.Function;
 
 public class ChunkCache2D<T> {
     private final AtomicReferenceArray<T> cache;

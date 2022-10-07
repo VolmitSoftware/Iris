@@ -21,11 +21,7 @@ package com.volmit.iris.util.nbt.tag;
 import com.volmit.iris.engine.data.io.MaxDepthIO;
 import com.volmit.iris.util.collection.KList;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 

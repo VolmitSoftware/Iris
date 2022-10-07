@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.hunk.view;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.data.chunk.LinkedTerrainChunk;
 import com.volmit.iris.util.hunk.Hunk;

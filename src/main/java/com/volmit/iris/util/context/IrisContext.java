@@ -24,7 +24,6 @@ import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.scheduling.ChronoLatch;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data

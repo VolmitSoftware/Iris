@@ -19,7 +19,6 @@
 package com.volmit.iris.util.noise;
 
 import com.volmit.iris.util.hunk.bits.Writable;
-import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterSlice;

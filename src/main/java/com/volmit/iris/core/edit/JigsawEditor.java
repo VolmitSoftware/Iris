@@ -19,14 +19,9 @@
 package com.volmit.iris.core.edit;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.service.WandSVC;
-import com.volmit.iris.engine.object.IrisDirection;
-import com.volmit.iris.engine.object.IrisJigsawPiece;
-import com.volmit.iris.engine.object.IrisJigsawPieceConnector;
-import com.volmit.iris.engine.object.IrisObject;
-import com.volmit.iris.engine.object.IrisPosition;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.Cuboid;

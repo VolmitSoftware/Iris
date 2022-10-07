@@ -18,16 +18,10 @@
 
 package com.volmit.iris.core.pregenerator.methods;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
-import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.mantle.Mantle;
-import com.volmit.iris.util.math.Position2;
 import org.bukkit.World;
-
-import java.io.File;
 
 public class HybridPregenMethod implements PregeneratorMethod {
     private final PregeneratorMethod inWorld;

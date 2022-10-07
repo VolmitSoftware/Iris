@@ -6,8 +6,6 @@ import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.stream.ProceduralStream;
 import lombok.Data;
 
-import java.util.HashSet;
-
 @Data
 public class ChunkedDataCache<T> {
     private final int x;

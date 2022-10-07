@@ -18,13 +18,7 @@
 
 package com.volmit.iris.engine.data.io;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.StringWriter;
-import java.io.Writer;
+import java.io.*;
 
 public interface StringSerializer<T> extends Serializer<T> {
 

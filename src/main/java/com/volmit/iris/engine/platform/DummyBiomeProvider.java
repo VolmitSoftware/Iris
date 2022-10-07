@@ -1,6 +1,5 @@
 package com.volmit.iris.engine.platform;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.BiomeProvider;

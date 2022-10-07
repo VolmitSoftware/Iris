@@ -1,18 +1,8 @@
 package com.volmit.iris.util.cache;
 
 import com.volmit.iris.engine.data.cache.Cache;
-import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.context.ChunkedDataCache;
 import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.function.Function2;
-import com.volmit.iris.util.mantle.Mantle;
-import com.volmit.iris.util.scheduling.ChronoLatch;
-import it.unimi.dsi.fastutil.longs.Long2LongMaps;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class WorldCache2D<T> {
     private final KCache<Long, ChunkCache2D<T>> chunks;

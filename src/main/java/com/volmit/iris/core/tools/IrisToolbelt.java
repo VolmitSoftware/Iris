@@ -32,12 +32,10 @@ import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 

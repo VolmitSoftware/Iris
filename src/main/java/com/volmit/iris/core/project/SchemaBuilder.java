@@ -31,7 +31,7 @@ import com.volmit.iris.util.json.JSONObject;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.potion.PotionEffectType;
 
-import java.awt.GraphicsEnvironment;
+import java.awt.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.List;

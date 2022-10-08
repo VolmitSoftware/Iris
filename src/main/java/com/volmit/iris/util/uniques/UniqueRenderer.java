@@ -1,6 +1,5 @@
 package com.volmit.iris.util.uniques;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.NoiseStyle;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -11,15 +10,12 @@ import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
-import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.stream.ProceduralStream;
 import com.volmit.iris.util.uniques.features.*;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.List;

@@ -18,11 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.engine.object.annotations.ArrayType;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.RegistryListResource;
-import com.volmit.iris.engine.object.annotations.Required;
-import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;

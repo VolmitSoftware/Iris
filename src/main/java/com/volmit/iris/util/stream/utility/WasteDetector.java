@@ -3,11 +3,9 @@ package com.volmit.iris.util.stream.utility;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.stream.BasicStream;
 import com.volmit.iris.util.stream.ProceduralStream;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 

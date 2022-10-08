@@ -28,7 +28,6 @@ import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 
 import java.io.File;
-import java.util.stream.Collectors;
 
 public class DimensionHandler implements DecreeParameterHandler<IrisDimension> {
     @Override

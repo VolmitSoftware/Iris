@@ -1,7 +1,6 @@
 package com.volmit.iris.engine.object.matter;
 
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.object.IrisStyledRange;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.math.RNG;

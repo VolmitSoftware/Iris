@@ -19,7 +19,6 @@
 package com.volmit.iris.util.interpolation;
 
 import com.google.common.util.concurrent.AtomicDouble;
-import com.volmit.iris.engine.data.chunk.LinkedTerrainChunk;
 import com.volmit.iris.engine.object.NoiseStyle;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer2;

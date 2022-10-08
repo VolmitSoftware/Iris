@@ -21,11 +21,7 @@ package com.volmit.iris.util.nbt.tag;
 import com.volmit.iris.engine.data.io.MaxDepthIO;
 import com.volmit.iris.util.collection.KMap;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiConsumer;
 
 @SuppressWarnings("ALL")

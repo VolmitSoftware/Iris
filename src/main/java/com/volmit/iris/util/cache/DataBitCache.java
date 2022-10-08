@@ -21,7 +21,6 @@ package com.volmit.iris.util.cache;
 import com.volmit.iris.util.hunk.bits.DataContainer;
 import lombok.Getter;
 
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 

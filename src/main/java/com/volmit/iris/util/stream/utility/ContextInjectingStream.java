@@ -1,13 +1,10 @@
 package com.volmit.iris.util.stream.utility;
 
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.function.Function3;
 import com.volmit.iris.util.stream.BasicStream;
 import com.volmit.iris.util.stream.ProceduralStream;
-
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class ContextInjectingStream<T> extends BasicStream<T> {
     private final Function3<ChunkContext, Integer, Integer, T> contextAccessor;

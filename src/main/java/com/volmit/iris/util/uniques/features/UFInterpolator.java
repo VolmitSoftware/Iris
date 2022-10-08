@@ -3,13 +3,11 @@ package com.volmit.iris.util.uniques.features;
 import com.volmit.iris.util.function.NoiseProvider;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
-import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.uniques.UFeature;
 import com.volmit.iris.util.uniques.UFeatureMeta;
 import com.volmit.iris.util.uniques.UImage;
-import com.volmit.iris.util.uniques.UniqueRenderer;
 
 import java.awt.*;
 import java.util.function.Consumer;

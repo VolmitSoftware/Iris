@@ -21,17 +21,13 @@ package com.volmit.iris.core.service;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisVillagerOverride;
-import com.volmit.iris.engine.object.IrisVillagerTrade;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.entity.VillagerAcquireTradeEvent;
 import org.bukkit.event.entity.VillagerCareerChangeEvent;
 
 import java.util.List;

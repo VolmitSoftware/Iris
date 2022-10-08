@@ -19,10 +19,8 @@
 package com.volmit.iris.util.noise;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.IRare;
 import com.volmit.iris.engine.object.NoiseStyle;
-import com.volmit.iris.util.cache.FloatBitCache;
 import com.volmit.iris.util.cache.FloatCache;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
@@ -37,7 +35,6 @@ import lombok.Data;
 
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;

@@ -6,8 +6,6 @@ import com.volmit.iris.util.uniques.UFeature;
 import com.volmit.iris.util.uniques.UFeatureMeta;
 import com.volmit.iris.util.uniques.UImage;
 
-import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.util.function.Consumer;
 
 public class UFWarpedCircle implements UFeature {

@@ -19,7 +19,6 @@
 package com.volmit.iris.core.pregenerator.methods;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -32,7 +31,6 @@ import org.bukkit.Chunk;
 import org.bukkit.World;
 
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 public class AsyncPregenMethod implements PregeneratorMethod {

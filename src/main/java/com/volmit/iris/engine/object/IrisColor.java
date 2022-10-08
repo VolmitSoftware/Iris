@@ -28,7 +28,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-import java.awt.Color;
+import java.awt.*;
 
 @Snippet("color")
 @Accessors(chain = true)

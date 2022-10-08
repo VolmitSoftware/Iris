@@ -21,6 +21,7 @@ package com.volmit.iris.core.tools;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -33,11 +34,7 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
 import lombok.Data;
 import lombok.experimental.Accessors;
-import org.bukkit.Bukkit;
-import org.bukkit.GameRule;
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.WorldCreator;
+import org.bukkit.*;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -123,6 +120,7 @@ public class IrisCreator {
             .seed(seed)
             .studio(studio)
             .create();
+        ServerConfigurator.installDataPacks(false);
 
         access = (PlatformChunkGenerator) wc.generator();
         PlatformChunkGenerator finalAccess1 = access;

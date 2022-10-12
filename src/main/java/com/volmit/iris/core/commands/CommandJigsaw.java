@@ -42,7 +42,7 @@ import java.io.File;
 public class CommandJigsaw implements DecreeExecutor {
     @Decree(description = "Edit a jigsaw piece")
     public void edit(
-        @Param(description = "The jigsaw piece to edit")
+            @Param(description = "The jigsaw piece to edit")
             IrisJigsawPiece piece
     ) {
         File dest = piece.getLoadFile();
@@ -51,7 +51,7 @@ public class CommandJigsaw implements DecreeExecutor {
 
     @Decree(description = "Place a jigsaw structure")
     public void place(
-        @Param(description = "The jigsaw structure to place")
+            @Param(description = "The jigsaw structure to place")
             IrisJigsawStructure structure
     ) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
@@ -62,11 +62,11 @@ public class CommandJigsaw implements DecreeExecutor {
 
     @Decree(description = "Create a jigsaw piece")
     public void create(
-        @Param(description = "The name of the jigsaw piece")
+            @Param(description = "The name of the jigsaw piece")
             String piece,
-        @Param(description = "The project to add the jigsaw piece to")
+            @Param(description = "The project to add the jigsaw piece to")
             String project,
-        @Param(description = "The object to use for this piece", customHandler = ObjectHandler.class)
+            @Param(description = "The object to use for this piece", customHandler = ObjectHandler.class)
             String object
     ) {
         IrisObject o = IrisData.loadAnyObject(object);

@@ -54,7 +54,7 @@ import java.util.stream.Collectors;
 public class CommandObject implements DecreeExecutor {
 
     private static final Set<Material> skipBlocks = Set.of(Material.GRASS, Material.SNOW, Material.VINE, Material.TORCH, Material.DEAD_BUSH,
-        Material.POPPY, Material.DANDELION);
+            Material.POPPY, Material.DANDELION);
 
     public static IObjectPlacer createPlacer(World world, Map<Block, BlockData> futureBlockChanges) {
 
@@ -132,7 +132,7 @@ public class CommandObject implements DecreeExecutor {
 
     @Decree(description = "Check the composition of an object")
     public void analyze(
-        @Param(description = "The object to analyze", customHandler = ObjectHandler.class)
+            @Param(description = "The object to analyze", customHandler = ObjectHandler.class)
             String object
     ) {
         IrisObject o = IrisData.loadAnyObject(object);
@@ -167,7 +167,7 @@ public class CommandObject implements DecreeExecutor {
         }
 
         List<Material> sortedMatsList = amounts.keySet().stream().map(BlockData::getMaterial)
-            .sorted().collect(Collectors.toList());
+                .sorted().collect(Collectors.toList());
         Set<Material> sortedMats = new TreeSet<>(Comparator.comparingInt(materials::get).reversed());
         sortedMats.addAll(sortedMatsList);
         sender().sendMessage("== Blocks in object ==");
@@ -183,8 +183,8 @@ public class CommandObject implements DecreeExecutor {
             String string = " - " + mat.toString() + "*" + amount;
             if(data.getAsString(true).contains("[")) {
                 string = string + " --> [" + data.getAsString(true).split("\\[")[1]
-                    .replaceAll("true", ChatColor.GREEN + "true" + ChatColor.GRAY)
-                    .replaceAll("false", ChatColor.RED + "false" + ChatColor.GRAY) + "*" + dataAmount;
+                        .replaceAll("true", ChatColor.GREEN + "true" + ChatColor.GRAY)
+                        .replaceAll("false", ChatColor.RED + "false" + ChatColor.GRAY) + "*" + dataAmount;
             }
 
             sender().sendMessage(string);
@@ -206,7 +206,7 @@ public class CommandObject implements DecreeExecutor {
 
     @Decree(description = "Contract a selection based on your looking direction", aliases = "-")
     public void contract(
-        @Param(description = "The amount to inset by", defaultValue = "1")
+            @Param(description = "The amount to inset by", defaultValue = "1")
             int amount
     ) {
         if(!WandSVC.isHoldingWand(player())) {
@@ -231,7 +231,7 @@ public class CommandObject implements DecreeExecutor {
 
     @Decree(description = "Set point 1 to look", aliases = "p1")
     public void position1(
-        @Param(description = "Whether to use your current position, or where you look", defaultValue = "true")
+            @Param(description = "Whether to use your current position, or where you look", defaultValue = "true")
             boolean here
     ) {
         if(!WandSVC.isHoldingWand(player())) {
@@ -254,7 +254,7 @@ public class CommandObject implements DecreeExecutor {
 
     @Decree(description = "Set point 2 to look", aliases = "p2")
     public void position2(
-        @Param(description = "Whether to use your current position, or where you look", defaultValue = "true")
+            @Param(description = "Whether to use your current position, or where you look", defaultValue = "true")
             boolean here
     ) {
         if(!WandSVC.isHoldingWand(player())) {
@@ -277,13 +277,13 @@ public class CommandObject implements DecreeExecutor {
 
     @Decree(description = "Paste an object", sync = true)
     public void paste(
-        @Param(description = "The object to paste", customHandler = ObjectHandler.class)
+            @Param(description = "The object to paste", customHandler = ObjectHandler.class)
             String object,
-        @Param(description = "Whether or not to edit the object (need to hold wand)", defaultValue = "false")
+            @Param(description = "Whether or not to edit the object (need to hold wand)", defaultValue = "false")
             boolean edit,
-        @Param(description = "The amount of degrees to rotate by", defaultValue = "0")
+            @Param(description = "The amount of degrees to rotate by", defaultValue = "0")
             int rotate,
-        @Param(description = "The factor by which to scale the object placement", defaultValue = "1")
+            @Param(description = "The factor by which to scale the object placement", defaultValue = "1")
             double scale
 //            ,
 //            @Param(description = "The scale interpolator to use", defaultValue = "none")
@@ -306,8 +306,7 @@ public class CommandObject implements DecreeExecutor {
 
         Map<Block, BlockData> futureChanges = new HashMap<>();
 
-        if(scale != 1)
-        {
+        if(scale != 1) {
             o = o.scaled(scale, IrisObjectPlacementScaleInterpolator.TRICUBIC);
         }
 
@@ -317,7 +316,7 @@ public class CommandObject implements DecreeExecutor {
 
         if(edit) {
             ItemStack newWand = WandSVC.createWand(block.clone().subtract(o.getCenter()).add(o.getW() - 1,
-                o.getH() + o.getCenter().clone().getY() - 1, o.getD() - 1), block.clone().subtract(o.getCenter().clone().setY(0)));
+                    o.getH() + o.getCenter().clone().getY() - 1, o.getD() - 1), block.clone().subtract(o.getCenter().clone().setY(0)));
             if(WandSVC.isWand(wand)) {
                 wand = newWand;
                 player().getInventory().setItemInMainHand(wand);
@@ -339,11 +338,11 @@ public class CommandObject implements DecreeExecutor {
 
     @Decree(description = "Save an object")
     public void save(
-        @Param(description = "The dimension to store the object in", contextual = true)
+            @Param(description = "The dimension to store the object in", contextual = true)
             IrisDimension dimension,
-        @Param(description = "The file to store it in, can use / for subfolders")
+            @Param(description = "The file to store it in, can use / for subfolders")
             String name,
-        @Param(description = "Overwrite existing object files", defaultValue = "false", aliases = "force")
+            @Param(description = "Overwrite existing object files", defaultValue = "false", aliases = "force")
             boolean overwrite
     ) {
         IrisObject o = WandSVC.createSchematic(player());
@@ -372,7 +371,7 @@ public class CommandObject implements DecreeExecutor {
 
     @Decree(description = "Shift a selection in your looking direction", aliases = "-")
     public void shift(
-        @Param(description = "The amount to shift by", defaultValue = "1")
+            @Param(description = "The amount to shift by", defaultValue = "1")
             int amount
     ) {
         if(!WandSVC.isHoldingWand(player())) {
@@ -396,7 +395,7 @@ public class CommandObject implements DecreeExecutor {
 
     @Decree(description = "Undo a number of pastes", aliases = "-")
     public void undo(
-        @Param(description = "The amount of pastes to undo", defaultValue = "1")
+            @Param(description = "The amount of pastes to undo", defaultValue = "1")
             int amount
     ) {
         ObjectSVC service = Iris.service(ObjectSVC.class);
@@ -414,8 +413,7 @@ public class CommandObject implements DecreeExecutor {
 
         Cuboid locs = WorldEditLink.getSelection(sender().player());
 
-        if(locs == null)
-        {
+        if(locs == null) {
             sender().sendMessage(C.RED + "You don't have a WorldEdit selection in this world.");
             return;
         }

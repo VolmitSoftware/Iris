@@ -33,7 +33,7 @@ import com.volmit.iris.util.format.C;
 public class CommandFind implements DecreeExecutor {
     @Decree(description = "Find a biome")
     public void biome(
-        @Param(description = "The biome to look for")
+            @Param(description = "The biome to look for")
             IrisBiome biome
     ) {
         Engine e = engine();
@@ -48,7 +48,7 @@ public class CommandFind implements DecreeExecutor {
 
     @Decree(description = "Find a region")
     public void region(
-        @Param(description = "The region to look for")
+            @Param(description = "The region to look for")
             IrisRegion region
     ) {
         Engine e = engine();
@@ -63,7 +63,7 @@ public class CommandFind implements DecreeExecutor {
 
     @Decree(description = "Find a structure")
     public void structure(
-        @Param(description = "The structure to look for")
+            @Param(description = "The structure to look for")
             IrisJigsawStructure structure
     ) {
         Engine e = engine();
@@ -78,7 +78,7 @@ public class CommandFind implements DecreeExecutor {
 
     @Decree(description = "Find an object")
     public void object(
-        @Param(description = "The object to look for", customHandler = ObjectHandler.class)
+            @Param(description = "The object to look for", customHandler = ObjectHandler.class)
             String object
     ) {
         Engine e = engine();

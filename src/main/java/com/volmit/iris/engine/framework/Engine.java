@@ -473,7 +473,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             if(i == null)
                 continue;
             b++;
-            items.addAll(i.getLoot(debug, items.isEmpty(), rng, slot, x, y, z, b + b, mgf + b));
+            items.addAll(i.getLoot(debug, rng, slot, x, y, z));
         }
 
         if(PaperLib.isPaper() && getWorld().hasRealWorld()) {

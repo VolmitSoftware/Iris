@@ -63,7 +63,7 @@ public class IrisLootTable extends IrisRegistrant {
     @ArrayType(min = 1, type = IrisLoot.class)
     private KList<IrisLoot> loot = new KList<>();
 
-    public KList<ItemStack> getLoot(boolean debug, boolean doSomething, RNG rng, InventorySlotType slot, int x, int y, int z, int gg, int ffs) {
+    public KList<ItemStack> getLoot(boolean debug, RNG rng, InventorySlotType slot, int x, int y, int z) {
         KList<ItemStack> lootf = new KList<>();
 
         int m = 0;

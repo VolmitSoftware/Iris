@@ -257,7 +257,7 @@ public class IrisEntity extends IrisRegistrant {
 
                         for(String fi : getLoot().getTables()) {
                             IrisLootTable i = gen.getData().getLootLoader().load(fi);
-                            items.addAll(i.getLoot(gen.isStudio(), false, rng.nextParallelRNG(345911), InventorySlotType.STORAGE, finalAt.getBlockX(), finalAt.getBlockY(), finalAt.getBlockZ(), 8, 4));
+                            items.addAll(i.getLoot(gen.isStudio(), rng.nextParallelRNG(345911), InventorySlotType.STORAGE, finalAt.getBlockX(), finalAt.getBlockY(), finalAt.getBlockZ()));
                         }
 
                         return items;

@@ -138,10 +138,10 @@ public class CommandWhat implements DecreeExecutor {
             for(int xxx = c.getX() - 4; xxx <= c.getX() + 4; xxx++) {
                 for(int zzz = c.getZ() - 4; zzz <= c.getZ() + 4; zzz++) {
                     IrisToolbelt.access(c.getWorld()).getEngine().getMantle().findMarkers(xxx, zzz, new MatterMarker(marker))
-                        .convert((i) -> i.toLocation(c.getWorld())).forEach((i) -> {
-                            J.s(() -> BlockSignal.of(i.getBlock(), 100));
-                            v.incrementAndGet();
-                        });
+                            .convert((i) -> i.toLocation(c.getWorld())).forEach((i) -> {
+                                J.s(() -> BlockSignal.of(i.getBlock(), 100));
+                                v.incrementAndGet();
+                            });
                 }
             }
 

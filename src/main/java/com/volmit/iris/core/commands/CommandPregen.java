@@ -34,11 +34,11 @@ import org.bukkit.util.Vector;
 public class CommandPregen implements DecreeExecutor {
     @Decree(description = "Pregenerate a world")
     public void start(
-        @Param(description = "The radius of the pregen in blocks", aliases = "size")
+            @Param(description = "The radius of the pregen in blocks", aliases = "size")
             int radius,
-        @Param(description = "The world to pregen", contextual = true)
+            @Param(description = "The world to pregen", contextual = true)
             World world,
-        @Param(aliases = "middle", description = "The center location of the pregen. Use \"me\" for your current location", defaultValue = "0,0")
+            @Param(aliases = "middle", description = "The center location of the pregen. Use \"me\" for your current location", defaultValue = "0,0")
             Vector center
     ) {
         try {
@@ -49,11 +49,11 @@ public class CommandPregen implements DecreeExecutor {
             radius = Math.max(radius, 1024);
             int w = (radius >> 9 + 1) * 2;
             IrisToolbelt.pregenerate(PregenTask
-                .builder()
-                .center(new Position2(center))
-                .width(w)
-                .height(w)
-                .build(), world);
+                    .builder()
+                    .center(new Position2(center))
+                    .width(w)
+                    .height(w)
+                    .build(), world);
             String msg = C.GREEN + "Pregen started in " + C.GOLD + world.getName() + C.GREEN + " of " + C.GOLD + (radius * 2) + C.GREEN + " by " + C.GOLD + (radius * 2) + C.GREEN + " blocks from " + C.GOLD + center.getX() + "," + center.getZ();
             sender().sendMessage(msg);
             Iris.info(msg);

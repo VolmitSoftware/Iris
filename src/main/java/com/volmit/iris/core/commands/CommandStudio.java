@@ -71,23 +71,22 @@ import java.util.function.Supplier;
 
 @Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
 public class CommandStudio implements DecreeExecutor {
+    private CommandFind find;
+    private CommandEdit edit;
+
     public static String hrf(Duration duration) {
         return duration.toString().substring(2).replaceAll("(\\d[HMS])(?!$)", "$1 ").toLowerCase();
     }
 
-    private CommandFind find;
-    private CommandEdit edit;
-
-
     @Decree(description = "Download a project.", aliases = "dl")
     public void download(
-        @Param(name = "pack", description = "The pack to download", defaultValue = "overworld", aliases = "project")
+            @Param(name = "pack", description = "The pack to download", defaultValue = "overworld", aliases = "project")
             String pack,
-        @Param(name = "branch", description = "The branch to download from", defaultValue = "master")
+            @Param(name = "branch", description = "The branch to download from", defaultValue = "master")
             String branch,
-        @Param(name = "trim", description = "Whether or not to download a trimmed version (do not enable when editing)", defaultValue = "false")
+            @Param(name = "trim", description = "Whether or not to download a trimmed version (do not enable when editing)", defaultValue = "false")
             boolean trim,
-        @Param(name = "overwrite", description = "Whether or not to overwrite the pack with the downloaded one", aliases = "force", defaultValue = "false")
+            @Param(name = "overwrite", description = "Whether or not to overwrite the pack with the downloaded one", aliases = "force", defaultValue = "false")
             boolean overwrite
     ) {
         new CommandIris().download(pack, branch, trim, overwrite);
@@ -95,9 +94,9 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Open a new studio world", aliases = "o", sync = true)
     public void open(
-        @Param(defaultValue = "default", description = "The dimension to open a studio for", aliases = "dim")
+            @Param(defaultValue = "default", description = "The dimension to open a studio for", aliases = "dim")
             IrisDimension dimension,
-        @Param(defaultValue = "1337", description = "The seed to generate the studio with", aliases = "s")
+            @Param(defaultValue = "1337", description = "The seed to generate the studio with", aliases = "s")
             long seed) {
         sender().sendMessage(C.GREEN + "Opening studio for the \"" + dimension.getName() + "\" pack (seed: " + seed + ")");
         Iris.service(StudioSVC.class).open(sender(), seed, dimension.getLoadKey());
@@ -105,7 +104,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Open VSCode for a dimension", aliases = {"vsc", "edit"})
     public void vscode(
-        @Param(defaultValue = "default", description = "The dimension to open VSCode for", aliases = "dim")
+            @Param(defaultValue = "default", description = "The dimension to open VSCode for", aliases = "dim")
             IrisDimension dimension
     ) {
         sender().sendMessage(C.GREEN + "Opening VSCode for the \"" + dimension.getName() + "\" pack");
@@ -125,9 +124,9 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Create a new studio project", aliases = "+", sync = true)
     public void create(
-        @Param(description = "The name of this new Iris Project.")
+            @Param(description = "The name of this new Iris Project.")
             String name,
-        @Param(description = "Copy the contents of an existing project in your packs folder and use it as a template in this new project.", contextual = true)
+            @Param(description = "Copy the contents of an existing project in your packs folder and use it as a template in this new project.", contextual = true)
             IrisDimension template) {
         if(template != null) {
             Iris.service(StudioSVC.class).create(sender(), name, template.getLoadKey());
@@ -138,7 +137,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Get the version of a pack")
     public void version(
-        @Param(defaultValue = "default", description = "The dimension get the version of", aliases = "dim", contextual = true)
+            @Param(defaultValue = "default", description = "The dimension get the version of", aliases = "dim", contextual = true)
             IrisDimension dimension
     ) {
         sender().sendMessage(C.GREEN + "The \"" + dimension.getName() + "\" pack has version: " + dimension.getVersion());
@@ -152,7 +151,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Execute a script", aliases = "run", origin = DecreeOrigin.PLAYER)
     public void execute(
-        @Param(description = "The script to run")
+            @Param(description = "The script to run")
             IrisScript script
     ) {
         engine().getExecution().execute(script.getLoadKey());
@@ -177,9 +176,9 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Preview noise gens (External GUI)", aliases = {"generator", "gen"})
     public void explore(
-        @Param(description = "The generator to explore", contextual = true)
+            @Param(description = "The generator to explore", contextual = true)
             IrisGenerator generator,
-        @Param(description = "The seed to generate with", defaultValue = "12345")
+            @Param(description = "The seed to generate with", defaultValue = "12345")
             long seed
     ) {
         if(noGUI()) return;
@@ -208,9 +207,9 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Show loot if a chest were right here", origin = DecreeOrigin.PLAYER, sync = true)
     public void loot(
-        @Param(description = "Fast insertion of items in virtual inventory (may cause performance drop)", defaultValue = "false")
+            @Param(description = "Fast insertion of items in virtual inventory (may cause performance drop)", defaultValue = "false")
             boolean fast,
-        @Param(description = "Whether or not to append to the inventory currently open (if false, clears opened inventory)", defaultValue = "true")
+            @Param(description = "Whether or not to append to the inventory currently open (if false, clears opened inventory)", defaultValue = "true")
             boolean add
     ) {
         if(noStudio()) return;
@@ -251,7 +250,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Render a world map (External GUI)", aliases = "render")
     public void map(
-        @Param(name = "world", description = "The world to open the generator for", contextual = true)
+            @Param(name = "world", description = "The world to open the generator for", contextual = true)
             World world
     ) {
         if(noGUI()) return;
@@ -267,11 +266,11 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Package a dimension into a compressed format", aliases = "package")
     public void pkg(
-        @Param(name = "dimension", description = "The dimension pack to compress", contextual = true, defaultValue = "default")
+            @Param(name = "dimension", description = "The dimension pack to compress", contextual = true, defaultValue = "default")
             IrisDimension dimension,
-        @Param(name = "obfuscate", description = "Whether or not to obfuscate the pack", defaultValue = "false")
+            @Param(name = "obfuscate", description = "Whether or not to obfuscate the pack", defaultValue = "false")
             boolean obfuscate,
-        @Param(name = "minify", description = "Whether or not to minify the pack", defaultValue = "true")
+            @Param(name = "minify", description = "Whether or not to minify the pack", defaultValue = "true")
             boolean minify
     ) {
         Iris.service(StudioSVC.class).compilePackage(sender(), dimension.getLoadKey(), obfuscate, minify);
@@ -279,7 +278,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Profiles the performance of a dimension", origin = DecreeOrigin.PLAYER)
     public void profile(
-        @Param(description = "The dimension to profile", contextual = true, defaultValue = "default")
+            @Param(description = "The dimension to profile", contextual = true, defaultValue = "default")
             IrisDimension dimension
     ) {
         File pack = dimension.getLoadFile().getParentFile().getParentFile();
@@ -467,9 +466,9 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Summon an Iris Entity", origin = DecreeOrigin.PLAYER)
     public void summon(
-        @Param(description = "The Iris Entity to spawn")
+            @Param(description = "The Iris Entity to spawn")
             IrisEntity entity,
-        @Param(description = "The location at which to spawn the entity", defaultValue = "self")
+            @Param(description = "The location at which to spawn the entity", defaultValue = "self")
             Vector location
     ) {
         if(!sender().isPlayer()) {
@@ -500,7 +499,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Update your dimension projects VSCode workspace")
     public void update(
-        @Param(description = "The dimension to update the workspace of", contextual = true, defaultValue = "default")
+            @Param(description = "The dimension to update the workspace of", contextual = true, defaultValue = "default")
             IrisDimension dimension
     ) {
         sender().sendMessage(C.GOLD + "Updating Code Workspace for " + dimension.getName() + "...");
@@ -666,7 +665,7 @@ public class CommandStudio implements DecreeExecutor {
 
                 String n3 = nn3;
                 objects.computeIfAbsent(n1, (k1) -> new KMap<>())
-                    .computeIfAbsent(n2, (k) -> new KList<>()).addIfMissing(n3);
+                        .computeIfAbsent(n2, (k) -> new KList<>()).addIfMissing(n3);
             }
         }
     }

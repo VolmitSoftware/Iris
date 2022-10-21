@@ -35,7 +35,7 @@ def main = 'com.volmit.iris.Iris'
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================
 registerCustomOutputTask('Cyberpwn', 'C://Users/cyberpwn/Documents/development/server/plugins')
-registerCustomOutputTask('Psycho', 'D://Dan/MinecraftDevelopment/server/plugins')
+registerCustomOutputTask('Psycho', 'C://Dan/MinecraftDevelopment/Server/plugins')
 registerCustomOutputTask('ArcaneArts', 'C://Users/arcane/Documents/development/server/plugins')
 registerCustomOutputTask('Coco', 'D://Documents/MC/plugins')
 registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins')

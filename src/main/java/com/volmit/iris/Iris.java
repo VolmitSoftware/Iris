@@ -87,7 +87,7 @@ import java.util.Map;
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
 
-    public static final String OVERWORLD_TAG = "2087";
+    public static final String OVERWORLD_TAG = "2090";
 
     private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
 

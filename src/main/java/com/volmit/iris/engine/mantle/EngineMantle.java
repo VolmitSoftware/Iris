@@ -190,31 +190,33 @@ public interface EngineMantle extends IObjectPlacer {
 
     @ChunkCoordinates
     default void generateMatter(int x, int z, boolean multicore, ChunkContext context) {
-        if(!getEngine().getDimension().isUseMantle()) {
-            return;
-        }
-
-        int s = getRealRadius();
-        BurstExecutor burst = burst().burst(multicore);
-        MantleWriter writer = getMantle().write(this, x, z, s * 2);
-        for(int i = -s; i <= s; i++) {
-            for(int j = -s; j <= s; j++) {
-                int xx = i + x;
-                int zz = j + z;
-                burst.queue(() -> {
-                    IrisContext.touch(getEngine().getContext());
-                    getMantle().raiseFlag(xx, zz, MantleFlag.PLANNED, () -> {
-                        MantleChunk mc = getMantle().getChunk(xx, zz);
-
-                        for(MantleComponent k : getComponents()) {
-                            generateMantleComponent(writer, xx, zz, k, mc, context);
-                        }
-                    });
-                });
+        synchronized(this) {
+            if(!getEngine().getDimension().isUseMantle()) {
+                return;
             }
-        }
 
-        burst.complete();
+            int s = getRealRadius();
+            BurstExecutor burst = burst().burst(multicore);
+            MantleWriter writer = getMantle().write(this, x, z, s * 2);
+            for(int i = -s; i <= s; i++) {
+                for(int j = -s; j <= s; j++) {
+                    int xx = i + x;
+                    int zz = j + z;
+                    burst.queue(() -> {
+                        IrisContext.touch(getEngine().getContext());
+                        getMantle().raiseFlag(xx, zz, MantleFlag.PLANNED, () -> {
+                            MantleChunk mc = getMantle().getChunk(xx, zz);
+
+                            for(MantleComponent k : getComponents()) {
+                                generateMantleComponent(writer, xx, zz, k, mc, context);
+                            }
+                        });
+                    });
+                }
+            }
+
+            burst.complete();
+        }
     }
 
     default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, MantleChunk mc, ChunkContext context) {

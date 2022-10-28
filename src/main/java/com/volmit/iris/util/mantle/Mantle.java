@@ -249,9 +249,9 @@ public class Mantle {
      */
     @ChunkCoordinates
     public <T> void iterateChunk(int x, int z, Class<T> type, Consumer4<Integer, Integer, Integer, T> iterator) {
-        if(!hasTectonicPlate(x >> 5, z >> 5)) {
+        /*if(!hasTectonicPlate(x >> 5, z >> 5)) {
             return;
-        }
+        }*/
 
         get(x >> 5, z >> 5).getOrCreate(x & 31, z & 31).iterate(type, iterator);
     }

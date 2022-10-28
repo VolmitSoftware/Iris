@@ -98,7 +98,7 @@ public class PlannedStructure {
         int zz = i.getPosition().getZ() + sz;
         RNG rngf = new RNG(Cache.key(xx, zz));
         int offset = i.getPosition().getY() - startHeight;
-        int height = 0;
+        int height;
 
         if(i.getStructure().getStructure().getLockY() == -1) {
             if(i.getStructure().getStructure().getOverrideYRange() != null) {

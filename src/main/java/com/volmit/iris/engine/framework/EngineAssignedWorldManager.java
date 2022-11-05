@@ -100,14 +100,17 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
 
     @EventHandler
     public void onItemUse(PlayerInteractEvent e) {
-        if(e.getItem() == null || e.getHand() != EquipmentSlot.HAND)
+        if(e.getItem() == null || e.getHand() != EquipmentSlot.HAND) {
             return;
-        if(e.getAction() == Action.LEFT_CLICK_BLOCK || e.getAction() == Action.LEFT_CLICK_AIR)
+        }
+        if(e.getAction() == Action.LEFT_CLICK_BLOCK || e.getAction() == Action.LEFT_CLICK_AIR) {
             return;
+        }
         if(e.getPlayer().getWorld().equals(getTarget().getWorld().realWorld()) && e.getItem().getType() == Material.ENDER_EYE) {
             KList<Position2> positions = getEngine().getDimension().getStrongholds(getEngine().getSeedManager().getSpawn());
-            if(positions.isEmpty())
+            if(positions.isEmpty()) {
                 return;
+            }
 
             Position2 playerPos = new Position2(e.getPlayer().getLocation().getBlockX(), e.getPlayer().getLocation().getBlockZ());
             Position2 pr = positions.get(0);

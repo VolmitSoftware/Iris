@@ -36,9 +36,12 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.scheduling.jobs.SingleJob;
+import net.minecraft.core.BlockPos;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import oshi.util.tuples.Pair;
 
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -167,6 +170,13 @@ public interface Locator<T> {
 
     static Locator<IrisBiome> surfaceBiome(String loadKey) {
         return (e, c) -> e.getSurfaceBiome((c.getX() << 4) + 8, (c.getZ() << 4) + 8).getLoadKey().equals(loadKey);
+    }
+
+    static Locator<BlockPos> poi(String type) {
+        return (e, c) -> {
+            Set<Pair<String, BlockPos>> pos = e.getPOIsAt((c.getX() << 4) + 8, (c.getZ() << 4) + 8);
+            return pos.stream().anyMatch(p -> p.getA().equals(type));
+        };
     }
 
     static Locator<IrisBiome> caveBiome(String loadKey) {

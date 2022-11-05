@@ -24,6 +24,7 @@ import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.core.gui.components.Renderer;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.core.service.DolphinSVC;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
@@ -56,6 +57,7 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.stream.ProceduralStream;
 import io.papermc.lib.PaperLib;
+import net.minecraft.core.BlockPos;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -66,9 +68,11 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.generator.structure.StructureType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import oshi.util.tuples.Pair;
 
 import java.awt.*;
 import java.util.Arrays;
@@ -214,6 +218,9 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     @ChunkCoordinates
     Set<String> getObjectsAt(int x, int z);
+
+    @ChunkCoordinates
+    Set<Pair<String, BlockPos>> getPOIsAt(int x, int z);
 
     @ChunkCoordinates
     IrisJigsawStructure getStructureAt(int x, int z);
@@ -905,6 +912,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         }
 
         Locator.region(r.getLoadKey()).find(player);
+    }
+
+    default void gotoPOI(String type, Player p) {
+        Locator.poi(type).find(p);
     }
 
     default void cleanupMantleChunk(int x, int z) {

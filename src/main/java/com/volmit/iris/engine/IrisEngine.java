@@ -25,6 +25,7 @@ import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.project.IrisProject;
+import com.volmit.iris.core.service.DolphinSVC;
 import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.*;
@@ -43,22 +44,27 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.MatterStructurePOI;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
+import net.minecraft.core.BlockPos;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
+import oshi.util.tuples.Pair;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Data
 public class IrisEngine implements Engine {
@@ -189,6 +195,13 @@ public class IrisEngine implements Engine {
     @Override
     public Set<String> getObjectsAt(int x, int z) {
         return getMantle().getObjectComponent().guess(x, z);
+    }
+
+    @Override
+    public Set<Pair<String, BlockPos>> getPOIsAt(int chunkX, int chunkY) {
+        Set<Pair<String, BlockPos>> pois = new HashSet<>();
+        getMantle().getMantle().iterateChunk(chunkX, chunkY, MatterStructurePOI.class, (x, y, z, d) -> pois.add(new Pair<>(d.getType(), new BlockPos(x, y, z))));
+        return pois;
     }
 
     @Override

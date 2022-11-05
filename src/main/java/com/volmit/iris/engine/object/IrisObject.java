@@ -60,6 +60,7 @@ import org.bukkit.util.Vector;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 @Accessors(chain = true)
@@ -493,7 +494,7 @@ public class IrisObject extends IrisRegistrant {
         return place(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), placer, config, rng, rdata);
     }
 
-    public int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, Consumer<BlockPosition> listener, CarveResult c, IrisData rdata) {
+    public int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, BiConsumer<BlockPosition, BlockData> listener, CarveResult c, IrisData rdata) {
         IObjectPlacer placer = (config.getHeightmap() != null) ? new HeightmapObjectPlacer(oplacer.getEngine() == null ? IrisContext.get().getEngine() : oplacer.getEngine(), rng, x, yv, z, config, oplacer) : oplacer;
 
         if(config.isSmartBore()) {
@@ -795,6 +796,7 @@ public class IrisObject extends IrisRegistrant {
                 }
 
                 if((config.isWaterloggable() || config.isUnderwater()) && yy <= placer.getFluidHeight() && data instanceof Waterlogged) {
+                    // TODO Here
                     ((Waterlogged) data).setWaterlogged(true);
                 }
 
@@ -809,7 +811,7 @@ public class IrisObject extends IrisRegistrant {
                 }
 
                 if(listener != null) {
-                    listener.accept(new BlockPosition(xx, yy, zz));
+                    listener.accept(new BlockPosition(xx, yy, zz), data);
                 }
 
                 if(markers != null && markers.containsKey(g)) {

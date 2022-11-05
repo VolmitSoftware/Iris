@@ -117,7 +117,7 @@ public class PlannedStructure {
         }
 
         int id = rng.i(0, Integer.MAX_VALUE);
-        vo.place(xx, height, zz, placer, options, rng, (b) -> e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id), null, getData());
+        vo.place(xx, height, zz, placer, options, rng, (b, data) -> e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id), null, getData());
     }
 
     public void place(World world) {
@@ -210,10 +210,7 @@ public class PlannedStructure {
         return generateRotatedPiece(piece, pieceConnector, idea, IrisObjectRotation.of(x, y, z));
     }
 
-    private boolean generatePositionedPiece(PlannedPiece piece,
-                                            IrisJigsawPieceConnector pieceConnector,
-                                            PlannedPiece test,
-                                            IrisJigsawPieceConnector testConnector) {
+    private boolean generatePositionedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, PlannedPiece test, IrisJigsawPieceConnector testConnector) {
         test.setPosition(new IrisPosition(0, 0, 0));
         IrisPosition connector = piece.getWorldPosition(pieceConnector);
         IrisDirection desiredDirection = pieceConnector.getDirection().reverse();

@@ -37,7 +37,7 @@ public class IntegerHandler implements DecreeParameterHandler<Integer> {
             AtomicReference<String> r = new AtomicReference<>(in);
             double m = getMultiplier(r);
             return (int) (Integer.valueOf(r.get()).doubleValue() * m);
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             throw new DecreeParsingException("Unable to parse integer \"" + in + "\"");
         }
     }

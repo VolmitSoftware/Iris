@@ -38,11 +38,11 @@ public class IrisTimeBlock {
     }
 
     public boolean isWithin(double hour) {
-        if(startHour == endHour) {
+        if (startHour == endHour) {
             return endHour != -1;
         }
 
-        if(startHour > endHour) {
+        if (startHour > endHour) {
             return hour >= startHour || hour <= endHour;
         }
 

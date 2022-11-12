@@ -19,6 +19,7 @@ public class ChunkedDataCache<T> {
     public ChunkedDataCache(BurstExecutor burst, ProceduralStream<T> stream, int x, int z) {
         this(burst, stream, x, z, true);
     }
+
     @BlockCoordinates
     public ChunkedDataCache(BurstExecutor burst, ProceduralStream<T> stream, int x, int z, boolean cache) {
         this.stream = stream;
@@ -26,24 +27,22 @@ public class ChunkedDataCache<T> {
         this.x = x;
         this.z = z;
         this.uniques = cache ? new KSet<>() : null;
-        if(cache) {
+        if (cache) {
             data = new Object[256];
-            int i,j;
+            int i, j;
 
-            for(i = 0; i < 16; i++) {
+            for (i = 0; i < 16; i++) {
                 int finalI = i;
-                for(j = 0; j < 16; j++) {
+                for (j = 0; j < 16; j++) {
                     int finalJ = j;
                     burst.queue(() -> {
-                        T t = stream.get(x+ finalI, z+ finalJ);
+                        T t = stream.get(x + finalI, z + finalJ);
                         data[(finalJ * 16) + finalI] = t;
                         uniques.add(t);
                     });
                 }
             }
-        }
-
-        else {
+        } else {
             data = new Object[0];
         }
     }
@@ -51,7 +50,7 @@ public class ChunkedDataCache<T> {
     @SuppressWarnings("unchecked")
     @BlockCoordinates
     public T get(int x, int z) {
-        if(!cache) {
+        if (!cache) {
             return stream.get(this.x + x, this.z + z);
         }
 

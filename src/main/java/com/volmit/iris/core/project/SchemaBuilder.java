@@ -60,7 +60,7 @@ public class SchemaBuilder {
     private static JSONArray getPotionTypes() {
         JSONArray a = new JSONArray();
 
-        for(PotionEffectType gg : PotionEffectType.values()) {
+        for (PotionEffectType gg : PotionEffectType.values()) {
             a.put(gg.getName().toUpperCase().replaceAll("\\Q \\E", "_"));
         }
 
@@ -69,7 +69,7 @@ public class SchemaBuilder {
 
     private static JSONArray getEnchantTypes() {
         JSONArray array = new JSONArray();
-        for(Enchantment e : Enchantment.values()) {
+        for (Enchantment e : Enchantment.values()) {
             array.put(e.getKey().getKey());
         }
         return array;
@@ -82,21 +82,21 @@ public class SchemaBuilder {
 
         JSONObject props = buildProperties(root);
 
-        for(String i : props.keySet()) {
-            if(!schema.has(i)) {
+        for (String i : props.keySet()) {
+            if (!schema.has(i)) {
                 schema.put(i, props.get(i));
             }
         }
 
         JSONObject defs = new JSONObject();
 
-        for(Map.Entry<String, JSONObject> entry : definitions.entrySet()) {
+        for (Map.Entry<String, JSONObject> entry : definitions.entrySet()) {
             defs.put(entry.getKey(), entry.getValue());
         }
 
         schema.put("definitions", defs);
 
-        for(String i : warnings) {
+        for (String i : warnings) {
             Iris.warn(root.getSimpleName() + ": " + i);
         }
 
@@ -110,17 +110,17 @@ public class SchemaBuilder {
         o.put("type", getType(c));
         JSONArray required = new JSONArray();
 
-        if(c.isAssignableFrom(IrisRegistrant.class) || IrisRegistrant.class.isAssignableFrom(c)) {
-            for(Field k : IrisRegistrant.class.getDeclaredFields()) {
+        if (c.isAssignableFrom(IrisRegistrant.class) || IrisRegistrant.class.isAssignableFrom(c)) {
+            for (Field k : IrisRegistrant.class.getDeclaredFields()) {
                 k.setAccessible(true);
 
-                if(Modifier.isStatic(k.getModifiers()) || Modifier.isFinal(k.getModifiers()) || Modifier.isTransient(k.getModifiers())) {
+                if (Modifier.isStatic(k.getModifiers()) || Modifier.isFinal(k.getModifiers()) || Modifier.isTransient(k.getModifiers())) {
                     continue;
                 }
 
                 JSONObject property = buildProperty(k, c);
 
-                if(property.getBoolean("!required")) {
+                if (property.getBoolean("!required")) {
                     required.put(k.getName());
                 }
 
@@ -129,10 +129,10 @@ public class SchemaBuilder {
             }
         }
 
-        for(Field k : c.getDeclaredFields()) {
+        for (Field k : c.getDeclaredFields()) {
             k.setAccessible(true);
 
-            if(Modifier.isStatic(k.getModifiers()) || Modifier.isFinal(k.getModifiers()) || Modifier.isTransient(k.getModifiers())) {
+            if (Modifier.isStatic(k.getModifiers()) || Modifier.isFinal(k.getModifiers()) || Modifier.isTransient(k.getModifiers())) {
                 continue;
             }
 
@@ -142,14 +142,14 @@ public class SchemaBuilder {
             properties.put(k.getName(), property);
         }
 
-        if(required.length() > 0) {
+        if (required.length() > 0) {
             o.put("required", required);
         }
 
         o.put("properties", properties);
 
 
-        if(c.isAnnotationPresent(Snippet.class)) {
+        if (c.isAnnotationPresent(Snippet.class)) {
             JSONObject anyOf = new JSONObject();
             JSONArray arr = new JSONArray();
             JSONObject str = new JSONObject();
@@ -172,16 +172,16 @@ public class SchemaBuilder {
         prop.put("type", type);
         String fancyType = "Unknown Type";
 
-        switch(type) {
+        switch (type) {
             case "boolean" -> fancyType = "Boolean";
             case "integer" -> {
                 fancyType = "Integer";
-                if(k.isAnnotationPresent(MinNumber.class)) {
+                if (k.isAnnotationPresent(MinNumber.class)) {
                     int min = (int) k.getDeclaredAnnotation(MinNumber.class).value();
                     prop.put("minimum", min);
                     description.add(SYMBOL_LIMIT__N + " Minimum allowed is " + min);
                 }
-                if(k.isAnnotationPresent(MaxNumber.class)) {
+                if (k.isAnnotationPresent(MaxNumber.class)) {
                     int max = (int) k.getDeclaredAnnotation(MaxNumber.class).value();
                     prop.put("maximum", max);
                     description.add(SYMBOL_LIMIT__N + " Maximum allowed is " + max);
@@ -189,12 +189,12 @@ public class SchemaBuilder {
             }
             case "number" -> {
                 fancyType = "Number";
-                if(k.isAnnotationPresent(MinNumber.class)) {
+                if (k.isAnnotationPresent(MinNumber.class)) {
                     double min = k.getDeclaredAnnotation(MinNumber.class).value();
                     prop.put("minimum", min);
                     description.add(SYMBOL_LIMIT__N + " Minimum allowed is " + min);
                 }
-                if(k.isAnnotationPresent(MaxNumber.class)) {
+                if (k.isAnnotationPresent(MaxNumber.class)) {
                     double max = k.getDeclaredAnnotation(MaxNumber.class).value();
                     prop.put("maximum", max);
                     description.add(SYMBOL_LIMIT__N + " Maximum allowed is " + max);
@@ -202,26 +202,26 @@ public class SchemaBuilder {
             }
             case "string" -> {
                 fancyType = "Text";
-                if(k.isAnnotationPresent(MinNumber.class)) {
+                if (k.isAnnotationPresent(MinNumber.class)) {
                     int min = (int) k.getDeclaredAnnotation(MinNumber.class).value();
                     prop.put("minLength", min);
                     description.add(SYMBOL_LIMIT__N + " Minimum Length allowed is " + min);
                 }
-                if(k.isAnnotationPresent(MaxNumber.class)) {
+                if (k.isAnnotationPresent(MaxNumber.class)) {
                     int max = (int) k.getDeclaredAnnotation(MaxNumber.class).value();
                     prop.put("maxLength", max);
                     description.add(SYMBOL_LIMIT__N + " Maximum Length allowed is " + max);
                 }
 
 
-                if(k.isAnnotationPresent(RegistryListResource.class)) {
+                if (k.isAnnotationPresent(RegistryListResource.class)) {
                     RegistryListResource rr = k.getDeclaredAnnotation(RegistryListResource.class);
                     ResourceLoader<?> loader = data.getLoaders().get(rr.value());
 
-                    if(loader != null) {
+                    if (loader != null) {
                         String key = "erz" + loader.getFolderName();
 
-                        if(!definitions.containsKey(key)) {
+                        if (!definitions.containsKey(key)) {
                             JSONObject j = new JSONObject();
                             j.put("enum", new JSONArray(loader.getPossibleKeys()));
                             definitions.put(key, j);
@@ -233,18 +233,18 @@ public class SchemaBuilder {
                     } else {
                         Iris.error("Cannot find Registry Loader for type " + rr.value() + " used in " + k.getDeclaringClass().getCanonicalName() + " in field " + k.getName());
                     }
-                } else if(k.isAnnotationPresent(RegistryListBlockType.class)) {
+                } else if (k.isAnnotationPresent(RegistryListBlockType.class)) {
                     String key = "enum-block-type";
 
-                    if(!definitions.containsKey(key)) {
+                    if (!definitions.containsKey(key)) {
                         JSONObject j = new JSONObject();
                         JSONArray ja = new JSONArray();
 
-                        for(String i : data.getBlockLoader().getPossibleKeys()) {
+                        for (String i : data.getBlockLoader().getPossibleKeys()) {
                             ja.put(i);
                         }
 
-                        for(String i : B.getBlockTypes()) {
+                        for (String i : B.getBlockTypes()) {
                             ja.put(i);
                         }
 
@@ -256,10 +256,10 @@ public class SchemaBuilder {
                     prop.put("$ref", "#/definitions/" + key);
                     description.add(SYMBOL_TYPE__N + "  Must be a valid Block Type (use ctrl+space for auto complete!)");
 
-                } else if(k.isAnnotationPresent(RegistryListItemType.class)) {
+                } else if (k.isAnnotationPresent(RegistryListItemType.class)) {
                     String key = "enum-item-type";
 
-                    if(!definitions.containsKey(key)) {
+                    if (!definitions.containsKey(key)) {
                         JSONObject j = new JSONObject();
                         j.put("enum", ITEM_TYPES);
                         definitions.put(key, j);
@@ -269,10 +269,10 @@ public class SchemaBuilder {
                     prop.put("$ref", "#/definitions/" + key);
                     description.add(SYMBOL_TYPE__N + "  Must be a valid Item Type (use ctrl+space for auto complete!)");
 
-                } else if(k.isAnnotationPresent(RegistryListSpecialEntity.class)) {
+                } else if (k.isAnnotationPresent(RegistryListSpecialEntity.class)) {
                     String key = "enum-reg-specialentity";
 
-                    if(!definitions.containsKey(key)) {
+                    if (!definitions.containsKey(key)) {
                         JSONObject j = new JSONObject();
                         KList<String> list = new KList<>();
                         list.addAll(Iris.linkMythicMobs.getMythicMobTypes().stream().map(s -> "MythicMobs:" + s).collect(Collectors.toList()));
@@ -284,10 +284,10 @@ public class SchemaBuilder {
                     fancyType = "Mythic Mob Type";
                     prop.put("$ref", "#/definitions/" + key);
                     description.add(SYMBOL_TYPE__N + "  Must be a valid Mythic Mob Type (use ctrl+space for auto complete!) Define mythic mobs with the mythic mobs plugin configuration files.");
-                } else if(k.isAnnotationPresent(RegistryListFont.class)) {
+                } else if (k.isAnnotationPresent(RegistryListFont.class)) {
                     String key = "enum-font";
 
-                    if(!definitions.containsKey(key)) {
+                    if (!definitions.containsKey(key)) {
                         JSONObject j = new JSONObject();
                         j.put("enum", FONT_TYPES);
                         definitions.put(key, j);
@@ -297,10 +297,10 @@ public class SchemaBuilder {
                     prop.put("$ref", "#/definitions/" + key);
                     description.add(SYMBOL_TYPE__N + "  Must be a valid Font Family (use ctrl+space for auto complete!)");
 
-                } else if(k.isAnnotationPresent(RegistryListEnchantment.class)) {
+                } else if (k.isAnnotationPresent(RegistryListEnchantment.class)) {
                     String key = "enum-enchantment";
 
-                    if(!definitions.containsKey(key)) {
+                    if (!definitions.containsKey(key)) {
                         JSONObject j = new JSONObject();
                         j.put("enum", ENCHANT_TYPES);
                         definitions.put(key, j);
@@ -309,10 +309,10 @@ public class SchemaBuilder {
                     fancyType = "Enchantment Type";
                     prop.put("$ref", "#/definitions/" + key);
                     description.add(SYMBOL_TYPE__N + "  Must be a valid Enchantment Type (use ctrl+space for auto complete!)");
-                } else if(k.getType().equals(PotionEffectType.class)) {
+                } else if (k.getType().equals(PotionEffectType.class)) {
                     String key = "enum-potion-effect-type";
 
-                    if(!definitions.containsKey(key)) {
+                    if (!definitions.containsKey(key)) {
                         JSONObject j = new JSONObject();
                         j.put("enum", POTION_TYPES);
                         definitions.put(key, j);
@@ -322,12 +322,12 @@ public class SchemaBuilder {
                     prop.put("$ref", "#/definitions/" + key);
                     description.add(SYMBOL_TYPE__N + "  Must be a valid Potion Effect Type (use ctrl+space for auto complete!)");
 
-                } else if(k.getType().isEnum()) {
+                } else if (k.getType().isEnum()) {
                     fancyType = k.getType().getSimpleName().replaceAll("\\QIris\\E", "");
                     JSONArray a = new JSONArray();
                     boolean advanced = k.getType().isAnnotationPresent(Desc.class);
-                    for(Object gg : k.getType().getEnumConstants()) {
-                        if(advanced) {
+                    for (Object gg : k.getType().getEnumConstants()) {
+                        if (advanced) {
                             try {
                                 JSONObject j = new JSONObject();
                                 String name = ((Enum<?>) gg).name();
@@ -335,7 +335,7 @@ public class SchemaBuilder {
                                 Desc dd = k.getType().getField(name).getAnnotation(Desc.class);
                                 j.put("description", dd == null ? ("No Description for " + name) : dd.value());
                                 a.put(j);
-                            } catch(Throwable e) {
+                            } catch (Throwable e) {
                                 Iris.reportError(e);
                                 e.printStackTrace();
                             }
@@ -346,7 +346,7 @@ public class SchemaBuilder {
 
                     String key = (advanced ? "oneof-" : "") + "enum-" + k.getType().getCanonicalName().replaceAll("\\Q.\\E", "-").toLowerCase();
 
-                    if(!definitions.containsKey(key)) {
+                    if (!definitions.containsKey(key)) {
                         JSONObject j = new JSONObject();
                         j.put(advanced ? "oneOf" : "enum", a);
                         definitions.put(key, j);
@@ -360,7 +360,7 @@ public class SchemaBuilder {
             case "object" -> {
                 fancyType = k.getType().getSimpleName().replaceAll("\\QIris\\E", "") + " (Object)";
                 String key = "obj-" + k.getType().getCanonicalName().replaceAll("\\Q.\\E", "-").toLowerCase();
-                if(!definitions.containsKey(key)) {
+                if (!definitions.containsKey(key)) {
                     definitions.put(key, new JSONObject());
                     definitions.put(key, buildProperties(k.getType()));
                 }
@@ -369,10 +369,10 @@ public class SchemaBuilder {
             case "array" -> {
                 fancyType = "List of Something...?";
                 ArrayType t = k.getDeclaredAnnotation(ArrayType.class);
-                if(t != null) {
-                    if(t.min() > 0) {
+                if (t != null) {
+                    if (t.min() > 0) {
                         prop.put("minItems", t.min());
-                        if(t.min() == 1) {
+                        if (t.min() == 1) {
                             description.add(SYMBOL_LIMIT__N + " At least one entry must be defined, or just remove this list.");
                         } else {
                             description.add(SYMBOL_LIMIT__N + " Requires at least " + t.min() + " entries.");
@@ -381,13 +381,13 @@ public class SchemaBuilder {
 
                     String arrayType = getType(t.type());
 
-                    switch(arrayType) {
+                    switch (arrayType) {
                         case "integer" -> fancyType = "List of Integers";
                         case "number" -> fancyType = "List of Numbers";
                         case "object" -> {
                             fancyType = "List of " + t.type().getSimpleName().replaceAll("\\QIris\\E", "") + "s (Objects)";
                             String key = "obj-" + t.type().getCanonicalName().replaceAll("\\Q.\\E", "-").toLowerCase();
-                            if(!definitions.containsKey(key)) {
+                            if (!definitions.containsKey(key)) {
                                 definitions.put(key, new JSONObject());
                                 definitions.put(key, buildProperties(t.type()));
                             }
@@ -398,15 +398,15 @@ public class SchemaBuilder {
                         case "string" -> {
                             fancyType = "List of Text";
 
-                            if(k.isAnnotationPresent(RegistryListResource.class)) {
+                            if (k.isAnnotationPresent(RegistryListResource.class)) {
                                 RegistryListResource rr = k.getDeclaredAnnotation(RegistryListResource.class);
                                 ResourceLoader<?> loader = data.getLoaders().get(rr.value());
 
-                                if(loader != null) {
+                                if (loader != null) {
                                     fancyType = "List<" + loader.getResourceTypeName() + ">";
                                     String key = "erz" + loader.getFolderName();
 
-                                    if(!definitions.containsKey(key)) {
+                                    if (!definitions.containsKey(key)) {
                                         JSONObject j = new JSONObject();
                                         j.put("enum", new JSONArray(loader.getPossibleKeys()));
                                         definitions.put(key, j);
@@ -419,19 +419,19 @@ public class SchemaBuilder {
                                 } else {
                                     Iris.error("Cannot find Registry Loader for type (list schema) " + rr.value() + " used in " + k.getDeclaringClass().getCanonicalName() + " in field " + k.getName());
                                 }
-                            } else if(k.isAnnotationPresent(RegistryListBlockType.class)) {
+                            } else if (k.isAnnotationPresent(RegistryListBlockType.class)) {
                                 fancyType = "List of Block Types";
                                 String key = "enum-block-type";
 
-                                if(!definitions.containsKey(key)) {
+                                if (!definitions.containsKey(key)) {
                                     JSONObject j = new JSONObject();
                                     JSONArray ja = new JSONArray();
 
-                                    for(String i : data.getBlockLoader().getPossibleKeys()) {
+                                    for (String i : data.getBlockLoader().getPossibleKeys()) {
                                         ja.put(i);
                                     }
 
-                                    for(String i : B.getBlockTypes()) {
+                                    for (String i : B.getBlockTypes()) {
                                         ja.put(i);
                                     }
 
@@ -443,11 +443,11 @@ public class SchemaBuilder {
                                 items.put("$ref", "#/definitions/" + key);
                                 prop.put("items", items);
                                 description.add(SYMBOL_TYPE__N + "  Must be a valid Block Type (use ctrl+space for auto complete!)");
-                            } else if(k.isAnnotationPresent(RegistryListItemType.class)) {
+                            } else if (k.isAnnotationPresent(RegistryListItemType.class)) {
                                 fancyType = "List of Item Types";
                                 String key = "enum-item-type";
 
-                                if(!definitions.containsKey(key)) {
+                                if (!definitions.containsKey(key)) {
                                     JSONObject j = new JSONObject();
                                     j.put("enum", ITEM_TYPES);
                                     definitions.put(key, j);
@@ -457,11 +457,11 @@ public class SchemaBuilder {
                                 items.put("$ref", "#/definitions/" + key);
                                 prop.put("items", items);
                                 description.add(SYMBOL_TYPE__N + "  Must be a valid Item Type (use ctrl+space for auto complete!)");
-                            } else if(k.isAnnotationPresent(RegistryListFont.class)) {
+                            } else if (k.isAnnotationPresent(RegistryListFont.class)) {
                                 String key = "enum-font";
                                 fancyType = "List of Font Families";
 
-                                if(!definitions.containsKey(key)) {
+                                if (!definitions.containsKey(key)) {
                                     JSONObject j = new JSONObject();
                                     j.put("enum", FONT_TYPES);
                                     definitions.put(key, j);
@@ -471,11 +471,11 @@ public class SchemaBuilder {
                                 items.put("$ref", "#/definitions/" + key);
                                 prop.put("items", items);
                                 description.add(SYMBOL_TYPE__N + "  Must be a valid Font Family (use ctrl+space for auto complete!)");
-                            } else if(k.isAnnotationPresent(RegistryListEnchantment.class)) {
+                            } else if (k.isAnnotationPresent(RegistryListEnchantment.class)) {
                                 fancyType = "List of Enchantment Types";
                                 String key = "enum-enchantment";
 
-                                if(!definitions.containsKey(key)) {
+                                if (!definitions.containsKey(key)) {
                                     JSONObject j = new JSONObject();
                                     j.put("enum", ENCHANT_TYPES);
                                     definitions.put(key, j);
@@ -485,11 +485,11 @@ public class SchemaBuilder {
                                 items.put("$ref", "#/definitions/" + key);
                                 prop.put("items", items);
                                 description.add(SYMBOL_TYPE__N + "  Must be a valid Enchantment Type (use ctrl+space for auto complete!)");
-                            } else if(t.type().equals(PotionEffectType.class)) {
+                            } else if (t.type().equals(PotionEffectType.class)) {
                                 fancyType = "List of Potion Effect Types";
                                 String key = "enum-potion-effect-type";
 
-                                if(!definitions.containsKey(key)) {
+                                if (!definitions.containsKey(key)) {
                                     JSONObject j = new JSONObject();
                                     j.put("enum", POTION_TYPES);
                                     definitions.put(key, j);
@@ -499,12 +499,12 @@ public class SchemaBuilder {
                                 items.put("$ref", "#/definitions/" + key);
                                 prop.put("items", items);
                                 description.add(SYMBOL_TYPE__N + "  Must be a valid Potion Effect Type (use ctrl+space for auto complete!)");
-                            } else if(t.type().isEnum()) {
+                            } else if (t.type().isEnum()) {
                                 fancyType = "List of " + t.type().getSimpleName().replaceAll("\\QIris\\E", "") + "s";
                                 JSONArray a = new JSONArray();
                                 boolean advanced = t.type().isAnnotationPresent(Desc.class);
-                                for(Object gg : t.type().getEnumConstants()) {
-                                    if(advanced) {
+                                for (Object gg : t.type().getEnumConstants()) {
+                                    if (advanced) {
                                         try {
                                             JSONObject j = new JSONObject();
                                             String name = ((Enum<?>) gg).name();
@@ -512,7 +512,7 @@ public class SchemaBuilder {
                                             Desc dd = t.type().getField(name).getAnnotation(Desc.class);
                                             j.put("description", dd == null ? ("No Description for " + name) : dd.value());
                                             a.put(j);
-                                        } catch(Throwable e) {
+                                        } catch (Throwable e) {
                                             Iris.reportError(e);
                                             e.printStackTrace();
                                         }
@@ -523,7 +523,7 @@ public class SchemaBuilder {
 
                                 String key = (advanced ? "oneof-" : "") + "enum-" + t.type().getCanonicalName().replaceAll("\\Q.\\E", "-").toLowerCase();
 
-                                if(!definitions.containsKey(key)) {
+                                if (!definitions.containsKey(key)) {
                                     JSONObject j = new JSONObject();
                                     j.put(advanced ? "oneOf" : "enum", a);
                                     definitions.put(key, j);
@@ -540,7 +540,8 @@ public class SchemaBuilder {
                     warnings.add("Undefined array type for field " + k.getName() + " (" + k.getType().getSimpleName() + ") in class " + cl.getSimpleName());
                 }
             }
-            default -> warnings.add("Unexpected Schema Type: " + type + " for field " + k.getName() + " (" + k.getType().getSimpleName() + ") in class " + cl.getSimpleName());
+            default ->
+                    warnings.add("Unexpected Schema Type: " + type + " for field " + k.getName() + " (" + k.getType().getSimpleName() + ") in class " + cl.getSimpleName());
         }
 
         KList<String> d = new KList<>();
@@ -550,7 +551,7 @@ public class SchemaBuilder {
         d.add(fancyType);
         d.add(getDescription(k.getType()));
 
-        if(k.getType().isAnnotationPresent(Snippet.class)) {
+        if (k.getType().isAnnotationPresent(Snippet.class)) {
             String sm = k.getType().getDeclaredAnnotation(Snippet.class).value();
             d.add("    ");
             d.add("You can instead specify \"snippet/" + sm + "/some-name.json\" to use a snippet file instead of specifying it here.");
@@ -560,11 +561,11 @@ public class SchemaBuilder {
             k.setAccessible(true);
             Object value = k.get(cl.newInstance());
 
-            if(value != null) {
-                if(value instanceof List) {
+            if (value != null) {
+                if (value instanceof List) {
                     d.add("    ");
                     d.add("* Default Value is an empty list");
-                } else if(!cl.isPrimitive() && !(value instanceof Number) && !(value instanceof String) && !(cl.isEnum())) {
+                } else if (!cl.isPrimitive() && !(value instanceof Number) && !(value instanceof String) && !(cl.isEnum())) {
                     d.add("    ");
                     d.add("* Default Value is a default object (create this object to see default properties)");
                 } else {
@@ -572,7 +573,7 @@ public class SchemaBuilder {
                     d.add("* Default Value is " + value);
                 }
             }
-        } catch(Throwable ignored) {
+        } catch (Throwable ignored) {
 
         }
 
@@ -580,7 +581,7 @@ public class SchemaBuilder {
         prop.put("type", type);
         prop.put("description", d.toString("\n"));
 
-        if(k.getType().isAnnotationPresent(Snippet.class)) {
+        if (k.getType().isAnnotationPresent(Snippet.class)) {
             JSONObject anyOf = new JSONObject();
             JSONArray arr = new JSONArray();
             JSONObject str = new JSONObject();
@@ -588,7 +589,7 @@ public class SchemaBuilder {
             String key = "enum-snippet-" + k.getType().getDeclaredAnnotation(Snippet.class).value();
             str.put("$ref", "#/definitions/" + key);
 
-            if(!definitions.containsKey(key)) {
+            if (!definitions.containsKey(key)) {
                 JSONObject j = new JSONObject();
                 JSONArray snl = new JSONArray();
                 data.getPossibleSnippets(k.getType().getDeclaredAnnotation(Snippet.class).value()).forEach(snl::put);
@@ -611,31 +612,31 @@ public class SchemaBuilder {
     }
 
     private String getType(Class<?> c) {
-        if(c.equals(int.class) || c.equals(Integer.class) || c.equals(long.class) || c.equals(Long.class)) {
+        if (c.equals(int.class) || c.equals(Integer.class) || c.equals(long.class) || c.equals(Long.class)) {
             return "integer";
         }
 
-        if(c.equals(float.class) || c.equals(double.class) || c.equals(Float.class) || c.equals(Double.class)) {
+        if (c.equals(float.class) || c.equals(double.class) || c.equals(Float.class) || c.equals(Double.class)) {
             return "number";
         }
 
-        if(c.equals(boolean.class) || c.equals(Boolean.class)) {
+        if (c.equals(boolean.class) || c.equals(Boolean.class)) {
             return "boolean";
         }
 
-        if(c.equals(String.class) || c.isEnum() || c.equals(Enchantment.class) || c.equals(PotionEffectType.class)) {
+        if (c.equals(String.class) || c.isEnum() || c.equals(Enchantment.class) || c.equals(PotionEffectType.class)) {
             return "string";
         }
 
-        if(c.equals(KList.class)) {
+        if (c.equals(KList.class)) {
             return "array";
         }
 
-        if(c.equals(KMap.class)) {
+        if (c.equals(KMap.class)) {
             return "object";
         }
 
-        if(!c.isAnnotationPresent(Desc.class) && c.getCanonicalName().startsWith("com.volmit.iris.")) {
+        if (!c.isAnnotationPresent(Desc.class) && c.getCanonicalName().startsWith("com.volmit.iris.")) {
             warnings.addIfMissing("Unsupported Type: " + c.getCanonicalName() + " Did you forget @Desc?");
         }
 
@@ -644,12 +645,12 @@ public class SchemaBuilder {
 
     private String getFieldDescription(Field r) {
 
-        if(r.isAnnotationPresent(Desc.class)) {
+        if (r.isAnnotationPresent(Desc.class)) {
             return r.getDeclaredAnnotation(Desc.class).value();
         }
 
         // suppress warnings on bukkit classes
-        if(r.getDeclaringClass().getName().startsWith("org.bukkit.")) {
+        if (r.getDeclaringClass().getName().startsWith("org.bukkit.")) {
             return "Bukkit package classes and enums have no descriptions";
         }
 
@@ -658,11 +659,11 @@ public class SchemaBuilder {
     }
 
     private String getDescription(Class<?> r) {
-        if(r.isAnnotationPresent(Desc.class)) {
+        if (r.isAnnotationPresent(Desc.class)) {
             return r.getDeclaredAnnotation(Desc.class).value();
         }
 
-        if(!r.isPrimitive() && !r.equals(KList.class) && !r.equals(KMap.class) && r.getCanonicalName().startsWith("com.volmit.")) {
+        if (!r.isPrimitive() && !r.equals(KList.class) && !r.equals(KMap.class) && r.getCanonicalName().startsWith("com.volmit.")) {
             warnings.addIfMissing("Missing @Desc on " + r.getSimpleName() + " in " + (r.getDeclaringClass() != null ? r.getDeclaringClass().getCanonicalName() : " NOSRC"));
         }
         return "";

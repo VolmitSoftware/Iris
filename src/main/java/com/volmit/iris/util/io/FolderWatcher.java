@@ -34,22 +34,22 @@ public class FolderWatcher extends FileWatcher {
     }
 
     protected void readProperties() {
-        if(watchers == null) {
+        if (watchers == null) {
             watchers = new KMap<>();
             changed = new KList<>();
             created = new KList<>();
             deleted = new KList<>();
         }
 
-        if(file.isDirectory()) {
-            for(File i : file.listFiles()) {
-                if(!watchers.containsKey(i)) {
+        if (file.isDirectory()) {
+            for (File i : file.listFiles()) {
+                if (!watchers.containsKey(i)) {
                     watchers.put(i, new FolderWatcher(i));
                 }
             }
 
-            for(File i : watchers.k()) {
-                if(!i.exists()) {
+            for (File i : watchers.k()) {
+                if (!i.exists()) {
                     watchers.remove(i);
                 }
             }
@@ -63,22 +63,22 @@ public class FolderWatcher extends FileWatcher {
         created.clear();
         deleted.clear();
 
-        if(file.isDirectory()) {
+        if (file.isDirectory()) {
             KMap<File, FolderWatcher> w = watchers.copy();
             readProperties();
 
-            for(File i : w.keySet()) {
-                if(!watchers.containsKey(i)) {
+            for (File i : w.keySet()) {
+                if (!watchers.containsKey(i)) {
                     deleted.add(i);
                 }
             }
 
-            for(File i : watchers.keySet()) {
-                if(!w.containsKey(i)) {
+            for (File i : watchers.keySet()) {
+                if (!w.containsKey(i)) {
                     created.add(i);
                 } else {
                     FolderWatcher fw = watchers.get(i);
-                    if(fw.checkModified()) {
+                    if (fw.checkModified()) {
                         changed.add(fw.file);
                     }
 
@@ -95,7 +95,7 @@ public class FolderWatcher extends FileWatcher {
     }
 
     public boolean checkModifiedFast() {
-        if(watchers == null || watchers.isEmpty()) {
+        if (watchers == null || watchers.isEmpty()) {
             return checkModified();
         }
 
@@ -103,10 +103,10 @@ public class FolderWatcher extends FileWatcher {
         created.clear();
         deleted.clear();
 
-        if(file.isDirectory()) {
-            for(File i : watchers.keySet()) {
+        if (file.isDirectory()) {
+            for (File i : watchers.keySet()) {
                 FolderWatcher fw = watchers.get(i);
-                if(fw.checkModifiedFast()) {
+                if (fw.checkModifiedFast()) {
                     changed.add(fw.file);
                 }
 

@@ -81,11 +81,11 @@ public class MCATerrainChunk implements TerrainChunk {
         int xx = (x + ox) & 15;
         int zz = (z + oz) & 15;
 
-        if(y > getMaxHeight() || y < getMinHeight()) {
+        if (y > getMaxHeight() || y < getMinHeight()) {
             return;
         }
 
-        if(blockData == null) {
+        if (blockData == null) {
             Iris.error("NULL BD");
         }
 
@@ -94,11 +94,11 @@ public class MCATerrainChunk implements TerrainChunk {
 
     @Override
     public org.bukkit.block.data.BlockData getBlockData(int x, int y, int z) {
-        if(y > getMaxHeight()) {
+        if (y > getMaxHeight()) {
             y = getMaxHeight();
         }
 
-        if(y < getMinHeight()) {
+        if (y < getMinHeight()) {
             y = getMinHeight();
         }
 

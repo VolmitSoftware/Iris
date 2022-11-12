@@ -62,12 +62,11 @@ public class WandSVC implements IrisService {
     /**
      * Creates an Iris Object from the 2 coordinates selected with a wand
      *
-     * @param p
-     *     The wand player
+     * @param p The wand player
      * @return The new object
      */
     public static IrisObject createSchematic(Player p) {
-        if(!isHoldingWand(p)) {
+        if (!isHoldingWand(p)) {
             return null;
         }
 
@@ -75,8 +74,8 @@ public class WandSVC implements IrisService {
             Location[] f = getCuboid(p);
             Cuboid c = new Cuboid(f[0], f[1]);
             IrisObject s = new IrisObject(c.getSizeX(), c.getSizeY(), c.getSizeZ());
-            for(Block b : c) {
-                if(b.getType().equals(Material.AIR)) {
+            for (Block b : c) {
+                if (b.getType().equals(Material.AIR)) {
                     continue;
                 }
 
@@ -85,7 +84,7 @@ public class WandSVC implements IrisService {
             }
 
             return s;
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             e.printStackTrace();
             Iris.reportError(e);
         }
@@ -99,7 +98,7 @@ public class WandSVC implements IrisService {
      * @return The new object
      */
     public static Matter createMatterSchem(Player p) {
-        if(!isHoldingWand(p)) {
+        if (!isHoldingWand(p)) {
             return null;
         }
 
@@ -107,7 +106,7 @@ public class WandSVC implements IrisService {
             Location[] f = getCuboid(p);
 
             return WorldMatter.createMatter(p.getName(), f[0], f[1]);
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             e.printStackTrace();
             Iris.reportError(e);
         }
@@ -118,8 +117,7 @@ public class WandSVC implements IrisService {
     /**
      * Converts a user friendly location string to an actual Location
      *
-     * @param s
-     *     The string
+     * @param s The string
      * @return The location
      */
     public static Location stringToLocation(String s) {
@@ -127,7 +125,7 @@ public class WandSVC implements IrisService {
             String[] f = s.split("\\Q in \\E");
             String[] g = f[0].split("\\Q,\\E");
             return new Location(Bukkit.getWorld(f[1]), Integer.parseInt(g[0]), Integer.parseInt(g[1]), Integer.parseInt(g[2]));
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
             return null;
         }
@@ -136,12 +134,11 @@ public class WandSVC implements IrisService {
     /**
      * Get a user friendly string of a location
      *
-     * @param loc
-     *     The location
+     * @param loc The location
      * @return The string
      */
     public static String locationToString(Location loc) {
-        if(loc == null) {
+        if (loc == null) {
             return "<#>";
         }
 
@@ -178,8 +175,7 @@ public class WandSVC implements IrisService {
     /**
      * Finds an existing wand in a users inventory
      *
-     * @param inventory
-     *     The inventory to search
+     * @param inventory The inventory to search
      * @return The slot number the wand is in. Or -1 if none are found
      */
     public static int findWand(Inventory inventory) {
@@ -188,14 +184,14 @@ public class WandSVC implements IrisService {
         meta.setLore(new ArrayList<>()); //We are resetting the lore as the lore differs between wands
         wand.setItemMeta(meta);
 
-        for(int s = 0; s < inventory.getSize(); s++) {
+        for (int s = 0; s < inventory.getSize(); s++) {
             ItemStack stack = inventory.getItem(s);
-            if(stack == null) continue;
+            if (stack == null) continue;
             meta = stack.getItemMeta();
             meta.setLore(new ArrayList<>()); //Reset the lore on this too so we can compare them
             stack.setItemMeta(meta);         //We dont need to clone the item as items from .get are cloned
 
-            if(wand.isSimilar(stack)) return s; //If the name, material and NBT is the same
+            if (wand.isSimilar(stack)) return s; //If the name, material and NBT is the same
         }
         return -1;
     }
@@ -203,10 +199,8 @@ public class WandSVC implements IrisService {
     /**
      * Creates an Iris wand. The locations should be the currently selected locations, or null
      *
-     * @param a
-     *     Location A
-     * @param b
-     *     Location B
+     * @param a Location A
+     * @param b Location B
      * @return A new wand
      */
     public static ItemStack createWand(Location a, Location b) {
@@ -224,20 +218,18 @@ public class WandSVC implements IrisService {
 
     public static Location[] getCuboidFromItem(ItemStack is) {
         ItemMeta im = is.getItemMeta();
-        return new Location[] {stringToLocation(im.getLore().get(0)), stringToLocation(im.getLore().get(1))};
+        return new Location[]{stringToLocation(im.getLore().get(0)), stringToLocation(im.getLore().get(1))};
     }
 
     public static Location[] getCuboid(Player p) {
-        if(isHoldingIrisWand(p))
-        {
+        if (isHoldingIrisWand(p)) {
             return getCuboidFromItem(p.getInventory().getItemInMainHand());
         }
 
         Cuboid c = WorldEditLink.getSelection(p);
 
-        if(c != null)
-        {
-            return new Location[] {c.getLowerNE(), c.getUpperSW()};
+        if (c != null) {
+            return new Location[]{c.getLowerNE(), c.getUpperSW()};
         }
 
         return null;
@@ -255,17 +247,16 @@ public class WandSVC implements IrisService {
     /**
      * Is the itemstack passed an Iris wand
      *
-     * @param is
-     *     The itemstack
+     * @param is The itemstack
      * @return True if it is
      */
     public static boolean isWand(ItemStack is) {
         ItemStack wand = createWand();
-        if(is.getItemMeta() == null) return false;
+        if (is.getItemMeta() == null) return false;
         return is.getType().equals(wand.getType()) &&
-            is.getItemMeta().getDisplayName().equals(wand.getItemMeta().getDisplayName()) &&
-            is.getItemMeta().getEnchants().equals(wand.getItemMeta().getEnchants()) &&
-            is.getItemMeta().getItemFlags().equals(wand.getItemMeta().getItemFlags());
+                is.getItemMeta().getDisplayName().equals(wand.getItemMeta().getDisplayName()) &&
+                is.getItemMeta().getEnchants().equals(wand.getItemMeta().getEnchants()) &&
+                is.getItemMeta().getItemFlags().equals(wand.getItemMeta().getItemFlags());
     }
 
     @Override
@@ -274,7 +265,7 @@ public class WandSVC implements IrisService {
         dust = createDust();
 
         J.ar(() -> {
-            for(Player i : Bukkit.getOnlinePlayers()) {
+            for (Player i : Bukkit.getOnlinePlayers()) {
                 tick(i);
             }
         }, 0);
@@ -288,14 +279,14 @@ public class WandSVC implements IrisService {
     public void tick(Player p) {
         try {
             try {
-                if((IrisSettings.get().getWorld().worldEditWandCUI && isHoldingWand(p)) || isWand(p.getInventory().getItemInMainHand())) {
+                if ((IrisSettings.get().getWorld().worldEditWandCUI && isHoldingWand(p)) || isWand(p.getInventory().getItemInMainHand())) {
                     Location[] d = getCuboid(p);
                     new WandSelection(new Cuboid(d[0], d[1]), p).draw();
                 }
-            } catch(Throwable e) {
+            } catch (Throwable e) {
                 Iris.reportError(e);
             }
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
     }
@@ -303,22 +294,18 @@ public class WandSVC implements IrisService {
     /**
      * Draw the outline of a selected region
      *
-     * @param d
-     *     The cuboid
-     * @param p
-     *     The player to show it to
+     * @param d The cuboid
+     * @param p The player to show it to
      */
     public void draw(Cuboid d, Player p) {
-        draw(new Location[] {d.getLowerNE(), d.getUpperSW()}, p);
+        draw(new Location[]{d.getLowerNE(), d.getUpperSW()}, p);
     }
 
     /**
      * Draw the outline of a selected region
      *
-     * @param d
-     *     A pair of locations
-     * @param p
-     *     The player to show them to
+     * @param d A pair of locations
+     * @param p The player to show them to
      */
     public void draw(Location[] d, Player p) {
         Vector gx = Vector.getRandom().subtract(Vector.getRandom()).normalize().clone().multiply(0.65);
@@ -326,11 +313,11 @@ public class WandSVC implements IrisService {
         Vector gxx = Vector.getRandom().subtract(Vector.getRandom()).normalize().clone().multiply(0.65);
         d[1].getWorld().spawnParticle(Particle.CRIT, d[1], 1, 0.5 + gxx.getX(), 0.5 + gxx.getY(), 0.5 + gxx.getZ(), 0, null, false);
 
-        if(!d[0].getWorld().equals(d[1].getWorld())) {
+        if (!d[0].getWorld().equals(d[1].getWorld())) {
             return;
         }
 
-        if(d[0].distanceSquared(d[1]) > 64 * 64) {
+        if (d[0].distanceSquared(d[1]) > 64 * 64) {
             return;
         }
 
@@ -341,38 +328,38 @@ public class WandSVC implements IrisService {
         int maxy = Math.max(d[0].getBlockY(), d[1].getBlockY());
         int maxz = Math.max(d[0].getBlockZ(), d[1].getBlockZ());
 
-        for(double j = minx - 1; j < maxx + 1; j += 0.25) {
-            for(double k = miny - 1; k < maxy + 1; k += 0.25) {
-                for(double l = minz - 1; l < maxz + 1; l += 0.25) {
-                    if(M.r(0.2)) {
+        for (double j = minx - 1; j < maxx + 1; j += 0.25) {
+            for (double k = miny - 1; k < maxy + 1; k += 0.25) {
+                for (double l = minz - 1; l < maxz + 1; l += 0.25) {
+                    if (M.r(0.2)) {
                         boolean jj = j == minx || j == maxx;
                         boolean kk = k == miny || k == maxy;
                         boolean ll = l == minz || l == maxz;
 
-                        if((jj && kk) || (jj && ll) || (ll && kk)) {
+                        if ((jj && kk) || (jj && ll) || (ll && kk)) {
                             Vector push = new Vector(0, 0, 0);
 
-                            if(j == minx) {
+                            if (j == minx) {
                                 push.add(new Vector(-0.55, 0, 0));
                             }
 
-                            if(k == miny) {
+                            if (k == miny) {
                                 push.add(new Vector(0, -0.55, 0));
                             }
 
-                            if(l == minz) {
+                            if (l == minz) {
                                 push.add(new Vector(0, 0, -0.55));
                             }
 
-                            if(j == maxx) {
+                            if (j == maxx) {
                                 push.add(new Vector(0.55, 0, 0));
                             }
 
-                            if(k == maxy) {
+                            if (k == maxy) {
                                 push.add(new Vector(0, 0.55, 0));
                             }
 
-                            if(l == maxz) {
+                            if (l == maxz) {
                                 push.add(new Vector(0, 0, 0.55));
                             }
 
@@ -391,16 +378,16 @@ public class WandSVC implements IrisService {
 
     @EventHandler
     public void on(PlayerInteractEvent e) {
-        if(e.getHand() != EquipmentSlot.HAND)
+        if (e.getHand() != EquipmentSlot.HAND)
             return;
         try {
-            if(isHoldingWand(e.getPlayer())) {
-                if(e.getAction().equals(Action.LEFT_CLICK_BLOCK)) {
+            if (isHoldingWand(e.getPlayer())) {
+                if (e.getAction().equals(Action.LEFT_CLICK_BLOCK)) {
                     e.setCancelled(true);
                     e.getPlayer().getInventory().setItemInMainHand(update(true, Objects.requireNonNull(e.getClickedBlock()).getLocation(), e.getPlayer().getInventory().getItemInMainHand()));
                     e.getPlayer().playSound(e.getClickedBlock().getLocation(), Sound.BLOCK_END_PORTAL_FRAME_FILL, 1f, 0.67f);
                     e.getPlayer().updateInventory();
-                } else if(e.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
+                } else if (e.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
                     e.setCancelled(true);
                     e.getPlayer().getInventory().setItemInMainHand(update(false, Objects.requireNonNull(e.getClickedBlock()).getLocation(), e.getPlayer().getInventory().getItemInMainHand()));
                     e.getPlayer().playSound(e.getClickedBlock().getLocation(), Sound.BLOCK_END_PORTAL_FRAME_FILL, 1f, 1.17f);
@@ -408,14 +395,14 @@ public class WandSVC implements IrisService {
                 }
             }
 
-            if(isHoldingDust(e.getPlayer())) {
-                if(e.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
+            if (isHoldingDust(e.getPlayer())) {
+                if (e.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
                     e.setCancelled(true);
                     e.getPlayer().playSound(Objects.requireNonNull(e.getClickedBlock()).getLocation(), Sound.ENTITY_ENDER_EYE_DEATH, 2f, 1.97f);
                     DustRevealer.spawn(e.getClickedBlock(), new VolmitSender(e.getPlayer(), Iris.instance.getTag()));
                 }
             }
-        } catch(Throwable xx) {
+        } catch (Throwable xx) {
             Iris.reportError(xx);
         }
     }
@@ -423,8 +410,7 @@ public class WandSVC implements IrisService {
     /**
      * Is the player holding Dust?
      *
-     * @param p
-     *     The player
+     * @param p The player
      * @return True if they are
      */
     public boolean isHoldingDust(Player p) {
@@ -435,8 +421,7 @@ public class WandSVC implements IrisService {
     /**
      * Is the itemstack passed Iris dust?
      *
-     * @param is
-     *     The itemstack
+     * @param is The itemstack
      * @return True if it is
      */
     public boolean isDust(ItemStack is) {
@@ -446,23 +431,20 @@ public class WandSVC implements IrisService {
     /**
      * Update the location on an Iris wand
      *
-     * @param left
-     *     True for first location, false for second
-     * @param a
-     *     The location
-     * @param item
-     *     The wand
+     * @param left True for first location, false for second
+     * @param a    The location
+     * @param item The wand
      * @return The updated wand
      */
     public ItemStack update(boolean left, Location a, ItemStack item) {
-        if(!isWand(item)) {
+        if (!isWand(item)) {
             return item;
         }
 
         Location[] f = getCuboidFromItem(item);
         Location other = left ? f[1] : f[0];
 
-        if(other != null && !other.getWorld().getName().equals(a.getWorld().getName())) {
+        if (other != null && !other.getWorld().getName().equals(a.getWorld().getName())) {
             other = null;
         }
 

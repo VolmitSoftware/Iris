@@ -59,15 +59,15 @@ public class IrisExpressionLoad {
     private transient AtomicCache<Double> valueCache = new AtomicCache<>();
 
     public double getValue(RNG rng, IrisData data, double x, double z) {
-        if(engineValue != null) {
+        if (engineValue != null) {
             return valueCache.aquire(() -> engineValue.get(data.getEngine()));
         }
 
-        if(engineStreamValue != null) {
+        if (engineStreamValue != null) {
             return streamCache.aquire(() -> engineStreamValue.get(data.getEngine())).get(x, z);
         }
 
-        if(styleValue != null) {
+        if (styleValue != null) {
             return styleValue.create(rng, data).noise(x, z);
         }
 
@@ -75,15 +75,15 @@ public class IrisExpressionLoad {
     }
 
     public double getValue(RNG rng, IrisData data, double x, double y, double z) {
-        if(engineValue != null) {
+        if (engineValue != null) {
             return valueCache.aquire(() -> engineValue.get(data.getEngine()));
         }
 
-        if(engineStreamValue != null) {
+        if (engineStreamValue != null) {
             return streamCache.aquire(() -> engineStreamValue.get(data.getEngine())).get(x, z);
         }
 
-        if(styleValue != null) {
+        if (styleValue != null) {
             return styleValue.create(rng, data).noise(x, y, z);
         }
 

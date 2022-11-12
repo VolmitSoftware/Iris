@@ -34,14 +34,14 @@ public class EnginePanic {
     }
 
     public static void lastPanic() {
-        for(String i : last.keySet()) {
+        for (String i : last.keySet()) {
             Iris.error("Last Panic " + i + ": " + stuff.get(i));
         }
     }
 
     public static void panic() {
         lastPanic();
-        for(String i : stuff.keySet()) {
+        for (String i : stuff.keySet()) {
             Iris.error("Engine Panic " + i + ": " + stuff.get(i));
         }
     }

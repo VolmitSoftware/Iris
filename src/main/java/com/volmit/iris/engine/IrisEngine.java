@@ -43,18 +43,22 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.MatterStructurePOI;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
+import net.minecraft.core.BlockPos;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
+import oshi.util.tuples.Pair;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -77,11 +81,11 @@ public class IrisEngine implements Engine {
     private final boolean studio;
     private final AtomicRollingSequence wallClock;
     private final int art;
-    private EngineMode mode;
     private final AtomicCache<IrisEngineData> engineData = new AtomicCache<>();
     private final AtomicBoolean cleaning;
     private final ChronoLatch cleanLatch;
     private final SeedManager seedManager;
+    private EngineMode mode;
     private EngineEffects effects;
     private EngineExecutionEnvironment execution;
     private EngineWorldManager worldManager;
@@ -128,19 +132,19 @@ public class IrisEngine implements Engine {
     }
 
     private void verifySeed() {
-        if(getEngineData().getSeed() != null && getEngineData().getSeed() != target.getWorld().getRawWorldSeed()) {
+        if (getEngineData().getSeed() != null && getEngineData().getSeed() != target.getWorld().getRawWorldSeed()) {
             target.getWorld().setRawWorldSeed(getEngineData().getSeed());
         }
     }
 
     private void tickRandomPlayer() {
         recycle();
-        if(perSecondBudLatch.flip()) {
+        if (perSecondBudLatch.flip()) {
             buds.set(bud.get());
             bud.set(0);
         }
 
-        if(effects != null) {
+        if (effects != null) {
             effects.tickRandomPlayer();
         }
     }
@@ -165,7 +169,7 @@ public class IrisEngine implements Engine {
             effects = new IrisEngineEffects(this);
             setupMode();
             J.a(this::computeBiomeMaxes);
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.error("FAILED TO SETUP ENGINE!");
             e.printStackTrace();
         }
@@ -174,7 +178,7 @@ public class IrisEngine implements Engine {
     }
 
     private void setupMode() {
-        if(mode != null) {
+        if (mode != null) {
             mode.close();
         }
 
@@ -192,13 +196,20 @@ public class IrisEngine implements Engine {
     }
 
     @Override
+    public Set<Pair<String, BlockPos>> getPOIsAt(int chunkX, int chunkY) {
+        Set<Pair<String, BlockPos>> pois = new HashSet<>();
+        getMantle().getMantle().iterateChunk(chunkX, chunkY, MatterStructurePOI.class, (x, y, z, d) -> pois.add(new Pair<>(d.getType(), new BlockPos(x, y, z))));
+        return pois;
+    }
+
+    @Override
     public IrisJigsawStructure getStructureAt(int x, int z) {
         return getMantle().getJigsawComponent().guess(x, z);
     }
 
     private void warmupChunk(int x, int z) {
-        for(int i = 0; i < 16; i++) {
-            for(int j = 0; j < 16; j++) {
+        for (int i = 0; i < 16; i++) {
+            for (int j = 0; j < 16; j++) {
                 int xx = x + (i << 4);
                 int zz = z + (z << 4);
                 getComplex().getTrueBiomeStream().get(xx, zz);
@@ -224,7 +235,11 @@ public class IrisEngine implements Engine {
         getTarget().setDimension(getData().getDimensionLoader().load(getDimension().getLoadKey()));
         prehotload();
         setupEngine();
-        J.a(() -> { synchronized(ServerConfigurator.class) { ServerConfigurator.installDataPacks(false); } });
+        J.a(() -> {
+            synchronized (ServerConfigurator.class) {
+                ServerConfigurator.installDataPacks(false);
+            }
+        });
     }
 
     @Override
@@ -235,18 +250,18 @@ public class IrisEngine implements Engine {
             //TODO: Method this file
             File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + ".json");
 
-            if(!f.exists()) {
+            if (!f.exists()) {
                 try {
                     f.getParentFile().mkdirs();
                     IO.writeAll(f, new Gson().toJson(new IrisEngineData()));
-                } catch(IOException e) {
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
 
             try {
                 return new Gson().fromJson(IO.readAll(f), IrisEngineData.class);
-            } catch(Throwable e) {
+            } catch (Throwable e) {
                 e.printStackTrace();
             }
 
@@ -261,11 +276,11 @@ public class IrisEngine implements Engine {
 
     @Override
     public double getGeneratedPerSecond() {
-        if(perSecondLatch.flip()) {
+        if (perSecondLatch.flip()) {
             double g = generated.get() - generatedLast.get();
             generatedLast.set(generated.get());
 
-            if(g == 0) {
+            if (g == 0) {
                 return 0;
             }
 
@@ -283,24 +298,24 @@ public class IrisEngine implements Engine {
     }
 
     private void computeBiomeMaxes() {
-        for(IrisBiome i : getDimension().getAllBiomes(this)) {
+        for (IrisBiome i : getDimension().getAllBiomes(this)) {
             double density = 0;
 
-            for(IrisObjectPlacement j : i.getObjects()) {
+            for (IrisObjectPlacement j : i.getObjects()) {
                 density += j.getDensity() * j.getChance();
             }
 
             maxBiomeObjectDensity = Math.max(maxBiomeObjectDensity, density);
             density = 0;
 
-            for(IrisDecorator j : i.getDecorators()) {
+            for (IrisDecorator j : i.getDecorators()) {
                 density += Math.max(j.getStackMax(), 1) * j.getChance();
             }
 
             maxBiomeDecoratorDensity = Math.max(maxBiomeDecoratorDensity, density);
             density = 0;
 
-            for(IrisBiomePaletteLayer j : i.getLayers()) {
+            for (IrisBiomePaletteLayer j : i.getLayers()) {
                 density++;
             }
 
@@ -321,11 +336,11 @@ public class IrisEngine implements Engine {
         double totalWeight = 0;
         double wallClock = getMetrics().getTotal().getAverage();
 
-        for(double j : timings.values()) {
+        for (double j : timings.values()) {
             totalWeight += j;
         }
 
-        for(String j : timings.k()) {
+        for (String j : timings.k()) {
             weights.put(getName() + "." + j, (wallClock / totalWeight) * timings.get(j));
         }
 
@@ -333,33 +348,33 @@ public class IrisEngine implements Engine {
 
         double mtotals = 0;
 
-        for(double i : totals.values()) {
+        for (double i : totals.values()) {
             mtotals += i;
         }
 
-        for(String i : totals.k()) {
+        for (String i : totals.k()) {
             totals.put(i, (masterWallClock / mtotals) * totals.get(i));
         }
 
         double v = 0;
 
-        for(double i : weights.values()) {
+        for (double i : weights.values()) {
             v += i;
         }
 
-        for(String i : weights.k()) {
+        for (String i : weights.k()) {
             weights.put(i, weights.get(i) / v);
         }
 
         sender.sendMessage("Total: " + C.BOLD + C.WHITE + Form.duration(masterWallClock, 0));
 
-        for(String i : totals.k()) {
+        for (String i : totals.k()) {
             sender.sendMessage("  Engine " + C.UNDERLINE + C.GREEN + i + C.RESET + ": " + C.BOLD + C.WHITE + Form.duration(totals.get(i), 0));
         }
 
         sender.sendMessage("Details: ");
 
-        for(String i : weights.sortKNumber().reverse()) {
+        for (String i : weights.sortKNumber().reverse()) {
             String befb = C.UNDERLINE + "" + C.GREEN + "" + i.split("\\Q[\\E")[0] + C.RESET + C.GRAY + "[";
             String num = C.GOLD + i.split("\\Q[\\E")[1].split("]")[0] + C.RESET + C.GRAY + "].";
             String afb = C.ITALIC + "" + C.AQUA + i.split("\\Q]\\E")[1].substring(1) + C.RESET + C.GRAY;
@@ -393,11 +408,11 @@ public class IrisEngine implements Engine {
 
     @Override
     public void recycle() {
-        if(!cleanLatch.flip()) {
+        if (!cleanLatch.flip()) {
             return;
         }
 
-        if(cleaning.get()) {
+        if (cleaning.get()) {
             cleanLatch.flipDown();
             return;
         }
@@ -408,7 +423,7 @@ public class IrisEngine implements Engine {
             try {
                 getMantle().trim();
                 getData().getObjectLoader().clean();
-            } catch(Throwable e) {
+            } catch (Throwable e) {
                 Iris.reportError(e);
                 Iris.error("Cleanup failed! Enable debug to see stacktrace.");
             }
@@ -420,7 +435,7 @@ public class IrisEngine implements Engine {
     @BlockCoordinates
     @Override
     public void generate(int x, int z, Hunk<BlockData> vblocks, Hunk<Biome> vbiomes, boolean multicore) throws WrongEngineBroException {
-        if(closed) {
+        if (closed) {
             throw new WrongEngineBroException();
         }
 
@@ -430,9 +445,9 @@ public class IrisEngine implements Engine {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             Hunk<BlockData> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y + getMinHeight(), z + zz, t));
 
-            if(getDimension().isDebugChunkCrossSections() && ((x >> 4) % getDimension().getDebugCrossSectionsMod() == 0 || (z >> 4) % getDimension().getDebugCrossSectionsMod() == 0)) {
-                for(int i = 0; i < 16; i++) {
-                    for(int j = 0; j < 16; j++) {
+            if (getDimension().isDebugChunkCrossSections() && ((x >> 4) % getDimension().getDebugCrossSectionsMod() == 0 || (z >> 4) % getDimension().getDebugCrossSectionsMod() == 0)) {
+                for (int i = 0; i < 16; i++) {
+                    for (int j = 0; j < 16; j++) {
                         blocks.set(i, 0, j, Material.CRYING_OBSIDIAN.createBlockData());
                     }
                 }
@@ -444,10 +459,10 @@ public class IrisEngine implements Engine {
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();
 
-            if(generated.get() == 661) {
+            if (generated.get() == 661) {
                 J.a(() -> getData().savePrefetch(this));
             }
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
             fail("Failed to generate " + x + ", " + z, e);
         }
@@ -461,7 +476,7 @@ public class IrisEngine implements Engine {
         try {
             IO.writeAll(f, new Gson().toJson(getEngineData()));
             Iris.debug("Saved Engine Data");
-        } catch(IOException e) {
+        } catch (IOException e) {
             Iris.error("Failed to save Engine Data");
             e.printStackTrace();
         }
@@ -474,7 +489,7 @@ public class IrisEngine implements Engine {
 
     @Override
     public IrisBiome getFocus() {
-        if(getDimension().getFocus() == null || getDimension().getFocus().trim().isEmpty()) {
+        if (getDimension().getFocus() == null || getDimension().getFocus().trim().isEmpty()) {
             return null;
         }
 
@@ -483,7 +498,7 @@ public class IrisEngine implements Engine {
 
     @Override
     public IrisRegion getFocusRegion() {
-        if(getDimension().getFocusRegion() == null || getDimension().getFocusRegion().trim().isEmpty()) {
+        if (getDimension().getFocusRegion() == null || getDimension().getFocusRegion().trim().isEmpty()) {
             return null;
         }
 

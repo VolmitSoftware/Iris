@@ -51,7 +51,7 @@ public class MeteredOutputStream extends OutputStream {
         written++;
         totalWritten++;
 
-        if(auto && System.currentTimeMillis() - getSince() > interval) {
+        if (auto && System.currentTimeMillis() - getSince() > interval) {
             pollWritten();
         }
     }

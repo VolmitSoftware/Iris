@@ -31,20 +31,17 @@ public class IntCache implements ArrayCache<Integer> {
     private final int height;
     private final int[] cache;
 
-    public IntCache(int width, int height)
-    {
+    public IntCache(int width, int height) {
         this.width = width;
         this.height = height;
         cache = new int[width * height];
     }
 
-    public void set(int i, Integer v)
-    {
+    public void set(int i, Integer v) {
         cache[i] = v;
     }
 
-    public Integer get(int i)
-    {
+    public Integer get(int i) {
         return cache[i];
     }
 
@@ -53,8 +50,7 @@ public class IntCache implements ArrayCache<Integer> {
         dos.writeInt(width);
         dos.writeInt(height);
 
-        for(int i = 0; i < width * height; i++)
-        {
+        for (int i = 0; i < width * height; i++) {
             dos.writeInt(get(i));
         }
     }

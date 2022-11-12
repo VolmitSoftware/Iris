@@ -50,7 +50,7 @@ public abstract class QueueJob<T> implements Job {
     @Override
     public void execute() {
         totalWork = queue.size();
-        while(queue.isNotEmpty()) {
+        while (queue.isNotEmpty()) {
             execute(queue.pop());
             completeWork();
         }

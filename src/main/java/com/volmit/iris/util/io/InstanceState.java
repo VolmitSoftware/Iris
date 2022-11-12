@@ -27,7 +27,7 @@ public class InstanceState {
     public static int getInstanceId() {
         try {
             return Integer.parseInt(IO.readAll(instanceFile()).trim());
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
 
@@ -37,7 +37,7 @@ public class InstanceState {
     public static void updateInstanceId() {
         try {
             IO.writeAll(instanceFile(), RNG.r.imax() + "");
-        } catch(IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

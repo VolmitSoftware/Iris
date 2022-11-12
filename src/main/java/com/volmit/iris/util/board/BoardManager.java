@@ -65,7 +65,7 @@ public class BoardManager {
 
     public void setup(Player player) {
         Optional.ofNullable(scoreboards.remove(player.getUniqueId())).ifPresent(Board::resetScoreboard);
-        if(player.getScoreboard().equals(Bukkit.getScoreboardManager().getMainScoreboard())) {
+        if (player.getScoreboard().equals(Bukkit.getScoreboardManager().getMainScoreboard())) {
             player.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
         }
         scoreboards.put(player.getUniqueId(), new Board(player, boardSettings));

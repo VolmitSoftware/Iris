@@ -31,12 +31,12 @@ public class DecreeContext {
     }
 
     public static void touch(VolmitSender c) {
-        synchronized(context) {
+        synchronized (context) {
             context.put(Thread.currentThread(), c);
 
-            if(cl.flip()) {
-                for(Thread i : context.k()) {
-                    if(!i.isAlive()) {
+            if (cl.flip()) {
+                for (Thread i : context.k()) {
+                    if (!i.isAlive()) {
                         context.remove(i);
                     }
                 }

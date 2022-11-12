@@ -59,18 +59,18 @@ public class IrisEnchantment {
     public void apply(RNG rng, ItemMeta meta) {
         try {
             Enchantment enchant = Enchantment.getByKey(NamespacedKey.minecraft(getEnchantment()));
-            if(enchant == null) {
+            if (enchant == null) {
                 Iris.warn("Unknown Enchantment: " + getEnchantment());
                 return;
             }
-            if(rng.nextDouble() < chance) {
-                if(meta instanceof EnchantmentStorageMeta) {
+            if (rng.nextDouble() < chance) {
+                if (meta instanceof EnchantmentStorageMeta) {
                     ((EnchantmentStorageMeta) meta).addStoredEnchant(enchant, getLevel(rng), true);
                     return;
                 }
                 meta.addEnchant(enchant, getLevel(rng), true);
             }
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
 
         }

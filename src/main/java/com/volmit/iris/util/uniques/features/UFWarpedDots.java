@@ -17,26 +17,22 @@ public class UFWarpedDots implements UFeature {
 
         double tcf = rng.d(0.75, 11.25);
 
-        for(int i = 1; i <= 8; i++)
-        {
-            CNG xShift = generator("x_warp_" + i, rng, 2, 2006+i, meta);
-            CNG yShift = generator("y_warp_" + i,rng, 2, 2007+i, meta);
-            CNG hue = generator("color_hue_" + i,rng, rng.d(0.55, 3.5), 2003+i, meta);
-            CNG sat = generator("color_sat_" + i,rng, rng.d(0.55, 3.5), 2004+i, meta);
-            CNG bri = generator("color_bri_" + i,rng, rng.d(0.55, 3.5), 2005+i, meta);
+        for (int i = 1; i <= 8; i++) {
+            CNG xShift = generator("x_warp_" + i, rng, 2, 2006 + i, meta);
+            CNG yShift = generator("y_warp_" + i, rng, 2, 2007 + i, meta);
+            CNG hue = generator("color_hue_" + i, rng, rng.d(0.55, 3.5), 2003 + i, meta);
+            CNG sat = generator("color_sat_" + i, rng, rng.d(0.55, 3.5), 2004 + i, meta);
+            CNG bri = generator("color_bri_" + i, rng, rng.d(0.55, 3.5), 2005 + i, meta);
             int x = genX.fit(0, image.getWidth(), i * 128, i * 5855);
             int y = genY.fit(0, image.getHeight(), i * 128, i * 5855);
             Color color = color(hue, sat, bri, x, y, t);
             double r = Math.max(genX.fit(image.getWidth() / 10, image.getWidth() / 6, x, y), genY.fit(image.getHeight() / 10, image.getHeight() / 6, x, y));
 
-            for(int j = (int)(x - r); j < x + r; j++)
-            {
-                for(int k = (int)(y - r); k < y + r; k++)
-                {
-                    if(image.isInBounds(j, k) && Math.pow(x - j, 2) + Math.pow(y - k, 2) <= r*r)
-                    {
-                        image.set(Math.round(j + xShift.fit(-r/2, r/2, j+t, -k+t)),
-                                Math.round(k + yShift.fit(-r/2, r/2, k+t, -j+t)),
+            for (int j = (int) (x - r); j < x + r; j++) {
+                for (int k = (int) (y - r); k < y + r; k++) {
+                    if (image.isInBounds(j, k) && Math.pow(x - j, 2) + Math.pow(y - k, 2) <= r * r) {
+                        image.set(Math.round(j + xShift.fit(-r / 2, r / 2, j + t, -k + t)),
+                                Math.round(k + yShift.fit(-r / 2, r / 2, k + t, -j + t)),
                                 color(hue, sat, bri, j, k, tcf * t));
                     }
                 }

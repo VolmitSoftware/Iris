@@ -82,45 +82,44 @@ public class IrisGeneratorStyle {
     }
 
     public CNG createNoCache(RNG rng, IrisData data) {
-     return createNoCache(rng, data, false);
+        return createNoCache(rng, data, false);
     }
 
 
-    private int hash()
-    {
+    private int hash() {
         return Objects.hash(expression, imageMap, multiplier, axialFracturing, fracture != null ? fracture.hash() : 0, exponent, cacheSize, zoom, cellularZoom, cellularFrequency, style);
     }
 
     public CNG createNoCache(RNG rng, IrisData data, boolean actuallyCached) {
         String cacheKey = hash() + "";
 
-        if(getExpression() != null) {
+        if (getExpression() != null) {
             IrisExpression e = data.getExpressionLoader().load(getExpression());
 
-            if(e != null) {
+            if (e != null) {
                 CNG cng = new CNG(rng, new ExpressionNoise(rng, e), 1D, 1)
-                    .bake().scale(1D / zoom).pow(exponent).bake();
+                        .bake().scale(1D / zoom).pow(exponent).bake();
                 cng.setTrueFracturing(axialFracturing);
 
-                if(fracture != null) {
+                if (fracture != null) {
                     cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
                 }
 
-                if(cellularFrequency > 0) {
+                if (cellularFrequency > 0) {
                     return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D / cellularZoom).bake();
                 }
 
                 return cng;
             }
-        } else if(getImageMap() != null) {
+        } else if (getImageMap() != null) {
             CNG cng = new CNG(rng, new ImageNoise(data, getImageMap()), 1D, 1).bake().scale(1D / zoom).pow(exponent).bake();
             cng.setTrueFracturing(axialFracturing);
 
-            if(fracture != null) {
+            if (fracture != null) {
                 cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
             }
 
-            if(cellularFrequency > 0) {
+            if (cellularFrequency > 0) {
                 return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D / cellularZoom).bake();
             }
 
@@ -130,19 +129,18 @@ public class IrisGeneratorStyle {
         CNG cng = style.create(rng).bake().scale(1D / zoom).pow(exponent).bake();
         cng.setTrueFracturing(axialFracturing);
 
-        if(fracture != null) {
+        if (fracture != null) {
             cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
         }
 
-        if(cellularFrequency > 0) {
+        if (cellularFrequency > 0) {
             return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D / cellularZoom).bake();
         }
 
         return cng;
     }
 
-    public double warp(RNG rng, IrisData data, double value, double... coords)
-    {
+    public double warp(RNG rng, IrisData data, double value, double... coords) {
         return create(rng, data).noise(coords) + value;
     }
 

@@ -52,6 +52,23 @@ import java.io.IOException;
 public class IrisDimension extends IrisRegistrant {
     public static final BlockData STONE = Material.STONE.createBlockData();
     public static final BlockData WATER = Material.WATER.createBlockData();
+    private static final String DP_OVERWORLD_DEFAULT = """
+            {
+                "ultrawarm": false,
+                "natural": true,
+                "coordinate_scale": 1.0,
+                "has_skylight": true,
+                "has_ceiling": false,
+                "ambient_light": 0,
+                "piglin_safe": false,
+                "bed_works": true,
+                "respawn_anchor_works": false,
+                "has_raids": true,
+                "monster_spawn_block_light_limit": 7,
+                "monster_spawn_light_level": 1,
+                "infiniburn": "#minecraft:infiniburn_overworld",
+                "effects": "minecraft:overworld"
+            }""";
     private final transient AtomicCache<Position2> parallaxSize = new AtomicCache<>();
     private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();
     private final transient AtomicCache<CNG> fluidLayerGenerator = new AtomicCache<>();
@@ -69,7 +86,6 @@ public class IrisDimension extends IrisRegistrant {
     @MaxNumber(2032)
     @Desc("Maximum height at which players can be teleported to through gameplay.")
     private int logicalHeight = 256;
-
     @RegistryListResource(IrisJigsawStructure.class)
     @Desc("If defined, Iris will place the given jigsaw structure where minecraft should place the overworld stronghold.")
     private String stronghold;
@@ -244,14 +260,14 @@ public class IrisDimension extends IrisRegistrant {
     }
 
     public BlockData generateOres(int x, int y, int z, RNG rng, IrisData data) {
-        if(ores.isEmpty()) {
+        if (ores.isEmpty()) {
             return null;
         }
         BlockData b = null;
-        for(IrisOreGenerator i : ores) {
+        for (IrisOreGenerator i : ores) {
 
             b = i.generate(x, y, z, rng, data);
-            if(b != null) {
+            if (b != null) {
                 return b;
             }
         }
@@ -264,11 +280,11 @@ public class IrisDimension extends IrisRegistrant {
             int jump = strongholdJumpDistance;
             RNG rng = new RNG((seed * 223) + 12945);
 
-            for(int i = 0; i < maxStrongholds + 1; i++) {
+            for (int i = 0; i < maxStrongholds + 1; i++) {
                 int m = i + 1;
                 pos.add(new Position2(
-                    (int) ((rng.i(jump * i) + (jump * i)) * (rng.b() ? -1D : 1D)),
-                    (int) ((rng.i(jump * i) + (jump * i)) * (rng.b() ? -1D : 1D))
+                        (int) ((rng.i(jump * i) + (jump * i)) * (rng.b() ? -1D : 1D)),
+                        (int) ((rng.i(jump * i) + (jump * i)) * (rng.b() ? -1D : 1D))
                 ));
             }
 
@@ -279,7 +295,7 @@ public class IrisDimension extends IrisRegistrant {
     }
 
     public int getFluidHeight() {
-        return fluidHeight - (int)dimensionHeight.getMin();
+        return fluidHeight - (int) dimensionHeight.getMin();
     }
 
     public CNG getCoordFracture(RNG rng, int signature) {
@@ -318,7 +334,7 @@ public class IrisDimension extends IrisRegistrant {
     public KList<IrisRegion> getAllRegions(DataProvider g) {
         KList<IrisRegion> r = new KList<>();
 
-        for(String i : getRegions()) {
+        for (String i : getRegions()) {
             r.add(g.getData().getRegionLoader().load(i));
         }
 
@@ -328,7 +344,7 @@ public class IrisDimension extends IrisRegistrant {
     public KList<IrisRegion> getAllAnyRegions() {
         KList<IrisRegion> r = new KList<>();
 
-        for(String i : getRegions()) {
+        for (String i : getRegions()) {
             r.add(IrisData.loadAnyRegion(i));
         }
 
@@ -342,8 +358,8 @@ public class IrisDimension extends IrisRegistrant {
     public KList<IrisBiome> getAllAnyBiomes() {
         KList<IrisBiome> r = new KList<>();
 
-        for(IrisRegion i : getAllAnyRegions()) {
-            if(i == null) {
+        for (IrisRegion i : getAllAnyRegions()) {
+            if (i == null) {
                 continue;
             }
 
@@ -354,7 +370,7 @@ public class IrisDimension extends IrisRegistrant {
     }
 
     public IrisGeneratorStyle getBiomeStyle(InferredType type) {
-        switch(type) {
+        switch (type) {
             case CAVE:
                 return caveBiomeStyle;
             case LAND:
@@ -376,14 +392,14 @@ public class IrisDimension extends IrisRegistrant {
 
         IO.delete(new File(datapacks, "iris/data/" + getLoadKey().toLowerCase()));
 
-        for(IrisBiome i : getAllBiomes(data)) {
-            if(i.isCustom()) {
+        for (IrisBiome i : getAllBiomes(data)) {
+            if (i.isCustom()) {
                 write = true;
 
-                for(IrisBiomeCustom j : i.getCustomDerivitives()) {
+                for (IrisBiomeCustom j : i.getCustomDerivitives()) {
                     File output = new File(datapacks, "iris/data/" + getLoadKey().toLowerCase() + "/worldgen/biome/" + j.getId() + ".json");
 
-                    if(!output.exists()) {
+                    if (!output.exists()) {
                         changed = true;
                     }
 
@@ -391,7 +407,7 @@ public class IrisDimension extends IrisRegistrant {
                     output.getParentFile().mkdirs();
                     try {
                         IO.writeAll(output, j.generateJson());
-                    } catch(IOException e) {
+                    } catch (IOException e) {
                         Iris.reportError(e);
                         e.printStackTrace();
                     }
@@ -399,23 +415,23 @@ public class IrisDimension extends IrisRegistrant {
             }
         }
 
-       if(!dimensionHeight.equals(new IrisRange(-64, 320)) && this.name.equalsIgnoreCase("overworld")) {
-           Iris.verbose("    Installing Data Pack Dimension Type: \"minecraft:overworld\"");
-           changed = writeDimensionType(changed, datapacks);
-       }
+        if (!dimensionHeight.equals(new IrisRange(-64, 320)) && this.name.equalsIgnoreCase("overworld")) {
+            Iris.verbose("    Installing Data Pack Dimension Type: \"minecraft:overworld\"");
+            changed = writeDimensionType(changed, datapacks);
+        }
 
-        if(write) {
+        if (write) {
             File mcm = new File(datapacks, "iris/pack.mcmeta");
             try {
                 IO.writeAll(mcm, """
-                    {
-                        "pack": {
-                            "description": "Iris Data Pack. This pack contains all installed Iris Packs' resources.",
-                            "pack_format": 10
+                        {
+                            "pack": {
+                                "description": "Iris Data Pack. This pack contains all installed Iris Packs' resources.",
+                                "pack_format": 10
+                            }
                         }
-                    }
-                    """);
-            } catch(IOException e) {
+                        """);
+            } catch (IOException e) {
                 Iris.reportError(e);
                 e.printStackTrace();
             }
@@ -442,12 +458,12 @@ public class IrisDimension extends IrisRegistrant {
 
     public boolean writeDimensionType(boolean changed, File datapacks) {
         File dimType = new File(datapacks, "iris/data/minecraft/dimension_type/overworld.json");
-        if(!dimType.exists())
+        if (!dimType.exists())
             changed = true;
         dimType.getParentFile().mkdirs();
         try {
             IO.writeAll(dimType, generateDatapackJson());
-        } catch(IOException e) {
+        } catch (IOException e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
@@ -461,22 +477,4 @@ public class IrisDimension extends IrisRegistrant {
         obj.put("logical_height", logicalHeight);
         return obj.toString(4);
     }
-
-    private static final String DP_OVERWORLD_DEFAULT = """
-            {
-                "ultrawarm": false,
-                "natural": true,
-                "coordinate_scale": 1.0,
-                "has_skylight": true,
-                "has_ceiling": false,
-                "ambient_light": 0,
-                "piglin_safe": false,
-                "bed_works": true,
-                "respawn_anchor_works": false,
-                "has_raids": true,
-                "monster_spawn_block_light_limit": 7,
-                "monster_spawn_light_level": 1,
-                "infiniburn": "#minecraft:infiniburn_overworld",
-                "effects": "minecraft:overworld"
-            }""";
 }

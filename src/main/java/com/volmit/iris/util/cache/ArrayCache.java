@@ -24,6 +24,18 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 public interface ArrayCache<T> extends Writable<T> {
+    static int zigZag(int coord, int size) {
+        if (coord < 0) {
+            coord = Math.abs(coord);
+        }
+
+        if (coord % (size * 2) >= size) {
+            return (size) - (coord % size) - 1;
+        } else {
+            return coord % size;
+        }
+    }
+
     T get(int i);
 
     void set(int i, T t);
@@ -36,44 +48,20 @@ public interface ArrayCache<T> extends Writable<T> {
 
     void writeCache(DataOutputStream dos) throws IOException;
 
-    static int zigZag(int coord, int size)
-    {
-        if(coord < 0)
-        {
-            coord = Math.abs(coord);
-        }
-
-        if(coord % (size * 2) >= size)
-        {
-            return (size) - (coord % size) - 1;
-        }
-
-        else {
-            return coord % size;
-        }
-    }
-
-    default void set(int x, int y, T v)
-    {
+    default void set(int x, int y, T v) {
         set((zigZag(y, getHeight()) * getWidth()) + zigZag(x, getWidth()), v);
     }
 
-    default T get(int x, int y)
-    {
-        try
-        {
+    default T get(int x, int y) {
+        try {
             return get((zigZag(y, getHeight()) * getWidth()) + zigZag(x, getWidth()));
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
             e.printStackTrace();
             throw e;
         }
     }
 
-    default void iset(int x, int y, int v)
-    {
+    default void iset(int x, int y, int v) {
         iset((zigZag(y, getHeight()) * getWidth()) + zigZag(x, getWidth()), v);
     }
 }

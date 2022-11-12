@@ -23,7 +23,7 @@ import com.volmit.iris.util.stream.ProceduralStream;
 public interface Interpolator<T> {
     @SuppressWarnings("unchecked")
     default InterpolatorFactory<T> into() {
-        if(this instanceof ProceduralStream) {
+        if (this instanceof ProceduralStream) {
             return new InterpolatorFactory<>((ProceduralStream<T>) this);
         }
 

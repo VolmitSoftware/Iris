@@ -52,8 +52,7 @@ public interface ICommand {
     /**
      * Add a node to this command
      *
-     * @param node
-     *     the node
+     * @param node the node
      */
     void addNode(String node);
 
@@ -61,10 +60,8 @@ public interface ICommand {
      * Handle a command. If this is a subcommand, parameters after the subcommand
      * will be adapted in args for you
      *
-     * @param sender
-     *     the volume sender (pre-tagged)
-     * @param args
-     *     the arguments after this command node
+     * @param sender the volume sender (pre-tagged)
+     * @param args   the arguments after this command node
      * @return return true to mark it as handled
      */
     boolean handle(VolmitSender sender, String[] args);

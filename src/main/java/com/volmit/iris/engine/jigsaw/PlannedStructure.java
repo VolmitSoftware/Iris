@@ -34,11 +34,11 @@ import org.bukkit.World;
 @Data
 public class PlannedStructure {
     private static transient ConcurrentLinkedHashMap<String, IrisObject> objectRotationCache
-        = new ConcurrentLinkedHashMap.Builder<String, IrisObject>()
-        .initialCapacity(64)
-        .maximumWeightedCapacity(1024)
-        .concurrencyLevel(32)
-        .build();
+            = new ConcurrentLinkedHashMap.Builder<String, IrisObject>()
+            .initialCapacity(64)
+            .maximumWeightedCapacity(1024)
+            .concurrencyLevel(32)
+            .build();
     private KList<PlannedPiece> pieces;
     private IrisJigsawStructure structure;
     private IrisPosition position;
@@ -57,7 +57,7 @@ public class PlannedStructure {
         this.data = structure.getLoader();
         generateStartPiece();
 
-        for(int i = 0; i < structure.getMaxDepth(); i++) {
+        for (int i = 0; i < structure.getMaxDepth(); i++) {
             generateOutwards();
         }
 
@@ -65,7 +65,7 @@ public class PlannedStructure {
 
         Iris.debug("JPlace: ROOT @ relative " + position.toString());
 
-        for(PlannedPiece i : pieces) {
+        for (PlannedPiece i : pieces) {
             Iris.debug("Place: " + i.getObject().getLoadKey() + " at @ relative " + i.getPosition().toString());
         }
     }
@@ -75,7 +75,7 @@ public class PlannedStructure {
         options.getRotation().setEnabled(false);
         int startHeight = pieces.get(0).getPosition().getY();
 
-        for(PlannedPiece i : pieces) {
+        for (PlannedPiece i : pieces) {
             place(i, startHeight, options, placer, e, eng);
         }
     }
@@ -83,7 +83,7 @@ public class PlannedStructure {
     public void place(PlannedPiece i, int startHeight, IrisObjectPlacement o, IObjectPlacer placer, Mantle e, Engine eng) {
         IrisObjectPlacement options = o;
 
-        if(i.getPiece().getPlacementOptions() != null) {
+        if (i.getPiece().getPlacementOptions() != null) {
             options = i.getPiece().getPlacementOptions();
             options.getRotation().setEnabled(false);
         } else {
@@ -100,8 +100,8 @@ public class PlannedStructure {
         int offset = i.getPosition().getY() - startHeight;
         int height;
 
-        if(i.getStructure().getStructure().getLockY() == -1) {
-            if(i.getStructure().getStructure().getOverrideYRange() != null) {
+        if (i.getStructure().getStructure().getLockY() == -1) {
+            if (i.getStructure().getStructure().getOverrideYRange() != null) {
                 height = (int) i.getStructure().getStructure().getOverrideYRange().get(rng, xx, zz, getData());
             } else {
                 height = placer.getHighest(xx, zz, getData());
@@ -112,23 +112,23 @@ public class PlannedStructure {
 
         height += offset + (v.getH() / 2);
 
-        if(options.getMode().equals(ObjectPlaceMode.PAINT)) {
+        if (options.getMode().equals(ObjectPlaceMode.PAINT)) {
             height = -1;
         }
 
         int id = rng.i(0, Integer.MAX_VALUE);
-        vo.place(xx, height, zz, placer, options, rng, (b) -> e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id), null, getData());
+        vo.place(xx, height, zz, placer, options, rng, (b, data) -> e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id), null, getData());
     }
 
     public void place(World world) {
-        for(PlannedPiece i : pieces) {
+        for (PlannedPiece i : pieces) {
             Iris.sq(() -> i.place(world));
         }
     }
 
     private void generateOutwards() {
-        for(PlannedPiece i : getPiecesWithAvailableConnectors().shuffle(rng)) {
-            if(!generatePieceOutwards(i)) {
+        for (PlannedPiece i : getPiecesWithAvailableConnectors().shuffle(rng)) {
+            if (!generatePieceOutwards(i)) {
                 i.setDead(true);
             }
         }
@@ -137,8 +137,8 @@ public class PlannedStructure {
     private boolean generatePieceOutwards(PlannedPiece piece) {
         boolean b = false;
 
-        for(IrisJigsawPieceConnector i : piece.getAvailableConnectors().shuffleCopy(rng)) {
-            if(generateConnectorOutwards(piece, i)) {
+        for (IrisJigsawPieceConnector i : piece.getAvailableConnectors().shuffleCopy(rng)) {
+            if (generateConnectorOutwards(piece, i)) {
                 b = true;
             }
         }
@@ -147,8 +147,8 @@ public class PlannedStructure {
     }
 
     private boolean generateConnectorOutwards(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector) {
-        for(IrisJigsawPiece i : getShuffledPiecesFor(pieceConnector)) {
-            if(generateRotatedPiece(piece, pieceConnector, i)) {
+        for (IrisJigsawPiece i : getShuffledPiecesFor(pieceConnector)) {
+            if (generateRotatedPiece(piece, pieceConnector, i)) {
                 return true;
             }
         }
@@ -157,8 +157,8 @@ public class PlannedStructure {
     }
 
     private boolean generateRotatedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, IrisJigsawPiece idea) {
-        if(!piece.getPiece().getPlacementOptions().getRotation().isEnabled()) {
-            if(generateRotatedPiece(piece, pieceConnector, idea, 0, 0, 0)) {
+        if (!piece.getPiece().getPlacementOptions().getRotation().isEnabled()) {
+            if (generateRotatedPiece(piece, pieceConnector, idea, 0, 0, 0)) {
                 return true;
             }
         }
@@ -166,23 +166,23 @@ public class PlannedStructure {
         KList<Integer> forder1 = new KList<Integer>().qadd(0).qadd(1).qadd(2).qadd(3).shuffle(rng);
         KList<Integer> forder2 = new KList<Integer>().qadd(0).qadd(1).qadd(2).qadd(3).shuffle(rng);
 
-        for(Integer i : forder1) {
-            if(pieceConnector.isRotateConnector()) {
+        for (Integer i : forder1) {
+            if (pieceConnector.isRotateConnector()) {
                 assert pieceConnector.getDirection().getAxis() != null;
-                if(!pieceConnector.getDirection().getAxis().equals(Axis.Y)) {
-                    for(Integer j : forder2) {
-                        if(pieceConnector.getDirection().getAxis().equals(Axis.X) && generateRotatedPiece(piece, pieceConnector, idea, j, i, 0)) {
+                if (!pieceConnector.getDirection().getAxis().equals(Axis.Y)) {
+                    for (Integer j : forder2) {
+                        if (pieceConnector.getDirection().getAxis().equals(Axis.X) && generateRotatedPiece(piece, pieceConnector, idea, j, i, 0)) {
                             return true;
                         }
 
-                        if(pieceConnector.getDirection().getAxis().equals(Axis.Z) && generateRotatedPiece(piece, pieceConnector, idea, 0, i, j)) {
+                        if (pieceConnector.getDirection().getAxis().equals(Axis.Z) && generateRotatedPiece(piece, pieceConnector, idea, 0, i, j)) {
                             return true;
                         }
                     }
                 }
             }
 
-            if(generateRotatedPiece(piece, pieceConnector, idea, 0, i, 0)) {
+            if (generateRotatedPiece(piece, pieceConnector, idea, 0, i, 0)) {
                 return true;
             }
         }
@@ -191,14 +191,14 @@ public class PlannedStructure {
     }
 
     private boolean generateRotatedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, IrisJigsawPiece idea, IrisObjectRotation rotation) {
-        if(!idea.getPlacementOptions().getRotation().isEnabled()) {
+        if (!idea.getPlacementOptions().getRotation().isEnabled()) {
             rotation = piece.getRotation();
         }
 
         PlannedPiece test = new PlannedPiece(this, piece.getPosition(), idea, rotation);
 
-        for(IrisJigsawPieceConnector j : test.getPiece().getConnectors().shuffleCopy(rng)) {
-            if(generatePositionedPiece(piece, pieceConnector, test, j)) {
+        for (IrisJigsawPieceConnector j : test.getPiece().getConnectors().shuffleCopy(rng)) {
+            if (generatePositionedPiece(piece, pieceConnector, test, j)) {
                 return true;
             }
         }
@@ -210,27 +210,24 @@ public class PlannedStructure {
         return generateRotatedPiece(piece, pieceConnector, idea, IrisObjectRotation.of(x, y, z));
     }
 
-    private boolean generatePositionedPiece(PlannedPiece piece,
-                                            IrisJigsawPieceConnector pieceConnector,
-                                            PlannedPiece test,
-                                            IrisJigsawPieceConnector testConnector) {
+    private boolean generatePositionedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, PlannedPiece test, IrisJigsawPieceConnector testConnector) {
         test.setPosition(new IrisPosition(0, 0, 0));
         IrisPosition connector = piece.getWorldPosition(pieceConnector);
         IrisDirection desiredDirection = pieceConnector.getDirection().reverse();
         IrisPosition desiredPosition = connector.sub(new IrisPosition(desiredDirection.toVector()));
 
-        if(!pieceConnector.getTargetName().equals("*") && !pieceConnector.getTargetName().equals(testConnector.getName())) {
+        if (!pieceConnector.getTargetName().equals("*") && !pieceConnector.getTargetName().equals(testConnector.getName())) {
             return false;
         }
 
-        if(!testConnector.getDirection().equals(desiredDirection)) {
+        if (!testConnector.getDirection().equals(desiredDirection)) {
             return false;
         }
 
         IrisPosition shift = test.getWorldPosition(testConnector);
         test.setPosition(desiredPosition.sub(shift));
 
-        if(collidesWith(test, piece)) {
+        if (collidesWith(test, piece)) {
             return false;
         }
 
@@ -244,11 +241,11 @@ public class PlannedStructure {
     private KList<IrisJigsawPiece> getShuffledPiecesFor(IrisJigsawPieceConnector c) {
         KList<IrisJigsawPiece> p = new KList<>();
 
-        for(String i : c.getPools().shuffleCopy(rng)) {
-            for(String j : getData().getJigsawPoolLoader().load(i).getPieces().shuffleCopy(rng)) {
+        for (String i : c.getPools().shuffleCopy(rng)) {
+            for (String j : getData().getJigsawPoolLoader().load(i).getPieces().shuffleCopy(rng)) {
                 IrisJigsawPiece pi = getData().getJigsawPieceLoader().load(j);
 
-                if(pi == null || (terminating && !pi.isTerminal())) {
+                if (pi == null || (terminating && !pi.isTerminal())) {
                     continue;
                 }
 
@@ -263,7 +260,7 @@ public class PlannedStructure {
     }
 
     private void generateTerminators() {
-        if(getStructure().isTerminate()) {
+        if (getStructure().isTerminate()) {
             terminating = true;
             generateOutwards();
         }
@@ -276,7 +273,7 @@ public class PlannedStructure {
     public int getVolume() {
         int v = 0;
 
-        for(PlannedPiece i : pieces) {
+        for (PlannedPiece i : pieces) {
             v += i.getObject().getH() * i.getObject().getW() * i.getObject().getD();
         }
 
@@ -286,7 +283,7 @@ public class PlannedStructure {
     public int getMass() {
         int v = 0;
 
-        for(PlannedPiece i : pieces) {
+        for (PlannedPiece i : pieces) {
             v += i.getObject().getBlocks().size();
         }
 
@@ -294,12 +291,12 @@ public class PlannedStructure {
     }
 
     public boolean collidesWith(PlannedPiece piece, PlannedPiece ignore) {
-        for(PlannedPiece i : pieces) {
-            if(i.equals(ignore)) {
+        for (PlannedPiece i : pieces) {
+            if (i.equals(ignore)) {
                 continue;
             }
 
-            if(i.collidesWith(piece)) {
+            if (i.collidesWith(piece)) {
                 return true;
             }
         }
@@ -308,8 +305,8 @@ public class PlannedStructure {
     }
 
     public boolean contains(IrisPosition p) {
-        for(PlannedPiece i : pieces) {
-            if(i.contains(p)) {
+        for (PlannedPiece i : pieces) {
+            if (i.contains(p)) {
                 return true;
             }
         }

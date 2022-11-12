@@ -41,16 +41,16 @@ import java.util.List;
 
 @Data
 public class CNG {
-    public static final NoiseInjector ADD = (s, v) -> new double[] {s + v, 1};
-    public static final NoiseInjector SRC_SUBTRACT = (s, v) -> new double[] {s - v < 0 ? 0 : s - v, -1};
-    public static final NoiseInjector DST_SUBTRACT = (s, v) -> new double[] {v - s < 0 ? 0 : s - v, -1};
-    public static final NoiseInjector MULTIPLY = (s, v) -> new double[] {s * v, 0};
-    public static final NoiseInjector MAX = (s, v) -> new double[] {Math.max(s, v), 0};
-    public static final NoiseInjector MIN = (s, v) -> new double[] {Math.min(s, v), 0};
-    public static final NoiseInjector SRC_MOD = (s, v) -> new double[] {s % v, 0};
-    public static final NoiseInjector SRC_POW = (s, v) -> new double[] {Math.pow(s, v), 0};
-    public static final NoiseInjector DST_MOD = (s, v) -> new double[] {v % s, 0};
-    public static final NoiseInjector DST_POW = (s, v) -> new double[] {Math.pow(v, s), 0};
+    public static final NoiseInjector ADD = (s, v) -> new double[]{s + v, 1};
+    public static final NoiseInjector SRC_SUBTRACT = (s, v) -> new double[]{s - v < 0 ? 0 : s - v, -1};
+    public static final NoiseInjector DST_SUBTRACT = (s, v) -> new double[]{v - s < 0 ? 0 : s - v, -1};
+    public static final NoiseInjector MULTIPLY = (s, v) -> new double[]{s * v, 0};
+    public static final NoiseInjector MAX = (s, v) -> new double[]{Math.max(s, v), 0};
+    public static final NoiseInjector MIN = (s, v) -> new double[]{Math.min(s, v), 0};
+    public static final NoiseInjector SRC_MOD = (s, v) -> new double[]{s % v, 0};
+    public static final NoiseInjector SRC_POW = (s, v) -> new double[]{Math.pow(s, v), 0};
+    public static final NoiseInjector DST_MOD = (s, v) -> new double[]{v % s, 0};
+    public static final NoiseInjector DST_POW = (s, v) -> new double[]{Math.pow(v, s), 0};
     public static long hits = 0;
     public static long creates = 0;
     private final double opacity;
@@ -107,9 +107,107 @@ public class CNG {
         this.opacity = opacity;
         this.injector = ADD;
 
-        if(generator instanceof OctaveNoise) {
+        if (generator instanceof OctaveNoise) {
             ((OctaveNoise) generator).setOctaves(octaves);
         }
+    }
+
+    public static CNG signature(RNG rng) {
+        return signature(rng, NoiseType.SIMPLEX);
+    }
+
+    public static CNG signatureHalf(RNG rng) {
+        return signatureHalf(rng, NoiseType.SIMPLEX);
+    }
+
+    public static CNG signatureThick(RNG rng) {
+        return signatureThick(rng, NoiseType.SIMPLEX);
+    }
+
+    public static CNG signatureDouble(RNG rng) {
+        return signatureDouble(rng, NoiseType.SIMPLEX);
+    }
+
+    public static CNG signatureDouble(RNG rng, NoiseType t) {
+        return signatureThick(rng, t).fractureWith(signature(rng.nextParallelRNG(4956)), 93);
+    }
+
+    public static CNG signatureDoubleFast(RNG rng, NoiseType t, NoiseType f) {
+        return signatureThickFast(rng, t, f)
+                .fractureWith(signatureFast(rng.nextParallelRNG(4956), t, f), 93);
+    }
+
+    public static CNG signature(RNG rng, NoiseType t) {
+        // @NoArgsConstructor
+        return new CNG(rng.nextParallelRNG(17), t, 1D, 1).fractureWith(new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.9).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.21).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.9), 620), 145), 44).bake();
+        // @done
+    }
+
+    public static CNG signaturePerlin(RNG rng) {
+        return signaturePerlin(rng, NoiseType.PERLIN);
+    }
+
+    public static CNG signaturePerlin(RNG rng, NoiseType t) {
+        // @NoArgsConstructor
+        return new CNG(rng.nextParallelRNG(124996), t, 1D, 1)
+                .fractureWith(new CNG(rng.nextParallelRNG(18), NoiseType.PERLIN, 1, 1).scale(1.25), 250)
+                .bake();
+        // @done
+    }
+
+    public static CNG signatureFast(RNG rng, NoiseType t, NoiseType f) {
+        // @NoArgsConstructor
+        return new CNG(rng.nextParallelRNG(17), t, 1D, 1)
+                .fractureWith(new CNG(rng.nextParallelRNG(18), f, 1, 1)
+                        .scale(0.9)
+                        .fractureWith(new CNG(rng.nextParallelRNG(20), f, 1, 1)
+                                .scale(0.21)
+                                .fractureWith(new CNG(rng.nextParallelRNG(20), f, 1, 1).scale(0.9), 620), 145), 44)
+                .bake();
+        // @done
+    }
+
+    public static CNG signatureThick(RNG rng, NoiseType t) {
+        // @NoArgsConstructor
+        return new CNG(rng.nextParallelRNG(133), t, 1D, 1).fractureWith(new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.5).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.11).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.4), 620), 145), 44).bake();
+        // @done
+    }
+
+    public static CNG signatureThickFast(RNG rng, NoiseType t, NoiseType f) {
+        // @NoArgsConstructor
+        return new CNG(rng.nextParallelRNG(133), t, 1D, 1)
+                .fractureWith(new CNG(rng.nextParallelRNG(18), f, 1, 1)
+                        .scale(0.5).fractureWith(new CNG(rng.nextParallelRNG(20), f, 1, 1)
+                                .scale(0.11).fractureWith(new CNG(rng.nextParallelRNG(20), f, 1, 1)
+                                        .scale(0.4), 620), 145), 44).bake();
+        // @done
+    }
+
+    public static CNG signatureHalf(RNG rng, NoiseType t) {
+        // @NoArgsConstructor
+        return new CNG(rng.nextParallelRNG(127), t, 1D, 1).fractureWith(new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.9).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.21).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.9), 420), 99), 22).bake();
+        // @done
+    }
+
+    public static CNG signatureHalfFast(RNG rng, NoiseType t, NoiseType f) {
+        // @NoArgsConstructor
+        return new CNG(rng.nextParallelRNG(127), t, 1D, 1)
+                .fractureWith(new CNG(rng.nextParallelRNG(18), f, 1, 1).scale(0.9)
+                        .fractureWith(new CNG(rng.nextParallelRNG(20), f, 1, 1).scale(0.21)
+                                .fractureWith(new CNG(rng.nextParallelRNG(20), f, 1, 1).scale(0.9), 420), 99), 22).bake();
+        // @done
+    }
+
+    public static void main(String[] a) {
+        CNG cng = NoiseStyle.SIMPLEX.create(new RNG(1234));
+        PrecisionStopwatch p = PrecisionStopwatch.start();
+        double r = 0;
+
+        for (int i = 0; i < 30000000 * 10; i++) {
+            r += cng.fit(-1000, 1000, i, i);
+        }
+
+        System.out.println(Form.duration(p.getMilliseconds(), 10) + " merged = " + r);
     }
 
     public CNG cellularize(RNG seed, double freq) {
@@ -139,10 +237,8 @@ public class CNG {
         }, 1D, 1);
     }
 
-    public CNG cached(int size, String key, File cacheFolder)
-    {
-        if(size <= 0)
-        {
+    public CNG cached(int size, String key, File cacheFolder) {
+        if (size <= 0) {
             return this;
         }
 
@@ -151,26 +247,20 @@ public class CNG {
         File f = new File(new File(cacheFolder, ".cache"), key + ".cnm");
         FloatCache fbc;
         boolean cached = false;
-        if(f.exists())
-        {
+        if (f.exists()) {
             try {
                 fbc = new FloatCache(f);
                 cached = true;
-            } catch(IOException e) {
+            } catch (IOException e) {
                 fbc = new FloatCache(size, size);
             }
-        }
-
-        else {
+        } else {
             fbc = new FloatCache(size, size);
         }
 
-        if(!cached)
-        {
-            for(int i = 0; i < size; i++)
-            {
-                for(int j = 0; j < size; j++)
-                {
+        if (!cached) {
+            for (int i = 0; i < size; i++) {
+                for (int j = 0; j < size; j++) {
                     fbc.set(i, j, (float) noise(i, j));
                 }
             }
@@ -182,99 +272,13 @@ public class CNG {
                 fbc.writeCache(dos);
                 dos.close();
                 Iris.info("Saved Noise Cache " + f.getName());
-            } catch(IOException e) {
+            } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
 
         cache = fbc;
         return this;
-    }
-
-    public static CNG signature(RNG rng) {
-        return signature(rng, NoiseType.SIMPLEX);
-    }
-
-    public static CNG signatureHalf(RNG rng) {
-        return signatureHalf(rng, NoiseType.SIMPLEX);
-    }
-
-    public static CNG signatureThick(RNG rng) {
-        return signatureThick(rng, NoiseType.SIMPLEX);
-    }
-
-    public static CNG signatureDouble(RNG rng) {
-        return signatureDouble(rng, NoiseType.SIMPLEX);
-    }
-
-    public static CNG signatureDouble(RNG rng, NoiseType t) {
-        return signatureThick(rng, t).fractureWith(signature(rng.nextParallelRNG(4956)), 93);
-    }
-
-    public static CNG signatureDoubleFast(RNG rng, NoiseType t, NoiseType f) {
-        return signatureThickFast(rng, t, f)
-            .fractureWith(signatureFast(rng.nextParallelRNG(4956), t, f), 93);
-    }
-
-    public static CNG signature(RNG rng, NoiseType t) {
-        // @NoArgsConstructor
-        return new CNG(rng.nextParallelRNG(17), t, 1D, 1).fractureWith(new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.9).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.21).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.9), 620), 145), 44).bake();
-        // @done
-    }
-
-    public static CNG signaturePerlin(RNG rng) {
-        return signaturePerlin(rng, NoiseType.PERLIN);
-    }
-
-    public static CNG signaturePerlin(RNG rng, NoiseType t) {
-        // @NoArgsConstructor
-        return new CNG(rng.nextParallelRNG(124996), t, 1D, 1)
-            .fractureWith(new CNG(rng.nextParallelRNG(18), NoiseType.PERLIN, 1, 1).scale(1.25), 250)
-            .bake();
-        // @done
-    }
-
-    public static CNG signatureFast(RNG rng, NoiseType t, NoiseType f) {
-        // @NoArgsConstructor
-        return new CNG(rng.nextParallelRNG(17), t, 1D, 1)
-            .fractureWith(new CNG(rng.nextParallelRNG(18), f, 1, 1)
-                .scale(0.9)
-                .fractureWith(new CNG(rng.nextParallelRNG(20), f, 1, 1)
-                    .scale(0.21)
-                    .fractureWith(new CNG(rng.nextParallelRNG(20), f, 1, 1).scale(0.9), 620), 145), 44)
-            .bake();
-        // @done
-    }
-
-    public static CNG signatureThick(RNG rng, NoiseType t) {
-        // @NoArgsConstructor
-        return new CNG(rng.nextParallelRNG(133), t, 1D, 1).fractureWith(new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.5).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.11).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.4), 620), 145), 44).bake();
-        // @done
-    }
-
-    public static CNG signatureThickFast(RNG rng, NoiseType t, NoiseType f) {
-        // @NoArgsConstructor
-        return new CNG(rng.nextParallelRNG(133), t, 1D, 1)
-            .fractureWith(new CNG(rng.nextParallelRNG(18), f, 1, 1)
-                .scale(0.5).fractureWith(new CNG(rng.nextParallelRNG(20), f, 1, 1)
-                    .scale(0.11).fractureWith(new CNG(rng.nextParallelRNG(20), f, 1, 1)
-                        .scale(0.4), 620), 145), 44).bake();
-        // @done
-    }
-
-    public static CNG signatureHalf(RNG rng, NoiseType t) {
-        // @NoArgsConstructor
-        return new CNG(rng.nextParallelRNG(127), t, 1D, 1).fractureWith(new CNG(rng.nextParallelRNG(18), 1, 1).scale(0.9).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.21).fractureWith(new CNG(rng.nextParallelRNG(20), 1, 1).scale(0.9), 420), 99), 22).bake();
-        // @done
-    }
-
-    public static CNG signatureHalfFast(RNG rng, NoiseType t, NoiseType f) {
-        // @NoArgsConstructor
-        return new CNG(rng.nextParallelRNG(127), t, 1D, 1)
-            .fractureWith(new CNG(rng.nextParallelRNG(18), f, 1, 1).scale(0.9)
-                .fractureWith(new CNG(rng.nextParallelRNG(20), f, 1, 1).scale(0.21)
-                    .fractureWith(new CNG(rng.nextParallelRNG(20), f, 1, 1).scale(0.9), 420), 99), 22).bake();
-        // @done
     }
 
     public NoiseGenerator getGen() {
@@ -296,7 +300,7 @@ public class CNG {
     }
 
     public CNG child(CNG c) {
-        if(children == null) {
+        if (children == null) {
             children = new KList<>();
         }
 
@@ -340,29 +344,29 @@ public class CNG {
     }
 
     public <T extends IRare> T fitRarity(KList<T> b, double... dim) {
-        if(b.size() == 0) {
+        if (b.size() == 0) {
             return null;
         }
 
-        if(b.size() == 1) {
+        if (b.size() == 1) {
             return b.get(0);
         }
 
         KList<T> rarityMapped = new KList<>();
         boolean o = false;
         int max = 1;
-        for(T i : b) {
-            if(i.getRarity() > max) {
+        for (T i : b) {
+            if (i.getRarity() > max) {
                 max = i.getRarity();
             }
         }
 
         max++;
 
-        for(T i : b) {
-            for(int j = 0; j < max - i.getRarity(); j++) {
+        for (T i : b) {
+            for (int j = 0; j < max - i.getRarity(); j++) {
                 //noinspection AssignmentUsedAsCondition
-                if(o = !o) {
+                if (o = !o) {
                     rarityMapped.add(i);
                 } else {
                     rarityMapped.add(0, i);
@@ -370,11 +374,11 @@ public class CNG {
             }
         }
 
-        if(rarityMapped.size() == 1) {
+        if (rarityMapped.size() == 1) {
             return rarityMapped.get(0);
         }
 
-        if(rarityMapped.isEmpty()) {
+        if (rarityMapped.isEmpty()) {
             throw new RuntimeException("BAD RARITY MAP! RELATED TO: " + b.toString(", or possibly "));
         }
 
@@ -382,11 +386,11 @@ public class CNG {
     }
 
     public <T> T fit(T[] v, double... dim) {
-        if(v.length == 0) {
+        if (v.length == 0) {
             return null;
         }
 
-        if(v.length == 1) {
+        if (v.length == 1) {
             return v[0];
         }
 
@@ -394,17 +398,17 @@ public class CNG {
     }
 
     public <T> T fit(List<T> v, double... dim) {
-        if(v.size() == 0) {
+        if (v.size() == 0) {
             return null;
         }
 
-        if(v.size() == 1) {
+        if (v.size() == 1) {
             return v.get(0);
         }
 
         try {
             return v.get(fit(0, v.size() - 1, dim));
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
         }
 
@@ -412,7 +416,7 @@ public class CNG {
     }
 
     public int fit(int min, int max, double... dim) {
-        if(min == max) {
+        if (min == max) {
             return min;
         }
 
@@ -422,7 +426,7 @@ public class CNG {
     }
 
     public int fit(double min, double max, double... dim) {
-        if(min == max) {
+        if (min == max) {
             return (int) Math.round(min);
         }
 
@@ -432,7 +436,7 @@ public class CNG {
     }
 
     public double fitDouble(double min, double max, double... dim) {
-        if(min == max) {
+        if (min == max) {
             return min;
         }
 
@@ -444,14 +448,14 @@ public class CNG {
     private double getNoise(double... dim) {
         double scale = noscale ? 1 : this.bakedScale * this.scale;
 
-        if(fracture == null || noscale) {
+        if (fracture == null || noscale) {
             return generator.noise(
-                (dim.length > 0 ? dim[0] : 0D) * scale,
-                (dim.length > 1 ? dim[1] : 0D) * scale,
-                (dim.length > 2 ? dim[2] : 0D) * scale) * opacity;
+                    (dim.length > 0 ? dim[0] : 0D) * scale,
+                    (dim.length > 1 ? dim[1] : 0D) * scale,
+                    (dim.length > 2 ? dim[2] : 0D) * scale) * opacity;
         }
 
-        if(fracture.isTrueFracturing()) {
+        if (fracture.isTrueFracturing()) {
             double x = dim.length > 0 ? dim[0] + ((fracture.noise(dim) - 0.5) * fscale) : 0D;
             double y = dim.length > 1 ? dim[1] + ((fracture.noise(dim[1], dim[0]) - 0.5) * fscale) : 0D;
             double z = dim.length > 2 ? dim[2] + ((fracture.noise(dim[2], dim[0], dim[1]) - 0.5) * fscale) : 0D;
@@ -466,11 +470,11 @@ public class CNG {
     }
 
     public double invertNoise(double... dim) {
-        if(dim.length == 1) {
+        if (dim.length == 1) {
             return noise(-dim[0]);
-        } else if(dim.length == 2) {
+        } else if (dim.length == 2) {
             return noise(dim[1], dim[0]);
-        } else if(dim.length == 3) {
+        } else if (dim.length == 3) {
             return noise(dim[1], dim[2], dim[0]);
         }
 
@@ -482,20 +486,19 @@ public class CNG {
     }
 
     public double noise(double... dim) {
-        if(cache != null && dim.length == 2)
-        {
-            return cache.get((int)dim[0], (int)dim[1]);
+        if (cache != null && dim.length == 2) {
+            return cache.get((int) dim[0], (int) dim[1]);
         }
 
         double n = getNoise(dim);
         n = power != 1D ? (n < 0 ? -Math.pow(Math.abs(n), power) : Math.pow(n, power)) : n;
         double m = 1;
         hits += oct;
-        if(children == null) {
+        if (children == null) {
             return (n - down + up) * patch;
         }
 
-        for(CNG i : children) {
+        for (CNG i : children) {
             double[] r = injector.combine(n, i.noise(dim));
             n = r[0];
             m += r[1];
@@ -520,19 +523,5 @@ public class CNG {
 
     public boolean isStatic() {
         return generator != null && generator.isStatic();
-    }
-
-    public static void main(String[] a)
-    {
-        CNG cng = NoiseStyle.SIMPLEX.create(new RNG(1234));
-        PrecisionStopwatch p = PrecisionStopwatch.start();
-        double r = 0;
-
-        for(int i = 0; i < 30000000 * 10; i++)
-        {
-            r += cng.fit(-1000, 1000, i, i);
-        }
-
-        System.out.println(Form.duration(p.getMilliseconds(), 10) + " merged = " + r);
     }
 }

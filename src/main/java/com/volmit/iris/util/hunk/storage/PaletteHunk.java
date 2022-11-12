@@ -53,11 +53,11 @@ public class PaletteHunk<T> extends StorageHunk<T> implements Hunk<T> {
 
     @Override
     public synchronized Hunk<T> iterateSync(Consumer4<Integer, Integer, Integer, T> c) {
-        for(int i = 0; i < getWidth(); i++) {
-            for(int j = 0; j < getHeight(); j++) {
-                for(int k = 0; k < getDepth(); k++) {
+        for (int i = 0; i < getWidth(); i++) {
+            for (int j = 0; j < getHeight(); j++) {
+                for (int k = 0; k < getDepth(); k++) {
                     T t = getRaw(i, j, k);
-                    if(t != null) {
+                    if (t != null) {
                         c.accept(i, j, k, t);
                     }
                 }
@@ -68,11 +68,11 @@ public class PaletteHunk<T> extends StorageHunk<T> implements Hunk<T> {
 
     @Override
     public synchronized Hunk<T> iterateSyncIO(Consumer4IO<Integer, Integer, Integer, T> c) throws IOException {
-        for(int i = 0; i < getWidth(); i++) {
-            for(int j = 0; j < getHeight(); j++) {
-                for(int k = 0; k < getDepth(); k++) {
+        for (int i = 0; i < getWidth(); i++) {
+            for (int j = 0; j < getHeight(); j++) {
+                for (int k = 0; k < getDepth(); k++) {
                     T t = getRaw(i, j, k);
-                    if(t != null) {
+                    if (t != null) {
                         c.accept(i, j, k, t);
                     }
                 }

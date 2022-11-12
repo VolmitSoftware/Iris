@@ -54,8 +54,7 @@ public class IrisPack {
      * Create an iris pack backed by a data folder
      * the data folder is assumed to be in the Iris/packs/NAME folder
      *
-     * @param name
-     *     the name
+     * @param name the name
      */
     public IrisPack(String name) {
         this(packsPack(name));
@@ -64,17 +63,16 @@ public class IrisPack {
     /**
      * Create an iris pack backed by a data folder
      *
-     * @param folder
-     *     the folder of the pack. Must be a directory
+     * @param folder the folder of the pack. Must be a directory
      */
     public IrisPack(File folder) {
         this.folder = folder;
 
-        if(!folder.exists()) {
+        if (!folder.exists()) {
             throw new RuntimeException("Cannot open Pack " + folder.getPath() + " (directory doesnt exist)");
         }
 
-        if(!folder.isDirectory()) {
+        if (!folder.isDirectory()) {
             throw new RuntimeException("Cannot open Pack " + folder.getPath() + " (not a directory)");
         }
 
@@ -84,23 +82,20 @@ public class IrisPack {
     /**
      * Create a new pack from the input url
      *
-     * @param sender
-     *     the sender
-     * @param url
-     *     the url, or name, or really anything see IrisPackRepository.from(String)
+     * @param sender the sender
+     * @param url    the url, or name, or really anything see IrisPackRepository.from(String)
      * @return the iris pack
-     * @throws IrisException
-     *     fails
+     * @throws IrisException fails
      */
     public static Future<IrisPack> from(VolmitSender sender, String url) throws IrisException {
         IrisPackRepository repo = IrisPackRepository.from(url);
-        if(repo == null) {
+        if (repo == null) {
             throw new IrisException("Null Repo");
         }
 
         try {
             return from(sender, repo);
-        } catch(MalformedURLException e) {
+        } catch (MalformedURLException e) {
             throw new IrisException("Malformed URL " + e.getMessage());
         }
     }
@@ -108,13 +103,10 @@ public class IrisPack {
     /**
      * Create a pack from a repo
      *
-     * @param sender
-     *     the sender
-     * @param repo
-     *     the repo
+     * @param sender the sender
+     * @param repo   the repo
      * @return the pack
-     * @throws MalformedURLException
-     *     shit happens
+     * @throws MalformedURLException shit happens
      */
     public static Future<IrisPack> from(VolmitSender sender, IrisPackRepository repo) throws MalformedURLException {
         CompletableFuture<IrisPack> pack = new CompletableFuture<>();
@@ -127,16 +119,14 @@ public class IrisPack {
     /**
      * Create a blank pack with a given name
      *
-     * @param name
-     *     the name of the pack
+     * @param name the name of the pack
      * @return the pack
-     * @throws IrisException
-     *     if the pack already exists or another error
+     * @throws IrisException if the pack already exists or another error
      */
     public static IrisPack blank(String name) throws IrisException {
         File f = packsPack(name);
 
-        if(f.exists()) {
+        if (f.exists()) {
             throw new IrisException("Already exists");
         }
 
@@ -144,10 +134,10 @@ public class IrisPack {
         fd.getParentFile().mkdirs();
         try {
             IO.writeAll(fd, "{\n" +
-                "    \"name\": \"" + Form.capitalize(name) + "\",\n" +
-                "    \"version\": 1\n" +
-                "}\n");
-        } catch(IOException e) {
+                    "    \"name\": \"" + Form.capitalize(name) + "\",\n" +
+                    "    \"version\": 1\n" +
+                    "}\n");
+        } catch (IOException e) {
             throw new IrisException(e.getMessage(), e);
         }
 
@@ -159,8 +149,7 @@ public class IrisPack {
     /**
      * Get a packs pack folder for a name. Such that overworld would resolve as Iris/packs/overworld
      *
-     * @param name
-     *     the name
+     * @param name the name
      * @return the file path
      */
     public static File packsPack(String name) {
@@ -170,11 +159,11 @@ public class IrisPack {
     private static KList<File> collectFiles(File f, String fileExtension) {
         KList<File> l = new KList<>();
 
-        if(f.isDirectory()) {
-            for(File i : f.listFiles()) {
+        if (f.isDirectory()) {
+            for (File i : f.listFiles()) {
                 l.addAll(collectFiles(i, fileExtension));
             }
-        } else if(f.getName().endsWith("." + fileExtension)) {
+        } else if (f.getName().endsWith("." + fileExtension)) {
             l.add(f);
         }
 
@@ -225,13 +214,13 @@ public class IrisPack {
             p.end();
             Iris.debug("Building Workspace: " + ws.getPath() + " took " + Form.duration(p.getMilliseconds(), 2));
             return true;
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
             Iris.warn("Pack invalid: " + ws.getAbsolutePath() + " Re-creating. You may loose some vs-code workspace settings! But not your actual project!");
             ws.delete();
             try {
                 IO.writeAll(ws, generateWorkspaceConfig());
-            } catch(IOException e1) {
+            } catch (IOException e1) {
                 Iris.reportError(e1);
                 e1.printStackTrace();
             }
@@ -243,8 +232,7 @@ public class IrisPack {
     /**
      * Install this pack into a world
      *
-     * @param world
-     *     the world to install into (world/iris/pack)
+     * @param world the world to install into (world/iris/pack)
      * @return the installed pack
      */
     public IrisPack install(World world) throws IrisException {
@@ -254,8 +242,7 @@ public class IrisPack {
     /**
      * Install this pack into a world
      *
-     * @param world
-     *     the world to install into (world/iris/pack)
+     * @param world the world to install into (world/iris/pack)
      * @return the installed pack
      */
     public IrisPack install(IrisWorld world) throws IrisException {
@@ -265,12 +252,11 @@ public class IrisPack {
     /**
      * Install this pack into a world
      *
-     * @param folder
-     *     the folder to install this pack into
+     * @param folder the folder to install this pack into
      * @return the installed pack
      */
     public IrisPack install(File folder) throws IrisException {
-        if(folder.exists()) {
+        if (folder.exists()) {
             throw new IrisException("Cannot install new pack because the folder " + folder.getName() + " already exists!");
         }
 
@@ -278,7 +264,7 @@ public class IrisPack {
 
         try {
             FileUtils.copyDirectory(getFolder(), folder);
-        } catch(IOException e) {
+        } catch (IOException e) {
             Iris.reportError(e);
         }
 
@@ -289,20 +275,19 @@ public class IrisPack {
      * Create a new pack using this pack as a template. The new pack will be renamed & have a renamed dimension
      * to match it.
      *
-     * @param newName
-     *     the new pack name
+     * @param newName the new pack name
      * @return the new IrisPack
      */
     public IrisPack install(String newName) throws IrisException {
         File newPack = packsPack(newName);
 
-        if(newPack.exists()) {
+        if (newPack.exists()) {
             throw new IrisException("Cannot install new pack because the folder " + newName + " already exists!");
         }
 
         try {
             FileUtils.copyDirectory(getFolder(), newPack);
-        } catch(IOException e) {
+        } catch (IOException e) {
             Iris.reportError(e);
         }
 
@@ -314,7 +299,7 @@ public class IrisPack {
         try {
             FileUtils.moveFile(from, to);
             new File(newPack, getWorkspaceFile().getName()).delete();
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             throw new IrisException(e);
         }
 
@@ -345,8 +330,7 @@ public class IrisPack {
     /**
      * Find all files in this pack with the given extension
      *
-     * @param fileExtension
-     *     the extension
+     * @param fileExtension the extension
      * @return the list of files
      */
     public KList<File> collectFiles(String fileExtension) {
@@ -386,8 +370,8 @@ public class IrisPack {
         JSONArray schemas = new JSONArray();
         IrisData dm = IrisData.get(getFolder());
 
-        for(ResourceLoader<?> r : dm.getLoaders().v()) {
-            if(r.supportsSchemas()) {
+        for (ResourceLoader<?> r : dm.getLoaders().v()) {
+            if (r.supportsSchemas()) {
                 schemas.put(r.buildSchema());
             }
         }

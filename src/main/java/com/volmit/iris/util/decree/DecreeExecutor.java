@@ -35,9 +35,9 @@ public interface DecreeExecutor {
     }
 
     default Engine engine() {
-        if(sender().isPlayer() && IrisToolbelt.access(sender().player().getWorld()) != null) {
+        if (sender().isPlayer() && IrisToolbelt.access(sender().player().getWorld()) != null) {
             PlatformChunkGenerator gen = IrisToolbelt.access(sender().player().getWorld());
-            if(gen != null) {
+            if (gen != null) {
                 return gen.getEngine();
             }
         }
@@ -46,14 +46,14 @@ public interface DecreeExecutor {
     }
 
     default PlatformChunkGenerator access() {
-        if(sender().isPlayer()) {
+        if (sender().isPlayer()) {
             return IrisToolbelt.access(world());
         }
         return null;
     }
 
     default World world() {
-        if(sender().isPlayer()) {
+        if (sender().isPlayer()) {
             return sender().player().getWorld();
         }
         return null;

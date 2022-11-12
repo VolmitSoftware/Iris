@@ -62,19 +62,19 @@ public class PregeneratorJob implements PregenListener {
     private final IrisPregenerator pregenerator;
     private final Position2 min;
     private final Position2 max;
+    private final ChronoLatch cl = new ChronoLatch(TimeUnit.MINUTES.toMillis(1));
+    private final Engine engine;
     private JFrame frame;
     private PregenRenderer renderer;
     private int rgc = 0;
-    private final ChronoLatch cl = new ChronoLatch(TimeUnit.MINUTES.toMillis(1));
     private String[] info;
-    private final Engine engine;
 
     public PregeneratorJob(PregenTask task, PregeneratorMethod method, Engine engine) {
         this.engine = engine;
         instance = this;
         monitor = new MemoryMonitor(50);
         saving = false;
-        info = new String[] {"Initializing..."};
+        info = new String[]{"Initializing..."};
         this.task = task;
         this.pregenerator = new IrisPregenerator(task, method, this);
         max = new Position2(0, 0);
@@ -86,19 +86,15 @@ public class PregeneratorJob implements PregenListener {
             max.setZ(Math.max((zz << 5) + 31, max.getZ()));
         });
 
-        if(IrisSettings.get().getGui().isUseServerLaunchedGuis()) {
+        if (IrisSettings.get().getGui().isUseServerLaunchedGuis()) {
             open();
         }
 
         J.a(this.pregenerator::start, 20);
     }
 
-    public Mantle getMantle() {
-        return pregenerator.getMantle();
-    }
-
     public static boolean shutdownInstance() {
-        if(instance == null) {
+        if (instance == null) {
             return false;
         }
 
@@ -111,11 +107,11 @@ public class PregeneratorJob implements PregenListener {
     }
 
     public static boolean pauseResume() {
-        if(instance == null) {
+        if (instance == null) {
             return false;
         }
 
-        if(isPaused()) {
+        if (isPaused()) {
             instance.pregenerator.resume();
         } else {
             instance.pregenerator.pause();
@@ -124,7 +120,7 @@ public class PregeneratorJob implements PregenListener {
     }
 
     public static boolean isPaused() {
-        if(instance == null) {
+        if (instance == null) {
             return true;
         }
 
@@ -135,12 +131,16 @@ public class PregeneratorJob implements PregenListener {
         String v = (c.startsWith("#") ? c : "#" + c).trim();
         try {
             return Color.decode(v);
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
             Iris.error("Error Parsing 'color', (" + c + ")");
         }
 
         return Color.RED;
+    }
+
+    public Mantle getMantle() {
+        return pregenerator.getMantle();
     }
 
     public PregeneratorJob onProgress(Consumer<Double> c) {
@@ -164,10 +164,10 @@ public class PregeneratorJob implements PregenListener {
 
     public void draw(int x, int z, Color color) {
         try {
-            if(renderer != null && frame != null && frame.isVisible()) {
+            if (renderer != null && frame != null && frame.isVisible()) {
                 renderer.func.accept(new Position2(x, z), color);
             }
-        } catch(Throwable ignored) {
+        } catch (Throwable ignored) {
 
         }
     }
@@ -186,7 +186,7 @@ public class PregeneratorJob implements PregenListener {
                 monitor.close();
                 J.sleep(3000);
                 frame.setVisible(false);
-            } catch(Throwable e) {
+            } catch (Throwable e) {
 
             }
         });
@@ -209,7 +209,7 @@ public class PregeneratorJob implements PregenListener {
                 frame.add(renderer);
                 frame.setSize(1000, 1000);
                 frame.setVisible(true);
-            } catch(Throwable e) {
+            } catch (Throwable e) {
 
             }
         });
@@ -217,16 +217,16 @@ public class PregeneratorJob implements PregenListener {
 
     @Override
     public void onTick(double chunksPerSecond, double chunksPerMinute, double regionsPerMinute, double percent, int generated, int totalChunks, int chunksRemaining, long eta, long elapsed, String method) {
-        info = new String[] {
-            (paused() ? "PAUSED" : (saving ? "Saving... " : "Generating")) + " " + Form.f(generated) + " of " + Form.f(totalChunks) + " (" + Form.pc(percent, 0) + " Complete)",
-            "Speed: " + Form.f(chunksPerSecond, 0) + " Chunks/s, " + Form.f(regionsPerMinute, 1) + " Regions/m, " + Form.f(chunksPerMinute, 0) + " Chunks/m",
-            Form.duration(eta, 2) + " Remaining " + " (" + Form.duration(elapsed, 2) + " Elapsed)",
-            "Generation Method: " + method,
-            "Memory: " + Form.memSize(monitor.getUsedBytes(), 2) + " (" + Form.pc(monitor.getUsagePercent(), 0) + ") Pressure: " + Form.memSize(monitor.getPressure(), 0) + "/s",
+        info = new String[]{
+                (paused() ? "PAUSED" : (saving ? "Saving... " : "Generating")) + " " + Form.f(generated) + " of " + Form.f(totalChunks) + " (" + Form.pc(percent, 0) + " Complete)",
+                "Speed: " + Form.f(chunksPerSecond, 0) + " Chunks/s, " + Form.f(regionsPerMinute, 1) + " Regions/m, " + Form.f(chunksPerMinute, 0) + " Chunks/m",
+                Form.duration(eta, 2) + " Remaining " + " (" + Form.duration(elapsed, 2) + " Elapsed)",
+                "Generation Method: " + method,
+                "Memory: " + Form.memSize(monitor.getUsedBytes(), 2) + " (" + Form.pc(monitor.getUsagePercent(), 0) + ") Pressure: " + Form.memSize(monitor.getPressure(), 0) + "/s",
 
         };
 
-        for(Consumer<Double> i : onProgress) {
+        for (Consumer<Double> i : onProgress) {
             i.accept(percent);
         }
     }
@@ -238,7 +238,7 @@ public class PregeneratorJob implements PregenListener {
 
     @Override
     public void onChunkGenerated(int x, int z) {
-        if(engine != null) {
+        if (engine != null) {
             draw(x, z, engine.draw((x << 4) + 8, (z << 4) + 8));
             return;
         }
@@ -253,7 +253,7 @@ public class PregeneratorJob implements PregenListener {
     }
 
     private void shouldGc() {
-        if(cl.flip() && rgc > 16) {
+        if (cl.flip() && rgc > 16) {
             System.gc();
         }
     }
@@ -312,7 +312,7 @@ public class PregeneratorJob implements PregenListener {
 
     @Override
     public void onChunkExistsInRegionGen(int x, int z) {
-        if(engine != null) {
+        if (engine != null) {
             draw(x, z, engine.draw((x << 4) + 8, (z << 4) + 8));
             return;
         }
@@ -361,10 +361,10 @@ public class PregeneratorJob implements PregenListener {
             bg = (Graphics2D) image.getGraphics();
             l.lock();
 
-            while(order.isNotEmpty()) {
+            while (order.isNotEmpty()) {
                 try {
                     order.pop().run();
-                } catch(Throwable e) {
+                } catch (Throwable e) {
                     Iris.reportError(e);
 
                 }
@@ -378,12 +378,12 @@ public class PregeneratorJob implements PregenListener {
             int h = g.getFontMetrics().getHeight() + 5;
             int hh = 20;
 
-            if(job.paused()) {
+            if (job.paused()) {
                 g.drawString("PAUSED", 20, hh += h);
 
                 g.drawString("Press P to Resume", 20, hh += h);
             } else {
-                for(String i : prog) {
+                for (String i : prog) {
                     g.drawString(i, 20, hh += h);
                 }
 
@@ -419,7 +419,7 @@ public class PregeneratorJob implements PregenListener {
 
         @Override
         public void keyReleased(KeyEvent e) {
-            if(e.getKeyCode() == KeyEvent.VK_P) {
+            if (e.getKeyCode() == KeyEvent.VK_P) {
                 PregeneratorJob.pauseResume();
             }
         }

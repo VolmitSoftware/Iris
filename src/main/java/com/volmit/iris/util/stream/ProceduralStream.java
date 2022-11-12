@@ -48,7 +48,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     static ProceduralStream<Double> ofDouble(Function2<Double, Double, Double> f) {
         try {
             return of(f, Interpolated.DOUBLE);
-        } catch(IncompatibleClassChangeError e) {
+        } catch (IncompatibleClassChangeError e) {
             Iris.warn(f.toString());
             Iris.reportError(e);
             e.printStackTrace();
@@ -339,11 +339,11 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     default <V> ProceduralStream<V> selectRarity(V... types) {
         KList<V> rarityTypes = new KList<>();
         int totalRarity = 0;
-        for(V i : types) {
+        for (V i : types) {
             totalRarity += IRare.get(i);
         }
 
-        for(V i : types) {
+        for (V i : types) {
             rarityTypes.addMultiple(i, totalRarity / IRare.get(i));
         }
 
@@ -356,7 +356,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
 
     default <V> ProceduralStream<IRare> selectRarity(List<V> types, Function<V, IRare> loader) {
         List<IRare> r = new ArrayList<>();
-        for(V f : types) {
+        for (V f : types) {
             r.add(loader.apply(f));
         }
         return selectRarity(r);
@@ -365,11 +365,11 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     default <V> int countPossibilities(List<V> types, Function<V, IRare> loader) {
         KList<V> rarityTypes = new KList<>();
         int totalRarity = 0;
-        for(V i : types) {
+        for (V i : types) {
             totalRarity += IRare.get(loader.apply(i));
         }
 
-        for(V i : types) {
+        for (V i : types) {
             rarityTypes.addMultiple(i, totalRarity / IRare.get(loader.apply(i)));
         }
 
@@ -394,13 +394,13 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     default Hunk<T> fastFill2DParallel(int x, int z) {
         Hunk<T> hunk = Hunk.newAtomicHunk(16, 16, 1);
         BurstExecutor e = MultiBurst.burst.burst(256);
-        int i,j;
+        int i, j;
 
-        for(i = 0; i < 16; i++) {
-            for(j = 0; j < 16; j++) {
+        for (i = 0; i < 16; i++) {
+            for (j = 0; j < 16; j++) {
                 int fi = i;
                 int fj = j;
-                e.queue(() -> hunk.setRaw(fi, fj, 0, get(x+ fi, z+ fj)));
+                e.queue(() -> hunk.setRaw(fi, fj, 0, get(x + fi, z + fj)));
             }
         }
 
@@ -409,24 +409,24 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     }
 
     default void fastFill2DParallel(Hunk<T> hunk, BurstExecutor e, int x, int z) {
-        int i,j;
+        int i, j;
 
-        for(i = 0; i < 16; i++) {
-            for(j = 0; j < 16; j++) {
+        for (i = 0; i < 16; i++) {
+            for (j = 0; j < 16; j++) {
                 int fi = i;
                 int fj = j;
-                e.queue(() -> hunk.setRaw(fi, fj, 0, get(x+ fi, z+ fj)));
+                e.queue(() -> hunk.setRaw(fi, fj, 0, get(x + fi, z + fj)));
             }
         }
     }
 
     default Hunk<T> fastFill2D(int x, int z) {
         Hunk<T> hunk = Hunk.newArrayHunk(16, 16, 1);
-        int i,j;
+        int i, j;
 
-        for(i = 0; i < 16; i++) {
-            for(j = 0; j < 16; j++) {
-                hunk.setRaw(i, j, 0, get(x+ i, z+ j));
+        for (i = 0; i < 16; i++) {
+            for (j = 0; j < 16; j++) {
+                hunk.setRaw(i, j, 0, get(x + i, z + j));
             }
         }
 
@@ -444,11 +444,11 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     default <V> void fill2D(Hunk<V> h, double x, double z, V v, int parallelism) {
         h.compute2D(parallelism, (xx, __, zz, hh) ->
         {
-            for(int i = 0; i < hh.getWidth(); i++) {
-                for(int k = 0; k < hh.getDepth(); k++) {
+            for (int i = 0; i < hh.getWidth(); i++) {
+                for (int k = 0; k < hh.getDepth(); k++) {
                     double n = getDouble(i + x + xx, k + z + zz);
 
-                    for(int j = 0; j < Math.min(h.getHeight(), n); j++) {
+                    for (int j = 0; j < Math.min(h.getHeight(), n); j++) {
                         hh.set(i, j, k, v);
                     }
                 }
@@ -459,11 +459,11 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     default <V> void fill2D(Hunk<V> h, double x, double z, ProceduralStream<V> v, int parallelism) {
         h.compute2D(parallelism, (xx, yy, zz, hh) ->
         {
-            for(int i = 0; i < hh.getWidth(); i++) {
-                for(int k = 0; k < hh.getDepth(); k++) {
+            for (int i = 0; i < hh.getWidth(); i++) {
+                for (int k = 0; k < hh.getDepth(); k++) {
                     double n = getDouble(i + x + xx, k + z + zz);
 
-                    for(int j = 0; j < Math.min(h.getHeight(), n); j++) {
+                    for (int j = 0; j < Math.min(h.getHeight(), n); j++) {
                         hh.set(i, j, k, v.get(i + x + xx, j + yy, k + z + zz));
                     }
                 }
@@ -474,11 +474,11 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     default <V> void fill2DYLocked(Hunk<V> h, double x, double z, V v, int parallelism) {
         h.compute2D(parallelism, (xx, yy, zz, hh) ->
         {
-            for(int i = 0; i < hh.getWidth(); i++) {
-                for(int k = 0; k < hh.getDepth(); k++) {
+            for (int i = 0; i < hh.getWidth(); i++) {
+                for (int k = 0; k < hh.getDepth(); k++) {
                     double n = getDouble(i + x + xx, k + z + zz);
 
-                    for(int j = 0; j < Math.min(h.getHeight(), n); j++) {
+                    for (int j = 0; j < Math.min(h.getHeight(), n); j++) {
                         hh.set(i, j, k, v);
                     }
                 }
@@ -489,11 +489,11 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     default <V> void fill2DYLocked(Hunk<V> h, double x, double z, ProceduralStream<V> v, int parallelism) {
         h.compute2D(parallelism, (xx, yy, zz, hh) ->
         {
-            for(int i = 0; i < hh.getWidth(); i++) {
-                for(int k = 0; k < hh.getDepth(); k++) {
+            for (int i = 0; i < hh.getWidth(); i++) {
+                for (int k = 0; k < hh.getDepth(); k++) {
                     double n = getDouble(i + x + xx, k + z + zz);
 
-                    for(int j = 0; j < Math.min(h.getHeight(), n); j++) {
+                    for (int j = 0; j < Math.min(h.getHeight(), n); j++) {
                         hh.set(i, j, k, v.get(i + x + xx, k + z + zz));
                     }
                 }
@@ -504,7 +504,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     default <V> void fill3D(Hunk<V> h, double x, int y, double z, V v, int parallelism) {
         h.compute3D(parallelism, (xx, yy, zz, hh) -> hh.iterate((xv, yv, zv) ->
         {
-            if(getDouble(xx + xv + x, yy + yv + y, zz + zv + z) > 0.5) {
+            if (getDouble(xx + xv + x, yy + yv + y, zz + zv + z) > 0.5) {
                 hh.set(xv, yv, zv, v);
             }
         }));
@@ -513,7 +513,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     default <V> void fill3D(Hunk<V> h, double x, int y, double z, ProceduralStream<V> v, int parallelism) {
         h.compute3D(parallelism, (xx, yy, zz, hh) -> hh.iterate((xv, yv, zv) ->
         {
-            if(getDouble(xx + xv + x, yy + yv + y, zz + zv + z) > 0.5) {
+            if (getDouble(xx + xv + x, yy + yv + y, zz + zv + z) > 0.5) {
                 hh.set(xv, yv, zv, v.get(xx + xv + x, yy + yv + y, zz + zv + z));
             }
         }));
@@ -560,16 +560,16 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     ProceduralStream<?> getSource();
 
     default void fillChunk(int x, int z, T[] c) {
-        if(c.length != 256) {
+        if (c.length != 256) {
             throw new RuntimeException("Not 256 Length for chunk get");
         }
 
         int xs = x << 4;
         int zs = z << 4;
 
-        for(int i = 0; i < 16; i++) {
-            for(int j = 0; j < 16; j++) {
-                c[Cache.to1D(i+xs, j+zs, 0, 16, 16)] = get(i+xs, j+zs);
+        for (int i = 0; i < 16; i++) {
+            for (int j = 0; j < 16; j++) {
+                c[Cache.to1D(i + xs, j + zs, 0, 16, 16)] = get(i + xs, j + zs);
             }
         }
     }

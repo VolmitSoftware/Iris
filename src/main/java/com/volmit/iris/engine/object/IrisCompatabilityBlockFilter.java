@@ -59,7 +59,7 @@ public class IrisCompatabilityBlockFilter {
         {
             BlockData b = B.getOrNull(supplement);
 
-            if(b == null) {
+            if (b == null) {
                 return null;
             }
 

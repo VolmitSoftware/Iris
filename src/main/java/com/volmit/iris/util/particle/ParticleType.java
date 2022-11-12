@@ -145,14 +145,14 @@ public enum ParticleType {
     public static ParticleType getParticle(String particleName) {
         try {
             return ParticleType.valueOf(particleName.toUpperCase());
-        } catch(IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             Iris.reportError(e);
-            for(ParticleType particle : values()) {
-                if(particle.getName().equalsIgnoreCase(particleName)) {
+            for (ParticleType particle : values()) {
+                if (particle.getName().equalsIgnoreCase(particleName)) {
                     return particle;
                 }
 
-                if(particle.hasLegacyName() && particle.getLegacyName().equalsIgnoreCase(particleName)) {
+                if (particle.hasLegacyName() && particle.getLegacyName().equalsIgnoreCase(particleName)) {
                     return particle;
                 }
             }
@@ -165,7 +165,7 @@ public enum ParticleType {
     }
 
     public String getLegacyName() {
-        if(!hasLegacyName()) {
+        if (!hasLegacyName()) {
             throw new IllegalStateException("Particle " + name() + " don't have legacy name");
         }
         return legacyName;
@@ -180,11 +180,11 @@ public enum ParticleType {
     }
 
     public Class<?> getDataType() {
-        return switch(this) {
+        return switch (this) {
             case ITEM_CRACK -> ItemStack.class;
             case BLOCK_CRACK, BLOCK_DUST, FALLING_DUST ->
                 //noinspection deprecation
-                MaterialData.class;
+                    MaterialData.class;
             case REDSTONE -> Color.class;
             default -> Void.class;
         };

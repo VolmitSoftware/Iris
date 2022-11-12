@@ -115,29 +115,29 @@ public class IrisLoot {
     public ItemStack get(boolean debug, RNG rng) {
         try {
             ItemStack is = getItemStack(rng);
-            if(is == null)
+            if (is == null)
                 return new ItemStack(Material.AIR);
             is.setItemMeta(applyProperties(is, rng, debug, null));
             return applyCustomNbt(is);
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
             return new ItemStack(Material.AIR);
         }
     }
 
     public ItemStack get(boolean debug, boolean giveSomething, IrisLootTable table, RNG rng, int x, int y, int z) {
-        if(debug) {
+        if (debug) {
             chance.reset();
         }
 
-        if(giveSomething || chance.aquire(() -> NoiseStyle.STATIC.create(rng)).fit(1, rarity * table.getRarity(), x, y, z) == 1) {
+        if (giveSomething || chance.aquire(() -> NoiseStyle.STATIC.create(rng)).fit(1, rarity * table.getRarity(), x, y, z) == 1) {
             try {
                 ItemStack is = getItemStack(rng);
-                if(is == null)
+                if (is == null)
                     return null;
                 is.setItemMeta(applyProperties(is, rng, debug, table));
                 return applyCustomNbt(is);
-            } catch(Throwable e) {
+            } catch (Throwable e) {
                 //Iris.reportError(e);
                 e.printStackTrace();
             }
@@ -148,9 +148,9 @@ public class IrisLoot {
 
     // TODO Better Third Party Item Acquisition
     private ItemStack getItemStack(RNG rng) {
-        if(!type.startsWith("minecraft:") && type.contains(":")) {
+        if (!type.startsWith("minecraft:") && type.contains(":")) {
             Optional<ItemStack> opt = Iris.service(ExternalDataSVC.class).getItemStack(NamespacedKey.fromString(type));
-            if(opt.isEmpty()) {
+            if (opt.isEmpty()) {
                 Iris.warn("Unknown Material: " + type);
                 return null;
             }
@@ -163,38 +163,38 @@ public class IrisLoot {
 
     private ItemMeta applyProperties(ItemStack is, RNG rng, boolean debug, IrisLootTable table) {
         ItemMeta m = is.getItemMeta();
-        if(m == null) {
+        if (m == null) {
             return null;
         }
 
-        for(IrisEnchantment i : getEnchantments()) {
+        for (IrisEnchantment i : getEnchantments()) {
             i.apply(rng, m);
         }
 
-        for(IrisAttributeModifier i : getAttributes()) {
+        for (IrisAttributeModifier i : getAttributes()) {
             i.apply(rng, m);
         }
 
         m.setUnbreakable(isUnbreakable());
-        for(ItemFlag i : getItemFlags()) {
+        for (ItemFlag i : getItemFlags()) {
             m.addItemFlags(i);
         }
 
-        if(getCustomModel() != null) {
+        if (getCustomModel() != null) {
             m.setCustomModelData(getCustomModel());
         }
 
-        if(is.getType().getMaxDurability() > 0 && m instanceof Damageable d) {
+        if (is.getType().getMaxDurability() > 0 && m instanceof Damageable d) {
             int max = is.getType().getMaxDurability();
             d.setDamage((int) Math.round(Math.max(0, Math.min(max, (1D - rng.d(getMinDurability(), getMaxDurability())) * max))));
         }
 
-        if(getLeatherColor() != null && m instanceof LeatherArmorMeta leather) {
+        if (getLeatherColor() != null && m instanceof LeatherArmorMeta leather) {
             Color c = Color.decode(getLeatherColor());
             leather.setColor(org.bukkit.Color.fromRGB(c.getRed(), c.getGreen(), c.getBlue()));
         }
 
-        if(getDyeColor() != null && m instanceof Colorable colorable) {
+        if (getDyeColor() != null && m instanceof Colorable colorable) {
             colorable.setColor(getDyeColor());
         }
 
@@ -207,8 +207,8 @@ public class IrisLoot {
         {
             String mf = C.translateAlternateColorCodes('&', i);
 
-            if(mf.length() > 24) {
-                for(String g : Form.wrapWords(mf, 24).split("\\Q\n\\E")) {
+            if (mf.length() > 24) {
+                for (String g : Form.wrapWords(mf, 24).split("\\Q\n\\E")) {
                     lore.add(g.trim());
                 }
             } else {
@@ -216,14 +216,14 @@ public class IrisLoot {
             }
         });
 
-        if(debug) {
-            if(table == null) {
-                if(lore.isNotEmpty()) {
+        if (debug) {
+            if (table == null) {
+                if (lore.isNotEmpty()) {
                     lore.add(C.GRAY + "--------------------");
                 }
                 lore.add(C.GRAY + "1 in " + (getRarity()) + " Chance (" + Form.pc(1D / (getRarity()), 5) + ")");
             } else {
-                if(lore.isNotEmpty()) {
+                if (lore.isNotEmpty()) {
                     lore.add(C.GRAY + "--------------------");
                 }
 
@@ -239,7 +239,7 @@ public class IrisLoot {
 
 
     private ItemStack applyCustomNbt(ItemStack stack) throws CommandSyntaxException {
-        if(customNbt == null || customNbt.isEmpty())
+        if (customNbt == null || customNbt.isEmpty())
             return stack;
         net.minecraft.world.item.ItemStack s = CraftItemStack.asNMSCopy(stack);
         CompoundTag tag = TagParser.parseTag(new JSONObject(customNbt).toString());

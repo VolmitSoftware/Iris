@@ -42,11 +42,11 @@ public class PalettedContainer<T> implements PaletteResize<T> {
     }
 
     private void setBits(int var0) {
-        if(var0 == this.bits) {
+        if (var0 == this.bits) {
             return;
         }
         this.bits = var0;
-        if(this.bits <= 4) {
+        if (this.bits <= 4) {
             this.bits = 4;
             this.palette = new LinearPalette<>(this.bits, this);
         } else {
@@ -61,9 +61,9 @@ public class PalettedContainer<T> implements PaletteResize<T> {
         BitStorage var2 = this.storage;
         Palette<T> var3 = this.palette;
         setBits(var0);
-        for(int var4 = 0; var4 < var2.getSize(); var4++) {
+        for (int var4 = 0; var4 < var2.getSize(); var4++) {
             T var5 = var3.valueFor(var2.get(var4));
-            if(var5 != null) {
+            if (var5 != null) {
                 set(var4, var5);
             }
         }
@@ -92,7 +92,7 @@ public class PalettedContainer<T> implements PaletteResize<T> {
     private void set(int var0, T var1) {
         int var2 = this.palette.idFor(var1);
 
-        if(M.r(0.003)) {
+        if (M.r(0.003)) {
             Iris.info("ID for " + var1 + " is " + var2 + " Palette: " + palette.getSize());
         }
 
@@ -109,17 +109,17 @@ public class PalettedContainer<T> implements PaletteResize<T> {
 
     public void read(List<T> palette, long[] data) {
         int var2 = Math.max(4, Mth.ceillog2(palette.size()));
-        if(var2 != this.bits) {
+        if (var2 != this.bits) {
             setBits(var2);
         }
 
         this.palette.read(palette);
         int var3 = data.length * 64 / 4096;
-        if(var3 == this.bits) {
+        if (var3 == this.bits) {
             System.arraycopy(data, 0, this.storage.getRaw(), 0, data.length);
         } else {
             BitStorage var4 = new BitStorage(var3, 4096, data);
-            for(int var5 = 0; var5 < 4096; var5++) {
+            for (int var5 = 0; var5 < 4096; var5++) {
                 this.storage.set(var5, var4.get(var5));
             }
         }
@@ -130,9 +130,9 @@ public class PalettedContainer<T> implements PaletteResize<T> {
         T var4 = null;
         int var5 = 0;
         int[] var6 = new int[4096];
-        for(int i = 0; i < 4096; i++) {
+        for (int i = 0; i < 4096; i++) {
             T t = get(i);
-            if(t != var4) {
+            if (t != var4) {
                 var4 = t;
                 var5 = var3.idFor(t);
             }
@@ -142,7 +142,7 @@ public class PalettedContainer<T> implements PaletteResize<T> {
         var3.write(toList);
         int var8 = Math.max(4, Mth.ceillog2(toList.size()));
         BitStorage var9 = new BitStorage(var8, 4096);
-        for(int var10 = 0; var10 < var6.length; var10++) {
+        for (int var10 = 0; var10 < var6.length; var10++) {
             var9.set(var10, var6[var10]);
         }
         return var9.getRaw();

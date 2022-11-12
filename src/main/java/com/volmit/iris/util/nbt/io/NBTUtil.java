@@ -29,7 +29,7 @@ public final class NBTUtil {
     }
 
     public static void write(NamedTag tag, File file, boolean compressed) throws IOException {
-        try(FileOutputStream fos = new FileOutputStream(file)) {
+        try (FileOutputStream fos = new FileOutputStream(file)) {
             new NBTSerializer(compressed).toStream(tag, fos);
         }
     }
@@ -71,7 +71,7 @@ public final class NBTUtil {
     }
 
     public static NamedTag read(File file, boolean compressed) throws IOException {
-        try(FileInputStream fis = new FileInputStream(file)) {
+        try (FileInputStream fis = new FileInputStream(file)) {
             return new NBTDeserializer(compressed).fromStream(fis);
         }
     }
@@ -85,7 +85,7 @@ public final class NBTUtil {
     }
 
     public static NamedTag read(File file) throws IOException {
-        try(FileInputStream fis = new FileInputStream(file)) {
+        try (FileInputStream fis = new FileInputStream(file)) {
             return new NBTDeserializer(false).fromStream(detectDecompression(fis));
         }
     }
@@ -99,7 +99,7 @@ public final class NBTUtil {
         int signature = (pbis.read() & 0xFF) + (pbis.read() << 8);
         pbis.unread(signature >> 8);
         pbis.unread(signature & 0xFF);
-        if(signature == GZIPInputStream.GZIP_MAGIC) {
+        if (signature == GZIPInputStream.GZIP_MAGIC) {
             return new GZIPInputStream(pbis);
         }
         return pbis;

@@ -57,11 +57,11 @@ public class BlockPosition {
     }
 
     public boolean equals(Object o) {
-        if(o == null) {
+        if (o == null) {
             return false;
         }
 
-        if(o instanceof BlockPosition ot) {
+        if (o instanceof BlockPosition ot) {
 
             return ot.x == x && ot.y == y && ot.z == z;
         }

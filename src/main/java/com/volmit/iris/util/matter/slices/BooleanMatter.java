@@ -31,13 +31,13 @@ public class BooleanMatter extends RawMatter<Boolean> {
         this(1, 1, 1);
     }
 
+    public BooleanMatter(int width, int height, int depth) {
+        super(width, height, depth, Boolean.class);
+    }
+
     @Override
     public Palette<Boolean> getGlobalPalette() {
         return null;
-    }
-
-    public BooleanMatter(int width, int height, int depth) {
-        super(width, height, depth, Boolean.class);
     }
 
     @Override

@@ -66,7 +66,7 @@ public class DataContainer<T> {
 
         StringBuilder sb = new StringBuilder();
 
-        for(int i = c.size() - 1; i >= 0; i--) {
+        for (int i = c.size() - 1; i >= 0; i--) {
             sb.setCharAt(i, c.get(i));
         }
 
@@ -86,11 +86,35 @@ public class DataContainer<T> {
             }
         }, s.length());
 
-        for(int i = 0; i < s.length(); i++) {
+        for (int i = 0; i < s.length(); i++) {
             c.set(i, s.charAt(i));
         }
 
         c.writeDos(dos);
+    }
+
+    private static int[] computeBitLimits() {
+        int[] m = new int[16];
+
+        for (int i = 0; i < m.length; i++) {
+            m[i] = (int) Math.pow(2, i);
+        }
+
+        return m;
+    }
+
+    protected static int bits(int size) {
+        if (DataContainer.BIT[INITIAL_BITS] >= size) {
+            return INITIAL_BITS;
+        }
+
+        for (int i = 0; i < DataContainer.BIT.length; i++) {
+            if (DataContainer.BIT[i] >= size) {
+                return i;
+            }
+        }
+
+        return DataContainer.BIT.length - 1;
     }
 
     public DataBits getData() {
@@ -103,7 +127,7 @@ public class DataContainer<T> {
 
     public String toString() {
         return "DataContainer <" + length + " x " + bits + " bits> -> Palette<" + palette.get().getClass().getSimpleName().replaceAll("\\QPalette\\E", "") + ">: " + palette.get().size() +
-            " " + data.get().toString() + " PalBit: " + palette.get().bits();
+                " " + data.get().toString() + " PalBit: " + palette.get().bits();
     }
 
     public byte[] write() throws IOException {
@@ -132,7 +156,7 @@ public class DataContainer<T> {
     }
 
     private Palette<T> newPalette(int bits) {
-        if(bits <= LINEAR_BITS_LIMIT) {
+        if (bits <= LINEAR_BITS_LIMIT) {
             return new LinearPalette<>(LINEAR_INITIAL_LENGTH);
         }
 
@@ -140,16 +164,16 @@ public class DataContainer<T> {
     }
 
     public void ensurePaletted(T t) {
-        if(palette.get().id(t) == -1) {
+        if (palette.get().id(t) == -1) {
             expandOne();
         }
     }
 
     public void set(int position, T t) {
-        synchronized(this) {
+        synchronized (this) {
             int id = palette.get().id(t);
 
-            if(id == -1) {
+            if (id == -1) {
                 expandOne();
                 id = palette.get().add(t);
             }
@@ -159,16 +183,16 @@ public class DataContainer<T> {
     }
 
     private void expandOne() {
-        if(palette.get().size() + 1 >= BIT[bits.get()]) {
+        if (palette.get().size() + 1 >= BIT[bits.get()]) {
             setBits(bits.get() + 1);
         }
     }
 
     public T get(int position) {
-        synchronized(this) {
+        synchronized (this) {
             int id = data.get().get(position) + 1;
 
-            if(id <= 0) {
+            if (id <= 0) {
                 return null;
             }
 
@@ -177,38 +201,14 @@ public class DataContainer<T> {
     }
 
     public void setBits(int bits) {
-        if(this.bits.get() != bits) {
-            if(this.bits.get() <= LINEAR_BITS_LIMIT != bits <= LINEAR_BITS_LIMIT) {
+        if (this.bits.get() != bits) {
+            if (this.bits.get() <= LINEAR_BITS_LIMIT != bits <= LINEAR_BITS_LIMIT) {
                 palette.set(newPalette(bits).from(palette.get()));
             }
 
             this.bits.set(bits);
             data.set(data.get().setBits(bits));
         }
-    }
-
-    private static int[] computeBitLimits() {
-        int[] m = new int[16];
-
-        for(int i = 0; i < m.length; i++) {
-            m[i] = (int) Math.pow(2, i);
-        }
-
-        return m;
-    }
-
-    protected static int bits(int size) {
-        if(DataContainer.BIT[INITIAL_BITS] >= size) {
-            return INITIAL_BITS;
-        }
-
-        for(int i = 0; i < DataContainer.BIT.length; i++) {
-            if(DataContainer.BIT[i] >= size) {
-                return i;
-            }
-        }
-
-        return DataContainer.BIT.length - 1;
     }
 
     public int size() {

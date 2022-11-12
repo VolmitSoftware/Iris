@@ -67,7 +67,7 @@ public enum IrisDirection {
     }
 
     public static IrisDirection getDirection(BlockFace f) {
-        return switch(f) {
+        return switch (f) {
             case DOWN -> DOWN_NEGATIVE_Y;
             case EAST, EAST_NORTH_EAST, EAST_SOUTH_EAST -> EAST_POSITIVE_X;
             case NORTH, NORTH_NORTH_WEST, NORTH_EAST, NORTH_NORTH_EAST, NORTH_WEST -> NORTH_NEGATIVE_Z;
@@ -79,9 +79,9 @@ public enum IrisDirection {
     }
 
     public static IrisDirection fromJigsawBlock(String direction) {
-        for(IrisDirection i : IrisDirection.values()) {
-            if(i.name().toLowerCase().split("\\Q_\\E")[0]
-                .equals(direction.split("\\Q_\\E")[0])) {
+        for (IrisDirection i : IrisDirection.values()) {
+            if (i.name().toLowerCase().split("\\Q_\\E")[0]
+                    .equals(direction.split("\\Q_\\E")[0])) {
                 return i;
             }
         }
@@ -90,7 +90,7 @@ public enum IrisDirection {
     }
 
     public static IrisDirection getDirection(Jigsaw.Orientation orientation) {
-        return switch(orientation) {
+        return switch (orientation) {
             case DOWN_EAST, UP_EAST, EAST_UP -> EAST_POSITIVE_X;
             case DOWN_NORTH, UP_NORTH, NORTH_UP -> NORTH_NEGATIVE_Z;
             case DOWN_SOUTH, UP_SOUTH, SOUTH_UP -> SOUTH_POSITIVE_Z;
@@ -103,11 +103,11 @@ public enum IrisDirection {
         double m = Double.MAX_VALUE;
         IrisDirection s = null;
 
-        for(IrisDirection i : values()) {
+        for (IrisDirection i : values()) {
             Vector x = i.toVector();
             double g = x.distance(v);
 
-            if(g < m) {
+            if (g < m) {
                 m = g;
                 s = i;
             }
@@ -120,11 +120,11 @@ public enum IrisDirection {
         double m = Double.MAX_VALUE;
         IrisDirection s = null;
 
-        for(IrisDirection i : d) {
+        for (IrisDirection i : d) {
             Vector x = i.toVector();
             double g = x.distance(v);
 
-            if(g < m) {
+            if (g < m) {
                 m = g;
                 s = i;
             }
@@ -137,11 +137,11 @@ public enum IrisDirection {
         double m = Double.MAX_VALUE;
         IrisDirection s = null;
 
-        for(IrisDirection i : d) {
+        for (IrisDirection i : d) {
             Vector x = i.toVector();
             double g = x.distance(v);
 
-            if(g < m) {
+            if (g < m) {
                 m = g;
                 s = i;
             }
@@ -157,8 +157,8 @@ public enum IrisDirection {
     public static IrisDirection getDirection(Vector v) {
         Vector k = VectorMath.triNormalize(v.clone().normalize());
 
-        for(IrisDirection i : udnews()) {
-            if(i.x == k.getBlockX() && i.y == k.getBlockY() && i.z == k.getBlockZ()) {
+        for (IrisDirection i : udnews()) {
+            if (i.x == k.getBlockX() && i.y == k.getBlockY() && i.z == k.getBlockZ()) {
                 return i;
             }
         }
@@ -174,25 +174,24 @@ public enum IrisDirection {
      * Get the directional value from the given byte from common directional blocks
      * (MUST BE BETWEEN 0 and 5 INCLUSIVE)
      *
-     * @param b
-     *     the byte
+     * @param b the byte
      * @return the direction or null if the byte is outside of the inclusive range
      * 0-5
      */
     public static IrisDirection fromByte(byte b) {
-        if(b > 5 || b < 0) {
+        if (b > 5 || b < 0) {
             return null;
         }
 
-        if(b == 0) {
+        if (b == 0) {
             return DOWN_NEGATIVE_Y;
-        } else if(b == 1) {
+        } else if (b == 1) {
             return UP_POSITIVE_Y;
-        } else if(b == 2) {
+        } else if (b == 2) {
             return NORTH_NEGATIVE_Z;
-        } else if(b == 3) {
+        } else if (b == 3) {
             return SOUTH_POSITIVE_Z;
-        } else if(b == 4) {
+        } else if (b == 4) {
             return WEST_NEGATIVE_X;
         } else {
             return EAST_POSITIVE_X;
@@ -200,25 +199,25 @@ public enum IrisDirection {
     }
 
     public static void calculatePermutations() {
-        if(permute != null) {
+        if (permute != null) {
             return;
         }
 
         permute = new KMap<>();
 
-        for(IrisDirection i : udnews()) {
-            for(IrisDirection j : udnews()) {
+        for (IrisDirection i : udnews()) {
+            for (IrisDirection j : udnews()) {
                 GBiset<IrisDirection, IrisDirection> b = new GBiset<>(i, j);
 
-                if(i.equals(j)) {
+                if (i.equals(j)) {
                     permute.put(b, new DOP("DIRECT") {
                         @Override
                         public Vector op(Vector v) {
                             return v;
                         }
                     });
-                } else if(i.reverse().equals(j)) {
-                    if(i.isVertical()) {
+                } else if (i.reverse().equals(j)) {
+                    if (i.isVertical()) {
                         permute.put(b, new DOP("R180CCZ") {
                             @Override
                             public Vector op(Vector v) {
@@ -233,42 +232,42 @@ public enum IrisDirection {
                             }
                         });
                     }
-                } else if(getDirection(VectorMath.rotate90CX(i.toVector())).equals(j)) {
+                } else if (getDirection(VectorMath.rotate90CX(i.toVector())).equals(j)) {
                     permute.put(b, new DOP("R90CX") {
                         @Override
                         public Vector op(Vector v) {
                             return VectorMath.rotate90CX(v);
                         }
                     });
-                } else if(getDirection(VectorMath.rotate90CCX(i.toVector())).equals(j)) {
+                } else if (getDirection(VectorMath.rotate90CCX(i.toVector())).equals(j)) {
                     permute.put(b, new DOP("R90CCX") {
                         @Override
                         public Vector op(Vector v) {
                             return VectorMath.rotate90CCX(v);
                         }
                     });
-                } else if(getDirection(VectorMath.rotate90CY(i.toVector())).equals(j)) {
+                } else if (getDirection(VectorMath.rotate90CY(i.toVector())).equals(j)) {
                     permute.put(b, new DOP("R90CY") {
                         @Override
                         public Vector op(Vector v) {
                             return VectorMath.rotate90CY(v);
                         }
                     });
-                } else if(getDirection(VectorMath.rotate90CCY(i.toVector())).equals(j)) {
+                } else if (getDirection(VectorMath.rotate90CCY(i.toVector())).equals(j)) {
                     permute.put(b, new DOP("R90CCY") {
                         @Override
                         public Vector op(Vector v) {
                             return VectorMath.rotate90CCY(v);
                         }
                     });
-                } else if(getDirection(VectorMath.rotate90CZ(i.toVector())).equals(j)) {
+                } else if (getDirection(VectorMath.rotate90CZ(i.toVector())).equals(j)) {
                     permute.put(b, new DOP("R90CZ") {
                         @Override
                         public Vector op(Vector v) {
                             return VectorMath.rotate90CZ(v);
                         }
                     });
-                } else if(getDirection(VectorMath.rotate90CCZ(i.toVector())).equals(j)) {
+                } else if (getDirection(VectorMath.rotate90CCZ(i.toVector())).equals(j)) {
                     permute.put(b, new DOP("R90CCZ") {
                         @Override
                         public Vector op(Vector v) {
@@ -289,7 +288,7 @@ public enum IrisDirection {
 
     @Override
     public String toString() {
-        return switch(this) {
+        return switch (this) {
             case DOWN_NEGATIVE_Y -> "Down";
             case EAST_POSITIVE_X -> "East";
             case NORTH_NEGATIVE_Z -> "North";
@@ -309,7 +308,7 @@ public enum IrisDirection {
     }
 
     public boolean isCrooked(IrisDirection to) {
-        if(equals(to.reverse())) {
+        if (equals(to.reverse())) {
             return false;
         }
 
@@ -319,9 +318,9 @@ public enum IrisDirection {
     public Vector angle(Vector initial, IrisDirection d) {
         calculatePermutations();
 
-        for(Map.Entry<GBiset<IrisDirection, IrisDirection>, DOP> entry : permute.entrySet()) {
+        for (Map.Entry<GBiset<IrisDirection, IrisDirection>, DOP> entry : permute.entrySet()) {
             GBiset<IrisDirection, IrisDirection> i = entry.getKey();
-            if(i.getA().equals(this) && i.getB().equals(d)) {
+            if (i.getA().equals(this) && i.getB().equals(d)) {
                 return entry.getValue().op(initial);
             }
         }
@@ -330,7 +329,7 @@ public enum IrisDirection {
     }
 
     public IrisDirection reverse() {
-        switch(this) {
+        switch (this) {
             case DOWN_NEGATIVE_Y:
                 return UP_POSITIVE_Y;
             case EAST_POSITIVE_X:
@@ -372,7 +371,7 @@ public enum IrisDirection {
      * @return the byte value
      */
     public byte byteValue() {
-        switch(this) {
+        switch (this) {
             case DOWN_NEGATIVE_Y:
                 return 0;
             case EAST_POSITIVE_X:
@@ -393,7 +392,7 @@ public enum IrisDirection {
     }
 
     public BlockFace getFace() {
-        return switch(this) {
+        return switch (this) {
             case DOWN_NEGATIVE_Y -> BlockFace.DOWN;
             case EAST_POSITIVE_X -> BlockFace.EAST;
             case NORTH_NEGATIVE_Z -> BlockFace.NORTH;
@@ -405,7 +404,7 @@ public enum IrisDirection {
     }
 
     public Axis getAxis() {
-        return switch(this) {
+        return switch (this) {
             case DOWN_NEGATIVE_Y, UP_POSITIVE_Y -> Axis.Y;
             case EAST_POSITIVE_X, WEST_NEGATIVE_X -> Axis.X;
             case NORTH_NEGATIVE_Z, SOUTH_POSITIVE_Z -> Axis.Z;

@@ -61,13 +61,12 @@ public class JigsawEditor implements Listener {
     private Location target;
 
     public JigsawEditor(Player player, IrisJigsawPiece piece, IrisObject object, File saveLocation) {
-        if(editors.containsKey(player)) {
+        if (editors.containsKey(player)) {
             editors.get(player).close();
         }
 
         editors.put(player, this);
-        if(object == null)
-        {
+        if (object == null) {
             throw new RuntimeException("Object is null! " + piece.getObject());
         }
         this.object = object;
@@ -85,20 +84,20 @@ public class JigsawEditor implements Listener {
 
     @EventHandler
     public void on(PlayerMoveEvent e) {
-        if(e.getPlayer().equals(player)) {
+        if (e.getPlayer().equals(player)) {
             try {
                 target = player.getTargetBlockExact(7).getLocation();
-            } catch(Throwable ex) {
+            } catch (Throwable ex) {
                 Iris.reportError(ex);
                 target = player.getLocation();
                 return;
             }
 
-            if(cuboid.contains(target)) {
-                for(IrisPosition i : falling.k()) {
+            if (cuboid.contains(target)) {
+                for (IrisPosition i : falling.k()) {
                     Location at = toLocation(i);
 
-                    if(at.equals(target)) {
+                    if (at.equals(target)) {
                         falling.remove(i).run();
                     }
                 }
@@ -108,43 +107,43 @@ public class JigsawEditor implements Listener {
 
     public Location toLocation(IrisPosition i) {
         return origin.clone()
-            .add(new Vector(i.getX(), i.getY(), i.getZ()))
-            .add(object.getCenter())
-            .getBlock()
-            .getLocation();
+                .add(new Vector(i.getX(), i.getY(), i.getZ()))
+                .add(object.getCenter())
+                .getBlock()
+                .getLocation();
     }
 
     public IrisPosition toPosition(Location l) {
         return new IrisPosition(l.clone().getBlock().getLocation()
-            .subtract(origin.clone())
-            .subtract(object.getCenter())
-            .add(1, 1, 1)
-            .toVector());
+                .subtract(origin.clone())
+                .subtract(object.getCenter())
+                .add(1, 1, 1)
+                .toVector());
     }
 
     @EventHandler
     public void on(PlayerInteractEvent e) {
-        if(e.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
-            if(e.getClickedBlock() != null && cuboid.contains(e.getClickedBlock().getLocation()) && e.getPlayer().equals(player)) {
+        if (e.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
+            if (e.getClickedBlock() != null && cuboid.contains(e.getClickedBlock().getLocation()) && e.getPlayer().equals(player)) {
                 IrisPosition pos = toPosition(e.getClickedBlock().getLocation());
                 IrisJigsawPieceConnector connector = null;
-                for(IrisJigsawPieceConnector i : piece.getConnectors()) {
-                    if(i.getPosition().equals(pos)) {
+                for (IrisJigsawPieceConnector i : piece.getConnectors()) {
+                    if (i.getPosition().equals(pos)) {
                         connector = i;
                         break;
                     }
                 }
 
-                if(!player.isSneaking() && connector == null) {
+                if (!player.isSneaking() && connector == null) {
                     connector = new IrisJigsawPieceConnector();
                     connector.setDirection(IrisDirection.getDirection(e.getBlockFace()));
                     connector.setPosition(pos);
                     piece.getConnectors().add(connector);
                     player.playSound(e.getClickedBlock().getLocation(), Sound.ENTITY_ITEM_FRAME_ADD_ITEM, 1f, 1f);
-                } else if(player.isSneaking() && connector != null) {
+                } else if (player.isSneaking() && connector != null) {
                     piece.getConnectors().remove(connector);
                     player.playSound(e.getClickedBlock().getLocation(), Sound.ENTITY_ITEM_FRAME_REMOVE_ITEM, 1f, 1f);
-                } else if(connector != null && !player.isSneaking()) {
+                } else if (connector != null && !player.isSneaking()) {
                     connector.setDirection(IrisDirection.getDirection(e.getBlockFace()));
                     player.playSound(e.getClickedBlock().getLocation(), Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 1f);
                 }
@@ -152,10 +151,8 @@ public class JigsawEditor implements Listener {
         }
     }
 
-    private void removeKey(JSONObject o, String... path)
-    {
-        if(path.length == 1)
-        {
+    private void removeKey(JSONObject o, String... path) {
+        if (path.length == 1) {
             o.remove(path[0]);
             return;
         }
@@ -165,12 +162,10 @@ public class JigsawEditor implements Listener {
         removeKey(o.getJSONObject(path[0]), s.toArray(new String[0]));
     }
 
-    private List<JSONObject> getObjectsInArray(JSONObject a, String key)
-    {
+    private List<JSONObject> getObjectsInArray(JSONObject a, String key) {
         KList<JSONObject> o = new KList<>();
 
-        for(int i = 0; i < a.getJSONArray(key).length(); i++)
-        {
+        for (int i = 0; i < a.getJSONArray(key).length(); i++) {
             o.add(a.getJSONArray(key).getJSONObject(i));
         }
 
@@ -187,16 +182,15 @@ public class JigsawEditor implements Listener {
 
             // remove root key
             removeKey(j, "placementOptions"); // should work
-           j.remove("placementOptions"); // otherwise
+            j.remove("placementOptions"); // otherwise
 
-           // Remove key in all objects in array
-           for(JSONObject i : getObjectsInArray(j, "connectors"))
-           {
-               removeKey(i, "rotateConnector");
-           }
+            // Remove key in all objects in array
+            for (JSONObject i : getObjectsInArray(j, "connectors")) {
+                removeKey(i, "rotateConnector");
+            }
 
             IO.writeAll(targetSaveLocation, j.toString(4));
-        } catch(IOException e) {
+        } catch (IOException e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
@@ -210,20 +204,20 @@ public class JigsawEditor implements Listener {
                 object.unplaceCenterY(origin);
                 falling.v().forEach(Runnable::run);
             }).get();
-        } catch(InterruptedException | ExecutionException e) {
+        } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
         editors.remove(player);
     }
 
     public void onTick() {
-        if(cl.flip()) {
+        if (cl.flip()) {
             Iris.service(WandSVC.class).draw(cuboid, player);
 
             f:
-            for(IrisPosition i : falling.k()) {
-                for(IrisJigsawPieceConnector j : piece.getConnectors()) {
-                    if(j.getPosition().equals(i)) {
+            for (IrisPosition i : falling.k()) {
+                for (IrisJigsawPieceConnector j : piece.getConnectors()) {
+                    if (j.getPosition().equals(i)) {
                         continue f;
                     }
                 }
@@ -231,23 +225,23 @@ public class JigsawEditor implements Listener {
                 falling.remove(i).run();
             }
 
-            for(IrisJigsawPieceConnector i : piece.getConnectors()) {
+            for (IrisJigsawPieceConnector i : piece.getConnectors()) {
                 IrisPosition pos = i.getPosition();
                 Location at = toLocation(pos);
 
                 Vector dir = i.getDirection().toVector().clone();
 
 
-                for(int ix = 0; ix < RNG.r.i(1, 3); ix++) {
+                for (int ix = 0; ix < RNG.r.i(1, 3); ix++) {
                     at.getWorld().spawnParticle(Particle.SOUL_FIRE_FLAME, at.clone().getBlock().getLocation().add(0.25, 0.25, 0.25).add(RNG.r.d(0.5), RNG.r.d(0.5), RNG.r.d(0.5)), 0, dir.getX(), dir.getY(), dir.getZ(), 0.092 + RNG.r.d(-0.03, 0.08));
                 }
 
-                if(at.getBlock().getLocation().equals(target)) {
+                if (at.getBlock().getLocation().equals(target)) {
                     continue;
                 }
 
-                if(!falling.containsKey(pos)) {
-                    if(at.getBlock().getType().isAir()) {
+                if (!falling.containsKey(pos)) {
+                    if (at.getBlock().getType().isAir()) {
                         at.getBlock().setType(Material.STONE);
                     }
 

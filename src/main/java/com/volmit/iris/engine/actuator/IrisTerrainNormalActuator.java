@@ -53,7 +53,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     public void onActuate(int x, int z, Hunk<BlockData> h, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
 
-        for(int xf = 0; xf < h.getWidth(); xf++) {
+        for (int xf = 0; xf < h.getWidth(); xf++) {
             terrainSliver(x, z, xf, h, context);
         }
 
@@ -67,14 +67,10 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     /**
      * This is calling 1/16th of a chunk x/z slice. It is a plane from sky to bedrock 1 thick in the x direction.
      *
-     * @param x
-     *     the chunk x in blocks
-     * @param z
-     *     the chunk z in blocks
-     * @param xf
-     *     the current x slice
-     * @param h
-     *     the blockdata
+     * @param x  the chunk x in blocks
+     * @param z  the chunk z in blocks
+     * @param xf the current x slice
+     * @param h  the blockdata
      */
     @BlockCoordinates
     public void terrainSliver(int x, int z, int xf, Hunk<BlockData> h, ChunkContext context) {
@@ -82,7 +78,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
         IrisBiome biome;
         IrisRegion region;
 
-        for(zf = 0; zf < h.getDepth(); zf++) {
+        for (zf = 0; zf < h.getDepth(); zf++) {
             realX = xf + x;
             realZ = zf + z;
             biome = context.getBiome().get(xf, zf);
@@ -90,54 +86,54 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
             he = (int) Math.round(Math.min(h.getHeight(), context.getHeight().get(xf, zf)));
             hf = Math.round(Math.max(Math.min(h.getHeight(), getDimension().getFluidHeight()), he));
 
-            if(hf < 0) {
+            if (hf < 0) {
                 continue;
             }
 
             KList<BlockData> blocks = null;
             KList<BlockData> fblocks = null;
             int depth, fdepth;
-            for(int i = hf; i >= 0; i--) {
-                if(i >= h.getHeight()) {
+            for (int i = hf; i >= 0; i--) {
+                if (i >= h.getHeight()) {
                     continue;
                 }
 
-                if(i == 0) {
-                    if(getDimension().isBedrock()) {
+                if (i == 0) {
+                    if (getDimension().isBedrock()) {
                         h.set(xf, i, zf, BEDROCK);
                         lastBedrock = i;
                         continue;
                     }
                 }
 
-                if(i > he && i <= hf) {
+                if (i > he && i <= hf) {
                     fdepth = hf - i;
 
-                    if(fblocks == null) {
+                    if (fblocks == null) {
                         fblocks = biome.generateSeaLayers(realX, realZ, rng, hf - he, getData());
                     }
 
-                    if(fblocks.hasIndex(fdepth)) {
+                    if (fblocks.hasIndex(fdepth)) {
                         h.set(xf, i, zf, fblocks.get(fdepth));
                         continue;
                     }
 
-                    h.set(xf, i, zf, context.getFluid().get(xf,zf));
+                    h.set(xf, i, zf, context.getFluid().get(xf, zf));
                     continue;
                 }
 
-                if(i <= he) {
+                if (i <= he) {
                     depth = he - i;
-                    if(blocks == null) {
+                    if (blocks == null) {
                         blocks = biome.generateLayers(getDimension(), realX, realZ, rng,
-                            he,
-                            he,
-                            getData(),
-                            getComplex());
+                                he,
+                                he,
+                                getData(),
+                                getComplex());
                     }
 
 
-                    if(blocks.hasIndex(depth)) {
+                    if (blocks.hasIndex(depth)) {
                         h.set(xf, i, zf, blocks.get(depth));
                         continue;
                     }
@@ -146,7 +142,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                     ore = ore == null ? region.generateOres(realX, i, realZ, rng, getData()) : ore;
                     ore = ore == null ? getDimension().generateOres(realX, i, realZ, rng, getData()) : ore;
 
-                    if(ore != null) {
+                    if (ore != null) {
                         h.set(xf, i, zf, ore);
                     } else {
                         h.set(xf, i, zf, context.getRock().get(xf, zf));

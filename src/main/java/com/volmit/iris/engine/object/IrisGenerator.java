@@ -100,29 +100,29 @@ public class IrisGenerator extends IrisRegistrant {
     }
 
     public <T extends IRare> T fitRarity(KList<T> b, long superSeed, double rx, double rz) {
-        if(b.size() == 0) {
+        if (b.size() == 0) {
             return null;
         }
 
-        if(b.size() == 1) {
+        if (b.size() == 1) {
             return b.get(0);
         }
 
         KList<T> rarityMapped = new KList<>();
         boolean o = false;
         int max = 1;
-        for(T i : b) {
-            if(i.getRarity() > max) {
+        for (T i : b) {
+            if (i.getRarity() > max) {
                 max = i.getRarity();
             }
         }
 
         max++;
 
-        for(T i : b) {
-            for(int j = 0; j < max - i.getRarity(); j++) {
+        for (T i : b) {
+            for (int j = 0; j < max - i.getRarity(); j++) {
                 //noinspection AssignmentUsedAsCondition
-                if(o = !o) {
+                if (o = !o) {
                     rarityMapped.add(i);
                 } else {
                     rarityMapped.add(0, i);
@@ -130,11 +130,11 @@ public class IrisGenerator extends IrisRegistrant {
             }
         }
 
-        if(rarityMapped.size() == 1) {
+        if (rarityMapped.size() == 1) {
             return rarityMapped.get(0);
         }
 
-        if(rarityMapped.isEmpty()) {
+        if (rarityMapped.isEmpty()) {
             throw new RuntimeException("BAD RARITY MAP! RELATED TO: " + b.toString(", or possibly "));
         }
 
@@ -142,11 +142,11 @@ public class IrisGenerator extends IrisRegistrant {
     }
 
     public <T> T fit(T[] v, long superSeed, double rx, double rz) {
-        if(v.length == 0) {
+        if (v.length == 0) {
             return null;
         }
 
-        if(v.length == 1) {
+        if (v.length == 1) {
             return v[0];
         }
 
@@ -154,11 +154,11 @@ public class IrisGenerator extends IrisRegistrant {
     }
 
     public <T> T fit(List<T> v, long superSeed, double rx, double rz) {
-        if(v.size() == 0) {
+        if (v.size() == 0) {
             return null;
         }
 
-        if(v.size() == 1) {
+        if (v.size() == 1) {
             return v.get(0);
         }
 
@@ -166,7 +166,7 @@ public class IrisGenerator extends IrisRegistrant {
     }
 
     public int fit(int min, int max, long superSeed, double rx, double rz) {
-        if(min == max) {
+        if (min == max) {
             return min;
         }
 
@@ -176,7 +176,7 @@ public class IrisGenerator extends IrisRegistrant {
     }
 
     public int fit(double min, double max, long superSeed, double rx, double rz) {
-        if(min == max) {
+        if (min == max) {
             return (int) Math.round(min);
         }
 
@@ -186,7 +186,7 @@ public class IrisGenerator extends IrisRegistrant {
     }
 
     public double fitDouble(double min, double max, long superSeed, double rx, double rz) {
-        if(min == max) {
+        if (min == max) {
             return min;
         }
 
@@ -205,7 +205,7 @@ public class IrisGenerator extends IrisRegistrant {
     }
 
     public double getHeight(double rx, double ry, double rz, long superSeed, boolean no3d) {
-        if(composite.isEmpty()) {
+        if (composite.isEmpty()) {
             return 0;
         }
 
@@ -213,16 +213,16 @@ public class IrisGenerator extends IrisRegistrant {
         double h = multiplicitive ? 1 : 0;
         double tp = 0;
 
-        if(composite.size() == 1) {
-            if(multiplicitive) {
+        if (composite.size() == 1) {
+            if (multiplicitive) {
                 h *= composite.get(0).getNoise(getSeed() + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
             } else {
                 tp += composite.get(0).getOpacity();
                 h += composite.get(0).getNoise(getSeed() + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
             }
         } else {
-            for(IrisNoiseGenerator i : composite) {
-                if(multiplicitive) {
+            for (IrisNoiseGenerator i : composite) {
+                if (multiplicitive) {
                     h *= i.getNoise(getSeed() + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
                 } else {
                     tp += i.getOpacity();
@@ -233,7 +233,7 @@ public class IrisGenerator extends IrisRegistrant {
 
         double v = multiplicitive ? h * opacity : (h / tp) * opacity;
 
-        if(Double.isNaN(v)) {
+        if (Double.isNaN(v)) {
             v = 0;
         }
 
@@ -271,7 +271,7 @@ public class IrisGenerator extends IrisRegistrant {
     public KList<IrisNoiseGenerator> getAllComposites() {
         KList<IrisNoiseGenerator> g = new KList<>();
 
-        for(IrisNoiseGenerator i : composite) {
+        for (IrisNoiseGenerator i : composite) {
             g.addAll(i.getAllComposites());
         }
 

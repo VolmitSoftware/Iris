@@ -55,13 +55,12 @@ public class BiomeGridHunkHolder extends AtomicHunk<Biome> {
     }
 
     public void apply() {
-        for(int i = 0; i < getHeight(); i++) {
-            for(int j = 0; j < getWidth(); j++) {
-                for(int k = 0; k < getDepth(); k++) {
+        for (int i = 0; i < getHeight(); i++) {
+            for (int j = 0; j < getWidth(); j++) {
+                for (int k = 0; k < getDepth(); k++) {
                     Biome b = super.getRaw(j, i, k);
 
-                    if(b != null)
-                    {
+                    if (b != null) {
                         chunk.setBiome(j, i + minHeight, k, b);
                     }
                 }
@@ -77,7 +76,7 @@ public class BiomeGridHunkHolder extends AtomicHunk<Biome> {
     }
 
     public void forceBiomeBaseInto(int x, int y, int z, Object somethingVeryDirty) {
-        if(chunk instanceof LinkedTerrainChunk) {
+        if (chunk instanceof LinkedTerrainChunk) {
             INMS.get().forceBiomeInto(x, y + minHeight, z, somethingVeryDirty, ((LinkedTerrainChunk) chunk).getRawBiome());
             return;
         }

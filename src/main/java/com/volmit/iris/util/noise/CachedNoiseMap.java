@@ -32,15 +32,12 @@ public class CachedNoiseMap implements Writable<Integer> {
     private final Matter noise;
     private final MatterSlice<Integer> slice;
 
-    public CachedNoiseMap(int size, NoiseGenerator cng)
-    {
+    public CachedNoiseMap(int size, NoiseGenerator cng) {
         noise = new IrisMatter(size, size, 1);
         slice = noise.slice(Integer.class);
 
-        for(int i = 0; i < slice.getWidth(); i++)
-        {
-            for(int j = 0; j < slice.getHeight(); j++)
-            {
+        for (int i = 0; i < slice.getWidth(); i++) {
+            for (int j = 0; j < slice.getHeight(); j++) {
                 set(i, j, cng.noise(i, j));
             }
         }
@@ -55,17 +52,14 @@ public class CachedNoiseMap implements Writable<Integer> {
         noise.write(file);
     }
 
-    void set(int x, int y, double value)
-    {
-        slice.set(x%slice.getWidth(), y%slice.getHeight(), 0, Float.floatToIntBits((float)value));
+    void set(int x, int y, double value) {
+        slice.set(x % slice.getWidth(), y % slice.getHeight(), 0, Float.floatToIntBits((float) value));
     }
 
-    double get(int x, int y)
-    {
-        Integer i = slice.get(x%slice.getWidth(), y%slice.getHeight(), 0);
+    double get(int x, int y) {
+        Integer i = slice.get(x % slice.getWidth(), y % slice.getHeight(), 0);
 
-        if(i == null)
-        {
+        if (i == null) {
             return 0;
         }
 

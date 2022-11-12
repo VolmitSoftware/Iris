@@ -30,7 +30,7 @@ public class SynchronizedHunkView<T> implements Hunk<T> {
 
     @Override
     public void setRaw(int x, int y, int z, T t) {
-        synchronized(src) {
+        synchronized (src) {
             src.setRaw(x, y, z, t);
         }
     }

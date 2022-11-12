@@ -61,17 +61,17 @@ public class IrisCommand {
     }
 
     public void run(Location at) {
-        if(!isValid(at.getWorld())) {
+        if (!isValid(at.getWorld())) {
             return;
         }
 
-        for(String command : commands) {
+        for (String command : commands) {
             command = (command.startsWith("/") ? command.replaceFirst("/", "") : command)
-                .replaceAll("\\Q{x}\\E", String.valueOf(at.getBlockX()))
-                .replaceAll("\\Q{y}\\E", String.valueOf(at.getBlockY()))
-                .replaceAll("\\Q{z}\\E", String.valueOf(at.getBlockZ()));
+                    .replaceAll("\\Q{x}\\E", String.valueOf(at.getBlockX()))
+                    .replaceAll("\\Q{y}\\E", String.valueOf(at.getBlockY()))
+                    .replaceAll("\\Q{z}\\E", String.valueOf(at.getBlockZ()));
             final String finalCommand = command;
-            if(repeat) {
+            if (repeat) {
                 Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, () -> Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), finalCommand), delay, repeatDelay);
             } else {
                 Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), finalCommand), delay);

@@ -42,7 +42,7 @@ public class CommandPregen implements DecreeExecutor {
             Vector center
     ) {
         try {
-            if(sender().isPlayer() && access() == null) {
+            if (sender().isPlayer() && access() == null) {
                 sender().sendMessage(C.RED + "The engine access for this world is null!");
                 sender().sendMessage(C.RED + "Please make sure the world is loaded & the engine is initialized. Generate a new chunk, for example.");
             }
@@ -57,7 +57,7 @@ public class CommandPregen implements DecreeExecutor {
             String msg = C.GREEN + "Pregen started in " + C.GOLD + world.getName() + C.GREEN + " of " + C.GOLD + (radius * 2) + C.GREEN + " by " + C.GOLD + (radius * 2) + C.GREEN + " blocks from " + C.GOLD + center.getX() + "," + center.getZ();
             sender().sendMessage(msg);
             Iris.info(msg);
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             sender().sendMessage(C.RED + "Epic fail. See console.");
             Iris.reportError(e);
             e.printStackTrace();
@@ -66,7 +66,7 @@ public class CommandPregen implements DecreeExecutor {
 
     @Decree(description = "Stop the active pregeneration task", aliases = "x")
     public void stop() {
-        if(PregeneratorJob.shutdownInstance()) {
+        if (PregeneratorJob.shutdownInstance()) {
             sender().sendMessage(C.GREEN + "Stopped pregeneration task");
         } else {
             sender().sendMessage(C.YELLOW + "No active pregeneration tasks to stop");
@@ -75,7 +75,7 @@ public class CommandPregen implements DecreeExecutor {
 
     @Decree(description = "Pause / continue the active pregeneration task", aliases = {"t", "resume", "unpause"})
     public void pause() {
-        if(PregeneratorJob.pauseResume()) {
+        if (PregeneratorJob.pauseResume()) {
             sender().sendMessage(C.GREEN + "Paused/unpaused pregeneration task, now: " + (PregeneratorJob.isPaused() ? "Paused" : "Running") + ".");
         } else {
             sender().sendMessage(C.YELLOW + "No active pregeneration tasks to pause/unpause.");

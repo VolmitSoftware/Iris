@@ -32,13 +32,13 @@ public class IntMatter extends RawMatter<Integer> {
         this(1, 1, 1);
     }
 
+    public IntMatter(int width, int height, int depth) {
+        super(width, height, depth, Integer.class);
+    }
+
     @Override
     public Palette<Integer> getGlobalPalette() {
         return null;
-    }
-
-    public IntMatter(int width, int height, int depth) {
-        super(width, height, depth, Integer.class);
     }
 
     @Override

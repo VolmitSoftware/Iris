@@ -48,9 +48,9 @@ public class BoardSVC implements IrisService, BoardProvider {
     public void onEnable() {
         J.ar(this::tick, 20);
         manager = new BoardManager(Iris.instance, BoardSettings.builder()
-            .boardProvider(this)
-            .scoreDirection(ScoreDirection.DOWN)
-            .build());
+                .boardProvider(this)
+                .scoreDirection(ScoreDirection.DOWN)
+                .build());
     }
 
     @Override
@@ -70,7 +70,7 @@ public class BoardSVC implements IrisService, BoardProvider {
     }
 
     public void updatePlayer(Player p) {
-        if(IrisToolbelt.isIrisStudioWorld(p.getWorld())) {
+        if (IrisToolbelt.isIrisStudioWorld(p.getWorld())) {
             manager.remove(p);
             manager.setup(p);
         } else {
@@ -85,7 +85,7 @@ public class BoardSVC implements IrisService, BoardProvider {
     }
 
     public void tick() {
-        if(!Iris.service(StudioSVC.class).isProjectOpen()) {
+        if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             return;
         }
 
@@ -95,7 +95,7 @@ public class BoardSVC implements IrisService, BoardProvider {
     @Override
     public List<String> getLines(Player player) {
         PlayerBoard pb = boards.computeIfAbsent(player, PlayerBoard::new);
-        synchronized(pb.lines) {
+        synchronized (pb.lines) {
             return pb.lines;
         }
     }
@@ -112,10 +112,10 @@ public class BoardSVC implements IrisService, BoardProvider {
         }
 
         public void update() {
-            synchronized(lines) {
+            synchronized (lines) {
                 lines.clear();
 
-                if(!IrisToolbelt.isIrisStudioWorld(player.getWorld())) {
+                if (!IrisToolbelt.isIrisStudioWorld(player.getWorld())) {
                     return;
                 }
 

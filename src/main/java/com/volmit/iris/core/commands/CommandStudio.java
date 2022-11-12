@@ -113,7 +113,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Close an open studio project", aliases = {"x", "c"}, sync = true)
     public void close() {
-        if(!Iris.service(StudioSVC.class).isProjectOpen()) {
+        if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender().sendMessage(C.RED + "No open studio projects.");
             return;
         }
@@ -128,7 +128,7 @@ public class CommandStudio implements DecreeExecutor {
             String name,
             @Param(description = "Copy the contents of an existing project in your packs folder and use it as a template in this new project.", contextual = true)
             IrisDimension template) {
-        if(template != null) {
+        if (template != null) {
             Iris.service(StudioSVC.class).create(sender(), name, template.getLoadKey());
         } else {
             Iris.service(StudioSVC.class).create(sender(), name);
@@ -159,14 +159,14 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Open the noise explorer (External GUI)", aliases = {"nmap", "n"})
     public void noise() {
-        if(noGUI()) return;
+        if (noGUI()) return;
         sender().sendMessage(C.GREEN + "Opening Noise Explorer!");
         NoiseExplorerGUI.launch();
     }
 
     @Decree(description = "Charges all spawners in the area", aliases = "zzt", origin = DecreeOrigin.PLAYER)
     public void charge() {
-        if(!IrisToolbelt.isIrisWorld(world())) {
+        if (!IrisToolbelt.isIrisWorld(world())) {
             sender().sendMessage(C.RED + "You must be in an Iris world to charge spawners!");
             return;
         }
@@ -181,12 +181,12 @@ public class CommandStudio implements DecreeExecutor {
             @Param(description = "The seed to generate with", defaultValue = "12345")
             long seed
     ) {
-        if(noGUI()) return;
+        if (noGUI()) return;
         sender().sendMessage(C.GREEN + "Opening Noise Explorer!");
 
         Supplier<Function2<Double, Double, Double>> l = () -> {
 
-            if(generator == null) {
+            if (generator == null) {
                 return (x, z) -> 0D;
             }
 
@@ -197,7 +197,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Hotload a studio", aliases = {"reload", "h"})
     public void hotload() {
-        if(!Iris.service(StudioSVC.class).isProjectOpen()) {
+        if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender().sendMessage(C.RED + "No studio world open!");
             return;
         }
@@ -212,14 +212,14 @@ public class CommandStudio implements DecreeExecutor {
             @Param(description = "Whether or not to append to the inventory currently open (if false, clears opened inventory)", defaultValue = "true")
             boolean add
     ) {
-        if(noStudio()) return;
+        if (noStudio()) return;
 
         KList<IrisLootTable> tables = engine().getLootTables(RNG.r, player().getLocation().getBlock());
         Inventory inv = Bukkit.createInventory(null, 27 * 2);
 
         try {
             engine().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
             sender().sendMessage(C.RED + "Cannot add items to virtual inventory because of: " + e.getMessage());
             return;
@@ -231,13 +231,13 @@ public class CommandStudio implements DecreeExecutor {
 
         ta.set(Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, () ->
         {
-            if(!player().getOpenInventory().getType().equals(InventoryType.CHEST)) {
+            if (!player().getOpenInventory().getType().equals(InventoryType.CHEST)) {
                 Bukkit.getScheduler().cancelTask(ta.get());
                 sender().sendMessage(C.GREEN + "Opened inventory!");
                 return;
             }
 
-            if(!add) {
+            if (!add) {
                 inv.clear();
             }
 
@@ -253,9 +253,9 @@ public class CommandStudio implements DecreeExecutor {
             @Param(name = "world", description = "The world to open the generator for", contextual = true)
             World world
     ) {
-        if(noGUI()) return;
+        if (noGUI()) return;
 
-        if(!IrisToolbelt.isIrisWorld(world)) {
+        if (!IrisToolbelt.isIrisWorld(world)) {
             sender().sendMessage(C.RED + "You need to be in or specify an Iris-generated world!");
             return;
         }
@@ -296,17 +296,17 @@ public class CommandStudio implements DecreeExecutor {
 
         sender().sendMessage("Calculating Performance Metrics for Noise generators");
 
-        for(NoiseStyle i : NoiseStyle.values()) {
+        for (NoiseStyle i : NoiseStyle.values()) {
             CNG c = i.create(new RNG(i.hashCode()));
 
-            for(int j = 0; j < 3000; j++) {
+            for (int j = 0; j < 3000; j++) {
                 c.noise(j, j + 1000, j * j);
                 c.noise(j, -j);
             }
 
             PrecisionStopwatch px = PrecisionStopwatch.start();
 
-            for(int j = 0; j < 100000; j++) {
+            for (int j = 0; j < 100000; j++) {
                 c.noise(j, j + 1000, j * j);
                 c.noise(j, -j);
             }
@@ -316,7 +316,7 @@ public class CommandStudio implements DecreeExecutor {
 
         fileText.add("Noise Style Performance Impacts: ");
 
-        for(NoiseStyle i : styleTimings.sortKNumber()) {
+        for (NoiseStyle i : styleTimings.sortKNumber()) {
             fileText.add(i.name() + ": " + styleTimings.get(i));
         }
 
@@ -324,20 +324,20 @@ public class CommandStudio implements DecreeExecutor {
 
         sender().sendMessage("Calculating Interpolator Timings...");
 
-        for(InterpolationMethod i : InterpolationMethod.values()) {
+        for (InterpolationMethod i : InterpolationMethod.values()) {
             IrisInterpolator in = new IrisInterpolator();
             in.setFunction(i);
             in.setHorizontalScale(8);
 
             NoiseProvider np = (x, z) -> Math.random();
 
-            for(int j = 0; j < 3000; j++) {
+            for (int j = 0; j < 3000; j++) {
                 in.interpolate(j, -j, np);
             }
 
             PrecisionStopwatch px = PrecisionStopwatch.start();
 
-            for(int j = 0; j < 100000; j++) {
+            for (int j = 0; j < 100000; j++) {
                 in.interpolate(j + 10000, -j - 100000, np);
             }
 
@@ -346,7 +346,7 @@ public class CommandStudio implements DecreeExecutor {
 
         fileText.add("Noise Interpolator Performance Impacts: ");
 
-        for(InterpolationMethod i : interpolatorTimings.sortKNumber()) {
+        for (InterpolationMethod i : interpolatorTimings.sortKNumber()) {
             fileText.add(i.name() + ": " + interpolatorTimings.get(i));
         }
 
@@ -356,13 +356,13 @@ public class CommandStudio implements DecreeExecutor {
 
         KMap<String, KList<String>> btx = new KMap<>();
 
-        for(String i : data.getGeneratorLoader().getPossibleKeys()) {
+        for (String i : data.getGeneratorLoader().getPossibleKeys()) {
             KList<String> vv = new KList<>();
             IrisGenerator g = data.getGeneratorLoader().load(i);
             KList<IrisNoiseGenerator> composites = g.getAllComposites();
             double score = 0;
             int m = 0;
-            for(IrisNoiseGenerator j : composites) {
+            for (IrisNoiseGenerator j : composites) {
                 m++;
                 score += styleTimings.get(j.getStyle().getStyle());
                 vv.add("Composite Noise Style " + m + " " + j.getStyle().getStyle().name() + ": " + styleTimings.get(j.getStyle().getStyle()));
@@ -376,7 +376,7 @@ public class CommandStudio implements DecreeExecutor {
 
         fileText.add("Project Generator Performance Impacts: ");
 
-        for(String i : generatorTimings.sortKNumber()) {
+        for (String i : generatorTimings.sortKNumber()) {
             fileText.add(i + ": " + generatorTimings.get(i));
 
             btx.get(i).forEach((ii) -> fileText.add("  " + ii));
@@ -386,13 +386,13 @@ public class CommandStudio implements DecreeExecutor {
 
         KMap<String, KList<String>> bt = new KMap<>();
 
-        for(String i : data.getBiomeLoader().getPossibleKeys()) {
+        for (String i : data.getBiomeLoader().getPossibleKeys()) {
             KList<String> vv = new KList<>();
             IrisBiome b = data.getBiomeLoader().load(i);
             double score = 0;
 
             int m = 0;
-            for(IrisBiomePaletteLayer j : b.getLayers()) {
+            for (IrisBiomePaletteLayer j : b.getLayers()) {
                 m++;
                 score += styleTimings.get(j.getStyle().getStyle());
                 vv.add("Palette Layer " + m + ": " + styleTimings.get(j.getStyle().getStyle()));
@@ -408,7 +408,7 @@ public class CommandStudio implements DecreeExecutor {
 
         fileText.add("Project Biome Performance Impacts: ");
 
-        for(String i : biomeTimings.sortKNumber()) {
+        for (String i : biomeTimings.sortKNumber()) {
             fileText.add(i + ": " + biomeTimings.get(i));
 
             bt.get(i).forEach((ff) -> fileText.add("  " + ff));
@@ -416,7 +416,7 @@ public class CommandStudio implements DecreeExecutor {
 
         fileText.add("");
 
-        for(String i : data.getRegionLoader().getPossibleKeys()) {
+        for (String i : data.getRegionLoader().getPossibleKeys()) {
             IrisRegion b = data.getRegionLoader().load(i);
             double score = 0;
 
@@ -427,25 +427,25 @@ public class CommandStudio implements DecreeExecutor {
 
         fileText.add("Project Region Performance Impacts: ");
 
-        for(String i : regionTimings.sortKNumber()) {
+        for (String i : regionTimings.sortKNumber()) {
             fileText.add(i + ": " + regionTimings.get(i));
         }
 
         fileText.add("");
 
         double m = 0;
-        for(double i : biomeTimings.v()) {
+        for (double i : biomeTimings.v()) {
             m += i;
         }
         m /= biomeTimings.size();
         double mm = 0;
-        for(double i : generatorTimings.v()) {
+        for (double i : generatorTimings.v()) {
             mm += i;
         }
         mm /= generatorTimings.size();
         m += mm;
         double mmm = 0;
-        for(double i : regionTimings.v()) {
+        for (double i : regionTimings.v()) {
             mmm += i;
         }
         mmm /= regionTimings.size();
@@ -456,7 +456,7 @@ public class CommandStudio implements DecreeExecutor {
 
         try {
             IO.writeAll(report, fileText.toString("\n"));
-        } catch(IOException e) {
+        } catch (IOException e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
@@ -471,7 +471,7 @@ public class CommandStudio implements DecreeExecutor {
             @Param(description = "The location at which to spawn the entity", defaultValue = "self")
             Vector location
     ) {
-        if(!sender().isPlayer()) {
+        if (!sender().isPlayer()) {
             sender().sendMessage(C.RED + "Players only (this is a config error. Ask support to add DecreeOrigin.PLAYER to the command you tried to run)");
             return;
         }
@@ -482,12 +482,12 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Teleport to the active studio world", aliases = "stp", origin = DecreeOrigin.PLAYER, sync = true)
     public void tpstudio() {
-        if(!Iris.service(StudioSVC.class).isProjectOpen()) {
+        if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender().sendMessage(C.RED + "No studio world is open!");
             return;
         }
 
-        if(IrisToolbelt.isIrisWorld(world()) && engine().isStudio()) {
+        if (IrisToolbelt.isIrisWorld(world()) && engine().isStudio()) {
             sender().sendMessage(C.RED + "You are already in a studio world!");
             return;
         }
@@ -503,7 +503,7 @@ public class CommandStudio implements DecreeExecutor {
             IrisDimension dimension
     ) {
         sender().sendMessage(C.GOLD + "Updating Code Workspace for " + dimension.getName() + "...");
-        if(new IrisProject(dimension.getLoader().getDataFolder()).updateWorkspace()) {
+        if (new IrisProject(dimension.getLoader().getDataFolder()).updateWorkspace()) {
             sender().sendMessage(C.GREEN + "Updated Code Workspace for " + dimension.getName());
         } else {
             sender().sendMessage(C.RED + "Invalid project: " + dimension.getName() + ". Try deleting the code-workspace file and try again.");
@@ -512,14 +512,14 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(aliases = "find-objects", description = "Get information about nearby structures")
     public void objects() {
-        if(!IrisToolbelt.isIrisWorld(player().getWorld())) {
+        if (!IrisToolbelt.isIrisWorld(player().getWorld())) {
             sender().sendMessage(C.RED + "You must be in an Iris world");
             return;
         }
 
         World world = player().getWorld();
 
-        if(!IrisToolbelt.isIrisWorld(world)) {
+        if (!IrisToolbelt.isIrisWorld(world)) {
             sender().sendMessage("You must be in an iris world.");
             return;
         }
@@ -533,7 +533,7 @@ public class CommandStudio implements DecreeExecutor {
             int cx = l.getChunk().getX();
             int cz = l.getChunk().getZ();
             new Spiraler(3, 3, (x, z) -> chunks.addIfMissing(world.getChunkAt(x + cx, z + cz))).drain();
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
         }
 
@@ -551,7 +551,7 @@ public class CommandStudio implements DecreeExecutor {
             pw.println("Report Captured At: " + new Date());
             pw.println("Chunks: (" + chunks.size() + "): ");
 
-            for(Chunk i : chunks) {
+            for (Chunk i : chunks) {
                 pw.println("- [" + i.getX() + ", " + i.getZ() + "]");
             }
 
@@ -560,19 +560,19 @@ public class CommandStudio implements DecreeExecutor {
             String age = "No idea...";
 
             try {
-                for(File i : Objects.requireNonNull(new File(world.getWorldFolder(), "region").listFiles())) {
-                    if(i.isFile()) {
+                for (File i : Objects.requireNonNull(new File(world.getWorldFolder(), "region").listFiles())) {
+                    if (i.isFile()) {
                         size += i.length();
                     }
                 }
-            } catch(Throwable e) {
+            } catch (Throwable e) {
                 Iris.reportError(e);
             }
 
             try {
                 FileTime creationTime = (FileTime) Files.getAttribute(world.getWorldFolder().toPath(), "creationTime");
                 age = hrf(Duration.of(M.ms() - creationTime.toMillis(), ChronoUnit.MILLIS));
-            } catch(IOException e) {
+            } catch (IOException e) {
                 Iris.reportError(e);
             }
 
@@ -580,10 +580,10 @@ public class CommandStudio implements DecreeExecutor {
             KList<String> caveBiomes = new KList<>();
             KMap<String, KMap<String, KList<String>>> objects = new KMap<>();
 
-            for(Chunk i : chunks) {
-                for(int j = 0; j < 16; j += 3) {
+            for (Chunk i : chunks) {
+                for (int j = 0; j < 16; j += 3) {
 
-                    for(int k = 0; k < 16; k += 3) {
+                    for (int k = 0; k < 16; k += 3) {
 
                         assert engine() != null;
                         IrisBiome bb = engine().getSurfaceBiome((i.getX() * 16) + j, (i.getZ() * 16) + k);
@@ -610,20 +610,20 @@ public class CommandStudio implements DecreeExecutor {
             pw.println("== Biome Info ==");
             pw.println("Found " + biomes.size() + " Biome(s): ");
 
-            for(String i : biomes) {
+            for (String i : biomes) {
                 pw.println("- " + i);
             }
             pw.println();
 
             pw.println("== Object Info ==");
 
-            for(String i : objects.k()) {
+            for (String i : objects.k()) {
                 pw.println("- " + i);
 
-                for(String j : objects.get(i).k()) {
+                for (String j : objects.get(i).k()) {
                     pw.println("  @ " + j);
 
-                    for(String k : objects.get(i).get(j)) {
+                    for (String k : objects.get(i).get(j)) {
                         pw.println("    * " + k);
                     }
                 }
@@ -633,7 +633,7 @@ public class CommandStudio implements DecreeExecutor {
             pw.close();
 
             sender().sendMessage("Reported to: " + ff.getPath());
-        } catch(FileNotFoundException e) {
+        } catch (FileNotFoundException e) {
             e.printStackTrace();
             Iris.reportError(e);
         }
@@ -643,15 +643,15 @@ public class CommandStudio implements DecreeExecutor {
         String n1 = bb.getName() + " [" + Form.capitalize(bb.getInferredType().name().toLowerCase()) + "] " + " (" + bb.getLoadFile().getName() + ")";
         int m = 0;
         KSet<String> stop = new KSet<>();
-        for(IrisObjectPlacement f : bb.getObjects()) {
+        for (IrisObjectPlacement f : bb.getObjects()) {
             m++;
             String n2 = "Placement #" + m + " (" + f.getPlace().size() + " possible objects)";
 
-            for(String i : f.getPlace()) {
+            for (String i : f.getPlace()) {
                 String nn3 = i + ": [ERROR] Failed to find object!";
 
                 try {
-                    if(stop.contains(i)) {
+                    if (stop.contains(i)) {
                         continue;
                     }
 
@@ -659,7 +659,7 @@ public class CommandStudio implements DecreeExecutor {
                     BlockVector sz = IrisObject.sampleSize(ff);
                     nn3 = i + ": size=[" + sz.getBlockX() + "," + sz.getBlockY() + "," + sz.getBlockZ() + "] location=[" + ff.getPath() + "]";
                     stop.add(i);
-                } catch(Throwable e) {
+                } catch (Throwable e) {
                     Iris.reportError(e);
                 }
 
@@ -674,7 +674,7 @@ public class CommandStudio implements DecreeExecutor {
      * @return true if server GUIs are not enabled
      */
     private boolean noGUI() {
-        if(!IrisSettings.get().getGui().isUseServerLaunchedGuis()) {
+        if (!IrisSettings.get().getGui().isUseServerLaunchedGuis()) {
             sender().sendMessage(C.RED + "You must have server launched GUIs enabled in the settings!");
             return true;
         }
@@ -685,15 +685,15 @@ public class CommandStudio implements DecreeExecutor {
      * @return true if no studio is open or the player is not in one
      */
     private boolean noStudio() {
-        if(!sender().isPlayer()) {
+        if (!sender().isPlayer()) {
             sender().sendMessage(C.RED + "Players only!");
             return true;
         }
-        if(!Iris.service(StudioSVC.class).isProjectOpen()) {
+        if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender().sendMessage(C.RED + "No studio world is open!");
             return true;
         }
-        if(!engine().isStudio()) {
+        if (!engine().isStudio()) {
             sender().sendMessage(C.RED + "You must be in a studio world!");
             return true;
         }
@@ -702,14 +702,14 @@ public class CommandStudio implements DecreeExecutor {
 
 
     public void files(File clean, KList<File> files) {
-        if(clean.isDirectory()) {
-            for(File i : clean.listFiles()) {
+        if (clean.isDirectory()) {
+            for (File i : clean.listFiles()) {
                 files(i, files);
             }
-        } else if(clean.getName().endsWith(".json")) {
+        } else if (clean.getName().endsWith(".json")) {
             try {
                 files.add(clean);
-            } catch(Throwable e) {
+            } catch (Throwable e) {
                 Iris.reportError(e);
                 Iris.error("Failed to beautify " + clean.getAbsolutePath() + " You may have errors in your json!");
             }
@@ -717,28 +717,28 @@ public class CommandStudio implements DecreeExecutor {
     }
 
     private void fixBlocks(JSONObject obj) {
-        for(String i : obj.keySet()) {
+        for (String i : obj.keySet()) {
             Object o = obj.get(i);
 
-            if(i.equals("block") && o instanceof String && !o.toString().trim().isEmpty() && !o.toString().contains(":")) {
+            if (i.equals("block") && o instanceof String && !o.toString().trim().isEmpty() && !o.toString().contains(":")) {
                 obj.put(i, "minecraft:" + o);
             }
 
-            if(o instanceof JSONObject) {
+            if (o instanceof JSONObject) {
                 fixBlocks((JSONObject) o);
-            } else if(o instanceof JSONArray) {
+            } else if (o instanceof JSONArray) {
                 fixBlocks((JSONArray) o);
             }
         }
     }
 
     private void fixBlocks(JSONArray obj) {
-        for(int i = 0; i < obj.length(); i++) {
+        for (int i = 0; i < obj.length(); i++) {
             Object o = obj.get(i);
 
-            if(o instanceof JSONObject) {
+            if (o instanceof JSONObject) {
                 fixBlocks((JSONObject) o);
-            } else if(o instanceof JSONArray) {
+            } else if (o instanceof JSONArray) {
                 fixBlocks((JSONArray) o);
             }
         }

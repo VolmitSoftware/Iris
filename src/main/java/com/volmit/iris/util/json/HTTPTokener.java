@@ -31,8 +31,7 @@ public class HTTPTokener extends JSONTokener {
     /**
      * Construct an HTTPTokener from a string.
      *
-     * @param string
-     *     A source string.
+     * @param string A source string.
      */
     public HTTPTokener(String string) {
         super(string);
@@ -49,22 +48,22 @@ public class HTTPTokener extends JSONTokener {
         StringBuilder sb = new StringBuilder();
         do {
             c = next();
-        } while(Character.isWhitespace(c));
-        if(c == '"' || c == '\'') {
+        } while (Character.isWhitespace(c));
+        if (c == '"' || c == '\'') {
             q = c;
-            for(; ; ) {
+            for (; ; ) {
                 c = next();
-                if(c < ' ') {
+                if (c < ' ') {
                     throw syntaxError("Unterminated string.");
                 }
-                if(c == q) {
+                if (c == q) {
                     return sb.toString();
                 }
                 sb.append(c);
             }
         }
-        for(; ; ) {
-            if(c == 0 || Character.isWhitespace(c)) {
+        for (; ; ) {
+            if (c == 0 || Character.isWhitespace(c)) {
                 return sb.toString();
             }
             sb.append(c);

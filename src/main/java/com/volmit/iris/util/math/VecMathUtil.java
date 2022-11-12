@@ -44,14 +44,13 @@ class VecMathUtil {
      * which has a field with a value of -0.0f and the other of which
      * has a cooresponding field with a value of 0.0f.
      *
-     * @param f
-     *     an input floating-point number
+     * @param f an input floating-point number
      * @return the integer bits representing that floating-point
      * number, after first mapping -0.0f to 0.0f
      */
     static int floatToIntBits(float f) {
         // Check for +0 or -0
-        if(f == 0.0f) {
+        if (f == 0.0f) {
             return 0;
         } else {
             return Float.floatToIntBits(f);
@@ -73,14 +72,13 @@ class VecMathUtil {
      * which has a field with a value of -0.0 and the other of which
      * has a cooresponding field with a value of 0.0.
      *
-     * @param d
-     *     an input double precision floating-point number
+     * @param d an input double precision floating-point number
      * @return the integer bits representing that floating-point
      * number, after first mapping -0.0f to 0.0f
      */
     static long doubleToLongBits(double d) {
         // Check for +0 or -0
-        if(d == 0.0) {
+        if (d == 0.0) {
             return 0L;
         } else {
             return Double.doubleToLongBits(d);

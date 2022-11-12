@@ -60,7 +60,7 @@ public class IrisWorm {
 
     @Desc("The thickness of the worms. Each individual worm has the same thickness while traveling however, each spawned worm will vary in thickness.")
     private IrisStyledRange girth = new IrisStyledRange().setMin(3).setMax(5)
-        .setStyle(new IrisGeneratorStyle(NoiseStyle.PERLIN));
+            .setStyle(new IrisGeneratorStyle(NoiseStyle.PERLIN));
 
     public KList<IrisPosition> generate(RNG rng, IrisData data, MantleWriter writer, IrisRange verticalRange, int x, int y, int z, Consumer<IrisPosition> fork) {
         int itr = maxIterations;
@@ -75,12 +75,12 @@ public class IrisWorm {
         CNG gy = xStyle.getGenerator().createNoCache(new RNG(rng.lmax()), data);
         CNG gz = xStyle.getGenerator().createNoCache(new RNG(rng.lmax()), data);
 
-        while(itr-- > 0) {
+        while (itr-- > 0) {
             IrisPosition current = new IrisPosition(Math.round(cx), Math.round(cy), Math.round(cz));
             fork.accept(current);
             pos.add(current);
 
-            if(check != null) {
+            if (check != null) {
                 check.add(current);
             }
 
@@ -92,19 +92,19 @@ public class IrisWorm {
             cz += jz;
             IrisPosition next = new IrisPosition(Math.round(cx), Math.round(cy), Math.round(cz));
 
-            if(verticalRange != null && !verticalRange.contains(next.getY())) {
+            if (verticalRange != null && !verticalRange.contains(next.getY())) {
                 break;
             }
 
-            if(!writer.isWithin((int) Math.round(cx), verticalRange != null ? (int) Math.round(cy) : 5, (int) Math.round(cz))) {
+            if (!writer.isWithin((int) Math.round(cx), verticalRange != null ? (int) Math.round(cy) : 5, (int) Math.round(cz))) {
                 break;
             }
 
-            if(next.isLongerThan(start, maxDistance)) {
+            if (next.isLongerThan(start, maxDistance)) {
                 break;
             }
 
-            if(check != null && check.contains(next)) {
+            if (check != null && check.contains(next)) {
                 break;
             }
         }

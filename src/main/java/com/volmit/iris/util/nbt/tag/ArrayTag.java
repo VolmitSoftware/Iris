@@ -24,14 +24,13 @@ import java.lang.reflect.Array;
  * ArrayTag is an abstract representation of any NBT array tag.
  * For implementations see {@link ByteArrayTag}, {@link IntArrayTag}, {@link LongArrayTag}.
  *
- * @param <T>
- *     The array type.
+ * @param <T> The array type.
  */
 public abstract class ArrayTag<T> extends Tag<T> {
 
     public ArrayTag(T value) {
         super(value);
-        if(!value.getClass().isArray()) {
+        if (!value.getClass().isArray()) {
             throw new UnsupportedOperationException("type of array tag must be an array");
         }
     }
@@ -57,7 +56,7 @@ public abstract class ArrayTag<T> extends Tag<T> {
 
     protected String arrayToString(@SuppressWarnings("SameParameterValue") String prefix, @SuppressWarnings("SameParameterValue") String suffix) {
         StringBuilder sb = new StringBuilder("[").append(prefix).append("".equals(prefix) ? "" : ";");
-        for(int i = 0; i < length(); i++) {
+        for (int i = 0; i < length(); i++) {
             sb.append(i == 0 ? "" : ",").append(Array.get(getValue(), i)).append(suffix);
         }
         sb.append("]");

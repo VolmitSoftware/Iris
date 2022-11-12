@@ -44,24 +44,23 @@ public enum IrisSurface {
     /**
      * Check if this Iris surface matches the blockstate provided
      *
-     * @param state
-     *     The blockstate
+     * @param state The blockstate
      * @return True if it matches
      */
     public boolean matches(Block state) {
         Material type = state.getType();
-        if(type.isSolid()) {
+        if (type.isSolid()) {
             return this == LAND || this == OVERWORLD || (this == ANIMAL
-                && (type == Material.GRASS_BLOCK || type == Material.DIRT
-                || type == Material.DIRT_PATH || type == Material.COARSE_DIRT
-                || type == Material.ROOTED_DIRT || type == Material.PODZOL
-                || type == Material.MYCELIUM || type == Material.SNOW_BLOCK));
+                    && (type == Material.GRASS_BLOCK || type == Material.DIRT
+                    || type == Material.DIRT_PATH || type == Material.COARSE_DIRT
+                    || type == Material.ROOTED_DIRT || type == Material.PODZOL
+                    || type == Material.MYCELIUM || type == Material.SNOW_BLOCK));
         }
-        if(type == Material.LAVA) return this == LAVA;
-        if(type == Material.WATER || type == Material.SEAGRASS
-            || type == Material.TALL_SEAGRASS || type == Material.KELP_PLANT
-            || type == Material.KELP ||
-            (state instanceof Waterlogged && ((Waterlogged) state).isWaterlogged()))
+        if (type == Material.LAVA) return this == LAVA;
+        if (type == Material.WATER || type == Material.SEAGRASS
+                || type == Material.TALL_SEAGRASS || type == Material.KELP_PLANT
+                || type == Material.KELP ||
+                (state instanceof Waterlogged && ((Waterlogged) state).isWaterlogged()))
             return this == WATER || this == OVERWORLD;
 
         return false;

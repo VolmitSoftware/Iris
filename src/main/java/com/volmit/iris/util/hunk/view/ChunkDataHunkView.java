@@ -49,7 +49,7 @@ public class ChunkDataHunkView implements Hunk<BlockData> {
 
     @Override
     public void set(int x1, int y1, int z1, int x2, int y2, int z2, BlockData t) {
-        if(t == null) {
+        if (t == null) {
             return;
         }
 
@@ -67,17 +67,14 @@ public class ChunkDataHunkView implements Hunk<BlockData> {
 
     @Override
     public void setRaw(int x, int y, int z, BlockData t) {
-        if(t == null) {
+        if (t == null) {
             return;
         }
 
         try {
 
             chunk.setBlock(x, y + chunk.getMinHeight(), z, t);
-        }
-
-        catch(Throwable ignored)
-        {
+        } catch (Throwable ignored) {
 
         }
     }
@@ -87,10 +84,7 @@ public class ChunkDataHunkView implements Hunk<BlockData> {
         try {
 
             return chunk.getBlockData(x, y + chunk.getMinHeight(), z);
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
 
         }
 

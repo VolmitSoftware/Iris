@@ -172,14 +172,14 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private KList<IrisOreGenerator> ores = new KList<>();
 
     public BlockData generateOres(int x, int y, int z, RNG rng, IrisData data) {
-        if(ores.isEmpty()) {
+        if (ores.isEmpty()) {
             return null;
         }
         BlockData b = null;
-        for(IrisOreGenerator i : ores) {
+        for (IrisOreGenerator i : ores) {
 
             b = i.generate(x, y, z, rng, data);
-            if(b != null) {
+            if (b != null) {
                 return b;
             }
         }
@@ -199,7 +199,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         {
             KMap<String, Integer> l = new KMap<>();
 
-            for(IrisBiomeGeneratorLink i : getGenerators()) {
+            for (IrisBiomeGeneratorLink i : getGenerators()) {
                 l.put(i.getGenerator(), i.getMax());
             }
 
@@ -214,7 +214,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         {
             KMap<String, Integer> l = new KMap<>();
 
-            for(IrisBiomeGeneratorLink i : getGenerators()) {
+            for (IrisBiomeGeneratorLink i : getGenerators()) {
                 l.put(i.getGenerator(), i.getMin());
             }
 
@@ -229,7 +229,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         {
             KMap<String, IrisBiomeGeneratorLink> l = new KMap<>();
 
-            for(IrisBiomeGeneratorLink i : getGenerators()) {
+            for (IrisBiomeGeneratorLink i : getGenerators()) {
                 l.put(i.getGenerator(), i);
             }
 
@@ -242,7 +242,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         {
             IrisBiome biome = data.getBiomeLoader().load(getCarvingBiome());
 
-            if(biome == null) {
+            if (biome == null) {
                 biome = this;
             }
 
@@ -255,8 +255,8 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         {
             KList<IrisObjectPlacement> o = getObjects().copy();
 
-            for(IrisObjectPlacement i : o.copy()) {
-                if(!i.getCarvingSupport().supportsSurface()) {
+            for (IrisObjectPlacement i : o.copy()) {
+                if (!i.getCarvingSupport().supportsSurface()) {
                     o.remove(i);
                 }
             }
@@ -270,8 +270,8 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         {
             KList<IrisObjectPlacement> o = getObjects().copy();
 
-            for(IrisObjectPlacement i : o.copy()) {
-                if(!i.getCarvingSupport().supportsCarving()) {
+            for (IrisObjectPlacement i : o.copy()) {
+                if (!i.getCarvingSupport().supportsCarving()) {
                     o.remove(i);
                 }
             }
@@ -283,7 +283,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     public double getHeight(Engine xg, double x, double z, long seed) {
         double height = 0;
 
-        for(IrisBiomeGeneratorLink i : generators) {
+        for (IrisBiomeGeneratorLink i : generators) {
             height += i.getHeight(xg, x, z, seed);
         }
 
@@ -292,7 +292,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     public CNG getBiomeGenerator(RNG random) {
         return biomeGenerator.aquire(() ->
-            biomeStyle.create(random.nextParallelRNG(213949 + 228888 + getRarity() + getName().length()), getLoader()));
+                biomeStyle.create(random.nextParallelRNG(213949 + 228888 + getRarity() + getName().length()), getLoader()));
     }
 
     public CNG getChildrenGenerator(RNG random, int sig, double scale) {
@@ -300,54 +300,54 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     }
 
     public KList<BlockData> generateLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
-        if(isLockLayers()) {
+        if (isLockLayers()) {
             return generateLockedLayers(wx, wz, random, maxDepth, height, rdata, complex);
         }
 
         KList<BlockData> data = new KList<>();
 
-        if(maxDepth <= 0) {
+        if (maxDepth <= 0) {
             return data;
         }
 
-        for(int i = 0; i < layers.size(); i++) {
+        for (int i = 0; i < layers.size(); i++) {
             CNG hgen = getLayerHeightGenerators(random, rdata).get(i);
             double d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getZoom(), wz / layers.get(i).getZoom());
 
             IrisSlopeClip sc = getLayers().get(i).getSlopeCondition();
 
-            if(!sc.isDefault()) {
-                if(!sc.isValid(complex.getSlopeStream().get(wx, wz))) {
+            if (!sc.isDefault()) {
+                if (!sc.isValid(complex.getSlopeStream().get(wx, wz))) {
                     d = 0;
                 }
             }
 
-            if(d <= 0) {
+            if (d <= 0) {
                 continue;
             }
 
-            for(int j = 0; j < d; j++) {
-                if(data.size() >= maxDepth) {
+            for (int j = 0; j < d; j++) {
+                if (data.size() >= maxDepth) {
                     break;
                 }
 
                 try {
                     data.add(getLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getZoom(), j, (wz - j) / layers.get(i).getZoom(), rdata));
-                } catch(Throwable e) {
+                } catch (Throwable e) {
                     Iris.reportError(e);
                     e.printStackTrace();
                 }
             }
 
-            if(data.size() >= maxDepth) {
+            if (data.size() >= maxDepth) {
                 break;
             }
 
-            if(dim.isExplodeBiomePalettes()) {
-                for(int j = 0; j < dim.getExplodeBiomePaletteSize(); j++) {
+            if (dim.isExplodeBiomePalettes()) {
+                for (int j = 0; j < dim.getExplodeBiomePaletteSize(); j++) {
                     data.add(BARRIER);
 
-                    if(data.size() >= maxDepth) {
+                    if (data.size() >= maxDepth) {
                         break;
                     }
                 }
@@ -360,40 +360,40 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     public KList<BlockData> generateCeilingLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
         KList<BlockData> data = new KList<>();
 
-        if(maxDepth <= 0) {
+        if (maxDepth <= 0) {
             return data;
         }
 
-        for(int i = 0; i < caveCeilingLayers.size(); i++) {
+        for (int i = 0; i < caveCeilingLayers.size(); i++) {
             CNG hgen = getLayerHeightGenerators(random, rdata).get(i);
             double d = hgen.fit(caveCeilingLayers.get(i).getMinHeight(), caveCeilingLayers.get(i).getMaxHeight(), wx / caveCeilingLayers.get(i).getZoom(), wz / caveCeilingLayers.get(i).getZoom());
 
-            if(d <= 0) {
+            if (d <= 0) {
                 continue;
             }
 
-            for(int j = 0; j < d; j++) {
-                if(data.size() >= maxDepth) {
+            for (int j = 0; j < d; j++) {
+                if (data.size() >= maxDepth) {
                     break;
                 }
 
                 try {
                     data.add(getCaveCeilingLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / caveCeilingLayers.get(i).getZoom(), j, (wz - j) / caveCeilingLayers.get(i).getZoom(), rdata));
-                } catch(Throwable e) {
+                } catch (Throwable e) {
                     Iris.reportError(e);
                     e.printStackTrace();
                 }
             }
 
-            if(data.size() >= maxDepth) {
+            if (data.size() >= maxDepth) {
                 break;
             }
 
-            if(dim.isExplodeBiomePalettes()) {
-                for(int j = 0; j < dim.getExplodeBiomePaletteSize(); j++) {
+            if (dim.isExplodeBiomePalettes()) {
+                for (int j = 0; j < dim.getExplodeBiomePaletteSize(); j++) {
                     data.add(BARRIER);
 
-                    if(data.size() >= maxDepth) {
+                    if (data.size() >= maxDepth) {
                         break;
                     }
                 }
@@ -407,41 +407,41 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         KList<BlockData> data = new KList<>();
         KList<BlockData> real = new KList<>();
         int maxDepth = Math.min(maxDepthf, getLockLayersMax());
-        if(maxDepth <= 0) {
+        if (maxDepth <= 0) {
             return data;
         }
 
-        for(int i = 0; i < layers.size(); i++) {
+        for (int i = 0; i < layers.size(); i++) {
             CNG hgen = getLayerHeightGenerators(random, rdata).get(i);
             double d = hgen.fit(layers.get(i).getMinHeight(), layers.get(i).getMaxHeight(), wx / layers.get(i).getZoom(), wz / layers.get(i).getZoom());
 
             IrisSlopeClip sc = getLayers().get(i).getSlopeCondition();
 
-            if(!sc.isDefault()) {
-                if(!sc.isValid(complex.getSlopeStream().get(wx, wz))) {
+            if (!sc.isDefault()) {
+                if (!sc.isValid(complex.getSlopeStream().get(wx, wz))) {
                     d = 0;
                 }
             }
 
-            if(d <= 0) {
+            if (d <= 0) {
                 continue;
             }
 
-            for(int j = 0; j < d; j++) {
+            for (int j = 0; j < d; j++) {
                 try {
                     data.add(getLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / layers.get(i).getZoom(), j, (wz - j) / layers.get(i).getZoom(), rdata));
-                } catch(Throwable e) {
+                } catch (Throwable e) {
                     Iris.reportError(e);
                     e.printStackTrace();
                 }
             }
         }
 
-        if(data.isEmpty()) {
+        if (data.isEmpty()) {
             return real;
         }
 
-        for(int i = 0; i < maxDepth; i++) {
+        for (int i = 0; i < maxDepth; i++) {
             int offset = (512 - height) - i;
             int index = offset % data.size();
             real.add(data.get(Math.max(index, 0)));
@@ -455,7 +455,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         {
             int maxHeight = 0;
 
-            for(IrisBiomeGeneratorLink i : getGenerators()) {
+            for (IrisBiomeGeneratorLink i : getGenerators()) {
                 maxHeight += i.getMax();
             }
 
@@ -468,14 +468,14 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         {
             int maxHeight = 0;
 
-            for(IrisBiomeGeneratorLink i : getGenerators()) {
+            for (IrisBiomeGeneratorLink i : getGenerators()) {
                 maxHeight += i.getMax();
             }
 
             int gg = 0;
 
-            for(IrisObjectPlacement i : getObjects()) {
-                for(IrisObject j : data.getObjectLoader().loadAll(i.getPlace())) {
+            for (IrisObjectPlacement i : getObjects()) {
+                for (IrisObject j : data.getObjectLoader().loadAll(i.getPlace())) {
                     gg = Math.max(gg, j.getH());
                 }
             }
@@ -492,28 +492,28 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     public KList<BlockData> generateSeaLayers(double wx, double wz, RNG random, int maxDepth, IrisData rdata) {
         KList<BlockData> data = new KList<>();
 
-        for(int i = 0; i < seaLayers.size(); i++) {
+        for (int i = 0; i < seaLayers.size(); i++) {
             CNG hgen = getLayerSeaHeightGenerators(random, rdata).get(i);
             int d = hgen.fit(seaLayers.get(i).getMinHeight(), seaLayers.get(i).getMaxHeight(), wx / seaLayers.get(i).getZoom(), wz / seaLayers.get(i).getZoom());
 
-            if(d < 0) {
+            if (d < 0) {
                 continue;
             }
 
-            for(int j = 0; j < d; j++) {
-                if(data.size() >= maxDepth) {
+            for (int j = 0; j < d; j++) {
+                if (data.size() >= maxDepth) {
                     break;
                 }
 
                 try {
                     data.add(getSeaLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / seaLayers.get(i).getZoom(), j, (wz - j) / seaLayers.get(i).getZoom(), rdata));
-                } catch(Throwable e) {
+                } catch (Throwable e) {
                     Iris.reportError(e);
                     e.printStackTrace();
                 }
             }
 
-            if(data.size() >= maxDepth) {
+            if (data.size() >= maxDepth) {
                 break;
             }
         }
@@ -528,7 +528,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
             int m = 7235;
 
-            for(IrisBiomePaletteLayer i : getLayers()) {
+            for (IrisBiomePaletteLayer i : getLayers()) {
                 layerHeightGenerators.add(i.getHeightGenerator(rng.nextParallelRNG((m++) * m * m * m), rdata));
             }
 
@@ -543,7 +543,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
             int m = 7735;
 
-            for(IrisBiomePaletteLayer i : getSeaLayers()) {
+            for (IrisBiomePaletteLayer i : getSeaLayers()) {
                 layerSeaHeightGenerators.add(i.getHeightGenerator(rng.nextParallelRNG((m++) * m * m * m), data));
             }
 
@@ -552,7 +552,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     }
 
     public boolean isLand() {
-        if(inferredType == null) {
+        if (inferredType == null) {
             return true;
         }
 
@@ -560,7 +560,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     }
 
     public boolean isSea() {
-        if(inferredType == null) {
+        if (inferredType == null) {
             return false;
         }
         return inferredType.equals(InferredType.SEA);
@@ -572,18 +572,18 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isShore() {
-        if(inferredType == null) {
+        if (inferredType == null) {
             return false;
         }
         return inferredType.equals(InferredType.SHORE);
     }
 
     public Biome getSkyBiome(RNG rng, double x, double y, double z) {
-        if(biomeSkyScatter.size() == 1) {
+        if (biomeSkyScatter.size() == 1) {
             return biomeSkyScatter.get(0);
         }
 
-        if(biomeSkyScatter.isEmpty()) {
+        if (biomeSkyScatter.isEmpty()) {
             return getGroundBiome(rng, x, y, z);
         }
 
@@ -591,7 +591,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     }
 
     public IrisBiomeCustom getCustomBiome(RNG rng, double x, double y, double z) {
-        if(customDerivitives.size() == 1) {
+        if (customDerivitives.size() == 1) {
             return customDerivitives.get(0);
         }
 
@@ -603,7 +603,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         {
             KList<IrisBiome> realChildren = new KList<>();
 
-            for(String i : getChildren()) {
+            for (String i : getChildren()) {
                 realChildren.add(g.getData().getBiomeLoader().load(i));
             }
 
@@ -616,8 +616,8 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         m.addAll(getChildren());
         limit--;
 
-        if(limit > 0) {
-            for(String i : getChildren()) {
+        if (limit > 0) {
+            for (String i : getChildren()) {
                 IrisBiome b = g.getData().getBiomeLoader().load(i);
                 m.addAll(b.getAllChildren(g, limit));
             }
@@ -628,11 +628,11 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     //TODO: Test
     public Biome getGroundBiome(RNG rng, double x, double y, double z) {
-        if(biomeScatter.isEmpty()) {
+        if (biomeScatter.isEmpty()) {
             return getDerivative();
         }
 
-        if(biomeScatter.size() == 1) {
+        if (biomeScatter.size() == 1) {
             return biomeScatter.get(0);
         }
 
@@ -640,7 +640,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     }
 
     public BlockData getSurfaceBlock(int x, int z, RNG rng, IrisData idm) {
-        if(getLayers().isEmpty()) {
+        if (getLayers().isEmpty()) {
             return B.get("AIR");
         }
 
@@ -648,12 +648,12 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     }
 
     public Color getColor(Engine engine, RenderType type) {
-        switch(type) {
+        switch (type) {
             case BIOME, HEIGHT, CAVE_LAND, REGION, BIOME_SEA, BIOME_LAND -> {
                 return this.cacheColor.aquire(() -> {
-                    if(this.color == null) {
+                    if (this.color == null) {
                         RandomColor randomColor = new RandomColor(getName().hashCode());
-                        if(this.getVanillaDerivative() == null) {
+                        if (this.getVanillaDerivative() == null) {
                             Iris.warn("No vanilla biome found for " + getName());
                             return new Color(randomColor.randomColor());
                         }
@@ -667,7 +667,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
                     try {
                         return Color.decode(this.color);
-                    } catch(NumberFormatException e) {
+                    } catch (NumberFormatException e) {
                         Iris.warn("Could not parse color \"" + this.color + "\" for biome " + getName());
                         return new Color(new RandomColor(getName().hashCode()).randomColor());
                     }
@@ -677,7 +677,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
                 return cacheColorObjectDensity.aquire(() -> {
                     double density = 0;
 
-                    for(IrisObjectPlacement i : getObjects()) {
+                    for (IrisObjectPlacement i : getObjects()) {
                         density += i.getDensity() * i.getChance();
                     }
 
@@ -688,7 +688,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
                 return cacheColorDecoratorLoad.aquire(() -> {
                     double density = 0;
 
-                    for(IrisDecorator i : getDecorators()) {
+                    for (IrisDecorator i : getDecorators()) {
                         density += i.getChance() * Math.min(1, i.getStackMax()) * 256;
                     }
 

@@ -31,20 +31,17 @@ public abstract class DataBitCache<T> implements ArrayCache<T> {
     private final int height;
     private final DataContainer<T> cache;
 
-    public DataBitCache(int width, int height)
-    {
+    public DataBitCache(int width, int height) {
         this.width = width;
         this.height = height;
         cache = new DataContainer<>(this, width * height);
     }
 
-    public void set(int i, T v)
-    {
+    public void set(int i, T v) {
         cache.set(i, v);
     }
 
-    public T get(int i)
-    {
+    public T get(int i) {
         return cache.get(i);
     }
 

@@ -48,7 +48,7 @@ public abstract class NibbleDataPalette<T> implements Writable {
         o.writeByte(bpb + Byte.MIN_VALUE);
         o.writeByte(palette.size() + Byte.MIN_VALUE);
 
-        for(T i : palette) {
+        for (T i : palette) {
             writeType(i, o);
         }
 
@@ -61,7 +61,7 @@ public abstract class NibbleDataPalette<T> implements Writable {
         palette = new KList<>();
         int v = i.readByte() - Byte.MIN_VALUE;
 
-        for(int j = 0; j < v; j++) {
+        for (int j = 0; j < v; j++) {
             palette.add(readType(i));
         }
 
@@ -69,7 +69,7 @@ public abstract class NibbleDataPalette<T> implements Writable {
     }
 
     private void expand() {
-        if(bpb < 8) {
+        if (bpb < 8) {
             changeBitsPerBlock(bpb + 1);
         } else {
             throw new IndexOutOfBoundsException("The Data Palette can only handle at most 256 block types per 16x16x16 region. We cannot use more than 8 bits per block!");
@@ -80,8 +80,8 @@ public abstract class NibbleDataPalette<T> implements Writable {
         int targetBits = bpb;
         int needed = palette.size();
 
-        for(int i = 1; i < bpb; i++) {
-            if(Math.pow(2, i) > needed) {
+        for (int i = 1; i < bpb; i++) {
+            if (Math.pow(2, i) > needed) {
                 targetBits = i;
                 break;
             }
@@ -106,11 +106,11 @@ public abstract class NibbleDataPalette<T> implements Writable {
     private int getPaletteId(T d) {
         int index = palette.indexOf(d);
 
-        if(index == -1) {
+        if (index == -1) {
             index = palette.size();
             palette.add(d);
 
-            if(palette.size() > Math.pow(2, bpb)) {
+            if (palette.size() > Math.pow(2, bpb)) {
                 expand();
             }
         }

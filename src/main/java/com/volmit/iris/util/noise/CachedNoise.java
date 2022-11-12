@@ -22,21 +22,21 @@ public class CachedNoise implements NoiseGenerator {
     private final CachedNoiseMap n;
 
     public CachedNoise(NoiseGenerator generator, int size) {
-     n = new CachedNoiseMap(size, generator);
+        n = new CachedNoiseMap(size, generator);
     }
 
     @Override
     public double noise(double x) {
-        return n.get((int)Math.round(x), 0);
+        return n.get((int) Math.round(x), 0);
     }
 
     @Override
     public double noise(double x, double z) {
-        return n.get((int)Math.round(x),(int)Math.round(z));
+        return n.get((int) Math.round(x), (int) Math.round(z));
     }
 
     @Override
     public double noise(double x, double y, double z) {
-        return n.get((int)Math.round(x),(int)Math.round(z));
+        return n.get((int) Math.round(x), (int) Math.round(z));
     }
 }

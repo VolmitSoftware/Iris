@@ -53,10 +53,10 @@ public class IrisObjectLoot {
         {
             KList<BlockData> b = new KList<>();
 
-            for(IrisBlockData i : filter) {
+            for (IrisBlockData i : filter) {
                 BlockData bx = i.getBlockData(rdata);
 
-                if(bx != null) {
+                if (bx != null) {
                     b.add(bx);
                 }
             }
@@ -66,8 +66,8 @@ public class IrisObjectLoot {
     }
 
     public boolean matchesFilter(IrisData manager, BlockData data) {
-        for(BlockData filterData : getFilter(manager)) {
-            if(filterData.matches(data)) return true;
+        for (BlockData filterData : getFilter(manager)) {
+            if (filterData.matches(data)) return true;
         }
         return false;
     }

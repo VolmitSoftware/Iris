@@ -40,7 +40,7 @@ public class ChronoLatch {
     }
 
     public boolean flip() {
-        if(System.currentTimeMillis() - since > interval) {
+        if (System.currentTimeMillis() - since > interval) {
             since = System.currentTimeMillis();
             return true;
         }

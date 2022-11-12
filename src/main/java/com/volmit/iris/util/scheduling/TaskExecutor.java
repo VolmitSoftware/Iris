@@ -39,7 +39,7 @@ public class TaskExecutor {
     public TaskExecutor(int threadLimit, int priority, String name) {
         xc = 1;
 
-        if(threadLimit == 1) {
+        if (threadLimit == 1) {
             service = Executors.newSingleThreadExecutor((r) ->
             {
                 Thread t = new Thread(r);
@@ -48,7 +48,7 @@ public class TaskExecutor {
 
                 return t;
             });
-        } else if(threadLimit > 1) {
+        } else if (threadLimit > 1) {
             final ForkJoinWorkerThreadFactory factory = pool -> {
                 final ForkJoinWorkerThread worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
                 worker.setName(name + " " + xc++);
@@ -102,7 +102,7 @@ public class TaskExecutor {
         }
 
         public TaskGroup queue(NastyRunnable... r) {
-            for(NastyRunnable i : r) {
+            for (NastyRunnable i : r) {
                 tasks.add(new AssignedTask(i));
             }
 
@@ -110,7 +110,7 @@ public class TaskExecutor {
         }
 
         public TaskGroup queue(KList<NastyRunnable> r) {
-            for(NastyRunnable i : r) {
+            for (NastyRunnable i : r) {
                 tasks.add(new AssignedTask(i));
             }
 
@@ -126,24 +126,24 @@ public class TaskExecutor {
             long msv = M.ns();
 
             waiting:
-            while(true) {
+            while (true) {
                 try {
                     //noinspection BusyWait
                     Thread.sleep(0);
-                } catch(InterruptedException ignored) {
+                } catch (InterruptedException ignored) {
 
                 }
 
-                for(AssignedTask i : tasks) {
-                    if(i.state.equals(TaskState.QUEUED) || i.state.equals(TaskState.RUNNING)) {
+                for (AssignedTask i : tasks) {
+                    if (i.state.equals(TaskState.QUEUED) || i.state.equals(TaskState.RUNNING)) {
                         continue waiting;
                     }
                 }
 
                 timeElapsed = (double) (M.ns() - msv) / 1000000D;
 
-                for(AssignedTask i : tasks) {
-                    if(i.state.equals(TaskState.COMPLETED)) {
+                for (AssignedTask i : tasks) {
+                    if (i.state.equals(TaskState.COMPLETED)) {
                         tasksCompleted++;
                     } else {
                         tasksFailed++;
@@ -194,7 +194,7 @@ public class TaskExecutor {
                 try {
                     task.run();
                     state = TaskState.COMPLETED;
-                } catch(Throwable ex) {
+                } catch (Throwable ex) {
                     Iris.reportError(ex);
                     ex.printStackTrace();
                     Iris.reportError(ex);

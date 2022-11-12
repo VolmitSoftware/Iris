@@ -35,17 +35,17 @@ public class CavernMatter extends RawMatter<MatterCavern> {
         this(1, 1, 1);
     }
 
-    @Override
-    public Palette<MatterCavern> getGlobalPalette() {
-        return null;
-    }
-
     public CavernMatter(int width, int height, int depth) {
         super(width, height, depth, MatterCavern.class);
     }
 
     public static MatterCavern get(String customBiome, int liquid) {
         return new MatterCavern(true, customBiome, (byte) liquid);
+    }
+
+    @Override
+    public Palette<MatterCavern> getGlobalPalette() {
+        return null;
     }
 
     @Override

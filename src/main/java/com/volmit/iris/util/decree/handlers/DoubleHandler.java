@@ -38,7 +38,7 @@ public class DoubleHandler implements DecreeParameterHandler<Double> {
             AtomicReference<String> r = new AtomicReference<>(in);
             double m = getMultiplier(r);
             return Double.parseDouble(r.get()) * m;
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             throw new DecreeParsingException("Unable to parse double \"" + in + "\"");
         }
     }

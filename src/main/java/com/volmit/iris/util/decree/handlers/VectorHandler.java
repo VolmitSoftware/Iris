@@ -32,11 +32,11 @@ import org.bukkit.util.Vector;
 public class VectorHandler implements DecreeParameterHandler<Vector> {
 
     private static final KList<String> randoms = new KList<>(
-        "here",
-        "0,0,0",
-        "0,0",
-        "look",
-        "player:<name>"
+            "here",
+            "0,0,0",
+            "0,0",
+            "look",
+            "player:<name>"
     );
 
     @Override
@@ -46,7 +46,7 @@ public class VectorHandler implements DecreeParameterHandler<Vector> {
 
     @Override
     public String toString(Vector v) {
-        if(v.getY() == 0) {
+        if (v.getY() == 0) {
             return Form.f(v.getX(), 2) + "," + Form.f(v.getZ(), 2);
         }
 
@@ -56,43 +56,43 @@ public class VectorHandler implements DecreeParameterHandler<Vector> {
     @Override
     public Vector parse(String in, boolean force) throws DecreeParsingException {
         try {
-            if(in.contains(",")) {
+            if (in.contains(",")) {
                 String[] comp = in.split("\\Q,\\E");
 
-                if(comp.length == 2) {
+                if (comp.length == 2) {
                     return new BlockVector(Double.parseDouble(comp[0].trim()), 0, Double.parseDouble(comp[1].trim()));
-                } else if(comp.length == 3) {
+                } else if (comp.length == 3) {
                     return new BlockVector(Double.parseDouble(comp[0].trim()),
-                        Double.parseDouble(comp[1].trim()),
-                        Double.parseDouble(comp[2].trim()));
+                            Double.parseDouble(comp[1].trim()),
+                            Double.parseDouble(comp[2].trim()));
                 } else {
                     throw new DecreeParsingException("Could not parse components for vector. You have " + comp.length + " components. Expected 2 or 3.");
                 }
-            } else if(in.equalsIgnoreCase("here") || in.equalsIgnoreCase("me") || in.equalsIgnoreCase("self")) {
-                if(!DecreeContext.get().isPlayer()) {
+            } else if (in.equalsIgnoreCase("here") || in.equalsIgnoreCase("me") || in.equalsIgnoreCase("self")) {
+                if (!DecreeContext.get().isPlayer()) {
                     throw new DecreeParsingException("You cannot specify me,self,here as a console.");
                 }
 
                 return DecreeContext.get().player().getLocation().toVector();
-            } else if(in.equalsIgnoreCase("look") || in.equalsIgnoreCase("cursor") || in.equalsIgnoreCase("crosshair")) {
-                if(!DecreeContext.get().isPlayer()) {
+            } else if (in.equalsIgnoreCase("look") || in.equalsIgnoreCase("cursor") || in.equalsIgnoreCase("crosshair")) {
+                if (!DecreeContext.get().isPlayer()) {
                     throw new DecreeParsingException("You cannot specify look,cursor,crosshair as a console.");
                 }
 
                 return DecreeContext.get().player().getTargetBlockExact(256, FluidCollisionMode.NEVER).getLocation().toVector();
-            } else if(in.trim().toLowerCase().startsWith("player:")) {
+            } else if (in.trim().toLowerCase().startsWith("player:")) {
                 String v = in.trim().split("\\Q:\\E")[1];
 
 
                 KList<?> px = DecreeSystem.getHandler(Player.class).getPossibilities(v);
 
-                if(px != null && px.isNotEmpty()) {
+                if (px != null && px.isNotEmpty()) {
                     return ((Player) px.get(0)).getLocation().toVector();
-                } else if(px == null || px.isEmpty()) {
+                } else if (px == null || px.isEmpty()) {
                     throw new DecreeParsingException("Cannot find player: " + v);
                 }
             }
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             throw new DecreeParsingException("Unable to get Vector for \"" + in + "\" because of an uncaught exception: " + e);
         }
 

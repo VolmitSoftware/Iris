@@ -39,7 +39,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private final KList<Future<?>> future;
 
     public AsyncPregenMethod(World world, int threads) {
-        if(!PaperLib.isPaper()) {
+        if (!PaperLib.isPaper()) {
             throw new UnsupportedOperationException("Cannot use PaperAsync on non paper!");
         }
 
@@ -51,17 +51,17 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private void unloadAndSaveAllChunks() {
         try {
             J.sfut(() -> {
-                if(world == null) {
+                if (world == null) {
                     Iris.warn("World was null somehow...");
                     return;
                 }
 
-                for(Chunk i : world.getLoadedChunks()) {
+                for (Chunk i : world.getLoadedChunks()) {
                     i.unload(true);
                 }
                 world.save();
             }).get();
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
     }
@@ -69,7 +69,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private void completeChunk(int x, int z, PregenListener listener) {
         try {
             future.add(PaperLib.getChunkAtAsync(world, x, z, true).thenApply((i) -> {
-                if(i == null) {
+                if (i == null) {
 
                 }
 
@@ -77,7 +77,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 listener.onChunkCleaned(x, z);
                 return 0;
             }));
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
     }
@@ -85,31 +85,31 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private void waitForChunksPartial(int maxWaiting) {
         future.removeWhere(Objects::isNull);
 
-        while(future.size() > maxWaiting) {
+        while (future.size() > maxWaiting) {
             try {
                 Future<?> i = future.remove(0);
 
-                if(i == null) {
+                if (i == null) {
                     continue;
                 }
 
                 i.get();
-            } catch(Throwable e) {
+            } catch (Throwable e) {
                 e.printStackTrace();
             }
         }
     }
 
     private void waitForChunks() {
-        for(Future<?> i : future.copy()) {
-            if(i == null) {
+        for (Future<?> i : future.copy()) {
+            if (i == null) {
                 continue;
             }
 
             try {
                 i.get();
                 future.remove(i);
-            } catch(Throwable e) {
+            } catch (Throwable e) {
                 e.printStackTrace();
             }
         }
@@ -152,7 +152,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
         listener.onChunkGenerating(x, z);
-        if(future.size() > 256) {
+        if (future.size() > 256) {
             waitForChunksPartial(256);
         }
         future.add(burst.complete(() -> completeChunk(x, z, listener)));
@@ -160,7 +160,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
     @Override
     public Mantle getMantle() {
-        if(IrisToolbelt.isIrisWorld(world)) {
+        if (IrisToolbelt.isIrisWorld(world)) {
             return IrisToolbelt.access(world).getEngine().getMantle().getMantle();
         }
 

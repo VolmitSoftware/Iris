@@ -31,20 +31,17 @@ public class ShortCache implements ArrayCache<Short> {
     private final int height;
     private final short[] cache;
 
-    public ShortCache(int width, int height)
-    {
+    public ShortCache(int width, int height) {
         this.width = width;
         this.height = height;
         cache = new short[width * height];
     }
 
-    public void set(int i, Short v)
-    {
+    public void set(int i, Short v) {
         cache[i] = v;
     }
 
-    public Short get(int i)
-    {
+    public Short get(int i) {
         return cache[i];
     }
 
@@ -53,8 +50,7 @@ public class ShortCache implements ArrayCache<Short> {
         dos.writeInt(width);
         dos.writeInt(height);
 
-        for(int i = 0; i < width * height; i++)
-        {
+        for (int i = 0; i < width * height; i++) {
             dos.writeShort(get(i));
         }
     }

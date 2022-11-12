@@ -36,7 +36,7 @@ public class BlockVectorHandler implements DecreeParameterHandler<BlockVector> {
         KList<BlockVector> vx = new KList<>();
         VolmitSender s = DecreeContext.get();
 
-        if(s.isPlayer()) {
+        if (s.isPlayer()) {
             vx.add(s.player().getLocation().toVector().toBlockVector());
         }
 
@@ -45,7 +45,7 @@ public class BlockVectorHandler implements DecreeParameterHandler<BlockVector> {
 
     @Override
     public String toString(BlockVector v) {
-        if(v.getY() == 0) {
+        if (v.getY() == 0) {
             return Form.f(v.getBlockX(), 2) + "," + Form.f(v.getBlockZ(), 2);
         }
 
@@ -55,43 +55,43 @@ public class BlockVectorHandler implements DecreeParameterHandler<BlockVector> {
     @Override
     public BlockVector parse(String in, boolean force) throws DecreeParsingException {
         try {
-            if(in.contains(",")) {
+            if (in.contains(",")) {
                 String[] comp = in.split("\\Q,\\E");
 
-                if(comp.length == 2) {
+                if (comp.length == 2) {
                     return new BlockVector(Integer.parseInt(comp[0].trim()), 0, Integer.parseInt(comp[1].trim()));
-                } else if(comp.length == 3) {
+                } else if (comp.length == 3) {
                     return new BlockVector(Integer.parseInt(comp[0].trim()),
-                        Integer.parseInt(comp[1].trim()),
-                        Integer.parseInt(comp[2].trim()));
+                            Integer.parseInt(comp[1].trim()),
+                            Integer.parseInt(comp[2].trim()));
                 } else {
                     throw new DecreeParsingException("Could not parse components for vector. You have " + comp.length + " components. Expected 2 or 3.");
                 }
-            } else if(in.equalsIgnoreCase("here") || in.equalsIgnoreCase("me") || in.equalsIgnoreCase("self")) {
-                if(!DecreeContext.get().isPlayer()) {
+            } else if (in.equalsIgnoreCase("here") || in.equalsIgnoreCase("me") || in.equalsIgnoreCase("self")) {
+                if (!DecreeContext.get().isPlayer()) {
                     throw new DecreeParsingException("You cannot specify me,self,here as a console.");
                 }
 
                 return DecreeContext.get().player().getLocation().toVector().toBlockVector();
-            } else if(in.equalsIgnoreCase("look") || in.equalsIgnoreCase("cursor") || in.equalsIgnoreCase("crosshair")) {
-                if(!DecreeContext.get().isPlayer()) {
+            } else if (in.equalsIgnoreCase("look") || in.equalsIgnoreCase("cursor") || in.equalsIgnoreCase("crosshair")) {
+                if (!DecreeContext.get().isPlayer()) {
                     throw new DecreeParsingException("You cannot specify look,cursor,crosshair as a console.");
                 }
 
                 return DecreeContext.get().player().getTargetBlockExact(256, FluidCollisionMode.NEVER).getLocation().toVector().toBlockVector();
-            } else if(in.trim().toLowerCase().startsWith("player:")) {
+            } else if (in.trim().toLowerCase().startsWith("player:")) {
                 String v = in.trim().split("\\Q:\\E")[1];
 
 
                 KList<?> px = DecreeSystem.getHandler(Player.class).getPossibilities(v);
 
-                if(px != null && px.isNotEmpty()) {
+                if (px != null && px.isNotEmpty()) {
                     return ((Player) px.get(0)).getLocation().toVector().toBlockVector();
-                } else if(px == null || px.isEmpty()) {
+                } else if (px == null || px.isEmpty()) {
                     throw new DecreeParsingException("Cannot find player: " + v);
                 }
             }
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             throw new DecreeParsingException("Unable to get Vector for \"" + in + "\" because of an uncaught exception: " + e);
         }
 

@@ -42,10 +42,8 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
     /**
      * Constructs and initializes a Tuple2d from the specified xy coordinates.
      *
-     * @param x
-     *     the x coordinate
-     * @param y
-     *     the y coordinate
+     * @param x the x coordinate
+     * @param y the y coordinate
      */
     public Tuple2d(double x, double y) {
         this.x = x;
@@ -56,8 +54,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
     /**
      * Constructs and initializes a Tuple2d from the specified array.
      *
-     * @param t
-     *     the array of length 2 containing xy in order
+     * @param t the array of length 2 containing xy in order
      */
     public Tuple2d(double[] t) {
         this.x = t[0];
@@ -68,8 +65,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
     /**
      * Constructs and initializes a Tuple2d from the specified Tuple2d.
      *
-     * @param t1
-     *     the Tuple2d containing the initialization x y data
+     * @param t1 the Tuple2d containing the initialization x y data
      */
     public Tuple2d(Tuple2d t1) {
         this.x = t1.x;
@@ -80,8 +76,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
     /**
      * Constructs and initializes a Tuple2d from the specified Tuple2f.
      *
-     * @param t1
-     *     the Tuple2f containing the initialization x y data
+     * @param t1 the Tuple2f containing the initialization x y data
      */
     public Tuple2d(Tuple2f t1) {
         this.x = t1.x;
@@ -100,10 +95,8 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
     /**
      * Sets the value of this tuple to the specified xy coordinates.
      *
-     * @param x
-     *     the x coordinate
-     * @param y
-     *     the y coordinate
+     * @param x the x coordinate
+     * @param y the y coordinate
      */
     public final void set(double x, double y) {
         this.x = x;
@@ -115,8 +108,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
      * Sets the value of this tuple from the 2 values specified in
      * the array.
      *
-     * @param t
-     *     the array of length 2 containing xy in order
+     * @param t the array of length 2 containing xy in order
      */
     public final void set(double[] t) {
         this.x = t[0];
@@ -127,8 +119,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
     /**
      * Sets the value of this tuple to the value of the Tuple2d argument.
      *
-     * @param t1
-     *     the tuple to be copied
+     * @param t1 the tuple to be copied
      */
     public final void set(Tuple2d t1) {
         this.x = t1.x;
@@ -139,8 +130,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
     /**
      * Sets the value of this tuple to the value of Tuple2f t1.
      *
-     * @param t1
-     *     the tuple to be copied
+     * @param t1 the tuple to be copied
      */
     public final void set(Tuple2f t1) {
         this.x = t1.x;
@@ -150,8 +140,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
     /**
      * Copies the value of the elements of this tuple into the array t.
      *
-     * @param t
-     *     the array that will contain the values of the vector
+     * @param t the array that will contain the values of the vector
      */
     public final void get(double[] t) {
         t[0] = this.x;
@@ -162,10 +151,8 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
     /**
      * Sets the value of this tuple to the vector sum of tuples t1 and t2.
      *
-     * @param t1
-     *     the first tuple
-     * @param t2
-     *     the second tuple
+     * @param t1 the first tuple
+     * @param t2 the second tuple
      */
     public final void add(Tuple2d t1, Tuple2d t2) {
         this.x = t1.x + t2.x;
@@ -176,8 +163,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
     /**
      * Sets the value of this tuple to the vector sum of itself and tuple t1.
      *
-     * @param t1
-     *     the other tuple
+     * @param t1 the other tuple
      */
     public final void add(Tuple2d t1) {
         this.x += t1.x;
@@ -189,10 +175,8 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
      * Sets the value of this tuple to the vector difference of
      * tuple t1 and t2 (this = t1 - t2).
      *
-     * @param t1
-     *     the first tuple
-     * @param t2
-     *     the second tuple
+     * @param t1 the first tuple
+     * @param t2 the second tuple
      */
     public final void sub(Tuple2d t1, Tuple2d t2) {
         this.x = t1.x - t2.x;
@@ -204,8 +188,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
      * Sets the value of this tuple to the vector difference of
      * itself and tuple t1 (this = this - t1).
      *
-     * @param t1
-     *     the other vector
+     * @param t1 the other vector
      */
     public final void sub(Tuple2d t1) {
         this.x -= t1.x;
@@ -216,8 +199,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
     /**
      * Sets the value of this tuple to the negation of tuple t1.
      *
-     * @param t1
-     *     the source vector
+     * @param t1 the source vector
      */
     public final void negate(Tuple2d t1) {
         this.x = -t1.x;
@@ -238,10 +220,8 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
      * Sets the value of this tuple to the scalar multiplication
      * of tuple t1.
      *
-     * @param s
-     *     the scalar value
-     * @param t1
-     *     the source tuple
+     * @param s  the scalar value
+     * @param t1 the source tuple
      */
     public final void scale(double s, Tuple2d t1) {
         this.x = s * t1.x;
@@ -253,8 +233,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
      * Sets the value of this tuple to the scalar multiplication
      * of itself.
      *
-     * @param s
-     *     the scalar value
+     * @param s the scalar value
      */
     public final void scale(double s) {
         this.x *= s;
@@ -266,12 +245,9 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
      * Sets the value of this tuple to the scalar multiplication
      * of tuple t1 and then adds tuple t2 (this = s*t1 + t2).
      *
-     * @param s
-     *     the scalar value
-     * @param t1
-     *     the tuple to be multipled
-     * @param t2
-     *     the tuple to be added
+     * @param s  the scalar value
+     * @param t1 the tuple to be multipled
+     * @param t2 the tuple to be added
      */
     public final void scaleAdd(double s, Tuple2d t1, Tuple2d t2) {
         this.x = s * t1.x + t2.x;
@@ -283,10 +259,8 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
      * Sets the value of this tuple to the scalar multiplication
      * of itself and then adds tuple t1 (this = s*this + t1).
      *
-     * @param s
-     *     the scalar value
-     * @param t1
-     *     the tuple to be added
+     * @param s  the scalar value
+     * @param t1 the tuple to be added
      */
     public final void scaleAdd(double s, Tuple2d t1) {
         this.x = s * this.x + t1.x;
@@ -315,14 +289,13 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
      * Returns true if all of the data members of Tuple2d t1 are
      * equal to the corresponding data members in this Tuple2d.
      *
-     * @param t1
-     *     the vector with which the comparison is made
+     * @param t1 the vector with which the comparison is made
      * @return true or false
      */
     public boolean equals(Tuple2d t1) {
         try {
             return (this.x == t1.x && this.y == t1.y);
-        } catch(NullPointerException e2) {
+        } catch (NullPointerException e2) {
             Iris.reportError(e2);
             return false;
         }
@@ -334,15 +307,14 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
      * data members of t1 are equal to the corresponding data members in
      * this Tuple2d.
      *
-     * @param t1
-     *     the object with which the comparison is made
+     * @param t1 the object with which the comparison is made
      * @return true or false
      */
     public boolean equals(Object t1) {
         try {
             Tuple2d t2 = (Tuple2d) t1;
             return (this.x == t2.x && this.y == t2.y);
-        } catch(NullPointerException | ClassCastException e2) {
+        } catch (NullPointerException | ClassCastException e2) {
             Iris.reportError(e2);
             return false;
         }
@@ -355,21 +327,19 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
      * otherwise returns false.  The L-infinite
      * distance is equal to MAX[abs(x1-x2), abs(y1-y2)].
      *
-     * @param t1
-     *     the tuple to be compared to this tuple
-     * @param epsilon
-     *     the threshold value
+     * @param t1      the tuple to be compared to this tuple
+     * @param epsilon the threshold value
      * @return true or false
      */
     public boolean epsilonEquals(Tuple2d t1, double epsilon) {
         double diff;
 
         diff = x - t1.x;
-        if(Double.isNaN(diff)) return false;
-        if((diff < 0 ? -diff : diff) > epsilon) return false;
+        if (Double.isNaN(diff)) return false;
+        if ((diff < 0 ? -diff : diff) > epsilon) return false;
 
         diff = y - t1.y;
-        if(Double.isNaN(diff)) return false;
+        if (Double.isNaN(diff)) return false;
         return !((diff < 0 ? -diff : diff) > epsilon);
     }
 
@@ -388,19 +358,16 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
      * Clamps the tuple parameter to the range [low, high] and
      * places the values into this tuple.
      *
-     * @param min
-     *     the lowest value in the tuple after clamping
-     * @param max
-     *     the highest value in the tuple after clamping
-     * @param t
-     *     the source tuple, which will not be modified
+     * @param min the lowest value in the tuple after clamping
+     * @param max the highest value in the tuple after clamping
+     * @param t   the source tuple, which will not be modified
      */
     public final void clamp(double min, double max, Tuple2d t) {
-        if(t.x > max) {
+        if (t.x > max) {
             x = max;
         } else x = Math.max(t.x, min);
 
-        if(t.y > max) {
+        if (t.y > max) {
             y = max;
         } else y = Math.max(t.y, min);
 
@@ -411,10 +378,8 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
      * Clamps the minimum value of the tuple parameter to the min
      * parameter and places the values into this tuple.
      *
-     * @param min
-     *     the lowest value in the tuple after clamping
-     * @param t
-     *     the source tuple, which will not be modified
+     * @param min the lowest value in the tuple after clamping
+     * @param t   the source tuple, which will not be modified
      */
     public final void clampMin(double min, Tuple2d t) {
         x = Math.max(t.x, min);
@@ -428,10 +393,8 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
      * Clamps the maximum value of the tuple parameter to the max
      * parameter and places the values into this tuple.
      *
-     * @param max
-     *     the highest value in the tuple after clamping
-     * @param t
-     *     the source tuple, which will not be modified
+     * @param max the highest value in the tuple after clamping
+     * @param t   the source tuple, which will not be modified
      */
     public final void clampMax(double max, Tuple2d t) {
         x = Math.min(t.x, max);
@@ -445,8 +408,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
      * Sets each component of the tuple parameter to its absolute
      * value and places the modified values into this tuple.
      *
-     * @param t
-     *     the source tuple, which will not be modified
+     * @param t the source tuple, which will not be modified
      */
     public final void absolute(Tuple2d t) {
         x = Math.abs(t.x);
@@ -457,21 +419,19 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
     /**
      * Clamps this tuple to the range [low, high].
      *
-     * @param min
-     *     the lowest value in this tuple after clamping
-     * @param max
-     *     the highest value in this tuple after clamping
+     * @param min the lowest value in this tuple after clamping
+     * @param max the highest value in this tuple after clamping
      */
     public final void clamp(double min, double max) {
-        if(x > max) {
+        if (x > max) {
             x = max;
-        } else if(x < min) {
+        } else if (x < min) {
             x = min;
         }
 
-        if(y > max) {
+        if (y > max) {
             y = max;
-        } else if(y < min) {
+        } else if (y < min) {
             y = min;
         }
 
@@ -481,24 +441,22 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
     /**
      * Clamps the minimum value of this tuple to the min parameter.
      *
-     * @param min
-     *     the lowest value in this tuple after clamping
+     * @param min the lowest value in this tuple after clamping
      */
     public final void clampMin(double min) {
-        if(x < min) x = min;
-        if(y < min) y = min;
+        if (x < min) x = min;
+        if (y < min) y = min;
     }
 
 
     /**
      * Clamps the maximum value of this tuple to the max parameter.
      *
-     * @param max
-     *     the highest value in the tuple after clamping
+     * @param max the highest value in the tuple after clamping
      */
     public final void clampMax(double max) {
-        if(x > max) x = max;
-        if(y > max) y = max;
+        if (x > max) x = max;
+        if (y > max) y = max;
     }
 
 
@@ -515,12 +473,9 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
      * Linearly interpolates between tuples t1 and t2 and places the
      * result into this tuple:  this = (1-alpha)*t1 + alpha*t2.
      *
-     * @param t1
-     *     the first tuple
-     * @param t2
-     *     the second tuple
-     * @param alpha
-     *     the alpha interpolation parameter
+     * @param t1    the first tuple
+     * @param t2    the second tuple
+     * @param alpha the alpha interpolation parameter
      */
     public final void interpolate(Tuple2d t1, Tuple2d t2, double alpha) {
         this.x = (1 - alpha) * t1.x + alpha * t2.x;
@@ -532,10 +487,8 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
      * Linearly interpolates between this tuple and tuple t1 and
      * places the result into this tuple:  this = (1-alpha)*this + alpha*t1.
      *
-     * @param t1
-     *     the first tuple
-     * @param alpha
-     *     the alpha interpolation parameter
+     * @param t1    the first tuple
+     * @param alpha the alpha interpolation parameter
      */
     public final void interpolate(Tuple2d t1, double alpha) {
         this.x = (1 - alpha) * this.x + alpha * t1.x;
@@ -547,8 +500,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
      * Creates a new object of the same class as this object.
      *
      * @return a clone of this instance.
-     * @throws OutOfMemoryError
-     *     if there is not enough memory.
+     * @throws OutOfMemoryError if there is not enough memory.
      * @see java.lang.Cloneable
      * @since vecmath 1.3
      */
@@ -556,7 +508,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
         // Since there are no arrays we can just use Object.clone()
         try {
             return super.clone();
-        } catch(CloneNotSupportedException e) {
+        } catch (CloneNotSupportedException e) {
             Iris.reportError(e);
             // this shouldn't happen, since we are Cloneable
             throw new InternalError();
@@ -578,8 +530,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
     /**
      * Set the <i>x</i> coordinate.
      *
-     * @param x
-     *     value to <i>x</i> coordinate.
+     * @param x value to <i>x</i> coordinate.
      * @since vecmath 1.5
      */
     public final void setX(double x) {
@@ -601,8 +552,7 @@ public abstract class Tuple2d implements java.io.Serializable, Cloneable {
     /**
      * Set the <i>y</i> coordinate.
      *
-     * @param y
-     *     value to <i>y</i> coordinate.
+     * @param y value to <i>y</i> coordinate.
      * @since vecmath 1.5
      */
     public final void setY(double y) {

@@ -46,7 +46,9 @@ public class OraxenDataProvider extends ExternalDataProvider {
 
     private Map<String, MechanicFactory> factories;
 
-    public OraxenDataProvider() { super("Oraxen"); }
+    public OraxenDataProvider() {
+        super("Oraxen");
+    }
 
     @Override
     public void init() {
@@ -54,7 +56,7 @@ public class OraxenDataProvider extends ExternalDataProvider {
             Field f = MechanicsManager.class.getDeclaredField(FIELD_FACTORIES_MAP);
             f.setAccessible(true);
             factories = (Map<String, MechanicFactory>) f.get(null);
-        } catch(NoSuchFieldException | IllegalAccessException e) {
+        } catch (NoSuchFieldException | IllegalAccessException e) {
             Iris.error("Failed to set up Oraxen Link:");
             Iris.error("\t" + e.getClass().getSimpleName());
         }
@@ -63,11 +65,11 @@ public class OraxenDataProvider extends ExternalDataProvider {
     @Override
     public BlockData getBlockData(NamespacedKey blockId) throws MissingResourceException {
         MechanicFactory f = getFactory(blockId);
-        if(f instanceof NoteBlockMechanicFactory)
-            return ((NoteBlockMechanicFactory)f).createNoteBlockData(blockId.getKey());
-        else if(f instanceof BlockMechanicFactory) {
+        if (f instanceof NoteBlockMechanicFactory)
+            return ((NoteBlockMechanicFactory) f).createNoteBlockData(blockId.getKey());
+        else if (f instanceof BlockMechanicFactory) {
             MultipleFacing newBlockData = (MultipleFacing) Bukkit.createBlockData(Material.MUSHROOM_STEM);
-            Utils.setBlockFacing(newBlockData, ((BlockMechanic)f.getMechanic(blockId.getKey())).getCustomVariation());
+            Utils.setBlockFacing(newBlockData, ((BlockMechanic) f.getMechanic(blockId.getKey())).getCustomVariation());
             return newBlockData;
         } else
             throw new MissingResourceException("Failed to find BlockData!", blockId.getNamespace(), blockId.getKey());
@@ -82,12 +84,13 @@ public class OraxenDataProvider extends ExternalDataProvider {
     @Override
     public NamespacedKey[] getBlockTypes() {
         KList<NamespacedKey> names = new KList<>();
-        for(String name : OraxenItems.getItemNames()) {
+        for (String name : OraxenItems.getItemNames()) {
             try {
                 NamespacedKey key = new NamespacedKey("oraxen", name);
-                if(getBlockData(key) != null)
+                if (getBlockData(key) != null)
                     names.add(key);
-            } catch(MissingResourceException ignored) { }
+            } catch (MissingResourceException ignored) {
+            }
         }
 
         return names.toArray(new NamespacedKey[0]);

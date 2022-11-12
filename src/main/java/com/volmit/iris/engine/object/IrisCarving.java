@@ -67,37 +67,37 @@ public class IrisCarving {
 
     @BlockCoordinates
     public void doCarving(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int waterHint) {
-        if(caves.isNotEmpty()) {
-            for(IrisCavePlacer i : caves) {
+        if (caves.isNotEmpty()) {
+            for (IrisCavePlacer i : caves) {
                 i.generateCave(writer, rng, engine, x, y, z, waterHint);
             }
         }
 
-        if(ravines.isNotEmpty()) {
-            for(IrisRavinePlacer i : ravines) {
+        if (ravines.isNotEmpty()) {
+            for (IrisRavinePlacer i : ravines) {
                 i.generateRavine(writer, rng, engine, x, y, z, waterHint);
             }
         }
 
-        if(spheres.isNotEmpty()) {
-            for(IrisSphere i : spheres) {
-                if(rng.nextInt(i.getRarity()) == 0) {
+        if (spheres.isNotEmpty()) {
+            for (IrisSphere i : spheres) {
+                if (rng.nextInt(i.getRarity()) == 0) {
                     i.generate(rng, engine, writer, x, y, z);
                 }
             }
         }
 
-        if(elipsoids.isNotEmpty()) {
-            for(IrisElipsoid i : elipsoids) {
-                if(rng.nextInt(i.getRarity()) == 0) {
+        if (elipsoids.isNotEmpty()) {
+            for (IrisElipsoid i : elipsoids) {
+                if (rng.nextInt(i.getRarity()) == 0) {
                     i.generate(rng, engine, writer, x, y, z);
                 }
             }
         }
 
-        if(pyramids.isNotEmpty()) {
-            for(IrisPyramid i : pyramids) {
-                if(rng.nextInt(i.getRarity()) == 0) {
+        if (pyramids.isNotEmpty()) {
+            for (IrisPyramid i : pyramids) {
+                if (rng.nextInt(i.getRarity()) == 0) {
                     i.generate(rng, engine, writer, x, y, z);
                 }
             }
@@ -107,23 +107,23 @@ public class IrisCarving {
     public int getMaxRange(IrisData data) {
         int max = 0;
 
-        for(IrisCavePlacer i : caves) {
+        for (IrisCavePlacer i : caves) {
             max = Math.max(max, i.getSize(data));
         }
 
-        for(IrisRavinePlacer i : ravines) {
+        for (IrisRavinePlacer i : ravines) {
             max = Math.max(max, i.getSize(data));
         }
 
-        if(elipsoids.isNotEmpty()) {
+        if (elipsoids.isNotEmpty()) {
             max = (int) Math.max(elipsoids.stream().mapToDouble(IrisElipsoid::maxSize).max().getAsDouble(), max);
         }
 
-        if(spheres.isNotEmpty()) {
+        if (spheres.isNotEmpty()) {
             max = (int) Math.max(spheres.stream().mapToDouble(IrisSphere::maxSize).max().getAsDouble(), max);
         }
 
-        if(pyramids.isNotEmpty()) {
+        if (pyramids.isNotEmpty()) {
             max = (int) Math.max(pyramids.stream().mapToDouble(IrisPyramid::maxSize).max().getAsDouble(), max);
         }
 

@@ -38,7 +38,7 @@ public class CommandFind implements DecreeExecutor {
     ) {
         Engine e = engine();
 
-        if(e == null) {
+        if (e == null) {
             sender().sendMessage(C.GOLD + "Not in an Iris World!");
             return;
         }
@@ -53,7 +53,7 @@ public class CommandFind implements DecreeExecutor {
     ) {
         Engine e = engine();
 
-        if(e == null) {
+        if (e == null) {
             sender().sendMessage(C.GOLD + "Not in an Iris World!");
             return;
         }
@@ -68,12 +68,26 @@ public class CommandFind implements DecreeExecutor {
     ) {
         Engine e = engine();
 
-        if(e == null) {
+        if (e == null) {
             sender().sendMessage(C.GOLD + "Not in an Iris World!");
             return;
         }
 
         e.gotoJigsaw(structure, player());
+    }
+
+    @Decree(description = "Find a point of interest.")
+    public void poi(
+            @Param(description = "The type of PoI to look for.")
+            String type
+    ) {
+        Engine e = engine();
+        if (e == null) {
+            sender().sendMessage(C.GOLD + "Not in an Iris World!");
+            return;
+        }
+
+        e.gotoPOI(type, player());
     }
 
     @Decree(description = "Find an object")
@@ -83,7 +97,7 @@ public class CommandFind implements DecreeExecutor {
     ) {
         Engine e = engine();
 
-        if(e == null) {
+        if (e == null) {
             sender().sendMessage(C.GOLD + "Not in an Iris World!");
             return;
         }

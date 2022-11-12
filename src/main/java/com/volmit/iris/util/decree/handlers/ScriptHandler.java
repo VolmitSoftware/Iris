@@ -35,10 +35,10 @@ public class ScriptHandler implements DecreeParameterHandler<IrisScript> {
         KMap<String, IrisScript> p = new KMap<>();
 
         //noinspection ConstantConditions
-        for(File i : Iris.instance.getDataFolder("packs").listFiles()) {
-            if(i.isDirectory()) {
+        for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
+            if (i.isDirectory()) {
                 IrisData data = IrisData.get(i);
-                for(IrisScript j : data.getScriptLoader().loadAll(data.getScriptLoader().getPossibleKeys())) {
+                for (IrisScript j : data.getScriptLoader().loadAll(data.getScriptLoader().getPossibleKeys())) {
                     p.putIfAbsent(j.getLoadKey(), j);
                 }
 
@@ -58,12 +58,12 @@ public class ScriptHandler implements DecreeParameterHandler<IrisScript> {
     public IrisScript parse(String in, boolean force) throws DecreeParsingException {
         KList<IrisScript> options = getPossibilities(in);
 
-        if(options.isEmpty()) {
+        if (options.isEmpty()) {
             throw new DecreeParsingException("Unable to find Script \"" + in + "\"");
         }
         try {
             return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             throw new DecreeParsingException("Unable to filter which Biome \"" + in + "\"");
         }
     }

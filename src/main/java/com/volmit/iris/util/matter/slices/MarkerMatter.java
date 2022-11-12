@@ -38,13 +38,13 @@ public class MarkerMatter extends RawMatter<MatterMarker> {
         this(1, 1, 1);
     }
 
+    public MarkerMatter(int width, int height, int depth) {
+        super(width, height, depth, MatterMarker.class);
+    }
+
     @Override
     public Palette<MatterMarker> getGlobalPalette() {
         return null;
-    }
-
-    public MarkerMatter(int width, int height, int depth) {
-        super(width, height, depth, MatterMarker.class);
     }
 
     @Override

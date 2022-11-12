@@ -29,9 +29,9 @@ public class BiomeContextHandler implements DecreeContextHandler<IrisBiome> {
     }
 
     public IrisBiome handle(VolmitSender sender) {
-        if(sender.isPlayer()
-            && IrisToolbelt.isIrisWorld(sender.player().getWorld())
-            && IrisToolbelt.access(sender.player().getWorld()).getEngine() != null) {
+        if (sender.isPlayer()
+                && IrisToolbelt.isIrisWorld(sender.player().getWorld())
+                && IrisToolbelt.access(sender.player().getWorld()).getEngine() != null) {
             return IrisToolbelt.access(sender.player().getWorld()).getEngine().getBiomeOrMantle(sender.player().getLocation());
         }
 

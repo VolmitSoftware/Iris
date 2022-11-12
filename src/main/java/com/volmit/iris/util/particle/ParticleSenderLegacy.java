@@ -64,25 +64,25 @@ class ParticleSenderLegacy implements ParticleSender {
             Class<?> craftPlayerClass = FastReflection.obcClass("entity.CraftPlayer");
             Class<?> craftWorldClass = FastReflection.obcClass("CraftWorld");
 
-            if(SERVER_IS_1_8) {
+            if (SERVER_IS_1_8) {
                 PACKET_PARTICLE = packetParticleClass.getConstructor(ENUM_PARTICLE, boolean.class, float.class,
-                    float.class, float.class, float.class, float.class, float.class, float.class, int.class,
-                    int[].class);
+                        float.class, float.class, float.class, float.class, float.class, float.class, int.class,
+                        int[].class);
                 WORLD_SEND_PARTICLE = worldClass.getDeclaredMethod("sendParticles", entityPlayerClass, ENUM_PARTICLE,
-                    boolean.class, double.class, double.class, double.class, int.class, double.class, double.class,
-                    double.class, double.class, int[].class);
+                        boolean.class, double.class, double.class, double.class, int.class, double.class, double.class,
+                        double.class, double.class, int[].class);
             } else {
                 PACKET_PARTICLE = packetParticleClass.getConstructor(String.class, float.class, float.class, float.class,
-                    float.class, float.class, float.class, float.class, int.class);
+                        float.class, float.class, float.class, float.class, int.class);
                 WORLD_SEND_PARTICLE = worldClass.getDeclaredMethod("a", String.class, double.class, double.class,
-                    double.class, int.class, double.class, double.class, double.class, double.class);
+                        double.class, int.class, double.class, double.class, double.class, double.class);
             }
 
             WORLD_GET_HANDLE = craftWorldClass.getDeclaredMethod("getHandle");
             PLAYER_GET_HANDLE = craftPlayerClass.getDeclaredMethod("getHandle");
             PLAYER_CONNECTION = playerClass.getField("playerConnection");
             SEND_PACKET = playerConnectionClass.getMethod("sendPacket", FastReflection.nmsClass("Packet"));
-        } catch(ReflectiveOperationException e) {
+        } catch (ReflectiveOperationException e) {
             throw new ExceptionInInitializerError(e);
         }
     }
@@ -93,8 +93,8 @@ class ParticleSenderLegacy implements ParticleSender {
         try {
             int[] datas = toData(particle, data);
 
-            if(data instanceof Color) {
-                if(particle.getDataType() == Color.class) {
+            if (data instanceof Color) {
+                if (particle.getDataType() == Color.class) {
                     Color color = (Color) data;
                     count = 0;
                     offsetX = color(color.getRed());
@@ -104,32 +104,32 @@ class ParticleSenderLegacy implements ParticleSender {
                 }
             }
 
-            if(receiver instanceof World) {
+            if (receiver instanceof World) {
                 Object worldServer = WORLD_GET_HANDLE.invoke(receiver);
 
-                if(SERVER_IS_1_8) {
+                if (SERVER_IS_1_8) {
                     WORLD_SEND_PARTICLE.invoke(worldServer, null, getEnumParticle(particle), true, x, y, z, count, offsetX, offsetY, offsetZ, extra, datas);
                 } else {
                     String particleName = particle.getLegacyName() + (datas.length != 2 ? "" : "_" + datas[0] + "_" + datas[1]);
                     WORLD_SEND_PARTICLE.invoke(worldServer, particleName, x, y, z, count, offsetX, offsetY, offsetZ, extra);
                 }
-            } else if(receiver instanceof Player) {
+            } else if (receiver instanceof Player) {
                 Object packet;
 
-                if(SERVER_IS_1_8) {
+                if (SERVER_IS_1_8) {
                     packet = PACKET_PARTICLE.newInstance(getEnumParticle(particle), true, (float) x, (float) y,
-                        (float) z, (float) offsetX, (float) offsetY, (float) offsetZ, (float) extra, count, datas);
+                            (float) z, (float) offsetX, (float) offsetY, (float) offsetZ, (float) extra, count, datas);
                 } else {
                     String particleName = particle.getLegacyName() + (datas.length != 2 ? "" : "_" + datas[0] + "_" + datas[1]);
                     packet = PACKET_PARTICLE.newInstance(particleName, (float) x, (float) y, (float) z,
-                        (float) offsetX, (float) offsetY, (float) offsetZ, (float) extra, count);
+                            (float) offsetX, (float) offsetY, (float) offsetZ, (float) extra, count);
                 }
 
                 Object entityPlayer = PLAYER_GET_HANDLE.invoke(receiver);
                 Object playerConnection = PLAYER_CONNECTION.get(entityPlayer);
                 SEND_PACKET.invoke(playerConnection, packet);
             }
-        } catch(ReflectiveOperationException e) {
+        } catch (ReflectiveOperationException e) {
             Iris.reportError(e);
             throw new RuntimeException(e);
         }
@@ -142,13 +142,13 @@ class ParticleSenderLegacy implements ParticleSender {
 
     @Override
     public Object getParticle(ParticleType particle) {
-        if(!SERVER_IS_1_8) {
+        if (!SERVER_IS_1_8) {
             return particle.getLegacyName();
         }
 
         try {
             return getEnumParticle(particle);
-        } catch(IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             Iris.reportError(e);
             return null;
         }
@@ -160,23 +160,23 @@ class ParticleSenderLegacy implements ParticleSender {
 
     private int[] toData(ParticleType particle, Object data) {
         Class<?> dataType = particle.getDataType();
-        if(dataType == ItemStack.class) {
-            if(!(data instanceof ItemStack itemStack)) {
-                return SERVER_IS_1_8 ? new int[2] : new int[] {1, 0};
+        if (dataType == ItemStack.class) {
+            if (!(data instanceof ItemStack itemStack)) {
+                return SERVER_IS_1_8 ? new int[2] : new int[]{1, 0};
             }
 
-            return new int[] {itemStack.getType().getId(), itemStack.getDurability()};
+            return new int[]{itemStack.getType().getId(), itemStack.getDurability()};
         }
 
-        if(dataType == MaterialData.class) {
-            if(!(data instanceof MaterialData materialData)) {
-                return SERVER_IS_1_8 ? new int[1] : new int[] {1, 0};
+        if (dataType == MaterialData.class) {
+            if (!(data instanceof MaterialData materialData)) {
+                return SERVER_IS_1_8 ? new int[1] : new int[]{1, 0};
             }
 
-            if(SERVER_IS_1_8) {
-                return new int[] {materialData.getItemType().getId() + (materialData.getData() << 12)};
+            if (SERVER_IS_1_8) {
+                return new int[]{materialData.getItemType().getId() + (materialData.getData() << 12)};
             } else {
-                return new int[] {materialData.getItemType().getId(), materialData.getData()};
+                return new int[]{materialData.getItemType().getId(), materialData.getData()};
             }
         }
 

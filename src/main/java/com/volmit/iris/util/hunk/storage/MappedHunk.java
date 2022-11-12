@@ -53,7 +53,7 @@ public class MappedHunk<T> extends StorageHunk<T> implements Hunk<T> {
 
     @Override
     public void setRaw(int x, int y, int z, T t) {
-        if(t == null) {
+        if (t == null) {
             data.remove(index(x, y, z));
             return;
         }
@@ -69,7 +69,7 @@ public class MappedHunk<T> extends StorageHunk<T> implements Hunk<T> {
     public synchronized Hunk<T> iterateSync(Consumer4<Integer, Integer, Integer, T> c) {
         int idx, z;
 
-        for(Map.Entry<Integer, T> g : data.entrySet()) {
+        for (Map.Entry<Integer, T> g : data.entrySet()) {
             idx = g.getKey();
             z = idx / (getWidth() * getHeight());
             idx -= (z * getWidth() * getHeight());
@@ -83,7 +83,7 @@ public class MappedHunk<T> extends StorageHunk<T> implements Hunk<T> {
     public synchronized Hunk<T> iterateSyncIO(Consumer4IO<Integer, Integer, Integer, T> c) throws IOException {
         int idx, z;
 
-        for(Map.Entry<Integer, T> g : data.entrySet()) {
+        for (Map.Entry<Integer, T> g : data.entrySet()) {
             idx = g.getKey();
             z = idx / (getWidth() * getHeight());
             idx -= (z * getWidth() * getHeight());

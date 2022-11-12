@@ -37,13 +37,13 @@ public class UpdateMatter extends RawMatter<MatterUpdate> {
         this(1, 1, 1);
     }
 
+    public UpdateMatter(int width, int height, int depth) {
+        super(width, height, depth, MatterUpdate.class);
+    }
+
     @Override
     public Palette<MatterUpdate> getGlobalPalette() {
         return GLOBAL;
-    }
-
-    public UpdateMatter(int width, int height, int depth) {
-        super(width, height, depth, MatterUpdate.class);
     }
 
     @Override

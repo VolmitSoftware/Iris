@@ -17,23 +17,19 @@ import java.io.IOException;
 public class IrisMatterObject extends IrisRegistrant {
     private final Matter matter;
 
-    public IrisMatterObject()
-    {
-        this(1,1,1);
+    public IrisMatterObject() {
+        this(1, 1, 1);
     }
 
-    public IrisMatterObject(int w, int h, int d)
-    {
-        this(new IrisMatter(w,h,d));
+    public IrisMatterObject(int w, int h, int d) {
+        this(new IrisMatter(w, h, d));
     }
 
-    public IrisMatterObject(Matter matter)
-    {
+    public IrisMatterObject(Matter matter) {
         this.matter = matter;
     }
 
-    public static IrisMatterObject from(IrisObject object)
-    {
+    public static IrisMatterObject from(IrisObject object) {
         return new IrisMatterObject(Matter.from(object));
     }
 

@@ -84,6 +84,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final ChronoLatch hotloadChecker;
     private final AtomicBoolean setup;
     private final boolean studio;
+    private final AtomicInteger a = new AtomicInteger(0);
     private Engine engine;
     private Looper hotloader;
     private StudioMode lastMode;
@@ -106,36 +107,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         Bukkit.getServer().getPluginManager().registerEvents(this, Iris.instance);
     }
 
-    @EventHandler
-    public void onWorldInit(WorldInitEvent event) {
-        try {
-            if(world.name().equals(event.getWorld().getName()) && world.getRawWorldSeed() == event.getWorld().getSeed()) {
-                ServerLevel serverLevel = ((CraftWorld)event.getWorld()).getHandle();
-                Engine engine = getEngine(event.getWorld());
-                Class<?> clazz = serverLevel.getChunkSource().chunkMap.generator.getClass();
-                Field biomeSource = getField(clazz, "c");
-                biomeSource.setAccessible(true);
-                Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
-                unsafeField.setAccessible(true);
-                Unsafe unsafe = (Unsafe) unsafeField.get(null);
-                CustomBiomeSource customBiomeSource = new CustomBiomeSource(event.getWorld().getSeed(), engine, event.getWorld());
-                unsafe.putObject(biomeSource.get(serverLevel.getChunkSource().chunkMap.generator), unsafe.objectFieldOffset(biomeSource), customBiomeSource);
-                biomeSource.set(serverLevel.getChunkSource().chunkMap.generator, customBiomeSource);
-                Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
-            }
-
-            else {
-                Iris.info("World " + event.getWorld().getName() + " is not an Iris world in this context");
-            }
-        }
-
-        catch(Throwable e) {
-            e.printStackTrace();
-        }
-    }
-
     private static Field getField(Class clazz, String fieldName)
-        throws NoSuchFieldException {
+            throws NoSuchFieldException {
         try {
             return clazz.getDeclaredField(fieldName);
         } catch (NoSuchFieldException e) {
@@ -148,15 +121,39 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         }
     }
 
+    @EventHandler
+    public void onWorldInit(WorldInitEvent event) {
+        try {
+            if (world.name().equals(event.getWorld().getName()) && world.getRawWorldSeed() == event.getWorld().getSeed()) {
+                ServerLevel serverLevel = ((CraftWorld) event.getWorld()).getHandle();
+                Engine engine = getEngine(event.getWorld());
+                Class<?> clazz = serverLevel.getChunkSource().chunkMap.generator.getClass();
+                Field biomeSource = getField(clazz, "c");
+                biomeSource.setAccessible(true);
+                Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                unsafeField.setAccessible(true);
+                Unsafe unsafe = (Unsafe) unsafeField.get(null);
+                CustomBiomeSource customBiomeSource = new CustomBiomeSource(event.getWorld().getSeed(), engine, event.getWorld());
+                unsafe.putObject(biomeSource.get(serverLevel.getChunkSource().chunkMap.generator), unsafe.objectFieldOffset(biomeSource), customBiomeSource);
+                biomeSource.set(serverLevel.getChunkSource().chunkMap.generator, customBiomeSource);
+                Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
+            } else {
+                Iris.info("World " + event.getWorld().getName() + " is not an Iris world in this context");
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
+
     private void setupEngine() {
         IrisData data = IrisData.get(dataLocation);
         IrisDimension dimension = data.getDimensionLoader().load(dimensionKey);
 
-        if(dimension == null) {
+        if (dimension == null) {
             Iris.error("Oh No! There's no pack in " + data.getDataFolder().getPath() + " or... there's no dimension for the key " + dimensionKey);
             IrisDimension test = IrisData.loadAnyDimension(dimensionKey);
 
-            if(test != null) {
+            if (test != null) {
                 Iris.warn("Looks like " + dimensionKey + " exists in " + test.getLoadFile().getPath() + " ");
                 Iris.service(StudioSVC.class).installIntoWorld(Iris.getSender(), dimensionKey, dataLocation.getParentFile().getParentFile());
                 Iris.warn("Attempted to install into " + data.getDataFolder().getPath());
@@ -164,7 +161,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 data.clearLists();
                 test = data.getDimensionLoader().load(dimensionKey);
 
-                if(test != null) {
+                if (test != null) {
                     Iris.success("Woo! Patched the Engine!");
                     dimension = test;
                 } else {
@@ -194,14 +191,14 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             getEngine().generate(x << 4, z << 4, blocks, biomes, true);
             Iris.debug("Regenerated " + x + " " + z);
             int t = 0;
-            for(int i = getEngine().getHeight() >> 4; i >= 0; i--) {
-                if(!world.isChunkLoaded(x, z)) {
+            for (int i = getEngine().getHeight() >> 4; i >= 0; i--) {
+                if (!world.isChunkLoaded(x, z)) {
                     continue;
                 }
 
                 Chunk c = world.getChunkAt(x, z);
-                for(Entity ee : c.getEntities()) {
-                    if(ee instanceof Player) {
+                for (Entity ee : c.getEntities()) {
+                    if (ee instanceof Player) {
                         continue;
                     }
 
@@ -213,14 +210,14 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 int finalI = i;
                 jobs.accept(() -> {
 
-                    for(int xx = 0; xx < 16; xx++) {
-                        for(int yy = 0; yy < 16; yy++) {
-                            for(int zz = 0; zz < 16; zz++) {
-                                if(yy + (finalI << 4) >= engine.getHeight() || yy + (finalI << 4) < 0) {
+                    for (int xx = 0; xx < 16; xx++) {
+                        for (int yy = 0; yy < 16; yy++) {
+                            for (int zz = 0; zz < 16; zz++) {
+                                if (yy + (finalI << 4) >= engine.getHeight() || yy + (finalI << 4) < 0) {
                                     continue;
                                 }
                                 c.getBlock(xx, yy + (finalI << 4) + world.getMinHeight(), zz)
-                                    .setBlockData(tc.getBlockData(xx, yy + (finalI << 4) + world.getMinHeight(), zz), false);
+                                        .setBlockData(tc.getBlockData(xx, yy + (finalI << 4) + world.getMinHeight(), zz), false);
                             }
                         }
                     }
@@ -228,7 +225,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             }
 
             loadLock.release();
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             loadLock.release();
             Iris.error("======================================");
             e.printStackTrace();
@@ -237,8 +234,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
             ChunkData d = Bukkit.createChunkData(world);
 
-            for(int i = 0; i < 16; i++) {
-                for(int j = 0; j < 16; j++) {
+            for (int i = 0; i < 16; i++) {
+                for (int j = 0; j < 16; j++) {
                     d.setBlock(i, 0, j, Material.RED_GLAZED_TERRACOTTA.createBlockData());
                 }
             }
@@ -246,14 +243,13 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     private Engine getEngine(WorldInfo world) {
-        if(setup.get()) {
+        if (setup.get()) {
             return getEngine();
         }
 
         lock.lock();
 
-        if(setup.get())
-        {
+        if (setup.get()) {
             return getEngine();
         }
 
@@ -264,7 +260,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         this.hotloader = studio ? new Looper() {
             @Override
             protected long loop() {
-                if(hotloadChecker.flip()) {
+                if (hotloadChecker.flip()) {
                     folder.check();
                 }
 
@@ -272,7 +268,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             }
         } : null;
 
-        if(studio) {
+        if (studio) {
             hotloader.setPriority(Thread.MIN_PRIORITY);
             hotloader.start();
             hotloader.setName(getTarget().getWorld().name() + " Hotloader");
@@ -286,7 +282,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @Override
     public void close() {
         withExclusiveControl(() -> {
-            if(isStudio()) {
+            if (isStudio()) {
                 hotloader.interrupt();
             }
 
@@ -304,7 +300,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @Override
     public void hotload() {
-        if(!isStudio()) {
+        if (!isStudio()) {
             return;
         }
 
@@ -317,7 +313,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 loadLock.acquire(LOAD_LOCKS);
                 r.run();
                 loadLock.release(LOAD_LOCKS);
-            } catch(Throwable e) {
+            } catch (Throwable e) {
                 Iris.reportError(e);
             }
         });
@@ -328,8 +324,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         getEngine(world);
     }
 
-    private final AtomicInteger a = new AtomicInteger(0);
-
     @Override
     public void generateNoise(@NotNull WorldInfo world, @NotNull Random random, int x, int z, @NotNull ChunkGenerator.ChunkData d) {
         try {
@@ -337,7 +331,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             computeStudioGenerator();
             TerrainChunk tc = TerrainChunk.create(d, new IrisBiomeStorage());
             this.world.bind(world);
-            if(studioGenerator != null) {
+            if (studioGenerator != null) {
                 studioGenerator.generateChunk(getEngine(), tc, x, z);
             } else {
                 ChunkDataHunkHolder blocks = new ChunkDataHunkHolder(tc);
@@ -348,14 +342,14 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             }
 
             Iris.debug("Generated " + x + " " + z);
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.error("======================================");
             e.printStackTrace();
             Iris.reportErrorChunk(x, z, e, "CHUNK");
             Iris.error("======================================");
 
-            for(int i = 0; i < 16; i++) {
-                for(int j = 0; j < 16; j++) {
+            for (int i = 0; i < 16; i++) {
+                for (int j = 0; j < 16; j++) {
                     d.setBlock(i, 0, j, Material.RED_GLAZED_TERRACOTTA.createBlockData());
                 }
             }
@@ -368,7 +362,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     private void computeStudioGenerator() {
-        if(!getEngine().getDimension().getStudioMode().equals(lastMode)) {
+        if (!getEngine().getDimension().getStudioMode().equals(lastMode)) {
             lastMode = getEngine().getDimension().getStudioMode();
             getEngine().getDimension().getStudioMode().inject(this);
         }

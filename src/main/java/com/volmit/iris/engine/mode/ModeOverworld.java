@@ -44,25 +44,25 @@ public class ModeOverworld extends IrisEngineMode implements EngineMode {
         EngineStage sBiome = (x, z, k, p, m, c) -> biome.actuate(x, z, p, m, c);
         EngineStage sGenMatter = (x, z, k, p, m, c) -> generateMatter(x >> 4, z >> 4, m, c);
         EngineStage sTerrain = (x, z, k, p, m, c) -> terrain.actuate(x, z, k, m, c);
-        EngineStage sDecorant =     (x, z, k, p, m, c) -> decorant.actuate(x, z, k, m, c);
-        EngineStage sCave =    (x, z, k, p, m, c) -> cave.modify(x >> 4, z >> 4, k, m, c);
-        EngineStage sDeposit =    (x, z, k, p, m, c) -> deposit.modify(x, z, k, m,c);
-        EngineStage sPost =    (x, z, k, p, m, c) -> post.modify(x, z, k, m, c);
-        EngineStage sInsertMatter =   (x, z, K, p, m, c) -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, K, m);
-        EngineStage sPerfection =   (x, z, k, p, m, c) -> perfection.modify(x, z, k, m, c);
+        EngineStage sDecorant = (x, z, k, p, m, c) -> decorant.actuate(x, z, k, m, c);
+        EngineStage sCave = (x, z, k, p, m, c) -> cave.modify(x >> 4, z >> 4, k, m, c);
+        EngineStage sDeposit = (x, z, k, p, m, c) -> deposit.modify(x, z, k, m, c);
+        EngineStage sPost = (x, z, k, p, m, c) -> post.modify(x, z, k, m, c);
+        EngineStage sInsertMatter = (x, z, K, p, m, c) -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, K, m);
+        EngineStage sPerfection = (x, z, k, p, m, c) -> perfection.modify(x, z, k, m, c);
 
         registerStage(burst(
-            sGenMatter,
-            sTerrain
+                sGenMatter,
+                sTerrain
         ));
         registerStage(burst(
-            sCave,
-            sPost
+                sCave,
+                sPost
         ));
         registerStage(burst(
-            sDeposit,
-            sInsertMatter,
-            sDecorant
+                sDeposit,
+                sInsertMatter,
+                sDecorant
         ));
         registerStage(sPerfection);
 

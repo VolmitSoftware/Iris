@@ -38,7 +38,7 @@ public class DownloadJob implements Job {
         download.monitor(new DownloadMonitor() {
             @Override
             public void onUpdate(DL.DownloadState state, double progress, long elapsed, long estimated, long bps, long iobps, long size, long downloaded, long buffer, double bufferuse) {
-                if(size == -1) {
+                if (size == -1) {
                     tw = 1;
                 } else {
                     tw = (int) (size / 100);
@@ -57,10 +57,10 @@ public class DownloadJob implements Job {
     public void execute() {
         try {
             download.start();
-            while(download.isState(DL.DownloadState.DOWNLOADING)) {
+            while (download.isState(DL.DownloadState.DOWNLOADING)) {
                 download.downloadChunk();
             }
-        } catch(IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
 

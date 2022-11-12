@@ -25,7 +25,7 @@ import java.util.Arrays;
 
 public class DoubleArrayUtils {
     public static void shiftRight(double[] values, double push) {
-        if(values.length - 2 + 1 >= 0) System.arraycopy(values, 0, values, 1, values.length - 2 + 1);
+        if (values.length - 2 + 1 >= 0) System.arraycopy(values, 0, values, 1, values.length - 2 + 1);
 
         values[0] = push;
     }
@@ -40,7 +40,7 @@ public class DoubleArrayUtils {
     }
 
     public static void fill(AtomicDoubleArray values, double value) {
-        for(int i = 0; i < values.length(); i++) {
+        for (int i = 0; i < values.length(); i++) {
             values.set(i, value);
         }
     }

@@ -43,10 +43,8 @@ public interface PregeneratorMethod {
     /**
      * Return true if regions can be generated
      *
-     * @param x
-     *     the x region
-     * @param z
-     *     the z region
+     * @param x the x region
+     * @param z the z region
      * @return true if they can be
      */
     boolean supportsRegions(int x, int z, PregenListener listener);
@@ -54,10 +52,8 @@ public interface PregeneratorMethod {
     /**
      * Return the name of the method being used
      *
-     * @param x
-     *     the x region
-     * @param z
-     *     the z region
+     * @param x the x region
+     * @param z the z region
      * @return the name
      */
     String getMethod(int x, int z);
@@ -66,22 +62,17 @@ public interface PregeneratorMethod {
      * Called to generate a region. Execute sync, if multicore internally, wait
      * for the task to complete
      *
-     * @param x
-     *     the x
-     * @param z
-     *     the z
-     * @param listener
-     *     signal chunks generating & generated. Parallel capable.
+     * @param x        the x
+     * @param z        the z
+     * @param listener signal chunks generating & generated. Parallel capable.
      */
     void generateRegion(int x, int z, PregenListener listener);
 
     /**
      * Called to generate a chunk. You can go async so long as save will wait on the threads to finish
      *
-     * @param x
-     *     the x
-     * @param z
-     *     the z
+     * @param x the x
+     * @param z the z
      */
     void generateChunk(int x, int z, PregenListener listener);
 

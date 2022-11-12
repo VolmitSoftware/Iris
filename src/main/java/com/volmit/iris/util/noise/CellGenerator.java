@@ -60,7 +60,7 @@ public class CellGenerator {
     }
 
     public double getValue(double x, double z, int possibilities) {
-        if(possibilities == 1) {
+        if (possibilities == 1) {
             return 0;
         }
 
@@ -68,7 +68,7 @@ public class CellGenerator {
     }
 
     public double getValue(double x, double y, double z, int possibilities) {
-        if(possibilities == 1) {
+        if (possibilities == 1) {
             return 0;
         }
 
@@ -76,7 +76,7 @@ public class CellGenerator {
     }
 
     public int getIndex(double x, double z, int possibilities) {
-        if(possibilities == 1) {
+        if (possibilities == 1) {
             return 0;
         }
 
@@ -84,7 +84,7 @@ public class CellGenerator {
     }
 
     public int getIndex(double x, double y, double z, int possibilities) {
-        if(possibilities == 1) {
+        if (possibilities == 1) {
             return 0;
         }
 

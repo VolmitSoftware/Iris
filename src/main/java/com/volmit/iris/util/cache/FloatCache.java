@@ -36,27 +36,23 @@ public class FloatCache implements ArrayCache<Float> {
 
     public FloatCache(DataInputStream din) throws IOException {
         this(din.readInt(), din.readInt());
-        for(int i = 0; i < width * height; i++)
-        {
+        for (int i = 0; i < width * height; i++) {
             cache[i] = din.readFloat();
         }
         din.close();
     }
 
-    public FloatCache(int width, int height)
-    {
+    public FloatCache(int width, int height) {
         this.width = width;
         this.height = height;
         cache = new float[width * height];
     }
 
-    public void set(int i, Float v)
-    {
+    public void set(int i, Float v) {
         cache[i] = v;
     }
 
-    public Float get(int i)
-    {
+    public Float get(int i) {
         return cache[i];
     }
 
@@ -65,8 +61,7 @@ public class FloatCache implements ArrayCache<Float> {
         dos.writeInt(width);
         dos.writeInt(height);
 
-        for(int i = 0; i < width * height; i++)
-        {
+        for (int i = 0; i < width * height; i++) {
             dos.writeFloat(get(i));
         }
     }

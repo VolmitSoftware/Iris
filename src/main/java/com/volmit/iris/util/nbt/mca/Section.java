@@ -38,7 +38,7 @@ public class Section {
     public Section(CompoundTag sectionRoot, int dataVersion, long loadFlags) {
         data = sectionRoot;
         ListTag<?> rawPalette = sectionRoot.getListTag("Palette");
-        if(rawPalette == null) {
+        if (rawPalette == null) {
             return;
         }
         palette = INMS.get().createPalette();
@@ -77,16 +77,13 @@ public class Section {
      * Fetches a block state based on a block location from this section.
      * The coordinates represent the location of the block inside of this Section.
      *
-     * @param blockX
-     *     The x-coordinate of the block in this Section
-     * @param blockY
-     *     The y-coordinate of the block in this Section
-     * @param blockZ
-     *     The z-coordinate of the block in this Section
+     * @param blockX The x-coordinate of the block in this Section
+     * @param blockY The y-coordinate of the block in this Section
+     * @param blockZ The z-coordinate of the block in this Section
      * @return The block state data of this block.
      */
     public synchronized CompoundTag getBlockStateAt(int blockX, int blockY, int blockZ) {
-        synchronized(palette) {
+        synchronized (palette) {
             return palette.getBlock(blockX & 15, blockY & 15, blockZ & 15);
         }
     }
@@ -94,17 +91,13 @@ public class Section {
     /**
      * Attempts to add a block state for a specific block location in this Section.
      *
-     * @param blockX
-     *     The x-coordinate of the block in this Section
-     * @param blockY
-     *     The y-coordinate of the block in this Section
-     * @param blockZ
-     *     The z-coordinate of the block in this Section
-     * @param state
-     *     The block state to be set
+     * @param blockX The x-coordinate of the block in this Section
+     * @param blockY The y-coordinate of the block in this Section
+     * @param blockZ The z-coordinate of the block in this Section
+     * @param state  The block state to be set
      */
     public synchronized void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
-        synchronized(palette) {
+        synchronized (palette) {
             palette.setBlock(blockX & 15, blockY & 15, blockZ & 15, state);
         }
     }
@@ -128,13 +121,11 @@ public class Section {
     /**
      * Sets the block light array for this section.
      *
-     * @param blockLight
-     *     The block light array
-     * @throws IllegalArgumentException
-     *     When the length of the array is not 2048
+     * @param blockLight The block light array
+     * @throws IllegalArgumentException When the length of the array is not 2048
      */
     public synchronized void setBlockLight(byte[] blockLight) {
-        if(blockLight != null && blockLight.length != 2048) {
+        if (blockLight != null && blockLight.length != 2048) {
             throw new IllegalArgumentException("BlockLight array must have a length of 2048");
         }
         this.blockLight = blockLight;
@@ -150,13 +141,11 @@ public class Section {
     /**
      * Sets the sky light values of this section.
      *
-     * @param skyLight
-     *     The custom sky light values
-     * @throws IllegalArgumentException
-     *     If the length of the array is not 2048
+     * @param skyLight The custom sky light values
+     * @throws IllegalArgumentException If the length of the array is not 2048
      */
     public synchronized void setSkyLight(byte[] skyLight) {
-        if(skyLight != null && skyLight.length != 2048) {
+        if (skyLight != null && skyLight.length != 2048) {
             throw new IllegalArgumentException("SkyLight array must have a length of 2048");
         }
         this.skyLight = skyLight;
@@ -167,22 +156,21 @@ public class Section {
      * This must be called before saving a Section to disk if the Section was manually created
      * to set the Y of this Section.
      *
-     * @param y
-     *     The Y-value of this Section
+     * @param y The Y-value of this Section
      * @return A reference to the raw CompoundTag this Section is based on
      */
     public synchronized CompoundTag updateHandle(int y) {
         data.putByte("Y", (byte) y);
 
-        if(palette != null) {
-            synchronized(palette) {
+        if (palette != null) {
+            synchronized (palette) {
                 palette.writeToSection(data);
             }
         }
-        if(blockLight != null) {
+        if (blockLight != null) {
             data.putByteArray("BlockLight", blockLight);
         }
-        if(skyLight != null) {
+        if (skyLight != null) {
             data.putByteArray("SkyLight", skyLight);
         }
         return data;

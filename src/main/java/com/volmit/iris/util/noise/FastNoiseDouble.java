@@ -200,7 +200,7 @@ public class FastNoiseDouble {
 
         hash &= 31;
         double a = yd, b = zd, c = wd; // X,Y,Z
-        switch((int) hash >> 3) { // OR, DEPENDING ON HIGH ORDER 2 BITS:
+        switch ((int) hash >> 3) { // OR, DEPENDING ON HIGH ORDER 2 BITS:
             case 1 -> {
                 a = wd;
                 b = xd;
@@ -313,7 +313,7 @@ public class FastNoiseDouble {
     private void calculateFractalBounding() {
         double amp = m_gain;
         double ampFractal = 1;
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             ampFractal += amp;
             amp *= m_gain;
         }
@@ -325,11 +325,11 @@ public class FastNoiseDouble {
         y *= m_frequency;
         z *= m_frequency;
 
-        switch(m_noiseType) {
+        switch (m_noiseType) {
             case Value:
                 return SingleValue(m_seed, x, y, z);
             case ValueFractal:
-                return switch(m_fractalType) {
+                return switch (m_fractalType) {
                     case FBM -> SingleValueFractalFBM(x, y, z);
                     case Billow -> SingleValueFractalBillow(x, y, z);
                     case RigidMulti -> SingleValueFractalRigidMulti(x, y, z);
@@ -337,7 +337,7 @@ public class FastNoiseDouble {
             case Perlin:
                 return SinglePerlin(m_seed, x, y, z);
             case PerlinFractal:
-                return switch(m_fractalType) {
+                return switch (m_fractalType) {
                     case FBM -> SinglePerlinFractalFBM(x, y, z);
                     case Billow -> SinglePerlinFractalBillow(x, y, z);
                     case RigidMulti -> SinglePerlinFractalRigidMulti(x, y, z);
@@ -345,13 +345,13 @@ public class FastNoiseDouble {
             case Simplex:
                 return SingleSimplex(m_seed, x, y, z);
             case SimplexFractal:
-                return switch(m_fractalType) {
+                return switch (m_fractalType) {
                     case FBM -> SingleSimplexFractalFBM(x, y, z);
                     case Billow -> SingleSimplexFractalBillow(x, y, z);
                     case RigidMulti -> SingleSimplexFractalRigidMulti(x, y, z);
                 };
             case Cellular:
-                return switch(m_cellularReturnType) {
+                return switch (m_cellularReturnType) {
                     case CellValue, NoiseLookup, Distance -> SingleCellular(x, y, z);
                     default -> SingleCellular2Edge(x, y, z);
                 };
@@ -360,7 +360,7 @@ public class FastNoiseDouble {
             case Cubic:
                 return SingleCubic(m_seed, x, y, z);
             case CubicFractal:
-                return switch(m_fractalType) {
+                return switch (m_fractalType) {
                     case FBM -> SingleCubicFractalFBM(x, y, z);
                     case Billow -> SingleCubicFractalBillow(x, y, z);
                     case RigidMulti -> SingleCubicFractalRigidMulti(x, y, z);
@@ -374,11 +374,11 @@ public class FastNoiseDouble {
         x *= m_frequency;
         y *= m_frequency;
 
-        switch(m_noiseType) {
+        switch (m_noiseType) {
             case Value:
                 return SingleValue(m_seed, x, y);
             case ValueFractal:
-                return switch(m_fractalType) {
+                return switch (m_fractalType) {
                     case FBM -> SingleValueFractalFBM(x, y);
                     case Billow -> SingleValueFractalBillow(x, y);
                     case RigidMulti -> SingleValueFractalRigidMulti(x, y);
@@ -386,7 +386,7 @@ public class FastNoiseDouble {
             case Perlin:
                 return SinglePerlin(m_seed, x, y);
             case PerlinFractal:
-                return switch(m_fractalType) {
+                return switch (m_fractalType) {
                     case FBM -> SinglePerlinFractalFBM(x, y);
                     case Billow -> SinglePerlinFractalBillow(x, y);
                     case RigidMulti -> SinglePerlinFractalRigidMulti(x, y);
@@ -394,13 +394,13 @@ public class FastNoiseDouble {
             case Simplex:
                 return SingleSimplex(m_seed, x, y);
             case SimplexFractal:
-                return switch(m_fractalType) {
+                return switch (m_fractalType) {
                     case FBM -> SingleSimplexFractalFBM(x, y);
                     case Billow -> SingleSimplexFractalBillow(x, y);
                     case RigidMulti -> SingleSimplexFractalRigidMulti(x, y);
                 };
             case Cellular:
-                return switch(m_cellularReturnType) {
+                return switch (m_cellularReturnType) {
                     case CellValue, NoiseLookup, Distance -> SingleCellular(x, y);
                     default -> SingleCellular2Edge(x, y);
                 };
@@ -409,7 +409,7 @@ public class FastNoiseDouble {
             case Cubic:
                 return SingleCubic(m_seed, x, y);
             case CubicFractal:
-                return switch(m_fractalType) {
+                return switch (m_fractalType) {
                     case FBM -> SingleCubicFractalFBM(x, y);
                     case Billow -> SingleCubicFractalBillow(x, y);
                     case RigidMulti -> SingleCubicFractalRigidMulti(x, y);
@@ -467,7 +467,7 @@ public class FastNoiseDouble {
         y *= m_frequency;
         z *= m_frequency;
 
-        return switch(m_fractalType) {
+        return switch (m_fractalType) {
             case FBM -> SingleValueFractalFBM(x, y, z);
             case Billow -> SingleValueFractalBillow(x, y, z);
             case RigidMulti -> SingleValueFractalRigidMulti(x, y, z);
@@ -479,7 +479,7 @@ public class FastNoiseDouble {
         double sum = SingleValue(seed, x, y, z);
         double amp = 1;
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             x *= m_lacunarity;
             y *= m_lacunarity;
             z *= m_lacunarity;
@@ -496,7 +496,7 @@ public class FastNoiseDouble {
         double sum = Math.abs(SingleValue(seed, x, y, z)) * 2 - 1;
         double amp = 1;
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             x *= m_lacunarity;
             y *= m_lacunarity;
             z *= m_lacunarity;
@@ -513,7 +513,7 @@ public class FastNoiseDouble {
         double sum = 1 - Math.abs(SingleValue(seed, x, y, z));
         double amp = 1;
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             x *= m_lacunarity;
             y *= m_lacunarity;
             z *= m_lacunarity;
@@ -538,7 +538,7 @@ public class FastNoiseDouble {
         long z1 = z0 + 1;
 
         double xs = 0, ys = 0, zs = 0;
-        switch(m_longerp) {
+        switch (m_longerp) {
             case Linear -> {
                 xs = x - x0;
                 ys = y - y0;
@@ -571,7 +571,7 @@ public class FastNoiseDouble {
         x *= m_frequency;
         y *= m_frequency;
 
-        return switch(m_fractalType) {
+        return switch (m_fractalType) {
             case FBM -> SingleValueFractalFBM(x, y);
             case Billow -> SingleValueFractalBillow(x, y);
             case RigidMulti -> SingleValueFractalRigidMulti(x, y);
@@ -583,7 +583,7 @@ public class FastNoiseDouble {
         double sum = SingleValue(seed, x, y);
         double amp = 1;
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             x *= m_lacunarity;
             y *= m_lacunarity;
 
@@ -599,7 +599,7 @@ public class FastNoiseDouble {
         double sum = Math.abs(SingleValue(seed, x, y)) * 2 - 1;
         double amp = 1;
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             x *= m_lacunarity;
             y *= m_lacunarity;
             amp *= m_gain;
@@ -614,7 +614,7 @@ public class FastNoiseDouble {
         double sum = 1 - Math.abs(SingleValue(seed, x, y));
         double amp = 1;
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             x *= m_lacunarity;
             y *= m_lacunarity;
 
@@ -636,7 +636,7 @@ public class FastNoiseDouble {
         long y1 = y0 + 1;
 
         double xs = 0, ys = 0;
-        switch(m_longerp) {
+        switch (m_longerp) {
             case Linear -> {
                 xs = x - x0;
                 ys = y - y0;
@@ -663,7 +663,7 @@ public class FastNoiseDouble {
         y *= m_frequency;
         z *= m_frequency;
 
-        return switch(m_fractalType) {
+        return switch (m_fractalType) {
             case FBM -> SinglePerlinFractalFBM(x, y, z);
             case Billow -> SinglePerlinFractalBillow(x, y, z);
             case RigidMulti -> SinglePerlinFractalRigidMulti(x, y, z);
@@ -675,7 +675,7 @@ public class FastNoiseDouble {
         double sum = SinglePerlin(seed, x, y, z);
         double amp = 1;
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             x *= m_lacunarity;
             y *= m_lacunarity;
             z *= m_lacunarity;
@@ -692,7 +692,7 @@ public class FastNoiseDouble {
         double sum = Math.abs(SinglePerlin(seed, x, y, z)) * 2 - 1;
         double amp = 1;
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             x *= m_lacunarity;
             y *= m_lacunarity;
             z *= m_lacunarity;
@@ -709,7 +709,7 @@ public class FastNoiseDouble {
         double sum = 1 - Math.abs(SinglePerlin(seed, x, y, z));
         double amp = 1;
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             x *= m_lacunarity;
             y *= m_lacunarity;
             z *= m_lacunarity;
@@ -734,7 +734,7 @@ public class FastNoiseDouble {
         long z1 = z0 + 1;
 
         double xs = 0, ys = 0, zs = 0;
-        switch(m_longerp) {
+        switch (m_longerp) {
             case Linear -> {
                 xs = x - x0;
                 ys = y - y0;
@@ -774,7 +774,7 @@ public class FastNoiseDouble {
         x *= m_frequency;
         y *= m_frequency;
 
-        return switch(m_fractalType) {
+        return switch (m_fractalType) {
             case FBM -> SinglePerlinFractalFBM(x, y);
             case Billow -> SinglePerlinFractalBillow(x, y);
             case RigidMulti -> SinglePerlinFractalRigidMulti(x, y);
@@ -786,7 +786,7 @@ public class FastNoiseDouble {
         double sum = SinglePerlin(seed, x, y);
         double amp = 1;
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             x *= m_lacunarity;
             y *= m_lacunarity;
 
@@ -802,7 +802,7 @@ public class FastNoiseDouble {
         double sum = Math.abs(SinglePerlin(seed, x, y)) * 2 - 1;
         double amp = 1;
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             x *= m_lacunarity;
             y *= m_lacunarity;
 
@@ -818,7 +818,7 @@ public class FastNoiseDouble {
         double sum = 1 - Math.abs(SinglePerlin(seed, x, y));
         double amp = 1;
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             x *= m_lacunarity;
             y *= m_lacunarity;
 
@@ -840,7 +840,7 @@ public class FastNoiseDouble {
         long y1 = y0 + 1;
 
         double xs = 0, ys = 0;
-        switch(m_longerp) {
+        switch (m_longerp) {
             case Linear -> {
                 xs = x - x0;
                 ys = y - y0;
@@ -872,7 +872,7 @@ public class FastNoiseDouble {
         y *= m_frequency;
         z *= m_frequency;
 
-        return switch(m_fractalType) {
+        return switch (m_fractalType) {
             case FBM -> SingleSimplexFractalFBM(x, y, z);
             case Billow -> SingleSimplexFractalBillow(x, y, z);
             case RigidMulti -> SingleSimplexFractalRigidMulti(x, y, z);
@@ -884,7 +884,7 @@ public class FastNoiseDouble {
         double sum = SingleSimplex(seed, x, y, z);
         double amp = 1;
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             x *= m_lacunarity;
             y *= m_lacunarity;
             z *= m_lacunarity;
@@ -901,7 +901,7 @@ public class FastNoiseDouble {
         double sum = Math.abs(SingleSimplex(seed, x, y, z)) * 2 - 1;
         double amp = 1;
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             x *= m_lacunarity;
             y *= m_lacunarity;
             z *= m_lacunarity;
@@ -918,7 +918,7 @@ public class FastNoiseDouble {
         double sum = 1 - Math.abs(SingleSimplex(seed, x, y, z));
         double amp = 1;
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             x *= m_lacunarity;
             y *= m_lacunarity;
             z *= m_lacunarity;
@@ -948,15 +948,15 @@ public class FastNoiseDouble {
         long i1, j1, k1;
         long i2, j2, k2;
 
-        if(x0 >= y0) {
-            if(y0 >= z0) {
+        if (x0 >= y0) {
+            if (y0 >= z0) {
                 i1 = 1;
                 j1 = 0;
                 k1 = 0;
                 i2 = 1;
                 j2 = 1;
                 k2 = 0;
-            } else if(x0 >= z0) {
+            } else if (x0 >= z0) {
                 i1 = 1;
                 j1 = 0;
                 k1 = 0;
@@ -974,14 +974,14 @@ public class FastNoiseDouble {
             }
         } else // x0 < y0
         {
-            if(y0 < z0) {
+            if (y0 < z0) {
                 i1 = 0;
                 j1 = 0;
                 k1 = 1;
                 i2 = 0;
                 j2 = 1;
                 k2 = 1;
-            } else if(x0 < z0) {
+            } else if (x0 < z0) {
                 i1 = 0;
                 j1 = 1;
                 k1 = 0;
@@ -1012,7 +1012,7 @@ public class FastNoiseDouble {
         double n0, n1, n2, n3;
 
         t = 0.6 - x0 * x0 - y0 * y0 - z0 * z0;
-        if(t < 0)
+        if (t < 0)
             n0 = 0;
         else {
             t *= t;
@@ -1020,7 +1020,7 @@ public class FastNoiseDouble {
         }
 
         t = 0.6 - x1 * x1 - y1 * y1 - z1 * z1;
-        if(t < 0)
+        if (t < 0)
             n1 = 0;
         else {
             t *= t;
@@ -1028,7 +1028,7 @@ public class FastNoiseDouble {
         }
 
         t = 0.6 - x2 * x2 - y2 * y2 - z2 * z2;
-        if(t < 0)
+        if (t < 0)
             n2 = 0;
         else {
             t *= t;
@@ -1036,7 +1036,7 @@ public class FastNoiseDouble {
         }
 
         t = 0.6 - x3 * x3 - y3 * y3 - z3 * z3;
-        if(t < 0)
+        if (t < 0)
             n3 = 0;
         else {
             t *= t;
@@ -1050,7 +1050,7 @@ public class FastNoiseDouble {
         x *= m_frequency;
         y *= m_frequency;
 
-        return switch(m_fractalType) {
+        return switch (m_fractalType) {
             case FBM -> SingleSimplexFractalFBM(x, y);
             case Billow -> SingleSimplexFractalBillow(x, y);
             case RigidMulti -> SingleSimplexFractalRigidMulti(x, y);
@@ -1062,7 +1062,7 @@ public class FastNoiseDouble {
         double sum = SingleSimplex(seed, x, y);
         double amp = 1;
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             x *= m_lacunarity;
             y *= m_lacunarity;
 
@@ -1078,7 +1078,7 @@ public class FastNoiseDouble {
         double sum = Math.abs(SingleSimplex(seed, x, y)) * 2 - 1;
         double amp = 1;
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             x *= m_lacunarity;
             y *= m_lacunarity;
 
@@ -1094,7 +1094,7 @@ public class FastNoiseDouble {
         double sum = 1 - Math.abs(SingleSimplex(seed, x, y));
         double amp = 1;
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             x *= m_lacunarity;
             y *= m_lacunarity;
 
@@ -1122,7 +1122,7 @@ public class FastNoiseDouble {
         double y0 = y - Y0;
 
         long i1, j1;
-        if(x0 > y0) {
+        if (x0 > y0) {
             i1 = 1;
             j1 = 0;
         } else {
@@ -1138,7 +1138,7 @@ public class FastNoiseDouble {
         double n0, n1, n2;
 
         t = 0.5 - x0 * x0 - y0 * y0;
-        if(t < 0)
+        if (t < 0)
             n0 = 0;
         else {
             t *= t;
@@ -1146,7 +1146,7 @@ public class FastNoiseDouble {
         }
 
         t = 0.5 - x1 * x1 - y1 * y1;
-        if(t < 0)
+        if (t < 0)
             n1 = 0;
         else {
             t *= t;
@@ -1154,7 +1154,7 @@ public class FastNoiseDouble {
         }
 
         t = 0.5 - x2 * x2 - y2 * y2;
-        if(t < 0)
+        if (t < 0)
             n2 = 0;
         else {
             t *= t;
@@ -1224,35 +1224,35 @@ public class FastNoiseDouble {
         double w4 = w0 - 1 + 4 * G4;
 
         t = 0.6 - x0 * x0 - y0 * y0 - z0 * z0 - w0 * w0;
-        if(t < 0)
+        if (t < 0)
             n0 = 0;
         else {
             t *= t;
             n0 = t * t * GradCoord4D(seed, i, j, k, l, x0, y0, z0, w0);
         }
         t = 0.6 - x1 * x1 - y1 * y1 - z1 * z1 - w1 * w1;
-        if(t < 0)
+        if (t < 0)
             n1 = 0;
         else {
             t *= t;
             n1 = t * t * GradCoord4D(seed, i + i1, j + j1, k + k1, l + l1, x1, y1, z1, w1);
         }
         t = 0.6 - x2 * x2 - y2 * y2 - z2 * z2 - w2 * w2;
-        if(t < 0)
+        if (t < 0)
             n2 = 0;
         else {
             t *= t;
             n2 = t * t * GradCoord4D(seed, i + i2, j + j2, k + k2, l + l2, x2, y2, z2, w2);
         }
         t = 0.6 - x3 * x3 - y3 * y3 - z3 * z3 - w3 * w3;
-        if(t < 0)
+        if (t < 0)
             n3 = 0;
         else {
             t *= t;
             n3 = t * t * GradCoord4D(seed, i + i3, j + j3, k + k3, l + l3, x3, y3, z3, w3);
         }
         t = 0.6 - x4 * x4 - y4 * y4 - z4 * z4 - w4 * w4;
-        if(t < 0)
+        if (t < 0)
             n4 = 0;
         else {
             t *= t;
@@ -1268,7 +1268,7 @@ public class FastNoiseDouble {
         y *= m_frequency;
         z *= m_frequency;
 
-        return switch(m_fractalType) {
+        return switch (m_fractalType) {
             case FBM -> SingleCubicFractalFBM(x, y, z);
             case Billow -> SingleCubicFractalBillow(x, y, z);
             case RigidMulti -> SingleCubicFractalRigidMulti(x, y, z);
@@ -1281,7 +1281,7 @@ public class FastNoiseDouble {
         double amp = 1;
         long i = 0;
 
-        while(++i < m_octaves) {
+        while (++i < m_octaves) {
             x *= m_lacunarity;
             y *= m_lacunarity;
             z *= m_lacunarity;
@@ -1299,7 +1299,7 @@ public class FastNoiseDouble {
         double amp = 1;
         long i = 0;
 
-        while(++i < m_octaves) {
+        while (++i < m_octaves) {
             x *= m_lacunarity;
             y *= m_lacunarity;
             z *= m_lacunarity;
@@ -1317,7 +1317,7 @@ public class FastNoiseDouble {
         double amp = 1;
         long i = 0;
 
-        while(++i < m_octaves) {
+        while (++i < m_octaves) {
             x *= m_lacunarity;
             y *= m_lacunarity;
             z *= m_lacunarity;
@@ -1359,7 +1359,7 @@ public class FastNoiseDouble {
         x *= m_frequency;
         y *= m_frequency;
 
-        return switch(m_fractalType) {
+        return switch (m_fractalType) {
             case FBM -> SingleCubicFractalFBM(x, y);
             case Billow -> SingleCubicFractalBillow(x, y);
             case RigidMulti -> SingleCubicFractalRigidMulti(x, y);
@@ -1372,7 +1372,7 @@ public class FastNoiseDouble {
         double amp = 1;
         long i = 0;
 
-        while(++i < m_octaves) {
+        while (++i < m_octaves) {
             x *= m_lacunarity;
             y *= m_lacunarity;
 
@@ -1389,7 +1389,7 @@ public class FastNoiseDouble {
         double amp = 1;
         long i = 0;
 
-        while(++i < m_octaves) {
+        while (++i < m_octaves) {
             x *= m_lacunarity;
             y *= m_lacunarity;
 
@@ -1406,7 +1406,7 @@ public class FastNoiseDouble {
         double amp = 1;
         long i = 0;
 
-        while(++i < m_octaves) {
+        while (++i < m_octaves) {
             x *= m_lacunarity;
             y *= m_lacunarity;
 
@@ -1447,7 +1447,7 @@ public class FastNoiseDouble {
         y *= m_frequency;
         z *= m_frequency;
 
-        return switch(m_cellularReturnType) {
+        return switch (m_cellularReturnType) {
             case CellValue, NoiseLookup, Distance -> SingleCellular(x, y, z);
             default -> SingleCellular2Edge(x, y, z);
         };
@@ -1461,11 +1461,11 @@ public class FastNoiseDouble {
         double distance = 999999;
         long xc = 0, yc = 0, zc = 0;
 
-        switch(m_cellularDistanceFunction) {
+        switch (m_cellularDistanceFunction) {
             case Euclidean:
-                for(long xi = xr - 1; xi <= xr + 1; xi++) {
-                    for(long yi = yr - 1; yi <= yr + 1; yi++) {
-                        for(long zi = zr - 1; zi <= zr + 1; zi++) {
+                for (long xi = xr - 1; xi <= xr + 1; xi++) {
+                    for (long yi = yr - 1; yi <= yr + 1; yi++) {
+                        for (long zi = zr - 1; zi <= zr + 1; zi++) {
                             Double3 vec = CELL_3D[(int) hash3D(m_seed, xi, yi, zi) & 255];
 
                             double vecX = xi - x + vec.x;
@@ -1474,7 +1474,7 @@ public class FastNoiseDouble {
 
                             double newDistance = vecX * vecX + vecY * vecY + vecZ * vecZ;
 
-                            if(newDistance < distance) {
+                            if (newDistance < distance) {
                                 distance = newDistance;
                                 xc = xi;
                                 yc = yi;
@@ -1485,9 +1485,9 @@ public class FastNoiseDouble {
                 }
                 break;
             case Manhattan:
-                for(long xi = xr - 1; xi <= xr + 1; xi++) {
-                    for(long yi = yr - 1; yi <= yr + 1; yi++) {
-                        for(long zi = zr - 1; zi <= zr + 1; zi++) {
+                for (long xi = xr - 1; xi <= xr + 1; xi++) {
+                    for (long yi = yr - 1; yi <= yr + 1; yi++) {
+                        for (long zi = zr - 1; zi <= zr + 1; zi++) {
                             Double3 vec = CELL_3D[(int) hash3D(m_seed, xi, yi, zi) & 255];
 
                             double vecX = xi - x + vec.x;
@@ -1496,7 +1496,7 @@ public class FastNoiseDouble {
 
                             double newDistance = Math.abs(vecX) + Math.abs(vecY) + Math.abs(vecZ);
 
-                            if(newDistance < distance) {
+                            if (newDistance < distance) {
                                 distance = newDistance;
                                 xc = xi;
                                 yc = yi;
@@ -1507,9 +1507,9 @@ public class FastNoiseDouble {
                 }
                 break;
             case Natural:
-                for(long xi = xr - 1; xi <= xr + 1; xi++) {
-                    for(long yi = yr - 1; yi <= yr + 1; yi++) {
-                        for(long zi = zr - 1; zi <= zr + 1; zi++) {
+                for (long xi = xr - 1; xi <= xr + 1; xi++) {
+                    for (long yi = yr - 1; yi <= yr + 1; yi++) {
+                        for (long zi = zr - 1; zi <= zr + 1; zi++) {
                             Double3 vec = CELL_3D[(int) hash3D(m_seed, xi, yi, zi) & 255];
 
                             double vecX = xi - x + vec.x;
@@ -1518,7 +1518,7 @@ public class FastNoiseDouble {
 
                             double newDistance = (Math.abs(vecX) + Math.abs(vecY) + Math.abs(vecZ)) + (vecX * vecX + vecY * vecY + vecZ * vecZ);
 
-                            if(newDistance < distance) {
+                            if (newDistance < distance) {
                                 distance = newDistance;
                                 xc = xi;
                                 yc = yi;
@@ -1530,7 +1530,7 @@ public class FastNoiseDouble {
                 break;
         }
 
-        switch(m_cellularReturnType) {
+        switch (m_cellularReturnType) {
             case CellValue:
                 return valCoord3D(0, xc, yc, zc);
 
@@ -1553,11 +1553,11 @@ public class FastNoiseDouble {
         double distance = 999999;
         double distance2 = 999999;
 
-        switch(m_cellularDistanceFunction) {
+        switch (m_cellularDistanceFunction) {
             case Euclidean:
-                for(long xi = xr - 1; xi <= xr + 1; xi++) {
-                    for(long yi = yr - 1; yi <= yr + 1; yi++) {
-                        for(long zi = zr - 1; zi <= zr + 1; zi++) {
+                for (long xi = xr - 1; xi <= xr + 1; xi++) {
+                    for (long yi = yr - 1; yi <= yr + 1; yi++) {
+                        for (long zi = zr - 1; zi <= zr + 1; zi++) {
                             Double3 vec = CELL_3D[(int) hash3D(m_seed, xi, yi, zi) & 255];
 
                             double vecX = xi - x + vec.x;
@@ -1573,9 +1573,9 @@ public class FastNoiseDouble {
                 }
                 break;
             case Manhattan:
-                for(long xi = xr - 1; xi <= xr + 1; xi++) {
-                    for(long yi = yr - 1; yi <= yr + 1; yi++) {
-                        for(long zi = zr - 1; zi <= zr + 1; zi++) {
+                for (long xi = xr - 1; xi <= xr + 1; xi++) {
+                    for (long yi = yr - 1; yi <= yr + 1; yi++) {
+                        for (long zi = zr - 1; zi <= zr + 1; zi++) {
                             Double3 vec = CELL_3D[(int) hash3D(m_seed, xi, yi, zi) & 255];
 
                             double vecX = xi - x + vec.x;
@@ -1591,9 +1591,9 @@ public class FastNoiseDouble {
                 }
                 break;
             case Natural:
-                for(long xi = xr - 1; xi <= xr + 1; xi++) {
-                    for(long yi = yr - 1; yi <= yr + 1; yi++) {
-                        for(long zi = zr - 1; zi <= zr + 1; zi++) {
+                for (long xi = xr - 1; xi <= xr + 1; xi++) {
+                    for (long yi = yr - 1; yi <= yr + 1; yi++) {
+                        for (long zi = zr - 1; zi <= zr + 1; zi++) {
                             Double3 vec = CELL_3D[(int) hash3D(m_seed, xi, yi, zi) & 255];
 
                             double vecX = xi - x + vec.x;
@@ -1612,7 +1612,7 @@ public class FastNoiseDouble {
                 break;
         }
 
-        return switch(m_cellularReturnType) {
+        return switch (m_cellularReturnType) {
             case Distance2 -> distance2 - 1;
             case Distance2Add -> distance2 + distance - 1;
             case Distance2Sub -> distance2 - distance - 1;
@@ -1626,7 +1626,7 @@ public class FastNoiseDouble {
         x *= m_frequency;
         y *= m_frequency;
 
-        return switch(m_cellularReturnType) {
+        return switch (m_cellularReturnType) {
             case CellValue, NoiseLookup, Distance -> SingleCellular(x, y);
             default -> SingleCellular2Edge(x, y);
         };
@@ -1639,11 +1639,11 @@ public class FastNoiseDouble {
         double distance = 999999;
         long xc = 0, yc = 0;
 
-        switch(m_cellularDistanceFunction) {
+        switch (m_cellularDistanceFunction) {
             default:
             case Euclidean:
-                for(long xi = xr - 1; xi <= xr + 1; xi++) {
-                    for(long yi = yr - 1; yi <= yr + 1; yi++) {
+                for (long xi = xr - 1; xi <= xr + 1; xi++) {
+                    for (long yi = yr - 1; yi <= yr + 1; yi++) {
                         Double2 vec = CELL_2D[(int) hash2D(m_seed, xi, yi) & 255];
 
                         double vecX = xi - x + vec.x;
@@ -1651,7 +1651,7 @@ public class FastNoiseDouble {
 
                         double newDistance = vecX * vecX + vecY * vecY;
 
-                        if(newDistance < distance) {
+                        if (newDistance < distance) {
                             distance = newDistance;
                             xc = xi;
                             yc = yi;
@@ -1660,8 +1660,8 @@ public class FastNoiseDouble {
                 }
                 break;
             case Manhattan:
-                for(long xi = xr - 1; xi <= xr + 1; xi++) {
-                    for(long yi = yr - 1; yi <= yr + 1; yi++) {
+                for (long xi = xr - 1; xi <= xr + 1; xi++) {
+                    for (long yi = yr - 1; yi <= yr + 1; yi++) {
                         Double2 vec = CELL_2D[(int) hash2D(m_seed, xi, yi) & 255];
 
                         double vecX = xi - x + vec.x;
@@ -1669,7 +1669,7 @@ public class FastNoiseDouble {
 
                         double newDistance = (Math.abs(vecX) + Math.abs(vecY));
 
-                        if(newDistance < distance) {
+                        if (newDistance < distance) {
                             distance = newDistance;
                             xc = xi;
                             yc = yi;
@@ -1678,8 +1678,8 @@ public class FastNoiseDouble {
                 }
                 break;
             case Natural:
-                for(long xi = xr - 1; xi <= xr + 1; xi++) {
-                    for(long yi = yr - 1; yi <= yr + 1; yi++) {
+                for (long xi = xr - 1; xi <= xr + 1; xi++) {
+                    for (long yi = yr - 1; yi <= yr + 1; yi++) {
                         Double2 vec = CELL_2D[(int) hash2D(m_seed, xi, yi) & 255];
 
                         double vecX = xi - x + vec.x;
@@ -1687,7 +1687,7 @@ public class FastNoiseDouble {
 
                         double newDistance = (Math.abs(vecX) + Math.abs(vecY)) + (vecX * vecX + vecY * vecY);
 
-                        if(newDistance < distance) {
+                        if (newDistance < distance) {
                             distance = newDistance;
                             xc = xi;
                             yc = yi;
@@ -1697,7 +1697,7 @@ public class FastNoiseDouble {
                 break;
         }
 
-        switch(m_cellularReturnType) {
+        switch (m_cellularReturnType) {
             case CellValue:
                 return valCoord2D(0, xc, yc);
 
@@ -1719,11 +1719,11 @@ public class FastNoiseDouble {
         double distance = 999999;
         double distance2 = 999999;
 
-        switch(m_cellularDistanceFunction) {
+        switch (m_cellularDistanceFunction) {
             default:
             case Euclidean:
-                for(long xi = xr - 1; xi <= xr + 1; xi++) {
-                    for(long yi = yr - 1; yi <= yr + 1; yi++) {
+                for (long xi = xr - 1; xi <= xr + 1; xi++) {
+                    for (long yi = yr - 1; yi <= yr + 1; yi++) {
                         Double2 vec = CELL_2D[(int) hash2D(m_seed, xi, yi) & 255];
 
                         double vecX = xi - x + vec.x;
@@ -1737,8 +1737,8 @@ public class FastNoiseDouble {
                 }
                 break;
             case Manhattan:
-                for(long xi = xr - 1; xi <= xr + 1; xi++) {
-                    for(long yi = yr - 1; yi <= yr + 1; yi++) {
+                for (long xi = xr - 1; xi <= xr + 1; xi++) {
+                    for (long yi = yr - 1; yi <= yr + 1; yi++) {
                         Double2 vec = CELL_2D[(int) hash2D(m_seed, xi, yi) & 255];
 
                         double vecX = xi - x + vec.x;
@@ -1752,8 +1752,8 @@ public class FastNoiseDouble {
                 }
                 break;
             case Natural:
-                for(long xi = xr - 1; xi <= xr + 1; xi++) {
-                    for(long yi = yr - 1; yi <= yr + 1; yi++) {
+                for (long xi = xr - 1; xi <= xr + 1; xi++) {
+                    for (long yi = yr - 1; yi <= yr + 1; yi++) {
                         Double2 vec = CELL_2D[(int) hash2D(m_seed, xi, yi) & 255];
 
                         double vecX = xi - x + vec.x;
@@ -1768,7 +1768,7 @@ public class FastNoiseDouble {
                 break;
         }
 
-        return switch(m_cellularReturnType) {
+        return switch (m_cellularReturnType) {
             case Distance2 -> distance2 - 1;
             case Distance2Add -> distance2 + distance - 1;
             case Distance2Sub -> distance2 - distance - 1;
@@ -1789,7 +1789,7 @@ public class FastNoiseDouble {
 
         SingleGradientPerturb(seed, amp, m_frequency, v3);
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             freq *= m_lacunarity;
             amp *= m_gain;
             SingleGradientPerturb(++seed, amp, freq, v3);
@@ -1809,7 +1809,7 @@ public class FastNoiseDouble {
         long z1 = z0 + 1;
 
         double xs = 0, ys = 0, zs = 0;
-        switch(m_longerp) {
+        switch (m_longerp) {
             case Linear -> {
                 xs = xf - x0;
                 ys = yf - y0;
@@ -1875,7 +1875,7 @@ public class FastNoiseDouble {
 
         SingleGradientPerturb(seed, amp, m_frequency, v2);
 
-        for(long i = 1; i < m_octaves; i++) {
+        for (long i = 1; i < m_octaves; i++) {
             freq *= m_lacunarity;
             amp *= m_gain;
             SingleGradientPerturb(++seed, amp, freq, v2);
@@ -1892,7 +1892,7 @@ public class FastNoiseDouble {
         long y1 = y0 + 1;
 
         double xs = 0, ys = 0;
-        switch(m_longerp) {
+        switch (m_longerp) {
             case Linear -> {
                 xs = xf - x0;
                 ys = yf - y0;

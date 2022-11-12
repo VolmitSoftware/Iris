@@ -36,8 +36,8 @@ import java.util.stream.Collectors;
 public class PreservationSVC implements IrisService {
     private final List<Thread> threads = new CopyOnWriteArrayList<>();
     private final List<ExecutorService> services = new CopyOnWriteArrayList<>();
-    private Looper dereferencer;
     private final List<MeteredCache> caches = new CopyOnWriteArrayList<>();
+    private Looper dereferencer;
 
     public void register(Thread t) {
         threads.add(t);
@@ -57,8 +57,8 @@ public class PreservationSVC implements IrisService {
         double p = 0;
         double mf = 0;
 
-        for(MeteredCache i : caches) {
-            if(i.isClosed()) {
+        for (MeteredCache i : caches) {
+            if (i.isClosed()) {
                 continue;
             }
 
@@ -100,22 +100,22 @@ public class PreservationSVC implements IrisService {
         dereference();
 
         postShutdown(() -> {
-            for(Thread i : threads) {
-                if(i.isAlive()) {
+            for (Thread i : threads) {
+                if (i.isAlive()) {
                     try {
                         i.interrupt();
                         Iris.info("Shutdown Thread " + i.getName());
-                    } catch(Throwable e) {
+                    } catch (Throwable e) {
                         Iris.reportError(e);
                     }
                 }
             }
 
-            for(ExecutorService i : services) {
+            for (ExecutorService i : services) {
                 try {
                     i.shutdownNow();
                     Iris.info("Shutdown Executor Service " + i);
-                } catch(Throwable e) {
+                } catch (Throwable e) {
                     Iris.reportError(e);
                 }
             }

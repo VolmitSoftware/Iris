@@ -50,7 +50,7 @@ public class MeteredInputStream extends InputStream {
         written++;
         totalWritten++;
 
-        if(auto && System.currentTimeMillis() - getSince() > interval) {
+        if (auto && System.currentTimeMillis() - getSince() > interval) {
             pollRead();
         }
 

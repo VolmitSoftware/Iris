@@ -31,12 +31,9 @@ public class Vector3d extends Tuple3d implements java.io.Serializable {
     /**
      * Constructs and initializes a Vector3d from the specified xyz coordinates.
      *
-     * @param x
-     *     the x coordinate
-     * @param y
-     *     the y coordinate
-     * @param z
-     *     the z coordinate
+     * @param x the x coordinate
+     * @param y the y coordinate
+     * @param z the z coordinate
      */
     public Vector3d(double x, double y, double z) {
         super(x, y, z);
@@ -46,8 +43,7 @@ public class Vector3d extends Tuple3d implements java.io.Serializable {
     /**
      * Constructs and initializes a Vector3d from the array of length 3.
      *
-     * @param v
-     *     the array of length 3 containing xyz in order
+     * @param v the array of length 3 containing xyz in order
      */
     public Vector3d(double[] v) {
         super(v);
@@ -57,8 +53,7 @@ public class Vector3d extends Tuple3d implements java.io.Serializable {
     /**
      * Constructs and initializes a Vector3d from the specified Vector3d.
      *
-     * @param v1
-     *     the Vector3d containing the initialization x y z data
+     * @param v1 the Vector3d containing the initialization x y z data
      */
     public Vector3d(Vector3d v1) {
         super(v1);
@@ -68,8 +63,7 @@ public class Vector3d extends Tuple3d implements java.io.Serializable {
     /**
      * Constructs and initializes a Vector3d from the specified Vector3f.
      *
-     * @param v1
-     *     the Vector3f containing the initialization x y z data
+     * @param v1 the Vector3f containing the initialization x y z data
      */
     public Vector3d(Vector3f v1) {
         super(v1);
@@ -79,8 +73,7 @@ public class Vector3d extends Tuple3d implements java.io.Serializable {
     /**
      * Constructs and initializes a Vector3d from the specified Tuple3f.
      *
-     * @param t1
-     *     the Tuple3f containing the initialization x y z data
+     * @param t1 the Tuple3f containing the initialization x y z data
      */
     public Vector3d(Tuple3f t1) {
         super(t1);
@@ -90,8 +83,7 @@ public class Vector3d extends Tuple3d implements java.io.Serializable {
     /**
      * Constructs and initializes a Vector3d from the specified Tuple3d.
      *
-     * @param t1
-     *     the Tuple3d containing the initialization x y z data
+     * @param t1 the Tuple3d containing the initialization x y z data
      */
     public Vector3d(Tuple3d t1) {
         super(t1);
@@ -109,10 +101,8 @@ public class Vector3d extends Tuple3d implements java.io.Serializable {
     /**
      * Sets this vector to the vector cross product of vectors v1 and v2.
      *
-     * @param v1
-     *     the first vector
-     * @param v2
-     *     the second vector
+     * @param v1 the first vector
+     * @param v2 the second vector
      */
     public final void cross(Vector3d v1, Vector3d v2) {
         double x, y;
@@ -128,8 +118,7 @@ public class Vector3d extends Tuple3d implements java.io.Serializable {
     /**
      * Sets the value of this vector to the normalization of vector v1.
      *
-     * @param v1
-     *     the un-normalized vector
+     * @param v1 the un-normalized vector
      */
     public final void normalize(Vector3d v1) {
         double norm;
@@ -157,8 +146,7 @@ public class Vector3d extends Tuple3d implements java.io.Serializable {
     /**
      * Returns the dot product of this vector and vector v1.
      *
-     * @param v1
-     *     the other vector
+     * @param v1 the other vector
      * @return the dot product of this and v1
      */
     public final double dot(Vector3d v1) {
@@ -190,14 +178,13 @@ public class Vector3d extends Tuple3d implements java.io.Serializable {
      * Returns the angle in radians between this vector and the vector
      * parameter; the return value is constrained to the range [0,PI].
      *
-     * @param v1
-     *     the other vector
+     * @param v1 the other vector
      * @return the angle in radians in the range [0,PI]
      */
     public final double angle(Vector3d v1) {
         double vDot = this.dot(v1) / (this.length() * v1.length());
-        if(vDot < -1.0) vDot = -1.0;
-        if(vDot > 1.0) vDot = 1.0;
+        if (vDot < -1.0) vDot = -1.0;
+        if (vDot > 1.0) vDot = 1.0;
         return Math.acos(vDot);
     }
 

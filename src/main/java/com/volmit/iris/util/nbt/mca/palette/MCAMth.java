@@ -41,11 +41,11 @@ public class MCAMth {
 
     private static final float[] SIN;
     private static final Random RANDOM = new Random();
-    private static final int[] MULTIPLY_DE_BRUIJN_BIT_POSITION = new int[] {
-        0, 1, 28, 2, 29, 14, 24, 3, 30, 22,
-        20, 15, 25, 17, 4, 8, 31, 27, 13, 23,
-        21, 19, 16, 7, 26, 12, 18, 6, 11, 5,
-        10, 9};
+    private static final int[] MULTIPLY_DE_BRUIJN_BIT_POSITION = new int[]{
+            0, 1, 28, 2, 29, 14, 24, 3, 30, 22,
+            20, 15, 25, 17, 4, 8, 31, 27, 13, 23,
+            21, 19, 16, 7, 26, 12, 18, 6, 11, 5,
+            10, 9};
     private static final double ONE_SIXTH = 0.16666666666666666D;
     private static final int FRAC_EXP = 8;
     private static final int LUT_SIZE = 257;
@@ -55,13 +55,13 @@ public class MCAMth {
 
     static {
         SIN = make(new float[65536], var0 -> {
-            for(int var1 = 0; var1 < var0.length; var1++)
+            for (int var1 = 0; var1 < var0.length; var1++)
                 var0[var1] = (float) Math.sin(var1 * Math.PI * 2.0D / 65536.0D);
         });
     }
 
     static {
-        for(int var0 = 0; var0 < 257; var0++) {
+        for (int var0 = 0; var0 < 257; var0++) {
             double var1 = var0 / 256.0D;
             double var3 = Math.asin(var1);
             COS_TAB[var0] = Math.cos(var3);
@@ -132,65 +132,65 @@ public class MCAMth {
     }
 
     public static byte clamp(byte var0, byte var1, byte var2) {
-        if(var0 < var1)
+        if (var0 < var1)
             return var1;
-        if(var0 > var2)
+        if (var0 > var2)
             return var2;
         return var0;
     }
 
     public static int clamp(int var0, int var1, int var2) {
-        if(var0 < var1)
+        if (var0 < var1)
             return var1;
-        if(var0 > var2)
+        if (var0 > var2)
             return var2;
         return var0;
     }
 
     public static long clamp(long var0, long var2, long var4) {
-        if(var0 < var2)
+        if (var0 < var2)
             return var2;
-        if(var0 > var4)
+        if (var0 > var4)
             return var4;
         return var0;
     }
 
     public static float clamp(float var0, float var1, float var2) {
-        if(var0 < var1)
+        if (var0 < var1)
             return var1;
-        if(var0 > var2)
+        if (var0 > var2)
             return var2;
         return var0;
     }
 
     public static double clamp(double var0, double var2, double var4) {
-        if(var0 < var2)
+        if (var0 < var2)
             return var2;
-        if(var0 > var4)
+        if (var0 > var4)
             return var4;
         return var0;
     }
 
     public static double clampedLerp(double var0, double var2, double var4) {
-        if(var4 < 0.0D)
+        if (var4 < 0.0D)
             return var0;
-        if(var4 > 1.0D)
+        if (var4 > 1.0D)
             return var2;
         return lerp(var4, var0, var2);
     }
 
     public static float clampedLerp(float var0, float var1, float var2) {
-        if(var2 < 0.0F)
+        if (var2 < 0.0F)
             return var0;
-        if(var2 > 1.0F)
+        if (var2 > 1.0F)
             return var1;
         return lerp(var2, var0, var1);
     }
 
     public static double absMax(double var0, double var2) {
-        if(var0 < 0.0D)
+        if (var0 < 0.0D)
             var0 = -var0;
-        if(var2 < 0.0D)
+        if (var2 < 0.0D)
             var2 = -var2;
         return (var0 > var2) ? var0 : var2;
     }
@@ -200,26 +200,26 @@ public class MCAMth {
     }
 
     public static int nextInt(Random var0, int var1, int var2) {
-        if(var1 >= var2)
+        if (var1 >= var2)
             return var1;
         return var0.nextInt(var2 - var1 + 1) + var1;
     }
 
     public static float nextFloat(Random var0, float var1, float var2) {
-        if(var1 >= var2)
+        if (var1 >= var2)
             return var1;
         return var0.nextFloat() * (var2 - var1) + var1;
     }
 
     public static double nextDouble(Random var0, double var1, double var3) {
-        if(var1 >= var3)
+        if (var1 >= var3)
             return var1;
         return var0.nextDouble() * (var3 - var1) + var1;
     }
 
     public static double average(long[] var0) {
         long var1 = 0L;
-        for(long var6 : var0)
+        for (long var6 : var0)
             var1 += var6;
         return var1 / var0.length;
     }
@@ -246,27 +246,27 @@ public class MCAMth {
 
     public static int wrapDegrees(int var0) {
         int var1 = var0 % 360;
-        if(var1 >= 180)
+        if (var1 >= 180)
             var1 -= 360;
-        if(var1 < -180)
+        if (var1 < -180)
             var1 += 360;
         return var1;
     }
 
     public static float wrapDegrees(float var0) {
         float var1 = var0 % 360.0F;
-        if(var1 >= 180.0F)
+        if (var1 >= 180.0F)
             var1 -= 360.0F;
-        if(var1 < -180.0F)
+        if (var1 < -180.0F)
             var1 += 360.0F;
         return var1;
     }
 
     public static double wrapDegrees(double var0) {
         double var2 = var0 % 360.0D;
-        if(var2 >= 180.0D)
+        if (var2 >= 180.0D)
             var2 -= 360.0D;
-        if(var2 < -180.0D)
+        if (var2 < -180.0D)
             var2 += 360.0D;
         return var2;
     }
@@ -287,7 +287,7 @@ public class MCAMth {
 
     public static float approach(float var0, float var1, float var2) {
         var2 = abs(var2);
-        if(var0 < var1)
+        if (var0 < var1)
             return clamp(var0 + var2, var0, var1);
         return clamp(var0 - var2, var1, var0);
     }
@@ -308,7 +308,7 @@ public class MCAMth {
     public static double getDouble(String var0, double var1) {
         try {
             return Double.parseDouble(var0);
-        } catch(Throwable var3) {
+        } catch (Throwable var3) {
             return var1;
         }
     }
@@ -404,16 +404,16 @@ public class MCAMth {
 
     public static double atan2(double var0, double var2) {
         double var4 = var2 * var2 + var0 * var0;
-        if(Double.isNaN(var4))
+        if (Double.isNaN(var4))
             return Double.NaN;
         boolean var6 = (var0 < 0.0D);
-        if(var6)
+        if (var6)
             var0 = -var0;
         boolean var7 = (var2 < 0.0D);
-        if(var7)
+        if (var7)
             var2 = -var2;
         boolean var8 = (var0 > var2);
-        if(var8) {
+        if (var8) {
             double d = var2;
             var2 = var0;
             var0 = d;
@@ -429,11 +429,11 @@ public class MCAMth {
         double var20 = var0 * var16 - var2 * var18;
         double var22 = (6.0D + var20 * var20) * var20 * 0.16666666666666666D;
         double var24 = var14 + var22;
-        if(var8)
+        if (var8)
             var24 = 1.5707963267948966D - var24;
-        if(var7)
+        if (var7)
             var24 = Math.PI - var24;
-        if(var6)
+        if (var6)
             var24 = -var24;
         return var24;
     }
@@ -472,7 +472,7 @@ public class MCAMth {
         float var5 = var2 * (1.0F - var1);
         float var6 = var2 * (1.0F - var4 * var1);
         float var7 = var2 * (1.0F - (1.0F - var4) * var1);
-        switch(var3) {
+        switch (var3) {
             case 0:
                 var8 = var2;
                 var9 = var7;
@@ -545,20 +545,20 @@ public class MCAMth {
 
     public static double[] cumulativeSum(double... var0) {
         float var1 = 0.0F;
-        for(double var5 : var0)
+        for (double var5 : var0)
             var1 = (float) (var1 + var5);
         int var2;
-        for(var2 = 0; var2 < var0.length; var2++)
+        for (var2 = 0; var2 < var0.length; var2++)
             var0[var2] = var0[var2] / var1;
-        for(var2 = 0; var2 < var0.length; var2++)
+        for (var2 = 0; var2 < var0.length; var2++)
             var0[var2] = ((var2 == 0) ? 0.0D : var0[var2 - 1]) + var0[var2];
         return var0;
     }
 
     public static int getRandomForDistributionIntegral(Random var0, double[] var1) {
         double var2 = var0.nextDouble();
-        for(int var4 = 0; var4 < var1.length; var4++) {
-            if(var2 < var1[var4])
+        for (int var4 = 0; var4 < var1.length; var4++) {
+            if (var2 < var1[var4])
                 return var4;
         }
         return var1.length;
@@ -567,10 +567,10 @@ public class MCAMth {
     public static double[] binNormalDistribution(double var0, double var2, double var4, int var6, int var7) {
         double[] var8 = new double[var7 - var6 + 1];
         int var9 = 0;
-        for(int var10 = var6; var10 <= var7; var10++) {
+        for (int var10 = var6; var10 <= var7; var10++) {
             var8[var9] = Math.max(0.0D, var0 *
 
-                StrictMath.exp(-(var10 - var4) * (var10 - var4) / 2.0D * var2 * var2));
+                    StrictMath.exp(-(var10 - var4) * (var10 - var4) / 2.0D * var2 * var2));
             var9++;
         }
         return var8;
@@ -579,11 +579,11 @@ public class MCAMth {
     public static double[] binBiModalNormalDistribution(double var0, double var2, double var4, double var6, double var8, double var10, int var12, int var13) {
         double[] var14 = new double[var13 - var12 + 1];
         int var15 = 0;
-        for(int var16 = var12; var16 <= var13; var16++) {
+        for (int var16 = var12; var16 <= var13; var16++) {
             var14[var15] = Math.max(0.0D, var0 *
 
-                StrictMath.exp(-(var16 - var4) * (var16 - var4) / 2.0D * var2 * var2) + var6 *
-                StrictMath.exp(-(var16 - var10) * (var16 - var10) / 2.0D * var8 * var8));
+                    StrictMath.exp(-(var16 - var4) * (var16 - var4) / 2.0D * var2 * var2) + var6 *
+                    StrictMath.exp(-(var16 - var10) * (var16 - var10) / 2.0D * var8 * var8));
             var15++;
         }
         return var14;
@@ -592,7 +592,7 @@ public class MCAMth {
     public static double[] binLogDistribution(double var0, double var2, int var4, int var5) {
         double[] var6 = new double[var5 - var4 + 1];
         int var7 = 0;
-        for(int var8 = var4; var8 <= var5; var8++) {
+        for (int var8 = var4; var8 <= var5; var8++) {
             var6[var7] = Math.max(var0 * StrictMath.log(var8) + var2, 0.0D);
             var7++;
         }
@@ -610,15 +610,15 @@ public class MCAMth {
     public static double lerp2(double var0, double var2, double var4, double var6, double var8, double var10) {
         return lerp(var2,
 
-            lerp(var0, var4, var6),
-            lerp(var0, var8, var10));
+                lerp(var0, var4, var6),
+                lerp(var0, var8, var10));
     }
 
     public static double lerp3(double var0, double var2, double var4, double var6, double var8, double var10, double var12, double var14, double var16, double var18, double var20) {
         return lerp(var4,
 
-            lerp2(var0, var2, var6, var8, var10, var12),
-            lerp2(var0, var2, var14, var16, var18, var20));
+                lerp2(var0, var2, var6, var8, var10, var12),
+                lerp2(var0, var2, var14, var16, var18, var20));
     }
 
     public static double smoothstep(double var0) {
@@ -630,7 +630,7 @@ public class MCAMth {
     }
 
     public static int sign(double var0) {
-        if(var0 == 0.0D)
+        if (var0 == 0.0D)
             return 0;
         return (var0 > 0.0D) ? 1 : -1;
     }
@@ -646,18 +646,18 @@ public class MCAMth {
     @Deprecated
     public static float rotlerp(float var0, float var1, float var2) {
         float var3 = var1 - var0;
-        while(var3 < -180.0F)
+        while (var3 < -180.0F)
             var3 += 360.0F;
-        while(var3 >= 180.0F)
+        while (var3 >= 180.0F)
             var3 -= 360.0F;
         return var0 + var2 * var3;
     }
 
     @Deprecated
     public static float rotWrap(double var0) {
-        while(var0 >= 180.0D)
+        while (var0 >= 180.0D)
             var0 -= 360.0D;
-        while(var0 < -180.0D)
+        while (var0 < -180.0D)
             var0 += 360.0D;
         return (float) var0;
     }

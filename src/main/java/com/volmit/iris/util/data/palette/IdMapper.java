@@ -49,11 +49,11 @@ public class IdMapper<T> implements IdMap<T> {
 
     public void addMapping(T var0, int var1) {
         this.tToId.put(var0, Integer.valueOf(var1));
-        while(this.idToT.size() <= var1) {
+        while (this.idToT.size() <= var1) {
             this.idToT.add(null);
         }
         this.idToT.set(var1, var0);
-        if(this.nextId <= var1)
+        if (this.nextId <= var1)
             this.nextId = var1 + 1;
     }
 
@@ -67,7 +67,7 @@ public class IdMapper<T> implements IdMap<T> {
     }
 
     public final T byId(int var0) {
-        if(var0 >= 0 && var0 < this.idToT.size()) {
+        if (var0 >= 0 && var0 < this.idToT.size()) {
             return this.idToT.get(var0);
         }
         return null;

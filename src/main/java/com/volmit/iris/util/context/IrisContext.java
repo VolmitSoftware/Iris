@@ -40,7 +40,7 @@ public class IrisContext {
     public static IrisContext getOr(Engine engine) {
         IrisContext c = get();
 
-        if(c == null) {
+        if (c == null) {
             c = new IrisContext(engine);
             touch(c);
         }
@@ -53,20 +53,20 @@ public class IrisContext {
     }
 
     public static void touch(IrisContext c) {
-        synchronized(context) {
+        synchronized (context) {
             context.put(Thread.currentThread(), c);
 
-            if(cl.flip()) {
+            if (cl.flip()) {
                 dereference();
             }
         }
     }
 
     public static void dereference() {
-        synchronized(context) {
-            for(Thread i : context.k()) {
-                if(!i.isAlive() || context.get(i).engine.isClosed()) {
-                    if(context.get(i).engine.isClosed()) {
+        synchronized (context) {
+            for (Thread i : context.k()) {
+                if (!i.isAlive() || context.get(i).engine.isClosed()) {
+                    if (context.get(i).engine.isClosed()) {
                         Iris.debug("Dereferenced Context<Engine> " + i.getName() + " " + i.getId());
                     }
 

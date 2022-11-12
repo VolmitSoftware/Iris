@@ -28,7 +28,7 @@ import org.bukkit.Bukkit;
 public class INMS {
     //@builder
     private static final KMap<String, Class<? extends INMSBinding>> bindings = new KMap<String, Class<? extends INMSBinding>>()
-        .qput("v1_19_R1", NMSBinding19_2.class);
+            .qput("v1_19_R1", NMSBinding19_2.class);
     //@done
     private static final INMSBinding binding = bind();
 
@@ -37,13 +37,13 @@ public class INMS {
     }
 
     public static String getNMSTag() {
-        if(IrisSettings.get().getGeneral().isDisableNMS()) {
+        if (IrisSettings.get().getGeneral().isDisableNMS()) {
             return "BUKKIT";
         }
 
         try {
             return Bukkit.getServer().getClass().getCanonicalName().split("\\Q.\\E")[3];
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
             Iris.error("Failed to determine server nms version!");
             e.printStackTrace();
@@ -56,13 +56,13 @@ public class INMS {
         String code = getNMSTag();
         Iris.info("Locating NMS Binding for " + code);
 
-        if(bindings.containsKey(code)) {
+        if (bindings.containsKey(code)) {
             try {
                 INMSBinding b = bindings.get(code).getConstructor().newInstance();
                 Iris.info("Craftbukkit " + code + " <-> " + b.getClass().getSimpleName() + " Successfully Bound");
 
                 return b;
-            } catch(Throwable e) {
+            } catch (Throwable e) {
                 Iris.reportError(e);
                 e.printStackTrace();
             }

@@ -53,11 +53,11 @@ public class IrisMaterialPalette {
     private KList<IrisBlockData> palette = new KList<IrisBlockData>().qadd(new IrisBlockData("STONE"));
 
     public BlockData get(RNG rng, double x, double y, double z, IrisData rdata) {
-        if(getBlockData(rdata).isEmpty()) {
+        if (getBlockData(rdata).isEmpty()) {
             return null;
         }
 
-        if(getBlockData(rdata).size() == 1) {
+        if (getBlockData(rdata).size() == 1) {
             return getBlockData(rdata).get(0);
         }
 
@@ -65,7 +65,7 @@ public class IrisMaterialPalette {
     }
 
     public Optional<TileData<?>> getTile(RNG rng, double x, double y, double z, IrisData rdata) {
-        if(getBlockData(rdata).isEmpty())
+        if (getBlockData(rdata).isEmpty())
             return Optional.empty();
 
         TileData<?> tile = getBlockData(rdata).size() == 1 ? palette.get(0).tryGetTile() : palette.getRandom(rng).tryGetTile();
@@ -101,10 +101,10 @@ public class IrisMaterialPalette {
         return blockData.aquire(() ->
         {
             KList<BlockData> blockData = new KList<>();
-            for(IrisBlockData ix : palette) {
+            for (IrisBlockData ix : palette) {
                 BlockData bx = ix.getBlockData(rdata);
-                if(bx != null) {
-                    for(int i = 0; i < ix.getWeight(); i++) {
+                if (bx != null) {
+                    for (int i = 0; i < ix.getWeight(); i++) {
                         blockData.add(bx);
                     }
                 }

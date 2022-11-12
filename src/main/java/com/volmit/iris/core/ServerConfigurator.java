@@ -43,11 +43,11 @@ import java.util.concurrent.TimeUnit;
 public class ServerConfigurator {
     public static void configure() {
         IrisSettings.IrisSettingsAutoconfiguration s = IrisSettings.get().getAutoConfiguration();
-        if(s.isConfigureSpigotTimeoutTime()) {
+        if (s.isConfigureSpigotTimeoutTime()) {
             J.attempt(ServerConfigurator::increaseKeepAliveSpigot);
         }
 
-        if(s.isConfigurePaperWatchdogDelay()) {
+        if (s.isConfigurePaperWatchdogDelay()) {
             J.attempt(ServerConfigurator::increasePaperWatchdog);
         }
 
@@ -60,7 +60,7 @@ public class ServerConfigurator {
         f.load(spigotConfig);
         long tt = f.getLong("settings.timeout-time");
 
-        if(tt < TimeUnit.MINUTES.toSeconds(5)) {
+        if (tt < TimeUnit.MINUTES.toSeconds(5)) {
             Iris.warn("Updating spigot.yml timeout-time: " + tt + " -> " + TimeUnit.MINUTES.toSeconds(5) + " (5 minutes)");
             Iris.warn("You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
             f.set("settings.timeout-time", TimeUnit.MINUTES.toSeconds(5));
@@ -74,7 +74,7 @@ public class ServerConfigurator {
         f.load(spigotConfig);
         long tt = f.getLong("watchdog.early-warning-delay");
 
-        if(tt < TimeUnit.MINUTES.toMillis(3)) {
+        if (tt < TimeUnit.MINUTES.toMillis(3)) {
             Iris.warn("Updating paper.yml watchdog early-warning-delay: " + tt + " -> " + TimeUnit.MINUTES.toMillis(3) + " (3 minutes)");
             Iris.warn("You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
             f.set("watchdog.early-warning-delay", TimeUnit.MINUTES.toMillis(3));
@@ -83,7 +83,7 @@ public class ServerConfigurator {
     }
 
     private static List<File> getDatapacksFolder() {
-        if(!IrisSettings.get().getGeneral().forceMainWorld.isEmpty()) {
+        if (!IrisSettings.get().getGeneral().forceMainWorld.isEmpty()) {
             return new KList<File>().qadd(new File(IrisSettings.get().getGeneral().forceMainWorld + "/datapacks"));
         }
         KList<File> worlds = new KList<>();
@@ -96,24 +96,24 @@ public class ServerConfigurator {
         Iris.info("Checking Data Packs...");
         File packs = new File("plugins/Iris/packs");
 
-         if(packs.exists()) {
-            for(File i : packs.listFiles()) {
-                if(i.isDirectory()) {
+        if (packs.exists()) {
+            for (File i : packs.listFiles()) {
+                if (i.isDirectory()) {
                     Iris.verbose("Checking Pack: " + i.getPath());
                     IrisData data = IrisData.get(i);
                     File dims = new File(i, "dimensions");
 
-                    if(dims.exists()) {
-                        for(File j : dims.listFiles()) {
-                            if(j.getName().endsWith(".json")) {
+                    if (dims.exists()) {
+                        for (File j : dims.listFiles()) {
+                            if (j.getName().endsWith(".json")) {
                                 IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
 
-                                if(dim == null) {
+                                if (dim == null) {
                                     continue;
                                 }
 
                                 Iris.verbose("  Checking Dimension " + dim.getLoadFile().getPath());
-                                for(File dpack : getDatapacksFolder()) {
+                                for (File dpack : getDatapacksFolder()) {
                                     dim.installDataPack(() -> data, dpack);
                                 }
                             }
@@ -125,7 +125,7 @@ public class ServerConfigurator {
 
         Iris.info("Data Packs Setup!");
 
-        if(fullInstall)
+        if (fullInstall)
             verifyDataPacksPost(IrisSettings.get().getAutoConfiguration().isAutoRestartOnCustomBiomeInstall());
     }
 
@@ -133,24 +133,24 @@ public class ServerConfigurator {
         File packs = new File("plugins/Iris/packs");
 
         boolean bad = false;
-        if(packs.exists()) {
-            for(File i : packs.listFiles()) {
-                if(i.isDirectory()) {
+        if (packs.exists()) {
+            for (File i : packs.listFiles()) {
+                if (i.isDirectory()) {
                     Iris.verbose("Checking Pack: " + i.getPath());
                     IrisData data = IrisData.get(i);
                     File dims = new File(i, "dimensions");
 
-                    if(dims.exists()) {
-                        for(File j : dims.listFiles()) {
-                            if(j.getName().endsWith(".json")) {
+                    if (dims.exists()) {
+                        for (File j : dims.listFiles()) {
+                            if (j.getName().endsWith(".json")) {
                                 IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
 
-                                if(dim == null) {
+                                if (dim == null) {
                                     Iris.error("Failed to load " + j.getPath() + " ");
                                     continue;
                                 }
 
-                                if(!verifyDataPackInstalled(dim)) {
+                                if (!verifyDataPackInstalled(dim)) {
                                     bad = true;
                                 }
                             }
@@ -160,10 +160,10 @@ public class ServerConfigurator {
             }
         }
 
-        if(bad) {
-            if(allowRestarting) {
+        if (bad) {
+            if (allowRestarting) {
                 restart();
-            } else if(INMS.get().supportsDataPacks()) {
+            } else if (INMS.get().supportsDataPacks()) {
                 Iris.error("============================================================================");
                 Iris.error(C.ITALIC + "You need to restart your server to properly generate custom biomes.");
                 Iris.error(C.ITALIC + "By continuing, Iris will use backup biomes in place of the custom biomes.");
@@ -171,8 +171,8 @@ public class ServerConfigurator {
                 Iris.error(C.UNDERLINE + "IT IS HIGHLY RECOMMENDED YOU RESTART THE SERVER BEFORE GENERATING!");
                 Iris.error("============================================================================");
 
-                for(Player i : Bukkit.getOnlinePlayers()) {
-                    if(i.isOp() || i.hasPermission("iris.all")) {
+                for (Player i : Bukkit.getOnlinePlayers()) {
+                    if (i.isOp() || i.hasPermission("iris.all")) {
                         VolmitSender sender = new VolmitSender(i, Iris.instance.getTag("WARNING"));
                         sender.sendMessage("There are some Iris Packs that have custom biomes in them");
                         sender.sendMessage("You need to restart your server to use these packs.");
@@ -202,16 +202,16 @@ public class ServerConfigurator {
         KSet<String> keys = new KSet<>();
         boolean warn = false;
 
-        for(IrisBiome i : dimension.getAllBiomes(() -> idm)) {
-            if(i.isCustom()) {
-                for(IrisBiomeCustom j : i.getCustomDerivitives()) {
+        for (IrisBiome i : dimension.getAllBiomes(() -> idm)) {
+            if (i.isCustom()) {
+                for (IrisBiomeCustom j : i.getCustomDerivitives()) {
                     keys.add(dimension.getLoadKey() + ":" + j.getId());
                 }
             }
         }
 
-        if(!INMS.get().supportsDataPacks()) {
-            if(!keys.isEmpty()) {
+        if (!INMS.get().supportsDataPacks()) {
+            if (!keys.isEmpty()) {
                 Iris.warn("===================================================================================");
                 Iris.warn("Pack " + dimension.getLoadKey() + " has " + keys.size() + " custom biome(s). ");
                 Iris.warn("Your server version does not yet support datapacks for iris.");
@@ -222,16 +222,16 @@ public class ServerConfigurator {
             return true;
         }
 
-        for(String i : keys) {
+        for (String i : keys) {
             Object o = INMS.get().getCustomBiomeBaseFor(i);
 
-            if(o == null) {
+            if (o == null) {
                 Iris.warn("The Biome " + i + " is not registered on the server.");
                 warn = true;
             }
         }
 
-        if(warn) {
+        if (warn) {
             Iris.error("The Pack " + dimension.getLoadKey() + " is INCAPABLE of generating custom biomes");
             Iris.error("If not done automatically, restart your server before generating with this pack!");
         }

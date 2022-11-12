@@ -32,13 +32,13 @@ public class LongMatter extends RawMatter<Long> {
         this(1, 1, 1);
     }
 
+    public LongMatter(int width, int height, int depth) {
+        super(width, height, depth, Long.class);
+    }
+
     @Override
     public Palette<Long> getGlobalPalette() {
         return null;
-    }
-
-    public LongMatter(int width, int height, int depth) {
-        super(width, height, depth, Long.class);
     }
 
     @Override

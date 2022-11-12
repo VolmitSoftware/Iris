@@ -30,8 +30,8 @@ public interface DecreeContextHandler<T> {
 
         try {
             Iris.initialize("com.volmit.iris.util.decree.context").forEach((i)
-                -> contextHandlers.put(((DecreeContextHandler<?>) i).getType(), (DecreeContextHandler<?>) i));
-        } catch(Throwable e) {
+                    -> contextHandlers.put(((DecreeContextHandler<?>) i).getType(), (DecreeContextHandler<?>) i));
+        } catch (Throwable e) {
             Iris.reportError(e);
             e.printStackTrace();
         }

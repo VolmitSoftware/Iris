@@ -31,6 +31,9 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 public interface EngineMode extends Staged {
+    public static final RollingSequence r = new RollingSequence(64);
+    public static final RollingSequence r2 = new RollingSequence(256);
+
     void close();
 
     Engine getEngine();
@@ -44,7 +47,7 @@ public interface EngineMode extends Staged {
             BurstExecutor e = burst().burst(stages.length);
             e.setMulticore(multicore);
 
-            for(EngineStage i : stages) {
+            for (EngineStage i : stages) {
                 e.queue(() -> i.generate(x, z, blocks, biomes, multicore, ctx));
             }
 
@@ -64,15 +67,12 @@ public interface EngineMode extends Staged {
         getMantle().generateMatter(x, z, multicore, context);
     }
 
-    public static final RollingSequence r = new RollingSequence(64);
-    public static final RollingSequence r2 = new RollingSequence(256);
-
     @BlockCoordinates
     default void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes, boolean multicore) {
         ChunkContext ctx = new ChunkContext(x, z, getComplex());
         IrisContext.getOr(getEngine()).setChunkContext(ctx);
 
-        for(EngineStage i : getStages()) {
+        for (EngineStage i : getStages()) {
             i.generate(x, z, blocks, biomes, multicore, ctx);
         }
     }

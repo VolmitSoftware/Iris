@@ -30,10 +30,8 @@ public class Vector2d extends Tuple2d implements java.io.Serializable {
     /**
      * Constructs and initializes a Vector2d from the specified xy coordinates.
      *
-     * @param x
-     *     the x coordinate
-     * @param y
-     *     the y coordinate
+     * @param x the x coordinate
+     * @param y the y coordinate
      */
     public Vector2d(double x, double y) {
         super(x, y);
@@ -43,8 +41,7 @@ public class Vector2d extends Tuple2d implements java.io.Serializable {
     /**
      * Constructs and initializes a Vector2d from the specified array.
      *
-     * @param v
-     *     the array of length 2 containing xy in order
+     * @param v the array of length 2 containing xy in order
      */
     public Vector2d(double[] v) {
         super(v);
@@ -54,8 +51,7 @@ public class Vector2d extends Tuple2d implements java.io.Serializable {
     /**
      * Constructs and initializes a Vector2d from the specified Vector2d.
      *
-     * @param v1
-     *     the Vector2d containing the initialization x y data
+     * @param v1 the Vector2d containing the initialization x y data
      */
     public Vector2d(Vector2d v1) {
         super(v1);
@@ -65,8 +61,7 @@ public class Vector2d extends Tuple2d implements java.io.Serializable {
     /**
      * Constructs and initializes a Vector2d from the specified Vector2f.
      *
-     * @param v1
-     *     the Vector2f containing the initialization x y data
+     * @param v1 the Vector2f containing the initialization x y data
      */
     public Vector2d(Vector2f v1) {
         super(v1);
@@ -76,8 +71,7 @@ public class Vector2d extends Tuple2d implements java.io.Serializable {
     /**
      * Constructs and initializes a Vector2d from the specified Tuple2d.
      *
-     * @param t1
-     *     the Tuple2d containing the initialization x y data
+     * @param t1 the Tuple2d containing the initialization x y data
      */
     public Vector2d(Tuple2d t1) {
         super(t1);
@@ -87,8 +81,7 @@ public class Vector2d extends Tuple2d implements java.io.Serializable {
     /**
      * Constructs and initializes a Vector2d from the specified Tuple2f.
      *
-     * @param t1
-     *     the Tuple2f containing the initialization x y data
+     * @param t1 the Tuple2f containing the initialization x y data
      */
     public Vector2d(Tuple2f t1) {
         super(t1);
@@ -106,8 +99,7 @@ public class Vector2d extends Tuple2d implements java.io.Serializable {
     /**
      * Computes the dot product of the this vector and vector v1.
      *
-     * @param v1
-     *     the other vector
+     * @param v1 the other vector
      */
     public final double dot(Vector2d v1) {
         return (this.x * v1.x + this.y * v1.y);
@@ -135,8 +127,7 @@ public class Vector2d extends Tuple2d implements java.io.Serializable {
     /**
      * Sets the value of this vector to the normalization of vector v1.
      *
-     * @param v1
-     *     the un-normalized vector
+     * @param v1 the un-normalized vector
      */
     public final void normalize(Vector2d v1) {
         double norm;
@@ -162,14 +153,13 @@ public class Vector2d extends Tuple2d implements java.io.Serializable {
      * Returns the angle in radians between this vector and the vector
      * parameter; the return value is constrained to the range [0,PI].
      *
-     * @param v1
-     *     the other vector
+     * @param v1 the other vector
      * @return the angle in radians in the range [0,PI]
      */
     public final double angle(Vector2d v1) {
         double vDot = this.dot(v1) / (this.length() * v1.length());
-        if(vDot < -1.0) vDot = -1.0;
-        if(vDot > 1.0) vDot = 1.0;
+        if (vDot < -1.0) vDot = -1.0;
+        if (vDot > 1.0) vDot = 1.0;
         return Math.acos(vDot);
 
     }

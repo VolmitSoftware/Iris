@@ -30,30 +30,24 @@ public class IrisMatterTranslate {
     @Desc("Define an absolute shift instead of varied.")
     private int z = 0;
 
-    public int xOffset(IrisData data, RNG rng, int rx, int rz)
-    {
-        if(rangeX != null)
-        {
+    public int xOffset(IrisData data, RNG rng, int rx, int rz) {
+        if (rangeX != null) {
             return (int) Math.round(rangeX.get(rng, rx, rz, data));
         }
 
         return x;
     }
 
-    public int yOffset(IrisData data, RNG rng, int rx, int rz)
-    {
-        if(rangeY != null)
-        {
+    public int yOffset(IrisData data, RNG rng, int rx, int rz) {
+        if (rangeY != null) {
             return (int) Math.round(rangeY.get(rng, rx, rz, data));
         }
 
         return y;
     }
 
-    public int zOffset(IrisData data, RNG rng, int rx, int rz)
-    {
-        if(rangeZ != null)
-        {
+    public int zOffset(IrisData data, RNG rng, int rx, int rz) {
+        if (rangeZ != null) {
             return (int) Math.round(rangeZ.get(rng, rx, rz, data));
         }
 

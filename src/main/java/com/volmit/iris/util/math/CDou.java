@@ -51,7 +51,7 @@ public class CDou {
     }
 
     public void circ() {
-        if(number < 0) {
+        if (number < 0) {
             number = max - (Math.abs(number) > max ? max : Math.abs(number));
         }
 

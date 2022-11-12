@@ -31,21 +31,18 @@ public class ByteCache implements ArrayCache<Integer> {
     private final int height;
     private final byte[] cache;
 
-    public ByteCache(int width, int height)
-    {
+    public ByteCache(int width, int height) {
         this.width = width;
         this.height = height;
         cache = new byte[width * height];
     }
 
-    public void set(int i, Integer v)
-    {
+    public void set(int i, Integer v) {
         cache[i] = v.byteValue();
     }
 
-    public Integer get(int i)
-    {
-        return (int)cache[i];
+    public Integer get(int i) {
+        return (int) cache[i];
     }
 
     @Override
@@ -53,8 +50,7 @@ public class ByteCache implements ArrayCache<Integer> {
         dos.writeInt(width);
         dos.writeInt(height);
 
-        for(int i = 0; i < width * height; i++)
-        {
+        for (int i = 0; i < width * height; i++) {
             dos.writeByte(get(i));
         }
     }

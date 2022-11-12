@@ -49,17 +49,17 @@ public class IrisOreGenerator {
     private transient AtomicCache<CNG> chanceCache = new AtomicCache<>();
 
     public BlockData generate(int x, int y, int z, RNG rng, IrisData data) {
-        if(palette.getPalette().isEmpty()) {
+        if (palette.getPalette().isEmpty()) {
             return null;
         }
 
-        if(!range.contains(y)) {
+        if (!range.contains(y)) {
             return null;
         }
 
         CNG chance = chanceCache.aquire(() -> chanceStyle.create(rng, data));
 
-        if(chance.noise(x, y, z) > threshold) {
+        if (chance.noise(x, y, z) > threshold) {
             return null;
         }
 

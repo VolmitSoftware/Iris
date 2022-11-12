@@ -8,8 +8,7 @@ import java.awt.image.WritableRaster;
 public class UBufferedImage implements UImage {
     private final BufferedImage buf;
 
-    public UBufferedImage(BufferedImage buf)
-    {
+    public UBufferedImage(BufferedImage buf) {
         this.buf = buf;
     }
 
@@ -38,13 +37,9 @@ public class UBufferedImage implements UImage {
 
     @Override
     public void set(int x, int y, Color color) {
-        try
-        {
+        try {
             buf.setRGB(x, y, color.getRGB());
-        }
-
-        catch(Throwable e)
-        {
+        } catch (Throwable e) {
 
         }
     }

@@ -43,11 +43,12 @@ public class ExternalDataSVC implements IrisService {
     }
 
     @Override
-    public void onDisable() { }
+    public void onDisable() {
+    }
 
     public void addProvider(ExternalDataProvider... provider) {
-        for(ExternalDataProvider p : provider) {
-            if(p.getPlugin() != null) {
+        for (ExternalDataProvider p : provider) {
+            if (p.getPlugin() != null) {
                 providers.add(p);
                 p.init();
             }
@@ -56,11 +57,11 @@ public class ExternalDataSVC implements IrisService {
 
     public Optional<BlockData> getBlockData(NamespacedKey key) {
         Optional<ExternalDataProvider> provider = providers.stream().filter(p -> p.isPresent() && p.isValidProvider(key)).findFirst();
-        if(provider.isEmpty())
+        if (provider.isEmpty())
             return Optional.empty();
         try {
             return Optional.of(provider.get().getBlockData(key));
-        } catch(MissingResourceException e) {
+        } catch (MissingResourceException e) {
             Iris.error(e.getMessage() + " - [" + e.getClassName() + ":" + e.getKey() + "]");
             return Optional.empty();
         }
@@ -68,11 +69,11 @@ public class ExternalDataSVC implements IrisService {
 
     public Optional<ItemStack> getItemStack(NamespacedKey key) {
         Optional<ExternalDataProvider> provider = providers.stream().filter(p -> p.isPresent() && p.isValidProvider(key)).findFirst();
-        if(provider.isEmpty())
+        if (provider.isEmpty())
             return Optional.empty();
         try {
             return Optional.of(provider.get().getItemStack(key));
-        } catch(MissingResourceException e) {
+        } catch (MissingResourceException e) {
             Iris.error(e.getMessage() + " - [" + e.getClassName() + ":" + e.getKey() + "]");
             return Optional.empty();
         }

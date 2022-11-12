@@ -45,7 +45,7 @@ public class WeightedRandom<T> {
     public T pullRandom() {
         int pull = random.nextInt(totalWeight);
         int index = 0;
-        while(pull > 0) {
+        while (pull > 0) {
             pull -= weightedObjects.get(index).getV();
             index++;
         }

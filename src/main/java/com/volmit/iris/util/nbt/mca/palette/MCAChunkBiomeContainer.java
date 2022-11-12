@@ -54,18 +54,18 @@ public class MCAChunkBiomeContainer<T> {
     public MCAChunkBiomeContainer(MCAIdMap<T> registry, int minHeight, int maxHeight, int[] aint) {
         this(registry, minHeight, maxHeight, (T[]) new Object[aint.length]);
         int i = -1;
-        for(int j = 0; j < this.biomes.length; j++) {
+        for (int j = 0; j < this.biomes.length; j++) {
             int k = aint[j];
             T biomebase = registry.byId(k);
-            if(biomebase == null) {
-                if(i == -1)
+            if (biomebase == null) {
+                if (i == -1)
                     i = j;
                 this.biomes[j] = registry.byId(0);
             } else {
                 this.biomes[j] = biomebase;
             }
         }
-        if(i != -1)
+        if (i != -1)
             LOGGER.warn("Invalid biome data received, starting from {}: {}", Integer.valueOf(i), Arrays.toString(aint));
     }
 
@@ -75,7 +75,7 @@ public class MCAChunkBiomeContainer<T> {
 
     public int[] writeBiomes() {
         int[] aint = new int[this.biomes.length];
-        for(int i = 0; i < this.biomes.length; i++)
+        for (int i = 0; i < this.biomes.length; i++)
             aint[i] = this.biomeRegistry.getId(this.biomes[i]);
         return aint;
     }

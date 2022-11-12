@@ -40,8 +40,7 @@ public class AtomicAverage {
     /**
      * Create an average holder
      *
-     * @param size
-     *     the size of entries to keep
+     * @param size the size of entries to keep
      */
     public AtomicAverage(int size) {
         values = new AtomicDoubleArray(size);
@@ -56,15 +55,14 @@ public class AtomicAverage {
     /**
      * Put a value into the average (rolls over if full)
      *
-     * @param i
-     *     the value
+     * @param i the value
      */
     public void put(double i) {
 
         try {
             dirty = true;
 
-            if(brandNew) {
+            if (brandNew) {
                 DoubleArrayUtils.fill(values, i);
                 lastSum = size() * i;
                 brandNew = false;
@@ -75,7 +73,7 @@ public class AtomicAverage {
             lastSum = (lastSum - current) + i;
             values.set(cursor, i);
             cursor = cursor + 1 < size() ? cursor + 1 : 0;
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
 
         }
@@ -87,7 +85,7 @@ public class AtomicAverage {
      * @return the average
      */
     public double getAverage() {
-        if(dirty) {
+        if (dirty) {
             calculateAverage();
             return getAverage();
         }

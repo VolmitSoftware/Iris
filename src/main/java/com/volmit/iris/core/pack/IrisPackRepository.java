@@ -55,34 +55,34 @@ public class IrisPackRepository {
      */
     public static IrisPackRepository from(String g) {
         // https://github.com/IrisDimensions/overworld
-        if(g.startsWith("https://github.com/")) {
+        if (g.startsWith("https://github.com/")) {
             String sub = g.split("\\Qgithub.com/\\E")[1];
             IrisPackRepository r = IrisPackRepository.builder()
-                .user(sub.split("\\Q/\\E")[0])
-                .repo(sub.split("\\Q/\\E")[1]).build();
+                    .user(sub.split("\\Q/\\E")[0])
+                    .repo(sub.split("\\Q/\\E")[1]).build();
 
-            if(g.contains("/tree/")) {
+            if (g.contains("/tree/")) {
                 r.setBranch(g.split("/tree/")[1]);
             }
 
             return r;
-        } else if(g.contains("/")) {
+        } else if (g.contains("/")) {
             String[] f = g.split("\\Q/\\E");
 
-            if(f.length == 1) {
+            if (f.length == 1) {
                 return from(g);
-            } else if(f.length == 2) {
+            } else if (f.length == 2) {
                 return IrisPackRepository.builder()
-                    .user(f[0])
-                    .repo(f[1])
-                    .build();
-            } else if(f.length >= 3) {
+                        .user(f[0])
+                        .repo(f[1])
+                        .build();
+            } else if (f.length >= 3) {
                 IrisPackRepository r = IrisPackRepository.builder()
-                    .user(f[0])
-                    .repo(f[1])
-                    .build();
+                        .user(f[0])
+                        .repo(f[1])
+                        .build();
 
-                if(f[2].startsWith("#")) {
+                if (f[2].startsWith("#")) {
                     r.setTag(f[2].substring(1));
                 } else {
                     r.setBranch(f[2]);
@@ -92,17 +92,17 @@ public class IrisPackRepository {
             }
         } else {
             return IrisPackRepository.builder()
-                .user("IrisDimensions")
-                .repo(g)
-                .branch(g.equals("overworld") ? "stable" : "master")
-                .build();
+                    .user("IrisDimensions")
+                    .repo(g)
+                    .branch(g.equals("overworld") ? "stable" : "master")
+                    .build();
         }
 
         return null;
     }
 
     public String toURL() {
-        if(!tag.trim().isEmpty()) {
+        if (!tag.trim().isEmpty()) {
             return "https://codeload.github.com/" + user + "/" + repo + "/zip/refs/tags/" + tag;
         }
 
@@ -112,19 +112,19 @@ public class IrisPackRepository {
     public void install(VolmitSender sender, Runnable whenComplete) throws MalformedURLException {
         File pack = Iris.instance.getDataFolderNoCreate(StudioSVC.WORKSPACE_NAME, getRepo());
 
-        if(!pack.exists()) {
+        if (!pack.exists()) {
             File dl = new File(Iris.getTemp(), "dltk-" + UUID.randomUUID() + ".zip");
             File work = new File(Iris.getTemp(), "extk-" + UUID.randomUUID());
             new JobCollection(Form.capitalize(getRepo()),
-                new DownloadJob(toURL(), pack),
-                new SingleJob("Extracting", () -> ZipUtil.unpack(dl, work)),
-                new SingleJob("Installing", () -> {
-                    try {
-                        FileUtils.copyDirectory(work.listFiles()[0], pack);
-                    } catch(IOException e) {
-                        e.printStackTrace();
-                    }
-                })).execute(sender, whenComplete);
+                    new DownloadJob(toURL(), pack),
+                    new SingleJob("Extracting", () -> ZipUtil.unpack(dl, work)),
+                    new SingleJob("Installing", () -> {
+                        try {
+                            FileUtils.copyDirectory(work.listFiles()[0], pack);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    })).execute(sender, whenComplete);
         } else {
             sender.sendMessage("Pack already exists!");
         }

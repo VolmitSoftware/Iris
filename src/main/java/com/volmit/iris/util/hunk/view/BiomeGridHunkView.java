@@ -58,8 +58,7 @@ public class BiomeGridHunkView implements Hunk<Biome> {
     public void setRaw(int x, int y, int z, Biome t) {
         chunk.setBiome(x, y + minHeight, z, t);
 
-        if(y > highest)
-        {
+        if (y > highest) {
             highest = y;
         }
     }
@@ -70,7 +69,7 @@ public class BiomeGridHunkView implements Hunk<Biome> {
     }
 
     public void forceBiomeBaseInto(int x, int y, int z, Object somethingVeryDirty) {
-        if(chunk instanceof LinkedTerrainChunk) {
+        if (chunk instanceof LinkedTerrainChunk) {
             INMS.get().forceBiomeInto(x, y + minHeight, z, somethingVeryDirty, ((LinkedTerrainChunk) chunk).getRawBiome());
             return;
         }

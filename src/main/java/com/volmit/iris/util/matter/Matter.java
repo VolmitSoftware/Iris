@@ -52,29 +52,23 @@ import java.util.function.Function;
 public interface Matter {
     int VERSION = 1;
 
-    static long convert(File folder)
-    {
-        if(folder.isDirectory())
-        {
+    static long convert(File folder) {
+        if (folder.isDirectory()) {
             long v = 0;
 
-            for(File i : folder.listFiles())
-            {
+            for (File i : folder.listFiles()) {
                 v += convert(i);
             }
 
             return v;
-        }
-
-        else
-        {
-            IrisObject object = new IrisObject(1,1,1);
+        } else {
+            IrisObject object = new IrisObject(1, 1, 1);
             try {
                 long fs = folder.length();
                 object.read(folder);
                 Matter.from(object).write(folder);
                 Iris.info("Converted " + folder.getPath() + " Saved " + (fs - folder.length()));
-            } catch(Throwable e) {
+            } catch (Throwable e) {
                 Iris.error("Failed to convert " + folder.getPath());
                 e.printStackTrace();
             }
@@ -87,15 +81,15 @@ public interface Matter {
         object.clean();
         object.shrinkwrap();
         BlockVector min = new BlockVector();
-        Matter m = new IrisMatter(Math.max(object.getW(), 1)+1, Math.max( object.getH(), 1)+1, Math.max( object.getD(), 1)+1);
+        Matter m = new IrisMatter(Math.max(object.getW(), 1) + 1, Math.max(object.getH(), 1) + 1, Math.max(object.getD(), 1) + 1);
 
-        for(BlockVector i : object.getBlocks().keySet()) {
+        for (BlockVector i : object.getBlocks().keySet()) {
             min.setX(Math.min(min.getX(), i.getX()));
             min.setY(Math.min(min.getY(), i.getY()));
             min.setZ(Math.min(min.getZ(), i.getZ()));
         }
 
-        for(BlockVector i : object.getBlocks().keySet()) {
+        for (BlockVector i : object.getBlocks().keySet()) {
             m.slice(BlockData.class).set(i.getBlockX() - min.getBlockX(), i.getBlockY() - min.getBlockY(), i.getBlockZ() - min.getBlockZ(), object.getBlocks().get(i));
         }
 
@@ -106,12 +100,6 @@ public interface Matter {
         FileInputStream in = new FileInputStream(f);
         Matter m = read(in);
         in.close();
-        return m;
-    }
-
-    default Matter copy() {
-        Matter m = new IrisMatter(getWidth(), getHeight(), getDepth());
-        getSliceMap().forEach((k, v) -> m.slice(k).forceInject(v));
         return m;
     }
 
@@ -127,13 +115,10 @@ public interface Matter {
      * Reads the input stream into a matter object using a matter factory.
      * Does not close the input stream. Be a man, close it yourself.
      *
-     * @param in
-     *     the input stream
-     * @param matterFactory
-     *     the matter factory (size) -> new MatterImpl(size);
+     * @param in            the input stream
+     * @param matterFactory the matter factory (size) -> new MatterImpl(size);
      * @return the matter object
-     * @throws IOException
-     *     shit happens yo
+     * @throws IOException shit happens yo
      */
     static Matter read(InputStream in, Function<BlockPosition, Matter> matterFactory) throws IOException, ClassNotFoundException {
         return readDin(new DataInputStream(in), matterFactory);
@@ -141,9 +126,9 @@ public interface Matter {
 
     static Matter readDin(DataInputStream din, Function<BlockPosition, Matter> matterFactory) throws IOException, ClassNotFoundException {
         Matter matter = matterFactory.apply(new BlockPosition(
-            din.readInt(),
-            din.readInt(),
-            din.readInt()));
+                din.readInt(),
+                din.readInt(),
+                din.readInt()));
         Iris.addPanic("read.matter.size", matter.getWidth() + "x" + matter.getHeight() + "x" + matter.getDepth());
         int sliceCount = din.readByte();
         Iris.addPanic("read.matter.slicecount", sliceCount + "");
@@ -151,7 +136,7 @@ public interface Matter {
         matter.getHeader().read(din);
         Iris.addPanic("read.matter.header", matter.getHeader().toString());
 
-        for(int i = 0; i < sliceCount; i++) {
+        for (int i = 0; i < sliceCount; i++) {
             Iris.addPanic("read.matter.slice", i + "");
             String cn = din.readUTF();
             Iris.addPanic("read.matter.slice.class", cn);
@@ -160,13 +145,19 @@ public interface Matter {
                 MatterSlice<?> slice = matter.createSlice(type, matter);
                 slice.read(din);
                 matter.putSlice(type, slice);
-            } catch(Throwable e) {
+            } catch (Throwable e) {
                 e.printStackTrace();
                 throw new IOException("Can't read class '" + cn + "' (slice count reverse at " + sliceCount + ")");
             }
         }
 
         return matter;
+    }
+
+    default Matter copy() {
+        Matter m = new IrisMatter(getWidth(), getHeight(), getDepth());
+        getSliceMap().forEach((k, v) -> m.slice(k).forceInject(v));
+        return m;
     }
 
     /**
@@ -209,12 +200,9 @@ public interface Matter {
     /**
      * Create a slice from the given type (full is false)
      *
-     * @param type
-     *     the type class
-     * @param matter
-     *     the matter this slice will go into (size provider)
-     * @param <T>
-     *     the type
+     * @param type   the type class
+     * @param matter the matter this slice will go into (size provider)
+     * @param <T>    the type
      * @return the slice (or null if not supported)
      */
     <T> MatterSlice<T> createSlice(Class<T> type, Matter matter);
@@ -258,10 +246,8 @@ public interface Matter {
     /**
      * Return the slice for the given type
      *
-     * @param t
-     *     the type class
-     * @param <T>
-     *     the type
+     * @param t   the type class
+     * @param <T> the type
      * @return the slice or null
      */
     default <T> MatterSlice<T> getSlice(Class<T> t) {
@@ -271,10 +257,8 @@ public interface Matter {
     /**
      * Delete the slice for the given type
      *
-     * @param c
-     *     the type class
-     * @param <T>
-     *     the type
+     * @param c   the type class
+     * @param <T> the type
      * @return the deleted slice, or null if it diddn't exist
      */
     default <T> MatterSlice<T> deleteSlice(Class<?> c) {
@@ -284,12 +268,9 @@ public interface Matter {
     /**
      * Put a given slice type
      *
-     * @param c
-     *     the slice type class
-     * @param slice
-     *     the slice to assign to the type
-     * @param <T>
-     *     the slice type
+     * @param c     the slice type class
+     * @param slice the slice to assign to the type
+     * @param <T>   the slice type
      * @return the overwritten slice if there was an existing slice of that type
      */
     default <T> MatterSlice<T> putSlice(Class<?> c, MatterSlice<T> slice) {
@@ -299,11 +280,11 @@ public interface Matter {
     default Class<?> getClass(Object w) {
         Class<?> c = w.getClass();
 
-        if(w instanceof World) {
+        if (w instanceof World) {
             c = World.class;
-        } else if(w instanceof BlockData) {
+        } else if (w instanceof BlockData) {
             c = BlockData.class;
-        } else if(w instanceof Entity) {
+        } else if (w instanceof Entity) {
             c = Entity.class;
         }
 
@@ -312,13 +293,13 @@ public interface Matter {
 
     default <T> MatterSlice<T> slice(Class<?> c) {
         MatterSlice<T> slice = (MatterSlice<T>) getSlice(c);
-        if(slice == null) {
+        if (slice == null) {
             slice = (MatterSlice<T>) createSlice(c, this);
 
-            if(slice == null) {
+            if (slice == null) {
                 try {
                     throw new RuntimeException("Bad slice " + c.getCanonicalName());
-                } catch(Throwable e) {
+                } catch (Throwable e) {
                     e.printStackTrace();
                 }
 
@@ -334,12 +315,9 @@ public interface Matter {
     /**
      * Rotate a matter object into a new object
      *
-     * @param x
-     *     the x rotation (degrees)
-     * @param y
-     *     the y rotation (degrees)
-     * @param z
-     *     the z rotation (degrees)
+     * @param x the x rotation (degrees)
+     * @param y the y rotation (degrees)
+     * @param z the z rotation (degrees)
      * @return the new rotated matter object
      */
     default Matter rotate(double x, double y, double z) {
@@ -348,7 +326,7 @@ public interface Matter {
         n.getHeader().setAuthor(getHeader().getAuthor());
         n.getHeader().setCreatedAt(getHeader().getCreatedAt());
 
-        for(Class<?> i : getSliceTypes()) {
+        for (Class<?> i : getSliceTypes()) {
             getSlice(i).rotateSliceInto(n, x, y, z);
         }
 
@@ -358,8 +336,7 @@ public interface Matter {
     /**
      * Check if a slice exists for a given type
      *
-     * @param c
-     *     the slice class type
+     * @param c the slice class type
      * @return true if it exists
      */
     default boolean hasSlice(Class<?> c) {
@@ -401,9 +378,9 @@ public interface Matter {
     default void trimSlices() {
         Set<Class<?>> drop = null;
 
-        for(Class<?> i : getSliceTypes()) {
-            if(getSlice(i).getEntryCount() == 0) {
-                if(drop == null) {
+        for (Class<?> i : getSliceTypes()) {
+            if (getSlice(i).getEntryCount() == 0) {
+                if (drop == null) {
                     drop = new KSet<>();
                 }
 
@@ -411,8 +388,8 @@ public interface Matter {
             }
         }
 
-        if(drop != null) {
-            for(Class<?> i : drop) {
+        if (drop != null) {
+            for (Class<?> i : drop) {
                 deleteSlice(i);
             }
         }
@@ -422,10 +399,8 @@ public interface Matter {
      * Writes the data to the output stream. The data will be flushed to the provided output
      * stream however the provided stream will NOT BE CLOSED, so be sure to actually close it
      *
-     * @param out
-     *     the output stream
-     * @throws IOException
-     *     shit happens yo
+     * @param out the output stream
+     * @throws IOException shit happens yo
      */
     default void write(OutputStream out) throws IOException {
         writeDos(new DataOutputStream(out));
@@ -439,7 +414,7 @@ public interface Matter {
         dos.writeByte(getSliceTypes().size());
         getHeader().write(dos);
 
-        for(Class<?> i : getSliceTypes()) {
+        for (Class<?> i : getSliceTypes()) {
             getSlice(i).write(dos);
         }
     }
@@ -447,7 +422,7 @@ public interface Matter {
     default int getTotalCount() {
         int m = 0;
 
-        for(MatterSlice<?> i : getSliceMap().values()) {
+        for (MatterSlice<?> i : getSliceMap().values()) {
             m += i.getEntryCount();
         }
 

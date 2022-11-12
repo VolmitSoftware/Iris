@@ -25,20 +25,20 @@ public abstract class Looper extends Thread {
     @SuppressWarnings("BusyWait")
     public void run() {
         Iris.service(PreservationSVC.class).register(this);
-        while(!interrupted()) {
+        while (!interrupted()) {
             try {
                 long m = loop();
 
-                if(m < 0) {
+                if (m < 0) {
                     break;
                 }
 
                 //noinspection BusyWait
                 Thread.sleep(m);
-            } catch(InterruptedException e) {
+            } catch (InterruptedException e) {
                 Iris.reportError(e);
                 break;
-            } catch(Throwable e) {
+            } catch (Throwable e) {
                 Iris.reportError(e);
                 e.printStackTrace();
             }

@@ -48,11 +48,11 @@ public class IrisCompat {
         J.attemptAsync(() -> IO.writeAll(new File(f.getParentFile(), "compat.default.json"), defa));
 
 
-        if(!f.exists()) {
+        if (!f.exists()) {
             J.a(() -> {
                 try {
                     IO.writeAll(f, defa);
-                } catch(IOException e) {
+                } catch (IOException e) {
                     Iris.error("Failed to writeNodeData to compat file");
                     Iris.reportError(e);
                 }
@@ -63,14 +63,14 @@ public class IrisCompat {
             try {
                 IrisCompat rea = new Gson().fromJson(IO.readAll(f), IrisCompat.class);
 
-                for(IrisCompatabilityBlockFilter i : rea.getBlockFilters()) {
+                for (IrisCompatabilityBlockFilter i : rea.getBlockFilters()) {
                     def.getBlockFilters().add(i);
                 }
 
-                for(IrisCompatabilityItemFilter i : rea.getItemFilters()) {
+                for (IrisCompatabilityItemFilter i : rea.getItemFilters()) {
                     def.getItemFilters().add(i);
                 }
-            } catch(Throwable e) {
+            } catch (Throwable e) {
                 e.printStackTrace();
                 Iris.reportError(e);
             }
@@ -264,21 +264,21 @@ public class IrisCompat {
 
         BlockData tx = B.getOrNull(buf);
 
-        if(tx != null) {
+        if (tx != null) {
             return tx;
         }
 
         searching:
-        while(true) {
-            if(err-- <= 0) {
+        while (true) {
+            if (err-- <= 0) {
                 return B.get("STONE");
             }
 
-            for(IrisCompatabilityBlockFilter i : blockFilters) {
-                if(i.getWhen().equalsIgnoreCase(buf)) {
+            for (IrisCompatabilityBlockFilter i : blockFilters) {
+                if (i.getWhen().equalsIgnoreCase(buf)) {
                     BlockData b = i.getReplace();
 
-                    if(b != null) {
+                    if (b != null) {
                         return b;
                     }
 
@@ -296,28 +296,28 @@ public class IrisCompat {
         int err = 16;
         Material txf = B.getMaterialOrNull(buf);
 
-        if(txf != null) {
+        if (txf != null) {
             return txf;
         }
 
         int nomore = 64;
 
         searching:
-        while(true) {
-            if(nomore < 0) {
+        while (true) {
+            if (nomore < 0) {
                 return B.getMaterial("STONE");
             }
 
             nomore--;
-            if(err-- <= 0) {
+            if (err-- <= 0) {
                 break;
             }
 
-            for(IrisCompatabilityItemFilter i : itemFilters) {
-                if(i.getWhen().equalsIgnoreCase(buf)) {
+            for (IrisCompatabilityItemFilter i : itemFilters) {
+                if (i.getWhen().equalsIgnoreCase(buf)) {
                     Material b = i.getReplace();
 
-                    if(b != null) {
+                    if (b != null) {
                         return b;
                     }
 
@@ -332,28 +332,28 @@ public class IrisCompat {
         buf = n;
         BlockData tx = B.getOrNull(buf);
 
-        if(tx != null) {
+        if (tx != null) {
             return tx.getMaterial();
         }
         nomore = 64;
 
         searching:
-        while(true) {
-            if(nomore < 0) {
+        while (true) {
+            if (nomore < 0) {
                 return B.getMaterial("STONE");
             }
 
             nomore--;
 
-            if(err-- <= 0) {
+            if (err-- <= 0) {
                 return B.getMaterial("STONE");
             }
 
-            for(IrisCompatabilityBlockFilter i : blockFilters) {
-                if(i.getWhen().equalsIgnoreCase(buf)) {
+            for (IrisCompatabilityBlockFilter i : blockFilters) {
+                if (i.getWhen().equalsIgnoreCase(buf)) {
                     BlockData b = i.getReplace();
 
-                    if(b != null) {
+                    if (b != null) {
                         return b.getMaterial();
                     }
 

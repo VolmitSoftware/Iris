@@ -71,7 +71,7 @@ public class CommandJigsaw implements DecreeExecutor {
     ) {
         IrisObject o = IrisData.loadAnyObject(object);
 
-        if(object == null) {
+        if (object == null) {
             sender().sendMessage(C.RED + "Failed to find existing object");
             return;
         }
@@ -88,7 +88,7 @@ public class CommandJigsaw implements DecreeExecutor {
     public void exit() {
         JigsawEditor editor = JigsawEditor.editors.get(player());
 
-        if(editor == null) {
+        if (editor == null) {
             sender().sendMessage(C.GOLD + "You don't have any pieces open to exit!");
             return;
         }
@@ -101,7 +101,7 @@ public class CommandJigsaw implements DecreeExecutor {
     public void save() {
         JigsawEditor editor = JigsawEditor.editors.get(player());
 
-        if(editor == null) {
+        if (editor == null) {
             sender().sendMessage(C.GOLD + "You don't have any pieces open to save!");
             return;
         }

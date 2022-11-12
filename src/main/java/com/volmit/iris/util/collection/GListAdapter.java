@@ -24,27 +24,24 @@ import java.util.List;
 /**
  * Adapts a list of objects into a list of other objects
  *
- * @param <FROM>
- *     the from object in lists (the item INSIDE the list)
- * @param <TO>
- *     the to object in lists (the item INSIDE the list)
+ * @param <FROM> the from object in lists (the item INSIDE the list)
+ * @param <TO>   the to object in lists (the item INSIDE the list)
  * @author cyberpwn
  */
 public abstract class GListAdapter<FROM, TO> {
     /**
      * Adapts a list of FROM to a list of TO
      *
-     * @param from
-     *     the from list
+     * @param from the from list
      * @return the to list
      */
     public List<TO> adapt(List<FROM> from) {
         List<TO> adapted = new KList<>();
 
-        for(FROM i : from) {
+        for (FROM i : from) {
             TO t = onAdapt(i);
 
-            if(t != null) {
+            if (t != null) {
                 adapted.add(onAdapt(i));
             }
         }
@@ -55,8 +52,7 @@ public abstract class GListAdapter<FROM, TO> {
     /**
      * Adapts a list object FROM to TO for use with the adapt method
      *
-     * @param from
-     *     the from object
+     * @param from the from object
      * @return the to object
      */
     public abstract TO onAdapt(FROM from);

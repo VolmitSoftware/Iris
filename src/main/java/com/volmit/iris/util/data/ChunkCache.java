@@ -32,7 +32,7 @@ public class ChunkCache<T> {
     public T compute(int x, int z, Function2<Integer, Integer, T> function) {
         T t = get(x & 15, z & 15);
 
-        if(t == null) {
+        if (t == null) {
             t = function.apply(x, z);
             set(x & 15, z & 15, t);
         }

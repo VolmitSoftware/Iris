@@ -33,8 +33,7 @@ public class FinalInteger extends Wrapper<Integer> {
     /**
      * Add to this value
      *
-     * @param i
-     *     the number to add to this value (value = value + i)
+     * @param i the number to add to this value (value = value + i)
      */
     public void add(int i) {
         set(get() + i);
@@ -43,8 +42,7 @@ public class FinalInteger extends Wrapper<Integer> {
     /**
      * Subtract from this value
      *
-     * @param i
-     *     the number to subtract from this value (value = value - i)
+     * @param i the number to subtract from this value (value = value - i)
      */
     public void sub(int i) {
         set(get() - i);

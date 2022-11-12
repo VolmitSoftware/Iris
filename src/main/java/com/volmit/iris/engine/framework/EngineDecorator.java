@@ -36,7 +36,7 @@ public interface EngineDecorator extends EngineComponent {
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     default boolean canGoOn(BlockData decorant, BlockData atop) {
-        if(atop == null || B.isAir(atop)) {
+        if (atop == null || B.isAir(atop)) {
             return false;
         }
 

@@ -52,27 +52,28 @@ public interface TileData<T extends TileState> extends Cloneable {
             @SuppressWarnings("unchecked") TileData<? extends TileState> d = registry.get(id).getClass().getConstructor().newInstance();
             d.fromBinary(s);
             return d;
-        } catch(InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException e) {
+        } catch (InvocationTargetException | InstantiationException | IllegalAccessException |
+                 NoSuchMethodException e) {
             throw new IOException("Failed to create TileData instance due to missing type registrar!");
         }
     }
 
     static boolean setTileState(Block block, TileData<? extends TileState> data) {
-        if(block.getState() instanceof TileState && data.isApplicable(block.getBlockData()))
+        if (block.getState() instanceof TileState && data.isApplicable(block.getBlockData()))
             return data.toBukkitTry(block.getState());
         return false;
     }
 
     static TileData<? extends TileState> getTileState(Block block) {
-        for(TileData<? extends TileState> i : registry) {
+        for (TileData<? extends TileState> i : registry) {
             BlockData data = block.getBlockData();
 
-            if(i.isApplicable(data)) {
+            if (i.isApplicable(data)) {
                 try {
                     @SuppressWarnings("unchecked") TileData<? extends TileState> s = i.getClass().getConstructor().newInstance();
                     s.fromBukkitTry(block.getState());
                     return s;
-                } catch(Throwable e) {
+                } catch (Throwable e) {
                     Iris.reportError(e);
                     e.printStackTrace();
                 }
@@ -96,7 +97,7 @@ public interface TileData<T extends TileState> extends Cloneable {
             toBukkit((T) t);
             t.update();
             return true;
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
 
         }
@@ -109,7 +110,7 @@ public interface TileData<T extends TileState> extends Cloneable {
             //noinspection unchecked
             fromBukkit((T) t);
             return true;
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
 
         }

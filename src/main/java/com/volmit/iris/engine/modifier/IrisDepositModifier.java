@@ -51,22 +51,22 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
 
     public void generateDeposits(RNG rx, Hunk<BlockData> terrain, int x, int z, boolean multicore, ChunkContext context) {
         RNG ro = rx.nextParallelRNG(x * x).nextParallelRNG(z * z);
-        IrisRegion region = context.getRegion().get(7,7);
-        IrisBiome biome = context.getBiome().get(7,7);
+        IrisRegion region = context.getRegion().get(7, 7);
+        IrisBiome biome = context.getBiome().get(7, 7);
         BurstExecutor burst = burst().burst(multicore);
 
-        for(IrisDepositGenerator k : getDimension().getDeposits()) {
+        for (IrisDepositGenerator k : getDimension().getDeposits()) {
             burst.queue(() -> generate(k, terrain, ro, x, z, false, context));
         }
 
-        for(IrisDepositGenerator k : region.getDeposits()) {
-            for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++) {
+        for (IrisDepositGenerator k : region.getDeposits()) {
+            for (int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++) {
                 burst.queue(() -> generate(k, terrain, ro, x, z, false, context));
             }
         }
 
-        for(IrisDepositGenerator k : biome.getDeposits()) {
-            for(int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++) {
+        for (IrisDepositGenerator k : biome.getDeposits()) {
+            for (int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++) {
                 burst.queue(() -> generate(k, terrain, ro, x, z, false, context));
             }
         }
@@ -78,13 +78,13 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
     }
 
     public void generate(IrisDepositGenerator k, Hunk<BlockData> data, RNG rng, int cx, int cz, boolean safe, HeightMap he, ChunkContext context) {
-        for(int l = 0; l < rng.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++) {
+        for (int l = 0; l < rng.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++) {
             IrisObject clump = k.getClump(rng, getData());
 
             int af = (int) Math.floor(clump.getW() / 2D);
             int bf = (int) Math.floor(16D - (clump.getW() / 2D));
 
-            if(af > bf || af < 0 || bf > 15 || af > 15 || bf < 0) {
+            if (af > bf || af < 0 || bf > 15 || af > 15 || bf < 0) {
                 af = 6;
                 bf = 9;
             }
@@ -93,10 +93,10 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
             int x = rng.i(af, bf);
             int z = rng.i(af, bf);
             int height = (he != null ? he.getHeight((cx << 4) + x, (cz << 4) + z) : (int) (Math.round(
-                context.getHeight().get( x, z)
+                    context.getHeight().get(x, z)
             ))) - 7;
 
-            if(height <= 0) {
+            if (height <= 0) {
                 return;
             }
 
@@ -104,26 +104,26 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
             // TODO: WARNING HEIGHT
             int a = Math.min(height, Math.min(getEngine().getHeight(), k.getMaxHeight()));
 
-            if(i >= a) {
+            if (i >= a) {
                 return;
             }
 
             int h = rng.i(i, a);
 
-            if(h > k.getMaxHeight() || h < k.getMinHeight() || h > height - 2) {
+            if (h > k.getMaxHeight() || h < k.getMinHeight() || h > height - 2) {
                 return;
             }
 
-            for(BlockVector j : clump.getBlocks().keySet()) {
+            for (BlockVector j : clump.getBlocks().keySet()) {
                 int nx = j.getBlockX() + x;
                 int ny = j.getBlockY() + h;
                 int nz = j.getBlockZ() + z;
 
-                if(ny > height || nx > 15 || nx < 0 || ny > getEngine().getHeight() || ny < 0 || nz < 0 || nz > 15) {
+                if (ny > height || nx > 15 || nx < 0 || ny > getEngine().getHeight() || ny < 0 || nz < 0 || nz > 15) {
                     continue;
                 }
 
-                if(!getEngine().getMantle().isCarved((cx << 4) + nx, ny, (cz << 4) + nz)) {
+                if (!getEngine().getMantle().isCarved((cx << 4) + nx, ny, (cz << 4) + nz)) {
                     data.set(nx, ny, nz, B.toDeepSlateOre(data.get(nx, ny, nz), clump.getBlocks().get(j)));
                 }
             }

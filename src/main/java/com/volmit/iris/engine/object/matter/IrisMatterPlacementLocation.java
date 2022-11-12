@@ -3,6 +3,7 @@ package com.volmit.iris.engine.object.matter;
 import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.function.Function3;
+
 @Desc("WHERE THINGS PLACE")
 public enum IrisMatterPlacementLocation {
     SURFACE((e, x, z) -> e.getHeight(x, z, true)),
@@ -12,8 +13,7 @@ public enum IrisMatterPlacementLocation {
 
     private final Function3<IrisEngine, Integer, Integer, Integer> computer;
 
-    private IrisMatterPlacementLocation(Function3<IrisEngine, Integer, Integer, Integer> computer)
-    {
+    private IrisMatterPlacementLocation(Function3<IrisEngine, Integer, Integer, Integer> computer) {
         this.computer = computer;
     }
 

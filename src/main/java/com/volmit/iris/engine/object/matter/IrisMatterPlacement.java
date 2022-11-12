@@ -62,15 +62,13 @@ public class IrisMatterPlacement implements IRare {
     @Desc("Place this object on the surface height, bedrock or the sky, then use translate if need be.")
     private IrisMatterPlacementLocation location = IrisMatterPlacementLocation.SURFACE;
 
-    public void place(IrisEngine engine, IrisData data, RNG rng, int ax, int az)
-    {
+    public void place(IrisEngine engine, IrisData data, RNG rng, int ax, int az) {
         IrisMatterObject object = data.getMatterLoader().load(place.getRandom(rng));
         int x = ax;
         int z = az;
         int yoff = 0;
 
-        if(translate != null)
-        {
+        if (translate != null) {
             x += translate.xOffset(data, rng, x, z);
             yoff += translate.yOffset(data, rng, x, z);
             z += translate.zOffset(data, rng, x, z);
@@ -83,8 +81,7 @@ public class IrisMatterPlacement implements IRare {
         int yy = y;
         int zz = z;
 
-        for(MatterSlice<?> slice : object.getMatter().getSliceMap().values())
-        {
+        for (MatterSlice<?> slice : object.getMatter().getSliceMap().values()) {
             slice.iterate((mx, my, mz, v) -> {
                 mantle.set(xx + mx, yy + my, zz + mz, v);
             });

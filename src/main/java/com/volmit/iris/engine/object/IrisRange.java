@@ -40,7 +40,7 @@ public class IrisRange {
     private double max = 32;
 
     public double get(RNG rng) {
-        if(min == max) {
+        if (min == max) {
             return min;
         }
 

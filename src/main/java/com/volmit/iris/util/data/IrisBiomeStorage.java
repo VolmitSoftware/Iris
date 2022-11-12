@@ -54,12 +54,12 @@ public class IrisBiomeStorage implements BiomeGrid {
 
     public void inject(BiomeGrid grid) {
         // TODO: WARNING HEIGHT
-        for(int i = 0; i < 256; i++) {
-            for(int j = 0; j < 16; j++) {
-                for(int k = 0; k < 16; k++) {
+        for (int i = 0; i < 256; i++) {
+            for (int j = 0; j < 16; j++) {
+                for (int k = 0; k < 16; k++) {
                     Biome b = getBiome(j, i, k);
 
-                    if(b == null || b.equals(Biome.THE_VOID)) {
+                    if (b == null || b.equals(Biome.THE_VOID)) {
                         continue;
                     }
 

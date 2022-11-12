@@ -34,9 +34,9 @@ public final class FastParticle {
     private static final ParticleSender PARTICLE_SENDER;
 
     static {
-        if(FastReflection.optionalClass("org.bukkit.Particle$DustOptions").isPresent()) {
+        if (FastReflection.optionalClass("org.bukkit.Particle$DustOptions").isPresent()) {
             PARTICLE_SENDER = new ParticleSender.ParticleSender1_13();
-        } else if(FastReflection.optionalClass("org.bukkit.Particle").isPresent()) {
+        } else if (FastReflection.optionalClass("org.bukkit.Particle").isPresent()) {
             PARTICLE_SENDER = new ParticleSender.ParticleSenderImpl();
         } else {
             PARTICLE_SENDER = new ParticleSenderLegacy();
@@ -80,7 +80,7 @@ public final class FastParticle {
     public static <T> void spawnParticle(World world, ParticleType particle, Location location, int count,
                                          double offsetX, double offsetY, double offsetZ, T data) {
         spawnParticle(world, particle, location.getX(), location.getY(), location.getZ(), count, offsetX, offsetY,
-            offsetZ, data);
+                offsetZ, data);
     }
 
     public static <T> void spawnParticle(World world, ParticleType particle, double x, double y, double z, int count,
@@ -170,7 +170,7 @@ public final class FastParticle {
 
     private static void sendParticle(Object receiver, ParticleType particle, double x, double y, double z, int count,
                                      double offsetX, double offsetY, double offsetZ, double extra, Object data) {
-        if(!particle.isSupported()) {
+        if (!particle.isSupported()) {
             throw new IllegalArgumentException("The particle '" + particle + "' is not compatible with your server version");
         }
 

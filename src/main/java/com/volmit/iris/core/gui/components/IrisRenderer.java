@@ -37,21 +37,27 @@ public class IrisRenderer {
         BufferedImage image = new BufferedImage(resolution, resolution, BufferedImage.TYPE_INT_RGB);
         BiFunction<Double, Double, Integer> colorFunction = (d, dx) -> Color.black.getRGB();
 
-        switch(currentType) {
-            case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD -> colorFunction = (x, z) -> renderer.getComplex().getTrueBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
-            case BIOME_LAND -> colorFunction = (x, z) -> renderer.getComplex().getLandBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
-            case BIOME_SEA -> colorFunction = (x, z) -> renderer.getComplex().getSeaBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
-            case REGION -> colorFunction = (x, z) -> renderer.getComplex().getRegionStream().get(x, z).getColor(renderer.getComplex(), currentType).getRGB();
-            case CAVE_LAND -> colorFunction = (x, z) -> renderer.getComplex().getCaveBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
-            case HEIGHT -> colorFunction = (x, z) -> Color.getHSBColor(renderer.getComplex().getHeightStream().get(x, z).floatValue(), 100, 100).getRGB();
+        switch (currentType) {
+            case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD ->
+                    colorFunction = (x, z) -> renderer.getComplex().getTrueBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
+            case BIOME_LAND ->
+                    colorFunction = (x, z) -> renderer.getComplex().getLandBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
+            case BIOME_SEA ->
+                    colorFunction = (x, z) -> renderer.getComplex().getSeaBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
+            case REGION ->
+                    colorFunction = (x, z) -> renderer.getComplex().getRegionStream().get(x, z).getColor(renderer.getComplex(), currentType).getRGB();
+            case CAVE_LAND ->
+                    colorFunction = (x, z) -> renderer.getComplex().getCaveBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
+            case HEIGHT ->
+                    colorFunction = (x, z) -> Color.getHSBColor(renderer.getComplex().getHeightStream().get(x, z).floatValue(), 100, 100).getRGB();
         }
 
         double x, z;
         int i, j;
-        for(i = 0; i < resolution; i++) {
+        for (i = 0; i < resolution; i++) {
             x = IrisInterpolation.lerp(sx, sx + size, (double) i / (double) (resolution));
 
-            for(j = 0; j < resolution; j++) {
+            for (j = 0; j < resolution; j++) {
                 z = IrisInterpolation.lerp(sz, sz + size, (double) j / (double) (resolution));
                 image.setRGB(i, j, colorFunction.apply(x, z));
             }

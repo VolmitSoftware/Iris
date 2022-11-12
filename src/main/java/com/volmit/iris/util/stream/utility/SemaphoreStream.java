@@ -48,7 +48,7 @@ public class SemaphoreStream<T> extends BasicStream<T> {
             T t = getTypedSource().get(x, z);
             semaphore.release();
             return t;
-        } catch(InterruptedException e) {
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
@@ -62,7 +62,7 @@ public class SemaphoreStream<T> extends BasicStream<T> {
             T t = getTypedSource().get(x, y, z);
             semaphore.release();
             return t;
-        } catch(InterruptedException e) {
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
 

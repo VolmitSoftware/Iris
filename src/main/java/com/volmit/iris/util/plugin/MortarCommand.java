@@ -45,10 +45,8 @@ public abstract class MortarCommand implements ICommand {
      * Override this with a super constructor as most commands shouldn't change
      * these parameters
      *
-     * @param node
-     *     the node (primary node) i.e. volume
-     * @param nodes
-     *     the aliases. i.e. v, vol, bile
+     * @param node  the node (primary node) i.e. volume
+     * @param nodes the aliases. i.e. v, vol, bile
      */
     public MortarCommand(String node, String... nodes) {
         category = "";
@@ -62,19 +60,19 @@ public abstract class MortarCommand implements ICommand {
     @Override
     public KList<String> handleTab(VolmitSender sender, String[] args) {
         KList<String> v = new KList<>();
-        if(args.length == 0) {
-            for(MortarCommand i : getChildren()) {
+        if (args.length == 0) {
+            for (MortarCommand i : getChildren()) {
                 v.add(i.getNode());
             }
         }
 
         addTabOptions(sender, args, v);
 
-        if(v.isEmpty()) {
+        if (v.isEmpty()) {
             return null;
         }
 
-        if(sender.isPlayer() && IrisSettings.get().getGeneral().isCommandSounds()) {
+        if (sender.isPlayer() && IrisSettings.get().getGeneral().isCommandSounds()) {
             sender.playSound(Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 0.25f, 1.7f);
         }
 
@@ -86,9 +84,9 @@ public abstract class MortarCommand implements ICommand {
     public void printHelp(VolmitSender sender) {
         boolean b = false;
 
-        for(MortarCommand i : getChildren()) {
-            for(String j : i.getRequiredPermissions()) {
-                if(!sender.hasPermission(j)) {
+        for (MortarCommand i : getChildren()) {
+            for (String j : i.getRequiredPermissions()) {
+                if (!sender.hasPermission(j)) {
                 }
             }
 
@@ -97,11 +95,11 @@ public abstract class MortarCommand implements ICommand {
             sender.sendMessage("" + C.GREEN + i.getNode() + " " + "<font:minecraft:uniform>" + (getArgsUsage().trim().isEmpty() ? "" : (C.WHITE + i.getArgsUsage())) + C.GRAY + " - " + i.getDescription());
         }
 
-        if(!b) {
+        if (!b) {
             sender.sendMessage("There are either no sub-commands or you do not have permission to use them.");
         }
 
-        if(sender.isPlayer() && IrisSettings.get().getGeneral().isCommandSounds()) {
+        if (sender.isPlayer() && IrisSettings.get().getGeneral().isCommandSounds()) {
             sender.playSound(Sound.ITEM_BOOK_PAGE_TURN, 0.28f, 1.4f);
             sender.playSound(Sound.ITEM_AXE_STRIP, 0.35f, 1.7f);
         }
@@ -118,7 +116,7 @@ public abstract class MortarCommand implements ICommand {
     }
 
     protected void requiresPermission(MortarPermission node) {
-        if(node == null) {
+        if (node == null) {
             return;
         }
 
@@ -126,7 +124,7 @@ public abstract class MortarCommand implements ICommand {
     }
 
     protected void requiresPermission(String node) {
-        if(node == null) {
+        if (node == null) {
             return;
         }
 
@@ -134,19 +132,19 @@ public abstract class MortarCommand implements ICommand {
     }
 
     public void rejectAny(int past, VolmitSender sender, String[] a) {
-        if(a.length > past) {
+        if (a.length > past) {
             int p = past;
 
             StringBuilder m = new StringBuilder();
 
-            for(String i : a) {
+            for (String i : a) {
                 p--;
-                if(p < 0) {
+                if (p < 0) {
                     m.append(i).append(", ");
                 }
             }
 
-            if(!m.toString().trim().isEmpty()) {
+            if (!m.toString().trim().isEmpty()) {
                 sender.sendMessage("Parameters Ignored: " + m);
             }
         }
@@ -179,21 +177,22 @@ public abstract class MortarCommand implements ICommand {
     private KList<MortarCommand> buildChildren() {
         KList<MortarCommand> p = new KList<>();
 
-        for(Field i : getClass().getDeclaredFields()) {
-            if(i.isAnnotationPresent(Command.class)) {
+        for (Field i : getClass().getDeclaredFields()) {
+            if (i.isAnnotationPresent(Command.class)) {
                 try {
                     i.setAccessible(true);
                     MortarCommand pc = (MortarCommand) i.getType().getConstructor().newInstance();
                     Command c = i.getAnnotation(Command.class);
 
-                    if(!c.value().trim().isEmpty()) {
+                    if (!c.value().trim().isEmpty()) {
                         pc.setCategory(c.value().trim());
                     } else {
                         pc.setCategory(getCategory());
                     }
 
                     p.add(pc);
-                } catch(IllegalArgumentException | IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                } catch (IllegalArgumentException | IllegalAccessException | InstantiationException |
+                         InvocationTargetException | NoSuchMethodException | SecurityException e) {
                     Iris.reportError(e);
                     e.printStackTrace();
                 }

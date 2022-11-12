@@ -22,43 +22,39 @@ public class WasteDetector<T> extends BasicStream<T> {
         accesses = new AtomicInteger(0);
     }
 
-    @Override
-    public T get(double x, double z) {
-        if(checking)
-        {
-            if(x == 7 && z == 7) {
-                // AHHHAAA!
-                allAccesses.compute(name, (k, v) -> v == null ? 1 : v + 1);
-                try {
-                    throw new RuntimeException();
-                }
-
-                catch(RuntimeException e) {
-                    allThrows.computeIfAbsent(name, (k) -> new KList<>()).add(e);
-                }
-            }
-
-        }
-        return getTypedSource().get(x, z);
-    }
-
     public static void printAll() {
-        if(checking)
-        {
+        if (checking) {
             Iris.warn("=========================================================");
-            for(String i : allAccesses.sortKNumber().reverse()) {
+            for (String i : allAccesses.sortKNumber().reverse()) {
                 Iris.warn(i + ": " + allAccesses.get(i) + " Time(s)");
             }
             Iris.warn("=========================================================");
-            for(String i : allAccesses.sortKNumber().reverse()) {
-                Iris.warn("======== "+ i + " ========");
-                for(Throwable j : allThrows.get(i)) {
+            for (String i : allAccesses.sortKNumber().reverse()) {
+                Iris.warn("======== " + i + " ========");
+                for (Throwable j : allThrows.get(i)) {
                     j.printStackTrace();
                 }
                 Iris.warn("---------------------------------------------------------");
             }
             Iris.warn("=========================================================");
         }
+    }
+
+    @Override
+    public T get(double x, double z) {
+        if (checking) {
+            if (x == 7 && z == 7) {
+                // AHHHAAA!
+                allAccesses.compute(name, (k, v) -> v == null ? 1 : v + 1);
+                try {
+                    throw new RuntimeException();
+                } catch (RuntimeException e) {
+                    allThrows.computeIfAbsent(name, (k) -> new KList<>()).add(e);
+                }
+            }
+
+        }
+        return getTypedSource().get(x, z);
     }
 
     @Override

@@ -50,7 +50,7 @@ public class SelectionStream<T> extends BasicStream<T> {
 
     @Override
     public T get(double x, double z) {
-        if(options.length == 0) {
+        if (options.length == 0) {
             return null;
         }
 
@@ -59,7 +59,7 @@ public class SelectionStream<T> extends BasicStream<T> {
 
     @Override
     public T get(double x, double y, double z) {
-        if(options.length == 0) {
+        if (options.length == 0) {
             return null;
         }
 

@@ -49,10 +49,8 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
     /**
      * Get biome at x, z within chunk being generated
      *
-     * @param x
-     *     - 0-15
-     * @param z
-     *     - 0-15
+     * @param x - 0-15
+     * @param z - 0-15
      * @return Biome value
      * @deprecated biomes are now 3-dimensional
      */
@@ -63,12 +61,9 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
     /**
      * Get biome at x, z within chunk being generated
      *
-     * @param x
-     *     - 0-15
-     * @param y
-     *     - 0-255
-     * @param z
-     *     - 0-15
+     * @param x - 0-15
+     * @param y - 0-255
+     * @param z - 0-15
      * @return Biome value
      */
     Biome getBiome(int x, int y, int z);
@@ -76,12 +71,9 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
     /**
      * Set biome at x, z within chunk being generated
      *
-     * @param x
-     *     - 0-15
-     * @param z
-     *     - 0-15
-     * @param bio
-     *     - Biome value
+     * @param x   - 0-15
+     * @param z   - 0-15
+     * @param bio - Biome value
      * @deprecated biomes are now 3-dimensional
      */
     @Deprecated
@@ -90,14 +82,10 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
     /**
      * Set biome at x, z within chunk being generated
      *
-     * @param x
-     *     - 0-15
-     * @param y
-     *     - 0-255
-     * @param z
-     *     - 0-15
-     * @param bio
-     *     - Biome value
+     * @param x   - 0-15
+     * @param y   - 0-255
+     * @param z   - 0-15
+     * @param bio - Biome value
      */
     void setBiome(int x, int y, int z, Biome bio);
 
@@ -115,15 +103,11 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
      * <p>
      * Setting blocks outside the chunk's bounds does nothing.
      *
-     * @param x
-     *     the x location in the chunk from 0-15 inclusive
-     * @param y
-     *     the y location in the chunk from 0 (inclusive) - maxHeight
-     *     (exclusive)
-     * @param z
-     *     the z location in the chunk from 0-15 inclusive
-     * @param blockData
-     *     the type to set the block to
+     * @param x         the x location in the chunk from 0-15 inclusive
+     * @param y         the y location in the chunk from 0 (inclusive) - maxHeight
+     *                  (exclusive)
+     * @param z         the z location in the chunk from 0-15 inclusive
+     * @param blockData the type to set the block to
      */
     void setBlock(int x, int y, int z, BlockData blockData);
 
@@ -132,13 +116,10 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
      * <p>
      * Getting blocks outside the chunk's bounds returns air.
      *
-     * @param x
-     *     the x location in the chunk from 0-15 inclusive
-     * @param y
-     *     the y location in the chunk from 0 (inclusive) - maxHeight
-     *     (exclusive)
-     * @param z
-     *     the z location in the chunk from 0-15 inclusive
+     * @param x the x location in the chunk from 0-15 inclusive
+     * @param y the y location in the chunk from 0 (inclusive) - maxHeight
+     *          (exclusive)
+     * @param z the z location in the chunk from 0-15 inclusive
      * @return the data of the block or the BlockData for air if x, y or z are
      * outside the chunk's bounds
      */

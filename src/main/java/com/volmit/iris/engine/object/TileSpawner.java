@@ -36,6 +36,7 @@ public class TileSpawner implements TileData<CreatureSpawner> {
     public static final int id = 1;
 
     private EntityType entityType;
+
     @Override
     public String getTileId() {
         return "minecraft:mob_spawner";

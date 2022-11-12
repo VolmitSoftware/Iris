@@ -40,7 +40,7 @@ public class NBTDeserializer implements Deserializer<NamedTag> {
     @Override
     public NamedTag fromStream(InputStream stream) throws IOException {
         NBTInputStream nbtIn;
-        if(compressed) {
+        if (compressed) {
             nbtIn = new NBTInputStream(new GZIPInputStream(stream));
         } else {
             nbtIn = new NBTInputStream(stream);

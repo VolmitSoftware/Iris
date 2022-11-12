@@ -74,7 +74,7 @@ public class CommandObject implements DecreeExecutor {
                 Block block = world.getBlockAt(x, y, z);
 
                 //Prevent blocks being set in or bellow bedrock
-                if(y <= world.getMinHeight() || block.getType() == Material.BEDROCK) return;
+                if (y <= world.getMinHeight() || block.getType() == Material.BEDROCK) return;
 
                 futureBlockChanges.put(block, block.getBlockData());
 
@@ -143,19 +143,19 @@ public class CommandObject implements DecreeExecutor {
         Map<Material, Set<BlockData>> unsorted = new HashMap<>();
         Map<BlockData, Integer> amounts = new HashMap<>();
         Map<Material, Integer> materials = new HashMap<>();
-        while(queue.hasNext()) {
+        while (queue.hasNext()) {
             BlockData block = queue.next();
 
             //unsorted.put(block.getMaterial(), block);
 
-            if(!amounts.containsKey(block)) {
+            if (!amounts.containsKey(block)) {
                 amounts.put(block, 1);
 
 
             } else
                 amounts.put(block, amounts.get(block) + 1);
 
-            if(!materials.containsKey(block.getMaterial())) {
+            if (!materials.containsKey(block.getMaterial())) {
                 materials.put(block.getMaterial(), 1);
                 unsorted.put(block.getMaterial(), new HashSet<>());
                 unsorted.get(block.getMaterial()).add(block);
@@ -173,7 +173,7 @@ public class CommandObject implements DecreeExecutor {
         sender().sendMessage("== Blocks in object ==");
 
         int n = 0;
-        for(Material mat : sortedMats) {
+        for (Material mat : sortedMats) {
             int amount = materials.get(mat);
             List<BlockData> set = new ArrayList<>(unsorted.get(mat));
             set.sort(Comparator.comparingInt(amounts::get).reversed());
@@ -181,7 +181,7 @@ public class CommandObject implements DecreeExecutor {
             int dataAmount = amounts.get(data);
 
             String string = " - " + mat.toString() + "*" + amount;
-            if(data.getAsString(true).contains("[")) {
+            if (data.getAsString(true).contains("[")) {
                 string = string + " --> [" + data.getAsString(true).split("\\[")[1]
                         .replaceAll("true", ChatColor.GREEN + "true" + ChatColor.GRAY)
                         .replaceAll("false", ChatColor.RED + "false" + ChatColor.GRAY) + "*" + dataAmount;
@@ -191,7 +191,7 @@ public class CommandObject implements DecreeExecutor {
 
             n++;
 
-            if(n >= 10) {
+            if (n >= 10) {
                 sender().sendMessage("  + " + (sortedMats.size() - n) + " other block types");
                 return;
             }
@@ -209,7 +209,7 @@ public class CommandObject implements DecreeExecutor {
             @Param(description = "The amount to inset by", defaultValue = "1")
             int amount
     ) {
-        if(!WandSVC.isHoldingWand(player())) {
+        if (!WandSVC.isHoldingWand(player())) {
             sender().sendMessage("Hold your wand.");
             return;
         }
@@ -234,15 +234,15 @@ public class CommandObject implements DecreeExecutor {
             @Param(description = "Whether to use your current position, or where you look", defaultValue = "true")
             boolean here
     ) {
-        if(!WandSVC.isHoldingWand(player())) {
+        if (!WandSVC.isHoldingWand(player())) {
             sender().sendMessage("Ready your Wand.");
             return;
         }
 
-        if(WandSVC.isHoldingWand(player())) {
+        if (WandSVC.isHoldingWand(player())) {
             Location[] g = WandSVC.getCuboid(player());
 
-            if(!here) {
+            if (!here) {
                 // TODO: WARNING HEIGHT
                 g[1] = player().getTargetBlock(null, 256).getLocation().clone();
             } else {
@@ -257,15 +257,15 @@ public class CommandObject implements DecreeExecutor {
             @Param(description = "Whether to use your current position, or where you look", defaultValue = "true")
             boolean here
     ) {
-        if(!WandSVC.isHoldingWand(player())) {
+        if (!WandSVC.isHoldingWand(player())) {
             sender().sendMessage("Ready your Wand.");
             return;
         }
 
-        if(WandSVC.isHoldingIrisWand(player())) {
+        if (WandSVC.isHoldingIrisWand(player())) {
             Location[] g = WandSVC.getCuboid(player());
 
-            if(!here) {
+            if (!here) {
                 // TODO: WARNING HEIGHT
                 g[0] = player().getTargetBlock(null, 256).getLocation().clone();
             } else {
@@ -291,7 +291,7 @@ public class CommandObject implements DecreeExecutor {
     ) {
         IrisObject o = IrisData.loadAnyObject(object);
         double maxScale = Double.max(10 - o.getBlocks().size() / 10000d, 1);
-        if(scale > maxScale) {
+        if (scale > maxScale) {
             sender().sendMessage(C.YELLOW + "Indicated scale exceeds maximum. Downscaled to maximum: " + maxScale);
             scale = maxScale;
         }
@@ -306,7 +306,7 @@ public class CommandObject implements DecreeExecutor {
 
         Map<Block, BlockData> futureChanges = new HashMap<>();
 
-        if(scale != 1) {
+        if (scale != 1) {
             o = o.scaled(scale, IrisObjectPlacementScaleInterpolator.TRICUBIC);
         }
 
@@ -314,16 +314,16 @@ public class CommandObject implements DecreeExecutor {
 
         Iris.service(ObjectSVC.class).addChanges(futureChanges);
 
-        if(edit) {
+        if (edit) {
             ItemStack newWand = WandSVC.createWand(block.clone().subtract(o.getCenter()).add(o.getW() - 1,
                     o.getH() + o.getCenter().clone().getY() - 1, o.getD() - 1), block.clone().subtract(o.getCenter().clone().setY(0)));
-            if(WandSVC.isWand(wand)) {
+            if (WandSVC.isWand(wand)) {
                 wand = newWand;
                 player().getInventory().setItemInMainHand(wand);
                 sender().sendMessage("Updated wand for " + "objects/" + o.getLoadKey() + ".iob ");
             } else {
                 int slot = WandSVC.findWand(player().getInventory());
-                if(slot == -1) {
+                if (slot == -1) {
                     player().getInventory().addItem(newWand);
                     sender().sendMessage("Given new wand for " + "objects/" + o.getLoadKey() + ".iob ");
                 } else {
@@ -347,20 +347,20 @@ public class CommandObject implements DecreeExecutor {
     ) {
         IrisObject o = WandSVC.createSchematic(player());
 
-        if(o == null) {
+        if (o == null) {
             sender().sendMessage(C.YELLOW + "You need to hold your wand!");
             return;
         }
 
         File file = Iris.service(StudioSVC.class).getWorkspaceFile(dimension.getLoadKey(), "objects", name + ".iob");
 
-        if(file.exists() && !overwrite) {
+        if (file.exists() && !overwrite) {
             sender().sendMessage(C.RED + "File already exists. Set overwrite=true to overwrite it.");
             return;
         }
         try {
             o.write(file);
-        } catch(IOException e) {
+        } catch (IOException e) {
             sender().sendMessage(C.RED + "Failed to save object because of an IOException: " + e.getMessage());
             Iris.reportError(e);
         }
@@ -374,7 +374,7 @@ public class CommandObject implements DecreeExecutor {
             @Param(description = "The amount to shift by", defaultValue = "1")
             int amount
     ) {
-        if(!WandSVC.isHoldingWand(player())) {
+        if (!WandSVC.isHoldingWand(player())) {
             sender().sendMessage("Hold your wand.");
             return;
         }
@@ -406,14 +406,14 @@ public class CommandObject implements DecreeExecutor {
 
     @Decree(description = "Gets an object wand and grabs the current WorldEdit selection.", aliases = "we", origin = DecreeOrigin.PLAYER, studio = true)
     public void we() {
-        if(!Bukkit.getPluginManager().isPluginEnabled("WorldEdit")) {
+        if (!Bukkit.getPluginManager().isPluginEnabled("WorldEdit")) {
             sender().sendMessage(C.RED + "You can't get a WorldEdit selection without WorldEdit, you know.");
             return;
         }
 
         Cuboid locs = WorldEditLink.getSelection(sender().player());
 
-        if(locs == null) {
+        if (locs == null) {
             sender().sendMessage(C.RED + "You don't have a WorldEdit selection in this world.");
             return;
         }
@@ -431,7 +431,7 @@ public class CommandObject implements DecreeExecutor {
 
     @Decree(name = "x&y", description = "Autoselect up, down & out", sync = true)
     public void xay() {
-        if(!WandSVC.isHoldingWand(player())) {
+        if (!WandSVC.isHoldingWand(player())) {
             sender().sendMessage(C.YELLOW + "Hold your wand!");
             return;
         }
@@ -444,7 +444,7 @@ public class CommandObject implements DecreeExecutor {
         Cuboid cursor = new Cuboid(a1, a2);
         Cuboid cursorx = new Cuboid(a1, a2);
 
-        while(!cursor.containsOnly(Material.AIR)) {
+        while (!cursor.containsOnly(Material.AIR)) {
             a1.add(new org.bukkit.util.Vector(0, 1, 0));
             a2.add(new org.bukkit.util.Vector(0, 1, 0));
             cursor = new Cuboid(a1, a2);
@@ -453,7 +453,7 @@ public class CommandObject implements DecreeExecutor {
         a1.add(new org.bukkit.util.Vector(0, -1, 0));
         a2.add(new org.bukkit.util.Vector(0, -1, 0));
 
-        while(!cursorx.containsOnly(Material.AIR)) {
+        while (!cursorx.containsOnly(Material.AIR)) {
             a1x.add(new org.bukkit.util.Vector(0, -1, 0));
             a2x.add(new org.bukkit.util.Vector(0, -1, 0));
             cursorx = new Cuboid(a1x, a2x);
@@ -478,7 +478,7 @@ public class CommandObject implements DecreeExecutor {
 
     @Decree(name = "x+y", description = "Autoselect up & out", sync = true)
     public void xpy() {
-        if(!WandSVC.isHoldingWand(player())) {
+        if (!WandSVC.isHoldingWand(player())) {
             sender().sendMessage(C.YELLOW + "Hold your wand!");
             return;
         }
@@ -490,7 +490,7 @@ public class CommandObject implements DecreeExecutor {
         Location a2 = b[1].clone();
         Cuboid cursor = new Cuboid(a1, a2);
 
-        while(!cursor.containsOnly(Material.AIR)) {
+        while (!cursor.containsOnly(Material.AIR)) {
             a1.add(new Vector(0, 1, 0));
             a2.add(new Vector(0, 1, 0));
             cursor = new Cuboid(a1, a2);

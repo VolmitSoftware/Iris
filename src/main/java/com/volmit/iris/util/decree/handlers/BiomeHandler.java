@@ -35,10 +35,10 @@ public class BiomeHandler implements DecreeParameterHandler<IrisBiome> {
         KMap<String, IrisBiome> p = new KMap<>();
 
         //noinspection ConstantConditions
-        for(File i : Iris.instance.getDataFolder("packs").listFiles()) {
-            if(i.isDirectory()) {
+        for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
+            if (i.isDirectory()) {
                 IrisData data = IrisData.get(i);
-                for(IrisBiome j : data.getBiomeLoader().loadAll(data.getBiomeLoader().getPossibleKeys())) {
+                for (IrisBiome j : data.getBiomeLoader().loadAll(data.getBiomeLoader().getPossibleKeys())) {
                     p.putIfAbsent(j.getLoadKey(), j);
                 }
 
@@ -56,18 +56,18 @@ public class BiomeHandler implements DecreeParameterHandler<IrisBiome> {
 
     @Override
     public IrisBiome parse(String in, boolean force) throws DecreeParsingException {
-        if(in.equals("null")) {
+        if (in.equals("null")) {
             return null;
         }
         KList<IrisBiome> options = getPossibilities(in);
 
-        if(options.isEmpty()) {
+        if (options.isEmpty()) {
             throw new DecreeParsingException("Unable to find Biome \"" + in + "\"");
         }
 
         try {
             return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             throw new DecreeParsingException("Unable to filter which Biome \"" + in + "\"");
         }
     }

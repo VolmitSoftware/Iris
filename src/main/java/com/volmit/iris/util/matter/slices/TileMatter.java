@@ -40,11 +40,6 @@ public class TileMatter extends RawMatter<TileWrapper> {
         this(1, 1, 1);
     }
 
-    @Override
-    public Palette<TileWrapper> getGlobalPalette() {
-        return null;
-    }
-
     public TileMatter(int width, int height, int depth) {
         super(width, height, depth, TileWrapper.class);
         registerWriter(World.class, (w, d, x, y, z) -> {
@@ -54,10 +49,15 @@ public class TileMatter extends RawMatter<TileWrapper> {
         });
         registerReader(World.class, (w, x, y, z) -> {
             TileData d = TileData.getTileState(w.getBlockAt(new Location(w, x, y, z)));
-            if(d == null)
+            if (d == null)
                 return null;
             return new TileWrapper(d);
         });
+    }
+
+    @Override
+    public Palette<TileWrapper> getGlobalPalette() {
+        return null;
     }
 
     public void writeNode(TileWrapper b, DataOutputStream dos) throws IOException {

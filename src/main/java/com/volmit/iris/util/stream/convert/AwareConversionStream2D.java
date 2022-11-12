@@ -34,7 +34,7 @@ public class AwareConversionStream2D<T, V> extends BasicStream<V> {
 
     @Override
     public double toDouble(V t) {
-        if(t instanceof Double) {
+        if (t instanceof Double) {
             return (Double) t;
         }
 

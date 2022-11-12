@@ -36,7 +36,7 @@ public class DecreeNode {
         this.instance = instance;
         this.method = method;
         this.decree = method.getDeclaredAnnotation(Decree.class);
-        if(decree == null) {
+        if (decree == null) {
             throw new RuntimeException("Cannot instantiate DecreeNode on method " + method.getName() + " in " + method.getDeclaringClass().getCanonicalName() + " not annotated by @Decree");
         }
     }
@@ -50,9 +50,9 @@ public class DecreeNode {
         KList<DecreeParameter> required = new KList<>();
         KList<DecreeParameter> optional = new KList<>();
 
-        for(Parameter i : method.getParameters()) {
+        for (Parameter i : method.getParameters()) {
             DecreeParameter p = new DecreeParameter(i);
-            if(p.isRequired()) {
+            if (p.isRequired()) {
                 required.add(p);
             } else {
                 optional.add(p);
@@ -80,8 +80,8 @@ public class DecreeNode {
         KList<String> d = new KList<>();
         d.add(getName());
 
-        for(String i : decree.aliases()) {
-            if(i.isEmpty()) {
+        for (String i : decree.aliases()) {
+            if (i.isEmpty()) {
                 continue;
             }
 

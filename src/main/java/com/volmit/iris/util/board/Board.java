@@ -78,47 +78,47 @@ public class Board {
 
     public void update() {
         // Checking if we are ready to start updating the Scoreboard.
-        if(!ready) {
+        if (!ready) {
             return;
         }
 
         // Making sure the player is connected.
-        if(!player.isOnline()) {
+        if (!player.isOnline()) {
             remove();
             return;
         }
 
         // Making sure the Scoreboard Provider is set.
-        if(boardSettings == null) {
+        if (boardSettings == null) {
             return;
         }
 
         // Getting their Scoreboard display from the Scoreboard Provider.
         final List<String> entries = boardSettings.getBoardProvider().getLines(player).stream().map(APPLY_COLOR_TRANSLATION).collect(Collectors.toList());
 
-        if(boardSettings.getScoreDirection() == ScoreDirection.UP) {
+        if (boardSettings.getScoreDirection() == ScoreDirection.UP) {
             Collections.reverse(entries);
         }
 
         // Setting the Scoreboard title
         String title = boardSettings.getBoardProvider().getTitle(player);
-        if(title.length() > 32) {
+        if (title.length() > 32) {
             Bukkit.getLogger().warning("The title " + title + " is over 32 characters in length, substringing to prevent errors.");
             title = title.substring(0, 32);
         }
         objective.setDisplayName(C.translateAlternateColorCodes('&', title));
 
         // Clearing previous Scoreboard values if entry sizes don't match.
-        if(this.getScoreboard().getEntries().size() != entries.size())
+        if (this.getScoreboard().getEntries().size() != entries.size())
             this.getScoreboard().getEntries().forEach(this::removeEntry);
 
         // Setting Scoreboard lines.
-        for(int i = 0; i < entries.size(); i++) {
+        for (int i = 0; i < entries.size(); i++) {
             String str = entries.get(i);
             BoardEntry entry = BoardEntry.translateToEntry(str);
             Team team = getScoreboard().getTeam(CACHED_ENTRIES[i]);
 
-            if(team == null) {
+            if (team == null) {
                 team = this.getScoreboard().registerNewTeam(CACHED_ENTRIES[i]);
                 team.addEntry(team.getName());
             }
@@ -126,7 +126,7 @@ public class Board {
             team.setPrefix(entry.getPrefix());
             team.setSuffix(entry.getSuffix());
 
-            switch(boardSettings.getScoreDirection()) {
+            switch (boardSettings.getScoreDirection()) {
                 case UP -> objective.getScore(team.getName()).setScore(1 + i);
                 case DOWN -> objective.getScore(team.getName()).setScore(15 - i);
             }

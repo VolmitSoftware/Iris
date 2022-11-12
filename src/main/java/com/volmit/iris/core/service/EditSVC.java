@@ -71,27 +71,27 @@ public class EditSVC implements IrisService {
 
     @EventHandler
     public void on(WorldUnloadEvent e) {
-        if(editors.containsKey(e.getWorld())) {
+        if (editors.containsKey(e.getWorld())) {
             editors.remove(e.getWorld()).close();
         }
     }
 
     public void update() {
-        for(World i : editors.k()) {
-            if(M.ms() - editors.get(i).last() > 1000) {
+        for (World i : editors.k()) {
+            if (M.ms() - editors.get(i).last() > 1000) {
                 editors.remove(i).close();
             }
         }
     }
 
     public void flushNow() {
-        for(World i : editors.k()) {
+        for (World i : editors.k()) {
             editors.remove(i).close();
         }
     }
 
     public BlockEditor open(World world) {
-        if(editors.containsKey(world)) {
+        if (editors.containsKey(world)) {
             return editors.get(world);
         }
 

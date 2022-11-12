@@ -63,18 +63,18 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
     @BlockCoordinates
     @Override
     public void onActuate(int x, int z, Hunk<BlockData> output, boolean multicore, ChunkContext context) {
-        if(!getEngine().getDimension().isDecorate()) {
+        if (!getEngine().getDimension().isDecorate()) {
             return;
         }
 
         PrecisionStopwatch p = PrecisionStopwatch.start();
 
-        for(int i = 0; i < output.getWidth(); i++) {
+        for (int i = 0; i < output.getWidth(); i++) {
             int height;
             int realX = Math.round(x + i);
             int realZ;
             IrisBiome biome, cave;
-            for(int j = 0; j < output.getDepth(); j++) {
+            for (int j = 0; j < output.getDepth(); j++) {
                 boolean solid;
                 int emptyFor = 0;
                 int lastSolid = 0;
@@ -83,36 +83,36 @@ public class IrisDecorantActuator extends EngineAssignedActuator<BlockData> {
                 biome = context.getBiome().get(i, j);
                 cave = shouldRay ? context.getCave().get(i, j) : null;
 
-                if(biome.getDecorators().isEmpty() && (cave == null || cave.getDecorators().isEmpty())) {
+                if (biome.getDecorators().isEmpty() && (cave == null || cave.getDecorators().isEmpty())) {
                     continue;
                 }
 
-                if(height < getDimension().getFluidHeight()) {
+                if (height < getDimension().getFluidHeight()) {
                     getSeaSurfaceDecorator().decorate(i, j,
-                        realX, Math.round(i + 1), Math.round(x + i - 1),
-                        realZ, Math.round(z + j + 1), Math.round(z + j - 1),
-                        output, biome, getDimension().getFluidHeight(), getEngine().getHeight());
+                            realX, Math.round(i + 1), Math.round(x + i - 1),
+                            realZ, Math.round(z + j + 1), Math.round(z + j - 1),
+                            output, biome, getDimension().getFluidHeight(), getEngine().getHeight());
                     getSeaFloorDecorator().decorate(i, j,
-                        realX, realZ, output, biome, height + 1,
-                        getDimension().getFluidHeight() + 1);
+                            realX, realZ, output, biome, height + 1,
+                            getDimension().getFluidHeight() + 1);
                 }
 
-                if(height == getDimension().getFluidHeight()) {
+                if (height == getDimension().getFluidHeight()) {
                     getShoreLineDecorator().decorate(i, j,
-                        realX, Math.round(x + i + 1), Math.round(x + i - 1),
-                        realZ, Math.round(z + j + 1), Math.round(z + j - 1),
-                        output, biome, height, getEngine().getHeight());
+                            realX, Math.round(x + i + 1), Math.round(x + i - 1),
+                            realZ, Math.round(z + j + 1), Math.round(z + j - 1),
+                            output, biome, height, getEngine().getHeight());
                 }
 
                 getSurfaceDecorator().decorate(i, j, realX, realZ, output, biome, height, getEngine().getHeight() - height);
 
 
-                if(cave != null && cave.getDecorators().isNotEmpty()) {
-                    for(int k = height; k > 0; k--) {
+                if (cave != null && cave.getDecorators().isNotEmpty()) {
+                    for (int k = height; k > 0; k--) {
                         solid = PREDICATE_SOLID.test(output.get(i, k, j));
 
-                        if(solid) {
-                            if(emptyFor > 0) {
+                        if (solid) {
+                            if (emptyFor > 0) {
                                 getSurfaceDecorator().decorate(i, j, realX, realZ, output, cave, k, lastSolid);
                                 getCeilingDecorator().decorate(i, j, realX, realZ, output, cave, lastSolid - 1, emptyFor);
                                 emptyFor = 0;

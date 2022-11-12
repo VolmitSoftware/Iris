@@ -44,7 +44,7 @@ public class IrisMatter extends IrisRegistrant implements Matter {
     private final KMap<Class<?>, MatterSlice<?>> sliceMap;
 
     public IrisMatter(int width, int height, int depth) {
-        if(width < 1 || height < 1 || depth < 1) {
+        if (width < 1 || height < 1 || depth < 1) {
             throw new RuntimeException("Invalid Matter Size " + width + "x" + height + "x" + depth);
         }
 
@@ -57,7 +57,7 @@ public class IrisMatter extends IrisRegistrant implements Matter {
 
     private static KMap<Class<?>, MatterSlice<?>> buildSlicers() {
         KMap<Class<?>, MatterSlice<?>> c = new KMap<>();
-        for(Object i : Iris.initialize("com.volmit.iris.util.matter.slices", Sliced.class)) {
+        for (Object i : Iris.initialize("com.volmit.iris.util.matter.slices", Sliced.class)) {
             MatterSlice<?> s = (MatterSlice<?>) i;
             c.put(s.getType(), s);
         }
@@ -69,13 +69,13 @@ public class IrisMatter extends IrisRegistrant implements Matter {
     public <T> MatterSlice<T> createSlice(Class<T> type, Matter m) {
         MatterSlice<?> slice = slicers.get(type);
 
-        if(slice == null) {
+        if (slice == null) {
             return null;
         }
 
         try {
             return slice.getClass().getConstructor(int.class, int.class, int.class).newInstance(getWidth(), getHeight(), getDepth());
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
 

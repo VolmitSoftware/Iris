@@ -35,10 +35,10 @@ public class JigsawPieceHandler implements DecreeParameterHandler<IrisJigsawPiec
         KMap<String, IrisJigsawPiece> p = new KMap<>();
 
         //noinspection ConstantConditions
-        for(File i : Iris.instance.getDataFolder("packs").listFiles()) {
-            if(i.isDirectory()) {
+        for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
+            if (i.isDirectory()) {
                 IrisData data = IrisData.get(i);
-                for(IrisJigsawPiece j : data.getJigsawPieceLoader().loadAll(data.getJigsawPieceLoader().getPossibleKeys())) {
+                for (IrisJigsawPiece j : data.getJigsawPieceLoader().loadAll(data.getJigsawPieceLoader().getPossibleKeys())) {
                     p.putIfAbsent(j.getLoadKey(), j);
                 }
 
@@ -56,17 +56,17 @@ public class JigsawPieceHandler implements DecreeParameterHandler<IrisJigsawPiec
 
     @Override
     public IrisJigsawPiece parse(String in, boolean force) throws DecreeParsingException {
-        if(in.equals("null")) {
+        if (in.equals("null")) {
             return null;
         }
         KList<IrisJigsawPiece> options = getPossibilities(in);
 
-        if(options.isEmpty()) {
+        if (options.isEmpty()) {
             throw new DecreeParsingException("Unable to find Jigsaw Piece \"" + in + "\"");
         }
         try {
             return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             throw new DecreeParsingException("Unable to filter which Jigsaw Piece \"" + in + "\"");
         }
     }

@@ -9,14 +9,12 @@ public class Recycler<T> {
     private final List<RecycledObject<T>> pool;
     private final Supplier<T> factory;
 
-    public Recycler(Supplier<T> factory)
-    {
+    public Recycler(Supplier<T> factory) {
         pool = new CopyOnWriteArrayList<>();
         this.factory = factory;
     }
 
-    public int getFreeObjects()
-    {
+    public int getFreeObjects() {
         int m = 0;
         RecycledObject<T> o;
         for (RecycledObject<T> tRecycledObject : pool) {
@@ -30,8 +28,7 @@ public class Recycler<T> {
         return m;
     }
 
-    public int getUsedOjects()
-    {
+    public int getUsedOjects() {
         int m = 0;
         RecycledObject<T> o;
         for (RecycledObject<T> tRecycledObject : pool) {
@@ -45,8 +42,7 @@ public class Recycler<T> {
         return m;
     }
 
-    public void dealloc(T t)
-    {
+    public void dealloc(T t) {
         RecycledObject<T> o;
 
         for (RecycledObject<T> tRecycledObject : pool) {
@@ -58,8 +54,7 @@ public class Recycler<T> {
         }
     }
 
-    public T alloc()
-    {
+    public T alloc() {
         RecycledObject<T> o;
 
         for (RecycledObject<T> tRecycledObject : pool) {
@@ -74,29 +69,23 @@ public class Recycler<T> {
         return alloc();
     }
 
-    public boolean contract()
-    {
+    public boolean contract() {
         return contract(Math.max(getFreeObjects() / 2, Runtime.getRuntime().availableProcessors()));
     }
 
-    public boolean contract(int maxFree)
-    {
+    public boolean contract(int maxFree) {
         int remove = getFreeObjects() - maxFree;
 
-        if(remove > 0)
-        {
+        if (remove > 0) {
             RecycledObject<T> o;
 
-            for(int i = pool.size()-1; i > 0; i--)
-            {
+            for (int i = pool.size() - 1; i > 0; i--) {
                 o = pool.get(i);
-                if(!o.isUsed())
-                {
+                if (!o.isUsed()) {
                     pool.remove(i);
                     remove--;
 
-                    if(remove <= 0)
-                    {
+                    if (remove <= 0) {
                         return true;
                     }
                 }
@@ -106,10 +95,8 @@ public class Recycler<T> {
         return false;
     }
 
-    public void expand()
-    {
-        if(pool.isEmpty())
-        {
+    public void expand() {
+        if (pool.isEmpty()) {
             expand(Runtime.getRuntime().availableProcessors());
             return;
         }
@@ -117,54 +104,43 @@ public class Recycler<T> {
         expand(getUsedOjects() + Runtime.getRuntime().availableProcessors());
     }
 
-    public void expand(int by)
-    {
-        for(int i = 0; i < by; i++)
-        {
+    public void expand(int by) {
+        for (int i = 0; i < by; i++) {
             pool.add(new RecycledObject<>(factory.get()));
         }
     }
 
-    public int size()
-    {
+    public int size() {
         return pool.size();
     }
 
-    public void deallocAll()
-    {
+    public void deallocAll() {
         pool.clear();
     }
 
-    public static class RecycledObject<T>
-    {
+    public static class RecycledObject<T> {
         private final T object;
         private final AtomicBoolean used;
 
-        public RecycledObject(T object)
-        {
+        public RecycledObject(T object) {
             this.object = object;
             used = new AtomicBoolean(false);
         }
 
-        public T getObject()
-        {
+        public T getObject() {
             return object;
         }
 
-        public boolean isUsed()
-        {
+        public boolean isUsed() {
             return used.get();
         }
 
-        public void dealloc()
-        {
+        public void dealloc() {
             used.set(false);
         }
 
-        public boolean alloc()
-        {
-            if(used.get())
-            {
+        public boolean alloc() {
+            if (used.get()) {
                 return false;
             }
 

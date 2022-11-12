@@ -23,15 +23,15 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.Looper;
 
 public class MemoryMonitor {
+    private final ChronoLatch cl;
+    private final RollingSequence pressureAvg;
+    private final Runtime runtime;
     private Looper looper;
     private long usedMemory;
     private long garbageMemory;
     private long garbageLast;
     private long garbageBin;
     private long pressure;
-    private final ChronoLatch cl;
-    private final RollingSequence pressureAvg;
-    private final Runtime runtime;
 
     public MemoryMonitor(int sampleDelay) {
         this.runtime = Runtime.getRuntime();
@@ -78,13 +78,13 @@ public class MemoryMonitor {
     @SuppressWarnings("IfStatementWithIdenticalBranches")
     private void sample() {
         long used = getVMUse();
-        if(usedMemory == -1) {
+        if (usedMemory == -1) {
             usedMemory = used;
             garbageMemory = 0;
             return;
         }
 
-        if(used < usedMemory) {
+        if (used < usedMemory) {
             usedMemory = used;
         } else {
             garbageMemory = used - usedMemory;
@@ -92,7 +92,7 @@ public class MemoryMonitor {
 
         long g = garbageMemory - garbageLast;
 
-        if(g >= 0) {
+        if (g >= 0) {
             garbageBin += g;
             garbageLast = garbageMemory;
         } else {
@@ -100,8 +100,8 @@ public class MemoryMonitor {
             garbageLast = 0;
         }
 
-        if(cl.flip()) {
-            if(garbageMemory > 0) {
+        if (cl.flip()) {
+            if (garbageMemory > 0) {
                 pressure = garbageBin;
                 garbageBin = 0;
             } else {
@@ -118,7 +118,7 @@ public class MemoryMonitor {
     }
 
     public void close() {
-        if(looper != null) {
+        if (looper != null) {
             looper.interrupt();
             looper = null;
         }

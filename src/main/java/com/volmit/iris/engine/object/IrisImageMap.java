@@ -66,7 +66,7 @@ public class IrisImageMap {
 
     public double getNoise(IrisData data, int x, int z) {
         IrisImage i = imageCache.aquire(() -> data.getImageLoader().load(image));
-        if(i == null) {
+        if (i == null) {
             Iris.error("NULL IMAGE FOR " + image);
         }
 

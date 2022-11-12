@@ -55,14 +55,14 @@ public class SignificanceStream<K extends Significance<T>, T> extends BasicStrea
         double m = (360d / checks);
         double v = 0;
 
-        for(int i = 0; i < 360; i += m) {
+        for (int i = 0; i < 360; i += m) {
             double sin = Math.sin(Math.toRadians(i));
             double cos = Math.cos(Math.toRadians(i));
             double cx = x + ((radius * cos) - (radius * sin));
             double cz = z + ((radius * sin) + (radius * cos));
             T t = stream.get(cx, cz);
 
-            if(ke.addIfMissing(t)) {
+            if (ke.addIfMissing(t)) {
                 va.add(1D);
                 v++;
             } else {
@@ -71,7 +71,7 @@ public class SignificanceStream<K extends Significance<T>, T> extends BasicStrea
             }
         }
 
-        for(int i = 0; i < va.size(); i++) {
+        for (int i = 0; i < va.size(); i++) {
             va.set(i, va.get(i) / v);
         }
 

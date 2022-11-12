@@ -47,10 +47,8 @@ public class MCAFile {
      * This constructor needs the x- and z-coordinates of the stored region,
      * which can usually be taken from the file name {@code r.x.z.mca}
      *
-     * @param regionX
-     *     The x-coordinate of this region.
-     * @param regionZ
-     *     The z-coordinate of this region.
+     * @param regionX The x-coordinate of this region.
+     * @param regionZ The z-coordinate of this region.
      */
     public MCAFile(int regionX, int regionZ) {
         this.regionX = regionX;
@@ -62,10 +60,8 @@ public class MCAFile {
      * Calculates the index of a chunk from its x- and z-coordinates in this region.
      * This works with absolute and relative coordinates.
      *
-     * @param chunkX
-     *     The x-coordinate of the chunk.
-     * @param chunkZ
-     *     The z-coordinate of the chunk.
+     * @param chunkX The x-coordinate of the chunk.
+     * @param chunkZ The z-coordinate of the chunk.
      * @return The index of this chunk.
      */
     public static int getChunkIndex(int chunkX, int chunkZ) {
@@ -76,10 +72,8 @@ public class MCAFile {
      * Reads an .mca file from a {@code RandomAccessFile} into this object.
      * This method does not perform any cleanups on the data.
      *
-     * @param raf
-     *     The {@code RandomAccessFile} to read from.
-     * @throws IOException
-     *     If something went wrong during deserialization.
+     * @param raf The {@code RandomAccessFile} to read from.
+     * @throws IOException If something went wrong during deserialization.
      */
     public void deserialize(RandomAccessFile raf) throws IOException {
         deserialize(raf, LoadFlags.ALL_DATA);
@@ -89,21 +83,18 @@ public class MCAFile {
      * Reads an .mca file from a {@code RandomAccessFile} into this object.
      * This method does not perform any cleanups on the data.
      *
-     * @param raf
-     *     The {@code RandomAccessFile} to read from.
-     * @param loadFlags
-     *     A logical or of {@link LoadFlags} constants indicating what data should be loaded
-     * @throws IOException
-     *     If something went wrong during deserialization.
+     * @param raf       The {@code RandomAccessFile} to read from.
+     * @param loadFlags A logical or of {@link LoadFlags} constants indicating what data should be loaded
+     * @throws IOException If something went wrong during deserialization.
      */
     public void deserialize(RandomAccessFile raf, long loadFlags) throws IOException {
         chunks = new AtomicReferenceArray<>(1024);
-        for(int i = 0; i < 1024; i++) {
+        for (int i = 0; i < 1024; i++) {
             raf.seek(i * 4);
             int offset = raf.read() << 16;
             offset |= (raf.read() & 0xFF) << 8;
             offset |= raf.read() & 0xFF;
-            if(raf.readByte() == 0) {
+            if (raf.readByte() == 0) {
                 continue;
             }
             raf.seek(4096 + i * 4);
@@ -120,7 +111,7 @@ public class MCAFile {
         chunks = new AtomicReferenceArray<>(1024);
         int x = 0;
         int z = 0;
-        for(int i = 0; i < 1024; i++) {
+        for (int i = 0; i < 1024; i++) {
             x++;
             z++;
 
@@ -128,7 +119,7 @@ public class MCAFile {
             int offset = raf.read() << 16;
             offset |= (raf.read() & 0xFF) << 8;
             offset |= raf.read() & 0xFF;
-            if(raf.readByte() == 0) {
+            if (raf.readByte() == 0) {
                 continue;
             }
             p2.add(new Position2(x & 31, (z / 31) & 31));
@@ -143,11 +134,9 @@ public class MCAFile {
     /**
      * Calls {@link MCAFile#serialize(RandomAccessFile, boolean)} without updating any timestamps.
      *
-     * @param raf
-     *     The {@code RandomAccessFile} to writeNodeData to.
+     * @param raf The {@code RandomAccessFile} to writeNodeData to.
      * @return The amount of chunks written to the file.
-     * @throws IOException
-     *     If something went wrong during serialization.
+     * @throws IOException If something went wrong during serialization.
      * @see MCAFile#serialize(RandomAccessFile, boolean)
      */
     public int serialize(RandomAccessFile raf) throws IOException {
@@ -158,14 +147,11 @@ public class MCAFile {
      * Serializes this object to an .mca file.
      * This method does not perform any cleanups on the data.
      *
-     * @param raf
-     *     The {@code RandomAccessFile} to writeNodeData to.
-     * @param changeLastUpdate
-     *     Whether it should update all timestamps that show
-     *     when this file was last updated.
+     * @param raf              The {@code RandomAccessFile} to writeNodeData to.
+     * @param changeLastUpdate Whether it should update all timestamps that show
+     *                         when this file was last updated.
      * @return The amount of chunks written to the file.
-     * @throws IOException
-     *     If something went wrong during serialization.
+     * @throws IOException If something went wrong during serialization.
      */
     public int serialize(RandomAccessFile raf, boolean changeLastUpdate) throws IOException {
         int globalOffset = 2;
@@ -175,21 +161,21 @@ public class MCAFile {
         int chunkXOffset = MCAUtil.regionToChunk(regionX);
         int chunkZOffset = MCAUtil.regionToChunk(regionZ);
 
-        if(chunks == null) {
+        if (chunks == null) {
             return 0;
         }
 
-        for(int cx = 0; cx < 32; cx++) {
-            for(int cz = 0; cz < 32; cz++) {
+        for (int cx = 0; cx < 32; cx++) {
+            for (int cz = 0; cz < 32; cz++) {
                 int index = getChunkIndex(cx, cz);
                 Chunk chunk = chunks.get(index);
-                if(chunk == null) {
+                if (chunk == null) {
                     continue;
                 }
                 raf.seek(4096L * globalOffset);
                 lastWritten = chunk.serialize(raf, chunkXOffset + cx, chunkZOffset + cz);
 
-                if(lastWritten == 0) {
+                if (lastWritten == 0) {
                     continue;
                 }
 
@@ -212,7 +198,7 @@ public class MCAFile {
         }
 
         // padding
-        if(lastWritten % 4096 != 0) {
+        if (lastWritten % 4096 != 0) {
             raf.seek(globalOffset * 4096L - 1);
             raf.write(0);
         }
@@ -227,16 +213,13 @@ public class MCAFile {
     /**
      * Set a specific Chunk at a specific index. The index must be in range of 0 - 1023.
      *
-     * @param index
-     *     The index of the Chunk.
-     * @param chunk
-     *     The Chunk to be set.
-     * @throws IndexOutOfBoundsException
-     *     If index is not in the range.
+     * @param index The index of the Chunk.
+     * @param chunk The Chunk to be set.
+     * @throws IndexOutOfBoundsException If index is not in the range.
      */
     public void setChunk(int index, Chunk chunk) {
         checkIndex(index);
-        if(chunks == null) {
+        if (chunks == null) {
             chunks = new AtomicReferenceArray<>(1024);
         }
         chunks.set(index, chunk);
@@ -246,12 +229,9 @@ public class MCAFile {
      * Set a specific Chunk at a specific chunk location.
      * The x- and z-value can be absolute chunk coordinates or they can be relative to the region origin.
      *
-     * @param chunkX
-     *     The x-coordinate of the Chunk.
-     * @param chunkZ
-     *     The z-coordinate of the Chunk.
-     * @param chunk
-     *     The chunk to be set.
+     * @param chunkX The x-coordinate of the Chunk.
+     * @param chunkZ The z-coordinate of the Chunk.
+     * @param chunk  The chunk to be set.
      */
     public void setChunk(int chunkX, int chunkZ, Chunk chunk) {
         setChunk(getChunkIndex(chunkX, chunkZ), chunk);
@@ -260,13 +240,12 @@ public class MCAFile {
     /**
      * Returns the chunk data of a chunk at a specific index in this file.
      *
-     * @param index
-     *     The index of the chunk in this file.
+     * @param index The index of the chunk in this file.
      * @return The chunk data.
      */
     public Chunk getChunk(int index) {
         checkIndex(index);
-        if(chunks == null) {
+        if (chunks == null) {
             return null;
         }
         return chunks.get(index);
@@ -275,10 +254,8 @@ public class MCAFile {
     /**
      * Returns the chunk data of a chunk in this file.
      *
-     * @param chunkX
-     *     The x-coordinate of the chunk.
-     * @param chunkZ
-     *     The z-coordinate of the chunk.
+     * @param chunkX The x-coordinate of the chunk.
+     * @param chunkZ The z-coordinate of the chunk.
      * @return The chunk data.
      */
     public Chunk getChunk(int chunkX, int chunkZ) {
@@ -290,7 +267,7 @@ public class MCAFile {
     }
 
     private int checkIndex(int index) {
-        if(index < 0 || index > 1023) {
+        if (index < 0 || index > 1023) {
             throw new IndexOutOfBoundsException();
         }
         return index;
@@ -299,7 +276,7 @@ public class MCAFile {
     private Chunk createChunkIfMissing(int blockX, int blockZ) {
         int chunkX = MCAUtil.blockToChunk(blockX), chunkZ = MCAUtil.blockToChunk(blockZ);
         Chunk chunk = getChunk(chunkX, chunkZ);
-        if(chunk == null) {
+        if (chunk == null) {
             chunk = Chunk.newChunk();
             setChunk(getChunkIndex(chunkX, chunkZ), chunk);
         }
@@ -313,18 +290,15 @@ public class MCAFile {
     /**
      * Fetches the biome id at a specific block.
      *
-     * @param blockX
-     *     The x-coordinate of the block.
-     * @param blockY
-     *     The y-coordinate of the block.
-     * @param blockZ
-     *     The z-coordinate of the block.
+     * @param blockX The x-coordinate of the block.
+     * @param blockY The y-coordinate of the block.
+     * @param blockZ The z-coordinate of the block.
      * @return The biome id if the chunk exists and the chunk has biomes, otherwise -1.
      */
     public int getBiomeAt(int blockX, int blockY, int blockZ) {
         int chunkX = MCAUtil.blockToChunk(blockX), chunkZ = MCAUtil.blockToChunk(blockZ);
         Chunk chunk = getChunk(getChunkIndex(chunkX, chunkZ));
-        if(chunk == null) {
+        if (chunk == null) {
             return -1;
         }
         return chunk.getBiomeAt(blockX, blockY, blockZ);
@@ -334,16 +308,11 @@ public class MCAFile {
      * Set a block state at a specific block location.
      * The block coordinates can be absolute coordinates or they can be relative to the region.
      *
-     * @param blockX
-     *     The x-coordinate of the block.
-     * @param blockY
-     *     The y-coordinate of the block.
-     * @param blockZ
-     *     The z-coordinate of the block.
-     * @param state
-     *     The block state to be set.
-     * @param cleanup
-     *     Whether the Palette and the BLockStates should be recalculated after adding the block state.
+     * @param blockX  The x-coordinate of the block.
+     * @param blockY  The y-coordinate of the block.
+     * @param blockZ  The z-coordinate of the block.
+     * @param state   The block state to be set.
+     * @param cleanup Whether the Palette and the BLockStates should be recalculated after adding the block state.
      */
     public void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
         createChunkIfMissing(blockX, blockZ).setBlockStateAt(blockX, blockY, blockZ, state, cleanup);
@@ -353,18 +322,15 @@ public class MCAFile {
      * Fetches a block state at a specific block location.
      * The block coordinates can be absolute coordinates or they can be relative to the region.
      *
-     * @param blockX
-     *     The x-coordinate of the block.
-     * @param blockY
-     *     The y-coordinate of the block.
-     * @param blockZ
-     *     The z-coordinate of the block.
+     * @param blockX The x-coordinate of the block.
+     * @param blockY The y-coordinate of the block.
+     * @param blockZ The z-coordinate of the block.
      * @return The block state or <code>null</code> if the chunk or the section do not exist.
      */
     public CompoundTag getBlockStateAt(int blockX, int blockY, int blockZ) {
         int chunkX = MCAUtil.blockToChunk(blockX), chunkZ = MCAUtil.blockToChunk(blockZ);
         Chunk chunk = getChunk(chunkX, chunkZ);
-        if(chunk == null) {
+        if (chunk == null) {
             return null;
         }
         return chunk.getBlockStateAt(blockX, blockY, blockZ);

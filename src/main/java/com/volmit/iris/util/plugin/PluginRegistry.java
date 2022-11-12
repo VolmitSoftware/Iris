@@ -38,7 +38,7 @@ public class PluginRegistry<T> {
     }
 
     public T get(String s) {
-        if(!registry.containsKey(s)) {
+        if (!registry.containsKey(s)) {
             return null;
         }
 
@@ -54,7 +54,7 @@ public class PluginRegistry<T> {
     }
 
     public T resolve(String id) {
-        if(registry.isEmpty()) {
+        if (registry.isEmpty()) {
             return null;
         }
 

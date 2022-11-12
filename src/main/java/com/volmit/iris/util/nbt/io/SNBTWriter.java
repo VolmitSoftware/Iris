@@ -50,12 +50,12 @@ public final class SNBTWriter implements MaxDepthIO {
     }
 
     public static String escapeString(String s) {
-        if(!NON_QUOTE_PATTERN.matcher(s).matches()) {
+        if (!NON_QUOTE_PATTERN.matcher(s).matches()) {
             StringBuilder sb = new StringBuilder();
             sb.append('"');
-            for(int i = 0; i < s.length(); i++) {
+            for (int i = 0; i < s.length(); i++) {
                 char c = s.charAt(i);
-                if(c == '\\' || c == '"') {
+                if (c == '\\' || c == '"') {
                     sb.append('\\');
                 }
                 sb.append(c);
@@ -67,7 +67,7 @@ public final class SNBTWriter implements MaxDepthIO {
     }
 
     private void writeAnything(Tag<?> tag, int maxDepth) throws IOException {
-        switch(tag.getID()) {
+        switch (tag.getID()) {
             case EndTag.ID:
                 //do nothing
                 break;
@@ -97,7 +97,7 @@ public final class SNBTWriter implements MaxDepthIO {
                 break;
             case ListTag.ID:
                 writer.write('[');
-                for(int i = 0; i < ((ListTag<?>) tag).size(); i++) {
+                for (int i = 0; i < ((ListTag<?>) tag).size(); i++) {
                     writer.write(i == 0 ? "" : ",");
                     writeAnything(((ListTag<?>) tag).get(i), decrementMaxDepth(maxDepth));
                 }
@@ -106,7 +106,7 @@ public final class SNBTWriter implements MaxDepthIO {
             case CompoundTag.ID:
                 writer.write('{');
                 boolean first = true;
-                for(Map.Entry<String, Tag<?>> entry : (CompoundTag) tag) {
+                for (Map.Entry<String, Tag<?>> entry : (CompoundTag) tag) {
                     writer.write(first ? "" : ",");
                     writer.append(escapeString(entry.getKey())).write(':');
                     writeAnything(entry.getValue(), decrementMaxDepth(maxDepth));
@@ -127,7 +127,7 @@ public final class SNBTWriter implements MaxDepthIO {
 
     private void writeArray(Object array, int length, String prefix) throws IOException {
         writer.append('[').append(prefix).write(';');
-        for(int i = 0; i < length; i++) {
+        for (int i = 0; i < length; i++) {
             writer.append(i == 0 ? "" : ",").write(Array.get(array, i).toString());
         }
         writer.write(']');

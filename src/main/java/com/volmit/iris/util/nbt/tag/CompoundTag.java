@@ -85,7 +85,7 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>> implements Iterable<Ma
 
     public <C extends Tag<?>> C get(String key, Class<C> type) {
         Tag<?> t = getValue().get(key);
-        if(t != null) {
+        if (t != null) {
             return type.cast(t);
         }
         return null;
@@ -250,10 +250,10 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>> implements Iterable<Ma
     public String valueToString(int maxDepth) {
         StringBuilder sb = new StringBuilder("{");
         boolean first = true;
-        for(Map.Entry<String, Tag<?>> e : getValue().entrySet()) {
+        for (Map.Entry<String, Tag<?>> e : getValue().entrySet()) {
             sb.append(first ? "" : ",")
-                .append(escapeString(e.getKey(), false)).append(":")
-                .append(e.getValue().toString(decrementMaxDepth(maxDepth)));
+                    .append(escapeString(e.getKey(), false)).append(":")
+                    .append(e.getValue().toString(decrementMaxDepth(maxDepth)));
             first = false;
         }
         sb.append("}");
@@ -262,15 +262,15 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>> implements Iterable<Ma
 
     @Override
     public boolean equals(Object other) {
-        if(this == other) {
+        if (this == other) {
             return true;
         }
-        if(!super.equals(other) || size() != ((CompoundTag) other).size()) {
+        if (!super.equals(other) || size() != ((CompoundTag) other).size()) {
             return false;
         }
-        for(Map.Entry<String, Tag<?>> e : getValue().entrySet()) {
+        for (Map.Entry<String, Tag<?>> e : getValue().entrySet()) {
             Tag<?> v;
-            if((v = ((CompoundTag) other).get(e.getKey())) == null || !e.getValue().equals(v)) {
+            if ((v = ((CompoundTag) other).get(e.getKey())) == null || !e.getValue().equals(v)) {
                 return false;
             }
         }
@@ -285,7 +285,7 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>> implements Iterable<Ma
     @Override
     public CompoundTag clone() {
         CompoundTag copy = new CompoundTag();
-        for(Map.Entry<String, Tag<?>> e : getValue().entrySet()) {
+        for (Map.Entry<String, Tag<?>> e : getValue().entrySet()) {
             copy.put(e.getKey(), e.getValue().clone());
         }
         return copy;

@@ -66,28 +66,28 @@ public class IrisEntitySpawn implements IRare {
         int spawns = minSpawns == maxSpawns ? minSpawns : rng.i(Math.min(minSpawns, maxSpawns), Math.max(minSpawns, maxSpawns));
         int s = 0;
 
-        if(spawns > 0) {
-            for(int id = 0; id < spawns; id++) {
+        if (spawns > 0) {
+            for (int id = 0; id < spawns; id++) {
                 int x = (c.getX() * 16) + rng.i(15);
                 int z = (c.getZ() * 16) + rng.i(15);
                 int h = gen.getHeight(x, z, true) + (gen.getWorld().tryGetRealWorld() ? gen.getWorld().realWorld().getMinHeight() : -64);
                 int hf = gen.getHeight(x, z, false) + (gen.getWorld().tryGetRealWorld() ? gen.getWorld().realWorld().getMinHeight() : -64);
-                Location l = switch(getReferenceSpawner().getGroup()) {
+                Location l = switch (getReferenceSpawner().getGroup()) {
                     case NORMAL -> new Location(c.getWorld(), x, hf + 1, z);
                     case CAVE -> gen.getMantle().findMarkers(c.getX(), c.getZ(), MarkerMatter.CAVE_FLOOR)
-                        .convert((i) -> i.toLocation(c.getWorld()).add(0, 1, 0)).getRandom(rng);
+                            .convert((i) -> i.toLocation(c.getWorld()).add(0, 1, 0)).getRandom(rng);
                     case UNDERWATER, BEACH -> new Location(c.getWorld(), x, rng.i(h + 1, hf), z);
                 };
 
-                if(l != null) {
-                    if(referenceSpawner.getAllowedLightLevels().getMin() > 0 || referenceSpawner.getAllowedLightLevels().getMax() < 15) {
-                        if(referenceSpawner.getAllowedLightLevels().contains(l.getBlock().getLightLevel())) {
-                            if(spawn100(gen, l) != null) {
+                if (l != null) {
+                    if (referenceSpawner.getAllowedLightLevels().getMin() > 0 || referenceSpawner.getAllowedLightLevels().getMax() < 15) {
+                        if (referenceSpawner.getAllowedLightLevels().contains(l.getBlock().getLightLevel())) {
+                            if (spawn100(gen, l) != null) {
                                 s++;
                             }
                         }
                     } else {
-                        if(spawn100(gen, l) != null) {
+                        if (spawn100(gen, l) != null) {
                             s++;
                         }
                     }
@@ -102,28 +102,28 @@ public class IrisEntitySpawn implements IRare {
         int spawns = minSpawns == maxSpawns ? minSpawns : rng.i(Math.min(minSpawns, maxSpawns), Math.max(minSpawns, maxSpawns));
         int s = 0;
 
-        if(!gen.getWorld().tryGetRealWorld()) {
+        if (!gen.getWorld().tryGetRealWorld()) {
             return 0;
         }
 
         World world = gen.getWorld().realWorld();
-        if(spawns > 0) {
+        if (spawns > 0) {
 
-            if(referenceMarker != null) {
+            if (referenceMarker != null) {
                 gen.getMantle().getMantle().remove(c.getX(), c.getY(), c.getZ(), MatterMarker.class);
             }
 
-            for(int id = 0; id < spawns; id++) {
+            for (int id = 0; id < spawns; id++) {
                 Location l = c.toLocation(world).add(0, 1, 0);
 
-                if(referenceSpawner.getAllowedLightLevels().getMin() > 0 || referenceSpawner.getAllowedLightLevels().getMax() < 15) {
-                    if(referenceSpawner.getAllowedLightLevels().contains(l.getBlock().getLightLevel())) {
-                        if(spawn100(gen, l, true) != null) {
+                if (referenceSpawner.getAllowedLightLevels().getMin() > 0 || referenceSpawner.getAllowedLightLevels().getMax() < 15) {
+                    if (referenceSpawner.getAllowedLightLevels().contains(l.getBlock().getLightLevel())) {
+                        if (spawn100(gen, l, true) != null) {
                             s++;
                         }
                     }
                 } else {
-                    if(spawn100(gen, l, true) != null) {
+                    if (spawn100(gen, l, true) != null) {
                         s++;
                     }
                 }
@@ -138,11 +138,11 @@ public class IrisEntitySpawn implements IRare {
     }
 
     public Entity spawn(Engine g, Location at) {
-        if(getRealEntity(g) == null) {
+        if (getRealEntity(g) == null) {
             return null;
         }
 
-        if(rng.aquire(() -> new RNG(g.getSeedManager().getEntity())).i(1, getRarity()) == 1) {
+        if (rng.aquire(() -> new RNG(g.getSeedManager().getEntity())).i(1, getRarity()) == 1) {
             return spawn100(g, at);
         }
 
@@ -156,23 +156,23 @@ public class IrisEntitySpawn implements IRare {
     private Entity spawn100(Engine g, Location at, boolean ignoreSurfaces) {
         try {
             IrisEntity irisEntity = getRealEntity(g);
-            if(irisEntity == null) { // No entity
+            if (irisEntity == null) { // No entity
                 Iris.debug("      You are trying to spawn an entity that does not exist!");
                 return null;
             }
 
-            if(!ignoreSurfaces && !irisEntity.getSurface().matches(at.clone().subtract(0, 1, 0).getBlock())) {
+            if (!ignoreSurfaces && !irisEntity.getSurface().matches(at.clone().subtract(0, 1, 0).getBlock())) {
                 return null;
             }
 
             Entity e = irisEntity.spawn(g, at.add(0.5, 0, 0.5), rng.aquire(() -> new RNG(g.getSeedManager().getEntity())));
-            if(e != null) {
+            if (e != null) {
                 Iris.debug("Spawned " + C.DARK_AQUA + "Entity<" + getEntity() + "> " + C.GREEN + e.getType() + C.LIGHT_PURPLE + " @ " + C.GRAY + e.getLocation().getX() + ", " + e.getLocation().getY() + ", " + e.getLocation().getZ());
             }
 
 
             return e;
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
             e.printStackTrace();
             Iris.error("      Failed to retrieve real entity @ " + at + " (entity: " + getEntity() + ")");

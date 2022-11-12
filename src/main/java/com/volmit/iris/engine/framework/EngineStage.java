@@ -29,7 +29,7 @@ public interface EngineStage {
     void generate(int x, int z, Hunk<BlockData> blocks, Hunk<Biome> biomes, boolean multicore, ChunkContext context);
 
     default void close() {
-        if(this instanceof EngineComponent c) {
+        if (this instanceof EngineComponent c) {
             c.close();
         }
     }

@@ -48,23 +48,23 @@ public class BicubicStream<T> extends BasicStream<T> implements Interpolator<T> 
 
         //@builder
         return getTypedSource().fromDouble(IrisInterpolation.bicubic(
-            getTypedSource().getDouble(x0, z0),
-            getTypedSource().getDouble(x0, z1),
-            getTypedSource().getDouble(x0, z2),
-            getTypedSource().getDouble(x0, z3),
-            getTypedSource().getDouble(x1, z0),
-            getTypedSource().getDouble(x1, z1),
-            getTypedSource().getDouble(x1, z2),
-            getTypedSource().getDouble(x1, z3),
-            getTypedSource().getDouble(x2, z0),
-            getTypedSource().getDouble(x2, z1),
-            getTypedSource().getDouble(x2, z2),
-            getTypedSource().getDouble(x2, z3),
-            getTypedSource().getDouble(x3, z0),
-            getTypedSource().getDouble(x3, z1),
-            getTypedSource().getDouble(x3, z2),
-            getTypedSource().getDouble(x3, z3),
-            px, pz));
+                getTypedSource().getDouble(x0, z0),
+                getTypedSource().getDouble(x0, z1),
+                getTypedSource().getDouble(x0, z2),
+                getTypedSource().getDouble(x0, z3),
+                getTypedSource().getDouble(x1, z0),
+                getTypedSource().getDouble(x1, z1),
+                getTypedSource().getDouble(x1, z2),
+                getTypedSource().getDouble(x1, z3),
+                getTypedSource().getDouble(x2, z0),
+                getTypedSource().getDouble(x2, z1),
+                getTypedSource().getDouble(x2, z2),
+                getTypedSource().getDouble(x2, z3),
+                getTypedSource().getDouble(x3, z0),
+                getTypedSource().getDouble(x3, z1),
+                getTypedSource().getDouble(x3, z2),
+                getTypedSource().getDouble(x3, z3),
+                px, pz));
         //@done
     }
 

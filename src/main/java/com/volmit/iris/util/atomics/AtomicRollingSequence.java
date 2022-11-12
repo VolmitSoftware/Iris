@@ -40,7 +40,7 @@ public class AtomicRollingSequence extends AtomicAverage {
     public double addLast(int amt) {
         double f = 0;
 
-        for(int i = 0; i < Math.min(values.length(), amt); i++) {
+        for (int i = 0; i < Math.min(values.length(), amt); i++) {
             f += values.get(i);
         }
 
@@ -56,7 +56,7 @@ public class AtomicRollingSequence extends AtomicAverage {
     }
 
     public double getMin() {
-        if(dirtyExtremes > (isPrecision() ? 0 : values.length())) {
+        if (dirtyExtremes > (isPrecision() ? 0 : values.length())) {
             resetExtremes();
         }
 
@@ -64,7 +64,7 @@ public class AtomicRollingSequence extends AtomicAverage {
     }
 
     public double getMax() {
-        if(dirtyExtremes > (isPrecision() ? 0 : values.length())) {
+        if (dirtyExtremes > (isPrecision() ? 0 : values.length())) {
             resetExtremes();
         }
 
@@ -72,7 +72,7 @@ public class AtomicRollingSequence extends AtomicAverage {
     }
 
     public double getMedian() {
-        if(dirtyMedian) {
+        if (dirtyMedian) {
             recalculateMedian();
         }
 
@@ -88,7 +88,7 @@ public class AtomicRollingSequence extends AtomicAverage {
         max = Integer.MIN_VALUE;
         min = Integer.MAX_VALUE;
 
-        for(int i = 0; i < values.length(); i++) {
+        for (int i = 0; i < values.length(); i++) {
             double v = values.get(i);
             max = M.max(max, v);
             min = M.min(min, v);

@@ -19,6 +19,6 @@ libraries:
   - bsf:bsf:2.4.0
 commands:
   iris:
-    aliases: [ ir, irs]
+    aliases: [ ir, irs ]
 api-version: ${apiversion}
 hotload-dependencies: false

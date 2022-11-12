@@ -34,7 +34,7 @@ public interface MatterPlacer {
     }
 
     default void set(int x, int y, int z, Matter matter) {
-        for(MatterSlice<?> i : matter.getSliceMap().values()) {
+        for (MatterSlice<?> i : matter.getSliceMap().values()) {
             set(x, y, z, i);
         }
     }

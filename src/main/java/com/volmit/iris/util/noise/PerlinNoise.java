@@ -35,7 +35,7 @@ public class PerlinNoise implements NoiseGenerator, OctaveNoise {
 
     @Override
     public double noise(double x) {
-        if(octaves <= 1) {
+        if (octaves <= 1) {
             return f(n.GetPerlin(x, 0));
         }
 
@@ -43,7 +43,7 @@ public class PerlinNoise implements NoiseGenerator, OctaveNoise {
         double m = 0;
         double v = 0;
 
-        for(int i = 0; i < octaves; i++) {
+        for (int i = 0; i < octaves; i++) {
             v += n.GetPerlin((x * (f == 1 ? f++ : (f *= 2))), 0) * f;
             m += f;
         }
@@ -53,14 +53,14 @@ public class PerlinNoise implements NoiseGenerator, OctaveNoise {
 
     @Override
     public double noise(double x, double z) {
-        if(octaves <= 1) {
+        if (octaves <= 1) {
             return f(n.GetPerlin(x, z));
         }
         double f = 1;
         double m = 0;
         double v = 0;
 
-        for(int i = 0; i < octaves; i++) {
+        for (int i = 0; i < octaves; i++) {
             f = f == 1 ? f + 1 : f * 2;
             v += n.GetPerlin((x * f), (z * f)) * f;
             m += f;
@@ -71,14 +71,14 @@ public class PerlinNoise implements NoiseGenerator, OctaveNoise {
 
     @Override
     public double noise(double x, double y, double z) {
-        if(octaves <= 1) {
+        if (octaves <= 1) {
             return f(n.GetPerlin(x, y, z));
         }
         double f = 1;
         double m = 0;
         double v = 0;
 
-        for(int i = 0; i < octaves; i++) {
+        for (int i = 0; i < octaves; i++) {
             f = f == 1 ? f + 1 : f * 2;
             v += n.GetPerlin((x * f), (y * f), (z * f)) * f;
             m += f;

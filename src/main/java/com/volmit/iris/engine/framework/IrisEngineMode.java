@@ -33,7 +33,7 @@ public abstract class IrisEngineMode implements EngineMode {
 
     @Override
     public synchronized void close() {
-        if(closed) {
+        if (closed) {
             return;
         }
 

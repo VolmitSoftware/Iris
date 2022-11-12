@@ -102,8 +102,8 @@ public class VanillaBiomeMap {
     private static void add(Biome biome, int color, Color randomColor, Luminosity luminosity, SaturationType saturation) {
         BIOME_HEX.put(biome, color);
         BIOME_COLOR.put(biome, randomColor);
-        if(luminosity != null) BIOME_LUMINOSITY.put(biome, luminosity);
-        if(saturation != null) BIOME_SATURATION.put(biome, saturation);
+        if (luminosity != null) BIOME_LUMINOSITY.put(biome, luminosity);
+        if (saturation != null) BIOME_SATURATION.put(biome, saturation);
         BIOME_IDs.put(biome, (short) biome.ordinal());
     }
 

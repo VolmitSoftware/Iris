@@ -38,7 +38,7 @@ public class MultiverseCoreLink {
     }
 
     public boolean addWorld(String worldName, IrisDimension dim, String seed) {
-        if(!isSupported()) {
+        if (!isSupported()) {
             return false;
         }
 
@@ -47,11 +47,11 @@ public class MultiverseCoreLink {
             Object mvWorldManager = p.getClass().getDeclaredMethod("getMVWorldManager").invoke(p);
             Method m = mvWorldManager.getClass().getDeclaredMethod("addWorld",
 
-                String.class, World.Environment.class, String.class, WorldType.class, Boolean.class, String.class, boolean.class);
+                    String.class, World.Environment.class, String.class, WorldType.class, Boolean.class, String.class, boolean.class);
             boolean b = (boolean) m.invoke(mvWorldManager, worldName, dim.getEnvironment(), seed, WorldType.NORMAL, false, "Iris", false);
             saveConfig();
             return b;
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
@@ -67,7 +67,7 @@ public class MultiverseCoreLink {
             Field f = mvWorldManager.getClass().getDeclaredField("worldsFromTheConfig");
             f.setAccessible(true);
             return (Map<String, ?>) f.get(mvWorldManager);
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
@@ -76,7 +76,7 @@ public class MultiverseCoreLink {
     }
 
     public void removeFromConfig(World world) {
-        if(!isSupported()) {
+        if (!isSupported()) {
             return;
         }
 
@@ -85,7 +85,7 @@ public class MultiverseCoreLink {
     }
 
     public void removeFromConfig(String world) {
-        if(!isSupported()) {
+        if (!isSupported()) {
             return;
         }
 
@@ -98,7 +98,7 @@ public class MultiverseCoreLink {
             Plugin p = getMultiverse();
             Object mvWorldManager = p.getClass().getDeclaredMethod("getMVWorldManager").invoke(p);
             mvWorldManager.getClass().getDeclaredMethod("saveWorldsConfig").invoke(mvWorldManager);
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
@@ -112,7 +112,7 @@ public class MultiverseCoreLink {
         try {
             String t = worldNameTypes.get(worldName);
             return t == null ? defaultType : t;
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
             return defaultType;
         }
@@ -128,11 +128,11 @@ public class MultiverseCoreLink {
     }
 
     public String envName(World.Environment environment) {
-        if(environment == null) {
+        if (environment == null) {
             return "normal";
         }
 
-        return switch(environment) {
+        return switch (environment) {
             case NORMAL -> "normal";
             case NETHER -> "nether";
             case THE_END -> "end";

@@ -36,10 +36,8 @@ public class MaterialBlock {
     /**
      * Create a materialblock
      *
-     * @param material
-     *     the material
-     * @param data
-     *     the data
+     * @param material the material
+     * @param data     the data
      */
     public MaterialBlock(Material material, Byte data) {
         this.material = material;
@@ -88,7 +86,7 @@ public class MaterialBlock {
 
     @Override
     public String toString() {
-        if(getData() == 0) {
+        if (getData() == 0) {
             return getMaterial().toString();
         }
 
@@ -106,21 +104,21 @@ public class MaterialBlock {
 
     @Override
     public boolean equals(Object obj) {
-        if(this == obj) {
+        if (this == obj) {
             return true;
         }
-        if(obj == null) {
+        if (obj == null) {
             return false;
         }
-        if(getClass() != obj.getClass()) {
+        if (getClass() != obj.getClass()) {
             return false;
         }
         MaterialBlock other = (MaterialBlock) obj;
-        if(data == null) {
-            if(other.data != null) {
+        if (data == null) {
+            if (other.data != null) {
                 return false;
             }
-        } else if(!data.equals(other.data)) {
+        } else if (!data.equals(other.data)) {
             return false;
         }
         return material == other.material;

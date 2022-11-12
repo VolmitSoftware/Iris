@@ -32,6 +32,14 @@ import java.io.IOException;
 public class IrisImage extends IrisRegistrant {
     private final BufferedImage image;
 
+    public IrisImage() {
+        this(new BufferedImage(4, 4, BufferedImage.TYPE_INT_RGB));
+    }
+
+    public IrisImage(BufferedImage image) {
+        this.image = image;
+    }
+
     public int getWidth() {
         return image.getWidth();
     }
@@ -41,7 +49,7 @@ public class IrisImage extends IrisRegistrant {
     }
 
     public int getRawValue(int x, int z) {
-        if(x >= getWidth() || z >= getHeight() || x < 0 || z < 0) {
+        if (x >= getWidth() || z >= getHeight() || x < 0 || z < 0) {
             return 0;
         }
 
@@ -51,7 +59,7 @@ public class IrisImage extends IrisRegistrant {
     public double getValue(IrisImageChannel channel, int x, int z) {
         int color = getRawValue(x, z);
 
-        switch(channel) {
+        switch (channel) {
             case RED -> {
                 return ((color >> 16) & 0xFF) / 255D;
             }
@@ -99,14 +107,6 @@ public class IrisImage extends IrisRegistrant {
         return color;
     }
 
-    public IrisImage() {
-        this(new BufferedImage(4, 4, BufferedImage.TYPE_INT_RGB));
-    }
-
-    public IrisImage(BufferedImage image) {
-        this.image = image;
-    }
-
     @Override
     public String getFolderName() {
         return "images";
@@ -128,14 +128,14 @@ public class IrisImage extends IrisRegistrant {
         try {
             File at = new File(getLoadFile().getParentFile(), "debug-see-" + getLoadFile().getName());
             BufferedImage b = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_RGB);
-            for(int i = 0; i < getWidth(); i++) {
-                for(int j = 0; j < getHeight(); j++) {
+            for (int i = 0; i < getWidth(); i++) {
+                for (int j = 0; j < getHeight(); j++) {
                     b.setRGB(i, j, Color.getHSBColor(0, 0, (float) getValue(channel, i, j)).getRGB());
                 }
             }
             ImageIO.write(b, "png", at);
             Iris.warn("Debug image written to " + at.getPath() + " for channel " + channel.name());
-        } catch(IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

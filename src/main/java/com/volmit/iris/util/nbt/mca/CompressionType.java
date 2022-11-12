@@ -45,8 +45,8 @@ public enum CompressionType {
     }
 
     public static CompressionType getFromID(byte id) {
-        for(CompressionType c : CompressionType.values()) {
-            if(c.id == id) {
+        for (CompressionType c : CompressionType.values()) {
+            if (c.id == id) {
                 return c;
             }
         }

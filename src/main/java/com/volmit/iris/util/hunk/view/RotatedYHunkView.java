@@ -36,9 +36,9 @@ public class RotatedYHunkView<T> implements Hunk<T> {
         int xc = (int) Math.round(cos * (getWidth() / 2f) + sin * (getDepth() / 2f));
         int zc = (int) Math.round(-sin * (getWidth() / 2f) + cos * (getDepth() / 2f));
         src.setIfExists((int)
-                Math.round(cos * (x - xc) + sin * (z - zc)) - xc,
-            y,
-            (int) Math.round(-sin * (x - xc) + cos * (z - zc)) - zc, t);
+                        Math.round(cos * (x - xc) + sin * (z - zc)) - xc,
+                y,
+                (int) Math.round(-sin * (x - xc) + cos * (z - zc)) - zc, t);
     }
 
     @Override
@@ -46,9 +46,9 @@ public class RotatedYHunkView<T> implements Hunk<T> {
         int xc = (int) Math.round(cos * (getWidth() / 2f) + sin * (getDepth() / 2f));
         int zc = (int) Math.round(-sin * (getWidth() / 2f) + cos * (getDepth() / 2f));
         return src.getIfExists(
-            (int) Math.round(cos * (x - xc) + sin * (z - zc)) - xc,
-            y,
-            (int) Math.round(-sin * (x - xc) + cos * (z - zc)) - zc
+                (int) Math.round(cos * (x - xc) + sin * (z - zc)) - xc,
+                y,
+                (int) Math.round(-sin * (x - xc) + cos * (z - zc)) - zc
         );
     }
 

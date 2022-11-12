@@ -31,12 +31,9 @@ public class Dimension {
     /**
      * Make a dimension
      *
-     * @param width
-     *     width of this (X)
-     * @param height
-     *     the height (Y)
-     * @param depth
-     *     the depth (Z)
+     * @param width  width of this (X)
+     * @param height the height (Y)
+     * @param depth  the depth (Z)
      */
     public Dimension(int width, int height, int depth) {
         this.width = width;
@@ -47,10 +44,8 @@ public class Dimension {
     /**
      * Make a dimension
      *
-     * @param width
-     *     width of this (X)
-     * @param height
-     *     the height (Y)
+     * @param width  width of this (X)
+     * @param height the height (Y)
      */
     public Dimension(int width, int height) {
         this.width = width;
@@ -65,15 +60,15 @@ public class Dimension {
      * @return the direction of the flat pane or null
      */
     public DimensionFace getPane() {
-        if(width == 1) {
+        if (width == 1) {
             return DimensionFace.X;
         }
 
-        if(height == 1) {
+        if (height == 1) {
             return DimensionFace.Y;
         }
 
-        if(depth == 1) {
+        if (depth == 1) {
             return DimensionFace.Z;
         }
 

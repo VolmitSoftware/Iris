@@ -18,56 +18,59 @@ public class UFeatureMeta {
     private KMap<String, UFeatureMetaGenerator> generators;
     private String feature;
 
-    public void registerInterpolator(String key, InterpolationMethod method, double radius)
-    {
-        if(interpolators == null)
-        {
+    public void registerInterpolator(String key, InterpolationMethod method, double radius) {
+        if (interpolators == null) {
             interpolators = new KMap<>();
         }
         interpolators.put(key, new UFeatureMetaInterpolator(method, radius));
     }
 
-    public void registerGenerator(String key, CNG cng)
-    {
-        if(generators == null)
-        {
+    public void registerGenerator(String key, CNG cng) {
+        if (generators == null) {
             generators = new KMap<>();
         }
         generators.put(key, buildGenerator(cng));
     }
 
-    public UFeatureMetaGenerator buildGenerator(CNG cng)
-    {
+    public UFeatureMetaGenerator buildGenerator(CNG cng) {
         UFeatureMetaGenerator g = new UFeatureMetaGenerator();
         g.setScale(cng.getScale());
         g.setOctaves(cng.getOct());
 
-        if(cng.getFracture() != null)
-        {
+        if (cng.getFracture() != null) {
             g.setFracture(buildGenerator(cng.getFracture()));
             g.setFractureMultiplier(cng.getFscale());
         }
 
-        if(cng.getChildren() != null && cng.getChildren().isNotEmpty())
-        {
+        if (cng.getChildren() != null && cng.getChildren().isNotEmpty()) {
             g.setChildren(new KList<>());
 
-            for(CNG i : cng.getChildren())
-            {
+            for (CNG i : cng.getChildren()) {
                 g.getChildren().add(buildGenerator(i));
             }
         }
 
-        if(cng.getInjector() == CNG.ADD){g.setParentInject("add");}
-        else if(cng.getInjector() == CNG.SRC_SUBTRACT){g.setParentInject("src_subtract");}
-        else if(cng.getInjector() == CNG.DST_SUBTRACT){g.setParentInject("dst_subtract");}
-        else if(cng.getInjector() == CNG.MULTIPLY ){g.setParentInject("multiply");}
-        else if(cng.getInjector() == CNG.MAX){g.setParentInject("max");}
-        else if(cng.getInjector() == CNG.MIN){g.setParentInject("min");}
-        else if(cng.getInjector() == CNG.SRC_MOD ){g.setParentInject("src_mod");}
-        else if(cng.getInjector() == CNG.SRC_POW ){g.setParentInject("src_pow");}
-        else if(cng.getInjector() == CNG.DST_MOD ){g.setParentInject("dst_mod");}
-        else if(cng.getInjector() == CNG.DST_POW){g.setParentInject("dst_pow");}
+        if (cng.getInjector() == CNG.ADD) {
+            g.setParentInject("add");
+        } else if (cng.getInjector() == CNG.SRC_SUBTRACT) {
+            g.setParentInject("src_subtract");
+        } else if (cng.getInjector() == CNG.DST_SUBTRACT) {
+            g.setParentInject("dst_subtract");
+        } else if (cng.getInjector() == CNG.MULTIPLY) {
+            g.setParentInject("multiply");
+        } else if (cng.getInjector() == CNG.MAX) {
+            g.setParentInject("max");
+        } else if (cng.getInjector() == CNG.MIN) {
+            g.setParentInject("min");
+        } else if (cng.getInjector() == CNG.SRC_MOD) {
+            g.setParentInject("src_mod");
+        } else if (cng.getInjector() == CNG.SRC_POW) {
+            g.setParentInject("src_pow");
+        } else if (cng.getInjector() == CNG.DST_MOD) {
+            g.setParentInject("dst_mod");
+        } else if (cng.getInjector() == CNG.DST_POW) {
+            g.setParentInject("dst_pow");
+        }
 
         return g;
     }
@@ -79,16 +82,14 @@ public class UFeatureMeta {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    static class UFeatureMetaInterpolator
-    {
+    static class UFeatureMetaInterpolator {
         private InterpolationMethod interpolator;
         private double radius;
     }
 
     @Data
     @NoArgsConstructor
-    static class UFeatureMetaGenerator
-    {
+    static class UFeatureMetaGenerator {
         private NoiseStyle style;
         private int octaves = 1;
         private double scale = 1;

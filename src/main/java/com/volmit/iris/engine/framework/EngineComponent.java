@@ -39,10 +39,10 @@ public interface EngineComponent {
 
     default void close() {
         try {
-            if(this instanceof Listener) {
+            if (this instanceof Listener) {
                 Iris.instance.unregisterListener((Listener) this);
             }
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
 
         }

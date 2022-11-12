@@ -28,7 +28,6 @@ import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.decree.specialhandlers.ObjectHandler;
 import com.volmit.iris.util.format.C;
-import org.bukkit.generator.structure.StructureType;
 
 @Decree(name = "find", origin = DecreeOrigin.PLAYER, description = "Iris Find commands", aliases = "goto")
 public class CommandFind implements DecreeExecutor {
@@ -39,7 +38,7 @@ public class CommandFind implements DecreeExecutor {
     ) {
         Engine e = engine();
 
-        if(e == null) {
+        if (e == null) {
             sender().sendMessage(C.GOLD + "Not in an Iris World!");
             return;
         }
@@ -54,7 +53,7 @@ public class CommandFind implements DecreeExecutor {
     ) {
         Engine e = engine();
 
-        if(e == null) {
+        if (e == null) {
             sender().sendMessage(C.GOLD + "Not in an Iris World!");
             return;
         }
@@ -69,7 +68,7 @@ public class CommandFind implements DecreeExecutor {
     ) {
         Engine e = engine();
 
-        if(e == null) {
+        if (e == null) {
             sender().sendMessage(C.GOLD + "Not in an Iris World!");
             return;
         }
@@ -83,7 +82,7 @@ public class CommandFind implements DecreeExecutor {
             String type
     ) {
         Engine e = engine();
-        if(e == null) {
+        if (e == null) {
             sender().sendMessage(C.GOLD + "Not in an Iris World!");
             return;
         }
@@ -98,7 +97,7 @@ public class CommandFind implements DecreeExecutor {
     ) {
         Engine e = engine();
 
-        if(e == null) {
+        if (e == null) {
             sender().sendMessage(C.GOLD + "Not in an Iris World!");
             return;
         }

@@ -54,7 +54,7 @@ public class HybridPregenMethod implements PregeneratorMethod {
 
     @Override
     public boolean supportsRegions(int x, int z, PregenListener listener) {
-       return inWorld.supportsRegions(x, z, listener);
+        return inWorld.supportsRegions(x, z, listener);
     }
 
     @Override

@@ -35,7 +35,7 @@ public class SNBTDeserializer implements StringDeserializer<Tag<?>> {
 
     public Tag<?> fromReader(Reader reader, int maxDepth) throws IOException {
         BufferedReader bufferedReader;
-        if(reader instanceof BufferedReader) {
+        if (reader instanceof BufferedReader) {
             bufferedReader = (BufferedReader) reader;
         } else {
             bufferedReader = new BufferedReader(reader);

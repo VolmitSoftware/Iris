@@ -50,15 +50,15 @@ public class TrilinearStream<T> extends BasicStream<T> implements Interpolator<T
 
         //@builder
         return getTypedSource().fromDouble(IrisInterpolation.trilerp(
-            getTypedSource().getDouble(x1, y1, z1),
-            getTypedSource().getDouble(x2, y1, z1),
-            getTypedSource().getDouble(x1, y1, z2),
-            getTypedSource().getDouble(x2, y1, z2),
-            getTypedSource().getDouble(x1, y2, z1),
-            getTypedSource().getDouble(x2, y2, z1),
-            getTypedSource().getDouble(x1, y2, z2),
-            getTypedSource().getDouble(x2, y2, z2),
-            px, pz, py));
+                getTypedSource().getDouble(x1, y1, z1),
+                getTypedSource().getDouble(x2, y1, z1),
+                getTypedSource().getDouble(x1, y1, z2),
+                getTypedSource().getDouble(x2, y1, z2),
+                getTypedSource().getDouble(x1, y2, z1),
+                getTypedSource().getDouble(x2, y2, z1),
+                getTypedSource().getDouble(x1, y2, z2),
+                getTypedSource().getDouble(x2, y2, z2),
+                px, pz, py));
         //@done
     }
 

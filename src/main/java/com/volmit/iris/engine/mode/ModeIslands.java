@@ -31,8 +31,8 @@ public class ModeIslands extends IrisEngineMode implements EngineMode {
         var biome = new IrisBiomeActuator(getEngine());
 
         registerStage(burst(
-            (x, z, k, p, m, c) -> terrain.actuate(x, z, k, m, c),
-            (x, z, k, p, m, c) -> biome.actuate(x, z, p, m, c)
+                (x, z, k, p, m, c) -> terrain.actuate(x, z, k, m, c),
+                (x, z, k, p, m, c) -> biome.actuate(x, z, p, m, c)
         ));
     }
 }

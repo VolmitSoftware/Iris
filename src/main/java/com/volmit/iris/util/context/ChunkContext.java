@@ -24,12 +24,13 @@ public class ChunkContext {
     public ChunkContext(int x, int z, IrisComplex c) {
         this(x, z, c, true);
     }
+
     @BlockCoordinates
     public ChunkContext(int x, int z, IrisComplex c, boolean cache) {
         this.x = x;
         this.z = z;
 
-        if(cache) {
+        if (cache) {
             BurstExecutor b = MultiBurst.burst.burst();
             height = new ChunkedDataCache<>(b, c.getHeightStream(), x, z);
             biome = new ChunkedDataCache<>(b, c.getTrueBiomeStream(), x, z);
@@ -38,9 +39,7 @@ public class ChunkContext {
             fluid = new ChunkedDataCache<>(b, c.getFluidStream(), x, z);
             region = new ChunkedDataCache<>(b, c.getRegionStream(), x, z);
             b.complete();
-        }
-
-        else {
+        } else {
             height = new ChunkedDataCache<>(null, c.getHeightStream(), x, z, false);
             biome = new ChunkedDataCache<>(null, c.getTrueBiomeStream(), x, z, false);
             cave = new ChunkedDataCache<>(null, c.getCaveBiomeStream(), x, z, false);

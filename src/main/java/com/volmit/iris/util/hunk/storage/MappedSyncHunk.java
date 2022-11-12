@@ -48,15 +48,15 @@ public class MappedSyncHunk<T> extends StorageHunk<T> implements Hunk<T> {
     }
 
     public boolean isEmpty() {
-        synchronized(data) {
+        synchronized (data) {
             return data.isEmpty();
         }
     }
 
     @Override
     public void setRaw(int x, int y, int z, T t) {
-        synchronized(data) {
-            if(t == null) {
+        synchronized (data) {
+            if (t == null) {
                 data.remove(index(x, y, z));
                 return;
             }
@@ -71,10 +71,10 @@ public class MappedSyncHunk<T> extends StorageHunk<T> implements Hunk<T> {
 
     @Override
     public synchronized Hunk<T> iterateSync(Consumer4<Integer, Integer, Integer, T> c) {
-        synchronized(data) {
+        synchronized (data) {
             int idx, z;
 
-            for(Map.Entry<Integer, T> g : data.entrySet()) {
+            for (Map.Entry<Integer, T> g : data.entrySet()) {
                 idx = g.getKey();
                 z = idx / (getWidth() * getHeight());
                 idx -= (z * getWidth() * getHeight());
@@ -87,10 +87,10 @@ public class MappedSyncHunk<T> extends StorageHunk<T> implements Hunk<T> {
 
     @Override
     public synchronized Hunk<T> iterateSyncIO(Consumer4IO<Integer, Integer, Integer, T> c) throws IOException {
-        synchronized(data) {
+        synchronized (data) {
             int idx, z;
 
-            for(Map.Entry<Integer, T> g : data.entrySet()) {
+            for (Map.Entry<Integer, T> g : data.entrySet()) {
                 idx = g.getKey();
                 z = idx / (getWidth() * getHeight());
                 idx -= (z * getWidth() * getHeight());
@@ -103,14 +103,14 @@ public class MappedSyncHunk<T> extends StorageHunk<T> implements Hunk<T> {
 
     @Override
     public void empty(T b) {
-        synchronized(data) {
+        synchronized (data) {
             data.clear();
         }
     }
 
     @Override
     public T getRaw(int x, int y, int z) {
-        synchronized(data) {
+        synchronized (data) {
             return data.get(index(x, y, z));
         }
     }

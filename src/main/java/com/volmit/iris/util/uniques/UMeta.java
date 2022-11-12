@@ -21,10 +21,8 @@ public class UMeta {
     private int width;
     private int height;
 
-    public void registerFeature(String key, UFeatureMeta feature)
-    {
-        if(features == null)
-        {
+    public void registerFeature(String key, UFeatureMeta feature) {
+        if (features == null) {
             features = new KMap<>();
         }
 
@@ -33,10 +31,8 @@ public class UMeta {
 
     public void export(File destination) throws IOException {
 
-        for(String i : features.k())
-        {
-            if(features.get(i).isEmpty())
-            {
+        for (String i : features.k()) {
+            if (features.get(i).isEmpty()) {
                 features.remove(i);
             }
         }

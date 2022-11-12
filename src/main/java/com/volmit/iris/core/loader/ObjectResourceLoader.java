@@ -57,7 +57,7 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
             logLoad(j, t);
             tlt.addAndGet(p.getMilliseconds());
             return t;
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
             Iris.warn("Couldn't read " + resourceTypeName + " file: " + j.getPath() + ": " + e.getMessage());
             return null;
@@ -65,12 +65,12 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
     }
 
     public String[] getPossibleKeys() {
-        if(possibleKeys != null) {
+        if (possibleKeys != null) {
             return possibleKeys;
         }
         Iris.debug("Building " + resourceTypeName + " Possibility Lists");
         KSet<String> m = new KSet<>();
-        for(File i : getFolders()) {
+        for (File i : getFolders()) {
             m.addAll(getFiles(i, ".iob", true));
         }
         possibleKeys = m.toArray(new String[0]);
@@ -80,10 +80,10 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
     private KList<String> getFiles(File dir, String ext, boolean skipDirName) {
         KList<String> paths = new KList<>();
         String name = skipDirName ? "" : dir.getName() + "/";
-        for(File f : dir.listFiles()) {
-            if(f.isFile() && f.getName().endsWith(ext)) {
+        for (File f : dir.listFiles()) {
+            if (f.isFile() && f.getName().endsWith(ext)) {
                 paths.add(name + f.getName().replaceAll("\\Q" + ext + "\\E", ""));
-            } else if(f.isDirectory()) {
+            } else if (f.isDirectory()) {
                 getFiles(f, ext, false).forEach(e -> paths.add(name + e));
             }
         }
@@ -91,16 +91,16 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
     }
 
     public File findFile(String name) {
-        for(File i : getFolders(name)) {
-            for(File j : i.listFiles()) {
-                if(j.isFile() && j.getName().endsWith(".iob") && j.getName().split("\\Q.\\E")[0].equals(name)) {
+        for (File i : getFolders(name)) {
+            for (File j : i.listFiles()) {
+                if (j.isFile() && j.getName().endsWith(".iob") && j.getName().split("\\Q.\\E")[0].equals(name)) {
                     return j;
                 }
             }
 
             File file = new File(i, name + ".iob");
 
-            if(file.exists()) {
+            if (file.exists()) {
                 return file;
             }
         }
@@ -115,16 +115,16 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
     }
 
     private IrisObject loadRaw(String name) {
-        for(File i : getFolders(name)) {
-            for(File j : i.listFiles()) {
-                if(j.isFile() && j.getName().endsWith(".iob") && j.getName().split("\\Q.\\E")[0].equals(name)) {
+        for (File i : getFolders(name)) {
+            for (File j : i.listFiles()) {
+                if (j.isFile() && j.getName().endsWith(".iob") && j.getName().split("\\Q.\\E")[0].equals(name)) {
                     return loadFile(j, name);
                 }
             }
 
             File file = new File(i, name + ".iob");
 
-            if(file.exists()) {
+            if (file.exists()) {
                 return loadFile(file, name);
             }
         }

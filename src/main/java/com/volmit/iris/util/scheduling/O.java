@@ -33,7 +33,7 @@ public class O<T> implements Observable<T> {
     public O<T> set(T t) {
         this.t = t;
 
-        if(observers != null && observers.hasElements()) {
+        if (observers != null && observers.hasElements()) {
             observers.forEach((o) -> o.onChanged(t, t));
         }
 
@@ -53,7 +53,7 @@ public class O<T> implements Observable<T> {
 
     @Override
     public O<T> observe(Observer<T> t) {
-        if(observers == null) {
+        if (observers == null) {
             observers = new KList<>();
         }
 

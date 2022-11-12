@@ -40,7 +40,7 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         RNG rng = new RNG(Cache.key(x, z) + seed());
         int xxx = 8 + (x << 4);
         int zzz = 8 + (z << 4);
-        IrisRegion region =getComplex().getRegionStream().get(xxx, zzz);
+        IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
         IrisBiome biome = getComplex().getTrueBiomeStream().get(xxx, zzz);
         carve(writer, rng, x, z, region, biome);
     }

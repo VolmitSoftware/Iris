@@ -26,7 +26,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 @Data
 @Accessors(
-    chain = true
+        chain = true
 )
 public class IrisLock {
     private transient final ReentrantLock lock;
@@ -39,7 +39,7 @@ public class IrisLock {
     }
 
     public void lock() {
-        if(disabled) {
+        if (disabled) {
             return;
         }
 
@@ -47,12 +47,12 @@ public class IrisLock {
     }
 
     public void unlock() {
-        if(disabled) {
+        if (disabled) {
             return;
         }
         try {
             lock.unlock();
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             Iris.reportError(e);
 
         }

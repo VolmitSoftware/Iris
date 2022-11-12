@@ -1,7 +1,6 @@
 package com.volmit.iris.util.matter;
 
 import lombok.Data;
-import org.bukkit.generator.structure.StructureType;
 
 import java.util.Map;
 

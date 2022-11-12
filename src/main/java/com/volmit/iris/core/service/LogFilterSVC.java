@@ -20,41 +20,103 @@ public class LogFilterSVC implements IrisService, Filter {
 
     public void onEnable() {
         FILTERS.add(HEIGHTMAP_MISMATCH, RAID_PERSISTENCE, DUPLICATE_ENTITY_UUID);
-        ((Logger)LogManager.getRootLogger()).addFilter(this);
+        ((Logger) LogManager.getRootLogger()).addFilter(this);
     }
 
-    public void initialize() { }
-    public void start() { }
-    public void stop() { }
-    public void onDisable() { }
-    public boolean isStarted() { return true; }
-    public boolean isStopped() { return false; }
+    public void initialize() {
+    }
+
+    public void start() {
+    }
+
+    public void stop() {
+    }
+
+    public void onDisable() {
+    }
+
+    public boolean isStarted() {
+        return true;
+    }
+
+    public boolean isStopped() {
+        return false;
+    }
 
     public State getState() {
-        try { return State.STARTED; }
-        catch (Exception var2) { return null; }
+        try {
+            return State.STARTED;
+        } catch (Exception var2) {
+            return null;
+        }
     }
 
-    public Filter.Result getOnMatch() { return Result.NEUTRAL; }
-    public Filter.Result getOnMismatch() { return Result.NEUTRAL; }
+    public Filter.Result getOnMatch() {
+        return Result.NEUTRAL;
+    }
 
-    public Result filter(LogEvent event) { return check(event.getMessage().getFormattedMessage()); }
-    public Result filter(Logger logger, Level level, Marker marker, Object msg, Throwable t) { return check(msg.toString()); }
-    public Result filter(Logger logger, Level level, Marker marker, Message msg, Throwable t) { return check(msg.getFormattedMessage()); }
-    public Result filter(Logger logger, Level level, Marker marker, String message, Object... params) { return check(message); }
-    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0) { return check(message); }
-    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0, Object p1) { return check(message); }
-    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0, Object p1, Object p2) { return check(message); }
-    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0, Object p1, Object p2, Object p3) { return check(message); }
-    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0, Object p1, Object p2, Object p3, Object p4) { return check(message); }
-    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0, Object p1, Object p2, Object p3, Object p4, Object p5) { return check(message); }
-    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0, Object p1, Object p2, Object p3, Object p4, Object p5, Object p6) { return check(message); }
-    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0, Object p1, Object p2, Object p3, Object p4, Object p5, Object p6, Object p7) { return check(message); }
-    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0, Object p1, Object p2, Object p3, Object p4, Object p5, Object p6, Object p7, Object p8) { return check(message); }
-    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0, Object p1, Object p2, Object p3, Object p4, Object p5, Object p6, Object p7, Object p8, Object p9) { return check(message); }
+    public Filter.Result getOnMismatch() {
+        return Result.NEUTRAL;
+    }
+
+    public Result filter(LogEvent event) {
+        return check(event.getMessage().getFormattedMessage());
+    }
+
+    public Result filter(Logger logger, Level level, Marker marker, Object msg, Throwable t) {
+        return check(msg.toString());
+    }
+
+    public Result filter(Logger logger, Level level, Marker marker, Message msg, Throwable t) {
+        return check(msg.getFormattedMessage());
+    }
+
+    public Result filter(Logger logger, Level level, Marker marker, String message, Object... params) {
+        return check(message);
+    }
+
+    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0) {
+        return check(message);
+    }
+
+    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0, Object p1) {
+        return check(message);
+    }
+
+    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0, Object p1, Object p2) {
+        return check(message);
+    }
+
+    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0, Object p1, Object p2, Object p3) {
+        return check(message);
+    }
+
+    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0, Object p1, Object p2, Object p3, Object p4) {
+        return check(message);
+    }
+
+    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0, Object p1, Object p2, Object p3, Object p4, Object p5) {
+        return check(message);
+    }
+
+    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0, Object p1, Object p2, Object p3, Object p4, Object p5, Object p6) {
+        return check(message);
+    }
+
+    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0, Object p1, Object p2, Object p3, Object p4, Object p5, Object p6, Object p7) {
+        return check(message);
+    }
+
+    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0, Object p1, Object p2, Object p3, Object p4, Object p5, Object p6, Object p7, Object p8) {
+        return check(message);
+    }
+
+    public Result filter(Logger logger, Level level, Marker marker, String message, Object p0, Object p1, Object p2, Object p3, Object p4, Object p5, Object p6, Object p7, Object p8, Object p9) {
+        return check(message);
+    }
 
     private Result check(String string) {
-        if(FILTERS.stream().anyMatch(string::contains))
+        if (FILTERS.stream().anyMatch(string::contains))
             return Result.DENY;
         return Result.NEUTRAL;
     }

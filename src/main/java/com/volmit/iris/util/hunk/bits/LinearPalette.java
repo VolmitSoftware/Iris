@@ -36,7 +36,7 @@ public class LinearPalette<T> implements Palette<T> {
 
     @Override
     public T get(int id) {
-        if(id < 0 || id >= size.get()) {
+        if (id < 0 || id >= size.get()) {
             return null;
         }
 
@@ -52,10 +52,10 @@ public class LinearPalette<T> implements Palette<T> {
     }
 
     private void grow(int newLength) {
-        if(newLength > palette.get().length()) {
+        if (newLength > palette.get().length()) {
             AtomicReferenceArray<T> a = new AtomicReferenceArray<>(newLength + size.get());
 
-            for(int i = 0; i < palette.get().length(); i++) {
+            for (int i = 0; i < palette.get().length(); i++) {
                 a.set(i, palette.get().get(i));
             }
 
@@ -65,12 +65,12 @@ public class LinearPalette<T> implements Palette<T> {
 
     @Override
     public int id(T t) {
-        if(t == null) {
+        if (t == null) {
             return 0;
         }
 
-        for(int i = 1; i < size() + 1; i++) {
-            if(t.equals(palette.get().get(i))) {
+        for (int i = 1; i < size() + 1; i++) {
+            if (t.equals(palette.get().get(i))) {
                 return i;
             }
         }
@@ -85,7 +85,7 @@ public class LinearPalette<T> implements Palette<T> {
 
     @Override
     public void iterate(Consumer2<T, Integer> c) {
-        for(int i = 1; i < size() + 1; i++) {
+        for (int i = 1; i < size() + 1; i++) {
             c.accept(palette.get().get(i), i);
         }
     }

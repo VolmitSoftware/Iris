@@ -65,15 +65,15 @@ public class IrisDuration {
 
     public long toMilliseconds() {
         return getMilliseconds()
-            + TimeUnit.SECONDS.toMillis(getSeconds())
-            + TimeUnit.MINUTES.toMillis(getMinutes())
-            + TimeUnit.HOURS.toMillis(getHours())
-            + TimeUnit.DAYS.toMillis(getDays())
-            + (getMinecraftTicks() * 50L)
-            + (getMinecraftHours() * 50000L)
-            + (getMinecraftWeeks() * 50000L)
-            + (getMinecraftDays() * 24000L)
-            + (getMinecraftWeeks() * 168000L)
-            + (getMinecraftLunarCycles() * 192000L);
+                + TimeUnit.SECONDS.toMillis(getSeconds())
+                + TimeUnit.MINUTES.toMillis(getMinutes())
+                + TimeUnit.HOURS.toMillis(getHours())
+                + TimeUnit.DAYS.toMillis(getDays())
+                + (getMinecraftTicks() * 50L)
+                + (getMinecraftHours() * 50000L)
+                + (getMinecraftWeeks() * 50000L)
+                + (getMinecraftDays() * 24000L)
+                + (getMinecraftWeeks() * 168000L)
+                + (getMinecraftLunarCycles() * 192000L);
     }
 }

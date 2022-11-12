@@ -40,10 +40,10 @@ public class MedievalPregenMethod implements PregeneratorMethod {
     }
 
     private void waitForChunks() {
-        for(CompletableFuture<?> i : futures) {
+        for (CompletableFuture<?> i : futures) {
             try {
                 i.get();
-            } catch(Throwable e) {
+            } catch (Throwable e) {
                 e.printStackTrace();
             }
         }
@@ -55,12 +55,12 @@ public class MedievalPregenMethod implements PregeneratorMethod {
         waitForChunks();
         try {
             J.sfut(() -> {
-                for(Chunk i : world.getLoadedChunks()) {
+                for (Chunk i : world.getLoadedChunks()) {
                     i.unload(true);
                 }
                 world.save();
             }).get();
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
     }
@@ -97,7 +97,7 @@ public class MedievalPregenMethod implements PregeneratorMethod {
 
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
-        if(futures.size() > IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())) {
+        if (futures.size() > IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())) {
             waitForChunks();
         }
 
@@ -111,7 +111,7 @@ public class MedievalPregenMethod implements PregeneratorMethod {
 
     @Override
     public Mantle getMantle() {
-        if(IrisToolbelt.isIrisWorld(world)) {
+        if (IrisToolbelt.isIrisWorld(world)) {
             return IrisToolbelt.access(world).getEngine().getMantle().getMantle();
         }
 

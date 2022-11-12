@@ -41,20 +41,20 @@ public class Spiral implements Iterable<Position2> {
         int ax = Math.abs(x);
         int az = Math.abs(z);
 
-        if(x == 0 && z == 0) {
+        if (x == 0 && z == 0) {
             return p.add(1, 0);
         }
 
-        if(ax == az) {
-            if(x > 0 && z > 0) return left(p);
-            else if(x < 0 && z > 0) return down(p);
-            else if(x < 0 && z < 0) return right(p);
-            else if(x > 0 && z < 0) return up(p);
+        if (ax == az) {
+            if (x > 0 && z > 0) return left(p);
+            else if (x < 0 && z > 0) return down(p);
+            else if (x < 0 && z < 0) return right(p);
+            else if (x > 0 && z < 0) return up(p);
         } else {
-            if(x > z && ax > az) return up(p);
-            else if(x < z && ax < az) return left(p);
-            else if(x < z && ax > az) return down(p);
-            else if(x > z && ax < az) return right(p);
+            if (x > z && ax > az) return up(p);
+            else if (x < z && ax < az) return left(p);
+            else if (x < z && ax > az) return down(p);
+            else if (x > z && ax < az) return right(p);
         }
 
         return p;
@@ -83,13 +83,13 @@ public class Spiral implements Iterable<Position2> {
     @NotNull
     @Override
     public Iterator<Position2> iterator() {
-        return new SpiralIterator(0, this, start);
+        return new SpiralIterator( this, 0, start);
     }
 
     @AllArgsConstructor
     static class SpiralIterator implements Iterator<Position2> {
-        private long itr = 0;
         private final Spiral s;
+        private long itr = 0;
         private Position2 cursor;
 
         @Override

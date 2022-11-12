@@ -33,17 +33,11 @@ public class BiomeInjectMatter extends RawMatter<MatterBiomeInject> {
         this(1, 1, 1);
     }
 
-    @Override
-    public Palette<MatterBiomeInject> getGlobalPalette() {
-        return null;
-    }
-
     public BiomeInjectMatter(int width, int height, int depth) {
         super(width, height, depth, MatterBiomeInject.class);
     }
 
-    public static MatterBiomeInject get(Biome biome)
-    {
+    public static MatterBiomeInject get(Biome biome) {
         return get(false, 0, biome);
     }
 
@@ -56,14 +50,17 @@ public class BiomeInjectMatter extends RawMatter<MatterBiomeInject> {
     }
 
     @Override
+    public Palette<MatterBiomeInject> getGlobalPalette() {
+        return null;
+    }
+
+    @Override
     public void writeNode(MatterBiomeInject b, DataOutputStream dos) throws IOException {
         dos.writeBoolean(b.isCustom());
 
-        if(b.isCustom()) {
+        if (b.isCustom()) {
             dos.writeShort(b.getBiomeId());
-        }
-
-        else {
+        } else {
             dos.writeByte(b.getBiome().ordinal());
         }
     }

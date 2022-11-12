@@ -39,6 +39,6 @@ public class FloatBitCache extends DataBitCache<Float> {
 
     @Override
     public void iset(int i, int v) {
-        set(i, (float)v);
+        set(i, (float) v);
     }
 }

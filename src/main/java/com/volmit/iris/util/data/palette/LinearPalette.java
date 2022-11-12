@@ -35,17 +35,17 @@ public class LinearPalette<T> implements Palette<T> {
 
     public int idFor(T var0) {
         int var1;
-        for(var1 = 0; var1 < size; var1++) {
-            if(values.get(var1) == null && var0 == null) {
+        for (var1 = 0; var1 < size; var1++) {
+            if (values.get(var1) == null && var0 == null) {
                 return var1;
             }
 
-            if(values.get(var1) != null && values.get(var1).equals(var0)) {
+            if (values.get(var1) != null && values.get(var1).equals(var0)) {
                 return var1;
             }
         }
         var1 = size;
-        if(var1 < values.length()) {
+        if (var1 < values.length()) {
             values.set(var1, var0);
             size++;
             return var1;
@@ -54,7 +54,7 @@ public class LinearPalette<T> implements Palette<T> {
     }
 
     public T valueFor(int var0) {
-        if(var0 >= 0 && var0 < size) {
+        if (var0 >= 0 && var0 < size) {
             return this.values.get(var0);
         }
         return null;
@@ -66,7 +66,7 @@ public class LinearPalette<T> implements Palette<T> {
 
     @Override
     public void read(List<T> fromList) {
-        for(int i = 0; i < fromList.size(); i++) {
+        for (int i = 0; i < fromList.size(); i++) {
             values.set(i, fromList.get(i));
         }
 
@@ -75,7 +75,7 @@ public class LinearPalette<T> implements Palette<T> {
 
     @Override
     public void write(List<T> toList) {
-        for(int i = 0; i < size; i++) {
+        for (int i = 0; i < size; i++) {
             T v = values.get(i);
             toList.add(v);
         }

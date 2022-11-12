@@ -37,10 +37,10 @@ public class CustomBiomeSource extends BiomeSource {
 
     public CustomBiomeSource(long seed, Engine engine, World world) {
         super(getAllBiomes(
-            ((RegistryAccess) getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()))
-                .registry(Registry.BIOME_REGISTRY).orElse(null),
-            ((CraftWorld) world).getHandle().registryAccess().registry(Registry.BIOME_REGISTRY).orElse(null),
-            engine));
+                ((RegistryAccess) getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()))
+                        .registry(Registry.BIOME_REGISTRY).orElse(null),
+                ((CraftWorld) world).getHandle().registryAccess().registry(Registry.BIOME_REGISTRY).orElse(null),
+                engine));
         this.engine = engine;
         this.seed = seed;
         this.biomeCustomRegistry = registry().registry(Registry.BIOME_REGISTRY).orElse(null);
@@ -49,29 +49,14 @@ public class CustomBiomeSource extends BiomeSource {
         this.customBiomes = fillCustomBiomes(biomeCustomRegistry, engine);
     }
 
-    private KMap<String, Holder<Biome>> fillCustomBiomes(Registry<Biome> customRegistry, Engine engine) {
-        KMap<String, Holder<Biome>> m = new KMap<>();
-
-        for(IrisBiome i : engine.getAllBiomes()) {
-            if(i.isCustom()) {
-                for(IrisBiomeCustom j : i.getCustomDerivitives()) {
-                    m.put(j.getId(), customRegistry.getHolder(customRegistry.getResourceKey(customRegistry
-                        .get(new ResourceLocation(engine.getDimension().getLoadKey() + ":" + j.getId()))).get()).get());
-                }
-            }
-        }
-
-        return m;
-    }
-
     private static List<Holder<Biome>> getAllBiomes(Registry<Biome> customRegistry, Registry<Biome> registry, Engine engine) {
         List<Holder<Biome>> b = new ArrayList<>();
 
-        for(IrisBiome i : engine.getAllBiomes()) {
-            if(i.isCustom()) {
-                for(IrisBiomeCustom j : i.getCustomDerivitives()) {
+        for (IrisBiome i : engine.getAllBiomes()) {
+            if (i.isCustom()) {
+                for (IrisBiomeCustom j : i.getCustomDerivitives()) {
                     b.add(customRegistry.getHolder(customRegistry.getResourceKey(customRegistry
-                        .get(new ResourceLocation(engine.getDimension().getLoadKey() + ":" + j.getId()))).get()).get());
+                            .get(new ResourceLocation(engine.getDimension().getLoadKey() + ":" + j.getId()))).get()).get());
                 }
             } else {
                 b.add(CraftBlock.biomeToBiomeBase(registry, i.getVanillaDerivative()));
@@ -81,14 +66,10 @@ public class CustomBiomeSource extends BiomeSource {
         return b;
     }
 
-    private RegistryAccess registry() {
-        return registryAccess.aquire(() -> (RegistryAccess) getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()));
-    }
-
     private static Object getFor(Class<?> type, Object source) {
         Object o = fieldFor(type, source);
 
-        if(o != null) {
+        if (o != null) {
             return o;
         }
 
@@ -99,15 +80,14 @@ public class CustomBiomeSource extends BiomeSource {
         return fieldForClass(returns, in.getClass(), in);
     }
 
-
     private static Object invokeFor(Class<?> returns, Object in) {
-        for(Method i : in.getClass().getMethods()) {
-            if(i.getReturnType().equals(returns)) {
+        for (Method i : in.getClass().getMethods()) {
+            if (i.getReturnType().equals(returns)) {
                 i.setAccessible(true);
                 try {
                     Iris.debug("[NMS] Found " + returns.getSimpleName() + " in " + in.getClass().getSimpleName() + "." + i.getName() + "()");
                     return i.invoke(in);
-                } catch(Throwable e) {
+                } catch (Throwable e) {
                     e.printStackTrace();
                 }
             }
@@ -118,18 +98,37 @@ public class CustomBiomeSource extends BiomeSource {
 
     @SuppressWarnings("unchecked")
     private static <T> T fieldForClass(Class<T> returnType, Class<?> sourceType, Object in) {
-        for(Field i : sourceType.getDeclaredFields()) {
-            if(i.getType().equals(returnType)) {
+        for (Field i : sourceType.getDeclaredFields()) {
+            if (i.getType().equals(returnType)) {
                 i.setAccessible(true);
                 try {
                     Iris.debug("[NMS] Found " + returnType.getSimpleName() + " in " + sourceType.getSimpleName() + "." + i.getName());
                     return (T) i.get(in);
-                } catch(IllegalAccessException e) {
+                } catch (IllegalAccessException e) {
                     e.printStackTrace();
                 }
             }
         }
         return null;
+    }
+
+    private KMap<String, Holder<Biome>> fillCustomBiomes(Registry<Biome> customRegistry, Engine engine) {
+        KMap<String, Holder<Biome>> m = new KMap<>();
+
+        for (IrisBiome i : engine.getAllBiomes()) {
+            if (i.isCustom()) {
+                for (IrisBiomeCustom j : i.getCustomDerivitives()) {
+                    m.put(j.getId(), customRegistry.getHolder(customRegistry.getResourceKey(customRegistry
+                            .get(new ResourceLocation(engine.getDimension().getLoadKey() + ":" + j.getId()))).get()).get());
+                }
+            }
+        }
+
+        return m;
+    }
+
+    private RegistryAccess registry() {
+        return registryAccess.aquire(() -> (RegistryAccess) getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()));
     }
 
     @Override
@@ -141,7 +140,7 @@ public class CustomBiomeSource extends BiomeSource {
     public Holder<Biome> getNoiseBiome(int x, int y, int z, Climate.Sampler sampler) {
         int m = (y - engine.getMinHeight()) << 2;
         IrisBiome ib = engine.getComplex().getTrueBiomeStream().get(x << 2, z << 2);
-        if(ib.isCustom()) {
+        if (ib.isCustom()) {
             return customBiomes.get(ib.getCustomBiome(rng, x << 2, m, z << 2).getId());
         } else {
             org.bukkit.block.Biome v = ib.getSkyBiome(rng, x << 2, m, z << 2);

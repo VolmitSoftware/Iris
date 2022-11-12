@@ -48,18 +48,18 @@ public abstract class IrisEngineDecorator extends EngineAssignedComponent implem
         KList<IrisDecorator> v = new KList<>();
         RNG rng = new RNG(Cache.key((int) realX, (int) realZ));
 
-        for(IrisDecorator i : biome.getDecorators()) {
+        for (IrisDecorator i : biome.getDecorators()) {
             try {
-                if(i.getPartOf().equals(part) && i.getBlockData(biome, this.rng, realX, realZ, getData()) != null) {
+                if (i.getPartOf().equals(part) && i.getBlockData(biome, this.rng, realX, realZ, getData()) != null) {
                     v.add(i);
                 }
-            } catch(Throwable e) {
+            } catch (Throwable e) {
                 Iris.reportError(e);
                 Iris.error("PART OF: " + biome.getLoadFile().getAbsolutePath() + " HAS AN INVALID DECORATOR near 'partOf'!!!");
             }
         }
 
-        if(v.isNotEmpty()) {
+        if (v.isNotEmpty()) {
             return v.get(rng.nextInt(v.size()));
         }
 

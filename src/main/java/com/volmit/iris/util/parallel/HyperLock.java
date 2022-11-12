@@ -45,15 +45,15 @@ public class HyperLock {
     public HyperLock(int capacity, boolean fair) {
         this.fair = fair;
         locks = new ConcurrentLinkedHashMap.Builder<Long, ReentrantLock>()
-            .initialCapacity(capacity)
-            .maximumWeightedCapacity(capacity)
-            .listener((k, v) -> {
-                if(v.isLocked() || v.isHeldByCurrentThread()) {
-                    Iris.warn("InfiniLock Eviction of " + k + " still has locks on it!");
-                }
-            })
-            .concurrencyLevel(32)
-            .build();
+                .initialCapacity(capacity)
+                .maximumWeightedCapacity(capacity)
+                .listener((k, v) -> {
+                    if (v.isLocked() || v.isHeldByCurrentThread()) {
+                        Iris.warn("InfiniLock Eviction of " + k + " still has locks on it!");
+                    }
+                })
+                .concurrencyLevel(32)
+                .build();
     }
 
     public void with(int x, int z, Runnable r) {
@@ -73,12 +73,12 @@ public class HyperLock {
         Throwable ee = null;
         try {
             r.run();
-        } catch(Throwable e) {
+        } catch (Throwable e) {
             ee = e;
         } finally {
             unlock(x, z);
 
-            if(ee != null) {
+            if (ee != null) {
                 throw ee;
             }
         }
@@ -89,12 +89,12 @@ public class HyperLock {
         IOException ee = null;
         try {
             r.run();
-        } catch(IOException e) {
+        } catch (IOException e) {
             ee = e;
         } finally {
             unlock(x, z);
 
-            if(ee != null) {
+            if (ee != null) {
                 throw ee;
             }
         }
@@ -114,7 +114,7 @@ public class HyperLock {
     public boolean tryLock(int x, int z, long timeout) {
         try {
             return getLock(x, z).tryLock(timeout, TimeUnit.MILLISECONDS);
-        } catch(InterruptedException e) {
+        } catch (InterruptedException e) {
             Iris.reportError(e);
         }
 
@@ -126,7 +126,7 @@ public class HyperLock {
     }
 
     public void lock(int x, int z) {
-        if(!enabled) {
+        if (!enabled) {
             return;
         }
 
@@ -134,7 +134,7 @@ public class HyperLock {
     }
 
     public void unlock(int x, int z) {
-        if(!enabled) {
+        if (!enabled) {
             return;
         }
 

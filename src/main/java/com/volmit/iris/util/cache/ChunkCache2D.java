@@ -15,7 +15,7 @@ public class ChunkCache2D<T> {
         int key = ((z & 15) * 16) + (x & 15);
         T t = cache.get(key);
 
-        if(t == null) {
+        if (t == null) {
             t = resolver.apply(x, z);
             cache.set(key, t);
         }

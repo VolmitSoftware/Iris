@@ -37,11 +37,6 @@ public class BlockMatter extends RawMatter<BlockData> {
         this(1, 1, 1);
     }
 
-    @Override
-    public Palette<BlockData> getGlobalPalette() {
-        return null;
-    }
-
     public BlockMatter(int width, int height, int depth) {
         super(width, height, depth, BlockData.class);
         registerWriter(World.class, ((w, d, x, y, z) -> w.getBlockAt(x, y, z).setBlockData(d)));
@@ -49,6 +44,11 @@ public class BlockMatter extends RawMatter<BlockData> {
             BlockData d = w.getBlockAt(x, y, z).getBlockData();
             return d.getMaterial().isAir() ? null : d;
         });
+    }
+
+    @Override
+    public Palette<BlockData> getGlobalPalette() {
+        return null;
     }
 
     @Override

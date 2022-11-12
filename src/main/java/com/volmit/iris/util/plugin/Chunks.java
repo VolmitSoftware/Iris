@@ -25,14 +25,14 @@ import org.bukkit.entity.Player;
 public class Chunks {
     public static boolean isSafe(World w, int x, int z) {
         return w.isChunkLoaded(x, z)
-            && w.isChunkLoaded(x + 1, z)
-            && w.isChunkLoaded(x, z + 1)
-            && w.isChunkLoaded(x - 1, z)
-            && w.isChunkLoaded(x, z - 1)
-            && w.isChunkLoaded(x - 1, z - 1)
-            && w.isChunkLoaded(x + 1, z + 1)
-            && w.isChunkLoaded(x + 1, z - 1)
-            && w.isChunkLoaded(x - 1, z + 1);
+                && w.isChunkLoaded(x + 1, z)
+                && w.isChunkLoaded(x, z + 1)
+                && w.isChunkLoaded(x - 1, z)
+                && w.isChunkLoaded(x, z - 1)
+                && w.isChunkLoaded(x - 1, z - 1)
+                && w.isChunkLoaded(x + 1, z + 1)
+                && w.isChunkLoaded(x + 1, z - 1)
+                && w.isChunkLoaded(x - 1, z + 1);
     }
 
     public static boolean isSafe(Location l) {
@@ -42,7 +42,7 @@ public class Chunks {
     public static boolean hasPlayersNearby(Location at) {
         try {
             return !at.getWorld().getNearbyEntities(at, 32, 32, 32, (i) -> i instanceof Player).isEmpty();
-        } catch(Throwable ignored) {
+        } catch (Throwable ignored) {
             return false;
         }
     }

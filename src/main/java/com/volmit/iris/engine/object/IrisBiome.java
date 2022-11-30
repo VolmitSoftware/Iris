@@ -77,7 +77,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @MinNumber(2)
     @Required
     @Desc("This is the human readable name for this biome. This can and should be different than the file name. This is not used for loading biomes in other objects.")
-    private String name = "A Biome";
+    private String name = "Subterranean Land";
     @ArrayType(min = 1, type = IrisBiomeCustom.class)
     @Desc("If the biome type custom is defined, specify this")
     private KList<IrisBiomeCustom> customDerivitives;

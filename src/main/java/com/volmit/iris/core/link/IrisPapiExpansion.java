@@ -53,8 +53,8 @@ public class IrisPapiExpansion extends PlaceholderExpansion {
         Location l = null;
         PlatformChunkGenerator a = null;
 
-        if (player.isOnline()) {
-            l = player.getPlayer().getLocation();
+        if (player.isOnline() && player.getPlayer() != null) {
+            l = player.getPlayer().getLocation().add(0, 2, 0);
             a = IrisToolbelt.access(l.getWorld());
         }
 

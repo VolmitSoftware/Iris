@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.nms.v19_2;
+package com.volmit.iris.core.nms.v19_3;
 
 
 import com.volmit.iris.Iris;
@@ -35,6 +35,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
@@ -45,10 +46,10 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.craftbukkit.v1_19_R1.CraftChunk;
-import org.bukkit.craftbukkit.v1_19_R1.CraftServer;
-import org.bukkit.craftbukkit.v1_19_R1.CraftWorld;
-import org.bukkit.craftbukkit.v1_19_R1.block.data.CraftBlockData;
+import org.bukkit.craftbukkit.v1_19_R2.CraftChunk;
+import org.bukkit.craftbukkit.v1_19_R2.CraftServer;
+import org.bukkit.craftbukkit.v1_19_R2.CraftWorld;
+import org.bukkit.craftbukkit.v1_19_R2.block.data.CraftBlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.generator.ChunkGenerator;
 import org.jetbrains.annotations.NotNull;
@@ -63,7 +64,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class NMSBinding19_2 implements INMSBinding {
+public class NMSBinding19_3 implements INMSBinding {
 
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
     private final BlockData AIR = Material.AIR.createBlockData();
@@ -196,11 +197,11 @@ public class NMSBinding19_2 implements INMSBinding {
 
     private Registry<net.minecraft.world.level.biome.Biome> getCustomBiomeRegistry() {
 
-        return registry().registry(Registry.BIOME_REGISTRY).orElse(null);
+        return registry().registry(Registries.BIOME).orElse(null);
     }
 
     private Registry<Block> getBlockRegistry() {
-        return registry().registry(Registry.BLOCK_REGISTRY).orElse(null);
+        return registry().registry(Registries.BLOCK).orElse(null);
     }
 
     @Override
@@ -254,8 +255,8 @@ public class NMSBinding19_2 implements INMSBinding {
 
     @Override
     public Object getBiomeBase(World world, Biome biome) {
-        return org.bukkit.craftbukkit.v1_19_R1.block.CraftBlock.biomeToBiomeBase(((CraftWorld) world).getHandle()
-                .registryAccess().registry(Registry.BIOME_REGISTRY).orElse(null), biome);
+        return org.bukkit.craftbukkit.v1_19_R2.block.CraftBlock.biomeToBiomeBase(((CraftWorld) world).getHandle()
+                .registryAccess().registry(Registries.BIOME).orElse(null), biome);
     }
 
     @Override
@@ -266,13 +267,13 @@ public class NMSBinding19_2 implements INMSBinding {
             return v;
         }
         //noinspection unchecked
-        v = org.bukkit.craftbukkit.v1_19_R1.block.CraftBlock.biomeToBiomeBase((Registry<net.minecraft.world.level.biome.Biome>) registry, biome);
+        v = org.bukkit.craftbukkit.v1_19_R2.block.CraftBlock.biomeToBiomeBase((Registry<net.minecraft.world.level.biome.Biome>) registry, biome);
         if (v == null) {
             // Ok so there is this new biome name called "CUSTOM" in Paper's new releases.
             // But, this does NOT exist within CraftBukkit which makes it return an error.
             // So, we will just return the ID that the plains biome returns instead.
             //noinspection unchecked
-            return org.bukkit.craftbukkit.v1_19_R1.block.CraftBlock.biomeToBiomeBase((Registry<net.minecraft.world.level.biome.Biome>) registry, Biome.PLAINS);
+            return org.bukkit.craftbukkit.v1_19_R2.block.CraftBlock.biomeToBiomeBase((Registry<net.minecraft.world.level.biome.Biome>) registry, Biome.PLAINS);
         }
         baseBiomeCache.put(biome, v);
         return v;
@@ -287,7 +288,7 @@ public class NMSBinding19_2 implements INMSBinding {
     public int getBiomeId(Biome biome) {
         for (World i : Bukkit.getWorlds()) {
             if (i.getEnvironment().equals(World.Environment.NORMAL)) {
-                Registry<net.minecraft.world.level.biome.Biome> registry = ((CraftWorld) i).getHandle().registryAccess().registry(Registry.BIOME_REGISTRY).orElse(null);
+                Registry<net.minecraft.world.level.biome.Biome> registry = ((CraftWorld) i).getHandle().registryAccess().registry(Registries.BIOME).orElse(null);
                 return registry.getId((net.minecraft.world.level.biome.Biome) getBiomeBase(registry, biome));
             }
         }

@@ -1,4 +1,4 @@
-package com.volmit.iris.core.nms.v19_2;
+package com.volmit.iris.core.nms.v19_3;
 
 import com.mojang.serialization.Codec;
 import com.volmit.iris.Iris;
@@ -11,15 +11,16 @@ import com.volmit.iris.util.math.RNG;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.Climate;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.craftbukkit.v1_19_R1.CraftServer;
-import org.bukkit.craftbukkit.v1_19_R1.CraftWorld;
-import org.bukkit.craftbukkit.v1_19_R1.block.CraftBlock;
+import org.bukkit.craftbukkit.v1_19_R2.CraftServer;
+import org.bukkit.craftbukkit.v1_19_R2.CraftWorld;
+import org.bukkit.craftbukkit.v1_19_R2.block.CraftBlock;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -38,13 +39,13 @@ public class CustomBiomeSource extends BiomeSource {
     public CustomBiomeSource(long seed, Engine engine, World world) {
         super(getAllBiomes(
                 ((RegistryAccess) getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()))
-                        .registry(Registry.BIOME_REGISTRY).orElse(null),
-                ((CraftWorld) world).getHandle().registryAccess().registry(Registry.BIOME_REGISTRY).orElse(null),
+                        .registry(Registries.BIOME).orElse(null),
+                ((CraftWorld) world).getHandle().registryAccess().registry(Registries.BIOME).orElse(null),
                 engine));
         this.engine = engine;
         this.seed = seed;
-        this.biomeCustomRegistry = registry().registry(Registry.BIOME_REGISTRY).orElse(null);
-        this.biomeRegistry = ((CraftWorld) world).getHandle().registryAccess().registry(Registry.BIOME_REGISTRY).orElse(null);
+        this.biomeCustomRegistry = registry().registry(Registries.BIOME).orElse(null);
+        this.biomeRegistry = ((CraftWorld) world).getHandle().registryAccess().registry(Registries.BIOME).orElse(null);
         this.rng = new RNG(engine.getSeedManager().getBiome());
         this.customBiomes = fillCustomBiomes(biomeCustomRegistry, engine);
     }

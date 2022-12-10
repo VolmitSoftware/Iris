@@ -128,7 +128,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 ServerLevel serverLevel = ((CraftWorld) event.getWorld()).getHandle();
                 Engine engine = getEngine(event.getWorld());
                 Class<?> clazz = serverLevel.getChunkSource().chunkMap.generator.getClass();
-                Field biomeSource = getField(clazz, "c");
+                Field biomeSource = getField(clazz, "b");
                 biomeSource.setAccessible(true);
                 Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
                 unsafeField.setAccessible(true);

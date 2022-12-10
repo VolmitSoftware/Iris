@@ -62,10 +62,10 @@ public class IrisDimension extends IrisRegistrant {
                 "ambient_light": 0,
                 "piglin_safe": false,
                 "bed_works": true,
-                "respawn_anchor_works": false,
+                "respawn_anchor_works": true,
                 "has_raids": true,
                 "monster_spawn_block_light_limit": 7,
-                "monster_spawn_light_level": 1,
+                "monster_spawn_light_level": 7,
                 "infiniburn": "#minecraft:infiniburn_overworld",
                 "effects": "minecraft:overworld"
             }""";

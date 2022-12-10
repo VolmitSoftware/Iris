@@ -20,7 +20,7 @@ package com.volmit.iris.engine.platform;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.core.nms.v19_2.CustomBiomeSource;
+import com.volmit.iris.core.nms.v19_3.CustomBiomeSource;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
@@ -46,7 +46,7 @@ import net.minecraft.server.level.ServerLevel;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.craftbukkit.v1_19_R1.CraftWorld;
+import org.bukkit.craftbukkit.v1_19_R2.CraftWorld;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -128,7 +128,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 ServerLevel serverLevel = ((CraftWorld) event.getWorld()).getHandle();
                 Engine engine = getEngine(event.getWorld());
                 Class<?> clazz = serverLevel.getChunkSource().chunkMap.generator.getClass();
-                Field biomeSource = getField(clazz, "c");
+                Field biomeSource = getField(clazz, "b");
                 biomeSource.setAccessible(true);
                 Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
                 unsafeField.setAccessible(true);

@@ -22,3 +22,8 @@ commands:
     aliases: [ ir, irs ]
 api-version: ${apiversion}
 hotload-dependencies: false
+softdepend:
+  - PlaceholderAPI
+  - FastAsyncWorldEdit
+  - Oraxen
+  - ItemsAdder

@@ -29,6 +29,8 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import java.io.File;
 
 public class MatterObjectResourceLoader extends ResourceLoader<IrisMatterObject> {
+    private String[] possibleKeys;
+
     public MatterObjectResourceLoader(File root, IrisData idm, String folderName, String resourceTypeName) {
         super(root, idm, folderName, resourceTypeName, IrisMatterObject.class);
         loadCache = new KCache<>(this::loadRaw, IrisSettings.get().getPerformance().getObjectLoaderCacheSize());
@@ -63,6 +65,16 @@ public class MatterObjectResourceLoader extends ResourceLoader<IrisMatterObject>
         }
     }
 
+    private void findMatFiles(File dir, KSet<String> m) {
+        for (File file : dir.listFiles()) {
+            if (file.isFile() && file.getName().endsWith(".mat")) {
+                m.add(file.getName().replaceAll("\\Q.mat\\E", ""));
+            } else if (file.isDirectory()) {
+                findMatFiles(file, m);
+            }
+        }
+    }
+
     public String[] getPossibleKeys() {
         if (possibleKeys != null) {
             return possibleKeys;
@@ -71,30 +83,48 @@ public class MatterObjectResourceLoader extends ResourceLoader<IrisMatterObject>
         Iris.debug("Building " + resourceTypeName + " Possibility Lists");
         KSet<String> m = new KSet<>();
 
-        for (File i : getFolders()) {
-            for (File j : i.listFiles()) {
-                if (j.isFile() && j.getName().endsWith(".mat")) {
-                    m.add(j.getName().replaceAll("\\Q.mat\\E", ""));
-                } else if (j.isDirectory()) {
-                    for (File k : j.listFiles()) {
-                        if (k.isFile() && k.getName().endsWith(".mat")) {
-                            m.add(j.getName() + "/" + k.getName().replaceAll("\\Q.mat\\E", ""));
-                        } else if (k.isDirectory()) {
-                            for (File l : k.listFiles()) {
-                                if (l.isFile() && l.getName().endsWith(".mat")) {
-                                    m.add(j.getName() + "/" + k.getName() + "/" + l.getName().replaceAll("\\Q.mat\\E", ""));
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        for (File folder : getFolders()) {
+            findMatFiles(folder, m);
         }
 
         KList<String> v = new KList<>(m);
         possibleKeys = v.toArray(new String[0]);
         return possibleKeys;
     }
+
+
+//    public String[] getPossibleKeys() {
+//        if (possibleKeys != null) {
+//            return possibleKeys;
+//        }
+//
+//        Iris.debug("Building " + resourceTypeName + " Possibility Lists");
+//        KSet<String> m = new KSet<>();
+//
+//        for (File i : getFolders()) {
+//            for (File j : i.listFiles()) {
+//                if (j.isFile() && j.getName().endsWith(".mat")) {
+//                    m.add(j.getName().replaceAll("\\Q.mat\\E", ""));
+//                } else if (j.isDirectory()) {
+//                    for (File k : j.listFiles()) {
+//                        if (k.isFile() && k.getName().endsWith(".mat")) {
+//                            m.add(j.getName() + "/" + k.getName().replaceAll("\\Q.mat\\E", ""));
+//                        } else if (k.isDirectory()) {
+//                            for (File l : k.listFiles()) {
+//                                if (l.isFile() && l.getName().endsWith(".mat")) {
+//                                    m.add(j.getName() + "/" + k.getName() + "/" + l.getName().replaceAll("\\Q.mat\\E", ""));
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//        KList<String> v = new KList<>(m);
+//        possibleKeys = v.toArray(new String[0]);
+//        return possibleKeys;
+//    }
 
     public File findFile(String name) {
         for (File i : getFolders(name)) {

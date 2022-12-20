@@ -48,7 +48,6 @@ import java.io.File;
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Decree(name = "object", aliases = "o", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris object manipulation")
 public class CommandObject implements DecreeExecutor {
@@ -167,7 +166,7 @@ public class CommandObject implements DecreeExecutor {
         }
 
         List<Material> sortedMatsList = amounts.keySet().stream().map(BlockData::getMaterial)
-                .sorted().collect(Collectors.toList());
+                .sorted().toList();
         Set<Material> sortedMats = new TreeSet<>(Comparator.comparingInt(materials::get).reversed());
         sortedMats.addAll(sortedMatsList);
         sender().sendMessage("== Blocks in object ==");
@@ -216,6 +215,9 @@ public class CommandObject implements DecreeExecutor {
 
 
         Location[] b = WandSVC.getCuboid(player());
+        if (b == null) {
+            return;
+        }
         Location a1 = b[0].clone();
         Location a2 = b[1].clone();
         Cuboid cursor = new Cuboid(a1, a2);
@@ -242,6 +244,9 @@ public class CommandObject implements DecreeExecutor {
         if (WandSVC.isHoldingWand(player())) {
             Location[] g = WandSVC.getCuboid(player());
 
+            if (g == null) {
+                return;
+            }
             if (!here) {
                 // TODO: WARNING HEIGHT
                 g[1] = player().getTargetBlock(null, 256).getLocation().clone();
@@ -264,6 +269,10 @@ public class CommandObject implements DecreeExecutor {
 
         if (WandSVC.isHoldingIrisWand(player())) {
             Location[] g = WandSVC.getCuboid(player());
+
+            if (g == null) {
+                return;
+            }
 
             if (!here) {
                 // TODO: WARNING HEIGHT
@@ -383,6 +392,9 @@ public class CommandObject implements DecreeExecutor {
         Location a1 = b[0].clone();
         Location a2 = b[1].clone();
         Direction d = Direction.closest(player().getLocation().getDirection()).reverse();
+        if (d == null) {
+            return; // HOW DID THIS HAPPEN
+        }
         a1.add(d.toVector().multiply(amount));
         a2.add(d.toVector().multiply(amount));
         Cuboid cursor = new Cuboid(a1, a2);

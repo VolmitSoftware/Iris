@@ -369,8 +369,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                 }
             }
 
-            String ff = g.substring(1).split("\\Q.\\E")[0];
-            return ff;
+            return g.substring(1).split("\\Q.\\E")[0];
         } else {
             Iris.error("Forign file from loader " + f.getPath() + " (loader realm: " + getDataFolder().getPath() + ")");
         }

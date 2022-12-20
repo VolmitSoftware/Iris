@@ -25,7 +25,6 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.function.BiFunction;
 
-@SuppressWarnings("ClassCanBeRecord")
 public class IrisRenderer {
     private final Engine renderer;
 

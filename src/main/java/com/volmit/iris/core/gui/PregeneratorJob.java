@@ -154,12 +154,10 @@ public class PregeneratorJob implements PregenListener {
     }
 
     public void drawRegion(int x, int z, Color color) {
-        J.a(() -> {
-            PregenTask.iterateRegion(x, z, (xx, zz) -> {
-                draw(xx, zz, color);
-                J.sleep(3);
-            });
-        });
+        J.a(() -> PregenTask.iterateRegion(x, z, (xx, zz) -> {
+            draw(xx, zz, color);
+            J.sleep(3);
+        }));
     }
 
     public void draw(int x, int z, Color color) {
@@ -168,7 +166,7 @@ public class PregeneratorJob implements PregenListener {
                 renderer.func.accept(new Position2(x, z), color);
             }
         } catch (Throwable ignored) {
-
+            Iris.error("Failed to draw pregen");
         }
     }
 
@@ -186,8 +184,8 @@ public class PregeneratorJob implements PregenListener {
                 monitor.close();
                 J.sleep(3000);
                 frame.setVisible(false);
-            } catch (Throwable e) {
-
+            } catch (Throwable ignored) {
+                Iris.error("Error closing pregen gui");
             }
         });
     }
@@ -209,8 +207,8 @@ public class PregeneratorJob implements PregenListener {
                 frame.add(renderer);
                 frame.setSize(1000, 1000);
                 frame.setVisible(true);
-            } catch (Throwable e) {
-
+            } catch (Throwable ignored) {
+                Iris.error("Error opening pregen gui");
             }
         });
     }

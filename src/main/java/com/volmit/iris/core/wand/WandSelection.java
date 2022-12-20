@@ -38,8 +38,8 @@ public class WandSelection {
     }
 
     public void draw() {
-        double accuracy = M.lerpInverse(0, 64 * 64, p.getLocation().distanceSquared(c.getCenter()));
-        double dist = M.lerp(0.125, 3.5, accuracy);
+        double accuracy;
+        double dist;
 
         for (double i = c.getLowerX() - 1; i < c.getUpperX() + 1; i += 0.25) {
             for (double j = c.getLowerY() - 1; j < c.getUpperY() + 1; j += 0.25) {

@@ -162,11 +162,11 @@ public class JigsawEditor implements Listener {
         removeKey(o.getJSONObject(path[0]), s.toArray(new String[0]));
     }
 
-    private List<JSONObject> getObjectsInArray(JSONObject a, String key) {
+    private List<JSONObject> getObjectsInArray(JSONObject a) { // This gets all the objects in an array that are connectors
         KList<JSONObject> o = new KList<>();
 
-        for (int i = 0; i < a.getJSONArray(key).length(); i++) {
-            o.add(a.getJSONArray(key).getJSONObject(i));
+        for (int i = 0; i < a.getJSONArray("connectors").length(); i++) {
+            o.add(a.getJSONArray("connectors").getJSONObject(i));
         }
 
         return o;
@@ -185,7 +185,7 @@ public class JigsawEditor implements Listener {
             j.remove("placementOptions"); // otherwise
 
             // Remove key in all objects in array
-            for (JSONObject i : getObjectsInArray(j, "connectors")) {
+            for (JSONObject i : getObjectsInArray(j)) {
                 removeKey(i, "rotateConnector");
             }
 

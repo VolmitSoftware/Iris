@@ -21,13 +21,13 @@ package com.volmit.iris.core.loader;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.object.IrisScript;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
 import java.io.File;
+import java.util.HashSet;
+import java.util.Set;
 
 public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
     public ScriptResourceLoader(File root, IrisData idm, String folderName, String resourceTypeName) {
@@ -60,38 +60,69 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
         }
     }
 
+
     public String[] getPossibleKeys() {
         if (possibleKeys != null) {
             return possibleKeys;
         }
 
         Iris.debug("Building " + resourceTypeName + " Possibility Lists");
-        KSet<String> m = new KSet<>();
+        Set<String> keys = new HashSet<>();
 
         for (File i : getFolders()) {
-            for (File j : i.listFiles()) {
-                if (j.isFile() && j.getName().endsWith(".js")) {
-                    m.add(j.getName().replaceAll("\\Q.js\\E", ""));
-                } else if (j.isDirectory()) {
-                    for (File k : j.listFiles()) {
-                        if (k.isFile() && k.getName().endsWith(".js")) {
-                            m.add(j.getName() + "/" + k.getName().replaceAll("\\Q.js\\E", ""));
-                        } else if (k.isDirectory()) {
-                            for (File l : k.listFiles()) {
-                                if (l.isFile() && l.getName().endsWith(".js")) {
-                                    m.add(j.getName() + "/" + k.getName() + "/" + l.getName().replaceAll("\\Q.js\\E", ""));
-                                }
-                            }
-                        }
-                    }
-                }
+            if (i.isDirectory()) {
+                keys.addAll(getKeysInDirectory(i));
             }
         }
 
-        KList<String> v = new KList<>(m);
-        possibleKeys = v.toArray(new String[0]);
+        possibleKeys = keys.toArray(new String[0]);
         return possibleKeys;
     }
+
+    private Set<String> getKeysInDirectory(File directory) {
+        Set<String> keys = new HashSet<>();
+        for (File file : directory.listFiles()) {
+            if (file.isFile() && file.getName().endsWith(".js")) {
+                keys.add(file.getName().replaceAll("\\Q.js\\E", ""));
+            } else if (file.isDirectory()) {
+                keys.addAll(getKeysInDirectory(file));
+            }
+        }
+        return keys;
+    }
+
+//    public String[] getPossibleKeys() {
+//        if (possibleKeys != null) {
+//            return possibleKeys;
+//        }
+//
+//        Iris.debug("Building " + resourceTypeName + " Possibility Lists");
+//        KSet<String> m = new KSet<>();
+//
+//        for (File i : getFolders()) {
+//            for (File j : i.listFiles()) {
+//                if (j.isFile() && j.getName().endsWith(".js")) {
+//                    m.add(j.getName().replaceAll("\\Q.js\\E", ""));
+//                } else if (j.isDirectory()) {
+//                    for (File k : j.listFiles()) {
+//                        if (k.isFile() && k.getName().endsWith(".js")) {
+//                            m.add(j.getName() + "/" + k.getName().replaceAll("\\Q.js\\E", ""));
+//                        } else if (k.isDirectory()) {
+//                            for (File l : k.listFiles()) {
+//                                if (l.isFile() && l.getName().endsWith(".js")) {
+//                                    m.add(j.getName() + "/" + k.getName() + "/" + l.getName().replaceAll("\\Q.js\\E", ""));
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//        KList<String> v = new KList<>(m);
+//        possibleKeys = v.toArray(new String[0]);
+//        return possibleKeys;
+//    }
 
     public File findFile(String name) {
         for (File i : getFolders(name)) {

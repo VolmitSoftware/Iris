@@ -83,7 +83,7 @@ public class Spiral implements Iterable<Position2> {
     @NotNull
     @Override
     public Iterator<Position2> iterator() {
-        return new SpiralIterator( this, 0, start);
+        return new SpiralIterator(this, 0, start);
     }
 
     @AllArgsConstructor

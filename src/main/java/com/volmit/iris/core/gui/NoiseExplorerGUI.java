@@ -277,8 +277,7 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener, List
                             Color color = colorMode ? Color.getHSBColor((float) (n), 1f - (float) (n * n * n * n * n * n), 1f - (float) n) : Color.getHSBColor(0f, 0f, (float) n);
                             int rgb = color.getRGB();
                             img.setRGB(xx, z, rgb);
-                        } catch (Throwable xxx) {
-
+                        } catch (Throwable ignored) {
                         }
                     }
                 });

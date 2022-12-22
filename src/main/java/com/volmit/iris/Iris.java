@@ -28,6 +28,7 @@ import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.nms.v19_3.NMSBinding19_3;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -532,6 +533,7 @@ public class Iris extends VolmitPlugin implements Listener {
         enable();
         super.onEnable();
         Bukkit.getPluginManager().registerEvents(this, this);
+        setupChecks();
     }
 
     public void onDisable() {
@@ -565,6 +567,13 @@ public class Iris extends VolmitPlugin implements Listener {
         return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.IRIS + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
     }
 
+    private void setupChecks() {
+        if (!instance.getDescription().getVersion().contains(NMSBinding19_3.NMS_VERSION)) {
+            Iris.warn("============================================");
+            Iris.warn("Iris is not compatible with this version of Minecraft.\nPlease use " + NMSBinding19_3.NMS_VERSION + " or use an older version of Iris.");
+            Iris.warn("============================================");
+        }
+    }
     private void checkConfigHotload() {
         if (configWatcher.checkModified()) {
             IrisSettings.invalidate();

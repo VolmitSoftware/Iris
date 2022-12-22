@@ -74,6 +74,7 @@ public class NMSBinding19_3 implements INMSBinding {
     private final AtomicCache<RegistryAccess> registryAccess = new AtomicCache<>();
     private final AtomicCache<Method> byIdRef = new AtomicCache<>();
     private Field biomeStorageCache = null;
+    public static final String NMS_VERSION = "1.19.3";
 
     private static Object getFor(Class<?> type, Object source) {
         Object o = fieldFor(type, source);

@@ -567,12 +567,29 @@ public class Iris extends VolmitPlugin implements Listener {
         return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.IRIS + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
     }
 
-    private void setupChecks() {
-        if (!instance.getDescription().getVersion().contains(NMSBinding19_3.NMS_VERSION)) {
+    private boolean setupChecks() {
+        boolean passed = true;
+        Iris.info("Version Information: " + instance.getServer().getVersion() +" | " + instance.getServer().getBukkitVersion());
+        if (!instance.getServer().getBukkitVersion().contains(NMSBinding19_3.NMS_VERSION)) {
+            passed = false;
             Iris.warn("============================================");
+            Iris.warn("=");
+            Iris.warn("=");
+            Iris.warn("=");
             Iris.warn("Iris is not compatible with this version of Minecraft.\nPlease use " + NMSBinding19_3.NMS_VERSION + " or use an older version of Iris.");
+            Iris.warn("=");
+            Iris.warn("=");
+            Iris.warn("=");
             Iris.warn("============================================");
         }
+        if (!instance.getServer().getVersion().contains("Purpur")) {
+            passed = false;
+            Iris.info("We recommend using Purpur for the best experience with Iris.");
+            Iris.info("Purpur is a fork of Paper that is optimized for performance and stability.");
+            Iris.info("Plugins that work on Spigot / Paper work on Purpur.");
+            Iris.info("You can download it here: https://purpurmc.org");
+        }
+        return passed;
     }
     private void checkConfigHotload() {
         if (configWatcher.checkModified()) {
@@ -710,6 +727,7 @@ public class Iris extends VolmitPlugin implements Listener {
         Iris.info("Bukkit version: " + Bukkit.getBukkitVersion());
         Iris.info("Java version: " + getJavaVersion());
         Iris.info("Custom Biomes: " + INMS.get().countCustomBiomes());
+        setupChecks();
         printPacks();
 
         for (int i = 0; i < info.length; i++) {

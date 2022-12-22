@@ -25,9 +25,8 @@ public class WorldEditLink {
                     (int) min.getClass().getDeclaredMethod("getZ").invoke(max)
             );
         } catch (Throwable ignored) {
-            Iris.error("Failed to get WorldEdit Selection");
-        }
 
+        }
         return null;
     }
 }

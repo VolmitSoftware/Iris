@@ -106,6 +106,10 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
             return;
         }
         if (e.getPlayer().getWorld().equals(getTarget().getWorld().realWorld()) && e.getItem().getType() == Material.ENDER_EYE) {
+            if (e.getClickedBlock() != null && e.getClickedBlock().getType() == Material.END_PORTAL_FRAME) {
+                return;
+            }
+            
             KList<Position2> positions = getEngine().getDimension().getStrongholds(getEngine().getSeedManager().getSpawn());
             if (positions.isEmpty()) {
                 return;

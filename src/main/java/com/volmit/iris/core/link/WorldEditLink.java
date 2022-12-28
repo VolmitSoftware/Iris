@@ -1,6 +1,5 @@
 package com.volmit.iris.core.link;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.util.data.Cuboid;
 import org.bukkit.World;
 import org.bukkit.entity.Player;

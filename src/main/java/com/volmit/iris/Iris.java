@@ -569,7 +569,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
     private boolean setupChecks() {
         boolean passed = true;
-        Iris.info("Version Information: " + instance.getServer().getVersion() +" | " + instance.getServer().getBukkitVersion());
+        Iris.info("Version Information: " + instance.getServer().getVersion() + " | " + instance.getServer().getBukkitVersion());
         if (!instance.getServer().getBukkitVersion().contains(NMSBinding19_3.NMS_VERSION)) {
             passed = false;
             Iris.warn("============================================");
@@ -591,6 +591,7 @@ public class Iris extends VolmitPlugin implements Listener {
         }
         return passed;
     }
+
     private void checkConfigHotload() {
         if (configWatcher.checkModified()) {
             IrisSettings.invalidate();

@@ -320,7 +320,6 @@ public class IrisComplex implements DataProvider {
 
             return 0;
         });
-        ;
 
         double d = 0;
 

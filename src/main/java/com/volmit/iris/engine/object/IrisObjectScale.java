@@ -37,7 +37,7 @@ import lombok.experimental.Accessors;
 @Desc("Scale objects")
 @Data
 public class IrisObjectScale {
-    private static transient ConcurrentLinkedHashMap<IrisObject, KList<IrisObject>> cache
+    private static ConcurrentLinkedHashMap<IrisObject, KList<IrisObject>> cache
             = new ConcurrentLinkedHashMap.Builder<IrisObject, KList<IrisObject>>()
             .initialCapacity(64)
             .maximumWeightedCapacity(1024)

@@ -33,7 +33,7 @@ import org.bukkit.World;
 
 @Data
 public class PlannedStructure {
-    private static transient ConcurrentLinkedHashMap<String, IrisObject> objectRotationCache
+    private static ConcurrentLinkedHashMap<String, IrisObject> objectRotationCache
             = new ConcurrentLinkedHashMap.Builder<String, IrisObject>()
             .initialCapacity(64)
             .maximumWeightedCapacity(1024)

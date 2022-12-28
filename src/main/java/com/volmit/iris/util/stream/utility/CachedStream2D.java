@@ -31,7 +31,7 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
     private final ProceduralStream<T> stream;
     private final WorldCache2D<T> cache;
     private final Engine engine;
-    private boolean chunked = true;
+    private final boolean chunked = true;
 
     public CachedStream2D(String name, Engine engine, ProceduralStream<T> stream, int size) {
         super();

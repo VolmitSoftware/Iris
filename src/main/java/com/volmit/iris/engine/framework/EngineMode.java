@@ -31,8 +31,8 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
 public interface EngineMode extends Staged {
-    public static final RollingSequence r = new RollingSequence(64);
-    public static final RollingSequence r2 = new RollingSequence(256);
+    RollingSequence r = new RollingSequence(64);
+    RollingSequence r2 = new RollingSequence(256);
 
     void close();
 

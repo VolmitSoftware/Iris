@@ -36,8 +36,8 @@ public class UniqueRenderer {
     private final KMap<String, String> writing = new KMap<>();
     private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
     int cores = Runtime.getRuntime().availableProcessors();
-    private KList<NoiseStyle> sortedStyles = new KList<NoiseStyle>();
-    private KList<InterpolationMethod> sortedInterpolators = new KList<InterpolationMethod>();
+    private final KList<NoiseStyle> sortedStyles = new KList<NoiseStyle>();
+    private final KList<InterpolationMethod> sortedInterpolators = new KList<InterpolationMethod>();
 
     public UniqueRenderer(String seed, int width, int height) {
         renderer = this;

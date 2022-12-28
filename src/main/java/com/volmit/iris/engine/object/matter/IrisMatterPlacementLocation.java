@@ -13,7 +13,7 @@ public enum IrisMatterPlacementLocation {
 
     private final Function3<IrisEngine, Integer, Integer, Integer> computer;
 
-    private IrisMatterPlacementLocation(Function3<IrisEngine, Integer, Integer, Integer> computer) {
+    IrisMatterPlacementLocation(Function3<IrisEngine, Integer, Integer, Integer> computer) {
         this.computer = computer;
     }
 

@@ -84,7 +84,7 @@ public class ServerConfigurator {
 
     private static List<File> getDatapacksFolder() {
         if (!IrisSettings.get().getGeneral().forceMainWorld.isEmpty()) {
-            return new KList<File>().qadd(new File(IrisSettings.get().getGeneral().forceMainWorld + "/datapacks"));
+            return new KList<File>().qadd(new File(Bukkit.getWorldContainer(), IrisSettings.get().getGeneral().forceMainWorld + "/datapacks"));
         }
         KList<File> worlds = new KList<>();
         Bukkit.getServer().getWorlds().forEach(w -> worlds.add(new File(w.getWorldFolder(), "datapacks")));

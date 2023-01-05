@@ -51,7 +51,7 @@ import java.util.function.Supplier;
 @Data
 @Accessors(fluent = true, chain = true)
 public class IrisCreator {
-    private static final File BUKKIT_YML = new File(Bukkit.getServer().getWorldContainer(), "bukkit.yml");
+    private static final File BUKKIT_YML = new File("bukkit.yml");
     /**
      * Specify an area to pregenerate during creation
      */
@@ -115,7 +115,7 @@ public class IrisCreator {
             sender = Iris.getSender();
 
         if (!studio()) {
-            Iris.service(StudioSVC.class).installIntoWorld(sender, d.getLoadKey(), new File(name()));
+            Iris.service(StudioSVC.class).installIntoWorld(sender, d.getLoadKey(), new File(Bukkit.getWorldContainer(), name()));
         }
 
         PlatformChunkGenerator access = null;

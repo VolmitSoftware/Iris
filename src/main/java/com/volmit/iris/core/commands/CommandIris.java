@@ -73,7 +73,7 @@ public class CommandIris implements DecreeExecutor {
             return;
         }
 
-        if (new File(name).exists()) {
+        if (new File(Bukkit.getWorldContainer(), name).exists()) {
             sender().sendMessage(C.RED + "That folder already exists!");
             return;
         }

@@ -108,7 +108,7 @@ public class IrisWorld {
 
     public void bind(WorldInfo worldInfo) {
         name(worldInfo.getName())
-                .worldFolder(new File(worldInfo.getName()))
+                .worldFolder(new File(Bukkit.getWorldContainer(), worldInfo.getName()))
                 .minHeight(worldInfo.getMinHeight())
                 .maxHeight(worldInfo.getMaxHeight())
                 .environment(worldInfo.getEnvironment());

@@ -684,7 +684,7 @@ public class Iris extends VolmitPlugin implements Listener {
                 .name(worldName)
                 .seed(1337)
                 .environment(dim.getEnvironment())
-                .worldFolder(new File(worldName))
+                .worldFolder(new File(Bukkit.getWorldContainer(), worldName))
                 .minHeight(dim.getMinHeight())
                 .maxHeight(dim.getMaxHeight())
                 .build();

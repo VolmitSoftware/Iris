@@ -84,7 +84,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
             int af = (int) Math.floor(clump.getW() / 2D);
             int bf = (int) Math.floor(16D - (clump.getW() / 2D));
 
-            if (af > bf || af < 0 || bf > 15 || af > 15 || bf < 0) {
+            if (af > bf || af < 0 || bf > 15) {
                 af = 6;
                 bf = 9;
             }

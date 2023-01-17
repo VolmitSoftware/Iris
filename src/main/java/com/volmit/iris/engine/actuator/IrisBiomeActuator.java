@@ -47,13 +47,11 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
     public void onActuate(int x, int z, Hunk<Biome> h, boolean multicore, ChunkContext context) {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
-
-            int m = 0;
             for (int xf = 0; xf < h.getWidth(); xf++) {
                 IrisBiome ib;
                 for (int zf = 0; zf < h.getDepth(); zf++) {
                     ib = context.getBiome().get(xf, zf);
-                    MatterBiomeInject matter = null;
+                    MatterBiomeInject matter;
 
                     if (ib.isCustom()) {
                         IrisBiomeCustom custom = ib.getCustomBiome(rng, x, 0, z);
@@ -64,10 +62,8 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
                     }
 
                     getEngine().getMantle().getMantle().set(x + xf, 0, z + zf, matter);
-                    m++;
                 }
             }
-
             getEngine().getMetrics().getBiome().put(p.getMilliseconds());
         } catch (Throwable e) {
             e.printStackTrace();

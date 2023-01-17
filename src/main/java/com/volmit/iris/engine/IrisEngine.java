@@ -244,8 +244,6 @@ public class IrisEngine implements Engine {
 
     @Override
     public IrisEngineData getEngineData() {
-        World w = null;
-
         return engineData.aquire(() -> {
             //TODO: Method this file
             File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + ".json");

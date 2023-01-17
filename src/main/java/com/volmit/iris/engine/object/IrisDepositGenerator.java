@@ -41,34 +41,34 @@ public class IrisDepositGenerator {
     private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
     @Required
     @MinNumber(0)
-    @MaxNumber(2032) // TODO: WARNING HEIGHT
+    @MaxNumber(8192) // TODO: WARNING HEIGHT
     @Desc("The minimum height this deposit can generate at")
-    private int minHeight = 7;
+    private int minHeight = 1;
     @Required
     @MinNumber(0)
-    @MaxNumber(2032) // TODO: WARNING HEIGHT
+    @MaxNumber(8192) // TODO: WARNING HEIGHT
     @Desc("The maximum height this deposit can generate at")
-    private int maxHeight = 55;
+    private int maxHeight = 75;
     @Required
-    @MinNumber(1)
+    @MinNumber(0)
     @MaxNumber(8192)
     @Desc("The minimum amount of deposit blocks per clump")
-    private int minSize = 3;
+    private int minSize = 0;
     @Required
-    @MinNumber(1)
+    @MinNumber(0)
     @MaxNumber(8192)
     @Desc("The maximum amount of deposit blocks per clump")
-    private int maxSize = 64;
+    private int maxSize = 128;
     @Required
-    @MinNumber(1)
-    @MaxNumber(128)
+    @MinNumber(0)
+    @MaxNumber(2048)
     @Desc("The maximum amount of clumps per chunk")
     private int maxPerChunk = 3;
     @Required
     @MinNumber(0)
-    @MaxNumber(128)
+    @MaxNumber(2048)
     @Desc("The minimum amount of clumps per chunk")
-    private int minPerChunk = 1;
+    private int minPerChunk = 0;
     @Required
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The palette of blocks to be used in this deposit generator")

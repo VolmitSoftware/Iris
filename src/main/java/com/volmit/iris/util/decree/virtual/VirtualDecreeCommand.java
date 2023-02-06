@@ -23,10 +23,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.decree.DecreeContext;
-import com.volmit.iris.util.decree.DecreeContextHandler;
-import com.volmit.iris.util.decree.DecreeNode;
-import com.volmit.iris.util.decree.DecreeParameter;
+import com.volmit.iris.util.decree.*;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.format.C;
@@ -378,6 +375,12 @@ public class VirtualDecreeCommand {
     public boolean invoke(VolmitSender sender, KList<String> args, KList<Integer> skip) {
         if (isStudio() && !IrisSettings.get().getStudio().isStudio()) {
             sender.sendMessage(C.RED + "To use Iris Studio Commands, please enable studio in Iris/settings.json (settings auto-reload)");
+            return false;
+        }
+
+        DecreeOrigin origin = type.getDeclaredAnnotation(Decree.class).origin();
+        if (origin.validFor(sender)) {
+            sender.sendMessage(C.RED + "This command has to be sent from another origin: " + C.GOLD + origin);
             return false;
         }
 

@@ -91,7 +91,7 @@ public class IrisImageMap {
             x = x % i.getWidth();
             x = x < 0 ? x + i.getWidth() : x; // Fix java's negative modulo shit
             z = z % i.getHeight();
-            z = z < 0 ? z + i.getHeight() : x; // Fix java's negative modulo shit
+            z = z < 0 ? z + i.getHeight() : z; // Fix java's negative modulo shit
         }
 
         // Retrieve value from image

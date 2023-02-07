@@ -442,7 +442,8 @@ public class IrisEntity extends IrisRegistrant {
 
         if (isSpecialType()) {
             if (specialType.toLowerCase().startsWith("mythicmobs:")) {
-                return Iris.linkMythicMobs.spawnMob(specialType.substring(11), at);
+                Iris.linkMythicMobs.spawnMob(specialType.substring(11), at);
+                return null;
             } else {
                 Iris.warn("Invalid mob type to spawn: '" + specialType + "'!");
                 return null;

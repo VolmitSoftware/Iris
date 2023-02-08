@@ -40,6 +40,7 @@ import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.IrisLock;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import com.volmit.iris.util.stream.ProceduralStream;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;

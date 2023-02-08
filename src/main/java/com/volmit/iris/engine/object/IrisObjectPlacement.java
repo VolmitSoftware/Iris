@@ -64,6 +64,12 @@ public class IrisObjectPlacement {
     private boolean isDolphinTarget = false;
     @Desc("The slope at which this object can be placed. Range from 0 to 10 by default. Calculated from the corners of the object.")
     private IrisSlopeClip slopeCondition = new IrisSlopeClip();
+    @Desc("Set to true to add the rotation of the direction of the slope of the terrain (wherever the slope is going down) to the y-axis rotation of the object. See also rotateTowardsSlopePrecise.")
+    private boolean rotateTowardsSlope = false;
+    @Desc("By default the 'rotateTowardsSlope' function simply calculates which direction" +
+            " (North East South or West) is the lowest, resulting in a 0, 90, 180 or 270 degree rotations. " +
+            "Setting this to true does a precise calculation, which may give unwanted side-effects due to non-90 degree rotations.")
+    private boolean rotateTowardsSlopePrecise = false;
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The chance for this to place in a chunk. If you need multiple per chunk, set this to 1 and use density.")

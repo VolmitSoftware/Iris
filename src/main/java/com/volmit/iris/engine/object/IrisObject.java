@@ -500,7 +500,13 @@ public class IrisObject extends IrisRegistrant {
         // Rotation calculation
         double slopeRotationY = 0;
         ProceduralStream<Double> heightStream = rdata.getEngine().getComplex().getHeightStream();
-        if (config.isRotateTowardsSlope()) {
+        if (config.isRotateTowardsSlopePrecise()) {
+            // I take three points which together make a plane that decently represents the slope beneath the object
+            double hNorth = heightStream.get(x, z + ((float)h) / 2);
+            double hEast = heightStream.get(x + ((float)w) / 2, z);
+            double hSouthWest = heightStream.get(x - ((float)w) / 2, z - ((float)h) / 2);
+            // TODO: Complex math
+        } else if (config.isRotateTowardsSlope()) {
             // TODO: Make this respect object rotation (I have no idea how. So just make sure your objects are sort of square and you'll be fine)
             // Whichever side of the rectangle that bounds the object is lowest is the 'direction' of the slope (simply said).
             double hNorth = heightStream.get(x, z + ((float)h) / 2);
@@ -517,12 +523,6 @@ public class IrisObject extends IrisRegistrant {
             } else if (min == hWest) {
                 slopeRotationY = 270;
             }
-        } else if (config.isRotateTowardsSlopePrecise()) {
-            // I take three points which together make a plane that decently represents the slope beneath the object
-            double hNorth = heightStream.get(x, z + ((float)h) / 2);
-            double hEast = heightStream.get(x + ((float)w) / 2, z);
-            double hSouthWest = heightStream.get(x - ((float)w) / 2, z - ((float)h) / 2);
-            // TODO: Complex math
         }
 
         if (config.isSmartBore()) {

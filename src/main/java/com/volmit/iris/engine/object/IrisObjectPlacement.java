@@ -62,6 +62,8 @@ public class IrisObjectPlacement {
     private double snow = 0;
     @Desc("Whether or not this object can be targeted by a dolphin.")
     private boolean isDolphinTarget = false;
+    @Desc("The slope at which this object can be placed. Range from 0 to 10 by default. Calculated from the corners of the object.")
+    private IrisSlopeClip slopeCondition = new IrisSlopeClip();
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The chance for this to place in a chunk. If you need multiple per chunk, set this to 1 and use density.")

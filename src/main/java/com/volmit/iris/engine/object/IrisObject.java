@@ -497,13 +497,6 @@ public class IrisObject extends IrisRegistrant {
     public int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, BiConsumer<BlockPosition, BlockData> listener, CarveResult c, IrisData rdata) {
         IObjectPlacer placer = (config.getHeightmap() != null) ? new HeightmapObjectPlacer(oplacer.getEngine() == null ? IrisContext.get().getEngine() : oplacer.getEngine(), rng, x, yv, z, config, oplacer) : oplacer;
 
-        // Slope calculation
-        if (!config.getSlopeCondition().isDefault() &&
-            !config.getSlopeCondition().isValid(rdata.getEngine().getComplex().getSlopeStream().get(x, z)))
-        {
-            return -1;
-        }
-
         // Rotation calculation
         double slopeRotationY = 0;
         ProceduralStream<Double> heightStream = rdata.getEngine().getComplex().getHeightStream();

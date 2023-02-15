@@ -379,7 +379,7 @@ public class VirtualDecreeCommand {
         }
 
         DecreeOrigin origin = type.getDeclaredAnnotation(Decree.class).origin();
-        if (origin.validFor(sender)) {
+        if (!origin.validFor(sender)) {
             sender.sendMessage(C.RED + "This command has to be sent from another origin: " + C.GOLD + origin);
             return false;
         }

@@ -63,7 +63,7 @@ public class IrisObjectPlacement {
     @Desc("Whether or not this object can be targeted by a dolphin.")
     private boolean isDolphinTarget = false;
     @Desc("Set to true to add the rotation of the direction of the slope of the terrain (wherever the slope is going down) to the y-axis rotation of the object." +
-            "Overwrites the y-axis of the rotation settings if set to true, and force-enables it. This is rounded by 90 degrees as to not fuck up your objects.")
+            "Rounded to 90 degrees. Adds the *min* rotation of the y axis as well (to still allow you to rotate objects nicely). Discards *max* and *interval* on *yaxis*")
     private boolean rotateTowardsSlope = false;
     @MinNumber(0)
     @MaxNumber(1)

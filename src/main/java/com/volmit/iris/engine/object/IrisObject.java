@@ -495,7 +495,7 @@ public class IrisObject extends IrisRegistrant {
         IObjectPlacer placer = (config.getHeightmap() != null) ? new HeightmapObjectPlacer(oplacer.getEngine() == null ? IrisContext.get().getEngine() : oplacer.getEngine(), rng, x, yv, z, config, oplacer) : oplacer;
 
         // Rotation calculation
-        double slopeRotationY = 0;
+        int slopeRotationY = 0;
         ProceduralStream<Double> heightStream = rdata.getEngine().getComplex().getHeightStream();
         if (config.isRotateTowardsSlope()) {
             // Whichever side of the rectangle that bounds the object is lowest is the 'direction' of the slope (simply said).
@@ -514,7 +514,8 @@ public class IrisObject extends IrisRegistrant {
                 slopeRotationY = 270;
             }
         }
-        config.getRotation().setYAxis(new IrisAxisRotationClamp(true, false, slopeRotationY, slopeRotationY, 360));
+        double newRotation = config.getRotation().getYAxis().getMin() + slopeRotationY;
+        config.getRotation().setYAxis(new IrisAxisRotationClamp(true, false, newRotation, newRotation, 360));
         config.getRotation().setEnabled(true);
 
         if (config.isSmartBore()) {

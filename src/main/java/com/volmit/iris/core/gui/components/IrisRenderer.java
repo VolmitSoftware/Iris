@@ -54,7 +54,7 @@ public class IrisRenderer {
                 int deltaHeight = renderer.getMaxHeight() - renderer.getMinHeight();
                 colorFunction = (x, z) -> {
                     double h = renderer.getComplex().getHeightStream().get(x, z);
-                    return new Color((int) (h / deltaHeight), 128, fluidHeight > h ? 0 : 255).getRGB();
+                    return new Color((int) (h * 255d / deltaHeight), 128, fluidHeight > h ? 0 : 255).getRGB();
                 };
             }
         }

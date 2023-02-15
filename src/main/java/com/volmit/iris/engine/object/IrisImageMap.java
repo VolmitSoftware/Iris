@@ -32,7 +32,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-@Snippet("carving")
+@Snippet("image-map")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -68,6 +68,7 @@ public class IrisImageMap {
         IrisImage i = imageCache.aquire(() -> data.getImageLoader().load(image));
         if (i == null) {
             Iris.error("NULL IMAGE FOR " + image);
+            return 0;
         }
 
         return IrisInterpolation.getNoise(interpolationMethod, x, z, coordinateScale, (xx, zz) -> rawNoise(i, xx, zz));
@@ -76,11 +77,27 @@ public class IrisImageMap {
     private double rawNoise(IrisImage i, double x, double z) {
         x /= coordinateScale;
         z /= coordinateScale;
-        x = isCentered() ? x + ((i.getWidth() / 2D) * coordinateScale) : x;
-        z = isCentered() ? z + ((i.getHeight() / 2D) * coordinateScale) : z;
-        x = isTiled() ? x % i.getWidth() : x;
-        z = isTiled() ? z % i.getHeight() : z;
+
+        // X and Z are now scaled to the image
+
+        // Add half the image width & height if centered
+        if (isCentered()) {
+            x += i.getWidth() / 2D;
+            z += i.getHeight() / 2D;
+        }
+
+        // If tiled modulo over width and height
+        if (isTiled()) {
+            x = x % i.getWidth();
+            x = x < 0 ? x + i.getWidth() : x; // Fix java's negative modulo shit
+            z = z % i.getHeight();
+            z = z < 0 ? z + i.getHeight() : z; // Fix java's negative modulo shit
+        }
+
+        // Retrieve value from image
         double v = i.getValue(getChannel(), (int) x, (int) z);
+
+        // Return value, or 1 - value if inverted (value is in double set [0, 1] so this will return [0, 1])
         return isInverted() ? 1D - v : v;
     }
 }

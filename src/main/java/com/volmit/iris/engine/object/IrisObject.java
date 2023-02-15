@@ -30,10 +30,7 @@ import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.json.JSONObject;
-import com.volmit.iris.util.math.AxisAlignedBB;
-import com.volmit.iris.util.math.BlockPosition;
-import com.volmit.iris.util.math.Position2;
-import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.math.*;
 import com.volmit.iris.util.matter.MatterMarker;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -500,18 +497,11 @@ public class IrisObject extends IrisRegistrant {
         // Rotation calculation
         double slopeRotationY = 0;
         ProceduralStream<Double> heightStream = rdata.getEngine().getComplex().getHeightStream();
-        if (config.isRotateTowardsSlopePrecise()) {
-            // I take three points which together make a plane that decently represents the slope beneath the object
-            double hNorth = heightStream.get(x, z + ((float)h) / 2);
-            double hEast = heightStream.get(x + ((float)w) / 2, z);
-            double hSouthWest = heightStream.get(x - ((float)w) / 2, z - ((float)h) / 2);
-            // TODO: Complex math
-        } else if (config.isRotateTowardsSlope()) {
-            // TODO: Make this respect object rotation. Currently takes the object without rotation to define the corner points.
+        if (config.isRotateTowardsSlope()) {
             // Whichever side of the rectangle that bounds the object is lowest is the 'direction' of the slope (simply said).
-            double hNorth = heightStream.get(x, z + ((float)h) / 2);
+            double hNorth = heightStream.get(x, z + ((float)d) / 2);
             double hEast = heightStream.get(x + ((float)w) / 2, z);
-            double hSouth = heightStream.get(x, z - ((float)h) / 2);
+            double hSouth = heightStream.get(x, z - ((float)d) / 2);
             double hWest = heightStream.get(x - ((float)w) / 2, z);
             double min = Math.min(Math.min(hNorth, hEast), Math.min(hSouth, hWest));
             if (min == hNorth) {
@@ -524,6 +514,8 @@ public class IrisObject extends IrisRegistrant {
                 slopeRotationY = 270;
             }
         }
+        config.getRotation().setYAxis(new IrisAxisRotationClamp(true, false, slopeRotationY, slopeRotationY, 360));
+        config.getRotation().setEnabled(true);
 
         if (config.isSmartBore()) {
             ensureSmartBored(placer.isDebugSmartBore());

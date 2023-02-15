@@ -62,12 +62,9 @@ public class IrisObjectPlacement {
     private double snow = 0;
     @Desc("Whether or not this object can be targeted by a dolphin.")
     private boolean isDolphinTarget = false;
-    @Desc("Set to true to add the rotation of the direction of the slope of the terrain (wherever the slope is going down) to the y-axis rotation of the object. See also rotateTowardsSlopePrecise.")
+    @Desc("Set to true to add the rotation of the direction of the slope of the terrain (wherever the slope is going down) to the y-axis rotation of the object." +
+            "Overwrites the y-axis of the rotation settings if set to true, and force-enables it. This is rounded by 90 degrees as to not fuck up your objects.")
     private boolean rotateTowardsSlope = false;
-    @Desc("By default the 'rotateTowardsSlope' function simply calculates which direction" +
-            " (North East South or West) is the lowest, resulting in a 0, 90, 180 or 270 degree rotations. " +
-            "Setting this to true does a precise calculation, which may give unwanted side-effects due to non-90 degree rotations.")
-    private boolean rotateTowardsSlopePrecise = false;
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The chance for this to place in a chunk. If you need multiple per chunk, set this to 1 and use density.")

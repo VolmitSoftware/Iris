@@ -49,6 +49,14 @@ public class IrisRenderer {
                     colorFunction = (x, z) -> renderer.getComplex().getCaveBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
             case HEIGHT ->
                     colorFunction = (x, z) -> Color.getHSBColor(renderer.getComplex().getHeightStream().get(x, z).floatValue(), 100, 100).getRGB();
+            case CONTINENT -> {
+                double fluidHeight = renderer.getComplex().getFluidHeight();
+                int deltaHeight = renderer.getMaxHeight() - renderer.getMinHeight();
+                colorFunction = (x, z) -> {
+                    double h = renderer.getComplex().getHeightStream().get(x, z);
+                    return new Color((int) (h * 255d / deltaHeight), 128, h > fluidHeight ? 0 : 255).getRGB();
+                };
+            }
         }
 
         double x, z;

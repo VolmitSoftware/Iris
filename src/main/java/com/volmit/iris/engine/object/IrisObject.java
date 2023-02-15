@@ -30,16 +30,14 @@ import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.json.JSONObject;
-import com.volmit.iris.util.math.AxisAlignedBB;
-import com.volmit.iris.util.math.BlockPosition;
-import com.volmit.iris.util.math.Position2;
-import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.math.*;
 import com.volmit.iris.util.matter.MatterMarker;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.IrisLock;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import com.volmit.iris.util.stream.ProceduralStream;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -496,12 +494,29 @@ public class IrisObject extends IrisRegistrant {
     public int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, BiConsumer<BlockPosition, BlockData> listener, CarveResult c, IrisData rdata) {
         IObjectPlacer placer = (config.getHeightmap() != null) ? new HeightmapObjectPlacer(oplacer.getEngine() == null ? IrisContext.get().getEngine() : oplacer.getEngine(), rng, x, yv, z, config, oplacer) : oplacer;
 
-        // Slope calculation
-        if (!config.getSlopeCondition().isDefault() &&
-            !config.getSlopeCondition().isValid(rdata.getEngine().getComplex().getSlopeStream().get(x, z)))
-        {
-            return -1;
+        // Rotation calculation
+        int slopeRotationY = 0;
+        ProceduralStream<Double> heightStream = rdata.getEngine().getComplex().getHeightStream();
+        if (config.isRotateTowardsSlope()) {
+            // Whichever side of the rectangle that bounds the object is lowest is the 'direction' of the slope (simply said).
+            double hNorth = heightStream.get(x, z + ((float)d) / 2);
+            double hEast = heightStream.get(x + ((float)w) / 2, z);
+            double hSouth = heightStream.get(x, z - ((float)d) / 2);
+            double hWest = heightStream.get(x - ((float)w) / 2, z);
+            double min = Math.min(Math.min(hNorth, hEast), Math.min(hSouth, hWest));
+            if (min == hNorth) {
+                slopeRotationY = 0;
+            } else if (min == hEast) {
+                slopeRotationY = 90;
+            } else if (min == hSouth) {
+                slopeRotationY = 180;
+            } else if (min == hWest) {
+                slopeRotationY = 270;
+            }
         }
+        double newRotation = config.getRotation().getYAxis().getMin() + slopeRotationY;
+        config.getRotation().setYAxis(new IrisAxisRotationClamp(true, false, newRotation, newRotation, 360));
+        config.getRotation().setEnabled(true);
 
         if (config.isSmartBore()) {
             ensureSmartBored(placer.isDebugSmartBore());

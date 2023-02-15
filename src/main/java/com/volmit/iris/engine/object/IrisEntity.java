@@ -154,6 +154,9 @@ public class IrisEntity extends IrisRegistrant {
     @Desc("Create a mob from another plugin, such as Mythic Mobs. Should be in the format of a namespace of PluginName:MobName")
     private String specialType = "";
 
+    @Desc("Set to true if you want to apply all of the settings here to the mob, even though an external plugin has already done so. Scripts are always applied.")
+    private boolean applySettingsToCustomMobAnyways = false;
+
     @Desc("Set the entity type to UNKNOWN, then define a script here which ends with the entity variable (the result). You can use Iris.getLocation() to find the target location. You can spawn any entity this way.")
     @RegistryListResource(IrisScript.class)
     private String spawnerScript = "";
@@ -209,6 +212,10 @@ public class IrisEntity extends IrisRegistrant {
                     ex.printStackTrace();
                 }
             }
+        }
+
+        if (isSpecialType() && !applySettingsToCustomMobAnyways) {
+            return ee;
         }
 
         if (ee == null) {

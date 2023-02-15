@@ -507,7 +507,7 @@ public class IrisObject extends IrisRegistrant {
             double hSouthWest = heightStream.get(x - ((float)w) / 2, z - ((float)h) / 2);
             // TODO: Complex math
         } else if (config.isRotateTowardsSlope()) {
-            // TODO: Make this respect object rotation (I have no idea how. So just make sure your objects are sort of square and you'll be fine)
+            // TODO: Make this respect object rotation. Currently takes the object without rotation to define the corner points.
             // Whichever side of the rectangle that bounds the object is lowest is the 'direction' of the slope (simply said).
             double hNorth = heightStream.get(x, z + ((float)h) / 2);
             double hEast = heightStream.get(x + ((float)w) / 2, z);

@@ -484,11 +484,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         });
     }
 
-    public IrisBiome infer(InferredType t, InferredType type) {
-        setInferredType(t.equals(InferredType.DEFER) ? type : t);
-        return this;
-    }
-
     public KList<BlockData> generateSeaLayers(double wx, double wz, RNG random, int maxDepth, IrisData rdata) {
         KList<BlockData> data = new KList<>();
 

@@ -495,11 +495,14 @@ public class Mantle {
                     Iris.debug("Loaded Tectonic Plate " + C.DARK_GREEN + x + " " + z + C.DARK_AQUA + " " + file.getName());
                 } catch (Throwable e) {
                     Iris.error("Failed to read Tectonic Plate " + file.getAbsolutePath() + " creating a new chunk instead.");
-                    Iris.reportError(e);
-                    if (!(e instanceof EOFException)) {
-                        e.printStackTrace();
+                    // TODO: Dan fix the actual issue
+                    if (!(e instanceof EOFException && e.getMessage().contains("Unexpected end of ZLIB input stream"))) {
+                        Iris.reportError(e);
+                        if (!(e instanceof EOFException)) {
+                            e.printStackTrace();
+                        }
+                        Iris.panic();
                     }
-                    Iris.panic();
                     region = new TectonicPlate(worldHeight, x, z);
                     loadedRegions.put(k, region);
                     Iris.debug("Created new Tectonic Plate (Due to Load Failure) " + C.DARK_GREEN + x + " " + z);

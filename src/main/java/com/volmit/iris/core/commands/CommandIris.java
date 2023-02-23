@@ -325,7 +325,7 @@ public class CommandIris implements DecreeExecutor {
                     C.YELLOW + " - Caves not lining up",
                     C.YELLOW + " - Terrain layers not lining up",
                     C.RED + "Now that you are aware of the risks, and have made a back-up:",
-                    C.RED + "/iris ^world <world> <pack> confirm=true"
+                    C.RED + "/iris ^world " + world.getName() + " " + pack.getLoadKey() + " confirm=true"
             });
             return;
         }

@@ -342,17 +342,4 @@ public class CommandIris implements DecreeExecutor {
 
         Iris.service(StudioSVC.class).installIntoWorld(sender(), pack.getLoadKey(), folder);
     }
-
-    @Decree(description = "Spawn an entity", aliases = "summon", origin = DecreeOrigin.PLAYER)
-    public void spawn(
-            @Param(description = "The entity to spawn")
-            IrisEntity entity,
-            @Param(description = "The location to spawn the entity at", contextual = true)
-            Vector location
-    ) {
-        if (!IrisToolbelt.isIrisWorld(player().getWorld())) {
-            sender().sendMessage(C.RED + "You have to be in an Iris world to spawn entities properly. Trying to spawn the best we can do.");
-        }
-        entity.spawn(engine(), new Location(world(), location.getX(), location.getY(), location.getZ()));
-    }
 }

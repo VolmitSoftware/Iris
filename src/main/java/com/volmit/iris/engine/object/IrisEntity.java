@@ -420,7 +420,7 @@ public class IrisEntity extends IrisRegistrant {
             return null;
         }
 
-        if (type.equals(EntityType.UNKNOWN)) {
+        if (type.equals(EntityType.UNKNOWN) && !isSpecialType()) {
             return null;
         }
 

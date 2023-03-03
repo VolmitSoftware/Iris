@@ -37,7 +37,7 @@ def main = 'com.volmit.iris.Iris'
 registerCustomOutputTask('Cyberpwn', 'C://Users/cyberpwn/Documents/development/server/plugins')
 registerCustomOutputTask('Psycho', 'C://Dan/MinecraftDevelopment/Server/plugins')
 registerCustomOutputTask('ArcaneArts', 'C://Users/arcane/Documents/development/server/plugins')
-registerCustomOutputTask('Coco', 'D://Documents/MC/plugins')
+registerCustomOutputTask('Coco', 'D://mcsm/plugins')
 registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins')
 registerCustomOutputTask('Vatuu', 'D://Minecraft/Servers/1.19.3/plugins')
 // ========================== UNIX ==============================

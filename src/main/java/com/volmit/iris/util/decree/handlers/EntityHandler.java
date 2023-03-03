@@ -83,7 +83,7 @@ public class EntityHandler implements DecreeParameterHandler<IrisEntity> {
         try {
             return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
         } catch (Throwable e) {
-            throw new DecreeParsingException("Unable to filter which Biome \"" + in + "\"");
+            throw new DecreeParsingException("Unable to filter which Entity \"" + in + "\"");
         }
     }
 

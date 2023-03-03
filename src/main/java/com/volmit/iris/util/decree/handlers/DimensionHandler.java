@@ -70,7 +70,7 @@ public class DimensionHandler implements DecreeParameterHandler<IrisDimension> {
         try {
             return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).toList().get(0);
         } catch (Throwable e) {
-            throw new DecreeParsingException("Unable to filter which Biome \"" + in + "\"");
+            throw new DecreeParsingException("Unable to filter which Dimension \"" + in + "\"");
         }
     }
 

@@ -464,19 +464,16 @@ public class CommandStudio implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Done! " + report.getPath());
     }
 
-    @Decree(description = "Summon an Iris Entity", origin = DecreeOrigin.PLAYER)
-    public void summon(
-            @Param(description = "The Iris Entity to spawn")
+    @Decree(description = "Spawn an Iris entity", aliases = "summon", origin = DecreeOrigin.PLAYER)
+    public void spawn(
+            @Param(description = "The entity to spawn")
             IrisEntity entity,
-            @Param(description = "The location at which to spawn the entity", defaultValue = "self")
+            @Param(description = "The location to spawn the entity at", contextual = true)
             Vector location
     ) {
-        if (!sender().isPlayer()) {
-            sender().sendMessage(C.RED + "Players only (this is a config error. Ask support to add DecreeOrigin.PLAYER to the command you tried to run)");
-            return;
+        if (!IrisToolbelt.isIrisWorld(player().getWorld())) {
+            sender().sendMessage(C.RED + "You have to be in an Iris world to spawn entities properly. Trying to spawn the best we can do.");
         }
-
-        sender().sendMessage(C.GREEN + "Spawning entity");
         entity.spawn(engine(), new Location(world(), location.getX(), location.getY(), location.getZ()));
     }
 

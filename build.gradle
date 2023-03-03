@@ -75,7 +75,7 @@ repositories {
         }
     }
     maven { url "https://arcanearts.jfrog.io/artifactory/archives" }
-
+    maven { url "https://mvn.lumine.io/repository/maven-public/" }
 }
 
 /**
@@ -134,6 +134,7 @@ dependencies {
     implementation "net.kyori:adventure-text-minimessage:4.11.0"
     implementation 'net.kyori:adventure-platform-bukkit:4.1.0'
     implementation 'net.kyori:adventure-api:4.11.0'
+    implementation 'io.lumine:Mythic-Dist:5.2.1'
 
     // Dynamically Loaded
     implementation 'io.timeandspace:smoothie-map:2.0.2'

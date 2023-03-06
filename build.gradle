@@ -37,7 +37,7 @@ def main = 'com.volmit.iris.Iris'
 registerCustomOutputTask('Cyberpwn', 'C://Users/cyberpwn/Documents/development/server/plugins')
 registerCustomOutputTask('Psycho', 'C://Dan/MinecraftDevelopment/Server/plugins')
 registerCustomOutputTask('ArcaneArts', 'C://Users/arcane/Documents/development/server/plugins')
-registerCustomOutputTask('Coco', 'D://Documents/MC/plugins')
+registerCustomOutputTask('Coco', 'D://mcsm/plugins')
 registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins')
 registerCustomOutputTask('Vatuu', 'D://Minecraft/Servers/1.19.3/plugins')
 // ========================== UNIX ==============================
@@ -75,7 +75,7 @@ repositories {
         }
     }
     maven { url "https://arcanearts.jfrog.io/artifactory/archives" }
-
+    maven { url "https://mvn.lumine.io/repository/maven-public/" }
 }
 
 /**
@@ -134,6 +134,7 @@ dependencies {
     implementation "net.kyori:adventure-text-minimessage:4.11.0"
     implementation 'net.kyori:adventure-platform-bukkit:4.1.0'
     implementation 'net.kyori:adventure-api:4.11.0'
+    implementation 'io.lumine:Mythic-Dist:5.2.1'
 
     // Dynamically Loaded
     implementation 'io.timeandspace:smoothie-map:2.0.2'

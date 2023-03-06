@@ -220,7 +220,6 @@ public class IrisComplex implements DataProvider {
                 return seaBiomeStream;
             case SHORE:
                 return shoreBiomeStream;
-            case DEFER:
             default:
                 break;
         }

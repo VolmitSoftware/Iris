@@ -56,7 +56,7 @@ public class ExternalDataSVC implements IrisService {
     }
 
     public Optional<BlockData> getBlockData(NamespacedKey key) {
-        Optional<ExternalDataProvider> provider = providers.stream().filter(p -> p.isPresent() && p.isValidProvider(key)).findFirst();
+        Optional<ExternalDataProvider> provider = providers.stream().filter(p -> p.isPresent() && p.isValidProvider(key, false)).findFirst();
         if (provider.isEmpty())
             return Optional.empty();
         try {
@@ -68,9 +68,11 @@ public class ExternalDataSVC implements IrisService {
     }
 
     public Optional<ItemStack> getItemStack(NamespacedKey key) {
-        Optional<ExternalDataProvider> provider = providers.stream().filter(p -> p.isPresent() && p.isValidProvider(key)).findFirst();
-        if (provider.isEmpty())
+        Optional<ExternalDataProvider> provider = providers.stream().filter(p -> p.isPresent() && p.isValidProvider(key, true)).findFirst();
+        if (provider.isEmpty()) {
+            Iris.warn("No matching Provider found for modded material \"%s\"!", key);
             return Optional.empty();
+        }
         try {
             return Optional.of(provider.get().getItemStack(key));
         } catch (MissingResourceException e) {
@@ -79,9 +81,15 @@ public class ExternalDataSVC implements IrisService {
         }
     }
 
-    public NamespacedKey[] getAllIdentifiers() {
+    public NamespacedKey[] getAllBlockIdentifiers() {
         KList<NamespacedKey> names = new KList<>();
         providers.stream().filter(ExternalDataProvider::isPresent).forEach(p -> names.add(p.getBlockTypes()));
+        return names.toArray(new NamespacedKey[0]);
+    }
+
+    public NamespacedKey[] getAllItemIdentifiers() {
+        KList<NamespacedKey> names = new KList<>();
+        providers.stream().filter(ExternalDataProvider::isPresent).forEach(p -> names.add(p.getItemTypes()));
         return names.toArray(new NamespacedKey[0]);
     }
 }

@@ -152,7 +152,7 @@ public class IrisLoot {
             Optional<ItemStack> opt = Iris.service(ExternalDataSVC.class).getItemStack(NamespacedKey.fromString(type));
             if (opt.isEmpty()) {
                 Iris.warn("Unknown Material: " + type);
-                return null;
+                return new ItemStack(Material.AIR);
             }
             ItemStack is = opt.get();
             is.setAmount(Math.max(1, rng.i(getMinAmount(), getMaxAmount())));
@@ -198,8 +198,10 @@ public class IrisLoot {
             colorable.setColor(getDyeColor());
         }
 
-        m.setLocalizedName(C.translateAlternateColorCodes('&', displayName));
-        m.setDisplayName(C.translateAlternateColorCodes('&', displayName));
+        if(displayName != null) {
+            m.setLocalizedName(C.translateAlternateColorCodes('&', displayName));
+            m.setDisplayName(C.translateAlternateColorCodes('&', displayName));
+        }
 
         KList<String> lore = new KList<>();
 

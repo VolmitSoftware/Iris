@@ -647,7 +647,7 @@ public class B {
             }
         }
 
-        for (NamespacedKey id : Iris.service(ExternalDataSVC.class).getAllIdentifiers())
+        for (NamespacedKey id : Iris.service(ExternalDataSVC.class).getAllBlockIdentifiers())
             bt.add(id.toString());
         bt.addAll(custom.k());
 
@@ -661,6 +661,9 @@ public class B {
             String v = i.name().toLowerCase().trim();
             bt.add(v);
         }
+
+        for (NamespacedKey id : Iris.service(ExternalDataSVC.class).getAllItemIdentifiers())
+            bt.add(id.toString());
 
         return bt.toArray(new String[0]);
     }

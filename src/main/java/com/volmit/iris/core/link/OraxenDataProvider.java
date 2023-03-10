@@ -20,14 +20,14 @@ package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
+import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.items.ItemBuilder;
-import io.th0rgal.oraxen.items.OraxenItems;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.block.BlockMechanic;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.block.BlockMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicFactory;
-import io.th0rgal.oraxen.utils.Utils;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.StringBlockMechanicFactory;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -64,13 +64,15 @@ public class OraxenDataProvider extends ExternalDataProvider {
 
     @Override
     public BlockData getBlockData(NamespacedKey blockId) throws MissingResourceException {
-        MechanicFactory f = getFactory(blockId);
-        if (f instanceof NoteBlockMechanicFactory)
-            return ((NoteBlockMechanicFactory) f).createNoteBlockData(blockId.getKey());
-        else if (f instanceof BlockMechanicFactory) {
+        MechanicFactory factory = getFactory(blockId);
+        if (factory instanceof NoteBlockMechanicFactory f)
+            return f.createNoteBlockData(blockId.getKey());
+        else if (factory instanceof BlockMechanicFactory f) {
             MultipleFacing newBlockData = (MultipleFacing) Bukkit.createBlockData(Material.MUSHROOM_STEM);
-            Utils.setBlockFacing(newBlockData, ((BlockMechanic) f.getMechanic(blockId.getKey())).getCustomVariation());
+            BlockMechanic.setBlockFacing(newBlockData, ((BlockMechanic) f.getMechanic(blockId.getKey())).getCustomVariation());
             return newBlockData;
+        } else if (factory instanceof StringBlockMechanicFactory f) {
+            return f.createTripwireData(blockId.getKey());
         } else
             throw new MissingResourceException("Failed to find BlockData!", blockId.getNamespace(), blockId.getKey());
     }
@@ -89,8 +91,21 @@ public class OraxenDataProvider extends ExternalDataProvider {
                 NamespacedKey key = new NamespacedKey("oraxen", name);
                 if (getBlockData(key) != null)
                     names.add(key);
-            } catch (MissingResourceException ignored) {
-            }
+            } catch (MissingResourceException ignored) { }
+        }
+
+        return names.toArray(new NamespacedKey[0]);
+    }
+
+    @Override
+    public NamespacedKey[] getItemTypes() {
+        KList<NamespacedKey> names = new KList<>();
+        for (String name : OraxenItems.getItemNames()) {
+            try {
+                NamespacedKey key = new NamespacedKey("oraxen", name);
+                if (getItemStack(key) != null)
+                    names.add(key);
+            } catch (MissingResourceException ignored) { }
         }
 
         return names.toArray(new NamespacedKey[0]);
@@ -102,7 +117,7 @@ public class OraxenDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public boolean isValidProvider(NamespacedKey key) {
+    public boolean isValidProvider(NamespacedKey key, boolean isItem) {
         return key.getNamespace().equalsIgnoreCase("oraxen");
     }
 

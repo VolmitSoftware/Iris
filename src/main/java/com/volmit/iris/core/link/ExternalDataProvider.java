@@ -32,5 +32,7 @@ public abstract class ExternalDataProvider {
 
     public abstract NamespacedKey[] getBlockTypes();
 
-    public abstract boolean isValidProvider(NamespacedKey namespace);
+    public abstract NamespacedKey[] getItemTypes();
+
+    public abstract boolean isValidProvider(NamespacedKey namespace, boolean isItem);
 }

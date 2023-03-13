@@ -20,6 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
@@ -149,7 +150,7 @@ public class IrisLoot {
     // TODO Better Third Party Item Acquisition
     private ItemStack getItemStack(RNG rng) {
         if (!type.startsWith("minecraft:") && type.contains(":")) {
-            Optional<ItemStack> opt = Iris.service(ExternalDataSVC.class).getItemStack(NamespacedKey.fromString(type));
+            Optional<ItemStack> opt = Iris.service(ExternalDataSVC.class).getItemStack(Identifier.fromString(type));
             if (opt.isEmpty()) {
                 Iris.warn("Unknown Material: " + type);
                 return new ItemStack(Material.AIR);

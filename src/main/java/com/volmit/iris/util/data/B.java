@@ -20,6 +20,7 @@ package com.volmit.iris.util.data;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -27,7 +28,6 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import it.unimi.dsi.fastutil.ints.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
@@ -471,7 +471,7 @@ public class B {
             BlockData bx = null;
 
             if (!ix.startsWith("minecraft:") && ix.contains(":")) {
-                NamespacedKey key = NamespacedKey.fromString(ix);
+                Identifier key = Identifier.fromString(ix);
                 Optional<BlockData> bd = Iris.service(ExternalDataSVC.class).getBlockData(key);
                 if (bd.isPresent())
                     bx = bd.get();
@@ -647,7 +647,7 @@ public class B {
             }
         }
 
-        for (NamespacedKey id : Iris.service(ExternalDataSVC.class).getAllBlockIdentifiers())
+        for (Identifier id : Iris.service(ExternalDataSVC.class).getAllBlockIdentifiers())
             bt.add(id.toString());
         bt.addAll(custom.k());
 
@@ -662,7 +662,7 @@ public class B {
             bt.add(v);
         }
 
-        for (NamespacedKey id : Iris.service(ExternalDataSVC.class).getAllItemIdentifiers())
+        for (Identifier id : Iris.service(ExternalDataSVC.class).getAllItemIdentifiers())
             bt.add(id.toString());
 
         return bt.toArray(new String[0]);

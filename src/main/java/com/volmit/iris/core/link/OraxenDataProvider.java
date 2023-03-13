@@ -20,6 +20,7 @@ package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.reflect.WrappedField;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.items.ItemBuilder;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
@@ -30,7 +31,6 @@ import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanic
 import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.StringBlockMechanicFactory;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.MultipleFacing;
 import org.bukkit.inventory.ItemStack;
@@ -44,7 +44,7 @@ public class OraxenDataProvider extends ExternalDataProvider {
 
     private static final String FIELD_FACTORIES_MAP = "FACTORIES_BY_MECHANIC_ID";
 
-    private Map<String, MechanicFactory> factories;
+    private WrappedField<MechanicsManager, Map<String, MechanicFactory>> factories;
 
     public OraxenDataProvider() {
         super("Oraxen");
@@ -52,63 +52,59 @@ public class OraxenDataProvider extends ExternalDataProvider {
 
     @Override
     public void init() {
-        try {
-            Field f = MechanicsManager.class.getDeclaredField(FIELD_FACTORIES_MAP);
-            f.setAccessible(true);
-            factories = (Map<String, MechanicFactory>) f.get(null);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            Iris.error("Failed to set up Oraxen Link:");
-            Iris.error("\t" + e.getClass().getSimpleName());
+        this.factories = new WrappedField<>(MechanicsManager.class, FIELD_FACTORIES_MAP);
+        if(this.factories.hasFailed()) {
+            Iris.error("Failed to set up Oraxen Link: Unable to fetch MechanicFactoriesMap!");
         }
     }
 
     @Override
-    public BlockData getBlockData(NamespacedKey blockId) throws MissingResourceException {
+    public BlockData getBlockData(Identifier blockId) throws MissingResourceException {
         MechanicFactory factory = getFactory(blockId);
         if (factory instanceof NoteBlockMechanicFactory f)
-            return f.createNoteBlockData(blockId.getKey());
+            return f.createNoteBlockData(blockId.key());
         else if (factory instanceof BlockMechanicFactory f) {
             MultipleFacing newBlockData = (MultipleFacing) Bukkit.createBlockData(Material.MUSHROOM_STEM);
-            BlockMechanic.setBlockFacing(newBlockData, ((BlockMechanic) f.getMechanic(blockId.getKey())).getCustomVariation());
+            BlockMechanic.setBlockFacing(newBlockData, ((BlockMechanic) f.getMechanic(blockId.key())).getCustomVariation());
             return newBlockData;
         } else if (factory instanceof StringBlockMechanicFactory f) {
-            return f.createTripwireData(blockId.getKey());
+            return f.createTripwireData(blockId.key());
         } else
-            throw new MissingResourceException("Failed to find BlockData!", blockId.getNamespace(), blockId.getKey());
+            throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
     }
 
     @Override
-    public ItemStack getItemStack(NamespacedKey itemId) throws MissingResourceException {
-        Optional<ItemBuilder> opt = OraxenItems.getOptionalItemById(itemId.getKey());
-        return opt.orElseThrow(() -> new MissingResourceException("Failed to find ItemData!", itemId.getNamespace(), itemId.getKey())).build();
+    public ItemStack getItemStack(Identifier itemId) throws MissingResourceException {
+        Optional<ItemBuilder> opt = OraxenItems.getOptionalItemById(itemId.key());
+        return opt.orElseThrow(() -> new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key())).build();
     }
 
     @Override
-    public NamespacedKey[] getBlockTypes() {
-        KList<NamespacedKey> names = new KList<>();
+    public Identifier[] getBlockTypes() {
+        KList<Identifier> names = new KList<>();
         for (String name : OraxenItems.getItemNames()) {
             try {
-                NamespacedKey key = new NamespacedKey("oraxen", name);
+                Identifier key = new Identifier("oraxen", name);
                 if (getBlockData(key) != null)
                     names.add(key);
             } catch (MissingResourceException ignored) { }
         }
 
-        return names.toArray(new NamespacedKey[0]);
+        return names.toArray(new Identifier[0]);
     }
 
     @Override
-    public NamespacedKey[] getItemTypes() {
-        KList<NamespacedKey> names = new KList<>();
+    public Identifier[] getItemTypes() {
+        KList<Identifier> names = new KList<>();
         for (String name : OraxenItems.getItemNames()) {
             try {
-                NamespacedKey key = new NamespacedKey("oraxen", name);
+                Identifier key = new Identifier("oraxen", name);
                 if (getItemStack(key) != null)
                     names.add(key);
             } catch (MissingResourceException ignored) { }
         }
 
-        return names.toArray(new NamespacedKey[0]);
+        return names.toArray(new Identifier[0]);
     }
 
     @Override
@@ -117,14 +113,14 @@ public class OraxenDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public boolean isValidProvider(NamespacedKey key, boolean isItem) {
-        return key.getNamespace().equalsIgnoreCase("oraxen");
+    public boolean isValidProvider(Identifier key, boolean isItem) {
+        return key.namespace().equalsIgnoreCase("oraxen");
     }
 
-    private MechanicFactory getFactory(NamespacedKey key) throws MissingResourceException {
-        return factories.values().stream()
-                .filter(i -> i.getItems().contains(key.getKey()))
+    private MechanicFactory getFactory(Identifier key) throws MissingResourceException {
+        return factories.get().values().stream()
+                .filter(i -> i.getItems().contains(key.key()))
                 .findFirst()
-                .orElseThrow(() -> new MissingResourceException("Failed to find BlockData!", key.getNamespace(), key.getKey()));
+                .orElseThrow(() -> new MissingResourceException("Failed to find BlockData!", key.namespace(), key.key()));
     }
 }

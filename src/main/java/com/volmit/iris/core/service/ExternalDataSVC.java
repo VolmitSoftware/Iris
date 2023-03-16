@@ -38,9 +38,9 @@ public class ExternalDataSVC implements IrisService {
     @Override
     public void onEnable() {
         addProvider(
+//                new CustomItemsDataProvider(), //need this to be gradelized before i can add it to the master repo
                 new OraxenDataProvider(),
-                new ItemAdderDataProvider(),
-                new CustomItemsDataProvider());
+                new ItemAdderDataProvider());
     }
 
     @Override

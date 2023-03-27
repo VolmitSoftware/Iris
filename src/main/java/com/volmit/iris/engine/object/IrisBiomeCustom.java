@@ -120,6 +120,7 @@ public class IrisBiomeCustom {
         j.put("temperature", getTemperature());
         j.put("downfall", getHumidity());
         j.put("creature_spawn_probability", getSpawnRarity());
+        j.put("has_precipitation", getDownfallType() != IrisBiomeCustomPrecipType.none);
         j.put("precipitation", getDownfallType().toString().toLowerCase());
         j.put("category", getCategory().toString().toLowerCase());
         j.put("effects", effects);

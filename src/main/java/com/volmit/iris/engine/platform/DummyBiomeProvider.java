@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 
 public class DummyBiomeProvider extends BiomeProvider {
-    private final List<Biome> ALL = new KList<>(Biome.values()).qdel(Biome.CUSTOM);
+    private final List<Biome> ALL = new KList<>(Biome.values()).qdel(Biome.CHERRY_GROVE).qdel(Biome.CUSTOM);
 
     @NotNull
     @Override

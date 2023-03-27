@@ -24,11 +24,11 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '2.4.3-1.19.3'
-def nmsVersion = "1.19.3" //[NMS]
+version '2.4.3-1.19.4'
+def nmsVersion = "1.19.4" //[NMS]
 def apiVersion = '1.19'
 def specialSourceVersion = '1.11.0' //[NMS]
-def spigotJarVersion = '1.19.3-R0.1-SNAPSHOT' //[NMS]
+def spigotJarVersion = '1.19.4-R0.1-SNAPSHOT' //[NMS]
 def name = getRootProject().getName() // Defined in settings.gradle
 def main = 'com.volmit.iris.Iris'
 
@@ -39,7 +39,7 @@ registerCustomOutputTask('Psycho', 'C://Dan/MinecraftDevelopment/Server/plugins'
 registerCustomOutputTask('ArcaneArts', 'C://Users/arcane/Documents/development/server/plugins')
 registerCustomOutputTask('Coco', 'D://mcsm/plugins')
 registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins')
-registerCustomOutputTask('Vatuu', 'D://Minecraft/Servers/1.19.3/plugins')
+registerCustomOutputTask('Vatuu', 'D://Minecraft/Servers/1.19.4/plugins')
 // ========================== UNIX ==============================
 registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/development/server/plugins')
 registerCustomOutputTaskUnix('PsychoLT', '/Users/brianfopiano/Desktop/REMOTES/RemoteMinecraft/plugins')
@@ -129,8 +129,8 @@ dependencies {
     // Provided or Classpath
     compileOnly 'org.projectlombok:lombok:1.18.24'
     annotationProcessor 'org.projectlombok:lombok:1.18.24'
-    implementation 'org.spigotmc:spigot-api:1.19.3-R0.1-SNAPSHOT'
-    implementation 'org.bukkit:craftbukkit:1.19.3-R0.1-SNAPSHOT:remapped-mojang' //[NMS]
+    implementation 'org.spigotmc:spigot-api:1.19.4-R0.1-SNAPSHOT'
+    implementation 'org.bukkit:craftbukkit:1.19.4-R0.1-SNAPSHOT:remapped-mojang' //[NMS]
 
     // Third Party Integrations
     implementation 'com.github.oraxen:oraxen:1.152.5'

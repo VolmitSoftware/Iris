@@ -29,7 +29,7 @@ import net.minecraft.core.BlockPos;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
-import org.bukkit.craftbukkit.v1_19_R2.entity.CraftDolphin;
+import org.bukkit.craftbukkit.v1_19_R3.entity.CraftDolphin;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;

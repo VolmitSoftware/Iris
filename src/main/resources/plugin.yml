@@ -21,4 +21,6 @@ commands:
   iris:
     aliases: [ ir, irs ]
 api-version: ${apiversion}
+softdepend:
+  - ItemsAdder
 hotload-dependencies: false

@@ -92,6 +92,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @Setter
     private StudioGenerator studioGenerator;
 
+    private boolean initialized = false;
+
     public BukkitChunkGenerator(IrisWorld world, boolean studio, File dataLocation, String dimensionKey) {
         setup = new AtomicBoolean(false);
         studioGenerator = null;
@@ -124,21 +126,23 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @EventHandler
     public void onWorldInit(WorldInitEvent event) {
         try {
-            if (world.name().equals(event.getWorld().getName()) && world.getRawWorldSeed() == event.getWorld().getSeed()) {
-                ServerLevel serverLevel = ((CraftWorld) event.getWorld()).getHandle();
-                Engine engine = getEngine(event.getWorld());
-                Class<?> clazz = serverLevel.getChunkSource().chunkMap.generator.getClass();
-                Field biomeSource = getField(clazz, "b");
-                biomeSource.setAccessible(true);
-                Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
-                unsafeField.setAccessible(true);
-                Unsafe unsafe = (Unsafe) unsafeField.get(null);
-                CustomBiomeSource customBiomeSource = new CustomBiomeSource(event.getWorld().getSeed(), engine, event.getWorld());
-                unsafe.putObject(biomeSource.get(serverLevel.getChunkSource().chunkMap.generator), unsafe.objectFieldOffset(biomeSource), customBiomeSource);
-                biomeSource.set(serverLevel.getChunkSource().chunkMap.generator, customBiomeSource);
-                Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
-            } else {
-                Iris.info("World " + event.getWorld().getName() + " is not an Iris world in this context");
+            if(!initialized) {
+                world.setRawWorldSeed(event.getWorld().getSeed());
+                if (world.name().equals(event.getWorld().getName())) {
+                    ServerLevel serverLevel = ((CraftWorld) event.getWorld()).getHandle();
+                    Engine engine = getEngine(event.getWorld());
+                    Class<?> clazz = serverLevel.getChunkSource().chunkMap.generator.getClass();
+                    Field biomeSource = getField(clazz, "b");
+                    biomeSource.setAccessible(true);
+                    Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                    unsafeField.setAccessible(true);
+                    Unsafe unsafe = (Unsafe) unsafeField.get(null);
+                    CustomBiomeSource customBiomeSource = new CustomBiomeSource(event.getWorld().getSeed(), engine, event.getWorld());
+                    unsafe.putObject(biomeSource.get(serverLevel.getChunkSource().chunkMap.generator), unsafe.objectFieldOffset(biomeSource), customBiomeSource);
+                    biomeSource.set(serverLevel.getChunkSource().chunkMap.generator, customBiomeSource);
+                    Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
+                    initialized = true;
+                }
             }
         } catch (Throwable e) {
             e.printStackTrace();

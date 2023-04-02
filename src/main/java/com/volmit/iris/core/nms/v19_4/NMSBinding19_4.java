@@ -394,7 +394,6 @@ public class NMSBinding19_4 implements INMSBinding {
             return f;
         }
         try {
-
             f = storage.getClass().getDeclaredField("biome");
             f.setAccessible(true);
             return f;

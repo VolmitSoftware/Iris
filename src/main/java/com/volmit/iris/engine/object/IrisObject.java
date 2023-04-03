@@ -494,35 +494,37 @@ public class IrisObject extends IrisRegistrant {
     public int place(int x, int yv, int z, IObjectPlacer oplacer, IrisObjectPlacement config, RNG rng, BiConsumer<BlockPosition, BlockData> listener, CarveResult c, IrisData rdata) {
         IObjectPlacer placer = (config.getHeightmap() != null) ? new HeightmapObjectPlacer(oplacer.getEngine() == null ? IrisContext.get().getEngine() : oplacer.getEngine(), rng, x, yv, z, config, oplacer) : oplacer;
 
-        // Slope condition
-        if (!config.getSlopeCondition().isDefault() &&
-            !config.getSlopeCondition().isValid(rdata.getEngine().getComplex().getSlopeStream().get(x, z))) {
-            return -1;
-        }
-
-        // Rotation calculation
-        int slopeRotationY = 0;
-        ProceduralStream<Double> heightStream = rdata.getEngine().getComplex().getHeightStream();
-        if (config.isRotateTowardsSlope()) {
-            // Whichever side of the rectangle that bounds the object is lowest is the 'direction' of the slope (simply said).
-            double hNorth = heightStream.get(x, z + ((float)d) / 2);
-            double hEast = heightStream.get(x + ((float)w) / 2, z);
-            double hSouth = heightStream.get(x, z - ((float)d) / 2);
-            double hWest = heightStream.get(x - ((float)w) / 2, z);
-            double min = Math.min(Math.min(hNorth, hEast), Math.min(hSouth, hWest));
-            if (min == hNorth) {
-                slopeRotationY = 0;
-            } else if (min == hEast) {
-                slopeRotationY = 90;
-            } else if (min == hSouth) {
-                slopeRotationY = 180;
-            } else if (min == hWest) {
-                slopeRotationY = 270;
+        if (rdata != null) {
+            // Slope condition
+            if (!config.getSlopeCondition().isDefault() &&
+                    !config.getSlopeCondition().isValid(rdata.getEngine().getComplex().getSlopeStream().get(x, z))) {
+                return -1;
             }
+
+            // Rotation calculation
+            int slopeRotationY = 0;
+            ProceduralStream<Double> heightStream = rdata.getEngine().getComplex().getHeightStream();
+            if (config.isRotateTowardsSlope()) {
+                // Whichever side of the rectangle that bounds the object is lowest is the 'direction' of the slope (simply said).
+                double hNorth = heightStream.get(x, z + ((float) d) / 2);
+                double hEast = heightStream.get(x + ((float) w) / 2, z);
+                double hSouth = heightStream.get(x, z - ((float) d) / 2);
+                double hWest = heightStream.get(x - ((float) w) / 2, z);
+                double min = Math.min(Math.min(hNorth, hEast), Math.min(hSouth, hWest));
+                if (min == hNorth) {
+                    slopeRotationY = 0;
+                } else if (min == hEast) {
+                    slopeRotationY = 90;
+                } else if (min == hSouth) {
+                    slopeRotationY = 180;
+                } else if (min == hWest) {
+                    slopeRotationY = 270;
+                }
+            }
+            double newRotation = config.getRotation().getYAxis().getMin() + slopeRotationY;
+            config.getRotation().setYAxis(new IrisAxisRotationClamp(true, false, newRotation, newRotation, 360));
+            config.getRotation().setEnabled(true);
         }
-        double newRotation = config.getRotation().getYAxis().getMin() + slopeRotationY;
-        config.getRotation().setYAxis(new IrisAxisRotationClamp(true, false, newRotation, newRotation, 360));
-        config.getRotation().setEnabled(true);
 
         if (config.isSmartBore()) {
             ensureSmartBored(placer.isDebugSmartBore());

@@ -101,7 +101,8 @@ public class IrisPregenerator {
                         eta, M.ms() - startTime.get(), currentGeneratorMethod.get());
 
                 if (cl.flip()) {
-                    Iris.info("Pregen: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (" + Form.pc((double) generated.get() / (double) totalChunks.get(), 0) + ") " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration((double) eta, 2));
+                    double percentage = ((double) generated.get() / (double) totalChunks.get()) * 100;
+                    Iris.info("Pregen: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (%.0f%%) " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration((double) eta, 2), percentage);
                 }
 
                 return 1000;

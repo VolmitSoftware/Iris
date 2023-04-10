@@ -19,6 +19,7 @@
 package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.reflect.WrappedField;
 import io.th0rgal.oraxen.api.OraxenItems;
@@ -122,5 +123,10 @@ public class OraxenDataProvider extends ExternalDataProvider {
                 .filter(i -> i.getItems().contains(key.key()))
                 .findFirst()
                 .orElseThrow(() -> new MissingResourceException("Failed to find BlockData!", key.namespace(), key.key()));
+    }
+
+    @Override
+    public boolean isEnabledByDefault() {
+        return IrisSettings.get().getLink().isOraxen();
     }
 }

@@ -49,7 +49,7 @@ public class ExternalDataSVC implements IrisService {
 
     public void addProvider(ExternalDataProvider... provider) {
         for (ExternalDataProvider p : provider) {
-            if (p.getPlugin() != null) {
+            if (p.getPlugin() != null && p.isEnabledByDefault()) {
                 providers.add(p);
                 p.init();
             }

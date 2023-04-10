@@ -35,4 +35,8 @@ public abstract class ExternalDataProvider {
     public abstract Identifier[] getItemTypes();
 
     public abstract boolean isValidProvider(Identifier id, boolean isItem);
+
+    public boolean isEnabledByDefault() {
+        return true;
+    }
 }

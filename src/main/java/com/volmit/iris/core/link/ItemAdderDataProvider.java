@@ -1,5 +1,6 @@
 package com.volmit.iris.core.link;
 
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
 import dev.lone.itemsadder.api.CustomBlock;
 import dev.lone.itemsadder.api.CustomStack;
@@ -64,5 +65,10 @@ public class ItemAdderDataProvider extends ExternalDataProvider {
     @Override
     public boolean isValidProvider(Identifier id, boolean isItem) {
         return isItem ? this.itemNamespaces.contains(id.namespace()) : this.blockNamespaces.contains(id.namespace());
+    }
+
+    @Override
+    public boolean isEnabledByDefault() {
+        return IrisSettings.get().getLink().isItemAdder();
     }
 }

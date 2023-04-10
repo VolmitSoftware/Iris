@@ -3,7 +3,6 @@ package com.volmit.iris.core.link;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
-import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -20,8 +19,8 @@ public abstract class ExternalDataProvider {
         return Bukkit.getPluginManager().getPlugin(pluginId);
     }
 
-    public boolean isPresent() {
-        return getPlugin() != null;
+    public boolean isReady() {
+        return getPlugin() != null && getPlugin().isEnabled();
     }
 
     public abstract void init();

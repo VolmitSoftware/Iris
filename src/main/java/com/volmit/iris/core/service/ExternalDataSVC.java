@@ -23,8 +23,10 @@ import com.volmit.iris.core.link.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.IrisService;
 import lombok.Data;
-import org.bukkit.NamespacedKey;
+import org.bukkit.Bukkit;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.MissingResourceException;
@@ -33,31 +35,40 @@ import java.util.Optional;
 @Data
 public class ExternalDataSVC implements IrisService {
 
-    private KList<ExternalDataProvider> providers = new KList<>();
+    private KList<ExternalDataProvider> providers = new KList<>(), activeProviders = new KList<>();
 
     @Override
     public void onEnable() {
-        addProvider(
-//                new CustomItemsDataProvider(), //need this to be gradelized before i can add it to the master repo
-                new OraxenDataProvider(),
-                new ItemAdderDataProvider());
-    }
+        Bukkit.getPluginManager().registerEvents(this, Iris.instance);
 
-    @Override
-    public void onDisable() {
-    }
+        providers.add(new OraxenDataProvider());
+        providers.add(new ItemAdderDataProvider());
 
-    public void addProvider(ExternalDataProvider... provider) {
-        for (ExternalDataProvider p : provider) {
-            if (p.getPlugin() != null) {
-                providers.add(p);
+        for (ExternalDataProvider p : providers) {
+            if (p.isReady()) {
+                activeProviders.add(p);
                 p.init();
+                Iris.info("Enabled ExternalDataProvider for %s.", p.getPluginId());
             }
         }
     }
 
+    @Override
+    public void onDisable() { }
+
+    @EventHandler
+    public void onPluginEnable(PluginEnableEvent e) {
+        if(activeProviders.stream().noneMatch(p -> p.getPlugin().equals(e.getPlugin()))) {
+            providers.stream().filter(p -> p.isReady() && p.getPlugin().equals(e.getPlugin())).findFirst().ifPresent(edp -> {
+                activeProviders.add(edp);
+                edp.init();
+                Iris.info("Enabled ExternalDataProvider for %s.", edp.getPluginId());
+            });
+        }
+    }
+
     public Optional<BlockData> getBlockData(Identifier key) {
-        Optional<ExternalDataProvider> provider = providers.stream().filter(p -> p.isPresent() && p.isValidProvider(key, false)).findFirst();
+        Optional<ExternalDataProvider> provider = activeProviders.stream().filter(p -> p.isValidProvider(key, false)).findFirst();
         if (provider.isEmpty())
             return Optional.empty();
         try {
@@ -69,7 +80,7 @@ public class ExternalDataSVC implements IrisService {
     }
 
     public Optional<ItemStack> getItemStack(Identifier key) {
-        Optional<ExternalDataProvider> provider = providers.stream().filter(p -> p.isPresent() && p.isValidProvider(key, true)).findFirst();
+        Optional<ExternalDataProvider> provider = activeProviders.stream().filter(p -> p.isValidProvider(key, true)).findFirst();
         if (provider.isEmpty()) {
             Iris.warn("No matching Provider found for modded material \"%s\"!", key);
             return Optional.empty();
@@ -84,13 +95,13 @@ public class ExternalDataSVC implements IrisService {
 
     public Identifier[] getAllBlockIdentifiers() {
         KList<Identifier> names = new KList<>();
-        providers.stream().filter(ExternalDataProvider::isPresent).forEach(p -> names.add(p.getBlockTypes()));
+        activeProviders.forEach(p -> names.add(p.getBlockTypes()));
         return names.toArray(new Identifier[0]);
     }
 
     public Identifier[] getAllItemIdentifiers() {
         KList<Identifier> names = new KList<>();
-        providers.stream().filter(ExternalDataProvider::isPresent).forEach(p -> names.add(p.getItemTypes()));
+        activeProviders.forEach(p -> names.add(p.getItemTypes()));
         return names.toArray(new Identifier[0]);
     }
 }

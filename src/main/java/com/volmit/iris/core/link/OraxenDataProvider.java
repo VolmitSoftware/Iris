@@ -35,7 +35,6 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.MultipleFacing;
 import org.bukkit.inventory.ItemStack;
 
-import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Optional;
@@ -108,8 +107,8 @@ public class OraxenDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public boolean isPresent() {
-        return super.isPresent() && factories != null;
+    public boolean isReady() {
+        return super.isReady() && factories != null;
     }
 
     @Override

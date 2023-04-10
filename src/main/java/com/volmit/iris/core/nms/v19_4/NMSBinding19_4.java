@@ -42,6 +42,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
@@ -434,7 +435,7 @@ public class NMSBinding19_4 implements INMSBinding {
 
     @Override
     public void injectBiomesFromMantle(Chunk e, Mantle mantle) {
-        LevelChunk chunk = ((CraftChunk) e).getHandle();
+        ChunkAccess chunk = ((CraftChunk) e).getHandle(ChunkStatus.FULL);
         AtomicInteger c = new AtomicInteger();
         AtomicInteger r = new AtomicInteger();
         mantle.iterateChunk(e.getX(), e.getZ(), MatterBiomeInject.class, (x, y, z, b) -> {

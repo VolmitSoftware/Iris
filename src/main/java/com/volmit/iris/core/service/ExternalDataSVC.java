@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.link.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.IrisService;
+import io.th0rgal.oraxen.api.OraxenBlocks;
 import lombok.Data;
 import org.bukkit.Bukkit;
 import org.bukkit.block.data.BlockData;
@@ -39,10 +40,17 @@ public class ExternalDataSVC implements IrisService {
 
     @Override
     public void onEnable() {
+        Iris.info("Loading ExternalDataProvider...");
         Bukkit.getPluginManager().registerEvents(this, Iris.instance);
 
         providers.add(new OraxenDataProvider());
+        if (Bukkit.getPluginManager().getPlugin("Oraxen") != null){
+            Iris.info("Oraxen found, loading OraxenDataProvider...");
+        }
         providers.add(new ItemAdderDataProvider());
+        if (Bukkit.getPluginManager().getPlugin("ItemAdder") != null){
+            Iris.info("ItemAdder found, loading ItemAdderDataProvider...");
+        }
 
         for (ExternalDataProvider p : providers) {
             if (p.isReady()) {

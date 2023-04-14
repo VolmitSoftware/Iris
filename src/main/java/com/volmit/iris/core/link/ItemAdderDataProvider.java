@@ -1,11 +1,13 @@
 package com.volmit.iris.core.link;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
 import dev.lone.itemsadder.api.CustomBlock;
 import dev.lone.itemsadder.api.CustomStack;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.Arrays;
 import java.util.MissingResourceException;
 
 public class ItemAdderDataProvider extends ExternalDataProvider {
@@ -21,11 +23,12 @@ public class ItemAdderDataProvider extends ExternalDataProvider {
         this.itemNamespaces = new KList<>();
         this.blockNamespaces = new KList<>();
 
-        for(Identifier i : getItemTypes()) {
+        for (Identifier i : getItemTypes()) {
             itemNamespaces.addIfMissing(i.namespace());
         }
-        for(Identifier i : getBlockTypes()) {
+        for (Identifier i : getBlockTypes()) {
             blockNamespaces.addIfMissing(i.namespace());
+            Iris.info("Found ItemAdder Block: " + i);
         }
     }
 

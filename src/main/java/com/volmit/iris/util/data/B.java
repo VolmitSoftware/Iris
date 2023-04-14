@@ -473,6 +473,7 @@ public class B {
             if (!ix.startsWith("minecraft:") && ix.contains(":")) {
                 Identifier key = Identifier.fromString(ix);
                 Optional<BlockData> bd = Iris.service(ExternalDataSVC.class).getBlockData(key);
+                Iris.info("Loading block data " + key);
                 if (bd.isPresent())
                     bx = bd.get();
             }

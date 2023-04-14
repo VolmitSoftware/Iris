@@ -51,6 +51,8 @@ public class OraxenDataProvider extends ExternalDataProvider {
 
     @Override
     public void init() {
+        Iris.info("Setting up Oraxen Link...");
+        this.factories = new WrappedField<>(MechanicsManager.class, FIELD_FACTORIES_MAP);
         if(this.factories.hasFailed()) {
             Iris.error("Failed to set up Oraxen Link: Unable to fetch MechanicFactoriesMap!");
         }

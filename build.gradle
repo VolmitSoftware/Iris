@@ -135,15 +135,15 @@ dependencies {
     // Third Party Integrations
     implementation 'com.github.oraxen:oraxen:1.152.5'
     implementation 'com.github.LoneDev6:api-itemsadder:3.2.5'
-    implementation 'me.clip:placeholderapi:2.11.1'
+    implementation 'me.clip:placeholderapi:2.11.3'
     //implementation files('libs/CustomItems.jar')
 
     // Shaded
     implementation 'com.dfsek:Paralithic:0.4.0'
     implementation 'io.papermc:paperlib:1.0.5'
-    implementation "net.kyori:adventure-text-minimessage:4.11.0"
-    implementation 'net.kyori:adventure-platform-bukkit:4.1.0'
-    implementation 'net.kyori:adventure-api:4.11.0'
+    implementation "net.kyori:adventure-text-minimessage:4.13.1"
+    implementation 'net.kyori:adventure-platform-bukkit:4.3.0'
+    implementation 'net.kyori:adventure-api:4.13.1'
     implementation 'io.lumine:Mythic-Dist:5.2.1'
 
     // Dynamically Loaded

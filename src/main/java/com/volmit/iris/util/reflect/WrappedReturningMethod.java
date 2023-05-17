@@ -14,7 +14,7 @@ public final class WrappedReturningMethod<C, R> {
         try {
             m = origin.getDeclaredMethod(methodName, paramTypes);
             m.setAccessible(true);
-        } catch(NoSuchMethodException e) {
+        } catch (NoSuchMethodException e) {
             Iris.error("Failed to created WrappedMethod %s#%s: %s%s", origin.getSimpleName(), methodName, e.getClass().getSimpleName(), e.getMessage().equals("") ? "" : " | " + e.getMessage());
         }
         this.method = m;
@@ -25,13 +25,13 @@ public final class WrappedReturningMethod<C, R> {
     }
 
     public R invoke(C instance, Object... args) {
-        if(method == null) {
+        if (method == null) {
             return null;
         }
 
         try {
-            return (R)method.invoke(instance, args);
-        } catch(InvocationTargetException | IllegalAccessException e) {
+            return (R) method.invoke(instance, args);
+        } catch (InvocationTargetException | IllegalAccessException e) {
             Iris.error("Failed to invoke WrappedMethod %s#%s: %s%s", method.getDeclaringClass().getSimpleName(), method.getName(), e.getClass().getSimpleName(), e.getMessage().equals("") ? "" : " | " + e.getMessage());
             return null;
         }

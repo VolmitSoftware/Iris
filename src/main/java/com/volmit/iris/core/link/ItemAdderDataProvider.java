@@ -7,7 +7,6 @@ import dev.lone.itemsadder.api.CustomStack;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.Arrays;
 import java.util.MissingResourceException;
 
 public class ItemAdderDataProvider extends ExternalDataProvider {

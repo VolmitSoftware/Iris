@@ -555,6 +555,7 @@ public class IrisDimension extends IrisRegistrant {
         obj.put("logical_height", logicalHeight);
         return obj.toString(4);
     }
+
     private String generateDatapackJsonNether() {
         JSONObject obj = new JSONObject(DP_NETHER_DEFAULT);
         obj.put("min_y", dimensionHeightNether.getMin());
@@ -562,6 +563,7 @@ public class IrisDimension extends IrisRegistrant {
         obj.put("logical_height", logicalHeightNether);
         return obj.toString(4);
     }
+
     private String generateDatapackJsonEnd() {
         JSONObject obj = new JSONObject(DP_END_DEFAULT);
         obj.put("min_y", dimensionHeightEnd.getMin());

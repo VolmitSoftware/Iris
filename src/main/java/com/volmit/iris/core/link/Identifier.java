@@ -8,7 +8,7 @@ public record Identifier(String namespace, String key) {
 
     public static Identifier fromString(String id) {
         String[] strings = id.split(":", 2);
-        if(strings.length == 1) {
+        if (strings.length == 1) {
             return new Identifier(DEFAULT_NAMESPACE, strings[0]);
         } else {
             return new Identifier(strings[0], strings[1]);
@@ -22,9 +22,9 @@ public record Identifier(String namespace, String key) {
 
     @Override
     public boolean equals(Object obj) {
-        if(obj instanceof Identifier i) {
+        if (obj instanceof Identifier i) {
             return i.namespace().equals(this.namespace) && i.key().equals(this.key);
-        } else if(obj instanceof NamespacedKey i) {
+        } else if (obj instanceof NamespacedKey i) {
             return i.getNamespace().equals(this.namespace) && i.getKey().equals(this.key);
         } else {
             return false;

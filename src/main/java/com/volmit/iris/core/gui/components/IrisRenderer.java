@@ -51,23 +51,22 @@ public class IrisRenderer {
                     colorFunction = (x, z) -> renderer.getComplex().getCaveBiomeStream().get(x, z).getColor(renderer, currentType).getRGB();
             case HEIGHT ->
                     colorFunction = (x, z) -> Color.getHSBColor(renderer.getComplex().getHeightStream().get(x, z).floatValue(), 100, 100).getRGB();
-            case CONTINENT ->
-                    colorFunction = (x, z) -> {
-                        IrisBiome b = renderer.getBiome((int) Math.round(x), renderer.getMaxHeight() - 1, (int) Math.round(z));
-                        IrisBiomeGeneratorLink g = b.getGenerators().get(0);
-                        Color c;
-                        if (g.getMax() <= 0) {
-                            // Max is below water level, so it is most likely an ocean biome
-                            c = Color.BLUE;
-                        } else if (g.getMin() < 0) {
-                            // Min is below water level, but max is not, so it is most likely a shore biome
-                            c = Color.YELLOW;
-                        } else {
-                            // Both min and max are above water level, so it is most likely a land biome
-                            c = Color.GREEN;
-                        }
-                        return c.getRGB();
-                    };
+            case CONTINENT -> colorFunction = (x, z) -> {
+                IrisBiome b = renderer.getBiome((int) Math.round(x), renderer.getMaxHeight() - 1, (int) Math.round(z));
+                IrisBiomeGeneratorLink g = b.getGenerators().get(0);
+                Color c;
+                if (g.getMax() <= 0) {
+                    // Max is below water level, so it is most likely an ocean biome
+                    c = Color.BLUE;
+                } else if (g.getMin() < 0) {
+                    // Min is below water level, but max is not, so it is most likely a shore biome
+                    c = Color.YELLOW;
+                } else {
+                    // Both min and max are above water level, so it is most likely a land biome
+                    c = Color.GREEN;
+                }
+                return c.getRGB();
+            };
         }
 
         double x, z;

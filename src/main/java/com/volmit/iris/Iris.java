@@ -62,7 +62,10 @@ import com.volmit.iris.util.scheduling.ShurikenQueue;
 import io.papermc.lib.PaperLib;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
+import org.bukkit.WorldCreator;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -464,20 +467,20 @@ public class Iris extends VolmitPlugin implements Listener {
         try {
             fc.load(new File("bukkit.yml"));
             ConfigurationSection section = fc.getConfigurationSection("worlds");
-            if(section == null) {
+            if (section == null) {
                 return;
             }
 
-            for(String s : section.getKeys(false)){
+            for (String s : section.getKeys(false)) {
                 ConfigurationSection entry = section.getConfigurationSection(s);
-                if(!entry.contains("generator", true)) {
+                if (!entry.contains("generator", true)) {
                     continue;
                 }
 
                 String generator = entry.getString("generator");
-                if(generator.startsWith("Iris:")) {
+                if (generator.startsWith("Iris:")) {
                     generator = generator.split("\\Q:\\E")[1];
-                } else if(generator.equalsIgnoreCase("Iris")) {
+                } else if (generator.equalsIgnoreCase("Iris")) {
                     generator = IrisSettings.get().getGenerator().getDefaultWorldType();
                 } else {
                     continue;
@@ -485,7 +488,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
                 Iris.info("2 World: %s | Generator: %s", s, generator);
 
-                if(Bukkit.getWorlds().stream().anyMatch(w -> w.getName().equals(s))) {
+                if (Bukkit.getWorlds().stream().anyMatch(w -> w.getName().equals(s))) {
                     continue;
                 }
 

@@ -126,7 +126,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @EventHandler
     public void onWorldInit(WorldInitEvent event) {
         try {
-            if(!initialized) {
+            if (!initialized) {
                 world.setRawWorldSeed(event.getWorld().getSeed());
                 if (world.name().equals(event.getWorld().getName())) {
                     ServerLevel serverLevel = ((CraftWorld) event.getWorld()).getHandle();

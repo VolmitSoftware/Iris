@@ -109,7 +109,7 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
             if (e.getClickedBlock() != null && e.getClickedBlock().getType() == Material.END_PORTAL_FRAME) {
                 return;
             }
-            
+
             KList<Position2> positions = getEngine().getDimension().getStrongholds(getEngine().getSeedManager().getSpawn());
             if (positions.isEmpty()) {
                 return;

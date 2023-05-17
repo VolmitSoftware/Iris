@@ -53,7 +53,7 @@ public class OraxenDataProvider extends ExternalDataProvider {
     public void init() {
         Iris.info("Setting up Oraxen Link...");
         this.factories = new WrappedField<>(MechanicsManager.class, FIELD_FACTORIES_MAP);
-        if(this.factories.hasFailed()) {
+        if (this.factories.hasFailed()) {
             Iris.error("Failed to set up Oraxen Link: Unable to fetch MechanicFactoriesMap!");
         }
     }
@@ -87,7 +87,8 @@ public class OraxenDataProvider extends ExternalDataProvider {
                 Identifier key = new Identifier("oraxen", name);
                 if (getBlockData(key) != null)
                     names.add(key);
-            } catch (MissingResourceException ignored) { }
+            } catch (MissingResourceException ignored) {
+            }
         }
 
         return names.toArray(new Identifier[0]);
@@ -101,7 +102,8 @@ public class OraxenDataProvider extends ExternalDataProvider {
                 Identifier key = new Identifier("oraxen", name);
                 if (getItemStack(key) != null)
                     names.add(key);
-            } catch (MissingResourceException ignored) { }
+            } catch (MissingResourceException ignored) {
+            }
         }
 
         return names.toArray(new Identifier[0]);
@@ -109,8 +111,8 @@ public class OraxenDataProvider extends ExternalDataProvider {
 
     @Override
     public boolean isReady() {
-        if(super.isReady()) {
-            if(factories == null) {
+        if (super.isReady()) {
+            if (factories == null) {
                 this.factories = new WrappedField<>(MechanicsManager.class, FIELD_FACTORIES_MAP);
             }
             return super.isReady() && !factories.hasFailed();

@@ -19,10 +19,12 @@
 package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.link.*;
+import com.volmit.iris.core.link.ExternalDataProvider;
+import com.volmit.iris.core.link.Identifier;
+import com.volmit.iris.core.link.ItemAdderDataProvider;
+import com.volmit.iris.core.link.OraxenDataProvider;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.IrisService;
-import io.th0rgal.oraxen.api.OraxenBlocks;
 import lombok.Data;
 import org.bukkit.Bukkit;
 import org.bukkit.block.data.BlockData;
@@ -44,11 +46,11 @@ public class ExternalDataSVC implements IrisService {
         Bukkit.getPluginManager().registerEvents(this, Iris.instance);
 
         providers.add(new OraxenDataProvider());
-        if (Bukkit.getPluginManager().getPlugin("Oraxen") != null){
+        if (Bukkit.getPluginManager().getPlugin("Oraxen") != null) {
             Iris.info("Oraxen found, loading OraxenDataProvider...");
         }
         providers.add(new ItemAdderDataProvider());
-        if (Bukkit.getPluginManager().getPlugin("ItemAdder") != null){
+        if (Bukkit.getPluginManager().getPlugin("ItemAdder") != null) {
             Iris.info("ItemAdder found, loading ItemAdderDataProvider...");
         }
 
@@ -62,11 +64,12 @@ public class ExternalDataSVC implements IrisService {
     }
 
     @Override
-    public void onDisable() { }
+    public void onDisable() {
+    }
 
     @EventHandler
     public void onPluginEnable(PluginEnableEvent e) {
-        if(activeProviders.stream().noneMatch(p -> p.getPlugin().equals(e.getPlugin()))) {
+        if (activeProviders.stream().noneMatch(p -> p.getPlugin().equals(e.getPlugin()))) {
             providers.stream().filter(p -> p.isReady() && p.getPlugin().equals(e.getPlugin())).findFirst().ifPresent(edp -> {
                 activeProviders.add(edp);
                 edp.init();

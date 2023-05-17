@@ -47,15 +47,6 @@ public class CustomBiomeSource extends BiomeSource {
         this.customBiomes = fillCustomBiomes(biomeCustomRegistry, engine);
     }
 
-    @Override
-    protected Stream<Holder<Biome>> collectPossibleBiomes() {
-        return getAllBiomes(
-                ((RegistryAccess) getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()))
-                        .registry(Registries.BIOME).orElse(null),
-                ((CraftWorld) engine.getWorld().realWorld()).getHandle().registryAccess().registry(Registries.BIOME).orElse(null),
-                engine).stream();
-    }
-
     private static List<Holder<Biome>> getAllBiomes(Registry<Biome> customRegistry, Registry<Biome> registry, Engine engine) {
         List<Holder<Biome>> b = new ArrayList<>();
 
@@ -117,6 +108,15 @@ public class CustomBiomeSource extends BiomeSource {
             }
         }
         return null;
+    }
+
+    @Override
+    protected Stream<Holder<Biome>> collectPossibleBiomes() {
+        return getAllBiomes(
+                ((RegistryAccess) getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()))
+                        .registry(Registries.BIOME).orElse(null),
+                ((CraftWorld) engine.getWorld().realWorld()).getHandle().registryAccess().registry(Registries.BIOME).orElse(null),
+                engine).stream();
     }
 
     private KMap<String, Holder<Biome>> fillCustomBiomes(Registry<Biome> customRegistry, Engine engine) {

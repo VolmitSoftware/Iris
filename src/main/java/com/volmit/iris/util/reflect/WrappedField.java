@@ -13,7 +13,7 @@ public class WrappedField<C, T> {
         try {
             f = origin.getDeclaredField(methodName);
             f.setAccessible(true);
-        } catch(NoSuchFieldException e) {
+        } catch (NoSuchFieldException e) {
             Iris.error("Failed to created WrappedField %s#%s: %s%s", origin.getSimpleName(), methodName, e.getClass().getSimpleName(), e.getMessage().equals("") ? "" : " | " + e.getMessage());
         }
         this.field = f;
@@ -24,13 +24,13 @@ public class WrappedField<C, T> {
     }
 
     public T get(C instance) {
-        if(field == null) {
+        if (field == null) {
             return null;
         }
 
         try {
-            return (T)field.get(instance);
-        } catch(IllegalAccessException e) {
+            return (T) field.get(instance);
+        } catch (IllegalAccessException e) {
             Iris.error("Failed to get WrappedField %s#%s: %s%s", field.getDeclaringClass().getSimpleName(), field.getName(), e.getClass().getSimpleName(), e.getMessage().equals("") ? "" : " | " + e.getMessage());
             return null;
         }

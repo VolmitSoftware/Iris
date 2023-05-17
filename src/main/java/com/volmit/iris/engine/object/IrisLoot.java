@@ -198,7 +198,7 @@ public class IrisLoot {
             colorable.setColor(getDyeColor());
         }
 
-        if(displayName != null) {
+        if (displayName != null) {
             m.setLocalizedName(C.translateAlternateColorCodes('&', displayName));
             m.setDisplayName(C.translateAlternateColorCodes('&', displayName));
         }

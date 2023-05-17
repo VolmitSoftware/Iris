@@ -11,6 +11,8 @@ development.
 
 Consider supporting our development by buying Iris on spigot! We work hard to make Iris the best it can be for everyone.
 
+## Preface: if you need help compiling and you are a developer / intend to help out in the community or with development we would love to help you regardless in the discord! however do not come to the discord asking for free copies, or a tutorial on how to compile.
+
 ### Command Line Builds
 
 1. Install [Java JDK 17](https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html)

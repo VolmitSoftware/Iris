@@ -12,6 +12,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeSource;
@@ -26,6 +27,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class CustomBiomeSource extends BiomeSource {
@@ -118,15 +120,26 @@ public class CustomBiomeSource extends BiomeSource {
                 ((CraftWorld) engine.getWorld().realWorld()).getHandle().registryAccess().registry(Registries.BIOME).orElse(null),
                 engine).stream();
     }
-
     private KMap<String, Holder<Biome>> fillCustomBiomes(Registry<Biome> customRegistry, Engine engine) {
         KMap<String, Holder<Biome>> m = new KMap<>();
 
         for (IrisBiome i : engine.getAllBiomes()) {
             if (i.isCustom()) {
                 for (IrisBiomeCustom j : i.getCustomDerivitives()) {
-                    m.put(j.getId(), customRegistry.getHolder(customRegistry.getResourceKey(customRegistry
-                            .get(new ResourceLocation(engine.getDimension().getLoadKey() + ":" + j.getId()))).get()).get());
+                    ResourceLocation resourceLocation = new ResourceLocation(engine.getDimension().getLoadKey() + ":" + j.getId());
+                    Biome biome = customRegistry.get(resourceLocation);
+                    Optional<ResourceKey<Biome>> optionalBiomeKey = customRegistry.getResourceKey(biome);
+                    if (optionalBiomeKey.isEmpty()) {
+                        Iris.error("Cannot find biome for IrisBiomeCustom " + j.getId() + " from engine " + engine.getName());
+                        continue;
+                    }
+                    ResourceKey<Biome> biomeKey = optionalBiomeKey.get();
+                    Optional<Holder.Reference<Biome>> optionalReferenceHolder = customRegistry.getHolder(biomeKey);
+                    if (optionalReferenceHolder.isEmpty()) {
+                        Iris.error("Cannot find reference to biome " + biomeKey + " for engine " + engine.getName());
+                        continue;
+                    }
+                    m.put(j.getId(), optionalReferenceHolder.get());
                 }
             }
         }

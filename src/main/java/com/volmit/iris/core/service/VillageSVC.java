@@ -24,6 +24,7 @@ import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.core.IrisSettings;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
@@ -70,7 +71,7 @@ public class VillageSVC implements IrisService {
 
             List<Player> playersInWorld = event.getEntity().getWorld().getPlayers();
 
-            String message = C.GOLD + "Iris does not allow cartographers in its world due to crashes.";
+            String message = C.GOLD + IrisSettings.get().getGeneral().cartographerMessage;
 
             Iris.info("Cancelled Cartographer Villager to prevent server crash at " + eventLocation + "!");
 

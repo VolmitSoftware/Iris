@@ -156,6 +156,8 @@ public class IrisSettings {
         public int spinh = -20;
         public int spins = 7;
         public int spinb = 8;
+        public String cartographerMessage = "Iris does not allow cartographers in its world due to crashes.";
+
 
         @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         public boolean canUseCustomColors(VolmitSender volmitSender) {

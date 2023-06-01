@@ -552,7 +552,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 public void execute(Future<Chunk> chunkFuture) {
                     try {
                         chunkFuture.get();
-                    } catch (InterruptedException | ExecutionException e) {
+                    } catch (InterruptedException | ExecutionException ignored) {
 
                     }
                 }

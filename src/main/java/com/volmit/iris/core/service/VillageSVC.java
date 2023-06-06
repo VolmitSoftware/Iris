@@ -19,6 +19,7 @@
 package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.format.C;
@@ -70,7 +71,7 @@ public class VillageSVC implements IrisService {
 
             List<Player> playersInWorld = event.getEntity().getWorld().getPlayers();
 
-            String message = C.GOLD + "Iris does not allow cartographers in its world due to crashes.";
+            String message = C.GOLD + IrisSettings.get().getGeneral().cartographerMessage;
 
             Iris.info("Cancelled Cartographer Villager to prevent server crash at " + eventLocation + "!");
 

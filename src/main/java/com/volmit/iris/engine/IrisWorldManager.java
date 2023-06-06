@@ -597,6 +597,10 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
             for (String i : mark.getSpawners()) {
                 IrisSpawner m = getData().getSpawnerLoader().load(i);
+                if (m == null) {
+                    Iris.error("Cannot load spawner: " + i + " for marker on " + getName());
+                    continue;
+                }
                 m.setReferenceMarker(mark);
 
                 // This is so fucking incorrect its a joke

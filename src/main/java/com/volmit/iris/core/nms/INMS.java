@@ -20,7 +20,7 @@ package com.volmit.iris.core.nms;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.nms.v19_4.NMSBinding19_4;
+import com.volmit.iris.core.nms.v20.NMSBinding19_4;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.util.collection.KMap;
 import org.bukkit.Bukkit;

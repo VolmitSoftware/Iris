@@ -25,7 +25,7 @@ plugins {
 }
 
 version '2.7.0-1.20.0'
-def nmsVersion = "1.20" //[NMS]
+def nmsVersion = '1.20' //[NMS]
 def apiVersion = '1.20'
 def specialSourceVersion = '1.11.0' //[NMS]
 def spigotJarVersion = '1.20-R0.1-SNAPSHOT' //[NMS]

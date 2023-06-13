@@ -24,11 +24,11 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '2.7.0-1.20.0'
-def nmsVersion = '1.20' //[NMS]
+version '2.7.1-1.20.1'
+def nmsVersion = '1.20.1' //[NMS]
 def apiVersion = '1.20'
 def specialSourceVersion = '1.11.0' //[NMS]
-def spigotJarVersion = '1.20-R0.1-SNAPSHOT' //[NMS]
+def spigotJarVersion = '1.20.1-R0.1-SNAPSHOT' //[NMS]
 def name = getRootProject().getName() // Defined in settings.gradle
 def main = 'com.volmit.iris.Iris'
 
@@ -129,8 +129,8 @@ dependencies {
     // Provided or Classpath
     compileOnly 'org.projectlombok:lombok:1.18.24'
     annotationProcessor 'org.projectlombok:lombok:1.18.24'
-    implementation 'org.spigotmc:spigot-api:1.20-R0.1-SNAPSHOT'
-    implementation 'org.bukkit:craftbukkit:1.20-R0.1-SNAPSHOT:remapped-mojang' //[NMS]
+    implementation 'org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT'
+    implementation 'org.bukkit:craftbukkit:1.20.1-R0.1-SNAPSHOT:remapped-mojang' //[NMS]
 
     // Third Party Integrations
     implementation 'com.github.oraxen:oraxen:1.152.5'

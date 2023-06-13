@@ -67,9 +67,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class NMSBinding1_20 implements INMSBinding {
+public class NMSBinding1_20_1 implements INMSBinding {
 
-    public static final String NMS_VERSION = "1.20";
+    public static final String NMS_VERSION = "1.20.1";
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
     private final BlockData AIR = Material.AIR.createBlockData();
     private final AtomicCache<MCAIdMap<net.minecraft.world.level.biome.Biome>> biomeMapCache = new AtomicCache<>();

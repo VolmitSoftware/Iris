@@ -50,7 +50,7 @@ public class CommandPregen implements DecreeExecutor {
             int w = (radius >> 9 + 1) * 2;
             IrisToolbelt.pregenerate(PregenTask
                     .builder()
-                    .center(new Position2(center))
+                    .center(new Position2(center.getBlockX() >> 9, center.getBlockZ() >> 9))
                     .width(w)
                     .height(w)
                     .build(), world);

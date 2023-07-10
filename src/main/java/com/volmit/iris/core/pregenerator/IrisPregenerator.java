@@ -111,8 +111,7 @@ public class IrisPregenerator {
     }
 
     private long computeETA() {
-        return (long) ((totalChunks.get() - generated.get()) *
-                ((double) (M.ms() - startTime.get()) / (double) generated.get()));
+        return (long) ((totalChunks.get() - generated.get()) / chunksPerSecond.getAverage()) * 1000;
     }
 
     public void close() {

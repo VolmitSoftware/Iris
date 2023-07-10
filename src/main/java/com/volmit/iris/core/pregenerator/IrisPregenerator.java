@@ -111,7 +111,12 @@ public class IrisPregenerator {
     }
 
     private long computeETA() {
-        return (long) ((totalChunks.get() - generated.get()) / chunksPerSecond.getAverage()) * 1000;
+        return (long) ((generated.get() > totalChunks.get() >> 3) ? // Generated chunks exceed 1/8th of total?
+                // If yes, use smooth function (which gets more accurate over time since its less sensitive to outliers)
+                ((totalChunks.get() - generated.get()) * ((double) (M.ms() - startTime.get()) / (double) generated.get())) :
+                // If no, use quick function (which is less accurate over time but responds better to the initial delay)
+                ((totalChunks.get() - generated.get()) / chunksPerSecond.getAverage()) * 1000 //
+        );
     }
 
     public void close() {

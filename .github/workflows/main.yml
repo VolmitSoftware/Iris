@@ -20,7 +20,7 @@ jobs:
           java-version: 17
 
       - name: Build with Gradle
-        run: ./gradlew build --full-stacktrace
+        run: ./gradlew iris
         
       - uses: actions/upload-artifact@v2
         with:

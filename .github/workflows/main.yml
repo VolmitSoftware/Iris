@@ -19,6 +19,9 @@ jobs:
           distribution: 'zulu'
           java-version: 17
 
+
+      - name: First run
+        run: ./gradlew setup
       - name: Build with Gradle
         run: ./gradlew iris
         

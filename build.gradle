@@ -134,6 +134,7 @@ dependencies {
     implementation 'org.bukkit:craftbukkit:1.20.1-R0.1-SNAPSHOT:remapped-mojang' //[NMS]
 
     // Third Party Integrations
+    implementation 'com.ticxo.playeranimator:PlayerAnimator:R1.2.7'
     implementation 'com.github.oraxen:oraxen:1.158.0'
     implementation 'com.github.LoneDev6:api-itemsadder:3.4.1-r4'
     implementation 'me.clip:placeholderapi:2.11.3'

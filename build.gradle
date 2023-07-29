@@ -24,7 +24,7 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '2.7.2-1.20.1'
+version '2.7.3-1.20.1'
 def nmsVersion = '1.20.1' //[NMS]
 def apiVersion = '1.20'
 def specialSourceVersion = '1.11.0' //[NMS]
@@ -83,6 +83,7 @@ repositories {
     maven { url "https://mvn.lumine.io/repository/maven/" }
     maven { url "https://repo.triumphteam.dev/snapshots" }
     maven { url "https://repo.mineinabyss.com/releases" }
+    maven { url = 'https://hub.jeff-media.com/nexus/repository/jeff-media-public/' }
 }
 
 /**
@@ -134,7 +135,7 @@ dependencies {
 
     // Third Party Integrations
     implementation 'com.ticxo.playeranimator:PlayerAnimator:R1.2.7'
-    implementation 'com.github.oraxen:oraxen:1.152.5'
+    implementation 'com.github.oraxen:oraxen:1.158.0'
     implementation 'com.github.LoneDev6:api-itemsadder:3.4.1-r4'
     implementation 'me.clip:placeholderapi:2.11.3'
     //implementation files('libs/CustomItems.jar')

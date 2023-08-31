@@ -651,7 +651,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     default IrisPosition lookForRegion(IrisRegion reg, long timeout, Consumer<Integer> triesc) {
-        if (getWorld().hasRealWorld()) {
+        if (!getWorld().hasRealWorld()) {
             Iris.error("Cannot GOTO without a bound world (headless mode)");
             return null;
         }

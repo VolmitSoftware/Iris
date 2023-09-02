@@ -36,6 +36,9 @@ import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
+import com.volmit.iris.util.decree.handlers.JigsawPieceHandler;
+import com.volmit.iris.util.decree.handlers.JigsawPoolHandler;
+import com.volmit.iris.util.decree.handlers.JigsawStructureHandler;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
@@ -54,6 +57,7 @@ import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import com.volmit.iris.util.scheduling.S;
 import com.volmit.iris.util.stream.ProceduralStream;
 import io.papermc.lib.PaperLib;
 import net.minecraft.core.BlockPos;
@@ -73,9 +77,8 @@ import org.bukkit.inventory.ItemStack;
 import oshi.util.tuples.Pair;
 
 import java.awt.*;
-import java.util.Arrays;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -774,9 +777,54 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             }
         }
 
+        KList<String> pieces = new KList<>();
+        KList<String> pools = new KList<>();
+        int r = 2;
+        for (int xX = -r; xX <= r; xX++) {
+            for (int zZ = -r; zZ <= r; zZ++) {
+                IrisJigsawStructure structure = getStructureAt((x >> 4) + xX, (z >> 4) + zZ);
+                if (structure != null) {
+                    for (String pieceID : structure.getPieces()) {
+                        IrisJigsawPiece result = searchAllPieces(pieceID, object, pieces, pools);
+                        if (result != null) {
+                            pieces.clear();
+                            pools.clear();
+                            return new PlacedObject(result.getPlacementOptions(), getData().getObjectLoader().load(object), id, x, z);
+                        }
+                    }
+                }
+            }
+        }
+        pieces.clear();
+        pools.clear();
+
         return new PlacedObject(null, getData().getObjectLoader().load(object), id, x, z);
     }
 
+    private IrisJigsawPiece searchAllPieces(String pieceID, String target, KList<String> pieces, KList<String> pools) {
+        IrisJigsawPiece piece = getData().getJigsawPieceLoader().load(pieceID);
+        if (piece.getObject().equals(target))
+            return piece;
+
+        pieces.add(pieceID);
+        for (IrisJigsawPieceConnector connector : piece.getConnectors()) {
+            for (String poolID : connector.getPools()) {
+                if (pools.contains(poolID))
+                    continue;
+                pools.add(poolID);
+
+                for (String pieceId : getData().getJigsawPoolLoader().load(poolID).getPieces()) {
+                    if (pieces.contains(pieceId))
+                        continue;
+
+                    IrisJigsawPiece piece1 = searchAllPieces(pieceId, target, pieces, pools);
+                    if (piece1 != null)
+                        return piece1;
+                }
+            }
+        }
+        return null;
+    }
 
     int getCacheID();
 

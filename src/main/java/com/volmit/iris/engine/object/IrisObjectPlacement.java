@@ -255,7 +255,7 @@ public class IrisObjectPlacement {
 
         if (B.isStorageChest(data)) {
             IrisLootTable picked = null;
-            if (cache.exact.containsKey(data.getMaterial()) && cache.exact.containsKey(data)) {
+            if (cache.exact.containsKey(data.getMaterial()) && cache.exact.get(data.getMaterial()).containsKey(data)) {
                 picked = cache.exact.get(data.getMaterial()).get(data).pullRandom();
             } else if (cache.basic.containsKey(data.getMaterial())) {
                 picked = cache.basic.get(data.getMaterial()).pullRandom();

@@ -256,7 +256,7 @@ public class PlannedStructure {
     }
 
     private void generateStartPiece() {
-        pieces.add(new PlannedPiece(this, position, getData().getJigsawPieceLoader().load(rng.pick(getStructure().getPieces())), 0, rng.nextInt(4), 0));
+        pieces.add(new PlannedPiece(this, position, getData().getJigsawPieceLoader().load(rng.pick(getStructure().getPieces())), 0, getStructure().isDisableInitialRotation() ? 0 : rng.nextInt(4), 0));
     }
 
     private void generateTerminators() {

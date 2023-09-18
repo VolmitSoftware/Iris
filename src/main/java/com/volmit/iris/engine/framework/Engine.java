@@ -753,7 +753,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         PlacedObject o = getObjectPlacement(x, y, z);
 
         if (o != null && o.getObject() != null) {
-            return o.getObject().getLoadKey() + "@" + o.getId()  + "#" + (o.getPlacement() != null);
+            return o.getObject().getLoadKey() + "@" + o.getId();
         }
 
         return null;

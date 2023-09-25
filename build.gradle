@@ -24,7 +24,7 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '2.7.6-1.20.1'
+version '2.7.7-1.20.1'
 def nmsVersion = '1.20.1' //[NMS]
 def apiVersion = '1.20'
 def specialSourceVersion = '1.11.0' //[NMS]

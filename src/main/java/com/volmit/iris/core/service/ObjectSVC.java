@@ -18,9 +18,11 @@
 
 package com.volmit.iris.core.service;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Getter;
+import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 
@@ -73,7 +75,10 @@ public class ObjectSVC implements IrisService {
         while (it.hasNext()) {
             Map.Entry<Block, BlockData> entry = it.next();
             BlockData data = entry.getValue();
-            entry.getKey().setBlockData(data, false);
+            Bukkit.getScheduler().runTask(Iris.instance, () -> {
+                entry.getKey().setBlockData(data, false);
+            });
+
             it.remove();
 
             amount++;
@@ -83,4 +88,5 @@ public class ObjectSVC implements IrisService {
             }
         }
     }
+
 }

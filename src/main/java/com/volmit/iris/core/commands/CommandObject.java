@@ -341,7 +341,7 @@ public class CommandObject implements DecreeExecutor {
                 }
             }
         } else {
-            sender().sendMessage("Placed " + object);
+            sender().sendMessage(C.IRIS + "Placed " + object);
         }
     }
 

@@ -70,23 +70,22 @@ public class ObjectSVC implements IrisService {
      * @param blocks The blocks to remove
      */
     private void revert(Map<Block, BlockData> blocks) {
-        int amount = 0;
         Iterator<Map.Entry<Block, BlockData>> it = blocks.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Block, BlockData> entry = it.next();
-            BlockData data = entry.getValue();
-            Bukkit.getScheduler().runTask(Iris.instance, () -> {
+        Bukkit.getScheduler().runTask(Iris.instance, () -> {
+            int amount = 0;
+            while (it.hasNext()) {
+                Map.Entry<Block, BlockData> entry = it.next();
+                BlockData data = entry.getValue();
                 entry.getKey().setBlockData(data, false);
-            });
 
-            it.remove();
+                it.remove();
 
-            amount++;
+                amount++;
 
-            if (amount > 200) {
-                J.s(() -> revert(blocks), 1);
+                if (amount > 200) {
+                    J.s(() -> revert(blocks), 1);
+                }
             }
-        }
+        });
     }
-
 }

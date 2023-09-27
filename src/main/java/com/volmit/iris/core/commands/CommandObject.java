@@ -341,7 +341,7 @@ public class CommandObject implements DecreeExecutor {
                 }
             }
         } else {
-            sender().sendMessage("Placed " + object);
+            sender().sendMessage(C.IRIS + "Placed " + object);
         }
     }
 
@@ -413,7 +413,7 @@ public class CommandObject implements DecreeExecutor {
         ObjectSVC service = Iris.service(ObjectSVC.class);
         int actualReverts = Math.min(service.getUndos().size(), amount);
         service.revertChanges(actualReverts);
-        sender().sendMessage("Reverted " + actualReverts + " pastes!");
+        sender().sendMessage(C.BLUE + "Reverted " + actualReverts + C.BLUE +" pastes!");
     }
 
     @Decree(description = "Gets an object wand and grabs the current WorldEdit selection.", aliases = "we", origin = DecreeOrigin.PLAYER, studio = true)

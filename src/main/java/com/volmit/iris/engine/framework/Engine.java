@@ -36,9 +36,6 @@ import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
-import com.volmit.iris.util.decree.handlers.JigsawPieceHandler;
-import com.volmit.iris.util.decree.handlers.JigsawPoolHandler;
-import com.volmit.iris.util.decree.handlers.JigsawStructureHandler;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
@@ -57,7 +54,6 @@ import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import com.volmit.iris.util.scheduling.S;
 import com.volmit.iris.util.stream.ProceduralStream;
 import io.papermc.lib.PaperLib;
 import net.minecraft.core.BlockPos;
@@ -77,8 +73,9 @@ import org.bukkit.inventory.ItemStack;
 import oshi.util.tuples.Pair;
 
 import java.awt.*;
-import java.util.*;
-import java.util.List;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -348,6 +345,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     @BlockCoordinates
     @Override
+
     default void update(int x, int y, int z, Chunk c, RNG rf) {
         Block block = c.getBlock(x, y, z);
         BlockData data = block.getBlockData();
@@ -364,8 +362,17 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 KList<IrisLootTable> tables = getLootTables(rx, block);
 
                 try {
+                    Bukkit.getPluginManager().callEvent(new IrisLootEvent(this, block, slot, tables));
+
+                    if (!tables.isEmpty()){
+                        Iris.debug("IrisLootEvent has been accessed");
+                    }
+
+                    if (tables.isEmpty())
+                        return;
                     InventoryHolder m = (InventoryHolder) block.getState();
                     addItems(false, m.getInventory(), rx, tables, slot, x, y, z, 15);
+
                 } catch (Throwable e) {
                     Iris.reportError(e);
                 }

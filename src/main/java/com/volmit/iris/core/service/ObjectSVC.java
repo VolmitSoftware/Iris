@@ -18,9 +18,11 @@
 
 package com.volmit.iris.core.service;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Getter;
+import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 
@@ -68,19 +70,22 @@ public class ObjectSVC implements IrisService {
      * @param blocks The blocks to remove
      */
     private void revert(Map<Block, BlockData> blocks) {
-        int amount = 0;
         Iterator<Map.Entry<Block, BlockData>> it = blocks.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Block, BlockData> entry = it.next();
-            BlockData data = entry.getValue();
-            entry.getKey().setBlockData(data, false);
-            it.remove();
+        Bukkit.getScheduler().runTask(Iris.instance, () -> {
+            int amount = 0;
+            while (it.hasNext()) {
+                Map.Entry<Block, BlockData> entry = it.next();
+                BlockData data = entry.getValue();
+                entry.getKey().setBlockData(data, false);
 
-            amount++;
+                it.remove();
 
-            if (amount > 200) {
-                J.s(() -> revert(blocks), 1);
+                amount++;
+
+                if (amount > 200) {
+                    J.s(() -> revert(blocks), 1);
+                }
             }
-        }
+        });
     }
 }

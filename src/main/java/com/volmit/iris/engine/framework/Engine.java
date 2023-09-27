@@ -761,6 +761,14 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         String[] v = objectAt.split("\\Q@\\E");
         String object = v[0];
         int id = Integer.parseInt(v[1]);
+
+
+        IrisContext.getOr(this);
+        IrisJigsawPiece piece = getMantle().getMantle().get(x, y, z, IrisJigsawPiece.class);
+        if (piece != null && piece.getObject().equals(object)) {
+            return new PlacedObject(piece.getPlacementOptions(), getData().getObjectLoader().load(object), id, x, z);
+        }
+
         IrisRegion region = getRegion(x, z);
 
         for (IrisObjectPlacement i : region.getObjects()) {
@@ -777,53 +785,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             }
         }
 
-        KList<String> pieces = new KList<>();
-        KList<String> pools = new KList<>();
-        int r = 2;
-        for (int xX = -r; xX <= r; xX++) {
-            for (int zZ = -r; zZ <= r; zZ++) {
-                IrisJigsawStructure structure = getStructureAt((x >> 4) + xX, (z >> 4) + zZ);
-                if (structure != null) {
-                    for (String pieceID : structure.getPieces()) {
-                        IrisJigsawPiece result = searchAllPieces(pieceID, object, pieces, pools);
-                        if (result != null) {
-                            pieces.clear();
-                            pools.clear();
-                            return new PlacedObject(result.getPlacementOptions(), getData().getObjectLoader().load(object), id, x, z);
-                        }
-                    }
-                }
-            }
-        }
-        pieces.clear();
-        pools.clear();
-
         return new PlacedObject(null, getData().getObjectLoader().load(object), id, x, z);
-    }
-
-    private IrisJigsawPiece searchAllPieces(String pieceID, String target, KList<String> pieces, KList<String> pools) {
-        IrisJigsawPiece piece = getData().getJigsawPieceLoader().load(pieceID);
-        if (piece.getObject().equals(target))
-            return piece;
-
-        pieces.add(pieceID);
-        for (IrisJigsawPieceConnector connector : piece.getConnectors()) {
-            for (String poolID : connector.getPools()) {
-                if (pools.contains(poolID))
-                    continue;
-                pools.add(poolID);
-
-                for (String pieceId : getData().getJigsawPoolLoader().load(poolID).getPieces()) {
-                    if (pieces.contains(pieceId))
-                        continue;
-
-                    IrisJigsawPiece piece1 = searchAllPieces(pieceId, target, pieces, pools);
-                    if (piece1 != null)
-                        return piece1;
-                }
-            }
-        }
-        return null;
     }
 
     int getCacheID();

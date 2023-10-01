@@ -150,7 +150,7 @@ public class CommandIris implements DecreeExecutor {
             @Override
             public void run() {
                 target.teleport(world.getSpawnLocation());
-                target.sendMessage(C.GREEN + "You have been teleported to " + world.getName() + ".");
+                new VolmitSender(target).sendMessage(C.GREEN + "You have been teleported to " + world.getName() + ".");
             }
         }.runTask(Iris.instance);
     }

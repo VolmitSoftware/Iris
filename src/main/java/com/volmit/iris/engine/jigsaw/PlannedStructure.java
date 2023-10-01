@@ -28,6 +28,8 @@ import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.slices.JigsawPieceMatter;
+import com.volmit.iris.util.matter.slices.container.JigsawPieceContainer;
 import lombok.Data;
 import org.bukkit.Axis;
 import org.bukkit.World;
@@ -120,6 +122,7 @@ public class PlannedStructure {
         }
 
         int id = rng.i(0, Integer.MAX_VALUE);
+        JigsawPieceContainer container = JigsawPieceContainer.toContainer(i.getPiece());
         vo.place(xx, height, zz, new IObjectPlacer() {
             @Override
             public int getHighest(int x, int z, IrisData data) {
@@ -133,13 +136,13 @@ public class PlannedStructure {
 
             @Override
             public void set(int x, int y, int z, BlockData d) {
-                placer.setData(x, y, z, i.getPiece());
+                placer.setData(x, y, z, container);
                 placer.set(x, y, z, d);
             }
 
             @Override
             public BlockData get(int x, int y, int z) {
-                placer.setData(x, y, z, i.getPiece());
+                placer.setData(x, y, z, container);
                 return placer.get(x, y, z);
             }
 

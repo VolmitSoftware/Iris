@@ -49,7 +49,6 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.matter.MatterUpdate;
 import com.volmit.iris.util.matter.TileWrapper;
-import com.volmit.iris.util.matter.slices.JigsawPieceMatter;
 import com.volmit.iris.util.matter.slices.container.JigsawPieceContainer;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -772,10 +771,11 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         int id = Integer.parseInt(v[1]);
 
 
-        IrisContext.getOr(this);
-        IrisJigsawPiece piece = getMantle().getMantle().get(x, y, z, JigsawPieceContainer.class).load(getData());
-        if (piece != null && piece.getObject().equals(object)) {
-            return new PlacedObject(piece.getPlacementOptions(), getData().getObjectLoader().load(object), id, x, z);
+        JigsawPieceContainer container = getMantle().getMantle().get(x, y, z, JigsawPieceContainer.class);
+        if (container != null) {
+            IrisJigsawPiece piece = container.load(getData());
+            if (piece.getObject().equals(object))
+                return new PlacedObject(piece.getPlacementOptions(), getData().getObjectLoader().load(object), id, x, z);
         }
 
         IrisRegion region = getRegion(x, z);

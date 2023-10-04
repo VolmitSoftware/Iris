@@ -31,6 +31,7 @@ import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
+import com.volmit.iris.util.decree.specialhandlers.NullablePlayerHandler;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.parallel.BurstExecutor;
@@ -41,6 +42,8 @@ import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
@@ -125,6 +128,31 @@ public class CommandIris implements DecreeExecutor {
         } else {
             sender().sendMessage(C.RED + "Failed to remove world folder");
         }
+    }
+
+    @Decree(description = "Teleport to another world", aliases = {"tp"}, sync = true)
+    public void teleport(
+            @Param(description = "World to teleport to")
+            World world,
+            @Param(description = "Player to teleport", defaultValue = "---", customHandler = NullablePlayerHandler.class)
+            Player player
+    ) {
+        if (player == null && sender().isPlayer())
+            player = sender().player();
+
+        final Player target = player;
+        if (target == null) {
+            sender().sendMessage(C.RED + "The specified player does not exist.");
+            return;
+        }
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                target.teleport(world.getSpawnLocation());
+                new VolmitSender(target).sendMessage(C.GREEN + "You have been teleported to " + world.getName() + ".");
+            }
+        }.runTask(Iris.instance);
     }
 
     @Decree(description = "Print version information")

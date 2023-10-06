@@ -131,6 +131,19 @@ public class CommandWorldManager implements DecreeExecutor {
             sender().sendMessage(C.GREEN + world + " loaded successfully.");
 
     }
+    @Decree(description = "Evacuate an iris world", origin = DecreeOrigin.PLAYER, sync = true)
+    public void evacuate(
+            @Param(description = "Evacuate the world")
+            World world
+    ) {
+        if (!IrisToolbelt.isIrisWorld(world)) {
+            sender().sendMessage(C.RED + "This is not an Iris world. Iris worlds: " + String.join(", ", Bukkit.getServer().getWorlds().stream().filter(IrisToolbelt::isIrisWorld).map(World::getName).toList()));
+            return;
+        }
+        sender().sendMessage(C.GREEN + "Evacuating world" + world.getName());
+        IrisToolbelt.evacuate(world);
+
+    }
     public static boolean doesWorldExist(String worldName) {
         File worldContainer = Bukkit.getWorldContainer();
         File worldDirectory = new File(worldContainer, worldName);

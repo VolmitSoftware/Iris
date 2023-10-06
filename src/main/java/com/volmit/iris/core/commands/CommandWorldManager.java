@@ -74,7 +74,7 @@ public class CommandWorldManager implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Load an Iris World", origin = DecreeOrigin.PLAYER, sync = true)
+    @Decree(description = "Load an Iris World", origin = DecreeOrigin.PLAYER, sync = true, aliases = "import")
     public void loadworld(
             @Param(description = "The name of the world to load")
             String world
@@ -144,6 +144,39 @@ public class CommandWorldManager implements DecreeExecutor {
         IrisToolbelt.evacuate(world);
 
     }
+    @Decree(description = "Remove an Iris world", aliases = {"del", "rm"}, sync = true)
+    public void remove(
+            @Param(description = "The world to remove")
+            World world,
+            @Param(description = "Whether to also remove the folder (if set to false, just does not load the world)", defaultValue = "true")
+            boolean delete
+    ) {
+        if (!IrisToolbelt.isIrisWorld(world)) {
+            sender().sendMessage(C.RED + "This is not an Iris world. Iris worlds: " + String.join(", ", Bukkit.getServer().getWorlds().stream().filter(IrisToolbelt::isIrisWorld).map(World::getName).toList()));
+            return;
+        }
+        sender().sendMessage(C.GREEN + "Removing world: " + world.getName());
+        try {
+            if (IrisToolbelt.removeWorld(world)) {
+                sender().sendMessage(C.GREEN + "Successfully removed " + world.getName() + " from bukkit.yml");
+            } else {
+                sender().sendMessage(C.YELLOW + "Looks like the world was already removed from bukkit.yml");
+            }
+        } catch (IOException e) {
+            sender().sendMessage(C.RED + "Failed to save bukkit.yml because of " + e.getMessage());
+            e.printStackTrace();
+        }
+        IrisToolbelt.evacuate(world, "Deleting world");
+        Bukkit.unloadWorld(world, false);
+        if (delete) {
+            if (world.getWorldFolder().delete()) {
+                sender().sendMessage(C.GREEN + "Successfully removed world folder");
+            } else {
+                sender().sendMessage(C.RED + "Failed to remove world folder");
+            }
+        }
+    }
+
     public static boolean doesWorldExist(String worldName) {
         File worldContainer = Bukkit.getWorldContainer();
         File worldDirectory = new File(worldContainer, worldName);

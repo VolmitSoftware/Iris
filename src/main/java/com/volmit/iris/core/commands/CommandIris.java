@@ -25,6 +25,7 @@ import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
+import com.volmit.iris.engine.safeguard.ServerBoot;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeContext;
 import com.volmit.iris.util.decree.DecreeExecutor;
@@ -46,9 +47,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+
+import static com.volmit.iris.engine.safeguard.ServerBoot.multiverse;
 
 @Decree(name = "iris", aliases = {"ir", "irs"}, description = "Basic Command")
 public class CommandIris implements DecreeExecutor {
@@ -70,6 +72,14 @@ public class CommandIris implements DecreeExecutor {
             @Param(description = "The seed to generate the world with", defaultValue = "1337")
             long seed
     ) {
+        if (multiverse){
+            sender().sendMessage(C.RED + "Your server has a incompatibility that may corrupt all worlds on the server if not handled properly.");
+            sender().sendMessage(C.RED + "its heavily advised for you to take action. see log for full detail");
+            Iris.safeguard(C.RED + "----------------------------------------------------------------");
+            Iris.safeguard(C.RED + "Command ran: /iris create");
+            ServerBoot.incompatiblepluginset();
+            Iris.safeguard(C.RED + "----------------------------------------------------------------");
+        }
         if (name.equals("iris")) {
             sender().sendMessage(C.RED + "You cannot use the world name \"iris\" for creating worlds as Iris uses this directory for studio worlds.");
             sender().sendMessage(C.RED + "May we suggest the name \"IrisWorld\" instead?");
@@ -97,37 +107,6 @@ public class CommandIris implements DecreeExecutor {
         }
 
         sender().sendMessage(C.GREEN + "Successfully created your world!");
-    }
-
-    @Decree(description = "Remove an Iris world", aliases = {"del", "rm"}, sync = true)
-    public void remove(
-            @Param(description = "The world to remove")
-            World world,
-            @Param(description = "Whether to also remove the folder (if set to false, just does not load the world)", defaultValue = "true")
-            boolean delete
-    ) {
-        if (!IrisToolbelt.isIrisWorld(world)) {
-            sender().sendMessage(C.RED + "This is not an Iris world. Iris worlds: " + String.join(", ", Bukkit.getServer().getWorlds().stream().filter(IrisToolbelt::isIrisWorld).map(World::getName).toList()));
-            return;
-        }
-        sender().sendMessage(C.GREEN + "Removing world: " + world.getName());
-        try {
-            if (IrisToolbelt.removeWorld(world)) {
-                sender().sendMessage(C.GREEN + "Successfully removed " + world.getName() + " from bukkit.yml");
-            } else {
-                sender().sendMessage(C.YELLOW + "Looks like the world was already removed from bukkit.yml");
-            }
-        } catch (IOException e) {
-            sender().sendMessage(C.RED + "Failed to save bukkit.yml because of " + e.getMessage());
-            e.printStackTrace();
-        }
-        IrisToolbelt.evacuate(world, "Deleting world");
-        Bukkit.unloadWorld(world, false);
-        if (delete && world.getWorldFolder().delete()) {
-            sender().sendMessage(C.GREEN + "Successfully removed world folder");
-        } else {
-            sender().sendMessage(C.RED + "Failed to remove world folder");
-        }
     }
 
     @Decree(description = "Teleport to another world", aliases = {"tp"}, sync = true)

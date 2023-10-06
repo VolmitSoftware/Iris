@@ -48,7 +48,8 @@ import java.util.List;
 
 import static com.volmit.iris.Iris.service;
 
-@Decree(name = "worldmanager", origin = DecreeOrigin.PLAYER, description = "Iris World Manager")
+// Not done yet but works
+@Decree(name = "worldmanager", origin = DecreeOrigin.PLAYER, description = "Iris World Manager", aliases = {"manager"})
 public class CommandWorldManager implements DecreeExecutor {
     String WorldToLoad;
     String WorldEngine;
@@ -74,7 +75,7 @@ public class CommandWorldManager implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Load an Iris World", origin = DecreeOrigin.PLAYER, sync = true, aliases = "import")
+    @Decree(description = "Load an Iris World", origin = DecreeOrigin.PLAYER, sync = true, aliases = {"import"})
     public void loadworld(
             @Param(description = "The name of the world to load")
             String world

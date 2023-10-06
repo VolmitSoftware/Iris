@@ -62,6 +62,7 @@ public class CommandIris implements DecreeExecutor {
     private CommandWhat what;
     private CommandEdit edit;
     private CommandFind find;
+    private CommandWorldManager manager;
 
     @Decree(description = "Create a new world", aliases = {"+", "c"})
     public void create(

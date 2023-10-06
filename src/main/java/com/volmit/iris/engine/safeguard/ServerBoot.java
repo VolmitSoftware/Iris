@@ -1,6 +1,7 @@
 package com.volmit.iris.engine.safeguard;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.nms.v20.NMSBinding1_20_1;
 import com.volmit.iris.util.format.C;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
@@ -13,6 +14,7 @@ public class ServerBoot {
     public static boolean dynmap = false;
     public static boolean terraform = false;
     public static boolean stratos = false;
+    public static boolean correctversion = true;
 
     protected static boolean safeguardPassed;
     public static boolean passedserversoftware = true;
@@ -22,6 +24,10 @@ public class ServerBoot {
         Iris.info("Checking for possible conflicts..");
         org.bukkit.plugin.PluginManager pluginManager = Bukkit.getPluginManager();
         Plugin[] plugins = pluginManager.getPlugins();
+        if (!instance.getServer().getBukkitVersion().contains(NMSBinding1_20_1.NMS_VERSION)) {
+            unstablemode = true;
+            correctversion = false;
+        }
 
         StringBuilder pluginList = new StringBuilder("Plugin list: ");
         count = 0;

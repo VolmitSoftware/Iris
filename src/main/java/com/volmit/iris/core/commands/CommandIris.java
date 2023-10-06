@@ -57,6 +57,7 @@ public class CommandIris implements DecreeExecutor {
     private CommandSettings settings;
     private CommandObject object;
     private CommandJigsaw jigsaw;
+    private CommandWorldManager manager;
     private CommandWhat what;
     private CommandEdit edit;
     private CommandFind find;
@@ -131,10 +132,12 @@ public class CommandIris implements DecreeExecutor {
         }
         IrisToolbelt.evacuate(world, "Deleting world");
         Bukkit.unloadWorld(world, false);
-        if (delete && world.getWorldFolder().delete()) {
-            sender().sendMessage(C.GREEN + "Successfully removed world folder");
-        } else {
-            sender().sendMessage(C.RED + "Failed to remove world folder");
+        if (delete) {
+            if (world.getWorldFolder().delete()) {
+                sender().sendMessage(C.GREEN + "Successfully removed world folder");
+            } else {
+                sender().sendMessage(C.RED + "Failed to remove world folder");
+            }
         }
     }
 

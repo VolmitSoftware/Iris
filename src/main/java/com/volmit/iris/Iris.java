@@ -465,9 +465,9 @@ public class Iris extends VolmitPlugin implements Listener {
             J.s(this::setupPapi);
             J.a(ServerConfigurator::configure, 20);
             splash();
-            ServerBoot.unstablemode();
-            ServerBoot.supportedserversoftware();
-            ServerBoot.incompatiblepluginset();
+            ServerBoot.UnstableMode();
+            ServerBoot.SupportedServerSoftware();
+            ServerBoot.printincompatiblepluginWarnings();
             autoStartStudio();
             checkForBukkitWorlds();
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());

@@ -78,7 +78,7 @@ public class CommandIris implements DecreeExecutor {
             sender().sendMessage(C.RED + "it is strongly advised for you to take action. see log for full detail");
             Iris.safeguard(C.RED + "----------------------------------------------------------------");
             Iris.safeguard(C.RED + "Command ran: /iris create");
-            ServerBoot.incompatiblepluginset();
+            ServerBoot.printincompatiblepluginWarnings();
             Iris.safeguard(C.RED + "----------------------------------------------------------------");
         }
         if (name.equals("iris")) {

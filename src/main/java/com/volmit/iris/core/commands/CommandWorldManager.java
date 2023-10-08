@@ -56,7 +56,7 @@ public class CommandWorldManager implements DecreeExecutor {
     String worldNameToCheck = "YourWorldName";
     VolmitSender sender = Iris.getSender();
     @Decree(description = "Unload an Iris World", origin = DecreeOrigin.PLAYER, sync = true)
-    public void unloadworld(
+    public void unloadWorld(
             @Param(description = "The world to unload")
             World world
     ) {
@@ -76,7 +76,7 @@ public class CommandWorldManager implements DecreeExecutor {
     }
 
     @Decree(description = "Load an Iris World", origin = DecreeOrigin.PLAYER, sync = true, aliases = {"import"})
-    public void loadworld(
+    public void loadWorld(
             @Param(description = "The name of the world to load")
             String world
     ) {
@@ -89,7 +89,6 @@ public class CommandWorldManager implements DecreeExecutor {
             sender().sendMessage(C.YELLOW + world + " Doesnt exist on the server.");
             return;
         }
-
             WorldToLoad = world;
             File BUKKIT_YML = new File("bukkit.yml");
             String pathtodim = world + "\\iris\\pack\\dimensions\\";
@@ -130,7 +129,6 @@ public class CommandWorldManager implements DecreeExecutor {
             }
             checkForBukkitWorlds();
             sender().sendMessage(C.GREEN + world + " loaded successfully.");
-
     }
     @Decree(description = "Evacuate an iris world", origin = DecreeOrigin.PLAYER, sync = true)
     public void evacuate(
@@ -143,7 +141,6 @@ public class CommandWorldManager implements DecreeExecutor {
         }
         sender().sendMessage(C.GREEN + "Evacuating world" + world.getName());
         IrisToolbelt.evacuate(world);
-
     }
     @Decree(description = "Remove an Iris world", aliases = {"del", "rm"}, sync = true)
     public void remove(
@@ -177,8 +174,7 @@ public class CommandWorldManager implements DecreeExecutor {
             }
         }
     }
-
-    public static boolean doesWorldExist(String worldName) {
+     boolean doesWorldExist(String worldName) {
         File worldContainer = Bukkit.getWorldContainer();
         File worldDirectory = new File(worldContainer, worldName);
         return worldDirectory.exists() && worldDirectory.isDirectory();
@@ -198,12 +194,10 @@ public class CommandWorldManager implements DecreeExecutor {
                 if (!worldsToLoad.contains(s)) {
                     continue;
                 }
-
                 ConfigurationSection entry = section.getConfigurationSection(s);
                 if (!entry.contains("generator", true)) {
                     continue;
                 }
-
                 String generator = entry.getString("generator");
                 if (generator.startsWith("Iris:")) {
                     generator = generator.split("\\Q:\\E")[1];
@@ -212,13 +206,10 @@ public class CommandWorldManager implements DecreeExecutor {
                 } else {
                     continue;
                 }
-
                 Iris.info("2 World: %s | Generator: %s", s, generator);
-
                 if (Bukkit.getWorlds().stream().anyMatch(w -> w.getName().equals(s))) {
                     continue;
                 }
-
                 Iris.info(C.LIGHT_PURPLE + "Preparing Spawn for " + s + "' using Iris:" + generator + "...");
                 new WorldCreator(s)
                         .generator(getDefaultWorldGenerator(s, generator))
@@ -230,7 +221,6 @@ public class CommandWorldManager implements DecreeExecutor {
             e.printStackTrace();
         }
     }
-
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
         Iris.debug("Default World Generator Called for " + worldName + " using ID: " + id);
         if (worldName.equals("test")) {
@@ -244,8 +234,6 @@ public class CommandWorldManager implements DecreeExecutor {
                 }
             }
         }
-
-
         IrisDimension dim;
         if (id == null || id.isEmpty()) {
             dim = IrisData.loadAnyDimension(IrisSettings.get().getGenerator().getDefaultWorldType());
@@ -266,9 +254,7 @@ public class CommandWorldManager implements DecreeExecutor {
                 Iris.info("Resolved missing dimension, proceeding with generation.");
             }
         }
-
         Iris.debug("Assuming IrisDimension: " + dim.getName());
-
         IrisWorld w = IrisWorld.builder()
                 .name(worldName)
                 .seed(1337)
@@ -277,15 +263,12 @@ public class CommandWorldManager implements DecreeExecutor {
                 .minHeight(dim.getMinHeight())
                 .maxHeight(dim.getMaxHeight())
                 .build();
-
         Iris.debug("Generator Config: " + w.toString());
-
         File ff = new File(w.worldFolder(), "iris/pack");
         if (!ff.exists() || ff.listFiles().length == 0) {
             ff.mkdirs();
             service(StudioSVC.class).installIntoWorld(sender, dim.getLoadKey(), ff.getParentFile());
         }
-
         return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey());
     }
 }

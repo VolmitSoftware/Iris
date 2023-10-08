@@ -20,7 +20,7 @@ public class ServerBoot {
     public static boolean passedserversoftware = true;
     protected static byte count;
 
-    public static void bootcheck() {
+    public static void BootCheck() {
         Iris.info("Checking for possible conflicts..");
         org.bukkit.plugin.PluginManager pluginManager = Bukkit.getPluginManager();
         Plugin[] plugins = pluginManager.getPlugins();
@@ -74,20 +74,20 @@ public class ServerBoot {
         Iris.safeguard(pluginList.toString());
 
     }
-    public static void unstablemode(){
+    public static void UnstableMode(){
         if (unstablemode) {
             Iris.safeguard(C.DARK_RED + "Iris is running in Unstable Mode");
         } else {
             Iris.safeguard(C.BLUE + "Iris is running Stable");
         }
     }
-    public static void supportedserversoftware(){
+    public static void SupportedServerSoftware(){
         if (!passedserversoftware) {
             Iris.safeguard(C.DARK_RED + "Server is running unsupported server software");
             Iris.safeguard(C.RED + "Supported: Purpur, Pufferfish, Paper, Spigot, Bukkit");
         }
     }
-    public static void incompatiblepluginset(){
+    public static void printincompatiblepluginWarnings(){
 
         if (safeguardPassed) {
             Iris.safeguard(C.BLUE + "0 Conflicts found");

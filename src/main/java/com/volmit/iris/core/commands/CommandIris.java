@@ -74,7 +74,7 @@ public class CommandIris implements DecreeExecutor {
             long seed
     ) {
         if (multiverse){
-            sender().sendMessage(C.RED + "Your server has a incompatibility that may corrupt all worlds on the server if not handled properly.");
+            sender().sendMessage(C.RED + "Your server has an incompatibility that may corrupt all worlds on the server if not handled properly.");
             sender().sendMessage(C.RED + "its heavily advised for you to take action. see log for full detail");
             Iris.safeguard(C.RED + "----------------------------------------------------------------");
             Iris.safeguard(C.RED + "Command ran: /iris create");

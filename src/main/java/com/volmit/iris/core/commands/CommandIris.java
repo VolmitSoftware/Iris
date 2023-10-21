@@ -21,6 +21,7 @@ package com.volmit.iris.core.commands;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.service.StudioSVC;
+import com.volmit.iris.core.tools.IrisBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -50,6 +51,7 @@ import java.io.File;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import static com.volmit.iris.core.tools.IrisBenchmarking.inProgress;
 import static com.volmit.iris.engine.safeguard.ServerBoot.multiverse;
 
 @Decree(name = "iris", aliases = {"ir", "irs"}, description = "Basic Command")
@@ -138,6 +140,14 @@ public class CommandIris implements DecreeExecutor {
     @Decree(description = "Print version information")
     public void version() {
         sender().sendMessage(C.GREEN + "Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");
+    }
+    @Decree(description = "Benchmark your server", origin = DecreeOrigin.CONSOLE)
+    public void benchmark() throws InterruptedException {
+        if(!inProgress) {
+            IrisBenchmarking.runBenchmark();
+        } else {
+            Iris.info(C.RED + "Benchmark already is in progress.");
+        }
     }
 
     @Decree(description = "Print world height information", origin = DecreeOrigin.PLAYER)

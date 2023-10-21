@@ -73,7 +73,7 @@ public class IrisBenchmarking {
         // help
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
             BenchmarksCompleted++;
-            if (ServerOS.contains("Windows") && isRunningAsAdmin()){
+            if (ServerOS.contains("Windows") && isRunningAsAdmin()) {
                 WindowsDiskSpeed = true;
                 WindowsDiskSpeedTest();
             } else {
@@ -118,7 +118,7 @@ public class IrisBenchmarking {
                 Iris.info("-----------------------------------------------------");
                 Iris.info("Currently Running: " + C.BLUE + currentRunning);
                 // Iris.info("Tasks: " + "Current Tasks: " + C.BLUE + currentTasks + C.WHITE + " / " + "Total Tasks: " + C.BLUE + totalTasks);
-                Iris.info("Benchmarks Completed: " + C.BLUE + BenchmarksCompleted + C.WHITE + " / " +"Total: " + C.BLUE + BenchmarksTotal);
+                Iris.info("Benchmarks Completed: " + C.BLUE + BenchmarksCompleted + C.WHITE + " / " + "Total: " + C.BLUE + BenchmarksTotal);
                 Iris.info("-----------------------------------------------------");
 
                 previousCompleted = BenchmarksCompleted;
@@ -150,7 +150,7 @@ public class IrisBenchmarking {
         Iris.info("- Random String Sorting: " + calculateStringSorting + " Thousand Strings/Sec");
         Iris.info("- Data Encryption: " + formatDouble(calculateDataEncryption) + " MBytes/Sec");
         Iris.info("- Data Compression: " + formatDouble(calculateDataCompression) + " MBytes/Sec");
-        if(WindowsDiskSpeed) {
+        if (WindowsDiskSpeed) {
             Iris.info("Disk Model: " + getDiskModel());
             Iris.info(C.BLUE + "- Running with Windows System Assessment Tool");
             Iris.info("- Sequential 64.0 Write: " + C.BLUE + formatDouble(avgWriteSpeedMBps) + " Mbps");
@@ -172,6 +172,7 @@ public class IrisBenchmarking {
         Iris.info("- Total Paging Size: " + totalPageSize + " MB");
         Iris.info("Duration: " + roundToTwoDecimalPlaces(elapsedTimeNs) + " Seconds");
     }
+
     public static long getMaxMemoryUsage() {
         MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
         MemoryUsage heapMemoryUsage = memoryMXBean.getHeapMemoryUsage();
@@ -181,17 +182,21 @@ public class IrisBenchmarking {
         long maxMemoryUsageMB = (maxHeapMemory + maxNonHeapMemory) / (1024 * 1024);
         return maxMemoryUsageMB;
     }
+
     public static void getServerOS() {
         SystemInfo systemInfo = new SystemInfo();
         OperatingSystem os = systemInfo.getOperatingSystem();
         ServerOS = os.toString();
     }
+
     public static boolean isRunningAsAdmin() {
         return ServerOS.contains("Windows") && isWindowsAdmin();
     }
+
     private static boolean isUnixAdmin() {
         return System.getProperty("user.name").equals("root");
     }
+
     private static boolean isWindowsAdmin() {
         String[] groups = (new com.sun.security.auth.module.NTSystem()).getGroupIDs();
         for (String group : groups) {
@@ -201,6 +206,7 @@ public class IrisBenchmarking {
         }
         return false;
     }
+
     public static String getCPUModel() {
         try {
             SystemInfo systemInfo = new SystemInfo();
@@ -212,6 +218,7 @@ public class IrisBenchmarking {
             return "Unknown CPU Model";
         }
     }
+
     public static String getDiskModel() {
         SystemInfo systemInfo = new SystemInfo();
         List<HWDiskStore> diskStores = systemInfo.getHardware().getDiskStores();
@@ -222,9 +229,11 @@ public class IrisBenchmarking {
             return "Unknown Disk Model";
         }
     }
-    public static void warningFallback(){
-        Iris.info(C.RED + "Using the FALLBACK method for " + C.DARK_RED + currentRunning + C.RED +" due to compatibility issues. Please note that this may result in less accurate results.");
+
+    public static void warningFallback() {
+        Iris.info(C.RED + "Using the FALLBACK method for " + C.DARK_RED + currentRunning + C.RED + " due to compatibility issues. Please note that this may result in less accurate results.");
     }
+
     private static String formatDouble(double value) {
         return String.format("%.2f", value);
     }
@@ -237,6 +246,7 @@ public class IrisBenchmarking {
         long endTime = System.nanoTime();
         return (endTime - startTime) / 1_000_000_000.0;
     }
+
     private static double calculateIntegerMath() {
         currentRunning = "calculateIntegerMath";
         final int numIterations = 1_000_000_000;
@@ -265,6 +275,7 @@ public class IrisBenchmarking {
         double averageMopsPerSec = totalMopsPerSec / numRuns;
         return averageMopsPerSec;
     }
+
     private static double calculateFloatingPoint() {
         currentRunning = "calculateFloatingPoint";
         long numIterations = 85_000_000;
@@ -288,6 +299,7 @@ public class IrisBenchmarking {
         double averageMopsPerSec = totalMopsPerSec / numRuns;
         return averageMopsPerSec;
     }
+
     private static double calculatePrimeNumbers() {
         currentRunning = "calculatePrimeNumbers";
         int primeCount;
@@ -315,6 +327,7 @@ public class IrisBenchmarking {
         double averageMopsPerSec = totalMopsPerSec / numRuns;
         return averageMopsPerSec;
     }
+
     private static double calculateStringSorting() {
         currentRunning = "calculateStringSorting";
         int stringCount = 1_000_000;
@@ -337,6 +350,7 @@ public class IrisBenchmarking {
         double averageMopsPerSec = totalMopsPerSec / numRuns;
         return averageMopsPerSec;
     }
+
     public static double calculateDataEncryption() {
         currentRunning = "calculateDataEncryption";
         int dataSizeMB = 100;
@@ -358,6 +372,7 @@ public class IrisBenchmarking {
         double averageMBytesPerSec = totalMBytesPerSec / numRuns;
         return averageMBytesPerSec;
     }
+
     private static byte[] performEncryption(byte[] data, int numRuns) {
         byte[] key = "MyEncryptionKey".getBytes();
         byte[] result = Arrays.copyOf(data, data.length);
@@ -368,6 +383,7 @@ public class IrisBenchmarking {
         }
         return result;
     }
+
     public static double calculateDataCompression() {
         currentRunning = "calculateDataCompression";
         int dataSizeMB = 500;
@@ -381,6 +397,7 @@ public class IrisBenchmarking {
 
         return mbytesPerSec;
     }
+
     private static byte[] performCompression(byte[] data) {
         Deflater deflater = new Deflater();
         deflater.setInput(data);
@@ -396,6 +413,7 @@ public class IrisBenchmarking {
         deflater.end();
         return outputStream.toByteArray();
     }
+
     private static List<String> generateRandomStrings(int count, int length) {
         SecureRandom random = new SecureRandom();
         List<String> randomStrings = new ArrayList<>();
@@ -407,18 +425,22 @@ public class IrisBenchmarking {
         });
         return randomStrings;
     }
+
     private static byte[] generateRandomData(int size) {
         SecureRandom random = new SecureRandom();
         byte[] data = new byte[size];
         random.nextBytes(data);
         return data;
     }
+
     private static double roundToTwoDecimalPlaces(double value) {
         return Double.parseDouble(String.format("%.2f", value));
     }
+
     private static double calculateCPUScore(long elapsedTimeNs) {
         return 1.0 / (elapsedTimeNs / 1_000_000.0);
     }
+
     public static double calculateDiskSpeed() {
         currentRunning = "calculateDiskSpeed";
         String filePath = "benchmark.dat";
@@ -468,6 +490,7 @@ public class IrisBenchmarking {
         avgReadSpeedMBps = calculateAverage(readSpeeds);
         return 2;
     }
+
     public static void createTestFile(String filePath, int fileSizeMB) {
         try {
             File file = new File(filePath);
@@ -482,6 +505,7 @@ public class IrisBenchmarking {
             e.printStackTrace();
         }
     }
+
     public static void readTestFile(String filePath) {
         try {
             File file = new File(filePath);
@@ -494,15 +518,18 @@ public class IrisBenchmarking {
             e.printStackTrace();
         }
     }
+
     public static void deleteTestFile(String filePath) {
         File file = new File(filePath);
         file.delete();
     }
+
     public static double calculateDiskSpeedMBps(int fileSizeMB, long startTime, long endTime) {
         double elapsedSeconds = (endTime - startTime) / 1_000_000_000.0;
         double writeSpeed = (fileSizeMB / elapsedSeconds);
         return writeSpeed;
     }
+
     public static double calculateAverage(double[] values) {
         double sum = 0;
         for (double value : values) {
@@ -510,6 +537,7 @@ public class IrisBenchmarking {
         }
         return sum / values.length;
     }
+
     public static void WindowsDiskSpeedTest() {
 
         try {
@@ -538,6 +566,7 @@ public class IrisBenchmarking {
             e.printStackTrace();
         }
     }
+
     private static double extractSpeed(String line) {
         String[] tokens = line.split("\\s+");
         for (int i = 0; i < tokens.length; i++) {

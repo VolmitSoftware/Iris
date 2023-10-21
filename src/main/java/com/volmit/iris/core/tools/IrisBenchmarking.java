@@ -22,10 +22,14 @@ import java.util.stream.IntStream;
 import java.util.zip.Deflater;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 import static com.google.common.math.LongMath.isPrime;
 
 public class IrisBenchmarking {
+    static String ServerOS;
     private static long startTime;
     static double avgWriteSpeedMBps;
     static double avgReadSpeedMBps;
@@ -45,11 +49,14 @@ public class IrisBenchmarking {
     static int totalTasks = 10;
     static int currentTasks = 0;
     static double elapsedTimeNs;
+    static boolean WindowsDiskSpeed = false;
     public static boolean inProgress = false;
     // Good enough for now. . .
 
     public static void runBenchmark() throws InterruptedException {
         inProgress = true;
+        getServerOS();
+
         AtomicReference<Double> doneCalculateDiskSpeed = new AtomicReference<>((double) 0);
         startBenchmarkTimer();
         Iris.info("Benchmark Started!");
@@ -65,7 +72,15 @@ public class IrisBenchmarking {
 
         // help
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-            doneCalculateDiskSpeed.set(roundToTwoDecimalPlaces(calculateDiskSpeed()));
+            BenchmarksCompleted++;
+            if (ServerOS.contains("Windows") && isRunningAsAdmin()){
+                WindowsDiskSpeed = true;
+                WindowsDiskSpeedTest();
+            } else {
+                warningFallback();
+                doneCalculateDiskSpeed.set(roundToTwoDecimalPlaces(calculateDiskSpeed()));
+            }
+
         }).thenRun(() -> {
             BenchmarksCompleted++;
             calculateIntegerMath = roundToTwoDecimalPlaces(calculateIntegerMath());
@@ -82,7 +97,6 @@ public class IrisBenchmarking {
             BenchmarksCompleted++;
             calculateDataCompression = roundToTwoDecimalPlaces(calculateDataCompression());
         }).thenRun(() -> {
-            BenchmarksCompleted++;
             elapsedTimeNs = stopBenchmarkTimer();
             results();
             inProgress = false;
@@ -107,7 +121,7 @@ public class IrisBenchmarking {
                 Iris.info("Benchmarks Completed: " + C.BLUE + BenchmarksCompleted + C.WHITE + " / " +"Total: " + C.BLUE + BenchmarksTotal);
                 Iris.info("-----------------------------------------------------");
 
-                previousCompleted = BenchmarksCompleted; // Update the previous value
+                previousCompleted = BenchmarksCompleted;
             }
 
             if (BenchmarksCompleted == BenchmarksTotal) {
@@ -116,8 +130,6 @@ public class IrisBenchmarking {
             Thread.sleep(10);
         }
     }
-
-
 
     public static void results() {
 
@@ -129,7 +141,7 @@ public class IrisBenchmarking {
         long usedMemoryMB = totalMemoryMB - availableMemoryMB;
         MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
 
-        Iris.info("OS: " + serverOS());
+        Iris.info("OS: " + ServerOS);
         Iris.info("CPU Model: " + getCPUModel());
         Iris.info("CPU Score: " + "WIP");
         Iris.info("- Integer Math: " + calculateIntegerMath + " MOps/Sec");
@@ -138,13 +150,21 @@ public class IrisBenchmarking {
         Iris.info("- Random String Sorting: " + calculateStringSorting + " Thousand Strings/Sec");
         Iris.info("- Data Encryption: " + formatDouble(calculateDataEncryption) + " MBytes/Sec");
         Iris.info("- Data Compression: " + formatDouble(calculateDataCompression) + " MBytes/Sec");
-        Iris.info("Disk Model: " + getDiskModel());
-        Iris.info("- Average Write Speed: " + C.BLUE + formatDouble(avgWriteSpeedMBps) + " Mbp/Sec");
-        Iris.info("- Average Read Speed: " + C.BLUE + formatDouble(avgReadSpeedMBps) + " Mbp/Sec");
-        Iris.info("- Highest Write Speed: " + formatDouble(highestWriteSpeedMBps) + " Mbp/Sec");
-        Iris.info("- Highest Read Speed: " + formatDouble(highestReadSpeedMBps) + " Mbp/Sec");
-        Iris.info("- Lowest Write Speed: " + formatDouble(lowestWriteSpeedMBps) + " Mbp/Sec");
-        Iris.info("- Lowest Read Speed: " + formatDouble(lowestReadSpeedMBps) + " Mbp/Sec");
+        if(WindowsDiskSpeed) {
+            Iris.info("Disk Model: " + getDiskModel());
+            Iris.info(C.BLUE + "- Running with Windows System Assessment Tool");
+            Iris.info("- Sequential 64.0 Write: " + C.BLUE + formatDouble(avgWriteSpeedMBps) + " Mbps");
+            Iris.info("- Sequential 64.0 Read: " + C.BLUE + formatDouble(avgReadSpeedMBps) + " Mbps");
+        } else {
+            Iris.info("Disk Model: " + getDiskModel());
+            Iris.info(C.YELLOW + "- Running in Native Mode");
+            Iris.info("- Average Write Speed: " + C.BLUE + formatDouble(avgWriteSpeedMBps) + " Mbps");
+            Iris.info("- Average Read Speed: " + C.BLUE + formatDouble(avgReadSpeedMBps) + " Mbps");
+            Iris.info("- Highest Write Speed: " + formatDouble(highestWriteSpeedMBps) + " Mbps");
+            Iris.info("- Highest Read Speed: " + formatDouble(highestReadSpeedMBps) + " Mbps");
+            Iris.info("- Lowest Write Speed: " + formatDouble(lowestWriteSpeedMBps) + " Mbps");
+            Iris.info("- Lowest Read Speed: " + formatDouble(lowestReadSpeedMBps) + " Mbps");
+        }
         Iris.info("Ram Usage: ");
         Iris.info("- Total Ram: " + totalMemoryMB + " MB");
         Iris.info("- Used Ram: " + usedMemoryMB + " MB");
@@ -161,11 +181,25 @@ public class IrisBenchmarking {
         long maxMemoryUsageMB = (maxHeapMemory + maxNonHeapMemory) / (1024 * 1024);
         return maxMemoryUsageMB;
     }
-    public static String serverOS() {
+    public static void getServerOS() {
         SystemInfo systemInfo = new SystemInfo();
         OperatingSystem os = systemInfo.getOperatingSystem();
-        String osInfo = os.toString();
-        return osInfo;
+        ServerOS = os.toString();
+    }
+    public static boolean isRunningAsAdmin() {
+        return ServerOS.contains("Windows") && isWindowsAdmin();
+    }
+    private static boolean isUnixAdmin() {
+        return System.getProperty("user.name").equals("root");
+    }
+    private static boolean isWindowsAdmin() {
+        String[] groups = (new com.sun.security.auth.module.NTSystem()).getGroupIDs();
+        for (String group : groups) {
+            if (group.equals("S-1-5-32-544")) {
+                return true;
+            }
+        }
+        return false;
     }
     public static String getCPUModel() {
         try {
@@ -188,6 +222,9 @@ public class IrisBenchmarking {
             return "Unknown Disk Model";
         }
     }
+    public static void warningFallback(){
+        Iris.info(C.RED + "Using the FALLBACK method for " + C.DARK_RED + currentRunning + C.RED +" due to compatibility issues. Please note that this may result in less accurate results.");
+    }
     private static String formatDouble(double value) {
         return String.format("%.2f", value);
     }
@@ -199,40 +236,6 @@ public class IrisBenchmarking {
     private static double stopBenchmarkTimer() {
         long endTime = System.nanoTime();
         return (endTime - startTime) / 1_000_000_000.0;
-    }
-    public static double calculateCpuScore(
-            double calculateIntegerMath,
-            double calculateFloatingPoint,
-            double calculatePrimeNumbers,
-            double calculateStringSorting,
-            double calculateDataEncryption,
-            double calculateDataCompression
-    ) {
-        double weightIntegerMath = 1.0;
-        double weightFloatingPoint = 1.0;
-        double weightPrimeNumbers = 1.0;
-        double weightStringSorting = 1.0;
-        double weightDataEncryption = 1.0;
-        double weightDataCompression = 1.0;
-
-        double invertedIntegerMath = 1.0 / calculateIntegerMath;
-        double invertedFloatingPoint = 1.0 / calculateFloatingPoint;
-        double invertedPrimeNumbers = 1.0 / calculatePrimeNumbers;
-        double invertedStringSorting = 1.0 / calculateStringSorting;
-        double invertedDataEncryption = 1.0 / calculateDataEncryption;
-        double invertedDataCompression = 1.0 / calculateDataCompression;
-
-        double cpuScore =
-                (
-                        invertedIntegerMath * weightIntegerMath +
-                                invertedFloatingPoint * weightFloatingPoint +
-                                invertedPrimeNumbers * weightPrimeNumbers +
-                                invertedStringSorting * weightStringSorting +
-                                invertedDataEncryption * weightDataEncryption +
-                                invertedDataCompression * weightDataCompression) /
-                        (weightIntegerMath + weightFloatingPoint + weightPrimeNumbers + weightStringSorting + weightDataEncryption + weightDataCompression);
-
-        return cpuScore;
     }
     private static double calculateIntegerMath() {
         currentRunning = "calculateIntegerMath";
@@ -263,13 +266,11 @@ public class IrisBenchmarking {
         return averageMopsPerSec;
     }
     private static double calculateFloatingPoint() {
+        currentRunning = "calculateFloatingPoint";
         long numIterations = 85_000_000;
         int numRuns = 30;
-        int percent = 10;
         double totalMopsPerSec = 0;
-
         for (int run = 0; run < numRuns; run++) {
-            percent = percent + 5;
             double result = 0;
             long startTime = System.nanoTime();
 
@@ -509,4 +510,46 @@ public class IrisBenchmarking {
         }
         return sum / values.length;
     }
+    public static void WindowsDiskSpeedTest() {
+
+        try {
+            String command = "winsat disk";
+            Process process = Runtime.getRuntime().exec(command);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                Iris.debug(line);
+
+                if (line.contains("Disk  Sequential 64.0 Read")) {
+                    avgReadSpeedMBps = extractSpeed(line);
+                } else if (line.contains("Disk  Sequential 64.0 Write")) {
+                    avgWriteSpeedMBps = extractSpeed(line);
+                }
+            }
+
+            process.waitFor();
+            process.destroy();
+
+            // Now you have the speeds in sequentialReadSpeed and sequentialWriteSpeed
+            Iris.debug("Sequential Read Speed: " + avgReadSpeedMBps + " MB/s");
+            Iris.debug("Sequential Write Speed: " + avgWriteSpeedMBps + " MB/s");
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+    private static double extractSpeed(String line) {
+        String[] tokens = line.split("\\s+");
+        for (int i = 0; i < tokens.length; i++) {
+            if (tokens[i].endsWith("MB/s") && i > 0) {
+                try {
+                    return Double.parseDouble(tokens[i - 1]);
+                } catch (NumberFormatException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return 0.0; // Default value if parsing fails
+    }
+
 }

@@ -76,7 +76,8 @@ repositories {
         }
     }
     mavenCentral()
-    maven { url "https://arcanearts.jfrog.io/artifactory/archives" }
+    maven { url "https://repo.papermc.io/repository/maven-public/"}
+    maven { url "https://repo.codemc.org/repository/maven-public" }
     maven { url "https://mvn.lumine.io/repository/maven-public/" }
     maven { url "https://jitpack.io"}
 
@@ -138,7 +139,7 @@ dependencies {
     implementation 'com.ticxo.playeranimator:PlayerAnimator:R1.2.7'
     implementation 'com.github.oraxen:oraxen:1.158.0'
     implementation 'com.github.LoneDev6:api-itemsadder:3.4.1-r4'
-    implementation 'me.clip:placeholderapi:2.11.3'
+    implementation 'com.github.PlaceholderAPI:placeholderapi:2.11.3'
     //implementation files('libs/CustomItems.jar')
 
     // Shaded

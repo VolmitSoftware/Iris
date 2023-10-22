@@ -50,9 +50,9 @@ public class IrisBenchmarking {
     static int currentTasks = 0;
     static double WindowsCPUCompression;
     static double WindowsCPUEncryption;
-    static double WindowsCPUVistaCompression;
     static double WindowsCPUCSHA1;
     static double elapsedTimeNs;
+    static boolean Winsat = false;
     static boolean WindowsDiskSpeed = false;
     public static boolean inProgress = false;
     // Good enough for now. . .
@@ -88,14 +88,17 @@ public class IrisBenchmarking {
         }).thenRun(() -> {
             BenchmarksCompleted++;
             if (ServerOS.contains("Windows") && isRunningAsAdmin()) {
+                Winsat = true;
                 WindowsCpuSpeedTest();
             } else {
                 Iris.info("Skipping:" + C.BLUE + " Windows System Assessment Tool Benchmarks");
-                if (ServerOS.contains("Windows")) {
+                if (!ServerOS.contains("Windows")) {
                     Iris.info("Required Software:" + C.BLUE +" Windows");
+                    BenchmarksTotal = 6;
                 }
-                if (isRunningAsAdmin()){
-                    Iris.info( C.RED + "Elevated privileges missing");
+                if (!isRunningAsAdmin()){
+                    Iris.info( C.RED + "ERROR: " + C.DARK_RED +"Elevated privileges missing");
+                    BenchmarksTotal = 6;
                 }
             }
 
@@ -193,11 +196,13 @@ public class IrisBenchmarking {
         Iris.info("- Used Ram: " + usedMemoryMB + " MB");
         Iris.info("- Total Process Ram: " + C.BLUE + getMaxMemoryUsage() + " MB");
         Iris.info("- Total Paging Size: " + totalPageSize + " MB");
-        Iris.info(C.BLUE + "Windows System Assessment Tool: ");
-        Iris.info("- CPU LZW Compression:" + C.BLUE + formatDouble(WindowsCPUCompression) + " MB/s");
-        Iris.info("- CPU AES256 Encryption: " + C.BLUE + formatDouble(WindowsCPUEncryption) + " MB/s");
-        Iris.info("- CPU SHA1 Hash: " + C.BLUE + formatDouble(WindowsCPUCSHA1) + " MB/s");
-        Iris.info("Duration: " + roundToTwoDecimalPlaces(elapsedTimeNs) + " Seconds");
+        if (Winsat) {
+            Iris.info(C.BLUE + "Windows System Assessment Tool: ");
+            Iris.info("- CPU LZW Compression:" + C.BLUE + formatDouble(WindowsCPUCompression) + " MB/s");
+            Iris.info("- CPU AES256 Encryption: " + C.BLUE + formatDouble(WindowsCPUEncryption) + " MB/s");
+            Iris.info("- CPU SHA1 Hash: " + C.BLUE + formatDouble(WindowsCPUCSHA1) + " MB/s");
+            Iris.info("Duration: " + roundToTwoDecimalPlaces(elapsedTimeNs) + " Seconds");
+        }
 
     }
 
@@ -218,10 +223,16 @@ public class IrisBenchmarking {
     }
 
     public static boolean isRunningAsAdmin() {
-        if (ServerOS.contains("Windows")){
-
+        if (ServerOS.contains("Windows")) {
+            try {
+                Process process = Runtime.getRuntime().exec("winsat disk");
+                process.waitFor();
+                return process.exitValue() == 0;
+            } catch (IOException | InterruptedException e) {
+                // Handle exceptions as needed
+            }
         }
-        return true;
+        return false; // Default to false if checks fail
     }
 
     public static String getCPUModel() {
@@ -248,7 +259,8 @@ public class IrisBenchmarking {
     }
 
     public static void warningFallback() {
-        Iris.info(C.RED + "Using the FALLBACK method for " + C.DARK_RED + currentRunning + C.RED + " due to compatibility issues. Please note that this may result in less accurate results.");
+        Iris.info(C.RED + "Using the FALLBACK method due to compatibility issues. ");
+        Iris.info(C.RED + "Please note that this may result in less accurate results.");
     }
 
     private static String formatDouble(double value) {

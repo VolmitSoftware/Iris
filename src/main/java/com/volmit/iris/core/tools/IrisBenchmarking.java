@@ -30,6 +30,7 @@ import static com.google.common.math.LongMath.isPrime;
 
 public class IrisBenchmarking {
     static String ServerOS;
+    static String filePath = "benchmark.dat";
     private static long startTime;
     static double avgWriteSpeedMBps;
     static double avgReadSpeedMBps;
@@ -60,7 +61,7 @@ public class IrisBenchmarking {
     public static void runBenchmark() throws InterruptedException {
         inProgress = true;
         getServerOS();
-
+        deleteTestFile(filePath);
         AtomicReference<Double> doneCalculateDiskSpeed = new AtomicReference<>((double) 0);
         startBenchmarkTimer();
         Iris.info("Benchmark Started!");
@@ -154,29 +155,6 @@ public class IrisBenchmarking {
         Iris.info("-----------------------------------------------------");
     }
 
-    /*
-    private static int previousCompleted = BenchmarksCompleted;
-    // why just why
-    public static void progressBar() throws InterruptedException {
-        while (true) {
-            if (BenchmarksCompleted > previousCompleted) {
-                Iris.info("-----------------------------------------------------");
-                Iris.info("Currently Running: " + C.BLUE + currentRunning);
-                // Iris.info("Tasks: " + "Current Tasks: " + C.BLUE + currentTasks + C.WHITE + " / " + "Total Tasks: " + C.BLUE + totalTasks);
-                Iris.info("Benchmarks Completed: " + C.BLUE + BenchmarksCompleted + C.WHITE + " / " + "Total: " + C.BLUE + BenchmarksTotal);
-                Iris.info("-----------------------------------------------------");
-
-                previousCompleted = BenchmarksCompleted;
-            }
-
-            if (BenchmarksCompleted == BenchmarksTotal) {
-                break;
-            }
-            Thread.sleep(10);
-        }
-    }
-     */
-
     public static void results() {
 
         SystemInfo systemInfo = new SystemInfo();
@@ -253,10 +231,10 @@ public class IrisBenchmarking {
                 process.waitFor();
                 return process.exitValue() == 0;
             } catch (IOException | InterruptedException e) {
-                // Handle exceptions as needed
+                // Hmm
             }
         }
-        return false; // Default to false if checks fail
+        return false;
     }
 
     public static String getCPUModel() {
@@ -489,7 +467,6 @@ public class IrisBenchmarking {
     }
 
     public static double calculateDiskSpeed() {
-        String filePath = "benchmark.dat";
         int numRuns = 10;
         int fileSizeMB = 1000;
 
@@ -604,7 +581,6 @@ public class IrisBenchmarking {
             process.waitFor();
             process.destroy();
 
-            // Now you have the speeds in sequentialReadSpeed and sequentialWriteSpeed
             Iris.debug("Sequential Read Speed: " + avgReadSpeedMBps + " MB/s");
             Iris.debug("Sequential Write Speed: " + avgWriteSpeedMBps + " MB/s");
         } catch (IOException | InterruptedException e) {
@@ -623,7 +599,7 @@ public class IrisBenchmarking {
                 }
             }
         }
-        return 0.0; // Default value if parsing fails
+        return 0.0;
     }
 
     public static void WindowsCpuSpeedTest() {
@@ -669,6 +645,6 @@ public class IrisBenchmarking {
         return 0.0;
     }
 
-    // JMH BENCHMARKS oh boi here we go again
+    // todo JMH BENCHMARKS
 
 }

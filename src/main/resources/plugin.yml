@@ -21,4 +21,4 @@ commands:
   iris:
     aliases: [ ir, irs ]
 api-version: '${apiversion}'
-hotload-dependencies: false
+hotload-dependencies: falsec

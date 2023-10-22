@@ -34,6 +34,7 @@ import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.Bukkit;
+import org.bukkit.Difficulty;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.configuration.ConfigurationSection;
@@ -41,6 +42,9 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.generator.ChunkGenerator;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
@@ -51,6 +55,7 @@ import static com.volmit.iris.Iris.service;
 // Not done yet but works
 @Decree(name = "worldmanager", origin = DecreeOrigin.PLAYER, description = "Iris World Manager", aliases = {"manager"})
 public class CommandWorldManager implements DecreeExecutor {
+    public Difficulty difficulty = Difficulty.NORMAL;
     String WorldToLoad;
     String WorldEngine;
     String worldNameToCheck = "YourWorldName";
@@ -142,7 +147,7 @@ public class CommandWorldManager implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Evacuating world" + world.getName());
         IrisToolbelt.evacuate(world);
     }
-    @Decree(description = "Remove an Iris world", aliases = {"del", "rm"}, sync = true)
+    @Decree(description = "Remove an Iris world", aliases = {"del", "rm", "delete"}, sync = true)
     public void remove(
             @Param(description = "The world to remove")
             World world,
@@ -167,14 +172,28 @@ public class CommandWorldManager implements DecreeExecutor {
         IrisToolbelt.evacuate(world, "Deleting world");
         Bukkit.unloadWorld(world, false);
         if (delete) {
-            if (world.getWorldFolder().delete()) {
+            if (deleteDirectory(world.getWorldFolder())) {
                 sender().sendMessage(C.GREEN + "Successfully removed world folder");
             } else {
                 sender().sendMessage(C.RED + "Failed to remove world folder");
             }
         }
+
     }
-     boolean doesWorldExist(String worldName) {
+    public static boolean deleteDirectory(File dir) {
+        if (dir.isDirectory()) {
+            File[] children = dir.listFiles();
+            for (int i = 0; i < children.length; i++) {
+                boolean success = deleteDirectory(children[i]);
+                if (!success) {
+                    return false;
+                }
+            }
+        }
+        return dir.delete();
+    }
+
+    boolean doesWorldExist(String worldName) {
         File worldContainer = Bukkit.getWorldContainer();
         File worldDirectory = new File(worldContainer, worldName);
         return worldDirectory.exists() && worldDirectory.isDirectory();

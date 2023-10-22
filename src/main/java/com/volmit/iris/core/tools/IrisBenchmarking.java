@@ -44,7 +44,7 @@ public class IrisBenchmarking {
     static double calculateDataEncryption;
     static double calculateDataCompression;
     static String currentRunning = "None";
-    static int BenchmarksCompleted = -1;
+    static int BenchmarksCompleted = 0;
     static int BenchmarksTotal = 7;
     static int totalTasks = 10;
     static int currentTasks = 0;
@@ -65,28 +65,29 @@ public class IrisBenchmarking {
         startBenchmarkTimer();
         Iris.info("Benchmark Started!");
         Iris.warn("Although it may seem momentarily paused, it's actively processing.");
-        Thread progressBarThread = new Thread(() -> {
-            try {
-                progressBar();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        });
-        progressBarThread.start();
 
         // help
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-            BenchmarksCompleted++;
+            currentRunning = "calculateDiskSpeed";
+            progressBar();
             if (ServerOS.contains("Windows") && isRunningAsAdmin()) {
                 WindowsDiskSpeed = true;
                 WindowsDiskSpeedTest();
             } else {
                 warningFallback();
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
                 doneCalculateDiskSpeed.set(roundToTwoDecimalPlaces(calculateDiskSpeed()));
+                BenchmarksCompleted++;
             }
 
+
         }).thenRun(() -> {
-            BenchmarksCompleted++;
+            currentRunning = "WindowsCpuSpeedTest";
+            progressBar();
             if (ServerOS.contains("Windows") && isRunningAsAdmin()) {
                 Winsat = true;
                 WindowsCpuSpeedTest();
@@ -103,23 +104,35 @@ public class IrisBenchmarking {
             }
 
         }).thenRun(() -> {
-            BenchmarksCompleted++;
+            currentRunning = "calculateIntegerMath";
+            progressBar();
             calculateIntegerMath = roundToTwoDecimalPlaces(calculateIntegerMath());
-        }).thenRun(() -> {
             BenchmarksCompleted++;
+        }).thenRun(() -> {
+            currentRunning = "calculateFloatingPoint";
+            progressBar();
             calculateFloatingPoint = roundToTwoDecimalPlaces(calculateFloatingPoint());
-        }).thenRun(() -> {
             BenchmarksCompleted++;
+        }).thenRun(() -> {
+            currentRunning = "calculateStringSorting";
+            progressBar();
             calculateStringSorting = roundToTwoDecimalPlaces(calculateStringSorting());
-        }).thenRun(() -> {
             BenchmarksCompleted++;
+        }).thenRun(() -> {
+            currentRunning = "calculatePrimeNumbers";
+            progressBar();
             calculatePrimeNumbers = roundToTwoDecimalPlaces(calculatePrimeNumbers());
-        }).thenRun(() -> {
             BenchmarksCompleted++;
+        }).thenRun(() -> {
+            currentRunning = "calculateDataEncryption";
+            progressBar();
             calculateDataEncryption = roundToTwoDecimalPlaces(calculateDataEncryption());
-        }).thenRun(() -> {
             BenchmarksCompleted++;
+        }).thenRun(() -> {
+            currentRunning = "calculateDataCompression";
+            progressBar();
             calculateDataCompression = roundToTwoDecimalPlaces(calculateDataCompression());
+            BenchmarksCompleted++;
         }).thenRun(() -> {
             elapsedTimeNs = stopBenchmarkTimer();
             results();
@@ -133,8 +146,16 @@ public class IrisBenchmarking {
         }
     }
 
-    private static int previousCompleted = BenchmarksCompleted;
+    public static void progressBar(){
+        Iris.info("-----------------------------------------------------");
+        Iris.info("Currently Running: " + C.BLUE + currentRunning);
+        // Iris.info("Tasks: " + "Current Tasks: " + C.BLUE + currentTasks + C.WHITE + " / " + "Total Tasks: " + C.BLUE + totalTasks);
+        Iris.info("Benchmarks Completed: " + C.BLUE + BenchmarksCompleted + C.WHITE + " / " + "Total: " + C.BLUE + BenchmarksTotal);
+        Iris.info("-----------------------------------------------------");
+    }
 
+    /*
+    private static int previousCompleted = BenchmarksCompleted;
     // why just why
     public static void progressBar() throws InterruptedException {
         while (true) {
@@ -154,6 +175,7 @@ public class IrisBenchmarking {
             Thread.sleep(10);
         }
     }
+     */
 
     public static void results() {
 
@@ -259,7 +281,7 @@ public class IrisBenchmarking {
     }
 
     public static void warningFallback() {
-        Iris.info(C.RED + "Using the FALLBACK method due to compatibility issues. ");
+        Iris.info(C.RED + "Using the " + C.DARK_RED + "FALLBACK" +C.RED +" method due to compatibility issues. ");
         Iris.info(C.RED + "Please note that this may result in less accurate results.");
     }
 
@@ -277,7 +299,6 @@ public class IrisBenchmarking {
     }
 
     private static double calculateIntegerMath() {
-        currentRunning = "calculateIntegerMath";
         final int numIterations = 1_000_000_000;
         final int numRuns = 30;
         double totalMopsPerSec = 0;
@@ -306,7 +327,6 @@ public class IrisBenchmarking {
     }
 
     private static double calculateFloatingPoint() {
-        currentRunning = "calculateFloatingPoint";
         long numIterations = 85_000_000;
         int numRuns = 30;
         double totalMopsPerSec = 0;
@@ -330,7 +350,6 @@ public class IrisBenchmarking {
     }
 
     private static double calculatePrimeNumbers() {
-        currentRunning = "calculatePrimeNumbers";
         int primeCount;
         long numIterations = 1_000_000;
         int numRuns = 30;
@@ -358,7 +377,6 @@ public class IrisBenchmarking {
     }
 
     private static double calculateStringSorting() {
-        currentRunning = "calculateStringSorting";
         int stringCount = 1_000_000;
         int stringLength = 100;
         int numRuns = 30;
@@ -381,7 +399,6 @@ public class IrisBenchmarking {
     }
 
     public static double calculateDataEncryption() {
-        currentRunning = "calculateDataEncryption";
         int dataSizeMB = 100;
         byte[] dataToEncrypt = generateRandomData(dataSizeMB * 1024 * 1024);
         int numRuns = 20;
@@ -414,7 +431,6 @@ public class IrisBenchmarking {
     }
 
     public static double calculateDataCompression() {
-        currentRunning = "calculateDataCompression";
         int dataSizeMB = 500;
         byte[] dataToCompress = generateRandomData(dataSizeMB * 1024 * 1024);
         long startTime = System.nanoTime();
@@ -471,7 +487,6 @@ public class IrisBenchmarking {
     }
 
     public static double calculateDiskSpeed() {
-        currentRunning = "calculateDiskSpeed";
         String filePath = "benchmark.dat";
         int numRuns = 10;
         int fileSizeMB = 1000;
@@ -568,7 +583,6 @@ public class IrisBenchmarking {
     }
 
     public static void WindowsDiskSpeedTest() {
-        currentRunning = "calculateDiskSpeed";
         try {
             String command = "winsat disk";
             Process process = Runtime.getRuntime().exec(command);
@@ -610,7 +624,6 @@ public class IrisBenchmarking {
         return 0.0; // Default value if parsing fails
     }
     public static void WindowsCpuSpeedTest() {
-        currentRunning = "calculateCpuTest";
         try {
             String command = "winsat cpuformal";
             Process process = Runtime.getRuntime().exec(command);
@@ -652,5 +665,7 @@ public class IrisBenchmarking {
         }
         return 0.0;
     }
+
+    // JMH BENCHMARKS oh boi here we go again
 
 }

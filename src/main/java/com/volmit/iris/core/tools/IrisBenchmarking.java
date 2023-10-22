@@ -68,7 +68,6 @@ public class IrisBenchmarking {
         Iris.warn("Although it may seem momentarily paused, it's actively processing.");
         BenchmarksCompleted = 0;
 
-        // help
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
             currentRunning = "calculateDiskSpeed";
             progressBar();

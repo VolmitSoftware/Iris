@@ -525,7 +525,7 @@ public class IrisObject extends IrisRegistrant {
                 }
             }
             double newRotation = config.getRotation().getYAxis().getMin() + slopeRotationY;
-            config.getRotation().setYAxis(new IrisAxisRotationClamp(true, false, newRotation, newRotation, 360));
+            config.getRotation().setYAxis(new IrisAxisRotationClamp(true, false, newRotation, newRotation, 90));
             config.getRotation().setEnabled(true);
         }
 

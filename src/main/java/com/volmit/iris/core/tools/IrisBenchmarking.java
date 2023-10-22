@@ -45,9 +45,13 @@ public class IrisBenchmarking {
     static double calculateDataCompression;
     static String currentRunning = "None";
     static int BenchmarksCompleted = -1;
-    static int BenchmarksTotal = 6;
+    static int BenchmarksTotal = 7;
     static int totalTasks = 10;
     static int currentTasks = 0;
+    static double WindowsCPUCompression;
+    static double WindowsCPUEncryption;
+    static double WindowsCPUVistaCompression;
+    static double WindowsCPUCSHA1;
     static double elapsedTimeNs;
     static boolean WindowsDiskSpeed = false;
     public static boolean inProgress = false;
@@ -83,6 +87,20 @@ public class IrisBenchmarking {
 
         }).thenRun(() -> {
             BenchmarksCompleted++;
+            if (ServerOS.contains("Windows") && isRunningAsAdmin()) {
+                WindowsCpuSpeedTest();
+            } else {
+                Iris.info("Skipping:" + C.BLUE + " Windows System Assessment Tool Benchmarks");
+                if (ServerOS.contains("Windows")) {
+                    Iris.info("Required Software:" + C.BLUE +" Windows");
+                }
+                if (isRunningAsAdmin()){
+                    Iris.info( C.RED + "Elevated privileges missing");
+                }
+            }
+
+        }).thenRun(() -> {
+            BenchmarksCompleted++;
             calculateIntegerMath = roundToTwoDecimalPlaces(calculateIntegerMath());
         }).thenRun(() -> {
             BenchmarksCompleted++;
@@ -90,6 +108,9 @@ public class IrisBenchmarking {
         }).thenRun(() -> {
             BenchmarksCompleted++;
             calculateStringSorting = roundToTwoDecimalPlaces(calculateStringSorting());
+        }).thenRun(() -> {
+            BenchmarksCompleted++;
+            calculatePrimeNumbers = roundToTwoDecimalPlaces(calculatePrimeNumbers());
         }).thenRun(() -> {
             BenchmarksCompleted++;
             calculateDataEncryption = roundToTwoDecimalPlaces(calculateDataEncryption());
@@ -142,6 +163,7 @@ public class IrisBenchmarking {
         MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
 
         Iris.info("OS: " + ServerOS);
+        if(!isRunningAsAdmin() || !ServerOS.contains("Windows")){ Iris.info(C.GOLD + "For the full results use Windows + Admin Rights..");}
         Iris.info("CPU Model: " + getCPUModel());
         Iris.info("CPU Score: " + "WIP");
         Iris.info("- Integer Math: " + calculateIntegerMath + " MOps/Sec");
@@ -150,6 +172,7 @@ public class IrisBenchmarking {
         Iris.info("- Random String Sorting: " + calculateStringSorting + " Thousand Strings/Sec");
         Iris.info("- Data Encryption: " + formatDouble(calculateDataEncryption) + " MBytes/Sec");
         Iris.info("- Data Compression: " + formatDouble(calculateDataCompression) + " MBytes/Sec");
+
         if (WindowsDiskSpeed) {
             Iris.info("Disk Model: " + getDiskModel());
             Iris.info(C.BLUE + "- Running with Windows System Assessment Tool");
@@ -157,9 +180,9 @@ public class IrisBenchmarking {
             Iris.info("- Sequential 64.0 Read: " + C.BLUE + formatDouble(avgReadSpeedMBps) + " Mbps");
         } else {
             Iris.info("Disk Model: " + getDiskModel());
-            Iris.info(C.YELLOW + "- Running in Native Mode");
-            Iris.info("- Average Write Speed: " + C.BLUE + formatDouble(avgWriteSpeedMBps) + " Mbps");
-            Iris.info("- Average Read Speed: " + C.BLUE + formatDouble(avgReadSpeedMBps) + " Mbps");
+            Iris.info(C.GREEN + "- Running in Native Mode");
+            Iris.info("- Average Write Speed: " + C.GREEN + formatDouble(avgWriteSpeedMBps) + " Mbps");
+            Iris.info("- Average Read Speed: " + C.GREEN + formatDouble(avgReadSpeedMBps) + " Mbps");
             Iris.info("- Highest Write Speed: " + formatDouble(highestWriteSpeedMBps) + " Mbps");
             Iris.info("- Highest Read Speed: " + formatDouble(highestReadSpeedMBps) + " Mbps");
             Iris.info("- Lowest Write Speed: " + formatDouble(lowestWriteSpeedMBps) + " Mbps");
@@ -170,7 +193,12 @@ public class IrisBenchmarking {
         Iris.info("- Used Ram: " + usedMemoryMB + " MB");
         Iris.info("- Total Process Ram: " + C.BLUE + getMaxMemoryUsage() + " MB");
         Iris.info("- Total Paging Size: " + totalPageSize + " MB");
+        Iris.info(C.BLUE + "Windows System Assessment Tool: ");
+        Iris.info("- CPU LZW Compression:" + C.BLUE + formatDouble(WindowsCPUCompression) + " MB/s");
+        Iris.info("- CPU AES256 Encryption: " + C.BLUE + formatDouble(WindowsCPUEncryption) + " MB/s");
+        Iris.info("- CPU SHA1 Hash: " + C.BLUE + formatDouble(WindowsCPUCSHA1) + " MB/s");
         Iris.info("Duration: " + roundToTwoDecimalPlaces(elapsedTimeNs) + " Seconds");
+
     }
 
     public static long getMaxMemoryUsage() {
@@ -190,21 +218,10 @@ public class IrisBenchmarking {
     }
 
     public static boolean isRunningAsAdmin() {
-        return ServerOS.contains("Windows") && isWindowsAdmin();
-    }
+        if (ServerOS.contains("Windows")){
 
-    private static boolean isUnixAdmin() {
-        return System.getProperty("user.name").equals("root");
-    }
-
-    private static boolean isWindowsAdmin() {
-        String[] groups = (new com.sun.security.auth.module.NTSystem()).getGroupIDs();
-        for (String group : groups) {
-            if (group.equals("S-1-5-32-544")) {
-                return true;
-            }
         }
-        return false;
+        return true;
     }
 
     public static String getCPUModel() {
@@ -539,7 +556,7 @@ public class IrisBenchmarking {
     }
 
     public static void WindowsDiskSpeedTest() {
-
+        currentRunning = "calculateDiskSpeed";
         try {
             String command = "winsat disk";
             Process process = Runtime.getRuntime().exec(command);
@@ -579,6 +596,49 @@ public class IrisBenchmarking {
             }
         }
         return 0.0; // Default value if parsing fails
+    }
+    public static void WindowsCpuSpeedTest() {
+        currentRunning = "calculateCpuTest";
+        try {
+            String command = "winsat cpuformal";
+            Process process = Runtime.getRuntime().exec(command);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                Iris.debug(line);
+
+                if (line.contains("CPU AES256 Encryption")) {
+                    WindowsCPUEncryption = extractCpuInfo(line);
+                }
+                if (line.contains("CPU LZW Compression")) {
+                    WindowsCPUCompression = extractCpuInfo(line);
+                }
+                if (line.contains("CPU SHA1 Hash")) {
+                    WindowsCPUCSHA1 = extractCpuInfo(line);
+                }
+            }
+            process.waitFor();
+            process.destroy();
+
+            Iris.debug("Winsat Encryption: " + WindowsCPUEncryption + " MB/s");
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static double extractCpuInfo(String line) {
+        String[] tokens = line.split("\\s+");
+        for (int i = 0; i < tokens.length; i++) {
+            if (tokens[i].endsWith("MB/s") && i > 0) {
+                try {
+                    return Double.parseDouble(tokens[i - 1]);
+                } catch (NumberFormatException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return 0.0;
     }
 
 }

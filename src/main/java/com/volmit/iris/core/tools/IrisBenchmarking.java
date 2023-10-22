@@ -94,11 +94,11 @@ public class IrisBenchmarking {
             } else {
                 Iris.info("Skipping:" + C.BLUE + " Windows System Assessment Tool Benchmarks");
                 if (!ServerOS.contains("Windows")) {
-                    Iris.info("Required Software:" + C.BLUE +" Windows");
+                    Iris.info("Required Software:" + C.BLUE + " Windows");
                     BenchmarksTotal = 6;
                 }
-                if (!isRunningAsAdmin()){
-                    Iris.info( C.RED + "ERROR: " + C.DARK_RED +"Elevated privileges missing");
+                if (!isRunningAsAdmin()) {
+                    Iris.info(C.RED + "ERROR: " + C.DARK_RED + "Elevated privileges missing");
                     BenchmarksTotal = 6;
                 }
             }
@@ -146,7 +146,7 @@ public class IrisBenchmarking {
         }
     }
 
-    public static void progressBar(){
+    public static void progressBar() {
         Iris.info("-----------------------------------------------------");
         Iris.info("Currently Running: " + C.BLUE + currentRunning);
         // Iris.info("Tasks: " + "Current Tasks: " + C.BLUE + currentTasks + C.WHITE + " / " + "Total Tasks: " + C.BLUE + totalTasks);
@@ -188,7 +188,9 @@ public class IrisBenchmarking {
         MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
 
         Iris.info("OS: " + ServerOS);
-        if(!isRunningAsAdmin() || !ServerOS.contains("Windows")){ Iris.info(C.GOLD + "For the full results use Windows + Admin Rights..");}
+        if (!isRunningAsAdmin() || !ServerOS.contains("Windows")) {
+            Iris.info(C.GOLD + "For the full results use Windows + Admin Rights..");
+        }
         Iris.info("CPU Model: " + getCPUModel());
         Iris.info("CPU Score: " + "WIP");
         Iris.info("- Integer Math: " + calculateIntegerMath + " MOps/Sec");
@@ -281,7 +283,7 @@ public class IrisBenchmarking {
     }
 
     public static void warningFallback() {
-        Iris.info(C.RED + "Using the " + C.DARK_RED + "FALLBACK" +C.RED +" method due to compatibility issues. ");
+        Iris.info(C.RED + "Using the " + C.DARK_RED + "FALLBACK" + C.RED + " method due to compatibility issues. ");
         Iris.info(C.RED + "Please note that this may result in less accurate results.");
     }
 
@@ -623,6 +625,7 @@ public class IrisBenchmarking {
         }
         return 0.0; // Default value if parsing fails
     }
+
     public static void WindowsCpuSpeedTest() {
         try {
             String command = "winsat cpuformal";

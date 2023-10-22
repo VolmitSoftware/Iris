@@ -66,6 +66,7 @@ public class IrisBenchmarking {
         startBenchmarkTimer();
         Iris.info("Benchmark Started!");
         Iris.warn("Although it may seem momentarily paused, it's actively processing.");
+        BenchmarksCompleted = 0;
 
         // help
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {

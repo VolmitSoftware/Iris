@@ -19,18 +19,12 @@
 plugins {
     id 'java'
     id 'java-library'
-    id "io.freefair.lombok" version "6.3.0"
     id "com.github.johnrengelman.shadow" version "7.1.2"
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '2.8.1-1.20.1'
-def nmsVersion = '1.20.1' //[NMS]
-def apiVersion = '1.20'
+version '2.8.0'
 def specialSourceVersion = '1.11.0' //[NMS]
-def spigotJarVersion = '1.20.1-R0.1-SNAPSHOT' //[NMS]
-def name = getRootProject().getName() // Defined in settings.gradle
-def main = 'com.volmit.iris.Iris'
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================
@@ -47,59 +41,157 @@ registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/development/serve
 registerCustomOutputTaskUnix('PsychoLT', '/Users/brianfopiano/Desktop/REMOTES/RemoteMinecraft/plugins')
 // ==============================================================
 
-/**
- * Gradle is weird sometimes, we need to delete the plugin yml from the build folder to actually filter properly.
- */
-file(jar.archiveFile.get().getAsFile().getParentFile().getParentFile().getParentFile().getAbsolutePath() + '/build/resources/main/plugin.yml').delete()
+def NMS_BINDINGS = Map.of(
+        "v1_20_R2", "1.20.2-R0.1-SNAPSHOT",
+        "v1_20_R1", "1.20.1-R0.1-SNAPSHOT",
+        "v1_19_R3", "1.19.4-R0.1-SNAPSHOT",
+        "v1_19_R2", "1.19.3-R0.1-SNAPSHOT",
+        "v1_19_R1", "1.19.2-R0.1-SNAPSHOT"
+)
+NMS_BINDINGS.each {
+    def key = it.key
+    def value = it.value
+    def nms =  value.split("-")[0];
+    project(":nms:${key}") {
+        apply plugin: 'java'
+        apply plugin: 'java-library'
+        apply plugin: 'de.undercouch.download'
 
-/**
- * Expand properties into plugin yml
- */
-processResources {
-    filesMatching('**/plugin.yml') {
-        expand(
-                'name': name.toString(),
-                'version': version.toString(),
-                'main': main.toString(),
-                'apiversion': apiVersion.toString()
-        )
-    }
-}
-
-/**
- * Unified repo
- */
-repositories {
-    mavenLocal {
-        content {
-            includeGroup("org.bukkit")
-            includeGroup("org.spigotmc")
+        dependencies {
+            implementation project(":core")
+            implementation "org.spigotmc:spigot-api:${value}"
+            implementation "org.bukkit:craftbukkit:${value}:remapped-mojang" //[NMS]
         }
+
+        def buildToolsJar = new File(rootProject.buildDir, "tools/BuildTools.jar")
+        def specialSourceJar = new File(rootProject.buildDir, "tools/SpecialSource.jar")
+
+        def buildToolsFolder = new File(buildDir, "buildtools")
+        def specialSourceFolder = new File(buildDir, "specialsource")
+        def buildToolsHint = new File(buildDir, "buildtools/craftbukkit-" + nms + ".jar")
+
+        def outputJar = new File(buildDir, "libs/${key}.jar")
+        def ssiJar = new File(buildDir, "specialsource/${key}.jar")
+        def ssobfJar = new File(buildDir, "specialsource/${key}-rmo.jar")
+        def ssJar = new File(buildDir, "specialsource/${key}-rma.jar")
+
+        def homePath = System.properties['user.home']
+        def m2 = new File(homePath + "/.m2/repository")
+        def m2s = m2.getAbsolutePath();
+
+        // ======================== Building Mapped Jars =============================
+        Runnable downloadBuildtools = () -> {
+            if (!buildToolsJar.exists()) {
+                download.run {
+                    src 'https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar'
+                    dest buildToolsJar
+                }
+            }
+        }
+
+        Runnable downloadSpecialSource = () -> {
+            if (!specialSourceJar.exists()) {
+                download.run {
+                    src 'https://repo.maven.apache.org/maven2/net/md-5/SpecialSource/' + specialSourceVersion + '/SpecialSource-'+specialSourceVersion+'-shaded.jar'
+                    dest specialSourceJar
+                }
+            }
+        }
+
+        Runnable executeBuildTools = () -> {
+            if (!buildToolsHint.exists()) {
+                downloadBuildtools.run()
+                buildToolsFolder.mkdirs()
+                javaexec {
+                    classpath = files(buildToolsJar)
+                    workingDir = buildToolsFolder
+                    args = [
+                            "--rev",
+                            nms,
+                            "--compile",
+                            "craftbukkit",
+                            "--remap"
+                    ]
+                }
+            }
+        }
+
+        tasks.register("executeBuildTools") {
+            doFirst {
+                executeBuildTools.run()
+            }
+        }
+
+        tasks.register("copyBuildToSpecialSource", Copy) {
+            doFirst {
+                downloadSpecialSource.run()
+                specialSourceFolder.mkdirs();
+            }
+
+            group "remapping"
+            from outputJar
+            into specialSourceFolder
+            dependsOn(jar)
+        }
+
+        tasks.register("specialSourceRemapObfuscate", JavaExec) {
+            group "remapping"
+            dependsOn(copyBuildToSpecialSource)
+            workingDir = specialSourceFolder
+            classpath = files(specialSourceJar,
+                    new File(m2s + "/org/spigotmc/spigot/" + value + "/spigot-" + value + "-remapped-mojang.jar"))
+            mainClass = "net.md_5.specialsource.SpecialSource"
+            args = [
+                    "--live",
+                    "-i",
+                    ssiJar.getName(),
+                    "-o",
+                    ssobfJar.getName(),
+                    "-m",
+                    m2s + "/org/spigotmc/minecraft-server/" + value + "/minecraft-server-" + value + "-maps-mojang.txt",
+                    "--reverse",
+            ]
+        }
+
+        tasks.register("specialSourceRemap", JavaExec) {
+            group "remapping"
+            dependsOn(specialSourceRemapObfuscate)
+            workingDir = specialSourceFolder
+            classpath = files(specialSourceJar,
+                    new File(m2s + "/org/spigotmc/spigot/" + value + "/spigot-" + value + "-remapped-obf.jar"))
+            mainClass = "net.md_5.specialsource.SpecialSource"
+            args = [
+                    "--live",
+                    "-i",
+                    ssobfJar.getName(),
+                    "-o",
+                    ssJar.getName(),
+                    "-m",
+                    m2s + "/org/spigotmc/minecraft-server/" + value + "/minecraft-server-" + value + "-maps-spigot.csrg"
+            ]
+        }
+
+        tasks.register("copySpecialSourceToBuild", Copy) {
+            group "remapping"
+            from ssJar
+            into outputJar.getParentFile()
+            rename {
+                outputJar.getName()
+            }
+            dependsOn(specialSourceRemap)
+        }
+
+        tasks.build.dependsOn(copySpecialSourceToBuild)
+        executeBuildTools.run()
     }
-    mavenCentral()
-    maven { url "https://repo.papermc.io/repository/maven-public/"}
-    maven { url "https://repo.codemc.org/repository/maven-public" }
-    maven { url "https://mvn.lumine.io/repository/maven-public/" }
-    maven { url "https://jitpack.io"}
-
-    maven { url "https://s01.oss.sonatype.org/content/repositories/snapshots" }
-    maven { url "https://mvn.lumine.io/repository/maven/" }
-    maven { url "https://repo.triumphteam.dev/snapshots" }
-    maven { url "https://repo.mineinabyss.com/releases" }
-    maven { url = 'https://hub.jeff-media.com/nexus/repository/jeff-media-public/' }
-}
-
-/**
- * We need parameter meta for the decree command system
- */
-compileJava {
-    options.compilerArgs << '-parameters'
 }
 
 /**
  * Configure Iris for shading
  */
 shadowJar {
+    NMS_BINDINGS.each {dependsOn(":nms:${it.key}:build")}
+
     //minimize()
     append("plugin.yml")
     relocate 'com.dfsek.paralithic', 'com.volmit.iris.util.paralithic'
@@ -109,6 +201,16 @@ shadowJar {
         include(dependency('io.papermc:paperlib'))
         include(dependency('com.dfsek:Paralithic'))
         include(dependency('net.kyori:'))
+        include(project(":core"))
+        NMS_BINDINGS.each {include(project(":nms:${it.key}"))}
+    }
+    archiveFileName.set("Iris-${project.version}.jar")
+}
+
+dependencies {
+    implementation project(':core')
+    NMS_BINDINGS.each {
+        implementation project(":nms:${it.key}")
     }
 }
 
@@ -117,52 +219,78 @@ configurations.all {
     resolutionStrategy.cacheDynamicVersionsFor 60, 'minutes'
 }
 
-/**
- * Dependencies.
- *
- * Provided or classpath dependencies are not shaded and are available on the runtime classpath
- *
- * Shaded dependencies are not available at runtime, nor are they available on mvn central so they
- * need to be shaded into the jar (increasing binary size)
- *
- * Dynamically loaded dependencies are defined in the plugin.yml (updating these must be updated in the
- * plugin.yml also, otherwise they wont be available). These do not increase binary size). Only declare
- * these dependencies if they are available on mvn central.
- */
-dependencies {
-    // Provided or Classpath
-    compileOnly 'org.projectlombok:lombok:1.18.24'
-    annotationProcessor 'org.projectlombok:lombok:1.18.24'
-    implementation 'org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT'
-    implementation 'org.bukkit:craftbukkit:1.20.1-R0.1-SNAPSHOT:remapped-mojang' //[NMS]
+allprojects {
+    getPlugins().apply("java")
 
-    // Third Party Integrations
-    implementation 'com.ticxo.playeranimator:PlayerAnimator:R1.2.7'
-    implementation 'com.github.oraxen:oraxen:1.158.0'
-    implementation 'com.github.LoneDev6:api-itemsadder:3.4.1-r4'
-    implementation 'com.github.PlaceholderAPI:placeholderapi:2.11.3'
-    //implementation files('libs/CustomItems.jar')
+    /**
+     * Unified repo
+     */
+    repositories {
+        mavenLocal {
+            content {
+                includeGroup("org.bukkit")
+                includeGroup("org.spigotmc")
+            }
+        }
+        mavenCentral()
+        maven { url "https://repo.papermc.io/repository/maven-public/"}
+        maven { url "https://repo.codemc.org/repository/maven-public" }
+        maven { url "https://mvn.lumine.io/repository/maven-public/" }
+        maven { url "https://jitpack.io"}
 
-    // Shaded
-    implementation 'com.dfsek:Paralithic:0.4.0'
-    implementation 'io.papermc:paperlib:1.0.5'
-    implementation "net.kyori:adventure-text-minimessage:4.13.1"
-    implementation 'net.kyori:adventure-platform-bukkit:4.3.0'
-    implementation 'net.kyori:adventure-api:4.13.1'
-    implementation 'io.lumine:Mythic-Dist:5.2.1'
+        maven { url "https://s01.oss.sonatype.org/content/repositories/snapshots" }
+        maven { url "https://mvn.lumine.io/repository/maven/" }
+        maven { url "https://repo.triumphteam.dev/snapshots" }
+        maven { url "https://repo.mineinabyss.com/releases" }
+        maven { url 'https://hub.jeff-media.com/nexus/repository/jeff-media-public/' }
+    }
 
-    // Dynamically Loaded
-    implementation 'io.timeandspace:smoothie-map:2.0.2'
-    implementation 'it.unimi.dsi:fastutil:8.5.8'
-    implementation 'com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'
-    implementation 'org.zeroturnaround:zt-zip:1.14'
-    implementation 'com.google.code.gson:gson:2.9.0'
-    implementation 'org.ow2.asm:asm:9.2'
-    implementation 'com.google.guava:guava:31.1-jre'
-    implementation 'bsf:bsf:2.4.0'
-    implementation 'rhino:js:1.7R2'
-    implementation 'com.github.ben-manes.caffeine:caffeine:3.0.6'
-    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    /**
+     * Dependencies.
+     *
+     * Provided or classpath dependencies are not shaded and are available on the runtime classpath
+     *
+     * Shaded dependencies are not available at runtime, nor are they available on mvn central so they
+     * need to be shaded into the jar (increasing binary size)
+     *
+     * Dynamically loaded dependencies are defined in the plugin.yml (updating these must be updated in the
+     * plugin.yml also, otherwise they wont be available). These do not increase binary size). Only declare
+     * these dependencies if they are available on mvn central.
+     */
+    dependencies {
+        // Provided or Classpath
+        compileOnly 'org.projectlombok:lombok:1.18.24'
+        annotationProcessor 'org.projectlombok:lombok:1.18.24'
+
+        // Shaded
+        implementation 'com.dfsek:Paralithic:0.4.0'
+        implementation 'io.papermc:paperlib:1.0.5'
+        implementation "net.kyori:adventure-text-minimessage:4.13.1"
+        implementation 'net.kyori:adventure-platform-bukkit:4.3.0'
+        implementation 'net.kyori:adventure-api:4.13.1'
+        implementation 'io.lumine:Mythic-Dist:5.2.1'
+
+        // Dynamically Loaded
+        implementation 'io.timeandspace:smoothie-map:2.0.2'
+        implementation 'it.unimi.dsi:fastutil:8.5.8'
+        implementation 'com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'
+        implementation 'org.zeroturnaround:zt-zip:1.14'
+        implementation 'com.google.code.gson:gson:2.9.0'
+        implementation 'org.ow2.asm:asm:9.2'
+        implementation 'com.google.guava:guava:31.1-jre'
+        implementation 'bsf:bsf:2.4.0'
+        implementation 'rhino:js:1.7R2'
+        implementation 'com.github.ben-manes.caffeine:caffeine:3.0.6'
+        implementation 'org.apache.commons:commons-lang3:3.12.0'
+    }
+
+    /**
+     * We need parameter meta for the decree command system
+     */
+    compileJava {
+        options.compilerArgs << '-parameters'
+        options.encoding = "UTF-8"
+    }
 }
 
 if (JavaVersion.current().toString() != "17") {
@@ -183,123 +311,11 @@ if (JavaVersion.current().toString() != "17") {
     System.exit(69);
 }
 
-def buildToolsJar = new File(buildDir, "buildtools/BuildTools.jar");
-def specialSourceJar = new File(buildDir, "specialsource/SpecialSource.jar");
-def buildToolsFolder = new File(buildDir, "buildtools");
-def specialSourceFolder = new File(buildDir, "specialsource");
-def buildToolsHint = new File(buildDir, "buildtools/craftbukkit-" + nmsVersion + ".jar");
-def outputShadeJar = new File(buildDir, "libs/Iris-" + version + "-all.jar");
-def ssiJar = new File(buildDir, "specialsource/Iris-" + version + "-all.jar");
-def ssobfJar = new File(buildDir, "specialsource/Iris-" + version + "-rmo.jar");
-def ssJar = new File(buildDir, "specialsource/Iris-" + version + "-rma.jar");
-def homePath = System.properties['user.home']
-def m2 = new File(homePath + "/.m2/repository")
-def m2s = m2.getAbsolutePath();
-
-// ======================== Building Mapped Jars =============================
-task downloadBuildtools(type: Download) {
-    group "remapping"
-    src 'https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar'
-    dest buildToolsJar
-    onlyIf {
-        !buildToolsJar.exists()
-    }
-}
-
-task downloadSpecialSource(type: Download) {
-    group "remapping"
-    src 'https://repo.maven.apache.org/maven2/net/md-5/SpecialSource/' + specialSourceVersion + '/SpecialSource-'+specialSourceVersion+'-shaded.jar'
-    dest specialSourceJar
-    onlyIf {
-        !specialSourceJar.exists()
-    }
-}
-
-task executeBuildTools(dependsOn: downloadBuildtools, type: JavaExec)
-{
-    group "remapping"
-    classpath = files(buildToolsJar)
-    workingDir = buildToolsFolder
-    args = [
-            "--rev",
-            nmsVersion,
-            "--compile",
-            "craftbukkit",
-            "--remap"
-    ]
-    onlyIf {
-        !buildToolsHint.exists()
-    }
-}
-
-task copyBuildToSpecialSource(type: Copy)
-{
-    group "remapping"
-    from outputShadeJar
-    into specialSourceFolder
-    dependsOn(downloadSpecialSource, shadowJar)
-}
-
-task specialSourceRemapObfuscate(type: JavaExec)
-{
-    group "remapping"
-    dependsOn(copyBuildToSpecialSource, downloadSpecialSource, shadowJar)
-    workingDir = specialSourceFolder
-    classpath = files(specialSourceJar,
-            new File(m2s + "/org/spigotmc/spigot/" + spigotJarVersion + "/spigot-" + spigotJarVersion + "-remapped-mojang.jar"))
-    mainClass = "net.md_5.specialsource.SpecialSource"
-    args = [
-            "--live",
-            "-i",
-            ssiJar.getName(),
-            "-o",
-            ssobfJar.getName(),
-            "-m",
-            m2s + "/org/spigotmc/minecraft-server/" + spigotJarVersion + "/minecraft-server-" + spigotJarVersion + "-maps-mojang.txt",
-            "--reverse",
-    ]
-}
-
-task specialSourceRemap(type: JavaExec)
-{
-    group "remapping"
-    dependsOn(specialSourceRemapObfuscate)
-    workingDir = specialSourceFolder
-    classpath = files(specialSourceJar,
-            new File(m2s + "/org/spigotmc/spigot/" + spigotJarVersion + "/spigot-" + spigotJarVersion + "-remapped-obf.jar"))
-    mainClass = "net.md_5.specialsource.SpecialSource"
-    args = [
-            "--live",
-            "-i",
-            ssobfJar.getName(),
-            "-o",
-            ssJar.getName(),
-            "-m",
-            m2s + "/org/spigotmc/minecraft-server/" + spigotJarVersion + "/minecraft-server-" + spigotJarVersion + "-maps-spigot.csrg"
-    ]
-}
-
-tasks.compileJava.dependsOn(executeBuildTools)
-
-compileJava {
-    options.encoding = "UTF-8"
-}
-
-task setup()
-{
-    group("iris")
-    dependsOn(clean, executeBuildTools)
-}
-
-task iris(type: Copy)
-{
+task iris(type: Copy) {
     group "iris"
-    from ssJar
+    from new File(buildDir, "Iris-${version}.jar")
     into buildDir
-    rename { String fileName ->
-        fileName.replace('Iris-' + version + '-rma.jar', "Iris-" + version + ".jar")
-    }
-    dependsOn(specialSourceRemap)
+    dependsOn(build)
 }
 
 def registerCustomOutputTask(name, path) {
@@ -335,3 +351,5 @@ def registerCustomOutputTaskUnix(name, path) {
         }
     }
 }
+
+tasks.build.dependsOn(shadowJar)

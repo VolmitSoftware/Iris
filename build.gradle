@@ -300,6 +300,13 @@ task iris(type: Copy) {
     dependsOn(build)
 }
 
+task setup() {
+    group "iris"
+    NMS_BINDINGS.each {
+        dependsOn(project(":nms:${it.key}").executeBuildTools)
+    }
+}
+
 def registerCustomOutputTask(name, path) {
     if (!System.properties['os.name'].toLowerCase().contains('windows')) {
         return;

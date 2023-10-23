@@ -23,7 +23,7 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '2.8.0'
+version '3.0.0-1.19.2-1.20.2'
 def specialSourceVersion = '1.11.0' //[NMS]
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
@@ -186,9 +186,6 @@ NMS_BINDINGS.each {
     }
 }
 
-/**
- * Configure Iris for shading
- */
 shadowJar {
     NMS_BINDINGS.each {dependsOn(":nms:${it.key}:build")}
 
@@ -222,9 +219,6 @@ configurations.all {
 allprojects {
     getPlugins().apply("java")
 
-    /**
-     * Unified repo
-     */
     repositories {
         mavenLocal {
             content {
@@ -245,18 +239,6 @@ allprojects {
         maven { url 'https://hub.jeff-media.com/nexus/repository/jeff-media-public/' }
     }
 
-    /**
-     * Dependencies.
-     *
-     * Provided or classpath dependencies are not shaded and are available on the runtime classpath
-     *
-     * Shaded dependencies are not available at runtime, nor are they available on mvn central so they
-     * need to be shaded into the jar (increasing binary size)
-     *
-     * Dynamically loaded dependencies are defined in the plugin.yml (updating these must be updated in the
-     * plugin.yml also, otherwise they wont be available). These do not increase binary size). Only declare
-     * these dependencies if they are available on mvn central.
-     */
     dependencies {
         // Provided or Classpath
         compileOnly 'org.projectlombok:lombok:1.18.24'

@@ -38,6 +38,8 @@ import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.engine.platform.DummyChunkGenerator;
+import com.volmit.iris.engine.safeguard.IrisSafeguard;
+import com.volmit.iris.engine.safeguard.ServerBoot;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.exceptions.IrisException;
@@ -85,9 +87,14 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.lang.annotation.Annotation;
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
 import java.net.URL;
 import java.util.Date;
 import java.util.Map;
+
+import static com.volmit.iris.engine.safeguard.IrisSafeguard.unstablemode;
+import static com.volmit.iris.engine.safeguard.ServerBoot.passedserversoftware;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -308,6 +315,9 @@ public class Iris extends VolmitPlugin implements Listener {
     public static void info(String format, Object... args) {
         msg(C.WHITE + String.format(format, args));
     }
+    public static void safeguard(String format, Object... args) {
+        msg(C.RESET + String.format(format, args));
+    }
 
     @SuppressWarnings("deprecation")
     public static void later(NastyRunnable object) {
@@ -455,6 +465,9 @@ public class Iris extends VolmitPlugin implements Listener {
             J.s(this::setupPapi);
             J.a(ServerConfigurator::configure, 20);
             splash();
+            ServerBoot.UnstableMode();
+            ServerBoot.SupportedServerSoftware();
+            ServerBoot.printincompatiblepluginWarnings();
             autoStartStudio();
             checkForBukkitWorlds();
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
@@ -542,6 +555,7 @@ public class Iris extends VolmitPlugin implements Listener {
         enable();
         super.onEnable();
         Bukkit.getPluginManager().registerEvents(this, this);
+        IrisSafeguard.IrisSafeguardSystem();
         setupChecks();
     }
 
@@ -714,12 +728,10 @@ public class Iris extends VolmitPlugin implements Listener {
             return;
         }
 
-        // @NoArgsConstructor
         String padd = Form.repeat(" ", 8);
         String padd2 = Form.repeat(" ", 4);
-        String[] info = {"", "", "", "", "", padd2 + C.IRIS + " Iris", padd2 + C.GRAY + " by " + "<rainbow>Volmit Software", padd2 + C.GRAY + " v" + C.IRIS + getDescription().getVersion(),
-        };
-        String[] splash = {
+        String[] info = {"", "", "", "", "", padd2 + C.IRIS + " Iris", padd2 + C.GRAY + " by " + "<rainbow>Volmit Software", padd2 + C.GRAY + " v" + C.IRIS + getDescription().getVersion()};
+        String[] splashstable = {
                 padd + C.GRAY + "   @@@@@@@@@@@@@@" + C.DARK_GRAY + "@@@",
                 padd + C.GRAY + " @@&&&&&&&&&" + C.DARK_GRAY + "&&&&&&" + C.IRIS + "   .(((()))).                     ",
                 padd + C.GRAY + "@@@&&&&&&&&" + C.DARK_GRAY + "&&&&&" + C.IRIS + "  .((((((())))))).                  ",
@@ -732,8 +744,37 @@ public class Iris extends VolmitPlugin implements Listener {
                 padd + C.GRAY + "" + C.IRIS + "                     '(((())))'   " + C.DARK_GRAY + "&&&&&&&&" + C.GRAY + "&&&&&&&@@",
                 padd + C.GRAY + "                               " + C.DARK_GRAY + "@@@" + C.GRAY + "@@@@@@@@@@@@@@"
         };
-        //@done
-        Iris.info("Server type & version: " + Bukkit.getVersion());
+
+        String[] splashunstable = {
+                padd + C.GRAY + "   @@@@@@@@@@@@@@" + C.DARK_GRAY + "@@@",
+                padd + C.GRAY + " @@&&&&&&&&&" + C.DARK_GRAY + "&&&&&&" + C.RED + "   .(((()))).                     ",
+                padd + C.GRAY + "@@@&&&&&&&&" + C.DARK_GRAY + "&&&&&" + C.RED + "  .((((((())))))).                  ",
+                padd + C.GRAY + "@@@&&&&&" + C.DARK_GRAY + "&&&&&&&" + C.RED + "  ((((((((()))))))))               " + C.GRAY + " @",
+                padd + C.GRAY + "@@@&&&&" + C.DARK_GRAY + "@@@@@&" + C.RED + "    ((((((((-)))))))))              " + C.GRAY + " @@",
+                padd + C.GRAY + "@@@&&" + C.RED + "            ((((((({ }))))))))           " + C.GRAY + " &&@@@",
+                padd + C.GRAY + "@@" + C.RED + "               ((((((((-)))))))))    " + C.DARK_GRAY + "&@@@@@" + C.GRAY + "&&&&@@@",
+                padd + C.GRAY + "@" + C.RED + "                ((((((((()))))))))  " + C.DARK_GRAY + "&&&&&" + C.GRAY + "&&&&&&&@@@",
+                padd + C.GRAY + "" + C.RED + "                  '((((((()))))))'  " + C.DARK_GRAY + "&&&&&" + C.GRAY + "&&&&&&&&@@@",
+                padd + C.GRAY + "" + C.RED + "                     '(((())))'   " + C.DARK_GRAY + "&&&&&&&&" + C.GRAY + "&&&&&&&@@",
+                padd + C.GRAY + "                               " + C.DARK_GRAY + "@@@" + C.GRAY + "@@@@@@@@@@@@@@"
+        };
+        String[] splash = unstablemode ? splashunstable : splashstable; // Choose the appropriate splash array based on unstablemode
+
+
+        long maxMemory = Runtime.getRuntime().maxMemory() / (1024 * 1024);
+        OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
+        String osArch = osBean.getArch();
+        String osName = osBean.getName();
+
+        if (!passedserversoftware) {
+            Iris.info("Server type & version: " + C.RED + Bukkit.getVersion());
+        } else { Iris.info("Server type & version: " + Bukkit.getVersion()); }
+
+        Iris.info("Server OS: " + osName + " (" + osArch + ")");
+        Iris.info("Process Memory: " + maxMemory + " MB");
+        if (maxMemory < 5999) {
+            Iris.warn("6GB+ Ram is recommended");
+        }
         Iris.info("Bukkit version: " + Bukkit.getBukkitVersion());
         Iris.info("Java version: " + getJavaVersion());
         Iris.info("Custom Biomes: " + INMS.get().countCustomBiomes());

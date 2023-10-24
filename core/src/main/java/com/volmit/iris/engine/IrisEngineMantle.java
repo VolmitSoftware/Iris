@@ -280,6 +280,7 @@ public class IrisEngineMantle implements EngineMantle {
         x = Math.max(x, c);
         x = (Math.max(x, 16) + 16) >> 4;
         x = x % 2 == 0 ? x + 1 : x;
+        x = 4;
         Iris.info("Mantle Size: " + x + " Chunks");
         Iris.info("  Object Mantle Size: " + u + " (" + ((Math.max(u, 16) + 16) >> 4) + ")");
         Iris.info("  Jigsaw Mantle Size: " + jig + " (" + ((Math.max(jig, 16) + 16) >> 4) + ")");

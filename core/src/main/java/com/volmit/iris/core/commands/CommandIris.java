@@ -26,7 +26,7 @@ import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
-import com.volmit.iris.engine.safeguard.ServerBoot;
+import com.volmit.iris.engine.safeguard.ServerBootSFG;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeContext;
 import com.volmit.iris.util.decree.DecreeExecutor;
@@ -52,7 +52,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static com.volmit.iris.core.tools.IrisBenchmarking.inProgress;
-import static com.volmit.iris.engine.safeguard.ServerBoot.multiverse;
+import static com.volmit.iris.engine.safeguard.ServerBootSFG.multiverse;
 
 @Decree(name = "iris", aliases = {"ir", "irs"}, description = "Basic Command")
 public class CommandIris implements DecreeExecutor {
@@ -80,7 +80,7 @@ public class CommandIris implements DecreeExecutor {
             sender().sendMessage(C.RED + "it is strongly advised for you to take action. see log for full detail");
             Iris.safeguard(C.RED + "----------------------------------------------------------------");
             Iris.safeguard(C.RED + "Command ran: /iris create");
-            ServerBoot.printincompatiblepluginWarnings();
+            ServerBootSFG.printincompatiblepluginWarnings();
             Iris.safeguard(C.RED + "----------------------------------------------------------------");
         }
         if (name.equals("iris")) {

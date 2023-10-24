@@ -1,5 +1,5 @@
 package com.volmit.iris.engine.safeguard;
-public class SafeguardUtils {
+public class UtilsSFG {
  public static void resetdatapacks(){
 
  }

@@ -10,7 +10,7 @@ import org.bukkit.plugin.Plugin;
 import static com.volmit.iris.Iris.instance;
 import static com.volmit.iris.engine.safeguard.IrisSafeguard.unstablemode;
 
-public class ServerBoot {
+public class ServerBootSFG {
     public static boolean multiverse = false;
     public static boolean dynmap = false;
     public static boolean terraform = false;

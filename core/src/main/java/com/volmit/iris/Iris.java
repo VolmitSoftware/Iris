@@ -39,7 +39,7 @@ import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.engine.platform.DummyChunkGenerator;
 import com.volmit.iris.engine.safeguard.IrisSafeguard;
-import com.volmit.iris.engine.safeguard.ServerBoot;
+import com.volmit.iris.engine.safeguard.ServerBootSFG;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.exceptions.IrisException;
@@ -94,7 +94,7 @@ import java.util.Date;
 import java.util.Map;
 
 import static com.volmit.iris.engine.safeguard.IrisSafeguard.unstablemode;
-import static com.volmit.iris.engine.safeguard.ServerBoot.passedserversoftware;
+import static com.volmit.iris.engine.safeguard.ServerBootSFG.passedserversoftware;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -465,9 +465,9 @@ public class Iris extends VolmitPlugin implements Listener {
             J.s(this::setupPapi);
             J.a(ServerConfigurator::configure, 20);
             splash();
-            ServerBoot.UnstableMode();
-            ServerBoot.SupportedServerSoftware();
-            ServerBoot.printincompatiblepluginWarnings();
+            ServerBootSFG.UnstableMode();
+            ServerBootSFG.SupportedServerSoftware();
+            ServerBootSFG.printincompatiblepluginWarnings();
             autoStartStudio();
             checkForBukkitWorlds();
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());

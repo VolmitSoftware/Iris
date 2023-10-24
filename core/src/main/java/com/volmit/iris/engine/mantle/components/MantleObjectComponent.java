@@ -23,10 +23,7 @@ import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.IrisMantleComponent;
 import com.volmit.iris.engine.mantle.MantleWriter;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisObject;
-import com.volmit.iris.engine.object.IrisObjectPlacement;
-import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.data.B;
@@ -35,6 +32,8 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterStructurePOI;
+import com.volmit.iris.util.noise.CNG;
+import com.volmit.iris.util.noise.NoiseType;
 
 import java.util.Set;
 
@@ -45,7 +44,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
 
     @Override
     public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
-        RNG rng = new RNG(Cache.key(x, z) + seed());
+        RNG rng = applyNoise(x, z, Cache.key(x, z) + seed());
         int xxx = 8 + (x << 4);
         int zzz = 8 + (z << 4);
         IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
@@ -53,15 +52,17 @@ public class MantleObjectComponent extends IrisMantleComponent {
         placeObjects(writer, rng, x, z, biome, region);
     }
 
+    private RNG applyNoise(int x, int z, long seed) {
+        CNG noise = CNG.signatureFast(new RNG(seed), NoiseType.WHITE, NoiseType.GLOB);
+        return new RNG((long) (seed * noise.noise(x, z)));
+    }
+
     @ChunkCoordinates
     private void placeObjects(MantleWriter writer, RNG rng, int x, int z, IrisBiome biome, IrisRegion region) {
-        long s = Cache.key(x, z) + seed();
-        RNG rnp = new RNG(s);
         for (IrisObjectPlacement i : biome.getSurfaceObjects()) {
             if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
                 try {
-                    placeObject(writer, rnp, x << 4, z << 4, i);
-                    rnp.setSeed(s);
+                    placeObject(writer, rng, x << 4, z << 4, i);
                 } catch (Throwable e) {
                     Iris.reportError(e);
                     Iris.error("Failed to place objects in the following biome: " + biome.getName());
@@ -75,8 +76,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
         for (IrisObjectPlacement i : region.getSurfaceObjects()) {
             if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
                 try {
-                    placeObject(writer, rnp, x << 4, z << 4, i);
-                    rnp.setSeed(s);
+                    placeObject(writer, rng, x << 4, z << 4, i);
                 } catch (Throwable e) {
                     Iris.reportError(e);
                     Iris.error("Failed to place objects in the following region: " + region.getName());
@@ -123,23 +123,19 @@ public class MantleObjectComponent extends IrisMantleComponent {
     }
 
     public Set<String> guess(int x, int z) {
-        RNG rng = new RNG(Cache.key(x, z) + seed());
-        long s = Cache.key(x, z) + seed();
-        RNG rngd = new RNG(s);
+        RNG rng = applyNoise(x, z, Cache.key(x, z) + seed());
         IrisBiome biome = getEngineMantle().getEngine().getSurfaceBiome((x << 4) + 8, (z << 4) + 8);
         IrisRegion region = getEngineMantle().getEngine().getRegion((x << 4) + 8, (z << 4) + 8);
         Set<String> v = new KSet<>();
         for (IrisObjectPlacement i : biome.getSurfaceObjects()) {
             if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
-                v.addAll(guessPlacedKeys(rngd, x, z, i));
-                rngd.setSeed(s);
+                v.addAll(guessPlacedKeys(rng, x, z, i));
             }
         }
 
         for (IrisObjectPlacement i : region.getSurfaceObjects()) {
             if (rng.chance(i.getChance() + rng.d(-0.005, 0.005))) {
-                v.addAll(guessPlacedKeys(rngd, x, z, i));
-                rngd.setSeed(s);
+                v.addAll(guessPlacedKeys(rng, x, z, i));
             }
         }
 

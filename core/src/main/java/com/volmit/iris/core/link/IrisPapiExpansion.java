@@ -46,7 +46,7 @@ public class IrisPapiExpansion extends PlaceholderExpansion {
 
     @Override
     public boolean persist() {
-        return false;
+        return true;
     }
 
     @Override

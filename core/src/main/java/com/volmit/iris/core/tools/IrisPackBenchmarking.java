@@ -48,6 +48,7 @@ public class IrisPackBenchmarking {
                     if(folder.exists()){
                         Iris.info(C.RED + "FAILED To remove old Benchmark!");
                         //cancelled = true;
+
                     }
                 }
             } catch (Exception e) {

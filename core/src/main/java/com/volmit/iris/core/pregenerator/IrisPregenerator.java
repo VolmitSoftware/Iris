@@ -19,7 +19,9 @@
 package com.volmit.iris.core.pregenerator;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.M;
@@ -28,11 +30,15 @@ import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static com.volmit.iris.core.tools.IrisPackBenchmarking.benchmark;
 
 public class IrisPregenerator {
     private final PregenTask task;
@@ -44,10 +50,10 @@ public class IrisPregenerator {
     private final RollingSequence chunksPerSecond;
     private final RollingSequence chunksPerMinute;
     private final RollingSequence regionsPerMinute;
-    private final AtomicInteger generated;
+    private static AtomicInteger generated;
     private final AtomicInteger generatedLast;
     private final AtomicInteger generatedLastMinute;
-    private final AtomicInteger totalChunks;
+    private static AtomicInteger totalChunks;
     private final AtomicLong startTime;
     private final ChronoLatch minuteLatch;
     private final AtomicReference<String> currentGeneratorMethod;
@@ -56,6 +62,8 @@ public class IrisPregenerator {
     private final KSet<Position2> net;
     private final ChronoLatch cl;
     private final ChronoLatch saveLatch = new ChronoLatch(30000);
+    static long long_generatedChunks = 0;
+    static long long_totalChunks = 0;
 
     public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener) {
         this.listener = listenify(listener);
@@ -92,6 +100,8 @@ public class IrisPregenerator {
                     chunksPerMinute.put(minuteGenerated);
                     regionsPerMinute.put((double) minuteGenerated / 1024D);
                 }
+                long_generatedChunks = generated.get();
+                long_totalChunks = totalChunks.get();
 
                 listener.onTick(chunksPerSecond.getAverage(), chunksPerMinute.getAverage(),
                         regionsPerMinute.getAverage(),
@@ -102,9 +112,12 @@ public class IrisPregenerator {
 
                 if (cl.flip()) {
                     double percentage = ((double) generated.get() / (double) totalChunks.get()) * 100;
-                    Iris.info("Pregen: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (%.0f%%) " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration((double) eta, 2), percentage);
+                    if(benchmark) {
+                        Iris.info(C.GREEN +"Benchmark: " + C.WHITE + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (%.0f%%) " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration((double) eta, 2), percentage);
+                    } else {
+                        Iris.info("Pregen: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (%.0f%%) " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration((double) eta, 2), percentage);
+                    }
                 }
-
                 return 1000;
             }
         };
@@ -118,6 +131,19 @@ public class IrisPregenerator {
                 ((totalChunks.get() - generated.get()) / chunksPerSecond.getAverage()) * 1000 //
         );
     }
+
+    public static void shareData(){
+        long_generatedChunks = generated.get();
+        long_totalChunks = totalChunks.get();
+    }
+
+    public static long getLongGeneratedChunks() {
+        return long_generatedChunks;
+    }
+    public static long getLongTotalChunks() {
+        return long_totalChunks;
+    }
+
 
     public void close() {
         shutdown.set(true);

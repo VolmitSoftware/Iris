@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisBenchmarking;
+import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -41,6 +42,8 @@ import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
+import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -52,6 +55,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static com.volmit.iris.core.tools.IrisBenchmarking.inProgress;
+import static com.volmit.iris.core.tools.IrisPackBenchmarking.runBenchmark;
 import static com.volmit.iris.engine.safeguard.ServerBootSFG.multiverse;
 
 @Decree(name = "iris", aliases = {"ir", "irs"}, description = "Basic Command")
@@ -65,6 +69,8 @@ public class CommandIris implements DecreeExecutor {
     private CommandEdit edit;
     private CommandFind find;
     private CommandWorldManager manager;
+
+    public static @Getter String BenchDimension;
 
     @Decree(description = "Create a new world", aliases = {"+", "c"})
     public void create(
@@ -85,6 +91,11 @@ public class CommandIris implements DecreeExecutor {
         }
         if (name.equals("iris")) {
             sender().sendMessage(C.RED + "You cannot use the world name \"iris\" for creating worlds as Iris uses this directory for studio worlds.");
+            sender().sendMessage(C.RED + "May we suggest the name \"IrisWorld\" instead?");
+            return;
+        }
+        if (name.equals("Benchmark")) {
+            sender().sendMessage(C.RED + "You cannot use the world name \"Benchmark\" for creating worlds as Iris uses this directory for Benchmarking Packs.");
             sender().sendMessage(C.RED + "May we suggest the name \"IrisWorld\" instead?");
             return;
         }
@@ -142,12 +153,22 @@ public class CommandIris implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");
     }
     @Decree(description = "Benchmark your server", origin = DecreeOrigin.CONSOLE)
-    public void benchmark() throws InterruptedException {
+    public void serverbenchmark() throws InterruptedException {
         if(!inProgress) {
             IrisBenchmarking.runBenchmark();
         } else {
             Iris.info(C.RED + "Benchmark already is in progress.");
         }
+    }
+    @Decree(description = "Benchmark a pack", origin = DecreeOrigin.CONSOLE)
+    public void packbenchmark(
+            @Param(description = "Dimension to benchmark")
+            IrisDimension type
+    ) throws InterruptedException {
+
+         BenchDimension = type.getLoadKey();
+
+        IrisPackBenchmarking.runBenchmark();
     }
 
     @Decree(description = "Print world height information", origin = DecreeOrigin.PLAYER)

@@ -95,6 +95,8 @@ import java.util.Map;
 
 import static com.volmit.iris.engine.safeguard.IrisSafeguard.unstablemode;
 import static com.volmit.iris.engine.safeguard.ServerBootSFG.passedserversoftware;
+import static com.volmit.iris.util.misc.getHardware.getCPUModel;
+import static com.volmit.iris.util.misc.getHardware.getCPUThreads;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -771,6 +773,8 @@ public class Iris extends VolmitPlugin implements Listener {
         } else { Iris.info("Server type & version: " + Bukkit.getVersion()); }
 
         Iris.info("Server OS: " + osName + " (" + osArch + ")");
+        Iris.info("Server Cpu: " + C.BLUE + getCPUModel());
+        Iris.info("Process Threads: " + getCPUThreads());
         Iris.info("Process Memory: " + maxMemory + " MB");
         if (maxMemory < 5999) {
             Iris.warn("6GB+ Ram is recommended");

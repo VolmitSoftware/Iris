@@ -29,11 +29,9 @@ import java.io.InputStreamReader;
 import static com.google.common.math.LongMath.isPrime;
 import static com.volmit.iris.util.misc.getHardware.getCPUModel;
 import static com.volmit.iris.util.misc.getHardware.getDiskModel;
-
 public class IrisBenchmarking {
     static String ServerOS;
     static String filePath = "benchmark.dat";
-    private static long startTime;
     static double avgWriteSpeedMBps;
     static double avgReadSpeedMBps;
     static double highestWriteSpeedMBps;
@@ -58,6 +56,7 @@ public class IrisBenchmarking {
     static boolean Winsat = false;
     static boolean WindowsDiskSpeed = false;
     public static boolean inProgress = false;
+    static double startTime;
     // Good enough for now. . .
 
     public static void runBenchmark() throws InterruptedException {

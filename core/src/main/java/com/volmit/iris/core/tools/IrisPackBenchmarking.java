@@ -33,7 +33,6 @@ public class IrisPackBenchmarking {
         // IrisPackBenchmarking IrisPackBenchmarking = new IrisPackBenchmarking();
         benchmark = true;
         Iris.info(C.BLUE + "Benchmarking Dimension: " + C.AQUA + BenchDimension);
-
         //progress();
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
             Iris.info(C.GOLD + "Setting everything up..");
@@ -98,7 +97,7 @@ public class IrisPackBenchmarking {
                     break;
                 }
             }
-            //J.sleep(100);
+            //J.sleep(100); test
         }
     }
      static void createBenchmark(){

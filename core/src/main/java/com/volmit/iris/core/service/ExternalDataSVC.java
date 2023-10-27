@@ -19,10 +19,7 @@
 package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.link.ExternalDataProvider;
-import com.volmit.iris.core.link.Identifier;
-import com.volmit.iris.core.link.ItemAdderDataProvider;
-import com.volmit.iris.core.link.OraxenDataProvider;
+import com.volmit.iris.core.link.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.IrisService;
 import lombok.Data;
@@ -52,6 +49,10 @@ public class ExternalDataSVC implements IrisService {
         providers.add(new ItemAdderDataProvider());
         if (Bukkit.getPluginManager().getPlugin("ItemAdder") != null) {
             Iris.info("ItemAdder found, loading ItemAdderDataProvider...");
+        }
+        providers.add(new ExecutableItemsDataProvider());
+        if (Bukkit.getPluginManager().getPlugin("ExecutableItems") != null) {
+            Iris.info("ExecutableItems found, loading ExecutableItemsDataProvider...");
         }
 
         for (ExternalDataProvider p : providers) {

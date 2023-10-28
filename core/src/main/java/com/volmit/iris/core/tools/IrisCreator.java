@@ -26,6 +26,7 @@ import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
+import com.volmit.iris.engine.safeguard.ServerBootSFG;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -47,6 +48,7 @@ import java.util.function.Supplier;
 
 import static com.volmit.iris.core.tools.IrisPackBenchmarking.benchmark;
 import static com.volmit.iris.core.tools.IrisPackBenchmarking.loaded;
+import static com.volmit.iris.engine.safeguard.IrisSafeguard.unstablemode;
 
 /**
  * Makes it a lot easier to setup an engine, world, studio or whatever
@@ -108,6 +110,13 @@ public class IrisCreator {
      */
     IrisPackBenchmarking PackBench = new IrisPackBenchmarking();
     public World create() throws IrisException {
+        if (unstablemode){
+            Iris.info(C.RED + "Your server is experiencing an incompatibility with the Iris plugin. Please rectify this problem to avoid further complications.");
+            Iris.info(C.RED + "----------------------------------------------------------------");
+            Iris.info(C.RED + "Operation ran: Loading Iris World..");
+            ServerBootSFG.printIncompatiblePluginWarnings();
+            Iris.info(C.RED + "----------------------------------------------------------------");
+        }
         if (Bukkit.isPrimaryThread()) {
             throw new IrisException("You cannot invoke create() on the main thread.");
         }

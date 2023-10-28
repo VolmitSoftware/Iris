@@ -470,7 +470,7 @@ public class Iris extends VolmitPlugin implements Listener {
             splash();
             ServerBootSFG.UnstableMode();
             ServerBootSFG.SupportedServerSoftware();
-            ServerBootSFG.printincompatiblepluginWarnings();
+            ServerBootSFG.printIncompatiblePluginWarnings();
             autoStartStudio();
             checkForBukkitWorlds();
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
@@ -738,6 +738,10 @@ public class Iris extends VolmitPlugin implements Listener {
         String padd = Form.repeat(" ", 8);
         String padd2 = Form.repeat(" ", 4);
         String[] info = {"", "", "", "", "", padd2 + C.IRIS + " Iris", padd2 + C.GRAY + " by " + "<rainbow>Volmit Software", padd2 + C.GRAY + " v" + C.IRIS + getDescription().getVersion()};
+        if (unstablemode) {
+             info = new String[]{"", "", "", "", "", padd2 + C.RED + " Iris", padd2 + C.GRAY + " by " + C.DARK_RED + "Volmit Software", padd2 + C.GRAY + " v" + C.RED + getDescription().getVersion()};
+        }
+
         String[] splashstable = {
                 padd + C.GRAY + "   @@@@@@@@@@@@@@" + C.DARK_GRAY + "@@@",
                 padd + C.GRAY + " @@&&&&&&&&&" + C.DARK_GRAY + "&&&&&&" + C.IRIS + "   .(((()))).                     ",
@@ -778,7 +782,8 @@ public class Iris extends VolmitPlugin implements Listener {
         } else { Iris.info("Server type & version: " + Bukkit.getVersion()); }
 
         Iris.info("Server OS: " + osName + " (" + osArch + ")");
-        Iris.info("Server Cpu: " + C.BLUE + getCPUModel());
+        if(unstablemode) Iris.info("Server Cpu: " + C.RED + getCPUModel());
+        if(!unstablemode) Iris.info("Server Cpu: " + C.BLUE + getCPUModel());
         Iris.info("Process Threads: " + getCPUThreads());
         Iris.info("Process Memory: " + maxMemory + " MB");
         if (maxMemory < 5999) {

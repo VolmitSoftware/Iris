@@ -43,7 +43,6 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import lombok.Getter;
-import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -55,7 +54,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static com.volmit.iris.core.tools.IrisBenchmarking.inProgress;
-import static com.volmit.iris.core.tools.IrisPackBenchmarking.runBenchmark;
+import static com.volmit.iris.engine.safeguard.IrisSafeguard.unstablemode;
 import static com.volmit.iris.engine.safeguard.ServerBootSFG.multiverse;
 
 @Decree(name = "iris", aliases = {"ir", "irs"}, description = "Basic Command")
@@ -81,24 +80,34 @@ public class CommandIris implements DecreeExecutor {
             @Param(description = "The seed to generate the world with", defaultValue = "1337")
             long seed
     ) {
-        if (multiverse){
-            sender().sendMessage(C.RED + "Your server has an incompatibility that may corrupt all worlds on the server if not handled properly.");
-            sender().sendMessage(C.RED + "it is strongly advised for you to take action. see log for full detail");
-            Iris.safeguard(C.RED + "----------------------------------------------------------------");
-            Iris.safeguard(C.RED + "Command ran: /iris create");
-            ServerBootSFG.printincompatiblepluginWarnings();
-            Iris.safeguard(C.RED + "----------------------------------------------------------------");
+        if(sender() instanceof Player) {
+            if (multiverse) {
+                sender().sendMessage(C.RED + "Your server has an incompatibility that may corrupt all worlds on the server if not handled properly.");
+                sender().sendMessage(C.RED + "it is strongly advised for you to take action. see log for full detail");
+                sender().sendMessage(C.RED + "----------------------------------------------------------------");
+                sender().sendMessage(C.RED + "Command ran: /iris create");
+                sender().sendMessage(C.RED + ServerBootSFG.MSGIncompatiblePluginWarnings());
+                sender().sendMessage(C.RED + "----------------------------------------------------------------");
+            }
+            if (unstablemode && !multiverse) {
+                sender().sendMessage(C.RED + "Your server is experiencing an incompatibility with the Iris plugin.");
+                sender().sendMessage(C.RED + "Please rectify this problem to avoid further complications.");
+                sender().sendMessage(C.RED + "----------------------------------------------------------------");
+                sender().sendMessage(C.RED + "Command ran: /iris create");
+                sender().sendMessage(C.RED + ServerBootSFG.MSGIncompatiblePluginWarnings());
+                sender().sendMessage(C.RED + "----------------------------------------------------------------");
+            }
         }
-        if (name.equals("iris")) {
-            sender().sendMessage(C.RED + "You cannot use the world name \"iris\" for creating worlds as Iris uses this directory for studio worlds.");
-            sender().sendMessage(C.RED + "May we suggest the name \"IrisWorld\" instead?");
-            return;
-        }
-        if (name.equals("Benchmark")) {
-            sender().sendMessage(C.RED + "You cannot use the world name \"Benchmark\" for creating worlds as Iris uses this directory for Benchmarking Packs.");
-            sender().sendMessage(C.RED + "May we suggest the name \"IrisWorld\" instead?");
-            return;
-        }
+            if (name.equals("iris")) {
+                sender().sendMessage(C.RED + "You cannot use the world name \"iris\" for creating worlds as Iris uses this directory for studio worlds.");
+                sender().sendMessage(C.RED + "May we suggest the name \"IrisWorld\" instead?");
+                return;
+            }
+            if (name.equals("Benchmark")) {
+                sender().sendMessage(C.RED + "You cannot use the world name \"Benchmark\" for creating worlds as Iris uses this directory for Benchmarking Packs.");
+                sender().sendMessage(C.RED + "May we suggest the name \"IrisWorld\" instead?");
+                return;
+            }
 
         if (new File(Bukkit.getWorldContainer(), name).exists()) {
             sender().sendMessage(C.RED + "That folder already exists!");

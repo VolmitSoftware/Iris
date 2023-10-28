@@ -3,6 +3,7 @@ package com.volmit.iris.core.tools;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.pregenerator.IrisPregenerator;
+import com.volmit.iris.core.pregenerator.LazyPregenerator;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
@@ -87,8 +88,6 @@ public class IrisPackBenchmarking {
         while (true) {
             totalChunks = IrisPregenerator.getLongTotalChunks();
             generatedChunks = IrisPregenerator.getLongGeneratedChunks();
-            Iris.info("TEST: "+ totalChunks);
-            Iris.info("TEST2: "+ generatedChunks);
             if(totalChunks > 0) {
                 if (generatedChunks >= totalChunks) {
                     Iris.info("Benchmark Completed!");
@@ -122,6 +121,21 @@ public class IrisPackBenchmarking {
                     .height(5)
                     .build(), Bukkit.getWorld("Benchmark")
             );
+    }
+    static void startLazyBenchmark(){
+        int x = 0;
+        int z = 0;
+        LazyPregenerator.LazyPregenJob pregenJob = LazyPregenerator.LazyPregenJob.builder()
+                .world("Benchmark")
+                .healingPosition(0)
+                .healing(false)
+                .chunksPerMinute(3200)
+                .radiusBlocks(5000)
+                .position(0)
+                .build();
+
+        LazyPregenerator pregenerator = new LazyPregenerator(pregenJob, new File("plugins/Iris/lazygen.json"));
+        pregenerator.start();
     }
     public static double calculateAverageCPS() {
         double elapsedTimeSec = elapsedTimeNs / 1_000_000_000.0;  // Convert to seconds

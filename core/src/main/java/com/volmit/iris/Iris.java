@@ -448,6 +448,7 @@ public class Iris extends VolmitPlugin implements Listener {
         INMS.get();
         IO.delete(new File("iris"));
         setupAudience();
+        IrisSafeguard.IrisSafeguardSystem();
         sender = new VolmitSender(Bukkit.getConsoleSender());
         sender.setTag(getTag());
         instance = this;
@@ -557,7 +558,6 @@ public class Iris extends VolmitPlugin implements Listener {
         enable();
         super.onEnable();
         Bukkit.getPluginManager().registerEvents(this, this);
-        IrisSafeguard.IrisSafeguardSystem();
         setupChecks();
     }
 
@@ -589,7 +589,12 @@ public class Iris extends VolmitPlugin implements Listener {
 
     @Override
     public String getTag(String subTag) {
-        return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.IRIS + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
+        if (unstablemode) {
+            return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.RED + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
+        }
+        else {
+            return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.IRIS + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
+        }
     }
 
     private boolean setupChecks() {

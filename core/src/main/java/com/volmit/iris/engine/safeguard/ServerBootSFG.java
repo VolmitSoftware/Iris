@@ -121,12 +121,11 @@ public class ServerBootSFG {
                 Iris.safeguard(C.RED + "Unsupported Server Software");
                 Iris.safeguard(C.RED + "- Please consider using Paper or Purpur instead.");
 
-                // todo Add a cmd to show all issues?
             }
         }
     }
 
-    public static String MSGIncompatiblePluginWarnings(){
+    public static String MSGIncompatibleWarnings(){
         StringBuilder stringBuilder = new StringBuilder();
 
         List<String> incompatibleList = new ArrayList<>();
@@ -150,6 +149,18 @@ public class ServerBootSFG {
             String incompatibility4 = "Stratos";
             stringBuilder.append(incompatibility4).append(", ");
             incompatibleList.add(incompatibility4);
+
+        }
+        if(unsuportedversion){
+            String incompatibility5 = "Server Version";
+            stringBuilder.append(incompatibility5).append(", ");
+            incompatibleList.add(incompatibility5);
+
+        }
+        if(!passedserversoftware){
+            String incompatibility6 = "Server Software";
+            stringBuilder.append(incompatibility6).append(", ");
+            incompatibleList.add(incompatibility6);
 
         }
 

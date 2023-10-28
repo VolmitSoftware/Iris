@@ -46,9 +46,11 @@ import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.io.Console;
 import java.io.File;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -86,7 +88,7 @@ public class CommandIris implements DecreeExecutor {
                 sender().sendMessage(C.RED + "it is strongly advised for you to take action. see log for full detail");
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
                 sender().sendMessage(C.RED + "Command ran: /iris create");
-                sender().sendMessage(C.RED + ServerBootSFG.MSGIncompatiblePluginWarnings());
+                sender().sendMessage(C.RED + ServerBootSFG.MSGIncompatibleWarnings());
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
             }
             if (unstablemode && !multiverse) {
@@ -94,7 +96,7 @@ public class CommandIris implements DecreeExecutor {
                 sender().sendMessage(C.RED + "Please rectify this problem to avoid further complications.");
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
                 sender().sendMessage(C.RED + "Command ran: /iris create");
-                sender().sendMessage(C.RED + ServerBootSFG.MSGIncompatiblePluginWarnings());
+                sender().sendMessage(C.RED + ServerBootSFG.MSGIncompatibleWarnings());
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
             }
         }
@@ -178,6 +180,28 @@ public class CommandIris implements DecreeExecutor {
          BenchDimension = type.getLoadKey();
 
         IrisPackBenchmarking.runBenchmark();
+    }
+    @Decree(description = "Benchmark a pack", origin = DecreeOrigin.CONSOLE)
+    public void fixunstable() throws InterruptedException {
+        if (unstablemode){
+            if (sender() instanceof Player) { // todo: fix this being always false
+                sender().sendMessage(C.RED + "Your server is experiencing an incompatibility with the Iris plugin.");
+                sender().sendMessage(C.RED + "Please rectify this problem to avoid further complications.");
+                sender().sendMessage(C.RED + "----------------------------------------------------------------");
+                sender().sendMessage(C.RED + "Command ran: /iris fixunstable");
+                sender().sendMessage(C.RED + "Server Issues: " + C.DARK_RED + ServerBootSFG.MSGIncompatibleWarnings());
+                sender().sendMessage(C.RED + "----------------------------------------------------------------");
+            }
+            Iris.info(C.RED + "Your server is experiencing an incompatibility with the Iris plugin.");
+            Iris.info(C.RED + "Please rectify this problem to avoid further complications.");
+            Iris.info(C.RED + "----------------------------------------------------------------");
+            Iris.info(C.RED + "Command ran: /iris fixunstable");
+            ServerBootSFG.printIncompatiblePluginWarnings();
+            Iris.info(C.RED + "----------------------------------------------------------------");
+     } else {
+            Iris.info(C.BLUE + "Iris is running stable..");
+            sender().sendMessage("Iris is running stable..");
+        }
     }
 
     @Decree(description = "Print world height information", origin = DecreeOrigin.PLAYER)

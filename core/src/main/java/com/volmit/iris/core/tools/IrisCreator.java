@@ -27,6 +27,7 @@ import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.engine.safeguard.ServerBootSFG;
+import com.volmit.iris.engine.safeguard.UtilsSFG;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -114,7 +115,7 @@ public class IrisCreator {
             Iris.info(C.RED + "Your server is experiencing an incompatibility with the Iris plugin. Please rectify this problem to avoid further complications.");
             Iris.info(C.RED + "----------------------------------------------------------------");
             Iris.info(C.RED + "Operation ran: Loading Iris World..");
-            ServerBootSFG.printIncompatiblePluginWarnings();
+            UtilsSFG.printIncompatiblePluginWarnings();
             Iris.info(C.RED + "----------------------------------------------------------------");
         }
         if (Bukkit.isPrimaryThread()) {

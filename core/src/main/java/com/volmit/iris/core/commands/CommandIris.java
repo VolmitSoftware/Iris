@@ -28,6 +28,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.engine.safeguard.ServerBootSFG;
+import com.volmit.iris.engine.safeguard.UtilsSFG;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeContext;
 import com.volmit.iris.util.decree.DecreeExecutor;
@@ -88,7 +89,7 @@ public class CommandIris implements DecreeExecutor {
                 sender().sendMessage(C.RED + "it is strongly advised for you to take action. see log for full detail");
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
                 sender().sendMessage(C.RED + "Command ran: /iris create");
-                sender().sendMessage(C.RED + ServerBootSFG.MSGIncompatibleWarnings());
+                sender().sendMessage(C.RED + UtilsSFG.MSGIncompatibleWarnings());
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
             }
             if (unstablemode && !multiverse) {
@@ -96,7 +97,7 @@ public class CommandIris implements DecreeExecutor {
                 sender().sendMessage(C.RED + "Please rectify this problem to avoid further complications.");
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
                 sender().sendMessage(C.RED + "Command ran: /iris create");
-                sender().sendMessage(C.RED + ServerBootSFG.MSGIncompatibleWarnings());
+                sender().sendMessage(C.RED + UtilsSFG.MSGIncompatibleWarnings());
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
             }
         }
@@ -189,14 +190,14 @@ public class CommandIris implements DecreeExecutor {
                 sender().sendMessage(C.RED + "Please rectify this problem to avoid further complications.");
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
                 sender().sendMessage(C.RED + "Command ran: /iris fixunstable");
-                sender().sendMessage(C.RED + "Server Issues: " + C.DARK_RED + ServerBootSFG.MSGIncompatibleWarnings());
+                sender().sendMessage(C.RED + "Server Issues: " + C.DARK_RED + UtilsSFG.MSGIncompatibleWarnings());
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
             }
             Iris.info(C.RED + "Your server is experiencing an incompatibility with the Iris plugin.");
             Iris.info(C.RED + "Please rectify this problem to avoid further complications.");
             Iris.info(C.RED + "----------------------------------------------------------------");
             Iris.info(C.RED + "Command ran: /iris fixunstable");
-            ServerBootSFG.printIncompatiblePluginWarnings();
+            UtilsSFG.printIncompatiblePluginWarnings();
             Iris.info(C.RED + "----------------------------------------------------------------");
      } else {
             Iris.info(C.BLUE + "Iris is running stable..");

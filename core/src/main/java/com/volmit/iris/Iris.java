@@ -39,7 +39,6 @@ import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.engine.platform.DummyChunkGenerator;
 import com.volmit.iris.engine.safeguard.IrisSafeguard;
-import com.volmit.iris.engine.safeguard.ServerBootSFG;
 import com.volmit.iris.engine.safeguard.UtilsSFG;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -472,6 +471,9 @@ public class Iris extends VolmitPlugin implements Listener {
             UtilsSFG.UnstableMode();
             UtilsSFG.SupportedServerSoftware();
             UtilsSFG.printIncompatiblePluginWarnings();
+
+            UtilsSFG.unstablePrompt();
+
             autoStartStudio();
             checkForBukkitWorlds();
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());

@@ -1,13 +1,19 @@
 package com.volmit.iris.engine.safeguard;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.format.C;
+import org.bukkit.Bukkit;
+import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 import static com.volmit.iris.engine.safeguard.IrisSafeguard.unstablemode;
 import static com.volmit.iris.engine.safeguard.ServerBootSFG.*;
+import static org.bukkit.Bukkit.getLogger;
+import static org.bukkit.Bukkit.getServer;
 
 public class UtilsSFG {
  public static void UnstableMode(){
@@ -99,6 +105,43 @@ public class UtilsSFG {
 
   String MSGIncompatiblePlugins = stringBuilder.toString();
   return MSGIncompatiblePlugins;
+
+ }
+
+ public static void unstablePrompt(){
+  Iris.info("");
+  Iris.info("");
+  Iris.info("");
+  Iris.info(C.DARK_GRAY + "--==<" + C.RED +" IMPORTANT " + C.DARK_GRAY + ">==--");
+  Iris.info(C.RED + "Iris is running in unstable mode what may cause the following issues.");
+  Iris.info(C.DARK_RED +"Server corruptions");
+  Iris.info(C.RED + "- Server wont boot");
+  Iris.info(C.RED + "- Worlds cant load due to corruption..");
+  Iris.info(C.RED + "- And More..");
+  Iris.info(C.DARK_RED + "World corruptions");
+  Iris.info(C.RED + "- Worlds cant load due to corruption..");
+  Iris.info(C.RED + "- Worlds may slowly corrupt till they wont be able to load.");
+  Iris.info(C.RED + "- Worlds cant load due to corruption..");
+  Iris.info(C.RED + "- And More..");
+  Iris.info(C.DARK_RED + "ATTENTION:"+ C.RED + " While running iris in unstable mode you wont be eligible for support.");
+  Iris.info("");
+  /*while (true) {
+   Iris.info("test2");
+   if(IrisSettings.get().getGeneral().isBootUnstable()){
+    Iris.info("AAAAAAAAAAAAAAAAAAA");
+   }
+  } */
+
+  if(!IrisSettings.get().getGeneral().isBootUnstable()){
+   Iris.info(C.DARK_RED + "Go to plugins/iris/settings.json and set ignoreUnstable to true if you wish to proceed.");
+   while (true) {
+    try {
+     Thread.sleep(1000);
+    } catch (InterruptedException e) {
+     // No
+    }
+   }
+  }
 
  }
 }

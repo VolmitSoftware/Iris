@@ -31,6 +31,7 @@ public class ServerBootSFG {
         Plugin[] plugins = pluginManager.getPlugins();
         if (INMS.get() instanceof NMSBinding1X) {
             unsuportedversion = true;
+            count++;
         }
 
         StringBuilder pluginList = new StringBuilder("Plugin list: ");
@@ -57,8 +58,6 @@ public class ServerBootSFG {
             pluginList.append(pluginName).append(", ");
             Iris.safeguard(pluginList.toString());
         }
-
-        if (unsuportedversion) count++;
 
         if (
         !instance.getServer().getVersion().contains("Purpur") &&

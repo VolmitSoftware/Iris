@@ -110,21 +110,24 @@ public class UtilsSFG {
 
  public static void unstablePrompt(){
   Iris.info("");
-  Iris.info("");
-  Iris.info("");
   Iris.info(C.DARK_GRAY + "--==<" + C.RED +" IMPORTANT " + C.DARK_GRAY + ">==--");
   Iris.info(C.RED + "Iris is running in unstable mode what may cause the following issues.");
-  Iris.info(C.DARK_RED +"Server corruptions");
+  Iris.info(C.DARK_RED +"Server Issues");
   Iris.info(C.RED + "- Server wont boot");
-  Iris.info(C.RED + "- Worlds cant load due to corruption..");
+  Iris.info(C.RED + "- Data Loss");
+  Iris.info(C.RED + "- Unexpected behavior.");
   Iris.info(C.RED + "- And More..");
-  Iris.info(C.DARK_RED + "World corruptions");
+  Iris.info(C.DARK_RED + "World Issues");
   Iris.info(C.RED + "- Worlds cant load due to corruption..");
   Iris.info(C.RED + "- Worlds may slowly corrupt till they wont be able to load.");
-  Iris.info(C.RED + "- Worlds cant load due to corruption..");
+  Iris.info(C.RED + "- World data loss.");
   Iris.info(C.RED + "- And More..");
   Iris.info(C.DARK_RED + "ATTENTION:"+ C.RED + " While running iris in unstable mode you wont be eligible for support.");
+  Iris.info(C.DARK_RED + "CAUSE: " + C.RED + MSGIncompatibleWarnings());
   Iris.info("");
+  if (IrisSettings.get().getGeneral().bootUnstable){
+   Iris.info(C.DARK_RED + "Boot Unstable is set to true, continuing with the startup process.");
+  }
   /*while (true) {
    Iris.info("test2");
    if(IrisSettings.get().getGeneral().isBootUnstable()){
@@ -142,6 +145,6 @@ public class UtilsSFG {
     }
    }
   }
-
+  Iris.info("");
  }
 }

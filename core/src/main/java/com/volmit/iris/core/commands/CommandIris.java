@@ -172,6 +172,8 @@ public class CommandIris implements DecreeExecutor {
             Iris.info(C.RED + "Benchmark already is in progress.");
         }
     }
+    /*
+    /todo Fix PREGEN
     @Decree(description = "Benchmark a pack", origin = DecreeOrigin.CONSOLE)
     public void packbenchmark(
             @Param(description = "Dimension to benchmark")
@@ -181,7 +183,8 @@ public class CommandIris implements DecreeExecutor {
          BenchDimension = type.getLoadKey();
 
         IrisPackBenchmarking.runBenchmark();
-    }
+    } */
+
     @Decree(description = "Benchmark a pack", origin = DecreeOrigin.CONSOLE)
     public void fixunstable() throws InterruptedException {
         if (unstablemode){

@@ -30,6 +30,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
+import com.volmit.iris.core.ChunkHandler;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.EnginePanic;
@@ -440,7 +441,7 @@ public class Iris extends VolmitPlugin implements Listener {
     private static void fixShading() {
         ShadeFix.fix(ComponentSerializer.class);
     }
-
+    private ChunkHandler chunkHandler;
     private void enable() {
         instance = this;
         services = new KMap<>();
@@ -458,6 +459,7 @@ public class Iris extends VolmitPlugin implements Listener {
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
+        chunkHandler = new ChunkHandler(this);
         J.s(() -> {
             J.a(() -> PaperLib.suggestPaper(this));
             J.a(() -> IO.delete(getTemp()));

@@ -19,15 +19,14 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.ChunkHandler;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisBenchmarking;
-import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
-import com.volmit.iris.engine.safeguard.ServerBootSFG;
 import com.volmit.iris.engine.safeguard.UtilsSFG;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeContext;
@@ -47,11 +46,9 @@ import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
-import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.io.Console;
 import java.io.File;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -212,6 +209,10 @@ public class CommandIris implements DecreeExecutor {
     public void height() {
         sender().sendMessage(C.GREEN + "" + sender().player().getWorld().getMinHeight() + " to " + sender().player().getWorld().getMaxHeight());
         sender().sendMessage(C.GREEN + "Total Height: " + (sender().player().getWorld().getMaxHeight() - sender().player().getWorld().getMinHeight()));
+    }
+    @Decree(description = "TEST")
+    public void cpspaper() {
+        ChunkHandler.exit();
     }
 
     @Decree(description = "QOL command to open a overworld studio world.", sync = true)

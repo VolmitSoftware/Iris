@@ -1,6 +1,5 @@
-package com.volmit.iris.core;
+package com.volmit.iris.core.service;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -22,7 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-public class ChunkHandler implements Listener {
+public class ChunkHandlerSVC implements Listener {
     // Idk how it works but it works lol
     private final JavaPlugin plugin;
     private static BukkitTask task;
@@ -30,7 +29,7 @@ public class ChunkHandler implements Listener {
 
     private static final Map<Chunk, Set<Player>> playersInChunk = new ConcurrentHashMap<>();
 
-    public ChunkHandler(JavaPlugin plugin) {
+    public ChunkHandlerSVC(JavaPlugin plugin) {
         this.plugin = plugin;
         Bukkit.getPluginManager().registerEvents(this, plugin);
 

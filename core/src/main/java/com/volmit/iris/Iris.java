@@ -30,7 +30,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
-import com.volmit.iris.core.ChunkHandler;
+import com.volmit.iris.core.service.ChunkHandlerSVC;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.EnginePanic;
@@ -441,7 +441,7 @@ public class Iris extends VolmitPlugin implements Listener {
     private static void fixShading() {
         ShadeFix.fix(ComponentSerializer.class);
     }
-    private ChunkHandler chunkHandler;
+    private ChunkHandlerSVC chunkHandlerSVC;
     private void enable() {
         instance = this;
         services = new KMap<>();
@@ -459,10 +459,6 @@ public class Iris extends VolmitPlugin implements Listener {
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
-        if(IrisSettings.get().getGeneral().useIntegratedChunkHandler) {
-            chunkHandler = new ChunkHandler(this);
-            Iris.info("Started Intergrated ChunkHandler");
-        }
         J.s(() -> {
             J.a(() -> PaperLib.suggestPaper(this));
             J.a(() -> IO.delete(getTemp()));
@@ -476,9 +472,11 @@ public class Iris extends VolmitPlugin implements Listener {
             UtilsSFG.UnstableMode();
             UtilsSFG.SupportedServerSoftware();
             UtilsSFG.printIncompatiblePluginWarnings();
-
             UtilsSFG.unstablePrompt();
-
+            if(IrisSettings.get().getGeneral().useIntegratedChunkHandler) {
+                chunkHandlerSVC = new ChunkHandlerSVC(this);
+                Iris.info(C.LIGHT_PURPLE + "Started Intergrated ChunkHandlerSVC");
+            }
             autoStartStudio();
             checkForBukkitWorlds();
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());

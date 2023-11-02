@@ -19,7 +19,7 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.ChunkHandler;
+import com.volmit.iris.core.service.ChunkHandlerSVC;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisBenchmarking;
@@ -212,7 +212,7 @@ public class CommandIris implements DecreeExecutor {
     }
     @Decree(description = "TEST")
     public void cpspaper() {
-        ChunkHandler.exit();
+        ChunkHandlerSVC.exit();
     }
 
     @Decree(description = "QOL command to open a overworld studio world.", sync = true)

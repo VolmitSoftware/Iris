@@ -459,7 +459,10 @@ public class Iris extends VolmitPlugin implements Listener {
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
-        chunkHandler = new ChunkHandler(this);
+        if(IrisSettings.get().getGeneral().useIntegratedChunkHandler) {
+            chunkHandler = new ChunkHandler(this);
+            Iris.info("Started Intergrated ChunkHandler");
+        }
         J.s(() -> {
             J.a(() -> PaperLib.suggestPaper(this));
             J.a(() -> IO.delete(getTemp()));

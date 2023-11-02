@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 public class ChunkHandler implements Listener {
+    // Idk how it works but it works lol
     private final JavaPlugin plugin;
     private static BukkitTask task;
     private final Map<World, ChunkUnloader> worlds = new ConcurrentHashMap<>();
@@ -153,10 +154,9 @@ public class ChunkHandler implements Listener {
 
         private void unloadChunk(Chunk chunk) {
             try {
-                System.out.printf("%s > Unloading Chunk [x=%s, z=%s]%n", world.getName(), chunk.getX(), chunk.getZ());
+               // System.out.printf("%s > Unloading Chunk [x=%s, z=%s]%n", world.getName(), chunk.getX(), chunk.getZ());
                 Bukkit.getScheduler().runTask(plugin, () -> chunk.unload(true));
             } catch (Exception e) {
-                // Log the error message
                 System.out.println("Error unloading chunk: " + e.getMessage());
             }
         }

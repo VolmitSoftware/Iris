@@ -121,20 +121,26 @@ public class ChunkHandler implements Listener {
         }
 
         public void update() {
-            long currentTime = System.currentTimeMillis();
-            Set<Chunk> chunkSet = new HashSet<>(chunks.keySet());
-            for (Chunk chunk : chunkSet) {
-                if (!chunk.isLoaded()) {
-                    continue;
-                }
+            try {
+                long currentTime = System.currentTimeMillis();
+                Set<Chunk> chunkSet = new HashSet<>(chunks.keySet());
+                for (Chunk chunk : chunkSet) {
+                    if (!chunk.isLoaded()) {
+                        continue;
+                    }
 
-                if (isChunkNearby(chunk)) {
-                    chunks.put(chunk, currentTime + TimeUnit.MINUTES.toMillis(3));
-                } else if (chunks.get(chunk) <= currentTime) {
-                    unloadChunk(chunk);
+                    if (isChunkNearby(chunk)) {
+                        chunks.put(chunk, currentTime + TimeUnit.MINUTES.toMillis(3));
+                    } else if (chunks.get(chunk) <= currentTime) {
+                        unloadChunk(chunk);
+                    }
                 }
+            } catch (Exception e) {
+                // Log the error message
+                System.out.println("Error in update method: " + e.getMessage());
             }
         }
+
 
         private boolean isChunkNearby(Chunk chunk) {
             Set<Player> players = playersInChunk.get(chunk);
@@ -146,8 +152,13 @@ public class ChunkHandler implements Listener {
         }
 
         private void unloadChunk(Chunk chunk) {
-            //System.out.printf("%s > Unloading Chunk [x=%s, z=%s]%n", world.getName(), chunk.getX(), chunk.getZ());
-            Bukkit.getScheduler().runTask(plugin, () -> chunk.unload(true));
+            try {
+                System.out.printf("%s > Unloading Chunk [x=%s, z=%s]%n", world.getName(), chunk.getX(), chunk.getZ());
+                Bukkit.getScheduler().runTask(plugin, () -> chunk.unload(true));
+            } catch (Exception e) {
+                // Log the error message
+                System.out.println("Error unloading chunk: " + e.getMessage());
+            }
         }
     }
 }

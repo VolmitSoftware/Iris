@@ -111,7 +111,7 @@ public class ChunkHandlerSVC implements Listener {
         }
 
         public void onChunkLoad(Chunk chunk) {
-            //System.out.printf("%s > Loaded Chunk [x=%s, z=%s]%n", world.getName(), chunk.getX(), chunk.getZ());
+            // System.out.printf("%s > Loaded Chunk [x=%s, z=%s]%n", world.getName(), chunk.getX(), chunk.getZ());
             chunks.put(chunk, System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(3));
         }
 

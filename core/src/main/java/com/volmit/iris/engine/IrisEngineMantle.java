@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.volmit.iris.core.tools.IrisPackBenchmarking.benchmark;
+import static com.volmit.iris.engine.safeguard.PerformanceSFG.lowPerformance;
 
 @Data
 public class IrisEngineMantle implements EngineMantle {
@@ -285,15 +286,19 @@ public class IrisEngineMantle implements EngineMantle {
         x = Math.max(x, c);
         x = (Math.max(x, 16) + 16) >> 4;
         x = x % 2 == 0 ? x + 1 : x;
-        IrisPackBenchmarking PackBench = new IrisPackBenchmarking();
         if (benchmark){
             x = 4;
             Iris.info("Mantle Size: " + x + " Chunks " + C.BLUE + "BENCHMARK MODE");
         } else {
-            Iris.info("Mantle Size: " + x + " Chunks");
-            Iris.info("  Object Mantle Size: " + u + " (" + ((Math.max(u, 16) + 16) >> 4) + ")");
-            Iris.info("  Jigsaw Mantle Size: " + jig + " (" + ((Math.max(jig, 16) + 16) >> 4) + ")");
-            Iris.info("  Carving Mantle Size: " + c + " (" + ((Math.max(c, 16) + 16) >> 4) + ")");
+            if(lowPerformance){
+                x = 4;
+                Iris.info("Mantle Size: " + x + " Chunks" + C.GOLD + "LOW PERFORMANCE MODE");
+            } else {
+                Iris.info("Mantle Size: " + x + " Chunks");
+                Iris.info("  Object Mantle Size: " + u + " (" + ((Math.max(u, 16) + 16) >> 4) + ")");
+                Iris.info("  Jigsaw Mantle Size: " + jig + " (" + ((Math.max(jig, 16) + 16) >> 4) + ")");
+                Iris.info("  Carving Mantle Size: " + c + " (" + ((Math.max(c, 16) + 16) >> 4) + ")");
+            }
         }
 
 

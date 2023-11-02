@@ -185,14 +185,8 @@ public class CommandIris implements DecreeExecutor {
     @Decree(description = "Benchmark a pack", origin = DecreeOrigin.CONSOLE)
     public void fixunstable() throws InterruptedException {
         if (unstablemode){
-            if (sender() instanceof Player) { // todo: fix this being always false
-                sender().sendMessage(C.RED + "Your server is experiencing an incompatibility with the Iris plugin.");
-                sender().sendMessage(C.RED + "Please rectify this problem to avoid further complications.");
-                sender().sendMessage(C.RED + "----------------------------------------------------------------");
-                sender().sendMessage(C.RED + "Command ran: /iris fixunstable");
-                sender().sendMessage(C.RED + "Server Issues: " + C.DARK_RED + UtilsSFG.MSGIncompatibleWarnings());
-                sender().sendMessage(C.RED + "----------------------------------------------------------------");
-            }
+            sender().sendMessage(C.RED + "Incompatibilities are posted in console..");
+
             Iris.info(C.RED + "Your server is experiencing an incompatibility with the Iris plugin.");
             Iris.info(C.RED + "Please rectify this problem to avoid further complications.");
             Iris.info(C.RED + "----------------------------------------------------------------");
@@ -209,10 +203,6 @@ public class CommandIris implements DecreeExecutor {
     public void height() {
         sender().sendMessage(C.GREEN + "" + sender().player().getWorld().getMinHeight() + " to " + sender().player().getWorld().getMaxHeight());
         sender().sendMessage(C.GREEN + "Total Height: " + (sender().player().getWorld().getMaxHeight() - sender().player().getWorld().getMinHeight()));
-    }
-    @Decree(description = "TEST")
-    public void cpspaper() {
-        ChunkHandlerSVC.exit();
     }
 
     @Decree(description = "QOL command to open a overworld studio world.", sync = true)

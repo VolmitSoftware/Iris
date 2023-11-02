@@ -176,7 +176,6 @@ public class IrisCreator {
                 }
             }
             //if (benchmark){loaded = true;}
-            Iris.info("Debug1");
         });
 
 

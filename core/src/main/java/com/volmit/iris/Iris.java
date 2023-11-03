@@ -53,6 +53,7 @@ import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.io.JarScanner;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.misc.getHardware;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.Metrics;
@@ -778,7 +779,6 @@ public class Iris extends VolmitPlugin implements Listener {
         String[] splash = unstablemode ? splashunstable : splashstable; // Choose the appropriate splash array based on unstablemode
 
 
-        long maxMemory = Runtime.getRuntime().maxMemory() / (1024 * 1024);
         OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
         String osArch = osBean.getArch();
         String osName = osBean.getName();
@@ -791,8 +791,8 @@ public class Iris extends VolmitPlugin implements Listener {
         if(unstablemode) Iris.info("Server Cpu: " + C.RED + getCPUModel());
         if(!unstablemode) Iris.info("Server Cpu: " + C.BLUE + getCPUModel());
         Iris.info("Process Threads: " + getCPUThreads());
-        Iris.info("Process Memory: " + maxMemory + " MB");
-        if (maxMemory < 5999) {
+        Iris.info("Process Memory: " + getHardware.getProcessMemory() + " MB");
+        if (getHardware.getProcessMemory() < 5999) {
             Iris.warn("6GB+ Ram is recommended");
         }
         Iris.info("Bukkit version: " + Bukkit.getBukkitVersion());

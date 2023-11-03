@@ -12,6 +12,9 @@ public class PerformanceSFG {
         if (getCPUModel().contains("Xeon")){
             lowPerformance = true;
         }
+        if (getProcessMemory() < 5999){
+            lowPerformance = true;
+        }
 
         // Todo RePixelated: Finish this
     }

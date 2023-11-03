@@ -471,7 +471,7 @@ public class Iris extends VolmitPlugin implements Listener {
             splash();
             UtilsSFG.UnstableMode();
             UtilsSFG.SupportedServerSoftware();
-            UtilsSFG.printIncompatiblePluginWarnings();
+            UtilsSFG.printIncompatibleWarnings();
             UtilsSFG.unstablePrompt();
             if(IrisSettings.get().getGeneral().useIntegratedChunkHandler) {
                 chunkHandlerSVC = new ChunkHandlerSVC(this);

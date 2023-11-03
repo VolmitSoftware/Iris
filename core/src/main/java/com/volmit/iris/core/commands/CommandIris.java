@@ -19,7 +19,6 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.service.ChunkHandlerSVC;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisBenchmarking;
@@ -55,7 +54,7 @@ import java.util.concurrent.Future;
 
 import static com.volmit.iris.core.tools.IrisBenchmarking.inProgress;
 import static com.volmit.iris.engine.safeguard.IrisSafeguard.unstablemode;
-import static com.volmit.iris.engine.safeguard.ServerBootSFG.multiverse;
+import static com.volmit.iris.engine.safeguard.ServerBootSFG.incompatiblePlugins;
 
 @Decree(name = "iris", aliases = {"ir", "irs"}, description = "Basic Command")
 public class CommandIris implements DecreeExecutor {
@@ -81,7 +80,7 @@ public class CommandIris implements DecreeExecutor {
             long seed
     ) {
         if(sender() instanceof Player) {
-            if (multiverse) {
+            if (incompatiblePlugins.get("Multiverse-Core")) {
                 sender().sendMessage(C.RED + "Your server has an incompatibility that may corrupt all worlds on the server if not handled properly.");
                 sender().sendMessage(C.RED + "it is strongly advised for you to take action. see log for full detail");
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
@@ -89,7 +88,7 @@ public class CommandIris implements DecreeExecutor {
                 sender().sendMessage(C.RED + UtilsSFG.MSGIncompatibleWarnings());
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
             }
-            if (unstablemode && !multiverse) {
+            if (unstablemode && !incompatiblePlugins.get("Multiverse-Core")) {
                 sender().sendMessage(C.RED + "Your server is experiencing an incompatibility with the Iris plugin.");
                 sender().sendMessage(C.RED + "Please rectify this problem to avoid further complications.");
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
@@ -191,7 +190,7 @@ public class CommandIris implements DecreeExecutor {
             Iris.info(C.RED + "Please rectify this problem to avoid further complications.");
             Iris.info(C.RED + "----------------------------------------------------------------");
             Iris.info(C.RED + "Command ran: /iris fixunstable");
-            UtilsSFG.printIncompatiblePluginWarnings();
+            UtilsSFG.printIncompatibleWarnings();
             Iris.info(C.RED + "----------------------------------------------------------------");
      } else {
             Iris.info(C.BLUE + "Iris is running stable..");

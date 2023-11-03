@@ -8,58 +8,50 @@ import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.volmit.iris.Iris.dump;
 import static com.volmit.iris.Iris.instance;
 import static com.volmit.iris.engine.safeguard.IrisSafeguard.unstablemode;
-@Getter
+
 public class ServerBootSFG {
-    public static boolean multiverse = false;
-    public static boolean dynmap = false;
-    public static boolean terraform = false;
-    public static boolean stratos = false;
+    public static final Map<String, Boolean> incompatiblePlugins = new HashMap<>();
     public static boolean unsuportedversion = false;
     protected static boolean safeguardPassed;
     public static boolean passedserversoftware = true;
     protected static byte count;
+    public static String allIncompatiblePlugins;
 
     public static void BootCheck() {
         Iris.info("Checking for possible conflicts..");
         org.bukkit.plugin.PluginManager pluginManager = Bukkit.getPluginManager();
         Plugin[] plugins = pluginManager.getPlugins();
-        if (INMS.get() instanceof NMSBinding1X) {
-            unsuportedversion = true;
-            count++;
-        }
 
-       // Why am i doing this again?
-        Map<String, Boolean> incompatiblePlugins = new HashMap<>();
-        incompatiblePlugins.put("Multiverse-Core", multiverse);
-        incompatiblePlugins.put("Dynmap", dynmap);
-        incompatiblePlugins.put("TerraformGenerator", terraform);
-        incompatiblePlugins.put("Stratos", stratos);
+        incompatiblePlugins.clear();
+        incompatiblePlugins.put("Multiverse-Core", false);
+        incompatiblePlugins.put("Dynmap", false);
+        incompatiblePlugins.put("TerraformGenerator", false);
+        incompatiblePlugins.put("Stratos", false);
 
-        StringBuilder pluginList = new StringBuilder("Plugin list: ");
-        count = 0;
-
+        String pluginName;
         for (Plugin plugin : plugins) {
-            String pluginName = plugin.getName();
+            pluginName = plugin.getName();
             Boolean flag = incompatiblePlugins.get(pluginName);
             Iris.info("T65: " + pluginName);
             if (flag != null && !flag) {
                 count++;
                 incompatiblePlugins.put(pluginName, true);
             }
-         //   pluginList.append(pluginName).append(", ");
-         //   Iris.safeguard(pluginList.toString());
         }
-        Iris.info("TEST:" + multiverse);
 
+        Iris.info("TEST: " + incompatiblePlugins.get("Multiverse-Core"));
 
+        StringJoiner joiner = new StringJoiner(", ");
+        for (Map.Entry<String, Boolean> entry : incompatiblePlugins.entrySet()) {
+            if (entry.getValue()) {
+                joiner.add(entry.getKey());
+            }
+        }
         if (
         !instance.getServer().getVersion().contains("Purpur") &&
         !instance.getServer().getVersion().contains("Paper") &&
@@ -68,8 +60,17 @@ public class ServerBootSFG {
          !instance.getServer().getVersion().contains("Bukkit"))
         {
             passedserversoftware = false;
+            joiner.add("Server Software");
             count++;
         }
+        if (INMS.get() instanceof NMSBinding1X) {
+            unsuportedversion = true;
+            joiner.add("Unsupported Minecraft Version");
+            count++;
+        }
+
+        allIncompatiblePlugins = joiner.toString();
+        Iris.info("All Incompatible Plugins: " + allIncompatiblePlugins);
 
         safeguardPassed = (count == 0);
         if(!safeguardPassed){

@@ -76,7 +76,7 @@ public class UtilsSFG {
   Iris.info(C.RED + "- World data loss.");
   Iris.info(C.RED + "- And More..");
   Iris.info(C.DARK_RED + "ATTENTION:"+ C.RED + " While running iris in unstable mode you wont be eligible for support.");
-  Iris.info(C.DARK_RED + "CAUSES: " + C.RED + MSGIncompatibleWarnings());
+  Iris.info(C.DARK_RED + "CAUSE: " + C.RED + MSGIncompatibleWarnings());
   Iris.info("");
   if (IrisSettings.get().getGeneral().bootUnstable){
    Iris.info(C.DARK_RED + "Boot Unstable is set to true, continuing with the startup process.");

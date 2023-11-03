@@ -9,7 +9,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.volmit.iris.Iris.dump;
 import static com.volmit.iris.Iris.instance;
@@ -34,30 +36,29 @@ public class ServerBootSFG {
             count++;
         }
 
+       // Why am i doing this again?
+        Map<String, Boolean> incompatiblePlugins = new HashMap<>();
+        incompatiblePlugins.put("Multiverse-Core", multiverse);
+        incompatiblePlugins.put("Dynmap", dynmap);
+        incompatiblePlugins.put("TerraformGenerator", terraform);
+        incompatiblePlugins.put("Stratos", stratos);
+
         StringBuilder pluginList = new StringBuilder("Plugin list: ");
         count = 0;
 
         for (Plugin plugin : plugins) {
             String pluginName = plugin.getName();
-            if (pluginName.equalsIgnoreCase("Multiverse-Core")) {
-                multiverse = true;
+            Boolean flag = incompatiblePlugins.get(pluginName);
+            Iris.info("T65: " + pluginName);
+            if (flag != null && !flag) {
                 count++;
+                incompatiblePlugins.put(pluginName, true);
             }
-            if (pluginName.equalsIgnoreCase("Dynmap")) {
-                dynmap = true;
-                count++;
-            }
-            if (pluginName.equalsIgnoreCase("TerraformGenerator")) {
-                terraform = true;
-                count++;
-            }
-            if (pluginName.equalsIgnoreCase("Stratos")) {
-                stratos = true;
-                count++;
-            }
-            pluginList.append(pluginName).append(", ");
-            Iris.safeguard(pluginList.toString());
+         //   pluginList.append(pluginName).append(", ");
+         //   Iris.safeguard(pluginList.toString());
         }
+        Iris.info("TEST:" + multiverse);
+
 
         if (
         !instance.getServer().getVersion().contains("Purpur") &&

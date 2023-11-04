@@ -788,8 +788,13 @@ public class Iris extends VolmitPlugin implements Listener {
         } else { Iris.info("Server type & version: " + Bukkit.getVersion()); }
 
         Iris.info("Server OS: " + osName + " (" + osArch + ")");
-        if(unstablemode) Iris.info("Server Cpu: " + C.RED + getCPUModel());
-        if(!unstablemode) Iris.info("Server Cpu: " + C.BLUE + getCPUModel());
+
+        if(unstablemode) Iris.info("Server Cpu: " + C.DARK_RED + getCPUModel());
+
+        if(getCPUModel().contains("Intel")) Iris.info("Server Cpu: " + C.BLUE + getCPUModel());
+        if(getCPUModel().contains("Ryzen")) Iris.info("Server Cpu: " + C.RED + getCPUModel());
+        if(!getCPUModel().contains("Intel") && !getCPUModel().contains("Ryzen")) Iris.info("Server Cpu: " + C.DARK_GRAY + getCPUModel());
+
         Iris.info("Process Threads: " + getCPUThreads());
         Iris.info("Process Memory: " + getHardware.getProcessMemory() + " MB");
         if (getHardware.getProcessMemory() < 5999) {

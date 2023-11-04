@@ -61,37 +61,39 @@ public class UtilsSFG {
  }
 
 
- public static void unstablePrompt(){
-  Iris.info("");
-  Iris.info(C.DARK_GRAY + "--==<" + C.RED +" IMPORTANT " + C.DARK_GRAY + ">==--");
-  Iris.info(C.RED + "Iris is running in unstable mode what may cause the following issues.");
-  Iris.info(C.DARK_RED +"Server Issues");
-  Iris.info(C.RED + "- Server wont boot");
-  Iris.info(C.RED + "- Data Loss");
-  Iris.info(C.RED + "- Unexpected behavior.");
-  Iris.info(C.RED + "- And More..");
-  Iris.info(C.DARK_RED + "World Issues");
-  Iris.info(C.RED + "- Worlds cant load due to corruption..");
-  Iris.info(C.RED + "- Worlds may slowly corrupt till they wont be able to load.");
-  Iris.info(C.RED + "- World data loss.");
-  Iris.info(C.RED + "- And More..");
-  Iris.info(C.DARK_RED + "ATTENTION:"+ C.RED + " While running iris in unstable mode you wont be eligible for support.");
-  Iris.info(C.DARK_RED + "CAUSE: " + C.RED + MSGIncompatibleWarnings());
-  Iris.info("");
-  if (IrisSettings.get().getGeneral().bootUnstable){
-   Iris.info(C.DARK_RED + "Boot Unstable is set to true, continuing with the startup process.");
-  }
+ public static void unstablePrompt() {
+  if (unstablemode) {
+   Iris.info("");
+   Iris.info(C.DARK_GRAY + "--==<" + C.RED + " IMPORTANT " + C.DARK_GRAY + ">==--");
+   Iris.info(C.RED + "Iris is running in unstable mode what may cause the following issues.");
+   Iris.info(C.DARK_RED + "Server Issues");
+   Iris.info(C.RED + "- Server wont boot");
+   Iris.info(C.RED + "- Data Loss");
+   Iris.info(C.RED + "- Unexpected behavior.");
+   Iris.info(C.RED + "- And More..");
+   Iris.info(C.DARK_RED + "World Issues");
+   Iris.info(C.RED + "- Worlds cant load due to corruption..");
+   Iris.info(C.RED + "- Worlds may slowly corrupt till they wont be able to load.");
+   Iris.info(C.RED + "- World data loss.");
+   Iris.info(C.RED + "- And More..");
+   Iris.info(C.DARK_RED + "ATTENTION:" + C.RED + " While running iris in unstable mode you wont be eligible for support.");
+   Iris.info(C.DARK_RED + "CAUSE: " + C.RED + MSGIncompatibleWarnings());
+   Iris.info("");
+   if (IrisSettings.get().getGeneral().bootUnstable) {
+    Iris.info(C.DARK_RED + "Boot Unstable is set to true, continuing with the startup process.");
+   }
 
-  if(!IrisSettings.get().getGeneral().isBootUnstable()){
-   Iris.info(C.DARK_RED + "Go to plugins/iris/settings.json and set ignoreUnstable to true if you wish to proceed.");
-   while (true) {
-    try {
-     Thread.sleep(1000);
-    } catch (InterruptedException e) {
-     // No
+   if (!IrisSettings.get().getGeneral().isBootUnstable()) {
+    Iris.info(C.DARK_RED + "Go to plugins/iris/settings.json and set ignoreUnstable to true if you wish to proceed.");
+    while (true) {
+     try {
+      Thread.sleep(1000);
+     } catch (InterruptedException e) {
+      // No
+     }
     }
    }
+   Iris.info("");
   }
-  Iris.info("");
  }
 }

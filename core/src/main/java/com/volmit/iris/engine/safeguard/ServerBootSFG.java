@@ -67,7 +67,6 @@ public class ServerBootSFG {
         }
 
         allIncompatiblePlugins = joiner.toString();
-        Iris.info("All Incompatible Plugins: " + allIncompatiblePlugins);
 
         safeguardPassed = (count == 0);
         if(!safeguardPassed){

@@ -295,9 +295,16 @@ if (JavaVersion.current().toString() != "17") {
 
 task iris(type: Copy) {
     group "iris"
-    from new File(buildDir, "Iris-${version}.jar")
+    from new File(buildDir, "libs/Iris-${version}.jar")
     into buildDir
     dependsOn(build)
+}
+
+task setup() {
+    group "iris"
+    NMS_BINDINGS.each {
+        dependsOn(project(":nms:${it.key}").executeBuildTools)
+    }
 }
 
 def registerCustomOutputTask(name, path) {

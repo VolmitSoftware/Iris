@@ -8,7 +8,6 @@ public class IrisSafeguard {
     public static void IrisSafeguardSystem() {
         Iris.info("Enabled Iris SafeGuard");
         ServerBootSFG.BootCheck();
-        PerformanceSFG.calculatePerformance();
     }
 }
 

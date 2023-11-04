@@ -1,5 +1,6 @@
 package com.volmit.iris.engine.safeguard;
 
+import com.volmit.iris.core.IrisSettings;
 import oshi.SystemInfo;
 import oshi.hardware.GlobalMemory;
 
@@ -9,13 +10,6 @@ public class PerformanceSFG {
    public static boolean lowPerformance = false;
     public static void calculatePerformance(){
 
-        if (getCPUModel().contains("Xeon")){
-            lowPerformance = true;
-        }
-        if (getProcessMemory() < 5999){
-            lowPerformance = true;
-        }
 
-        // Todo RePixelated: Finish this
     }
 }

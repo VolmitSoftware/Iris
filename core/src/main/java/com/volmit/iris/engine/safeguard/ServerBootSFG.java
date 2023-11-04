@@ -37,14 +37,11 @@ public class ServerBootSFG {
         for (Plugin plugin : plugins) {
             pluginName = plugin.getName();
             Boolean flag = incompatiblePlugins.get(pluginName);
-            Iris.info("T65: " + pluginName);
             if (flag != null && !flag) {
                 count++;
                 incompatiblePlugins.put(pluginName, true);
             }
         }
-
-        Iris.info("TEST: " + incompatiblePlugins.get("Multiverse-Core"));
 
         StringJoiner joiner = new StringJoiner(", ");
         for (Map.Entry<String, Boolean> entry : incompatiblePlugins.entrySet()) {

@@ -181,6 +181,7 @@ public class CommandIris implements DecreeExecutor {
         IrisPackBenchmarking.runBenchmark();
     } */
 
+    /*  /todo Different approach this feels useless atm
     @Decree(description = "Benchmark a pack", origin = DecreeOrigin.CONSOLE)
     public void fixunstable() throws InterruptedException {
         if (unstablemode){
@@ -196,7 +197,7 @@ public class CommandIris implements DecreeExecutor {
             Iris.info(C.BLUE + "Iris is running stable..");
             sender().sendMessage("Iris is running stable..");
         }
-    }
+    } */
 
     @Decree(description = "Print world height information", origin = DecreeOrigin.PLAYER)
     public void height() {

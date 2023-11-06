@@ -7,7 +7,7 @@ public class IrisSafeguard {
     public static boolean unstablemode = false;
     public static void IrisSafeguardSystem() {
         Iris.info("Enabled Iris SafeGuard");
-        ServerBoot.BootCheck();
+        ServerBootSFG.BootCheck();
     }
 }
 

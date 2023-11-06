@@ -22,11 +22,13 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisBenchmarking;
+import com.volmit.iris.core.tools.IrisCreator;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
-import com.volmit.iris.engine.safeguard.ServerBoot;
+import com.volmit.iris.engine.safeguard.UtilsSFG;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeContext;
 import com.volmit.iris.util.decree.DecreeExecutor;
@@ -36,11 +38,13 @@ import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.decree.specialhandlers.NullablePlayerHandler;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.mantle.MantleChunk;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
+import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -48,11 +52,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import static com.volmit.iris.core.service.EditSVC.deletingWorld;
 import static com.volmit.iris.core.tools.IrisBenchmarking.inProgress;
-import static com.volmit.iris.engine.safeguard.ServerBoot.multiverse;
+import static com.volmit.iris.engine.safeguard.IrisSafeguard.unstablemode;
+import static com.volmit.iris.engine.safeguard.ServerBootSFG.incompatiblePlugins;
 
 @Decree(name = "iris", aliases = {"ir", "irs"}, description = "Basic Command")
 public class CommandIris implements DecreeExecutor {
@@ -66,6 +73,8 @@ public class CommandIris implements DecreeExecutor {
     private CommandFind find;
     private CommandWorldManager manager;
 
+    public static @Getter String BenchDimension;
+
     @Decree(description = "Create a new world", aliases = {"+", "c"})
     public void create(
             @Param(aliases = "world-name", description = "The name of the world to create")
@@ -75,19 +84,34 @@ public class CommandIris implements DecreeExecutor {
             @Param(description = "The seed to generate the world with", defaultValue = "1337")
             long seed
     ) {
-        if (multiverse){
-            sender().sendMessage(C.RED + "Your server has an incompatibility that may corrupt all worlds on the server if not handled properly.");
-            sender().sendMessage(C.RED + "it is strongly advised for you to take action. see log for full detail");
-            Iris.safeguard(C.RED + "----------------------------------------------------------------");
-            Iris.safeguard(C.RED + "Command ran: /iris create");
-            ServerBoot.printincompatiblepluginWarnings();
-            Iris.safeguard(C.RED + "----------------------------------------------------------------");
+        if(sender() instanceof Player) {
+            if (incompatiblePlugins.get("Multiverse-Core")) {
+                sender().sendMessage(C.RED + "Your server has an incompatibility that may corrupt all worlds on the server if not handled properly.");
+                sender().sendMessage(C.RED + "it is strongly advised for you to take action. see log for full detail");
+                sender().sendMessage(C.RED + "----------------------------------------------------------------");
+                sender().sendMessage(C.RED + "Command ran: /iris create");
+                sender().sendMessage(C.RED + UtilsSFG.MSGIncompatibleWarnings());
+                sender().sendMessage(C.RED + "----------------------------------------------------------------");
+            }
+            if (unstablemode && !incompatiblePlugins.get("Multiverse-Core")) {
+                sender().sendMessage(C.RED + "Your server is experiencing an incompatibility with the Iris plugin.");
+                sender().sendMessage(C.RED + "Please rectify this problem to avoid further complications.");
+                sender().sendMessage(C.RED + "----------------------------------------------------------------");
+                sender().sendMessage(C.RED + "Command ran: /iris create");
+                sender().sendMessage(C.RED + UtilsSFG.MSGIncompatibleWarnings());
+                sender().sendMessage(C.RED + "----------------------------------------------------------------");
+            }
         }
-        if (name.equals("iris")) {
-            sender().sendMessage(C.RED + "You cannot use the world name \"iris\" for creating worlds as Iris uses this directory for studio worlds.");
-            sender().sendMessage(C.RED + "May we suggest the name \"IrisWorld\" instead?");
-            return;
-        }
+            if (name.equals("iris")) {
+                sender().sendMessage(C.RED + "You cannot use the world name \"iris\" for creating worlds as Iris uses this directory for studio worlds.");
+                sender().sendMessage(C.RED + "May we suggest the name \"IrisWorld\" instead?");
+                return;
+            }
+            if (name.equals("Benchmark")) {
+                sender().sendMessage(C.RED + "You cannot use the world name \"Benchmark\" for creating worlds as Iris uses this directory for Benchmarking Packs.");
+                sender().sendMessage(C.RED + "May we suggest the name \"IrisWorld\" instead?");
+                return;
+            }
 
         if (new File(Bukkit.getWorldContainer(), name).exists()) {
             sender().sendMessage(C.RED + "That folder already exists!");
@@ -142,13 +166,43 @@ public class CommandIris implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");
     }
     @Decree(description = "Benchmark your server", origin = DecreeOrigin.CONSOLE)
-    public void benchmark() throws InterruptedException {
+    public void serverbenchmark() throws InterruptedException {
         if(!inProgress) {
             IrisBenchmarking.runBenchmark();
         } else {
             Iris.info(C.RED + "Benchmark already is in progress.");
         }
     }
+    /*
+    /todo Fix PREGEN
+    @Decree(description = "Benchmark a pack", origin = DecreeOrigin.CONSOLE)
+    public void packbenchmark(
+            @Param(description = "Dimension to benchmark")
+            IrisDimension type
+    ) throws InterruptedException {
+
+         BenchDimension = type.getLoadKey();
+
+        IrisPackBenchmarking.runBenchmark();
+    } */
+
+    /*  /todo Different approach this feels useless atm
+    @Decree(description = "Check for instabilities", origin = DecreeOrigin.CONSOLE)
+    public void fixunstable() throws InterruptedException {
+        if (unstablemode){
+            sender().sendMessage(C.RED + "Incompatibilities are posted in console..");
+
+            Iris.info(C.RED + "Your server is experiencing an incompatibility with the Iris plugin.");
+            Iris.info(C.RED + "Please rectify this problem to avoid further complications.");
+            Iris.info(C.RED + "----------------------------------------------------------------");
+            Iris.info(C.RED + "Command ran: /iris fixunstable");
+            UtilsSFG.printIncompatibleWarnings();
+            Iris.info(C.RED + "----------------------------------------------------------------");
+     } else {
+            Iris.info(C.BLUE + "Iris is running stable..");
+            sender().sendMessage("Iris is running stable..");
+        }
+    } */
 
     @Decree(description = "Print world height information", origin = DecreeOrigin.PLAYER)
     public void height() {
@@ -160,6 +214,67 @@ public class CommandIris implements DecreeExecutor {
     public void so() {
         sender().sendMessage(C.GREEN + "Opening studio for the \"Overworld\" pack (seed: 1337)");
         Iris.service(StudioSVC.class).open(sender(), 1337, "overworld");
+    }
+
+    @Decree(description = "Remove an Iris world", aliases = {"del", "rm", "delete"}, sync = true)
+    public void remove(
+            @Param(description = "The world to remove")
+            World world,
+            @Param(description = "Whether to also remove the folder (if set to false, just does not load the world)", defaultValue = "true")
+            boolean delete
+    ) {
+        if (!IrisToolbelt.isIrisWorld(world)) {
+            sender().sendMessage(C.RED + "This is not an Iris world. Iris worlds: " + String.join(", ", Bukkit.getServer().getWorlds().stream().filter(IrisToolbelt::isIrisWorld).map(World::getName).toList()));
+            return;
+        }
+        sender().sendMessage(C.GREEN + "Removing world: " + world.getName());
+        try {
+            if (IrisToolbelt.removeWorld(world)) {
+                sender().sendMessage(C.GREEN + "Successfully removed " + world.getName() + " from bukkit.yml");
+            } else {
+                sender().sendMessage(C.YELLOW + "Looks like the world was already removed from bukkit.yml");
+            }
+        } catch (IOException e) {
+            sender().sendMessage(C.RED + "Failed to save bukkit.yml because of " + e.getMessage());
+            e.printStackTrace();
+        }
+        IrisToolbelt.evacuate(world, "Deleting world");
+        deletingWorld = true;
+        Bukkit.unloadWorld(world, false);
+        int retries = 10;
+        if (delete) {
+            if (deleteDirectory(world.getWorldFolder())) {
+                sender().sendMessage(C.GREEN + "Successfully removed world folder");
+            } else {
+                while(true){
+                    if (deleteDirectory(world.getWorldFolder())){
+                        sender().sendMessage(C.GREEN + "Successfully removed world folder");
+                        break;
+                    }
+                    sender().sendMessage(C.GREEN + "DEBUG1");
+                    retries--;
+                    if (retries == 0){
+                        sender().sendMessage(C.RED + "Failed to remove world folder");
+                        break;
+                    }
+                    J.sleep(2000);
+                }
+            }
+        }
+        deletingWorld = false;
+    }
+
+    public static boolean deleteDirectory(File dir) {
+        if (dir.isDirectory()) {
+            File[] children = dir.listFiles();
+            for (int i = 0; i < children.length; i++) {
+                boolean success = deleteDirectory(children[i]);
+                if (!success) {
+                    return false;
+                }
+            }
+        }
+        return dir.delete();
     }
 
     @Decree(description = "Set aura spins")

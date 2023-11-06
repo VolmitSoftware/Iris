@@ -145,6 +145,8 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsGeneral {
+        public boolean bootUnstable = false;
+        public boolean useIntegratedChunkHandler = false;
         public boolean commandSounds = true;
         public boolean debug = false;
         public boolean disableNMS = false;

@@ -281,6 +281,7 @@ public class CommandStudio implements DecreeExecutor {
             @Param(description = "The dimension to profile", contextual = true, defaultValue = "default")
             IrisDimension dimension
     ) {
+        // Todo: Make this more accurate
         File pack = dimension.getLoadFile().getParentFile().getParentFile();
         File report = Iris.instance.getDataFile("profile.txt");
         IrisProject project = new IrisProject(pack);

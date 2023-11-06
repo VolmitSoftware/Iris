@@ -2,9 +2,12 @@ package com.volmit.iris.core.pregenerator;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
+import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
@@ -20,6 +23,7 @@ import org.bukkit.event.world.WorldUnloadEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class LazyPregenerator extends Thread implements Listener {
     private final LazyPregenJob job;
@@ -28,6 +32,11 @@ public class LazyPregenerator extends Thread implements Listener {
     private final World world;
     private final long rate;
     private final ChronoLatch latch;
+    private static AtomicInteger lazyGeneratedChunks;
+    private final AtomicInteger generatedLast;
+    private final AtomicInteger lazyTotalChunks;
+    private final AtomicLong startTime;
+    private final RollingSequence chunksPerSecond;
 
     public LazyPregenerator(LazyPregenJob job, File destination) {
         this.job = job;
@@ -36,7 +45,15 @@ public class LazyPregenerator extends Thread implements Listener {
         }).count();
         this.world = Bukkit.getWorld(job.getWorld());
         this.rate = Math.round((1D / (job.chunksPerMinute / 60D)) * 1000D);
-        this.latch = new ChronoLatch(60000);
+        this.latch = new ChronoLatch(6000);
+        startTime = new AtomicLong(M.ms());
+        chunksPerSecond = new RollingSequence(10);
+        lazyGeneratedChunks = new AtomicInteger(0);
+        generatedLast = new AtomicInteger(0);
+        lazyTotalChunks = new AtomicInteger();
+
+        int radius = job.getRadiusBlocks();
+        lazyTotalChunks.set((int) Math.ceil(Math.pow((2.0 * radius) / 16, 2)));
     }
 
     public LazyPregenerator(File file) throws IOException {
@@ -81,17 +98,26 @@ public class LazyPregenerator extends Thread implements Listener {
 
     public void tick() {
         if (latch.flip()) {
+            long eta = computeETA();
             save();
-            Iris.info("LazyGen: " + world.getName() + " RTT: " + Form.duration((Math.pow((job.radiusBlocks / 16D), 2) / job.chunksPerMinute) * 60 * 1000, 2));
+            int secondGenerated = lazyGeneratedChunks.get() - generatedLast.get();
+            generatedLast.set(lazyGeneratedChunks.get());
+            secondGenerated = secondGenerated / 6;
+            chunksPerSecond.put(secondGenerated);
+            Iris.info("LazyGen: " + C.IRIS + world.getName() + C.RESET + " RTT: " + Form.f(lazyGeneratedChunks.get()) + " of " + Form.f(lazyTotalChunks.get()) + " " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration((double) eta, 2));
+            //Iris.info("Debug: " + maxPosition);
+            //Iris.info("Debug1: " + job.getPosition());
+
+            // todo: Maxpos borked
         }
 
-        if (job.getPosition() >= maxPosition) {
+        if (lazyGeneratedChunks.get() >= lazyTotalChunks.get()) {
             if (job.isHealing()) {
                 int pos = (job.getHealingPosition() + 1) % maxPosition;
                 job.setHealingPosition(pos);
                 tickRegenerate(getChunk(pos));
             } else {
-                Iris.verbose("Completed Lazy Gen!");
+                Iris.info("Completed Lazy Gen!");
                 interrupt();
             }
         } else {
@@ -101,6 +127,15 @@ public class LazyPregenerator extends Thread implements Listener {
         }
     }
 
+    private long computeETA() {
+        return (long) (lazyTotalChunks.get() > 1024 ? // Generated chunks exceed 1/8th of total?
+                // If yes, use smooth function (which gets more accurate over time since its less sensitive to outliers)
+                ((lazyTotalChunks.get() - lazyGeneratedChunks.get()) * ((double) (M.ms() - startTime.get()) / (double) lazyGeneratedChunks.get())) :
+                // If no, use quick function (which is less accurate over time but responds better to the initial delay)
+                ((lazyTotalChunks.get() - lazyGeneratedChunks.get()) / chunksPerSecond.getAverage()) * 1000 //
+        );
+    }
+
     private void tickGenerate(Position2 chunk) {
         if (PaperLib.isPaper()) {
             PaperLib.getChunkAtAsync(world, chunk.getX(), chunk.getZ(), true).thenAccept((i) -> Iris.verbose("Generated Async " + chunk));
@@ -108,6 +143,7 @@ public class LazyPregenerator extends Thread implements Listener {
             J.s(() -> world.getChunkAt(chunk.getX(), chunk.getZ()));
             Iris.verbose("Generated " + chunk);
         }
+        lazyGeneratedChunks.addAndGet(1);
     }
 
     private void tickRegenerate(Position2 chunk) {

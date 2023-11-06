@@ -30,6 +30,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
+import com.volmit.iris.core.service.ChunkHandlerSVC;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.EnginePanic;
@@ -39,7 +40,7 @@ import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.engine.platform.DummyChunkGenerator;
 import com.volmit.iris.engine.safeguard.IrisSafeguard;
-import com.volmit.iris.engine.safeguard.ServerBoot;
+import com.volmit.iris.engine.safeguard.UtilsSFG;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.exceptions.IrisException;
@@ -52,6 +53,7 @@ import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.io.JarScanner;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.misc.getHardware;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.Metrics;
@@ -94,7 +96,9 @@ import java.util.Date;
 import java.util.Map;
 
 import static com.volmit.iris.engine.safeguard.IrisSafeguard.unstablemode;
-import static com.volmit.iris.engine.safeguard.ServerBoot.passedserversoftware;
+import static com.volmit.iris.engine.safeguard.ServerBootSFG.passedserversoftware;
+import static com.volmit.iris.util.misc.getHardware.getCPUModel;
+import static com.volmit.iris.util.misc.getHardware.getCPUThreads;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -438,7 +442,7 @@ public class Iris extends VolmitPlugin implements Listener {
     private static void fixShading() {
         ShadeFix.fix(ComponentSerializer.class);
     }
-
+    private ChunkHandlerSVC chunkHandlerSVC;
     private void enable() {
         instance = this;
         services = new KMap<>();
@@ -446,6 +450,7 @@ public class Iris extends VolmitPlugin implements Listener {
         INMS.get();
         IO.delete(new File("iris"));
         setupAudience();
+        IrisSafeguard.IrisSafeguardSystem();
         sender = new VolmitSender(Bukkit.getConsoleSender());
         sender.setTag(getTag());
         instance = this;
@@ -465,9 +470,14 @@ public class Iris extends VolmitPlugin implements Listener {
             J.s(this::setupPapi);
             J.a(ServerConfigurator::configure, 20);
             splash();
-            ServerBoot.UnstableMode();
-            ServerBoot.SupportedServerSoftware();
-            ServerBoot.printincompatiblepluginWarnings();
+            UtilsSFG.UnstableMode();
+            UtilsSFG.SupportedServerSoftware();
+            UtilsSFG.printIncompatibleWarnings();
+            UtilsSFG.unstablePrompt();
+            if(IrisSettings.get().getGeneral().useIntegratedChunkHandler) {
+                chunkHandlerSVC = new ChunkHandlerSVC(this);
+                Iris.info(C.LIGHT_PURPLE + "Started Intergrated ChunkHandlerSVC");
+            }
             autoStartStudio();
             checkForBukkitWorlds();
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
@@ -555,7 +565,6 @@ public class Iris extends VolmitPlugin implements Listener {
         enable();
         super.onEnable();
         Bukkit.getPluginManager().registerEvents(this, this);
-        IrisSafeguard.IrisSafeguardSystem();
         setupChecks();
     }
 
@@ -587,7 +596,12 @@ public class Iris extends VolmitPlugin implements Listener {
 
     @Override
     public String getTag(String subTag) {
-        return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.IRIS + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
+        if (unstablemode) {
+            return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.RED + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
+        }
+        else {
+            return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.IRIS + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
+        }
     }
 
     private boolean setupChecks() {
@@ -731,6 +745,10 @@ public class Iris extends VolmitPlugin implements Listener {
         String padd = Form.repeat(" ", 8);
         String padd2 = Form.repeat(" ", 4);
         String[] info = {"", "", "", "", "", padd2 + C.IRIS + " Iris", padd2 + C.GRAY + " by " + "<rainbow>Volmit Software", padd2 + C.GRAY + " v" + C.IRIS + getDescription().getVersion()};
+        if (unstablemode) {
+             info = new String[]{"", "", "", "", "", padd2 + C.RED + " Iris", padd2 + C.GRAY + " by " + C.DARK_RED + "Volmit Software", padd2 + C.GRAY + " v" + C.RED + getDescription().getVersion()};
+        }
+
         String[] splashstable = {
                 padd + C.GRAY + "   @@@@@@@@@@@@@@" + C.DARK_GRAY + "@@@",
                 padd + C.GRAY + " @@&&&&&&&&&" + C.DARK_GRAY + "&&&&&&" + C.IRIS + "   .(((()))).                     ",
@@ -761,7 +779,6 @@ public class Iris extends VolmitPlugin implements Listener {
         String[] splash = unstablemode ? splashunstable : splashstable; // Choose the appropriate splash array based on unstablemode
 
 
-        long maxMemory = Runtime.getRuntime().maxMemory() / (1024 * 1024);
         OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
         String osArch = osBean.getArch();
         String osName = osBean.getName();
@@ -771,8 +788,16 @@ public class Iris extends VolmitPlugin implements Listener {
         } else { Iris.info("Server type & version: " + Bukkit.getVersion()); }
 
         Iris.info("Server OS: " + osName + " (" + osArch + ")");
-        Iris.info("Process Memory: " + maxMemory + " MB");
-        if (maxMemory < 5999) {
+
+        if(unstablemode) Iris.info("Server Cpu: " + C.DARK_RED + getCPUModel());
+
+        if(getCPUModel().contains("Intel")) Iris.info("Server Cpu: " + C.BLUE + getCPUModel());
+        if(getCPUModel().contains("Ryzen")) Iris.info("Server Cpu: " + C.RED + getCPUModel());
+        if(!getCPUModel().contains("Intel") && !getCPUModel().contains("Ryzen")) Iris.info("Server Cpu: " + C.DARK_GRAY + getCPUModel());
+
+        Iris.info("Process Threads: " + getCPUThreads());
+        Iris.info("Process Memory: " + getHardware.getProcessMemory() + " MB");
+        if (getHardware.getProcessMemory() < 5999) {
             Iris.warn("6GB+ Ram is recommended");
         }
         Iris.info("Bukkit version: " + Bukkit.getBukkitVersion());

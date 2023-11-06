@@ -26,6 +26,7 @@ import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
+import com.volmit.iris.engine.safeguard.UtilsSFG;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -44,6 +45,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+
+import static com.volmit.iris.core.tools.IrisPackBenchmarking.benchmark;
+import static com.volmit.iris.engine.safeguard.IrisSafeguard.unstablemode;
 
 /**
  * Makes it a lot easier to setup an engine, world, studio or whatever
@@ -93,6 +97,9 @@ public class IrisCreator {
         yml.save(BUKKIT_YML);
         return true;
     }
+    public static boolean worldLoaded(){
+        return true;
+    }
 
     /**
      * Create the IrisAccess (contains the world)
@@ -100,7 +107,15 @@ public class IrisCreator {
      * @return the IrisAccess
      * @throws IrisException shit happens
      */
+    IrisPackBenchmarking PackBench = new IrisPackBenchmarking();
     public World create() throws IrisException {
+        if (unstablemode){
+            Iris.info(C.RED + "Your server is experiencing an incompatibility with the Iris plugin. Please rectify this problem to avoid further complications.");
+            Iris.info(C.RED + "----------------------------------------------------------------");
+            Iris.info(C.RED + "Operation ran: Loading Iris World..");
+            UtilsSFG.printIncompatibleWarnings();
+            Iris.info(C.RED + "----------------------------------------------------------------");
+        }
         if (Bukkit.isPrimaryThread()) {
             throw new IrisException("You cannot invoke create() on the main thread.");
         }
@@ -115,6 +130,9 @@ public class IrisCreator {
             sender = Iris.getSender();
 
         if (!studio()) {
+            Iris.service(StudioSVC.class).installIntoWorld(sender, d.getLoadKey(), new File(Bukkit.getWorldContainer(), name()));
+        }
+        if (benchmark) {
             Iris.service(StudioSVC.class).installIntoWorld(sender, d.getLoadKey(), new File(Bukkit.getWorldContainer(), name()));
         }
 
@@ -143,17 +161,19 @@ public class IrisCreator {
                 }
                 return finalAccess1.getEngine().getGenerated();
             };
-            while (g.get() < req) {
-                double v = (double) g.get() / (double) req;
-
-                if (sender.isPlayer()) {
-                    sender.sendProgress(v, "Generating");
-                    J.sleep(16);
-                } else {
-                    sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - g.get()) + " Left)")));
-                    J.sleep(1000);
+            if(!benchmark) {
+                while (g.get() < req) {
+                    double v = (double) g.get() / (double) req;
+                    if (sender.isPlayer()) {
+                        sender.sendProgress(v, "Generating");
+                        J.sleep(16);
+                    } else {
+                        sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - g.get()) + " Left)")));
+                        J.sleep(1000);
+                    }
                 }
             }
+            //if (benchmark){loaded = true;}
         });
 
 
@@ -177,7 +197,7 @@ public class IrisCreator {
             });
         }
 
-        if (studio) {
+        if (studio || benchmark) {
             J.s(() -> {
                 Iris.linkMultiverseCore.removeFromConfig(world.get());
 

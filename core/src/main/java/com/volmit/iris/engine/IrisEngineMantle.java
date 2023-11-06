@@ -19,6 +19,8 @@
 package com.volmit.iris.engine;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.EngineMantle;
@@ -31,6 +33,7 @@ import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.parallel.BurstExecutor;
@@ -41,6 +44,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.volmit.iris.core.tools.IrisPackBenchmarking.benchmark;
+import static com.volmit.iris.engine.safeguard.PerformanceSFG.lowPerformance;
 
 @Data
 public class IrisEngineMantle implements EngineMantle {
@@ -280,10 +286,21 @@ public class IrisEngineMantle implements EngineMantle {
         x = Math.max(x, c);
         x = (Math.max(x, 16) + 16) >> 4;
         x = x % 2 == 0 ? x + 1 : x;
-        Iris.info("Mantle Size: " + x + " Chunks");
-        Iris.info("  Object Mantle Size: " + u + " (" + ((Math.max(u, 16) + 16) >> 4) + ")");
-        Iris.info("  Jigsaw Mantle Size: " + jig + " (" + ((Math.max(jig, 16) + 16) >> 4) + ")");
-        Iris.info("  Carving Mantle Size: " + c + " (" + ((Math.max(c, 16) + 16) >> 4) + ")");
+        if (benchmark){
+            x = 4;
+            Iris.info("Mantle Size: " + x + " Chunks " + C.BLUE + "BENCHMARK MODE");
+        } else {
+            if(lowPerformance){
+                x = 4;
+                Iris.info("Mantle Size: " + x + " Chunks" + C.GOLD + "LOW PERFORMANCE MODE");
+            } else {
+                Iris.info("Mantle Size: " + x + " Chunks");
+                Iris.info("  Object Mantle Size: " + u + " (" + ((Math.max(u, 16) + 16) >> 4) + ")");
+                Iris.info("  Jigsaw Mantle Size: " + jig + " (" + ((Math.max(jig, 16) + 16) >> 4) + ")");
+                Iris.info("  Carving Mantle Size: " + c + " (" + ((Math.max(c, 16) + 16) >> 4) + ")");
+            }
+        }
+
 
         return x;
     }

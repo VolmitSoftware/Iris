@@ -27,11 +27,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 import static com.google.common.math.LongMath.isPrime;
-
+import static com.volmit.iris.util.misc.getHardware.getCPUModel;
+import static com.volmit.iris.util.misc.getHardware.getDiskModel;
 public class IrisBenchmarking {
     static String ServerOS;
     static String filePath = "benchmark.dat";
-    private static long startTime;
     static double avgWriteSpeedMBps;
     static double avgReadSpeedMBps;
     static double highestWriteSpeedMBps;
@@ -56,6 +56,7 @@ public class IrisBenchmarking {
     static boolean Winsat = false;
     static boolean WindowsDiskSpeed = false;
     public static boolean inProgress = false;
+    static double startTime;
     // Good enough for now. . .
 
     public static void runBenchmark() throws InterruptedException {
@@ -235,29 +236,6 @@ public class IrisBenchmarking {
             }
         }
         return false;
-    }
-
-    public static String getCPUModel() {
-        try {
-            SystemInfo systemInfo = new SystemInfo();
-            CentralProcessor processor = systemInfo.getHardware().getProcessor();
-            String cpuModel = processor.getProcessorIdentifier().getName();
-            return cpuModel.isEmpty() ? "Unknown CPU Model" : cpuModel;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "Unknown CPU Model";
-        }
-    }
-
-    public static String getDiskModel() {
-        SystemInfo systemInfo = new SystemInfo();
-        List<HWDiskStore> diskStores = systemInfo.getHardware().getDiskStores();
-        if (!diskStores.isEmpty()) {
-            HWDiskStore firstDisk = diskStores.get(0);
-            return firstDisk.getModel();
-        } else {
-            return "Unknown Disk Model";
-        }
     }
 
     public static void warningFallback() {
@@ -644,7 +622,5 @@ public class IrisBenchmarking {
         }
         return 0.0;
     }
-
-    // todo JMH BENCHMARKS
 
 }

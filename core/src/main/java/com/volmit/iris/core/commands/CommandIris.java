@@ -187,7 +187,7 @@ public class CommandIris implements DecreeExecutor {
     } */
 
     /*  /todo Different approach this feels useless atm
-    @Decree(description = "Benchmark a pack", origin = DecreeOrigin.CONSOLE)
+    @Decree(description = "Check for instabilities", origin = DecreeOrigin.CONSOLE)
     public void fixunstable() throws InterruptedException {
         if (unstablemode){
             sender().sendMessage(C.RED + "Incompatibilities are posted in console..");

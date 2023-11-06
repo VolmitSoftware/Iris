@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.placer.HeightmapObjectPlacer;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -686,6 +687,25 @@ public class IrisObject extends IrisRegistrant {
 
         if (!config.getClamp().canPlace(y + rty + ty, y - rty + ty)) {
             return -1;
+        }
+
+        if (!config.getAllowedCollisions().isEmpty() || !config.getForbiddenCollisions().isEmpty()) {
+            Engine engine = rdata.getEngine();
+            String key;
+            BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
+            for (int i = x - Math.floorDiv(w, 2) + (int) offset.getX(); i <= x + Math.floorDiv(w, 2) - (w % 2 == 0 ? 1 : 0) + (int) offset.getX(); i++) {
+                for (int j = y - Math.floorDiv(h, 2)  + (int) offset.getY(); j <= y + Math.floorDiv(h, 2) - (h % 2 == 0 ? 1 : 0) + (int) offset.getY(); j++) {
+                    for (int k = z - Math.floorDiv(d, 2) + (int) offset.getZ(); k <= z + Math.floorDiv(d, 2) - (d % 2 == 0 ? 1 : 0) + (int) offset.getX(); k++) {
+                        key = engine.getObjectPlacementKey(i, j, k);
+                        if (key != null) {
+                            if (config.getForbiddenCollisions().contains(key) && !config.getAllowedCollisions().contains(key)) {
+                                Iris.warn("%s collides with %s (%s / %s / %s)", getLoadKey(), key, i, j, k);
+                                return -1;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         if (config.isBore()) {

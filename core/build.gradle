@@ -58,6 +58,7 @@ dependencies {
     implementation 'com.github.oraxen:oraxen:1.158.0'
     implementation 'com.github.LoneDev6:api-itemsadder:3.4.1-r4'
     implementation 'com.github.PlaceholderAPI:placeholderapi:2.11.3'
+    implementation 'com.github.Ssomar-Developement:SCore:4.23.10.8'
     //implementation files('libs/CustomItems.jar')
 }
 

@@ -128,6 +128,14 @@ public class IrisObjectPlacement {
     @Desc("This object / these objects override the following trees when they grow...")
     @ArrayType(min = 1, type = IrisTree.class)
     private KList<IrisTree> trees = new KList<>();
+    @RegistryListResource(IrisObject.class)
+    @ArrayType(type = String.class)
+    @Desc("List of objects to this object is allowed to collied with")
+    private KList<String> allowedCollisions = new KList<>();
+    @RegistryListResource(IrisObject.class)
+    @ArrayType(type = String.class)
+    @Desc("List of objects to this object is forbidden to collied with")
+    private KList<String> forbiddenCollisions = new KList<>();
     private transient AtomicCache<TableCache> cache = new AtomicCache<>();
 
     public IrisObjectPlacement toPlacement(String... place) {

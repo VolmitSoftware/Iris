@@ -126,7 +126,7 @@ public class IrisPackBenchmarking {
         int x = 0;
         int z = 0;
         LazyPregenerator.LazyPregenJob pregenJob = LazyPregenerator.LazyPregenJob.builder()
-                .world("Benchmark")
+                //.world("Benchmark")
                 .healingPosition(0)
                 .healing(false)
                 .chunksPerMinute(3200)

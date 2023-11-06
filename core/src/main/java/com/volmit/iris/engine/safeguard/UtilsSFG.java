@@ -38,7 +38,7 @@ public class UtilsSFG {
    if (incompatiblePlugins.get("Dynmap")) {
     Iris.safeguard(C.RED + "Dynmap");
     Iris.safeguard(C.RED + "- The plugin Dynmap is not compatible with the server.");
-    Iris.safeguard(C.RED + "- If you want to have a map plugin like Dynmap, consider Bluemap or LiveAtlas.");
+    Iris.safeguard(C.RED + "- If you want to have a map plugin like Dynmap, consider Bluemap.");
    }
    if (incompatiblePlugins.get("TerraformGenerator") || incompatiblePlugins.get("Stratos")) {
     Iris.safeguard(C.YELLOW + "Terraform Generator / Stratos");

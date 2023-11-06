@@ -132,11 +132,6 @@ public class IrisPregenerator {
         );
     }
 
-    public static void shareData(){
-        long_generatedChunks = generated.get();
-        long_totalChunks = totalChunks.get();
-    }
-
     public static long getLongGeneratedChunks() {
         return long_generatedChunks;
     }

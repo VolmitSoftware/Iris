@@ -46,7 +46,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.volmit.iris.core.tools.IrisPackBenchmarking.benchmark;
-import static com.volmit.iris.engine.safeguard.PerformanceSFG.lowPerformance;
+import static com.volmit.iris.core.safeguard.PerformanceSFG.*;
 
 @Data
 public class IrisEngineMantle implements EngineMantle {

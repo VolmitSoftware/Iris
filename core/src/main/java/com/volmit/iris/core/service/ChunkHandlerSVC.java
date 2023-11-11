@@ -22,7 +22,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 public class ChunkHandlerSVC implements Listener {
-    // Idk how it works but it works lol
+    // Does nothing for now
     private final JavaPlugin plugin;
     private static BukkitTask task;
     private final Map<World, ChunkUnloader> worlds = new ConcurrentHashMap<>();

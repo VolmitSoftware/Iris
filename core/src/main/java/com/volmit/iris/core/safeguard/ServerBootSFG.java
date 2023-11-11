@@ -77,7 +77,6 @@ public class ServerBootSFG {
         }
     }
     public static void CheckIrisWorlds() {
-        if (IrisSettings.get().getWorld().AutoFindIrisWorlds) {
             StringJoiner joiner = new StringJoiner(", ");
 
             // Get the main server folder
@@ -108,6 +107,5 @@ public class ServerBootSFG {
             }
             // No Idea what I should do with this
             String worldsList = joiner.toString();
-        }
     }
 }

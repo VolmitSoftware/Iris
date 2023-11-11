@@ -65,11 +65,11 @@ public class HotDropWorldSVC extends Looper {
             return -1;
         }
 
-        return 1000; // Loop every 1000 milliseconds (1 second)
+        return 1000;
     }
 
     private String getVersionFromIrisFolder(File irisFolder) {
-        File versionFile = new File(irisFolder, "some_version_file.json"); // Replace with actual file name
+        File versionFile = new File(irisFolder, "some_version_file.json");
 
         if (versionFile.exists() && versionFile.isFile()) {
             try (FileReader reader = new FileReader(versionFile)) {
@@ -80,13 +80,11 @@ public class HotDropWorldSVC extends Looper {
             } catch (IOException | JsonParseException e) {
                 Iris.reportError(e);
                 e.printStackTrace();
-                // Optionally, log additional information or take alternative action
             }
         }
 
-        return "???"; // Default or unknown version
+        return "???";
     }
-
 
     private boolean isPackValid(String worldPackName, String version) {
         try {
@@ -120,7 +118,6 @@ public class HotDropWorldSVC extends Looper {
         return false;
     }
 
-
     private String getPackVersion(File pack) {
         String version = "???";
         File dimensionFile = new File(pack, "dimensions/" + pack.getName() + ".json");
@@ -133,7 +130,6 @@ public class HotDropWorldSVC extends Looper {
             } catch (IOException | JsonParseException e) {
                 Iris.reportError(e);
                 e.printStackTrace();
-                // Handle error (e.g., logging, user notification)
             }
         }
         return version;

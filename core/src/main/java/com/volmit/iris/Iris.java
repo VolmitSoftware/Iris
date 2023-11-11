@@ -39,8 +39,8 @@ import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.engine.platform.DummyChunkGenerator;
-import com.volmit.iris.engine.safeguard.IrisSafeguard;
-import com.volmit.iris.engine.safeguard.UtilsSFG;
+import com.volmit.iris.core.safeguard.IrisSafeguard;
+import com.volmit.iris.core.safeguard.UtilsSFG;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.exceptions.IrisException;
@@ -95,8 +95,8 @@ import java.net.URL;
 import java.util.Date;
 import java.util.Map;
 
-import static com.volmit.iris.engine.safeguard.IrisSafeguard.unstablemode;
-import static com.volmit.iris.engine.safeguard.ServerBootSFG.passedserversoftware;
+import static com.volmit.iris.core.safeguard.IrisSafeguard.unstablemode;
+import static com.volmit.iris.core.safeguard.ServerBootSFG.passedserversoftware;
 import static com.volmit.iris.util.misc.getHardware.getCPUModel;
 import static com.volmit.iris.util.misc.getHardware.getCPUThreads;
 

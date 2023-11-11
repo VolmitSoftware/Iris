@@ -1,18 +1,15 @@
-package com.volmit.iris.engine.safeguard;
+package com.volmit.iris.core.safeguard;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
-import com.volmit.iris.util.format.C;
-import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 import java.util.*;
 
-import static com.volmit.iris.Iris.dump;
 import static com.volmit.iris.Iris.instance;
-import static com.volmit.iris.engine.safeguard.IrisSafeguard.unstablemode;
+import static com.volmit.iris.core.safeguard.IrisSafeguard.unstablemode;
 
 public class ServerBootSFG {
     public static final Map<String, Boolean> incompatiblePlugins = new HashMap<>();

@@ -85,7 +85,7 @@ public class CommandWorldManager implements DecreeExecutor {
             @Param(description = "The name of the world to load")
             String world
     ) {
-        World worldloaded = Bukkit.getWorld(world);
+         World worldloaded = Bukkit.getWorld(world);
          worldNameToCheck = world;
          boolean worldExists = doesWorldExist(worldNameToCheck);
          WorldEngine = world;

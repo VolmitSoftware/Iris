@@ -30,7 +30,9 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
+import com.volmit.iris.core.safeguard.ServerBootSFG;
 import com.volmit.iris.core.service.ChunkHandlerSVC;
+import com.volmit.iris.core.service.HotDropWorldSVC;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.EnginePanic;
@@ -478,7 +480,12 @@ public class Iris extends VolmitPlugin implements Listener {
                 chunkHandlerSVC = new ChunkHandlerSVC(this);
                 Iris.info(C.LIGHT_PURPLE + "Started Intergrated ChunkHandlerSVC");
             }
+
+            HotDropWorldSVC hotDropWorldSVC = new HotDropWorldSVC(this);
+            hotDropWorldSVC.start();
+
             autoStartStudio();
+            ServerBootSFG.CheckIrisWorlds();
             checkForBukkitWorlds();
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
             IrisToolbelt.retainMantleDataForSlice(BlockData.class.getCanonicalName());

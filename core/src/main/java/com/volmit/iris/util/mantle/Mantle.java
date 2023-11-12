@@ -443,7 +443,7 @@ public class Mantle {
         try {
             return getSafe(x, z).get();
         } catch (InterruptedException e) {
-            Iris.warn("Failed to get Tectonic Plate " + x + " " + z + " Due to a thread intterruption (hotload?)");
+            Iris.warn("Failed to get Tectonic Plate " + x + " " + z + " Due to a thread interruption (hotload?)");
             Iris.reportError(e);
         } catch (ExecutionException e) {
             Iris.warn("Failed to get Tectonic Plate " + x + " " + z + " Due to a thread execution exception (engine close?)");

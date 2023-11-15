@@ -477,8 +477,8 @@ public class Mantle {
     public long ToUnloadTectonic(){
         return FakeToUnload.get();
     }
-    public double getTectonicUnloadDuration(){
-        return adjustedIdleDuration.get();
+    public long getTectonicUnloadDuration(){
+        return (long) adjustedIdleDuration.get();
     }
 
 

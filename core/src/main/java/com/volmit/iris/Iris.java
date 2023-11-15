@@ -30,7 +30,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
-import com.volmit.iris.core.service.ChunkHandlerSVC;
+import com.volmit.iris.core.safeguard.ServerBootSFG;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.EnginePanic;
@@ -39,8 +39,8 @@ import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.engine.platform.DummyChunkGenerator;
-import com.volmit.iris.engine.safeguard.IrisSafeguard;
-import com.volmit.iris.engine.safeguard.UtilsSFG;
+import com.volmit.iris.core.safeguard.IrisSafeguard;
+import com.volmit.iris.core.safeguard.UtilsSFG;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.exceptions.IrisException;
@@ -95,8 +95,8 @@ import java.net.URL;
 import java.util.Date;
 import java.util.Map;
 
-import static com.volmit.iris.engine.safeguard.IrisSafeguard.unstablemode;
-import static com.volmit.iris.engine.safeguard.ServerBootSFG.passedserversoftware;
+import static com.volmit.iris.core.safeguard.IrisSafeguard.unstablemode;
+import static com.volmit.iris.core.safeguard.ServerBootSFG.passedserversoftware;
 import static com.volmit.iris.util.misc.getHardware.getCPUModel;
 import static com.volmit.iris.util.misc.getHardware.getCPUThreads;
 
@@ -442,7 +442,6 @@ public class Iris extends VolmitPlugin implements Listener {
     private static void fixShading() {
         ShadeFix.fix(ComponentSerializer.class);
     }
-    private ChunkHandlerSVC chunkHandlerSVC;
     private void enable() {
         instance = this;
         services = new KMap<>();
@@ -474,11 +473,9 @@ public class Iris extends VolmitPlugin implements Listener {
             UtilsSFG.SupportedServerSoftware();
             UtilsSFG.printIncompatibleWarnings();
             UtilsSFG.unstablePrompt();
-            if(IrisSettings.get().getGeneral().useIntegratedChunkHandler) {
-                chunkHandlerSVC = new ChunkHandlerSVC(this);
-                Iris.info(C.LIGHT_PURPLE + "Started Intergrated ChunkHandlerSVC");
-            }
+
             autoStartStudio();
+            ServerBootSFG.CheckIrisWorlds();
             checkForBukkitWorlds();
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
             IrisToolbelt.retainMantleDataForSlice(BlockData.class.getCanonicalName());

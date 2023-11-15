@@ -1,22 +1,19 @@
-package com.volmit.iris.engine.safeguard;
+package com.volmit.iris.core.safeguard;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.format.C;
 
-import static com.volmit.iris.engine.safeguard.IrisSafeguard.unstablemode;
-import static com.volmit.iris.engine.safeguard.ServerBootSFG.*;
-
 public class UtilsSFG {
  public static void UnstableMode(){
-  if (unstablemode) {
+  if (IrisSafeguard.unstablemode) {
    Iris.safeguard(C.DARK_RED + "Iris is running in Unstable Mode");
   } else {
    Iris.safeguard(C.BLUE + "Iris is running Stable");
   }
  }
  public static void SupportedServerSoftware(){
-  if (!passedserversoftware) {
+  if (!ServerBootSFG.passedserversoftware) {
    Iris.safeguard(C.DARK_RED + "Server is running unsupported server software");
    Iris.safeguard(C.RED + "Supported: Purpur, Pufferfish, Paper, Spigot, Bukkit");
   }
@@ -24,31 +21,31 @@ public class UtilsSFG {
  public static void printIncompatibleWarnings(){
   // String SupportedIrisVersion = getDescription().getVersion(); //todo Automatic version
 
-  if (safeguardPassed) {
+  if (ServerBootSFG.safeguardPassed) {
    Iris.safeguard(C.BLUE + "0 Conflicts found");
   } else {
-   Iris.safeguard(C.DARK_RED + "" + count + " Conflicts found");
-   unstablemode = true;
+   Iris.safeguard(C.DARK_RED + "" + ServerBootSFG.count + " Conflicts found");
+   IrisSafeguard.unstablemode = true;
 
-   if (incompatiblePlugins.get("Multiverse-Core")) {
+   if (ServerBootSFG.incompatiblePlugins.get("Multiverse-Core")) {
     Iris.safeguard(C.RED + "Multiverse");
     Iris.safeguard(C.RED + "- The plugin Multiverse is not compatible with the server.");
     Iris.safeguard(C.RED + "- If you want to have a world manager, consider using PhantomWorlds or MyWorlds instead.");
    }
-   if (incompatiblePlugins.get("Dynmap")) {
+   if (ServerBootSFG.incompatiblePlugins.get("Dynmap")) {
     Iris.safeguard(C.RED + "Dynmap");
     Iris.safeguard(C.RED + "- The plugin Dynmap is not compatible with the server.");
     Iris.safeguard(C.RED + "- If you want to have a map plugin like Dynmap, consider Bluemap.");
    }
-   if (incompatiblePlugins.get("TerraformGenerator") || incompatiblePlugins.get("Stratos")) {
+   if (ServerBootSFG.incompatiblePlugins.get("TerraformGenerator") || ServerBootSFG.incompatiblePlugins.get("Stratos")) {
     Iris.safeguard(C.YELLOW + "Terraform Generator / Stratos");
     Iris.safeguard(C.YELLOW + "- Iris is not compatible with other worldgen plugins.");
    }
-   if (unsuportedversion) {
+   if (ServerBootSFG.unsuportedversion) {
     Iris.safeguard(C.RED + "Server Version");
     Iris.safeguard(C.RED + "- Iris only supports 1.19.2 > 1.20.2");
    }
-   if (!passedserversoftware) {
+   if (!ServerBootSFG.passedserversoftware) {
     Iris.safeguard(C.RED + "Unsupported Server Software");
     Iris.safeguard(C.RED + "- Please consider using Paper or Purpur instead.");
 
@@ -57,12 +54,12 @@ public class UtilsSFG {
  }
 
  public static String MSGIncompatibleWarnings() {
-  return allIncompatiblePlugins;
+  return ServerBootSFG.allIncompatiblePlugins;
  }
 
 
  public static void unstablePrompt() {
-  if (unstablemode) {
+  if (IrisSafeguard.unstablemode) {
    Iris.info("");
    Iris.info(C.DARK_GRAY + "--==<" + C.RED + " IMPORTANT " + C.DARK_GRAY + ">==--");
    Iris.info(C.RED + "Iris is running in unstable mode what may cause the following issues.");

@@ -111,7 +111,6 @@ public class CommandPregen implements DecreeExecutor {
     public void stop() {
         if (PregeneratorJob.shutdownInstance()) {
             Iris.info( C.BLUE + "Finishing up mca region...");
-            sender().sendMessage(C.DARK_BLUE + "Stopped pregeneration task");
         } else {
             sender().sendMessage(C.YELLOW + "No active pregeneration tasks to stop");
         }

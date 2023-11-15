@@ -22,13 +22,11 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisBenchmarking;
-import com.volmit.iris.core.tools.IrisCreator;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
-import com.volmit.iris.engine.safeguard.UtilsSFG;
+import com.volmit.iris.core.safeguard.UtilsSFG;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeContext;
 import com.volmit.iris.util.decree.DecreeExecutor;
@@ -38,7 +36,6 @@ import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.decree.specialhandlers.NullablePlayerHandler;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.mantle.MantleChunk;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -58,8 +55,8 @@ import java.util.concurrent.Future;
 
 import static com.volmit.iris.core.service.EditSVC.deletingWorld;
 import static com.volmit.iris.core.tools.IrisBenchmarking.inProgress;
-import static com.volmit.iris.engine.safeguard.IrisSafeguard.unstablemode;
-import static com.volmit.iris.engine.safeguard.ServerBootSFG.incompatiblePlugins;
+import static com.volmit.iris.core.safeguard.IrisSafeguard.unstablemode;
+import static com.volmit.iris.core.safeguard.ServerBootSFG.incompatiblePlugins;
 
 @Decree(name = "iris", aliases = {"ir", "irs"}, description = "Basic Command")
 public class CommandIris implements DecreeExecutor {
@@ -72,6 +69,7 @@ public class CommandIris implements DecreeExecutor {
     private CommandEdit edit;
     private CommandFind find;
     private CommandWorldManager manager;
+    private CommandDeveloper developer;
 
     public static @Getter String BenchDimension;
 

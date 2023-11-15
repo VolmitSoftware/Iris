@@ -22,6 +22,20 @@ public class getHardware {
         long maxMemory = Runtime.getRuntime().maxMemory() / (1024 * 1024);
         return maxMemory;
     }
+    public static long getProcessUsedMemory() {
+        Runtime runtime = Runtime.getRuntime();
+
+        long totalMemory = runtime.totalMemory();
+        long freeMemory = runtime.freeMemory();
+        long usedMemory = totalMemory - freeMemory;
+
+        return usedMemory / (1024 * 1024);
+    }
+
+    public static long getAvailableProcessMemory(){
+        long availableMemory = getHardware.getProcessMemory() - getHardware.getProcessUsedMemory();
+        return availableMemory;
+    }
 
     public static String getCPUModel() {
         try {

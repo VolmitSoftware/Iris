@@ -411,14 +411,14 @@ public class Mantle {
         if (closed.get()) {
             throw new RuntimeException("The Mantle is closed");
         }
-        if (IrisSettings.get().getPerformance().dynamicPerformanceMode){
+
+       if (IrisSettings.get().getPerformance().dynamicPerformanceMode){
             tectonicLimit = 2;
             long t = getHardware.getProcessMemory();
             for (; t > 250;){
                 tectonicLimit++;
                 t = t - 250;
             }
-
         }
 
         adjustedIdleDuration.set(baseIdleDuration);
@@ -427,7 +427,7 @@ public class Mantle {
             if (getHardware.getProcessMemory() < 5000 && IrisSettings.get().getPerformance().dynamicPerformanceMode) {
                 adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (loadedRegions.size() - tectonicLimit) * 2.65), 4000));
             } else {
-                adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (loadedRegions.size() - tectonicLimit) * 1.35), 4000));
+                adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (loadedRegions.size() - tectonicLimit) * 1.45), 4000));
             }
         }
 

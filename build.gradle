@@ -38,7 +38,7 @@ registerCustomOutputTask('CrazyDev22', 'C://Users/Julian/Desktop/server/plugins'
 registerCustomOutputTask('Pixel', 'C://Users/repix/Iris Dimension Engine/1.20.1 - Iris Coding/plugins')
 // ========================== UNIX ==============================
 registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/development/server/plugins')
-registerCustomOutputTaskUnix('PsychoLT', '/Users/brianfopiano/Desktop/REMOTES/RemoteMinecraft/plugins')
+registerCustomOutputTaskUnix('PsychoLT', '/Volumes/PRO-G40/Minecraft/MinecraftDevelopment/Server/plugins')
 // ==============================================================
 
 def NMS_BINDINGS = Map.of(

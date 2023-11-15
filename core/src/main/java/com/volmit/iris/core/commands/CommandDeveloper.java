@@ -56,7 +56,7 @@ public class CommandDeveloper implements DecreeExecutor {
             Iris.info(C.DARK_PURPLE + "Tectonic Limit: " + C.LIGHT_PURPLE + engine.getMantle().getTectonicLimit());
             Iris.info(C.DARK_PURPLE + "Tectonic Plates: " + C.LIGHT_PURPLE + engine.getMantle().getLoadedRegionCount());
             Iris.info(C.DARK_PURPLE + "Tectonic ToUnload: " + C.LIGHT_PURPLE + outputToUnload);
-            Iris.info(C.DARK_PURPLE + "Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration(engine.getMantle().getTectonicDuration()));
+            Iris.info(C.DARK_PURPLE + "Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration((long) engine.getMantle().getTectonicDuration()));
             Iris.info(C.DARK_PURPLE + "Cache Size: " + C.LIGHT_PURPLE + Form.f(IrisData.cacheSize()));
             Iris.info(C.DARK_PURPLE + "LastUse Size: " + C.LIGHT_PURPLE + Form.mem(lastUseSize));
             Iris.info("-------------------------");

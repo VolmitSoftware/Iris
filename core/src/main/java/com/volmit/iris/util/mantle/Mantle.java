@@ -403,6 +403,7 @@ public class Mantle {
     @Getter
     AtomicInteger FakeToUnload = new AtomicInteger(0);
     AtomicDouble adjustedIdleDuration = new AtomicDouble(0);
+    @Getter
     double tectonicLimit = 30;
 
 
@@ -477,10 +478,9 @@ public class Mantle {
     public long ToUnloadTectonic(){
         return FakeToUnload.get();
     }
-    public long getTectonicUnloadDuration(){
-        return (long) adjustedIdleDuration.get();
+    public double getTectonicUnloadDuration(){
+        return adjustedIdleDuration.get();
     }
-
 
     /**
      * This retreives a future of the Tectonic Plate at the given coordinates.

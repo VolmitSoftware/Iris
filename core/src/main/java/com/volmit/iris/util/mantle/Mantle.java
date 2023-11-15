@@ -424,9 +424,10 @@ public class Mantle {
         adjustedIdleDuration.set(baseIdleDuration);
 
         if (loadedRegions.size() > tectonicLimit) {
-                adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (loadedRegions.size() - tectonicLimit) * 1.35), 4000));
             if (getHardware.getProcessMemory() < 5000 && IrisSettings.get().getPerformance().dynamicPerformanceMode) {
                 adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (loadedRegions.size() - tectonicLimit) * 2.65), 4000));
+            } else {
+                adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (loadedRegions.size() - tectonicLimit) * 1.35), 4000));
             }
         }
 

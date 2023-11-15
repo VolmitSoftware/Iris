@@ -11,16 +11,28 @@ import com.google.gson.JsonParseException;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.SFG.WorldHandlerSFG;
 import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.scheduling.Looper;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class HotDropWorldSVC extends Looper {
+public class HotDropWorldSVC extends Looper implements IrisService {
     private WatchService watchService;
     private JavaPlugin plugin;
 
-    public HotDropWorldSVC(JavaPlugin plugin) {
-        this.plugin = plugin;
+    @Override
+    public void onEnable() {
+        this.plugin = Iris.instance; // Assuming Iris.instance is your plugin instance
+        initializeWatchService();
+
+    }
+
+    @Override
+    public void onDisable() {
+
+    }
+
+    private void initializeWatchService() {
         try {
             this.watchService = FileSystems.getDefault().newWatchService();
             Path path = Paths.get(Bukkit.getWorldContainer().getAbsolutePath());

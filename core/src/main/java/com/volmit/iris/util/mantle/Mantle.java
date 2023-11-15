@@ -36,6 +36,7 @@ import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterSlice;
+import com.volmit.iris.util.misc.getHardware;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.HyperLock;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -45,16 +46,18 @@ import org.bukkit.Chunk;
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.Set;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The mantle can store any type of data slice anywhere and manage regions & IO on it's own.
  * This class is fully thread safe read & writeNodeData
  */
+
 public class Mantle {
     private final File dataFolder;
     private final int worldHeight;
@@ -66,6 +69,11 @@ public class Mantle {
     private final AtomicBoolean closed;
     private final MultiBurst ioBurst;
     private final AtomicBoolean io;
+    private final Object gcMonitor = new Object();
+    long apm = getHardware.getAvailableProcessMemory();
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    int tectonicLimitBeforeOutMemory;
+    double tectonicLimit = 30;
 
     /**
      * Create a new mantle
@@ -375,44 +383,91 @@ public class Mantle {
     }
 
     /**
+     * Estimates the memory usage of the lastUse map.
+     *
+     * @return Estimated memory usage in bytes.
+     */
+
+    public long LastUseMapMemoryUsage() {
+        long numberOfEntries = lastUse.size();
+        long bytesPerEntry = Long.BYTES * 2;
+        return numberOfEntries * bytesPerEntry;
+    }
+
+    /**
      * Save & unload regions that have not been used for more than the
      * specified amount of milliseconds
      *
-     * @param idleDuration the duration
+     * @param baseIdleDuration the duration
      */
-    public synchronized void trim(long idleDuration) {
+
+    AtomicInteger FakeToUnload = new AtomicInteger(0);
+
+
+    public synchronized void trim(long baseIdleDuration) {
         if (closed.get()) {
             throw new RuntimeException("The Mantle is closed");
         }
 
+        double adjustedIdleDuration = baseIdleDuration;
+
+        if (loadedRegions.size() > tectonicLimit) {
+            adjustedIdleDuration = Math.max(adjustedIdleDuration - ( 1000 * (loadedRegions.size() - tectonicLimit) * 1.35), 4000);
+        }
+
         io.set(true);
-        Iris.debug("Trimming Tectonic Plates older than " + Form.duration((double) idleDuration, 0));
-        unload.clear();
 
-        for (Long i : lastUse.keySet()) {
-            hyperLock.withLong(i, () -> {
-                if (M.ms() - lastUse.get(i) >= idleDuration) {
-                    unload.add(i);
-                }
-            });
+        try {
+            Iris.debug("Trimming Tectonic Plates older than " + Form.duration(adjustedIdleDuration, 0));
+            Set<Long> toUnload = new HashSet<>();
+
+            for (Long i : lastUse.keySet()) {
+                double finalAdjustedIdleDuration = adjustedIdleDuration;
+                hyperLock.withLong(i, () -> {
+                    if (M.ms() - lastUse.get(i) >= finalAdjustedIdleDuration) {
+                        toUnload.add(i);
+                        FakeToUnload.addAndGet(1);
+                        Iris.debug("Tectonic Region added to unload");
+                    }
+                });
+            }
+
+            // Create a thread pool to handle unloading tasks
+            ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
+            for (Long i : toUnload) {
+                executor.submit(() -> {
+                    hyperLock.withLong(i, () -> {
+                        TectonicPlate m = loadedRegions.get(i);
+                        if (m != null) {
+                            try {
+                                m.write(fileForRegion(dataFolder, i));
+                                loadedRegions.remove(i);
+                                lastUse.remove(i);
+                                Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(i) + " " + Cache.keyZ(i));
+                                FakeToUnload.addAndGet(-1);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                });
+            }
+
+            // Shutdown the executor and wait for tasks to complete
+            executor.shutdown();
+            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            e.printStackTrace();
+        } finally {
+            io.set(false);
         }
-
-        for (Long i : unload) {
-            hyperLock.withLong(i, () -> {
-                TectonicPlate m = loadedRegions.remove(i);
-                lastUse.remove(i);
-
-                try {
-                    m.write(fileForRegion(dataFolder, i));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(i) + " " + Cache.keyZ(i));
-            });
-        }
-        io.set(false);
     }
+    public long ToUnloadTectonic(){
+        return FakeToUnload.get();
+    }
+
 
     /**
      * This retreives a future of the Tectonic Plate at the given coordinates.
@@ -443,7 +498,7 @@ public class Mantle {
         try {
             return getSafe(x, z).get();
         } catch (InterruptedException e) {
-            Iris.warn("Failed to get Tectonic Plate " + x + " " + z + " Due to a thread interruption (hotload?)");
+            Iris.warn("Failed to get Tectonic Plate " + x + " " + z + " Due to a thread intterruption (hotload?)");
             Iris.reportError(e);
         } catch (ExecutionException e) {
             Iris.warn("Failed to get Tectonic Plate " + x + " " + z + " Due to a thread execution exception (engine close?)");

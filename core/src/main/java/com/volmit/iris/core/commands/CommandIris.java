@@ -69,6 +69,7 @@ public class CommandIris implements DecreeExecutor {
     private CommandEdit edit;
     private CommandFind find;
     private CommandWorldManager manager;
+    private CommandDeveloper developer;
 
     public static @Getter String BenchDimension;
 

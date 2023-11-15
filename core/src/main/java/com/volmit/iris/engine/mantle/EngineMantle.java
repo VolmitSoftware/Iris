@@ -257,6 +257,9 @@ public interface EngineMantle extends IObjectPlacer {
     default int getLoadedRegionCount() {
         return getMantle().getLoadedRegionCount();
     }
+    default long getLastUseMapMemoryUsage(){
+        return getMantle().LastUseMapMemoryUsage();
+    }
 
     MantleJigsawComponent getJigsawComponent();
 
@@ -287,5 +290,9 @@ public interface EngineMantle extends IObjectPlacer {
                 getMantle().deleteChunkSlice(x, z, MatterFluidBody.class);
             });
         }
+    }
+
+    default long getToUnload(){
+        return getMantle().ToUnloadTectonic();
     }
 }

@@ -412,7 +412,7 @@ public class Mantle {
         double adjustedIdleDuration = baseIdleDuration;
 
         if (loadedRegions.size() > tectonicLimit) {
-            adjustedIdleDuration = Math.max(adjustedIdleDuration - ( 1000 * (loadedRegions.size() - tectonicLimit) * 1.35), 4000);
+            adjustedIdleDuration = Math.max(adjustedIdleDuration - (1000 * (loadedRegions.size() - tectonicLimit) * 1.35), 4000);
         }
 
         io.set(true);
@@ -432,11 +432,10 @@ public class Mantle {
                 });
             }
 
-            // Create a thread pool to handle unloading tasks
-            ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+            BurstExecutor burstExecutor = new BurstExecutor(Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()), toUnload.size());
 
             for (Long i : toUnload) {
-                executor.submit(() -> {
+                burstExecutor.queue(() -> {
                     hyperLock.withLong(i, () -> {
                         TectonicPlate m = loadedRegions.get(i);
                         if (m != null) {
@@ -454,16 +453,13 @@ public class Mantle {
                 });
             }
 
-            // Shutdown the executor and wait for tasks to complete
-            executor.shutdown();
-            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            e.printStackTrace();
+            burstExecutor.complete();
+
         } finally {
             io.set(false);
         }
     }
+
     public long ToUnloadTectonic(){
         return FakeToUnload.get();
     }

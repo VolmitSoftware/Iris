@@ -41,8 +41,10 @@ import com.volmit.iris.util.misc.getHardware;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.HyperLock;
 import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.scheduling.Looper;
 import lombok.Getter;
 import org.bukkit.Chunk;
+import org.checkerframework.checker.units.qual.A;
 
 import java.io.EOFException;
 import java.io.File;
@@ -53,6 +55,7 @@ import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * The mantle can store any type of data slice anywhere and manage regions & IO on it's own.
@@ -400,33 +403,33 @@ public class Mantle {
      *
      * @param baseIdleDuration the duration
      */
-    @Getter
-    AtomicInteger FakeToUnload = new AtomicInteger(0);
-    AtomicDouble adjustedIdleDuration = new AtomicDouble(0);
-    @Getter
-    double tectonicLimit = 30;
+
+    public AtomicInteger FakeToUnload = new AtomicInteger(0);
+     public AtomicDouble adjustedIdleDuration = new AtomicDouble(0);
+     public AtomicInteger tectonicLimit = new AtomicInteger(30);
 
 
     public synchronized void trim(long baseIdleDuration) {
         if (closed.get()) {
             throw new RuntimeException("The Mantle is closed");
         }
-        if (IrisSettings.get().getPerformance().dynamicPerformanceMode){
-            tectonicLimit = 2;
+
+       if (IrisSettings.get().getPerformance().dynamicPerformanceMode){
+            tectonicLimit.set(2);
             long t = getHardware.getProcessMemory();
             for (; t > 250;){
-                tectonicLimit++;
+                tectonicLimit.getAndAdd(1);
                 t = t - 250;
             }
-
         }
 
         adjustedIdleDuration.set(baseIdleDuration);
 
-        if (loadedRegions.size() > tectonicLimit) {
-                adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (loadedRegions.size() - tectonicLimit) * 1.35), 4000));
-            if (getHardware.getProcessMemory() < 5000 && IrisSettings.get().getPerformance().dynamicPerformanceMode) {
-                adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (loadedRegions.size() - tectonicLimit) * 2.65), 4000));
+        if (loadedRegions.size() > tectonicLimit.get()) {
+            // todo update this correctly and maybe do something when its above a 100%
+            if (IrisSettings.get().getPerformance().dynamicPerformanceMode) {
+                int tectonicLimitValue = tectonicLimit.get();
+                adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (((loadedRegions.size() - tectonicLimitValue) / (double) tectonicLimitValue) * 100) * 0.4), 4000));
             }
         }
 
@@ -473,13 +476,6 @@ public class Mantle {
         } finally {
             io.set(false);
         }
-    }
-
-    public long ToUnloadTectonic(){
-        return FakeToUnload.get();
-    }
-    public double getTectonicUnloadDuration(){
-        return adjustedIdleDuration.get();
     }
 
     /**

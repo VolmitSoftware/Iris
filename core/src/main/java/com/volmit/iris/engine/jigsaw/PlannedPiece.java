@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.jigsaw;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
@@ -37,6 +38,9 @@ import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.util.BlockVector;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @SuppressWarnings("ALL")
 @Data
@@ -72,6 +76,7 @@ public class PlannedPiece {
         this.object.setLoadKey(piece.getObject());
         this.ogObject.setLoadKey(piece.getObject());
         this.connected = new KList<>();
+
     }
 
     public void setPosition(IrisPosition p) {
@@ -133,8 +138,27 @@ public class PlannedPiece {
         return getWorldPosition(c.getPosition());
     }
 
+    public List<IrisPosition> getConnectorWorldPositions() {
+        List<IrisPosition> worldPositions = new ArrayList<>();
+
+        for (IrisJigsawPieceConnector connector : this.piece.getConnectors()) {
+            IrisPosition worldPosition = getWorldPosition(connector.getPosition());
+            worldPositions.add(worldPosition);
+        }
+
+        return worldPositions;
+    }
+
     public IrisPosition getWorldPosition(IrisPosition position) {
         return this.position.add(position).add(new IrisPosition(object.getCenter()));
+    }
+
+    public void debugPrintConnectorPositions() {
+        Iris.debug("Connector World Positions for PlannedPiece at " + position + ":");
+        List<IrisPosition> connectorPositions = getConnectorWorldPositions();
+        for (IrisPosition pos : connectorPositions) {
+            Iris.debug(" - Connector at: " + pos);
+        }
     }
 
     public boolean isFull() {

@@ -208,6 +208,7 @@ public class PlannedStructure {
         for (IrisJigsawPieceConnector i : piece.getAvailableConnectors().shuffleCopy(rng)) {
             if (generateConnectorOutwards(piece, i)) {
                 b = true;
+                piece.debugPrintConnectorPositions();
             }
         }
 

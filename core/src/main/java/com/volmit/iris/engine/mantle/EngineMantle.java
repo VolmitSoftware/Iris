@@ -295,4 +295,10 @@ public interface EngineMantle extends IObjectPlacer {
     default long getToUnload(){
         return getMantle().ToUnloadTectonic();
     }
+    default long getTectonicLimit(){
+        return getTectonicLimit();
+    }
+    default long getTectonicDuration(){
+        return getMantle().getTectonicUnloadDuration();
+    }
 }

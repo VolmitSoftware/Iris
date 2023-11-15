@@ -290,15 +290,10 @@ public class IrisEngineMantle implements EngineMantle {
             x = 4;
             Iris.info("Mantle Size: " + x + " Chunks " + C.BLUE + "BENCHMARK MODE");
         } else {
-            if(lowPerformance){
-                x = 4;
-                Iris.info("Mantle Size: " + x + " Chunks" + C.GOLD + "LOW PERFORMANCE MODE");
-            } else {
-                Iris.info("Mantle Size: " + x + " Chunks");
-                Iris.info("  Object Mantle Size: " + u + " (" + ((Math.max(u, 16) + 16) >> 4) + ")");
-                Iris.info("  Jigsaw Mantle Size: " + jig + " (" + ((Math.max(jig, 16) + 16) >> 4) + ")");
-                Iris.info("  Carving Mantle Size: " + c + " (" + ((Math.max(c, 16) + 16) >> 4) + ")");
-            }
+            Iris.info("Mantle Size: " + x + " Chunks");
+            Iris.info("  Object Mantle Size: " + u + " (" + ((Math.max(u, 16) + 16) >> 4) + ")");
+            Iris.info("  Jigsaw Mantle Size: " + jig + " (" + ((Math.max(jig, 16) + 16) >> 4) + ")");
+            Iris.info("  Carving Mantle Size: " + c + " (" + ((Math.max(c, 16) + 16) >> 4) + ")");
         }
 
 

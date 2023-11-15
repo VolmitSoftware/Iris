@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.mantle;
 
+import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -73,7 +74,6 @@ public class Mantle {
     long apm = getHardware.getAvailableProcessMemory();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     int tectonicLimitBeforeOutMemory;
-    double tectonicLimit = 30;
 
     /**
      * Create a new mantle
@@ -400,29 +400,43 @@ public class Mantle {
      *
      * @param baseIdleDuration the duration
      */
-
+    @Getter
     AtomicInteger FakeToUnload = new AtomicInteger(0);
+    AtomicDouble adjustedIdleDuration = new AtomicDouble(0);
+    double tectonicLimit = 30;
 
 
     public synchronized void trim(long baseIdleDuration) {
         if (closed.get()) {
             throw new RuntimeException("The Mantle is closed");
         }
+        if (IrisSettings.get().getPerformance().dynamicPerformanceMode){
+            tectonicLimit = 2;
+            long t = getHardware.getProcessMemory();
+            for (; t > 250;){
+                tectonicLimit++;
+                t = t - 250;
+            }
 
-        double adjustedIdleDuration = baseIdleDuration;
+        }
+
+        adjustedIdleDuration.set(baseIdleDuration);
 
         if (loadedRegions.size() > tectonicLimit) {
-            adjustedIdleDuration = Math.max(adjustedIdleDuration - (1000 * (loadedRegions.size() - tectonicLimit) * 1.35), 4000);
+                adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (loadedRegions.size() - tectonicLimit) * 1.35), 4000));
+            if (getHardware.getProcessMemory() < 5000 && IrisSettings.get().getPerformance().dynamicPerformanceMode) {
+                adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (loadedRegions.size() - tectonicLimit) * 2.65), 4000));
+            }
         }
 
         io.set(true);
 
         try {
-            Iris.debug("Trimming Tectonic Plates older than " + Form.duration(adjustedIdleDuration, 0));
+            Iris.debug("Trimming Tectonic Plates older than " + Form.duration(adjustedIdleDuration.get(), 0));
             Set<Long> toUnload = new HashSet<>();
 
             for (Long i : lastUse.keySet()) {
-                double finalAdjustedIdleDuration = adjustedIdleDuration;
+                double finalAdjustedIdleDuration = adjustedIdleDuration.get();
                 hyperLock.withLong(i, () -> {
                     if (M.ms() - lastUse.get(i) >= finalAdjustedIdleDuration) {
                         toUnload.add(i);
@@ -462,6 +476,9 @@ public class Mantle {
 
     public long ToUnloadTectonic(){
         return FakeToUnload.get();
+    }
+    public double getTectonicUnloadDuration(){
+        return adjustedIdleDuration.get();
     }
 
 

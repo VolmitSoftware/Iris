@@ -226,17 +226,19 @@ public class WandSVC implements IrisService {
             return getCuboidFromItem(p.getInventory().getItemInMainHand());
         }
 
-        Cuboid c = WorldEditLink.getSelection(p);
+        if (IrisSettings.get().getWorld().worldEditWandCUI) {
+            Cuboid c = WorldEditLink.getSelection(p);
 
-        if (c != null) {
-            return new Location[]{c.getLowerNE(), c.getUpperSW()};
+            if (c != null) {
+                return new Location[]{c.getLowerNE(), c.getUpperSW()};
+            }
         }
 
         return null;
     }
 
     public static boolean isHoldingWand(Player p) {
-        return isHoldingIrisWand(p) || WorldEditLink.getSelection(p) != null;
+        return isHoldingIrisWand(p) || (IrisSettings.get().getWorld().worldEditWandCUI && WorldEditLink.getSelection(p) != null);
     }
 
     public static boolean isHoldingIrisWand(Player p) {

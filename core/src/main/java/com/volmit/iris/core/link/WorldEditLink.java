@@ -4,9 +4,10 @@ import com.volmit.iris.util.data.Cuboid;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 
 public class WorldEditLink {
+    private static Boolean enabled = null;
+
     public static Cuboid getSelection(Player p) {
         if (!hasWorldEdit())
             return null;
@@ -35,7 +36,8 @@ public class WorldEditLink {
     }
 
     public static boolean hasWorldEdit() {
-        Plugin plugin = Bukkit.getPluginManager().getPlugin("WorldEdit");
-        return plugin != null && plugin.isEnabled();
+        if (enabled == null)
+            enabled = Bukkit.getPluginManager().isPluginEnabled("WorldEdit");
+        return enabled;
     }
 }

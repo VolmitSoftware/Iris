@@ -27,7 +27,6 @@ public class HotDropWorldSVC implements IrisService {
 
     @Override
     public void onEnable() {
-        Iris.info("hotDropSVC");
         this.plugin = Iris.instance;
         initializeWatchService();
     }

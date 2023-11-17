@@ -1,11 +1,16 @@
 package com.volmit.iris.core.link;
 
 import com.volmit.iris.util.data.Cuboid;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 
 public class WorldEditLink {
     public static Cuboid getSelection(Player p) {
+        if (!hasWorldEdit())
+            return null;
+
         try {
             Object instance = Class.forName("com.sk89q.worldedit.WorldEdit").getDeclaredMethod("getInstance").invoke(null);
             Object sessionManager = instance.getClass().getDeclaredMethod("getSessionManager").invoke(instance);
@@ -27,5 +32,10 @@ public class WorldEditLink {
 
         }
         return null;
+    }
+
+    public static boolean hasWorldEdit() {
+        Plugin plugin = Bukkit.getPluginManager().getPlugin("WorldEdit");
+        return plugin != null && plugin.isEnabled();
     }
 }

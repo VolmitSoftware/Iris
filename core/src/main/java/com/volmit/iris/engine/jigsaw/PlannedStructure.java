@@ -28,7 +28,6 @@ import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.matter.slices.JigsawPieceMatter;
 import com.volmit.iris.util.matter.slices.container.JigsawPieceContainer;
 import lombok.Data;
 import org.bukkit.Axis;
@@ -361,10 +360,6 @@ public class PlannedStructure {
 
     public boolean collidesWith(PlannedPiece piece, PlannedPiece ignore) {
         for (PlannedPiece i : pieces) {
-            if (i.equals(ignore)) {
-                continue;
-            }
-
             if (i.collidesWith(piece)) {
                 return true;
             }

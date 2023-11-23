@@ -37,25 +37,22 @@ import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterSlice;
-import com.volmit.iris.util.misc.getHardware;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.HyperLock;
 import com.volmit.iris.util.parallel.MultiBurst;
-import com.volmit.iris.util.scheduling.Looper;
 import lombok.Getter;
 import org.bukkit.Chunk;
-import org.checkerframework.checker.units.qual.A;
 
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * The mantle can store any type of data slice anywhere and manage regions & IO on it's own.
@@ -67,16 +64,12 @@ public class Mantle {
     private final int worldHeight;
     private final Map<Long, Long> lastUse;
     @Getter
-    private final Map<Long, TectonicPlate> loadedRegions;
+    public static Map<Long, TectonicPlate> loadedRegions;
     private final HyperLock hyperLock;
     private final KSet<Long> unload;
     private final AtomicBoolean closed;
     private final MultiBurst ioBurst;
     private final AtomicBoolean io;
-    private final Object gcMonitor = new Object();
-    long apm = getHardware.getAvailableProcessMemory();
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-    int tectonicLimitBeforeOutMemory;
 
     /**
      * Create a new mantle
@@ -404,53 +397,82 @@ public class Mantle {
      * @param baseIdleDuration the duration
      */
 
-    public AtomicInteger FakeToUnload = new AtomicInteger(0);
-     public AtomicDouble adjustedIdleDuration = new AtomicDouble(0);
-     public AtomicInteger tectonicLimit = new AtomicInteger(30);
+    public static AtomicInteger FakeToUnload = new AtomicInteger(0);
+     public static AtomicDouble adjustedIdleDuration = new AtomicDouble(0);
+     public static AtomicInteger tectonicLimit = new AtomicInteger(30);
 
 
     public synchronized void trim(long baseIdleDuration) {
         if (closed.get()) {
             throw new RuntimeException("The Mantle is closed");
         }
-
-       if (IrisSettings.get().getPerformance().dynamicPerformanceMode){
-            tectonicLimit.set(2);
-            long t = getHardware.getProcessMemory();
-            for (; t > 250;){
-                tectonicLimit.getAndAdd(1);
-                t = t - 250;
-            }
-        }
-
         adjustedIdleDuration.set(baseIdleDuration);
 
-        if (loadedRegions.size() > tectonicLimit.get()) {
-            // todo update this correctly and maybe do something when its above a 100%
-            if (IrisSettings.get().getPerformance().dynamicPerformanceMode) {
-                int tectonicLimitValue = tectonicLimit.get();
-                adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (((loadedRegions.size() - tectonicLimitValue) / (double) tectonicLimitValue) * 100) * 0.4), 4000));
+        if (loadedRegions != null) {
+            if (loadedRegions.size() > tectonicLimit.get()) {
+                // todo update this correctly and maybe do something when its above a 100%
+                if (IrisSettings.get().getPerformance().dynamicPerformanceMode) {
+                    int tectonicLimitValue = tectonicLimit.get();
+                    adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (((loadedRegions.size() - tectonicLimitValue) / (double) tectonicLimitValue) * 100) * 0.4), 4000));
+                }
             }
         }
 
         io.set(true);
 
         try {
+            Set<Long> toUnload;
             Iris.debug("Trimming Tectonic Plates older than " + Form.duration(adjustedIdleDuration.get(), 0));
-            Set<Long> toUnload = new HashSet<>();
+               toUnload = new HashSet<>();
 
             for (Long i : lastUse.keySet()) {
                 double finalAdjustedIdleDuration = adjustedIdleDuration.get();
+                Set<Long> finalToUnload1 = toUnload;
                 hyperLock.withLong(i, () -> {
                     if (M.ms() - lastUse.get(i) >= finalAdjustedIdleDuration) {
-                        toUnload.add(i);
+                        finalToUnload1.add(i);
                         FakeToUnload.addAndGet(1);
                         Iris.debug("Tectonic Region added to unload");
                     }
                 });
             }
 
-            BurstExecutor burstExecutor = new BurstExecutor(Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()), toUnload.size());
+            /*
+            if (loadedRegions.size() > tectonicLimit.get()) {
+                AtomicInteger dummyLoadedRegions = new AtomicInteger(loadedRegions.size());
+
+                for (; dummyLoadedRegions.get() > tectonicLimit.get();) {
+                    try {
+                        long fiveSecondsAgo = M.ms() - 5000;
+                        toUnload = new HashSet<>();
+
+                        Long oldestOverFiveSeconds = lastUse.entrySet().stream()
+                                .filter(e -> e.getValue() < fiveSecondsAgo)
+                                .max(Comparator.comparingLong(Map.Entry::getValue))
+                                .map(Map.Entry::getKey)
+                                .orElse(null);
+
+                        if (oldestOverFiveSeconds != null) {
+                            Set<Long> finalToUnload = toUnload;
+                            hyperLock.withLong(oldestOverFiveSeconds, () -> {
+                                if (M.ms() - lastUse.get(oldestOverFiveSeconds) >= adjustedIdleDuration.get()) {
+                                    finalToUnload.add(oldestOverFiveSeconds);
+                                    FakeToUnload.addAndGet(1);
+                                    Iris.debug("Oldest Tectonic Region over 5 seconds idle added to unload");
+                                    dummyLoadedRegions.getAndDecrement();
+                                }
+                            });
+                        }
+                    } catch (Exception e) {
+
+                    }
+                }
+            }
+             */
+
+            int numThreads = 1; // Specify the number of threads you want
+            BurstExecutor burstExecutor = new BurstExecutor(Executors.newFixedThreadPool(numThreads), toUnload.size());
+
 
             for (Long i : toUnload) {
                 burstExecutor.queue(() -> {
@@ -470,7 +492,6 @@ public class Mantle {
                     });
                 });
             }
-
             burstExecutor.complete();
 
         } finally {

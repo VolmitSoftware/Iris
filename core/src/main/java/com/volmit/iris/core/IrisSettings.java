@@ -141,6 +141,7 @@ public class IrisSettings {
         public int resourceLoaderCacheSize = 1_024;
         public int objectLoaderCacheSize = 4_096;
         public int scriptLoaderCacheSize = 512;
+        public int tectonicUnloadThreads = 1;
         public boolean dynamicPerformanceMode = true;
     }
 

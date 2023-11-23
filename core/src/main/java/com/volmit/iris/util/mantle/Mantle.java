@@ -470,8 +470,7 @@ public class Mantle {
             }
              */
 
-            int numThreads = 1; // Specify the number of threads you want
-            BurstExecutor burstExecutor = new BurstExecutor(Executors.newFixedThreadPool(numThreads), toUnload.size());
+            BurstExecutor burstExecutor = new BurstExecutor(Executors.newFixedThreadPool(IrisSettings.get().getPerformance().tectonicUnloadThreads), toUnload.size());
 
 
             for (Long i : toUnload) {

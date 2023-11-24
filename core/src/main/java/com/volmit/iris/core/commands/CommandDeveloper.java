@@ -54,6 +54,7 @@ public class CommandDeveloper implements DecreeExecutor {
 
             Iris.info("-------------------------");
             Iris.info(C.DARK_PURPLE + "Engine Status");
+            Iris.info(C.DARK_PURPLE + "Tectonic Threads: " + C.LIGHT_PURPLE + engine.getMantle().getDynamicThreads());
             Iris.info(C.DARK_PURPLE + "Tectonic Limit: " + C.LIGHT_PURPLE + engine.getMantle().getTectonicLimit());
             Iris.info(C.DARK_PURPLE + "Tectonic Plates: " + C.LIGHT_PURPLE + engine.getMantle().getLoadedRegionCount());
             Iris.info(C.DARK_PURPLE + "Tectonic ToUnload: " + C.LIGHT_PURPLE + engine.getMantle().getToUnload());

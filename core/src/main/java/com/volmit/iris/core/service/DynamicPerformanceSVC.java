@@ -39,7 +39,6 @@ public class DynamicPerformanceSVC implements IrisService {
     public void onEnable() {
         this.plugin = Iris.instance;
         if (IrisSettings.get().getPerformance().dynamicPerformanceMode) {
-            Iris.info("Enabled DynamicPerformance");
             this.startupPerformance();
             this.DynamicPerformance();
             ticker.start();
@@ -51,7 +50,6 @@ public class DynamicPerformanceSVC implements IrisService {
             @Override
             protected long loop() {
                 try {
-
 
                 } catch (Throwable e) {
                     Iris.reportError(e);
@@ -71,7 +69,7 @@ public class DynamicPerformanceSVC implements IrisService {
                 tectonicLimit.getAndAdd(1);
                 t = t - 250;
             }
-            //tectonicLimit.set(10);
+            tectonicLimit.set(10);
         }
     }
 

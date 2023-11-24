@@ -293,7 +293,10 @@ public interface EngineMantle extends IObjectPlacer {
     }
 
     default long getToUnload(){
-        return Mantle.FakeToUnload.get();
+        return Mantle.fakeToUnload.get();
+    }
+    default long getDynamicThreads(){
+        return Mantle.dynamicThreads.get();
     }
     default double getTectonicLimit(){
         return getMantle().tectonicLimit.get();

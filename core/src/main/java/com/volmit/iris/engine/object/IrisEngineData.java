@@ -26,6 +26,7 @@ import lombok.Data;
 @Data
 public class IrisEngineData {
     private IrisEngineStatistics statistics = new IrisEngineStatistics();
+    private KList<IrisEngineWorldData> IrisEngineWorldData = new KList<>();
     private KList<IrisEngineSpawnerCooldown> spawnerCooldowns = new KList<>();
     private KList<IrisEngineChunkData> chunks = new KList<>();
     private Long seed = null;

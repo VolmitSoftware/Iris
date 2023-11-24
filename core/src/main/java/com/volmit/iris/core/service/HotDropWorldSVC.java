@@ -1,6 +1,8 @@
 package com.volmit.iris.core.service;
 
 import java.nio.file.*;
+
+import static com.volmit.iris.core.commands.CommandIris.worldCreation;
 import static java.nio.file.StandardWatchEventKinds.*;
 import java.io.File;
 import java.io.FileReader;
@@ -56,6 +58,9 @@ public class HotDropWorldSVC implements IrisService {
             protected long loop() {
                 WatchKey key;
                 try {
+                    if (worldCreation){
+                        return -1;
+                    }
                     key = watchService.poll();
                     if (key != null) {
                         for (WatchEvent<?> event : key.pollEvents()) {

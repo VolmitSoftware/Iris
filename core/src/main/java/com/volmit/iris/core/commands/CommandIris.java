@@ -25,6 +25,7 @@ import com.volmit.iris.core.tools.IrisBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisEngineWorldData;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.core.safeguard.UtilsSFG;
 import com.volmit.iris.util.collection.KList;
@@ -72,6 +73,7 @@ public class CommandIris implements DecreeExecutor {
     private CommandDeveloper developer;
 
     public static @Getter String BenchDimension;
+    public static boolean worldCreation = false;
 
     @Decree(description = "Create a new world", aliases = {"+", "c"})
     public void create(
@@ -117,6 +119,7 @@ public class CommandIris implements DecreeExecutor {
         }
 
         try {
+            worldCreation = true;
             IrisToolbelt.createWorld()
                     .dimension(type.getLoadKey())
                     .name(name)
@@ -128,9 +131,10 @@ public class CommandIris implements DecreeExecutor {
             sender().sendMessage(C.RED + "Exception raised during creation. See the console for more details.");
             Iris.error("Exception raised during world creation: " + e.getMessage());
             Iris.reportError(e);
+            worldCreation = false;
             return;
         }
-
+        worldCreation = false;
         sender().sendMessage(C.GREEN + "Successfully created your world!");
     }
 
@@ -163,6 +167,8 @@ public class CommandIris implements DecreeExecutor {
     public void version() {
         sender().sendMessage(C.GREEN + "Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");
     }
+
+    //todo Move to React
     @Decree(description = "Benchmark your server", origin = DecreeOrigin.CONSOLE)
     public void serverbenchmark() throws InterruptedException {
         if(!inProgress) {
@@ -171,6 +177,7 @@ public class CommandIris implements DecreeExecutor {
             Iris.info(C.RED + "Benchmark already is in progress.");
         }
     }
+
     /*
     /todo Fix PREGEN
     @Decree(description = "Benchmark a pack", origin = DecreeOrigin.CONSOLE)
@@ -239,7 +246,7 @@ public class CommandIris implements DecreeExecutor {
         IrisToolbelt.evacuate(world, "Deleting world");
         deletingWorld = true;
         Bukkit.unloadWorld(world, false);
-        int retries = 10;
+        int retries = 12;
         if (delete) {
             if (deleteDirectory(world.getWorldFolder())) {
                 sender().sendMessage(C.GREEN + "Successfully removed world folder");
@@ -249,13 +256,12 @@ public class CommandIris implements DecreeExecutor {
                         sender().sendMessage(C.GREEN + "Successfully removed world folder");
                         break;
                     }
-                    sender().sendMessage(C.GREEN + "DEBUG1");
                     retries--;
                     if (retries == 0){
                         sender().sendMessage(C.RED + "Failed to remove world folder");
                         break;
                     }
-                    J.sleep(2000);
+                    J.sleep(3000);
                 }
             }
         }

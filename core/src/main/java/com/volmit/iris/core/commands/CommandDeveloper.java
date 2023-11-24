@@ -23,6 +23,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.EngineMantle;
+import com.volmit.iris.engine.object.IrisEngineWorldData;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
@@ -65,6 +66,12 @@ public class CommandDeveloper implements DecreeExecutor {
         } else {
             Iris.info(C.RED + "Engine is null!");
         }
+    }
+    @Decree(description = "Test", origin = DecreeOrigin.BOTH)
+    public void test(){
+        Iris.info("Test Developer CMD Executed");
+        IrisEngineWorldData worldData = new IrisEngineWorldData();
+        worldData.injection();
     }
 }
 

@@ -20,12 +20,17 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
 import lombok.Data;
+import org.bukkit.Bukkit;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Data
 public class IrisEngineStatistics {
     private int totalHotloads = 0;
     private int chunksGenerated = 0;
     private String IrisCreationVersion = getVersion();
+    private String MinecraftVersion = getMCVersion();
 
     public void generatedChunk() {
         chunksGenerated++;
@@ -38,10 +43,22 @@ public class IrisEngineStatistics {
         String result = null;
         if (hyphenIndex != -1) {
             result = input.substring(0, hyphenIndex);
-            System.out.println(result);
         }
         return result;
     }
+    public String getMCVersion() {
+        String bukkitVersion = "git-Purpur-2023 (MC: 1.20.1)";
+
+        Pattern pattern = Pattern.compile("\\(MC: (\\d+\\.\\d+(\\.\\d+)?)\\)");
+        Matcher matcher = pattern.matcher(bukkitVersion);
+
+        if (matcher.find()) {
+            return matcher.group(1);
+        } else {
+            return "ERROR";  //  todo: Maybe do something ?
+        }
+    }
+
 
     public void hotloaded() {
         totalHotloads++;

@@ -18,15 +18,29 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.Iris;
 import lombok.Data;
 
 @Data
 public class IrisEngineStatistics {
     private int totalHotloads = 0;
     private int chunksGenerated = 0;
+    private String IrisCreationVersion = getVersion();
 
     public void generatedChunk() {
         chunksGenerated++;
+    }
+
+    public String getVersion() {
+        String input = Iris.instance.getDescription().getVersion();
+        int hyphenIndex = input.indexOf('-');
+
+        String result = null;
+        if (hyphenIndex != -1) {
+            result = input.substring(0, hyphenIndex);
+            System.out.println(result);
+        }
+        return result;
     }
 
     public void hotloaded() {

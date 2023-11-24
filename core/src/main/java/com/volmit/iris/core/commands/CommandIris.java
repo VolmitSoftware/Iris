@@ -25,7 +25,6 @@ import com.volmit.iris.core.tools.IrisBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisEngineWorldData;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.core.safeguard.UtilsSFG;
 import com.volmit.iris.util.collection.KList;

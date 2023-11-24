@@ -64,7 +64,7 @@ public class Mantle {
     private final int worldHeight;
     private final Map<Long, Long> lastUse;
     @Getter
-    public static Map<Long, TectonicPlate> loadedRegions;
+    private final Map<Long, TectonicPlate> loadedRegions;
     private final HyperLock hyperLock;
     private final KSet<Long> unload;
     private final AtomicBoolean closed;
@@ -390,23 +390,24 @@ public class Mantle {
         return numberOfEntries * bytesPerEntry;
     }
 
+    @Getter
+    private final AtomicInteger fakeToUnload = new AtomicInteger(0);
+    private final AtomicInteger oldFakeToUnload = new AtomicInteger((0));
+    @Getter
+    private final AtomicDouble adjustedIdleDuration = new AtomicDouble(0);
+    public static final AtomicInteger tectonicLimit = new AtomicInteger(30);
+    @Getter
+    private final AtomicInteger dynamicThreads = new AtomicInteger(1);
+    @Getter
+    private final AtomicInteger forceAggressiveThreshold = new AtomicInteger(30);
+    private int g = 0;
+
     /**
      * Save & unload regions that have not been used for more than the
      * specified amount of milliseconds
      *
      * @param baseIdleDuration the duration
      */
-
-    @Getter
-    public static AtomicInteger fakeToUnload = new AtomicInteger(0);
-    public static AtomicInteger oldFakeToUnload = new AtomicInteger((0));
-     public static AtomicDouble adjustedIdleDuration = new AtomicDouble(0);
-     public static AtomicInteger tectonicLimit = new AtomicInteger(30);
-     public static AtomicInteger dynamicThreads = new AtomicInteger(1);
-     public static AtomicInteger forceAggressiveThreshold = new AtomicInteger(30);
-     public int g = 0;
-
-
     public synchronized void trim(long baseIdleDuration) {
         if (closed.get()) {
             throw new RuntimeException("The Mantle is closed");
@@ -433,7 +434,7 @@ public class Mantle {
                     dynamicThreads.addAndGet(-1);
                 }
             }
-            oldFakeToUnload = fakeToUnload;
+            oldFakeToUnload.set(fakeToUnload.get());
         }
         if (!IrisSettings.get().getPerformance().dynamicPerformanceMode){
             if(IrisSettings.get().getPerformance().getTectonicUnloadThreads() <= -1){
@@ -459,16 +460,14 @@ public class Mantle {
         io.set(true);
 
         try {
-            Set<Long> toUnload;
+            final Set<Long> toUnload = new HashSet<>();
             Iris.debug("Trimming Tectonic Plates older than " + Form.duration(adjustedIdleDuration.get(), 0));
-               toUnload = new HashSet<>();
 
             for (Long i : lastUse.keySet()) {
                 double finalAdjustedIdleDuration = adjustedIdleDuration.get();
-                Set<Long> finalToUnload1 = toUnload;
                 hyperLock.withLong(i, () -> {
                     if (M.ms() - lastUse.get(i) >= finalAdjustedIdleDuration) {
-                        finalToUnload1.add(i);
+                        toUnload.add(i);
                         fakeToUnload.addAndGet(1);
                         Iris.debug("Tectonic Region added to unload");
                     }
@@ -478,55 +477,51 @@ public class Mantle {
             if (IrisSettings.get().getPerformance().AggressiveTectonicUnload && loadedRegions.size() > tectonicLimit.get() && tectonicLimit.get() > forceAggressiveThreshold.get()) {
                 AtomicInteger dummyLoadedRegions = new AtomicInteger(loadedRegions.size());
 
-                for (; dummyLoadedRegions.get() > tectonicLimit.get();) {
+                while (dummyLoadedRegions.get() > tectonicLimit.get()) {
                     try {
                         long fiveSecondsAgo = M.ms() - 5000;
-                        toUnload = new HashSet<>();
+                        toUnload.clear();
 
-                        Long oldestOverFiveSeconds = lastUse.entrySet().stream()
+                        lastUse.entrySet().stream()
                                 .filter(e -> e.getValue() < fiveSecondsAgo)
                                 .max(Comparator.comparingLong(Map.Entry::getValue))
                                 .map(Map.Entry::getKey)
-                                .orElse(null);
+                                .ifPresent(oldestOverFiveSeconds -> hyperLock.withLong(oldestOverFiveSeconds, () -> {
+                                    if (M.ms() - lastUse.get(oldestOverFiveSeconds) >= adjustedIdleDuration.get()) {
+                                        toUnload.add(oldestOverFiveSeconds);
+                                        fakeToUnload.getAndAdd(1);
+                                        Iris.debug("Oldest Tectonic Region over 5 seconds idle added to unload");
+                                        dummyLoadedRegions.getAndDecrement();
+                                    }
+                                }));
 
-                        if (oldestOverFiveSeconds != null) {
-                            Set<Long> finalToUnload = toUnload;
-                            hyperLock.withLong(oldestOverFiveSeconds, () -> {
-                                if (M.ms() - lastUse.get(oldestOverFiveSeconds) >= adjustedIdleDuration.get()) {
-                                    finalToUnload.add(oldestOverFiveSeconds);
-                                    fakeToUnload.getAndAdd(1);
-                                    Iris.debug("Oldest Tectonic Region over 5 seconds idle added to unload");
-                                    dummyLoadedRegions.getAndDecrement();
-                                }
-                            });
-                        }
                     } catch (Exception e) {
 
                     }
                 }
             }
 
-         //   BurstExecutor burstExecutor = new BurstExecutor(Executors.newFixedThreadPool(1), toUnload.size());
+            //   BurstExecutor burstExecutor = new BurstExecutor(Executors.newFixedThreadPool(1), toUnload.size());
 
             for (Long i : toUnload) {
-             //   burstExecutor.queue(() -> {
-                    hyperLock.withLong(i, () -> {
-                        TectonicPlate m = loadedRegions.get(i);
-                        if (m != null) {
-                            try {
-                                m.write(fileForRegion(dataFolder, i));
-                                loadedRegions.remove(i);
-                                lastUse.remove(i);
-                                fakeToUnload.getAndAdd(-1);
-                                Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(i) + " " + Cache.keyZ(i));
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
+                //   burstExecutor.queue(() -> {
+                hyperLock.withLong(i, () -> {
+                    TectonicPlate m = loadedRegions.get(i);
+                    if (m != null) {
+                        try {
+                            m.write(fileForRegion(dataFolder, i));
+                            loadedRegions.remove(i);
+                            lastUse.remove(i);
+                            fakeToUnload.getAndAdd(-1);
+                            Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(i) + " " + Cache.keyZ(i));
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
-                    });
-               // });
+                    }
+                });
+                // });
             }
-           // burstExecutor.complete();
+            // burstExecutor.complete();
 
         } finally {
             io.set(false);

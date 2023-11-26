@@ -69,7 +69,7 @@ public class DynamicPerformanceSVC implements IrisService {
                 tectonicLimit.getAndAdd(1);
                 t = t - 250;
             }
-            tectonicLimit.set(10);
+            // tectonicLimit.set(10);
         }
     }
 

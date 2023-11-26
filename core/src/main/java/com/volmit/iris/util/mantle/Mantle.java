@@ -443,7 +443,6 @@ public class Mantle {
                 dynamicThreads.set(IrisSettings.get().getPerformance().getTectonicUnloadThreads());
             }
         }
-        int dth = dynamicThreads.get();
 
         adjustedIdleDuration.set(baseIdleDuration);
 
@@ -501,10 +500,10 @@ public class Mantle {
                 }
             }
 
-            //   BurstExecutor burstExecutor = new BurstExecutor(Executors.newFixedThreadPool(1), toUnload.size());
+            BurstExecutor burstExecutor = new BurstExecutor(Executors.newFixedThreadPool(dynamicThreads.get()), toUnload.size());
 
             for (Long i : toUnload) {
-                //   burstExecutor.queue(() -> {
+                   burstExecutor.queue(() -> {
                 hyperLock.withLong(i, () -> {
                     TectonicPlate m = loadedRegions.get(i);
                     if (m != null) {
@@ -519,10 +518,9 @@ public class Mantle {
                         }
                     }
                 });
-                // });
+                 });
             }
-            // burstExecutor.complete();
-
+             burstExecutor.complete();
         } finally {
             io.set(false);
         }

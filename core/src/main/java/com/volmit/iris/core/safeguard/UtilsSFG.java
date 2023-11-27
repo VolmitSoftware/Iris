@@ -15,7 +15,7 @@ public class UtilsSFG {
  public static void SupportedServerSoftware(){
   if (!ServerBootSFG.passedserversoftware) {
    Iris.safeguard(C.DARK_RED + "Server is running unsupported server software");
-   Iris.safeguard(C.RED + "Supported: Purpur, Pufferfish, Paper, Spigot, Bukkit");
+   Iris.safeguard(C.RED + "Supported: Purpur, Pufferfish, Paper, Spigot, Plazma, Bukkit");
   }
  }
  public static void printIncompatibleWarnings(){

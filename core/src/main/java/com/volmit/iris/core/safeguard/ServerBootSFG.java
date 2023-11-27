@@ -53,6 +53,7 @@ public class ServerBootSFG {
         }
         if (
         !instance.getServer().getVersion().contains("Purpur") &&
+        !instance.getServer().getVersion().contains("Plazma") &&
         !instance.getServer().getVersion().contains("Paper") &&
         !instance.getServer().getVersion().contains("Spigot") &&
         !instance.getServer().getVersion().contains("Pufferfish") &&

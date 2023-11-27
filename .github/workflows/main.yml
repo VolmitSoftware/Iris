@@ -10,22 +10,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+    - name: Checkout the code
+      uses: actions/checkout@v2
 
-      - name: Set up Java
-        uses: actions/setup-java@v2
-        with:
-          java-version: '17'
+    - name: Set up Java
+      uses: actions/setup-java@v2
+      with:
+        java-version: '17'
 
-      - name: Build JAR
-        run: ./gradlew build
+    - name: Build JAR
+      run: ./gradlew build
 
-      - name: Copy JAR file
-        run: cp ./build/libs/Iris.jar ${{ github.workspace }}/Iris.jar
-
-      - name: Upload JAR artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: Iris JAR
-          path: ${{ github.workspace }}/Iris.jar
+    - name: Upload JAR artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: iris-jar
+        path: build/libs/*.jar

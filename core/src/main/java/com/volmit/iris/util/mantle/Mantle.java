@@ -491,13 +491,12 @@ public class Mantle {
                         }
 
                     if (oldestKey[0] != null) {
-                        Long finalOldestKey = oldestKey[0]; // Create a final variable for use in the lambda
+                        Long finalOldestKey = oldestKey[0];
                         hyperLock.withLong(finalOldestKey, () -> {
                             toUnload.add(finalOldestKey);
                             fakeToUnload.addAndGet(1);
                             Iris.info("Oldest Tectonic Region " + finalOldestKey + " added to unload");
 
-                            // Remove the region from loadedRegions and lastUse
                             loadedRegions.remove(finalOldestKey);
                             lastUse.remove(finalOldestKey);
                         });

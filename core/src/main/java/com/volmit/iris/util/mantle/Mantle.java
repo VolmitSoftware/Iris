@@ -420,6 +420,7 @@ public class Mantle {
         }
 
         if(IrisSettings.get().getPerformance().dynamicPerformanceMode) {
+            // todo Repixel improve the logic
             int h = dynamicThreads.get() - 1;
             if (fakeToUnload.get() != 0) {
                 if (fakeToUnload.get() > oldFakeToUnload.get()) {
@@ -469,7 +470,7 @@ public class Mantle {
                     if (M.ms() - lastUse.get(i) >= finalAdjustedIdleDuration) {
                         toUnload.add(i);
                         fakeToUnload.addAndGet(1);
-                        Iris.debug("Tectonic Region added to unload");
+                        Iris.info("Tectonic Region added to unload");
                     }
                 });
             }

@@ -76,36 +76,4 @@ public class ServerBootSFG {
             Iris.safeguard("Unstable mode has been activated.");
         }
     }
-    public static void CheckIrisWorlds() {
-            StringJoiner joiner = new StringJoiner(", ");
-
-            // Get the main server folder
-            File serverFolder = Bukkit.getWorldContainer();
-
-            // List all files in the server folder
-            File[] listOfFiles = serverFolder.listFiles();
-
-            if (listOfFiles != null) {
-                for (File file : listOfFiles) {
-                    // Check if it is a directory (world folders are directories)
-                    if (file.isDirectory()) {
-                        // Check for an "iris" folder inside the world directory
-                        File irisFolder = new File(file, "iris");
-                        if (irisFolder.exists() && irisFolder.isDirectory()) {
-                            String worldName = file.getName();
-                            joiner.add(worldName);
-
-                            // Check if the world is already loaded
-                            if (Bukkit.getWorld(worldName) == null) {
-                                WorldHandlerSFG.LoadWorld(worldName);
-                            }
-                        }
-                    }
-                }
-            } else {
-                Bukkit.getLogger().warning("No files found in the server folder.");
-            }
-            // No Idea what I should do with this
-            String worldsList = joiner.toString();
-    }
 }

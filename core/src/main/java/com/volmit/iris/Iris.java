@@ -475,7 +475,6 @@ public class Iris extends VolmitPlugin implements Listener {
             UtilsSFG.unstablePrompt();
 
             autoStartStudio();
-            ServerBootSFG.CheckIrisWorlds();
             checkForBukkitWorlds();
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
             IrisToolbelt.retainMantleDataForSlice(BlockData.class.getCanonicalName());

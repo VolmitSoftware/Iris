@@ -470,7 +470,7 @@ public class Mantle {
                     if (M.ms() - lastUse.get(i) >= finalAdjustedIdleDuration) {
                         toUnload.add(i);
                         fakeToUnload.addAndGet(1);
-                        Iris.info("Tectonic Region added to unload");
+                        Iris.debug("Tectonic Region added to unload");
                     }
                 });
             }
@@ -495,7 +495,7 @@ public class Mantle {
                         hyperLock.withLong(finalOldestKey, () -> {
                             toUnload.add(finalOldestKey);
                             fakeToUnload.addAndGet(1);
-                            Iris.info("Oldest Tectonic Region " + finalOldestKey + " added to unload");
+                            Iris.debug("Oldest Tectonic Region " + finalOldestKey + " added to unload");
 
                             loadedRegions.remove(finalOldestKey);
                             lastUse.remove(finalOldestKey);
@@ -516,7 +516,7 @@ public class Mantle {
                             m.write(fileForRegion(dataFolder, i));
                             loadedRegions.remove(i);
                             lastUse.remove(i);
-                            fakeToUnload.getAndAdd(-1);
+                            fakeToUnload.getAndDecrement();
                             Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(i) + " " + Cache.keyZ(i));
                         } catch (IOException e) {
                             e.printStackTrace();

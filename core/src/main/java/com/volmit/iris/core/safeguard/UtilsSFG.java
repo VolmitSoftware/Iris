@@ -5,14 +5,20 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.format.C;
 
 public class UtilsSFG {
- public static void UnstableMode(){
+ public static void splash(){
+  UtilsSFG.unstableMode();
+  UtilsSFG.supportedServerSoftware();
+  UtilsSFG.printIncompatibleWarnings();
+  UtilsSFG.unstablePrompt();
+ }
+ public static void unstableMode(){
   if (IrisSafeguard.unstablemode) {
    Iris.safeguard(C.DARK_RED + "Iris is running in Unstable Mode");
   } else {
    Iris.safeguard(C.BLUE + "Iris is running Stable");
   }
  }
- public static void SupportedServerSoftware(){
+ public static void supportedServerSoftware(){
   if (!ServerBootSFG.passedserversoftware) {
    Iris.safeguard(C.DARK_RED + "Server is running unsupported server software");
    Iris.safeguard(C.RED + "Supported: Purpur, Pufferfish, Paper, Spigot, Bukkit");

@@ -30,7 +30,6 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
-import com.volmit.iris.core.safeguard.ServerBootSFG;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.EnginePanic;
@@ -469,10 +468,7 @@ public class Iris extends VolmitPlugin implements Listener {
             J.s(this::setupPapi);
             J.a(ServerConfigurator::configure, 20);
             splash();
-            UtilsSFG.UnstableMode();
-            UtilsSFG.SupportedServerSoftware();
-            UtilsSFG.printIncompatibleWarnings();
-            UtilsSFG.unstablePrompt();
+            UtilsSFG.splash();
 
             autoStartStudio();
             checkForBukkitWorlds();
@@ -787,8 +783,11 @@ public class Iris extends VolmitPlugin implements Listener {
 
         if(unstablemode) Iris.info("Server Cpu: " + C.DARK_RED + getCPUModel());
 
-        if(getCPUModel().contains("Intel")) Iris.info("Server Cpu: " + C.BLUE + getCPUModel());
-        if(getCPUModel().contains("Ryzen")) Iris.info("Server Cpu: " + C.RED + getCPUModel());
+        if(getCPUModel().contains("Intel")) Iris.info("Server Cpu: " + C.BLUE + getCPUModel());else {
+            if (getCPUModel().contains("Ryzen")) Iris.info("Server Cpu: " + C.RED + getCPUModel()); else {
+                Iris.info("Server Cpu: " + C.DARK_GRAY + getCPUModel());
+            }
+        }
         if(!getCPUModel().contains("Intel") && !getCPUModel().contains("Ryzen")) Iris.info("Server Cpu: " + C.DARK_GRAY + getCPUModel());
 
         Iris.info("Process Threads: " + getCPUThreads());

@@ -34,7 +34,7 @@ public class DynamicPerformanceSVC implements IrisService {
                 try {
                     if (engine.getMantle().getTectonicLimit() < engine.getMantle().getLoadedRegionCount()){
                       //  engine.getMantle().trim(5);
-                        return 2000;
+                     //   return 2000;
                     }
                 } catch (Throwable e) {
                     Iris.reportError(e);

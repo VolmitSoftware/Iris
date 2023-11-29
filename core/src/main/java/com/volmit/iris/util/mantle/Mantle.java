@@ -42,7 +42,6 @@ import com.volmit.iris.util.parallel.HyperLock;
 import com.volmit.iris.util.parallel.MultiBurst;
 import lombok.Getter;
 import org.bukkit.Chunk;
-import org.checkerframework.checker.units.qual.A;
 
 import java.io.EOFException;
 import java.io.File;
@@ -415,10 +414,10 @@ public class Mantle {
         if (closed.get()) {
             throw new RuntimeException("The Mantle is closed");
         }
-        if (forceAggressiveThreshold.get() != -1) {
-            forceAggressiveThreshold.set(IrisSettings.get().getPerformance().getAggressiveTectonicThreshold());
-        } else {
+        if (IrisSettings.get().getPerformance().getAggressiveTectonicThreshold() == -1) {
             forceAggressiveThreshold.set(tectonicLimit.get());
+        } else {
+            forceAggressiveThreshold.set(IrisSettings.get().getPerformance().getAggressiveTectonicThreshold());
         }
 
         if(IrisSettings.get().getPerformance().dynamicPerformanceMode) {
@@ -431,7 +430,9 @@ public class Mantle {
                         dynamicThreads.addAndGet(1);
                     }
                 } else {
-                    g--;
+                    if (g > 0) {
+                        g--;
+                    }
                 }
             } else {
                 if (dynamicThreads.get() >= 2) {
@@ -478,18 +479,22 @@ public class Mantle {
             if (IrisSettings.get().getPerformance().AggressiveTectonicUnload
                     && loadedRegions.size() > forceAggressiveThreshold.get()) {
 
-                while (loadedRegions.size() > tectonicLimit.get()) {
+                AtomicInteger dummyLoadedRegions = new AtomicInteger(loadedRegions.size());
+
+                while (dummyLoadedRegions.get() > tectonicLimit.get()) {
                     Long[] oldestKey = {null};
                     long[] oldestAge = {Long.MIN_VALUE};
 
                     for (Long key : lastUse.keySet()) {
-                        if (!toUnload.contains(key)) {
-                            long age = M.ms() - lastUse.get(key);
-                            if (age > oldestAge[0]) {
-                                oldestAge[0] = age;
-                                oldestKey[0] = key;
+                        hyperLock.withLong(key, () -> {
+                            if (!toUnload.contains(key)) {
+                                long age = M.ms() - lastUse.get(key);
+                                if (age > oldestAge[0]) {
+                                    oldestAge[0] = age;
+                                    oldestKey[0] = key;
+                                }
                             }
-                        }
+                        });
                     }
 
                     if (oldestKey[0] != null) {
@@ -497,30 +502,30 @@ public class Mantle {
                         hyperLock.withLong(finalOldestKey, () -> {
                             toUnload.add(finalOldestKey);
                             Iris.debug("Oldest Tectonic Region " + finalOldestKey + " added to unload");
+                            dummyLoadedRegions.getAndDecrement();
                         });
                     }
-
                 }
             }
 
             BurstExecutor burstExecutor = new BurstExecutor(Executors.newFixedThreadPool(dynamicThreads.get()), toUnload.size());
-
-            for (Long i : toUnload) {
-                   burstExecutor.queue(() -> {
-                hyperLock.withLong(i, () -> {
-                    TectonicPlate m = loadedRegions.get(i);
-                    if (m != null) {
-                        try {
-                            m.write(fileForRegion(dataFolder, i));
-                            loadedRegions.remove(i);
-                            lastUse.remove(i);
-                            Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(i) + " " + Cache.keyZ(i));
-                        } catch (IOException e) {
-                            e.printStackTrace();
+            for (Long i : toUnload.toArray(Long[]::new)) {
+                burstExecutor.queue(() -> {
+                    hyperLock.withLong(i, () -> {
+                        TectonicPlate m = loadedRegions.get(i);
+                        if (m != null) {
+                            try {
+                                m.write(fileForRegion(dataFolder, i));
+                                loadedRegions.remove(i);
+                                lastUse.remove(i);
+                                toUnload.remove(i);
+                                Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(i) + " " + Cache.keyZ(i));
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
                         }
-                    }
+                    });
                 });
-                 });
             }
              burstExecutor.complete();
         } finally {

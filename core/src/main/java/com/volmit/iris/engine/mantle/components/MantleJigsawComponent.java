@@ -23,6 +23,7 @@ import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.IrisMantleComponent;
 import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.*;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
@@ -53,8 +54,6 @@ public class MantleJigsawComponent extends IrisMantleComponent {
 
     @ChunkCoordinates
     private void generateJigsaw(MantleWriter writer, RNG rng, int x, int z, IrisBiome biome, IrisRegion region) {
-        boolean placed = false;
-
         if (getDimension().getStronghold() != null) {
             List<Position2> poss = getDimension().getStrongholds(seed());
 
@@ -63,43 +62,30 @@ public class MantleJigsawComponent extends IrisMantleComponent {
                     if (x == pos.getX() >> 4 && z == pos.getZ() >> 4) {
                         IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(getDimension().getStronghold());
                         place(writer, pos.toIris(), structure, rng);
-                        placed = true;
+                        return;
                     }
                 }
             }
         }
 
-        if (!placed) {
-            for (IrisJigsawStructurePlacement i : biome.getJigsawStructures()) {
-                if (rng.nextInt(i.getRarity()) == 0) {
-                    IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
-                    IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
-                    place(writer, position, structure, rng);
-                    placed = true;
-                }
-            }
-        }
+        boolean placed = placeStructures(writer, rng, x, z, biome.getJigsawStructures());
+        if (!placed)
+            placed = placeStructures(writer, rng, x, z, region.getJigsawStructures());
+        if (!placed)
+            placeStructures(writer, rng, x, z, getDimension().getJigsawStructures());
+    }
 
-        if (!placed) {
-            for (IrisJigsawStructurePlacement i : region.getJigsawStructures()) {
-                if (rng.nextInt(i.getRarity()) == 0) {
-                    IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
-                    IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
-                    place(writer, position, structure, rng);
-                    placed = true;
-                }
+    @ChunkCoordinates
+    private boolean placeStructures(MantleWriter writer, RNG rng, int x, int z, KList<IrisJigsawStructurePlacement> structures) {
+        for (IrisJigsawStructurePlacement i : structures) {
+            if (rng.nextInt(i.getRarity()) == 0) {
+                IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
+                IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
+                place(writer, position, structure, rng);
+                return true;
             }
         }
-
-        if (!placed) {
-            for (IrisJigsawStructurePlacement i : getDimension().getJigsawStructures()) {
-                if (rng.nextInt(i.getRarity()) == 0) {
-                    IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
-                    IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
-                    place(writer, position, structure, rng);
-                }
-            }
-        }
+        return false;
     }
 
     @ChunkCoordinates

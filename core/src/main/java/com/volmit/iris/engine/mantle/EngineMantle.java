@@ -301,6 +301,9 @@ public interface EngineMantle extends IObjectPlacer {
     default double getTectonicLimit(){
         return Mantle.tectonicLimit.get();
     }
+    default long getNotClearedLoadedRegions(){
+        return getMantle().getLoadedRegions().size() - getMantle().getToUnload().size();
+    }
     default double getTectonicDuration(){
         return getMantle().getAdjustedIdleDuration().get();
     }

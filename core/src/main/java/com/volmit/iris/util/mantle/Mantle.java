@@ -388,8 +388,6 @@ public class Mantle {
         return numberOfEntries * bytesPerEntry;
     }
 
-    //@Getter
-    //private final AtomicInteger fakeToUnload = new AtomicInteger(0);
     private final AtomicInteger oldFakeToUnload = new AtomicInteger((0));
     @Getter
     private final AtomicDouble adjustedIdleDuration = new AtomicDouble(0);
@@ -479,9 +477,12 @@ public class Mantle {
             if (IrisSettings.get().getPerformance().AggressiveTectonicUnload
                     && loadedRegions.size() > forceAggressiveThreshold.get()) {
 
-                AtomicInteger dummyLoadedRegions = new AtomicInteger(loadedRegions.size());
+                AtomicInteger regionCountToRemove = new AtomicInteger(0);
+                if (loadedRegions.size() > tectonicLimit.get()){
+                    regionCountToRemove.set(loadedRegions.size() - tectonicLimit.get());
+                }
 
-                while (dummyLoadedRegions.get() > tectonicLimit.get()) {
+                for (; regionCountToRemove.get() > 0 ;) {
                     Long[] oldestKey = {null};
                     long[] oldestAge = {Long.MIN_VALUE};
 
@@ -502,7 +503,7 @@ public class Mantle {
                         hyperLock.withLong(finalOldestKey, () -> {
                             toUnload.add(finalOldestKey);
                             Iris.debug("Oldest Tectonic Region " + finalOldestKey + " added to unload");
-                            dummyLoadedRegions.getAndDecrement();
+                            regionCountToRemove.getAndDecrement();
                         });
                     }
                 }

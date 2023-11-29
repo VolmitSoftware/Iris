@@ -770,7 +770,6 @@ public class Iris extends VolmitPlugin implements Listener {
         };
         String[] splash = unstablemode ? splashunstable : splashstable; // Choose the appropriate splash array based on unstablemode
 
-
         OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
         String osArch = osBean.getArch();
         String osName = osBean.getName();
@@ -778,17 +777,30 @@ public class Iris extends VolmitPlugin implements Listener {
         if (!passedserversoftware) {
             Iris.info("Server type & version: " + C.RED + Bukkit.getVersion());
         } else { Iris.info("Server type & version: " + Bukkit.getVersion()); }
-
+        if (!instance.getServer().getVersion().contains("Purpur")) {
+            if (instance.getServer().getVersion().contains("Spigot") && instance.getServer().getVersion().contains("Bukkit")) {
+                 Iris.info(C.RED + " Iris requires paper or above to function properly..");
+            } else {
+                Iris.info(C.YELLOW + "Purpur is recommended to use with iris.");
+            }
+        }
         Iris.info("Server OS: " + osName + " (" + osArch + ")");
 
         if(unstablemode) Iris.info("Server Cpu: " + C.DARK_RED + getCPUModel());
-
-        if(getCPUModel().contains("Intel")) Iris.info("Server Cpu: " + C.BLUE + getCPUModel());else {
-            if (getCPUModel().contains("Ryzen")) Iris.info("Server Cpu: " + C.RED + getCPUModel()); else {
-                Iris.info("Server Cpu: " + C.DARK_GRAY + getCPUModel());
+        try {
+            if (getCPUModel().contains("Intel")) {
+                Iris.info("Server Cpu: " + C.BLUE + getCPUModel());
             }
+            if (getCPUModel().contains("Ryzen")) {
+                Iris.info("Server Cpu: " + C.RED + getCPUModel());
+            }
+            if (!getCPUModel().contains("Ryzen") && !getCPUModel().contains("Intel")) {
+                Iris.info("Server Cpu: " + C.GRAY + getCPUModel());
+            }
+
+        } catch (Exception e){
+            Iris.info("Server Cpu: " + C.DARK_RED + "Failed");
         }
-        if(!getCPUModel().contains("Intel") && !getCPUModel().contains("Ryzen")) Iris.info("Server Cpu: " + C.DARK_GRAY + getCPUModel());
 
         Iris.info("Process Threads: " + getCPUThreads());
         Iris.info("Process Memory: " + getHardware.getProcessMemory() + " MB");

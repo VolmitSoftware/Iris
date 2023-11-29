@@ -42,17 +42,16 @@ import com.volmit.iris.util.parallel.HyperLock;
 import com.volmit.iris.util.parallel.MultiBurst;
 import lombok.Getter;
 import org.bukkit.Chunk;
+import org.checkerframework.checker.units.qual.A;
 
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * The mantle can store any type of data slice anywhere and manage regions & IO on it's own.
@@ -400,6 +399,8 @@ public class Mantle {
     private final AtomicInteger dynamicThreads = new AtomicInteger(1);
     @Getter
     private final AtomicInteger forceAggressiveThreshold = new AtomicInteger(30);
+    @Getter
+    private final AtomicLong oldestTectonicPlate = new AtomicLong(0);
     private int g = 0;
 
     /**
@@ -412,7 +413,7 @@ public class Mantle {
         if (closed.get()) {
             throw new RuntimeException("The Mantle is closed");
         }
-        if (forceAggressiveThreshold.get() <= -1) {
+        if (forceAggressiveThreshold.get() != -1) {
             forceAggressiveThreshold.set(IrisSettings.get().getPerformance().getAggressiveTectonicThreshold());
         } else {
             forceAggressiveThreshold.set(tectonicLimit.get());
@@ -473,30 +474,34 @@ public class Mantle {
                 });
             }
 
-            if (IrisSettings.get().getPerformance().AggressiveTectonicUnload && loadedRegions.size() > tectonicLimit.get() && tectonicLimit.get() > forceAggressiveThreshold.get()) {
-                AtomicInteger dummyLoadedRegions = new AtomicInteger(loadedRegions.size());
+            if (IrisSettings.get().getPerformance().AggressiveTectonicUnload
+                    && loadedRegions.size() > forceAggressiveThreshold.get()) {
 
-                while (dummyLoadedRegions.get() > tectonicLimit.get()) {
-                    try {
-                        long fiveSecondsAgo = M.ms() - 5000;
-                        toUnload.clear();
+                while (loadedRegions.size() > tectonicLimit.get()) {
+                    Long[] oldestKey = {null};
+                    long[] oldestAge = {Long.MIN_VALUE};
 
-                        lastUse.entrySet().stream()
-                                .filter(e -> e.getValue() < fiveSecondsAgo)
-                                .max(Comparator.comparingLong(Map.Entry::getValue))
-                                .map(Map.Entry::getKey)
-                                .ifPresent(oldestOverFiveSeconds -> hyperLock.withLong(oldestOverFiveSeconds, () -> {
-                                    if (M.ms() - lastUse.get(oldestOverFiveSeconds) >= adjustedIdleDuration.get()) {
-                                        toUnload.add(oldestOverFiveSeconds);
-                                        fakeToUnload.getAndAdd(1);
-                                        Iris.debug("Oldest Tectonic Region over 5 seconds idle added to unload");
-                                        dummyLoadedRegions.getAndDecrement();
-                                    }
-                                }));
+                        for (Long key : lastUse.keySet()) {
+                            long age = M.ms() - lastUse.get(key);
+                            if (age > oldestAge[0]) {
+                                oldestAge[0] = age;
+                                oldestKey[0] = key;
+                            }
+                        }
 
-                    } catch (Exception e) {
+                    if (oldestKey[0] != null) {
+                        Long finalOldestKey = oldestKey[0]; // Create a final variable for use in the lambda
+                        hyperLock.withLong(finalOldestKey, () -> {
+                            toUnload.add(finalOldestKey);
+                            fakeToUnload.addAndGet(1);
+                            Iris.info("Oldest Tectonic Region " + finalOldestKey + " added to unload");
 
+                            // Remove the region from loadedRegions and lastUse
+                            loadedRegions.remove(finalOldestKey);
+                            lastUse.remove(finalOldestKey);
+                        });
                     }
+
                 }
             }
 

@@ -389,8 +389,8 @@ public class Mantle {
         return numberOfEntries * bytesPerEntry;
     }
 
-    @Getter
-    private final AtomicInteger fakeToUnload = new AtomicInteger(0);
+    //@Getter
+    //private final AtomicInteger fakeToUnload = new AtomicInteger(0);
     private final AtomicInteger oldFakeToUnload = new AtomicInteger((0));
     @Getter
     private final AtomicDouble adjustedIdleDuration = new AtomicDouble(0);
@@ -401,6 +401,8 @@ public class Mantle {
     private final AtomicInteger forceAggressiveThreshold = new AtomicInteger(30);
     @Getter
     private final AtomicLong oldestTectonicPlate = new AtomicLong(0);
+    @Getter
+    private final Set<Long> toUnload = new HashSet<>();
     private int g = 0;
 
     /**
@@ -422,8 +424,8 @@ public class Mantle {
         if(IrisSettings.get().getPerformance().dynamicPerformanceMode) {
             // todo Repixel improve the logic
             int h = dynamicThreads.get() - 1;
-            if (fakeToUnload.get() != 0) {
-                if (fakeToUnload.get() > oldFakeToUnload.get()) {
+            if (toUnload.size() != 0) {
+                if (toUnload.size() > oldFakeToUnload.get()) {
                     g++;
                     if (g >= 2 && IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism()) > h && IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism()) != h) {
                         dynamicThreads.addAndGet(1);
@@ -436,7 +438,7 @@ public class Mantle {
                     dynamicThreads.addAndGet(-1);
                 }
             }
-            oldFakeToUnload.set(fakeToUnload.get());
+            oldFakeToUnload.set(toUnload.size());
         }
         if (!IrisSettings.get().getPerformance().dynamicPerformanceMode){
             if(IrisSettings.get().getPerformance().getTectonicUnloadThreads() <= -1){
@@ -461,7 +463,6 @@ public class Mantle {
         io.set(true);
 
         try {
-            final Set<Long> toUnload = new HashSet<>();
             Iris.debug("Trimming Tectonic Plates older than " + Form.duration(adjustedIdleDuration.get(), 0));
 
             for (Long i : lastUse.keySet()) {
@@ -469,7 +470,6 @@ public class Mantle {
                 hyperLock.withLong(i, () -> {
                     if (M.ms() - lastUse.get(i) >= finalAdjustedIdleDuration) {
                         toUnload.add(i);
-                        fakeToUnload.addAndGet(1);
                         Iris.debug("Tectonic Region added to unload");
                     }
                 });
@@ -482,23 +482,21 @@ public class Mantle {
                     Long[] oldestKey = {null};
                     long[] oldestAge = {Long.MIN_VALUE};
 
-                        for (Long key : lastUse.keySet()) {
+                    for (Long key : lastUse.keySet()) {
+                        if (!toUnload.contains(key)) {
                             long age = M.ms() - lastUse.get(key);
                             if (age > oldestAge[0]) {
                                 oldestAge[0] = age;
                                 oldestKey[0] = key;
                             }
                         }
+                    }
 
                     if (oldestKey[0] != null) {
                         Long finalOldestKey = oldestKey[0];
                         hyperLock.withLong(finalOldestKey, () -> {
                             toUnload.add(finalOldestKey);
-                            fakeToUnload.addAndGet(1);
                             Iris.debug("Oldest Tectonic Region " + finalOldestKey + " added to unload");
-
-                            loadedRegions.remove(finalOldestKey);
-                            lastUse.remove(finalOldestKey);
                         });
                     }
 
@@ -516,7 +514,6 @@ public class Mantle {
                             m.write(fileForRegion(dataFolder, i));
                             loadedRegions.remove(i);
                             lastUse.remove(i);
-                            fakeToUnload.getAndDecrement();
                             Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(i) + " " + Cache.keyZ(i));
                         } catch (IOException e) {
                             e.printStackTrace();

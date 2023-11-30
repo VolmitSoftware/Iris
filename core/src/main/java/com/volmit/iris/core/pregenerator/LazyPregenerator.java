@@ -2,6 +2,7 @@ package com.volmit.iris.core.pregenerator;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
@@ -9,6 +10,8 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.math.Spiraler;
+import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import io.papermc.lib.PaperLib;
@@ -22,6 +25,7 @@ import org.bukkit.event.world.WorldUnloadEvent;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -137,13 +141,16 @@ public class LazyPregenerator extends Thread implements Listener {
     }
 
     private void tickGenerate(Position2 chunk) {
-        if (PaperLib.isPaper()) {
-            PaperLib.getChunkAtAsync(world, chunk.getX(), chunk.getZ(), true).thenAccept((i) -> Iris.verbose("Generated Async " + chunk));
-        } else {
-            J.s(() -> world.getChunkAt(chunk.getX(), chunk.getZ()));
-            Iris.verbose("Generated " + chunk);
-        }
-        lazyGeneratedChunks.addAndGet(1);
+        BurstExecutor burstExecutor = new BurstExecutor(Executors.newFixedThreadPool(IrisSettings.get().getConcurrency().getParallelism()), lazyTotalChunks.get());
+        burstExecutor.queue(() -> {
+            if (PaperLib.isPaper()) {
+                PaperLib.getChunkAtAsync(world, chunk.getX(), chunk.getZ(), true).thenAccept((i) -> Iris.verbose("Generated Async " + chunk));
+            } else {
+                J.s(() -> world.getChunkAt(chunk.getX(), chunk.getZ()));
+                Iris.verbose("Generated " + chunk);
+            }
+            lazyGeneratedChunks.addAndGet(1);
+        });
     }
 
     private void tickRegenerate(Position2 chunk) {

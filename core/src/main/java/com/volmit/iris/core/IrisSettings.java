@@ -145,6 +145,7 @@ public class IrisSettings {
         public boolean dynamicPerformanceMode = true;
         public boolean AggressiveTectonicUnload = false;
         public int AggressiveTectonicThreshold = -1;  // -1 = Disabled and instead uses the tectonicLimit
+        public int LazyPregenMaxCPM = -1; // -1 = no limit
     }
 
     @Data

@@ -25,6 +25,7 @@ import org.bukkit.event.world.WorldUnloadEvent;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -140,9 +141,10 @@ public class LazyPregenerator extends Thread implements Listener {
         );
     }
 
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
     private void tickGenerate(Position2 chunk) {
-        BurstExecutor burstExecutor = new BurstExecutor(Executors.newFixedThreadPool(IrisSettings.get().getConcurrency().getParallelism()), lazyTotalChunks.get());
-        burstExecutor.queue(() -> {
+        executorService.submit(() -> {
             if (PaperLib.isPaper()) {
                 PaperLib.getChunkAtAsync(world, chunk.getX(), chunk.getZ(), true).thenAccept((i) -> Iris.verbose("Generated Async " + chunk));
             } else {

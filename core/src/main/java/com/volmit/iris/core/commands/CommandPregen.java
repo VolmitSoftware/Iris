@@ -19,6 +19,7 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
 import com.volmit.iris.core.pregenerator.PregenTask;
@@ -78,12 +79,18 @@ public class CommandPregen implements DecreeExecutor {
                         sender().sendMessage(C.RED + "The engine access for this world is null!");
                         sender().sendMessage(C.RED + "Please make sure the world is loaded & the engine is initialized. Generate a new chunk, for example.");
                     }
+                    int cpm = 0;
+                    if (IrisSettings.get().getPerformance().getLazyPregenMaxCPM() == -1) {
+                        cpm = 999999999;
+                    } else {
+                        cpm = IrisSettings.get().getPerformance().getLazyPregenMaxCPM();
+                    }
 
                     LazyPregenerator.LazyPregenJob pregenJob = LazyPregenerator.LazyPregenJob.builder()
                             .world(worldName)
                             .healingPosition(0)
                             .healing(false)
-                            .chunksPerMinute(999999999)
+                            .chunksPerMinute(cpm)
                             .radiusBlocks(radius)
                             .position(0)
                             .build();

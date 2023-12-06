@@ -5,6 +5,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -53,10 +54,15 @@ public class IrisEngineSVC implements IrisService {
             @Override
             protected long loop() {
                 try {
-                    for (World world : IrisWorlds){
+                    for (World world : IrisWorlds) {
                         Engine engine = IrisToolbelt.access(world).getEngine();
-
-
+                    }
+                    PlatformChunkGenerator generator = IrisToolbelt.access(Bukkit.getWorld("localmemtest"));
+                    if (generator != null && generator.getEngine() != null) {
+                        Engine engine = generator.getEngine();
+                        engine.getMantle().trim();
+                    } else {
+                        Iris.info("localmemtest is nullmem");
                     }
                 } catch (Throwable e) {
                     Iris.reportError(e);
@@ -68,6 +74,7 @@ public class IrisEngineSVC implements IrisService {
             }
         };
     }
+
     public void IrisStartup(){
         tectonicLimit.set(2);
         long t = getHardware.getProcessMemory();

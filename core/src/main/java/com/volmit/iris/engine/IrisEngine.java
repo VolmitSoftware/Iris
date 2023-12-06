@@ -418,7 +418,6 @@ public class IrisEngine implements Engine {
 
         J.a(() -> {
             try {
-                getMantle().trim();
                 getData().getObjectLoader().clean();
             } catch (Throwable e) {
                 Iris.reportError(e);

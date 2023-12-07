@@ -471,19 +471,20 @@ public class Mantle {
             try {
                 Iris.debug("Trimming Tectonic Plates older than " + Form.duration(adjustedIdleDuration.get(), 0));
                 if (lastUse != null) {
-                    for (Long i : lastUse.keySet()) {
-                            Long lastUseTime = lastUse.get(i);
-                            if (lastUseTime != null) {
-                                double finalAdjustedIdleDuration = adjustedIdleDuration.get();
-                                hyperLock.withLong(i, () -> {
-                                    if (M.ms() - lastUseTime >= finalAdjustedIdleDuration) {
-                                        toUnload.add(i);
-                                        Iris.debug("Tectonic Region added to unload");
-                                    }
-                                });
-                            }
+                    synchronized (lastUse) { // Synchronize access to lastUse ( GPT Code )
+                        for (Long i : new ArrayList<>(lastUse.keySet())) { // Use ArrayList to avoid ConcurrentModificationException
+                            double finalAdjustedIdleDuration = adjustedIdleDuration.get();
+                            hyperLock.withLong(i, () -> {
+                                Long lastUseTime = lastUse.get(i); // Move the get inside the lock
+                                if (lastUseTime != null && M.ms() - lastUseTime >= finalAdjustedIdleDuration) {
+                                    toUnload.add(i);
+                                    Iris.debug("Tectonic Region added to unload");
+                                }
+                            });
+                        }
                     }
                 }
+
 
                 if (IrisSettings.get().getPerformance().AggressiveTectonicUnload
                         && loadedRegions.size() > forceAggressiveThreshold.get()) {
@@ -529,27 +530,40 @@ public class Mantle {
             protected long loop() {
                 try {
                     Iris.info(C.DARK_BLUE + "TECTONIC UNLOAD HAS RUN");
-                    BurstExecutor burstExecutor = new BurstExecutor(Executors.newFixedThreadPool(dynamicThreads.get()), toUnload.size());
-                    for (Long i : toUnload.toArray(Long[]::new)) {
-                        burstExecutor.queue(() -> {
-                            hyperLock.withLong(i, () -> {
-                                TectonicPlate m = loadedRegions.get(i);
-                                if (m != null) {
-                                    try {
-                                        m.write(fileForRegion(dataFolder, i));
-                                        loadedRegions.remove(i);
-                                        lastUse.remove(i);
-                                        toUnload.remove(i);
-                                        Iris.info("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(i) + " " + Cache.keyZ(i));
-                                    } catch (IOException e) {
-                                        e.printStackTrace();
+                    int threadCount = 1;
+                    ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+                    List<Long> toUnloadList = new ArrayList<>(toUnload);
+
+                    int chunkSize = (int) Math.ceil(toUnloadList.size() / (double) threadCount);
+
+                    for (int i = 0; i < threadCount; i++) {
+                        int start = i * chunkSize;
+                        int end = Math.min(start + chunkSize, toUnloadList.size());
+                        List<Long> sublist = toUnloadList.subList(start, end);
+
+                        executorService.submit(() -> {
+                            for (Long id : sublist) {
+                                hyperLock.withLong(id, () -> {
+                                    TectonicPlate m = loadedRegions.get(id);
+                                    if (m != null) {
+                                        try {
+                                            m.write(fileForRegion(dataFolder, id));
+                                            loadedRegions.remove(id);
+                                            lastUse.remove(id);
+                                            toUnload.remove(id);
+                                            Iris.info("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(id) + " " + Cache.keyZ(id));
+                                        } catch (IOException e) {
+                                            e.printStackTrace();
+                                        }
                                     }
-                                }
-                            });
+                                });
+                            }
                         });
                     }
-                    burstExecutor.complete();
-                } catch (Exception e){
+
+                    executorService.shutdown();
+                    executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+                } catch (Exception e) {
                     Iris.reportError(e);
                     return -1;
                 }
@@ -558,6 +572,7 @@ public class Mantle {
         };
         ioTectonicUnload.set(true);
     }
+
 
     /**
      * This retreives a future of the Tectonic Plate at the given coordinates.

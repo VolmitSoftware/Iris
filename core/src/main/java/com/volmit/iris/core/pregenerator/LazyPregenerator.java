@@ -25,6 +25,7 @@ import org.bukkit.event.world.WorldUnloadEvent;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -145,12 +146,23 @@ public class LazyPregenerator extends Thread implements Listener {
 
     private void tickGenerate(Position2 chunk) {
         executorService.submit(() -> {
+            CountDownLatch latch = new CountDownLatch(1);
             if (PaperLib.isPaper()) {
-                PaperLib.getChunkAtAsync(world, chunk.getX(), chunk.getZ(), true).thenAccept((i) -> Iris.verbose("Generated Async " + chunk));
+                PaperLib.getChunkAtAsync(world, chunk.getX(), chunk.getZ(), true)
+                        .thenAccept((i) -> {
+                            Iris.verbose("Generated Async " + chunk);
+                            latch.countDown();
+                        });
             } else {
-                J.s(() -> world.getChunkAt(chunk.getX(), chunk.getZ()));
-                Iris.verbose("Generated " + chunk);
+                J.s(() -> {
+                    world.getChunkAt(chunk.getX(), chunk.getZ());
+                    Iris.verbose("Generated " + chunk);
+                    latch.countDown();
+                });
             }
+            try {
+                latch.await();
+            } catch (InterruptedException ignored) {}
             lazyGeneratedChunks.addAndGet(1);
         });
     }

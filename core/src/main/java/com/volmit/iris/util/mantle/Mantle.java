@@ -471,20 +471,17 @@ public class Mantle {
             try {
                 Iris.debug("Trimming Tectonic Plates older than " + Form.duration(adjustedIdleDuration.get(), 0));
                 if (lastUse != null) {
-                    synchronized (lastUse) { // Synchronize access to lastUse ( GPT Code )
-                        for (Long i : new ArrayList<>(lastUse.keySet())) { // Use ArrayList to avoid ConcurrentModificationException
+                        for (Long i : new ArrayList<>(lastUse.keySet())) {
                             double finalAdjustedIdleDuration = adjustedIdleDuration.get();
                             hyperLock.withLong(i, () -> {
-                                Long lastUseTime = lastUse.get(i); // Move the get inside the lock
+                                Long lastUseTime = lastUse.get(i);
                                 if (lastUseTime != null && M.ms() - lastUseTime >= finalAdjustedIdleDuration) {
                                     toUnload.add(i);
                                     Iris.debug("Tectonic Region added to unload");
                                 }
                             });
                         }
-                    }
                 }
-
 
                 if (IrisSettings.get().getPerformance().AggressiveTectonicUnload
                         && loadedRegions.size() > forceAggressiveThreshold.get()) {

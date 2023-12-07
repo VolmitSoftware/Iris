@@ -398,7 +398,6 @@ public class Mantle {
         return numberOfEntries * bytesPerEntry;
     }
 
-    private final AtomicInteger oldFakeToUnload = new AtomicInteger((0));
     @Getter
     private final AtomicDouble adjustedIdleDuration = new AtomicDouble(0);
     public static final AtomicInteger tectonicLimit = new AtomicInteger(30);
@@ -409,7 +408,7 @@ public class Mantle {
     @Getter
     private final AtomicLong oldestTectonicPlate = new AtomicLong(0);
     @Getter
-    public Set<Long> toUnload = new HashSet<>();
+    public final Set<Long> toUnload = new HashSet<>();
     private int g = 0;
 
     /**
@@ -428,34 +427,6 @@ public class Mantle {
         } else {
             forceAggressiveThreshold.set(IrisSettings.get().getPerformance().getAggressiveTectonicThreshold());
         }
-
-            // todo Repixel improve the logic
-        /*
-            int h = dynamicThreads.get() - 1;
-            if (toUnload.size() != 0) {
-                if (toUnload.size() > oldFakeToUnload.get()) {
-                    g++;
-                    if (g >= 2 && IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism()) > h && IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism()) != h) {
-                        dynamicThreads.addAndGet(1);
-                    }
-                } else {
-                    if (g > 0) {
-                        g--;
-                    }
-                }
-            } else {
-                if (dynamicThreads.get() >= 2) {
-                    dynamicThreads.addAndGet(-1);
-                }
-            }
-            oldFakeToUnload.set(toUnload.size());
-
-            if(IrisSettings.get().getPerformance().getTectonicUnloadThreads() <= -1){
-                dynamicThreads.set(1);
-            } else {
-                dynamicThreads.set(IrisSettings.get().getPerformance().getTectonicUnloadThreads());
-            }
-         */
 
         adjustedIdleDuration.set(baseIdleDuration);
 
@@ -525,11 +496,15 @@ public class Mantle {
     protected void unloadTectonicPlate() {
         ticker = new Looper() {
             protected long loop() {
+                long time = System.currentTimeMillis();
                 try {
                     Iris.info(C.DARK_BLUE + "TECTONIC UNLOAD HAS RUN");
                     int threadCount = 1;
                     ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
-                    List<Long> toUnloadList = new ArrayList<>(toUnload);
+                    List<Long> toUnloadList;
+                    synchronized (toUnload) {
+                        toUnloadList = new ArrayList<>(toUnload);
+                    }
 
                     int chunkSize = (int) Math.ceil(toUnloadList.size() / (double) threadCount);
 
@@ -561,15 +536,14 @@ public class Mantle {
                     executorService.shutdown();
                     executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
                 } catch (Exception e) {
-                    Iris.reportError(e);
+                    e.printStackTrace();
                     return -1;
                 }
-                return 1000;
+                return Math.max(0, 1000-(System.currentTimeMillis()-time));
             }
         };
         ioTectonicUnload.set(true);
     }
-
 
     /**
      * This retreives a future of the Tectonic Plate at the given coordinates.

@@ -62,6 +62,7 @@ import static com.volmit.iris.core.safeguard.ServerBootSFG.incompatiblePlugins;
 public class CommandIris implements DecreeExecutor {
     private CommandStudio studio;
     private CommandPregen pregen;
+    private CommandLazyPregen lazyPregen;
     private CommandSettings settings;
     private CommandObject object;
     private CommandJigsaw jigsaw;
@@ -367,77 +368,6 @@ public class CommandIris implements DecreeExecutor {
         IrisSettings.invalidate();
         IrisSettings.get();
         sender().sendMessage(C.GREEN + "Hotloaded settings");
-    }
-
-    @Decree(name = "regen", description = "Regenerate nearby chunks.", aliases = "rg", sync = true, origin = DecreeOrigin.PLAYER)
-    public void regen(
-            @Param(name = "radius", description = "The radius of nearby cunks", defaultValue = "5")
-            int radius
-    ) {
-        if (IrisToolbelt.isIrisWorld(player().getWorld())) {
-            VolmitSender sender = sender();
-            J.a(() -> {
-                DecreeContext.touch(sender);
-                PlatformChunkGenerator plat = IrisToolbelt.access(player().getWorld());
-                Engine engine = plat.getEngine();
-                try {
-                    Chunk cx = player().getLocation().getChunk();
-                    KList<Runnable> js = new KList<>();
-                    BurstExecutor b = MultiBurst.burst.burst();
-                    b.setMulticore(false);
-                    int rad = engine.getMantle().getRealRadius();
-                    for (int i = -(radius + rad); i <= radius + rad; i++) {
-                        for (int j = -(radius + rad); j <= radius + rad; j++) {
-                            engine.getMantle().getMantle().deleteChunk(i + cx.getX(), j + cx.getZ());
-                        }
-                    }
-
-                    for (int i = -radius; i <= radius; i++) {
-                        for (int j = -radius; j <= radius; j++) {
-                            int finalJ = j;
-                            int finalI = i;
-                            b.queue(() -> plat.injectChunkReplacement(player().getWorld(), finalI + cx.getX(), finalJ + cx.getZ(), (f) -> {
-                                synchronized (js) {
-                                    js.add(f);
-                                }
-                            }));
-                        }
-                    }
-
-                    b.complete();
-                    sender().sendMessage(C.GREEN + "Regenerating " + Form.f(js.size()) + " Sections");
-                    QueueJob<Runnable> r = new QueueJob<>() {
-                        final KList<Future<?>> futures = new KList<>();
-
-                        @Override
-                        public void execute(Runnable runnable) {
-                            futures.add(J.sfut(runnable));
-
-                            if (futures.size() > 64) {
-                                while (futures.isNotEmpty()) {
-                                    try {
-                                        futures.remove(0).get();
-                                    } catch (InterruptedException | ExecutionException e) {
-                                        e.printStackTrace();
-                                    }
-                                }
-                            }
-                        }
-
-                        @Override
-                        public String getName() {
-                            return "Regenerating";
-                        }
-                    };
-                    r.queue(js);
-                    r.execute(sender());
-                } catch (Throwable e) {
-                    sender().sendMessage("Unable to parse view-distance");
-                }
-            });
-        } else {
-            sender().sendMessage(C.RED + "You must be in an Iris World to use regen!");
-        }
     }
 
     @Decree(description = "Update the pack of a world (UNSAFE!)", name = "^world", aliases = "update-world")

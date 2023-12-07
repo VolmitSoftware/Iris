@@ -110,10 +110,11 @@ public class LazyPregenerator extends Thread implements Listener {
             generatedLast.set(lazyGeneratedChunks.get());
             secondGenerated = secondGenerated / 6;
             chunksPerSecond.put(secondGenerated);
-            Iris.info("LazyGen: " + C.IRIS + world.getName() + C.RESET + " RTT: " + Form.f(lazyGeneratedChunks.get()) + " of " + Form.f(lazyTotalChunks.get()) + " " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration((double) eta, 2));
+            if (!job.isSilent()) {
+                Iris.info("LazyGen: " + C.IRIS + world.getName() + C.RESET + " RTT: " + Form.f(lazyGeneratedChunks.get()) + " of " + Form.f(lazyTotalChunks.get()) + " " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration((double) eta, 2));
+            }
             //Iris.info("Debug: " + maxPosition);
             //Iris.info("Debug1: " + job.getPosition());
-
             // todo: Maxpos borked
         }
 
@@ -216,5 +217,7 @@ public class LazyPregenerator extends Thread implements Listener {
         private int radiusBlocks = 5000;
         @Builder.Default
         private int position = 0;
+        @Builder.Default
+        boolean silent = false;
     }
 }

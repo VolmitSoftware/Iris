@@ -131,7 +131,9 @@ public class LazyPregenerator extends Thread implements Listener {
         } else {
             int pos = job.getPosition() + 1;
             job.setPosition(pos);
-            tickGenerate(getChunk(pos));
+            if (!job.paused) {
+                tickGenerate(getChunk(pos));
+            }
         }
     }
 

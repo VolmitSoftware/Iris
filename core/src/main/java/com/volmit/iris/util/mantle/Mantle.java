@@ -462,7 +462,7 @@ public class Mantle {
                         regionCountToRemove.set(loadedRegions.size() - tectonicLimit.get());
                     }
 
-                    for (; regionCountToRemove.get() > 0; ) {
+                    while (regionCountToRemove.get() > 0) {
                         Long[] oldestKey = {null};
                         long[] oldestAge = {Long.MIN_VALUE};
 

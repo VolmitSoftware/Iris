@@ -3,6 +3,7 @@ package com.volmit.iris.core.pregenerator;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
@@ -14,9 +15,11 @@ import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
+import io.lumine.mythic.bukkit.utils.lib.jooq.False;
 import io.papermc.lib.PaperLib;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.event.EventHandler;
@@ -28,10 +31,13 @@ import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class LazyPregenerator extends Thread implements Listener {
+    @Getter
+    private static LazyPregenerator instance;
     private final LazyPregenJob job;
     private final File destination;
     private final int maxPosition;
@@ -56,10 +62,8 @@ public class LazyPregenerator extends Thread implements Listener {
         chunksPerSecond = new RollingSequence(10);
         lazyGeneratedChunks = new AtomicInteger(0);
         generatedLast = new AtomicInteger(0);
-        lazyTotalChunks = new AtomicInteger();
-
-        int radius = job.getRadiusBlocks();
-        lazyTotalChunks.set((int) Math.ceil(Math.pow((2.0 * radius) / 16, 2)));
+        lazyTotalChunks = new AtomicInteger((int) Math.ceil(Math.pow((2.0 * job.getRadiusBlocks()) / 16, 2)));
+        LazyPregenerator.instance = this;
     }
 
     public LazyPregenerator(File file) throws IOException {
@@ -103,7 +107,7 @@ public class LazyPregenerator extends Thread implements Listener {
     }
 
     public void tick() {
-        if (latch.flip()) {
+        if (latch.flip() && !job.paused) {
             long eta = computeETA();
             save();
             int secondGenerated = lazyGeneratedChunks.get() - generatedLast.get();
@@ -113,9 +117,6 @@ public class LazyPregenerator extends Thread implements Listener {
             if (!job.isSilent()) {
                 Iris.info("LazyGen: " + C.IRIS + world.getName() + C.RESET + " RTT: " + Form.f(lazyGeneratedChunks.get()) + " of " + Form.f(lazyTotalChunks.get()) + " " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration((double) eta, 2));
             }
-            //Iris.info("Debug: " + maxPosition);
-            //Iris.info("Debug1: " + job.getPosition());
-            // todo: Maxpos borked
         }
 
         if (lazyGeneratedChunks.get() >= lazyTotalChunks.get()) {
@@ -198,6 +199,23 @@ public class LazyPregenerator extends Thread implements Listener {
             }
         });
     }
+    public void setPausedLazy(){
+        if (!job.paused) {
+            save();
+            Iris.info(C.BLUE + "LazyGen: " + C.IRIS + world + C.BLUE + " Paused");
+            job.setPaused(true);
+        } else {
+            Iris.info(C.BLUE + "LazyGen: " + C.IRIS + world + C.BLUE + " Resumes");
+            job.setPaused(false);
+        }
+    }
+    public boolean isPausedLazy(){
+        return job.isPaused();
+    }
+    public void shutdownInstance() {
+        save();
+        interrupt();
+    }
 
     public void saveNow() throws IOException {
         IO.writeAll(this.destination, new Gson().toJson(job));
@@ -219,5 +237,7 @@ public class LazyPregenerator extends Thread implements Listener {
         private int position = 0;
         @Builder.Default
         boolean silent = false;
+        @Builder.Default
+        boolean paused = false;
     }
 }

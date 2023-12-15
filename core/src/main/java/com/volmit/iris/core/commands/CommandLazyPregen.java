@@ -34,6 +34,7 @@ import org.bukkit.World;
 import org.bukkit.util.Vector;
 
 import java.io.File;
+import java.io.IOException;
 
 @Decree(name = "lazypregen", aliases = "lazy", description = "Pregenerate your Iris worlds!")
 public class CommandLazyPregen implements DecreeExecutor {
@@ -53,6 +54,14 @@ public class CommandLazyPregen implements DecreeExecutor {
             ) {
 
         worldName = world.getName();
+        File worldDirectory = new File(Bukkit.getWorldContainer(), world.getName());
+        File lazyFile = new File(worldDirectory, "lazygen.json");
+        if (lazyFile.exists()) {
+            sender().sendMessage(C.BLUE + "Lazy pregen is already in progress");
+            Iris.info(C.YELLOW + "Lazy pregen is already in progress");
+            return;
+        }
+
         try {
             if (sender().isPlayer() && access() == null) {
                 sender().sendMessage(C.RED + "The engine access for this world is null!");
@@ -69,7 +78,6 @@ public class CommandLazyPregen implements DecreeExecutor {
                     .silent(silent)
                     .build();
 
-            File worldDirectory = new File(Bukkit.getWorldContainer(), worldName);
             File lazyGenFile = new File(worldDirectory, "lazygen.json");
             LazyPregenerator pregenerator = new LazyPregenerator(pregenJob, lazyGenFile);
             pregenerator.start();
@@ -85,20 +93,26 @@ public class CommandLazyPregen implements DecreeExecutor {
     }
 
     @Decree(description = "Stop the active pregeneration task", aliases = "x")
-    public void stop() {
+    public void stop(
+            @Param(aliases = "world", description = "The world to pause")
+            World world
+    ) throws IOException {
         if (LazyPregenerator.getInstance() != null) {
-            LazyPregenerator.getInstance().shutdownInstance();
-            Iris.info( C.BLUE + "Shutting down all Lazy Pregens");
+            LazyPregenerator.getInstance().shutdownInstance(world);
+            sender().sendMessage(C.LIGHT_PURPLE + "Closed lazygen instance for " + world.getName());
         } else {
             sender().sendMessage(C.YELLOW + "No active pregeneration tasks to stop");
         }
     }
 
     @Decree(description = "Pause / continue the active pregeneration task", aliases = {"t", "resume", "unpause"})
-    public void pause() {
+    public void pause(
+            @Param(aliases = "world", description = "The world to pause")
+            World world
+    ) {
         if (LazyPregenerator.getInstance() != null) {
-            LazyPregenerator.getInstance().setPausedLazy();
-            sender().sendMessage(C.GREEN + "Paused/unpaused Lazy Pregen, now: " + (LazyPregenerator.getInstance().isPausedLazy() ? "Paused" : "Running") + ".");
+            LazyPregenerator.getInstance().setPausedLazy(world);
+            sender().sendMessage(C.GREEN + "Paused/unpaused Lazy Pregen, now: " + (LazyPregenerator.getInstance().isPausedLazy(world) ? "Paused" : "Running") + ".");
         } else {
             sender().sendMessage(C.YELLOW + "No active Lazy Pregen tasks to pause/unpause.");
 

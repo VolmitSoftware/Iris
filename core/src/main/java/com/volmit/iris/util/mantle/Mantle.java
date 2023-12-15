@@ -91,12 +91,6 @@ public class Mantle {
         loadedRegions = new KMap<>();
         lastUse = new KMap<>();
         ioBurst = MultiBurst.burst;
-        if (!ioTectonicUnload.get()) {
-            this.unloadTectonicPlate();
-            if (!ticker.isAlive()) {
-                ticker.start();
-            }
-        }
         Iris.debug("Opened The Mantle " + C.DARK_AQUA + dataFolder.getAbsolutePath());
     }
 
@@ -421,7 +415,7 @@ public class Mantle {
         if (closed.get()) {
             throw new RuntimeException("The Mantle is closed");
         }
-        Iris.info(C.BLUE + "TECTONIC TRIM HAS RUN");
+        Iris.debug(C.BLUE + "TECTONIC TRIM HAS RUN");
         if (IrisSettings.get().getPerformance().getAggressiveTectonicThreshold() == -1) {
             forceAggressiveThreshold.set(tectonicLimit.get());
         } else {
@@ -493,12 +487,10 @@ public class Mantle {
             }
     }
 
-    protected void unloadTectonicPlate() {
-        ticker = new Looper() {
-            protected long loop() {
+    public synchronized void unloadTectonicPlate() {
                 long time = System.currentTimeMillis();
                 try {
-                    Iris.info(C.DARK_BLUE + "TECTONIC UNLOAD HAS RUN");
+                    Iris.debug(C.DARK_BLUE + "TECTONIC UNLOAD HAS RUN");
                     int threadCount = 1;
                     ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
                     List<Long> toUnloadList;
@@ -537,11 +529,8 @@ public class Mantle {
                     executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    return -1;
                 }
-                return Math.max(0, 1000-(System.currentTimeMillis()-time));
-            }
-        };
+
         ioTectonicUnload.set(true);
     }
 

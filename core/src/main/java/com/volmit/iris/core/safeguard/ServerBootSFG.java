@@ -6,14 +6,17 @@ import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
+import javax.tools.ToolProvider;
 import java.util.*;
 
+import static com.volmit.iris.Iris.getJavaVersion;
 import static com.volmit.iris.Iris.instance;
 import static com.volmit.iris.core.safeguard.IrisSafeguard.stablemode;
 import static com.volmit.iris.core.safeguard.IrisSafeguard.unstablemode;
 
 public class ServerBootSFG {
     public static final Map<String, Boolean> incompatiblePlugins = new HashMap<>();
+    public static boolean isJDK17 = true;
     public static boolean unsuportedversion = false;
     protected static boolean safeguardPassed;
     public static boolean passedserversoftware = true;
@@ -65,6 +68,12 @@ public class ServerBootSFG {
             unsuportedversion = true;
             joiner.add("Unsupported Minecraft Version");
             severityHigh++;
+        }
+
+        boolean jdk = System.getProperty("java.compiler") != null;
+        if(getJavaVersion() != 17 || !jdk) {
+            isJDK17 = false;
+            severityMedium++;
         }
 
         allIncompatiblePlugins = joiner.toString();

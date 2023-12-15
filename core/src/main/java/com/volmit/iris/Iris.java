@@ -350,7 +350,7 @@ public class Iris extends VolmitPlugin implements Listener {
         }
     }
 
-    private static int getJavaVersion() {
+    public static int getJavaVersion() {
         String version = System.getProperty("java.version");
         if (version.startsWith("1.")) {
             version = version.substring(2, 3);
@@ -787,18 +787,20 @@ public class Iris extends VolmitPlugin implements Listener {
         }
         Iris.info("Server OS: " + osName + " (" + osArch + ")");
 
-        if(unstablemode) Iris.info("Server Cpu: " + C.DARK_RED + getCPUModel());
         try {
-            if (getCPUModel().contains("Intel")) {
-                Iris.info("Server Cpu: " + C.BLUE + getCPUModel());
+            if(unstablemode){
+                Iris.info("Server Cpu: " + C.DARK_RED + getCPUModel());
+            } else {
+                if (getCPUModel().contains("Intel")) {
+                    Iris.info("Server Cpu: " + C.BLUE + getCPUModel());
+                }
+                if (getCPUModel().contains("Ryzen")) {
+                    Iris.info("Server Cpu: " + C.RED + getCPUModel());
+                }
+                if (!getCPUModel().contains("Ryzen") && !getCPUModel().contains("Intel")) {
+                    Iris.info("Server Cpu: " + C.GRAY + getCPUModel());
+                }
             }
-            if (getCPUModel().contains("Ryzen")) {
-                Iris.info("Server Cpu: " + C.RED + getCPUModel());
-            }
-            if (!getCPUModel().contains("Ryzen") && !getCPUModel().contains("Intel")) {
-                Iris.info("Server Cpu: " + C.GRAY + getCPUModel());
-            }
-
         } catch (Exception e){
             Iris.info("Server Cpu: " + C.DARK_RED + "Failed");
         }

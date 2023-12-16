@@ -31,6 +31,8 @@ public class IrisEngineSVC implements IrisService {
     public List<World> IrisWorlds = new ArrayList<>();
     public List<World> corruptedIrisWorlds = new ArrayList<>();
 
+    // todo make this work with multiple worlds
+
     @Override
     public void onEnable() {
         this.plugin = Iris.instance;
@@ -91,6 +93,7 @@ public class IrisEngineSVC implements IrisService {
                     } else {
                         selectedWorld = world;
                     }
+                    selectedWorld = Bukkit.getWorld("localmemtest"); // debug code
                 } catch (Throwable e) {
                     Iris.reportError(e);
                     e.printStackTrace();

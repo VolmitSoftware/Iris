@@ -81,14 +81,14 @@ public class IrisEngineSVC implements IrisService {
         });
     }
 
-    public void IrisEngine(){
+    public void IrisEngine() {
         engineTicker = new Looper() {
             @Override
             protected long loop() {
                 try {
                     World world = selectedWorldRef.get();
                     PlatformChunkGenerator generator = IrisToolbelt.access(world);
-                    if(generator == null) {
+                    if (generator == null) {
                         initializeAsync().thenAcceptAsync(foundWorld -> selectedWorldRef.set(foundWorld));
                     } else {
                         selectedWorld = world;
@@ -110,13 +110,13 @@ public class IrisEngineSVC implements IrisService {
                 try {
                     World world = selectedWorld;
                     PlatformChunkGenerator generator = IrisToolbelt.access(world);
-                     if(generator != null) {
-                         Engine engine = IrisToolbelt.access(world).getEngine();
-                            if (generator != null && generator.getEngine() != null) {
-                                engine.getMantle().trim();
-                            } else {
-                                Iris.info("something is null 1");
-                            }
+                    if (generator != null) {
+                        Engine engine = IrisToolbelt.access(world).getEngine();
+                        if (generator != null && generator.getEngine() != null) {
+                            engine.getMantle().trim();
+                        } else {
+                            Iris.info("something is null 1");
+                        }
 
                     }
                 } catch (Throwable e) {
@@ -135,7 +135,7 @@ public class IrisEngineSVC implements IrisService {
                 try {
                     World world = selectedWorld;
                     PlatformChunkGenerator generator = IrisToolbelt.access(world);
-                    if(generator != null) {
+                    if (generator != null) {
                         Engine engine = IrisToolbelt.access(world).getEngine();
                         if (generator != null && generator.getEngine() != null) {
                             engine.getMantle().unloadTectonicPlate();

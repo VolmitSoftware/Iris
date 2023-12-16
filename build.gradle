@@ -1,3 +1,5 @@
+import java.util.function.Consumer
+
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
  * Copyright (c) 2021 Arcane Arts (Volmit Software)
@@ -80,29 +82,19 @@ NMS_BINDINGS.each {
         def m2s = m2.getAbsolutePath();
 
         // ======================== Building Mapped Jars =============================
-        Runnable downloadBuildtools = () -> {
+        Runnable executeBuildTools = () -> {
+            //Download
             if (!buildToolsJar.exists()) {
                 download.run {
                     src 'https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar'
                     dest buildToolsJar
                 }
             }
-        }
 
-        Runnable downloadSpecialSource = () -> {
-            if (!specialSourceJar.exists()) {
-                download.run {
-                    src 'https://repo.maven.apache.org/maven2/net/md-5/SpecialSource/' + specialSourceVersion + '/SpecialSource-'+specialSourceVersion+'-shaded.jar'
-                    dest specialSourceJar
-                }
-            }
-        }
-
-        Runnable executeBuildTools = () -> {
+            //Execute
             if (!buildToolsHint.exists()) {
-                downloadBuildtools.run()
                 buildToolsFolder.mkdirs()
-                javaexec {
+                project.javaexec {
                     classpath = files(buildToolsJar)
                     workingDir = buildToolsFolder
                     args = [
@@ -116,69 +108,76 @@ NMS_BINDINGS.each {
             }
         }
 
+        Consumer<File> specialSourceRemap = outputFile -> {
+            //Download
+            if (!specialSourceJar.exists()) {
+                download.run {
+                    src 'https://repo.maven.apache.org/maven2/net/md-5/SpecialSource/' + specialSourceVersion + '/SpecialSource-'+specialSourceVersion+'-shaded.jar'
+                    dest specialSourceJar
+                }
+            }
+            specialSourceFolder.mkdirs();
+
+            //Copy
+            project.copy {
+                from outputFile
+                into specialSourceFolder
+            }
+
+            //obfuscate
+            project.javaexec {
+                workingDir = specialSourceFolder
+                classpath = files(specialSourceJar,
+                        new File(m2s + "/org/spigotmc/spigot/" + value + "/spigot-" + value + "-remapped-mojang.jar"))
+                mainClass = "net.md_5.specialsource.SpecialSource"
+                args = [
+                        "--live",
+                        "-i",
+                        ssiJar.getName(),
+                        "-o",
+                        ssobfJar.getName(),
+                        "-m",
+                        m2s + "/org/spigotmc/minecraft-server/" + value + "/minecraft-server-" + value + "-maps-mojang.txt",
+                        "--reverse",
+                ]
+            }
+
+            //remap
+            project.javaexec {
+                workingDir = specialSourceFolder
+                classpath = files(specialSourceJar,
+                        new File(m2s + "/org/spigotmc/spigot/" + value + "/spigot-" + value + "-remapped-obf.jar"))
+                mainClass = "net.md_5.specialsource.SpecialSource"
+                args = [
+                        "--live",
+                        "-i",
+                        ssobfJar.getName(),
+                        "-o",
+                        ssJar.getName(),
+                        "-m",
+                        m2s + "/org/spigotmc/minecraft-server/" + value + "/minecraft-server-" + value + "-maps-spigot.csrg"
+                ]
+            }
+            //copy
+            project.copy {
+                from ssJar
+                into outputFile.getParentFile()
+                rename {
+                    outputFile.getName()
+                }
+            }
+        }
+
         tasks.register("executeBuildTools") {
             doFirst {
                 executeBuildTools.run()
             }
         }
 
-        tasks.register("copyBuildToSpecialSource", Copy) {
-            doFirst {
-                downloadSpecialSource.run()
-                specialSourceFolder.mkdirs();
-            }
-
-            group "remapping"
-            from outputJar
-            into specialSourceFolder
-            dependsOn(jar)
-        }
-
-        tasks.register("specialSourceRemapObfuscate", JavaExec) {
-            group "remapping"
-            dependsOn(copyBuildToSpecialSource)
-            workingDir = specialSourceFolder
-            classpath = files(specialSourceJar,
-                    new File(m2s + "/org/spigotmc/spigot/" + value + "/spigot-" + value + "-remapped-mojang.jar"))
-            mainClass = "net.md_5.specialsource.SpecialSource"
-            args = [
-                    "--live",
-                    "-i",
-                    ssiJar.getName(),
-                    "-o",
-                    ssobfJar.getName(),
-                    "-m",
-                    m2s + "/org/spigotmc/minecraft-server/" + value + "/minecraft-server-" + value + "-maps-mojang.txt",
-                    "--reverse",
-            ]
-        }
-
         tasks.register("specialSourceRemap", JavaExec) {
-            group "remapping"
-            dependsOn(specialSourceRemapObfuscate)
-            workingDir = specialSourceFolder
-            classpath = files(specialSourceJar,
-                    new File(m2s + "/org/spigotmc/spigot/" + value + "/spigot-" + value + "-remapped-obf.jar"))
-            mainClass = "net.md_5.specialsource.SpecialSource"
-            args = [
-                    "--live",
-                    "-i",
-                    ssobfJar.getName(),
-                    "-o",
-                    ssJar.getName(),
-                    "-m",
-                    m2s + "/org/spigotmc/minecraft-server/" + value + "/minecraft-server-" + value + "-maps-spigot.csrg"
-            ]
-        }
-
-        tasks.register("copySpecialSourceToBuild", Copy) {
-            group "remapping"
-            from ssJar
-            into outputJar.getParentFile()
-            rename {
-                outputJar.getName()
+            doFirst {
+                specialSourceRemap.accept(outputJar)
             }
-            dependsOn(specialSourceRemap)
         }
 
         shadowJar {
@@ -187,10 +186,13 @@ NMS_BINDINGS.each {
             relocate('io.papermc.lib', 'com.volmit.iris.util.paper')
             relocate('net.kyori', 'com.volmit.iris.util.kyori')
             archiveFileName.set("Iris-${project.name}.jar")
+
+            doLast {
+                specialSourceRemap.accept(archiveFile.get().asFile)
+            }
         }
 
-        tasks.build.dependsOn(copySpecialSourceToBuild)
-        tasks.shadowJar.dependsOn(build)
+        tasks.build.dependsOn(specialSourceRemap)
         executeBuildTools.run()
     }
 }

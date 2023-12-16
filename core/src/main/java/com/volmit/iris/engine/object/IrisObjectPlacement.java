@@ -136,6 +136,8 @@ public class IrisObjectPlacement {
     @ArrayType(type = String.class)
     @Desc("List of objects to this object is forbidden to collied with")
     private KList<String> forbiddenCollisions = new KList<>();
+    @Desc("Allow placement in caves")
+    private boolean allowCave = false;
     private transient AtomicCache<TableCache> cache = new AtomicCache<>();
 
     public IrisObjectPlacement toPlacement(String... place) {

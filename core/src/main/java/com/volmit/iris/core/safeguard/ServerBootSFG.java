@@ -7,7 +7,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 import java.io.File;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.StringJoiner;
 
 import static com.volmit.iris.Iris.getJavaVersion;
 import static com.volmit.iris.Iris.instance;
@@ -54,12 +56,11 @@ public class ServerBootSFG {
             }
         }
         if (
-        !instance.getServer().getVersion().contains("Purpur") &&
-        !instance.getServer().getVersion().contains("Paper") &&
-        !instance.getServer().getVersion().contains("Spigot") &&
-        !instance.getServer().getVersion().contains("Pufferfish") &&
-         !instance.getServer().getVersion().contains("Bukkit"))
-        {
+                !instance.getServer().getVersion().contains("Purpur") &&
+                        !instance.getServer().getVersion().contains("Paper") &&
+                        !instance.getServer().getVersion().contains("Spigot") &&
+                        !instance.getServer().getVersion().contains("Pufferfish") &&
+                        !instance.getServer().getVersion().contains("Bukkit")) {
             passedserversoftware = false;
             joiner.add("Server Software");
             severityHigh++;
@@ -71,12 +72,12 @@ public class ServerBootSFG {
             severityHigh++;
         }
 
-        if(getJavaVersion() != 17) {
+        if (getJavaVersion() != 17) {
             isJDK17 = false;
             joiner.add("Unsupported Java version");
             severityMedium++;
         }
-        if(!isJDK()) {
+        if (!isJDK()) {
             isJRE = true;
             joiner.add("Unsupported JDK");
             severityMedium++;
@@ -86,11 +87,11 @@ public class ServerBootSFG {
 
         safeguardPassed = (severityHigh == 0 && severityMedium == 0 && severityLow == 0);
         count = severityHigh + severityMedium + severityLow;
-        if(safeguardPassed){
+        if (safeguardPassed) {
             stablemode = true;
             Iris.safeguard("Stable mode has been activated.");
         }
-        if(!safeguardPassed){
+        if (!safeguardPassed) {
             if (severityMedium >= 1 && severityHigh == 0) {
                 warningmode = true;
                 Iris.safeguard("Warning mode has been activated.");
@@ -104,9 +105,9 @@ public class ServerBootSFG {
 
     public static boolean isJDK() {
         String path = System.getProperty("sun.boot.library.path");
-        if(path != null) {
+        if (path != null) {
             String javacPath = "";
-            if(path.endsWith(File.separator + "bin")) {
+            if (path.endsWith(File.separator + "bin")) {
                 javacPath = path;
             } else {
                 int libIndex = path.lastIndexOf(File.separator + "lib");

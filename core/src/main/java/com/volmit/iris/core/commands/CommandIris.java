@@ -23,40 +23,29 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.core.safeguard.UtilsSFG;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.decree.DecreeContext;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.decree.specialhandlers.NullablePlayerHandler;
 import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.parallel.BurstExecutor;
-import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import lombok.Getter;
 import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 import static com.volmit.iris.core.service.EditSVC.deletingWorld;
 import static com.volmit.iris.core.tools.IrisBenchmarking.inProgress;
 import static com.volmit.iris.core.safeguard.IrisSafeguard.unstablemode;
-import static com.volmit.iris.core.safeguard.ServerBootSFG.incompatiblePlugins;
+import static com.volmit.iris.core.safeguard.ServerBootSFG.incompatibilities;
 
 @Decree(name = "iris", aliases = {"ir", "irs"}, description = "Basic Command")
 public class CommandIris implements DecreeExecutor {
@@ -85,7 +74,7 @@ public class CommandIris implements DecreeExecutor {
             long seed
     ) {
         if(sender() instanceof Player) {
-            if (incompatiblePlugins.get("Multiverse-Core")) {
+            if (incompatibilities.get("Multiverse-Core")) {
                 sender().sendMessage(C.RED + "Your server has an incompatibility that may corrupt all worlds on the server if not handled properly.");
                 sender().sendMessage(C.RED + "it is strongly advised for you to take action. see log for full detail");
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
@@ -93,7 +82,7 @@ public class CommandIris implements DecreeExecutor {
                 sender().sendMessage(C.RED + UtilsSFG.MSGIncompatibleWarnings());
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
             }
-            if (unstablemode && !incompatiblePlugins.get("Multiverse-Core")) {
+            if (unstablemode && !incompatibilities.get("Multiverse-Core")) {
                 sender().sendMessage(C.RED + "Your server is experiencing an incompatibility with the Iris plugin.");
                 sender().sendMessage(C.RED + "Please rectify this problem to avoid further complications.");
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");

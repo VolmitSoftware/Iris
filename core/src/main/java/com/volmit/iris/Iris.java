@@ -95,7 +95,7 @@ import java.net.URL;
 import java.util.Date;
 import java.util.Map;
 
-import static com.volmit.iris.core.safeguard.IrisSafeguard.unstablemode;
+import static com.volmit.iris.core.safeguard.IrisSafeguard.*;
 import static com.volmit.iris.core.safeguard.ServerBootSFG.passedserversoftware;
 import static com.volmit.iris.util.misc.getHardware.getCPUModel;
 import static com.volmit.iris.util.misc.getHardware.getCPUThreads;
@@ -592,9 +592,11 @@ public class Iris extends VolmitPlugin implements Listener {
         if (unstablemode) {
             return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.RED + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
         }
-        else {
-            return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.IRIS + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
+        if (warningmode) {
+            return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.GOLD + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
         }
+        return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.IRIS + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
+
     }
 
     private boolean setupChecks() {
@@ -741,6 +743,9 @@ public class Iris extends VolmitPlugin implements Listener {
         if (unstablemode) {
              info = new String[]{"", "", "", "", "", padd2 + C.RED + " Iris", padd2 + C.GRAY + " by " + C.DARK_RED + "Volmit Software", padd2 + C.GRAY + " v" + C.RED + getDescription().getVersion()};
         }
+        if (warningmode) {
+            info = new String[]{"", "", "", "", "", padd2 + C.GOLD + " Iris", padd2 + C.GRAY + " by " + C.GOLD + "Volmit Software", padd2 + C.GRAY + " v" + C.GOLD + getDescription().getVersion()};
+        }
 
         String[] splashstable = {
                 padd + C.GRAY + "   @@@@@@@@@@@@@@" + C.DARK_GRAY + "@@@",
@@ -769,8 +774,27 @@ public class Iris extends VolmitPlugin implements Listener {
                 padd + C.GRAY + "" + C.RED + "                     '(((())))'   " + C.DARK_GRAY + "&&&&&&&&" + C.GRAY + "&&&&&&&@@",
                 padd + C.GRAY + "                               " + C.DARK_GRAY + "@@@" + C.GRAY + "@@@@@@@@@@@@@@"
         };
-        String[] splash = unstablemode ? splashunstable : splashstable; // Choose the appropriate splash array based on unstablemode
-
+        String[] splashwarning = {
+                padd + C.GRAY + "   @@@@@@@@@@@@@@" + C.DARK_GRAY + "@@@",
+                padd + C.GRAY + " @@&&&&&&&&&" + C.DARK_GRAY + "&&&&&&" + C.GOLD + "   .(((()))).                     ",
+                padd + C.GRAY + "@@@&&&&&&&&" + C.DARK_GRAY + "&&&&&" + C.GOLD + "  .((((((())))))).                  ",
+                padd + C.GRAY + "@@@&&&&&" + C.DARK_GRAY + "&&&&&&&" + C.GOLD + "  ((((((((()))))))))               " + C.GRAY + " @",
+                padd + C.GRAY + "@@@&&&&" + C.DARK_GRAY + "@@@@@&" + C.GOLD + "    ((((((((-)))))))))              " + C.GRAY + " @@",
+                padd + C.GRAY + "@@@&&" + C.GOLD + "            ((((((({ }))))))))           " + C.GRAY + " &&@@@",
+                padd + C.GRAY + "@@" + C.GOLD + "               ((((((((-)))))))))    " + C.DARK_GRAY + "&@@@@@" + C.GRAY + "&&&&@@@",
+                padd + C.GRAY + "@" + C.GOLD + "                ((((((((()))))))))  " + C.DARK_GRAY + "&&&&&" + C.GRAY + "&&&&&&&@@@",
+                padd + C.GRAY + "" + C.GOLD + "                  '((((((()))))))'  " + C.DARK_GRAY + "&&&&&" + C.GRAY + "&&&&&&&&@@@",
+                padd + C.GRAY + "" + C.GOLD + "                     '(((())))'   " + C.DARK_GRAY + "&&&&&&&&" + C.GRAY + "&&&&&&&@@",
+                padd + C.GRAY + "                               " + C.DARK_GRAY + "@@@" + C.GRAY + "@@@@@@@@@@@@@@"
+        };
+        String[] splash;
+        if (unstablemode) {
+            splash = splashunstable;
+        } else if (warningmode) {
+            splash = splashwarning;
+        } else {
+            splash = splashstable;
+        }
         OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
         String osArch = osBean.getArch();
         String osName = osBean.getName();
@@ -788,6 +812,9 @@ public class Iris extends VolmitPlugin implements Listener {
         Iris.info("Server OS: " + osName + " (" + osArch + ")");
 
         try {
+            if (warningmode){
+                Iris.info("Server Cpu: " + C.GOLD + getCPUModel());
+            } else {
             if(unstablemode){
                 Iris.info("Server Cpu: " + C.DARK_RED + getCPUModel());
             } else {
@@ -800,6 +827,7 @@ public class Iris extends VolmitPlugin implements Listener {
                 if (!getCPUModel().contains("Ryzen") && !getCPUModel().contains("Intel")) {
                     Iris.info("Server Cpu: " + C.GRAY + getCPUModel());
                 }
+            }
             }
         } catch (Exception e){
             Iris.info("Server Cpu: " + C.DARK_RED + "Failed");

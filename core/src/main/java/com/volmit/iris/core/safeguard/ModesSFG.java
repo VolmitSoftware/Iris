@@ -4,12 +4,17 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.format.C;
 
-public class UnstableModeSFG {
+public class ModesSFG {
  public static void selectMode(){
   if (IrisSafeguard.unstablemode) {
    Iris.safeguard(C.DARK_RED + "Iris is running in Unstable Mode");
    unstable();
-  } else {
+  }
+  if (IrisSafeguard.warningmode) {
+   Iris.safeguard(C.GOLD + "Iris is running in Warning Mode");
+   warning();
+  }
+  if (IrisSafeguard.stablemode) {
    stable();
   }
  }
@@ -38,10 +43,10 @@ public class UnstableModeSFG {
    Iris.info(C.DARK_RED + "ATTENTION: " + C.RED + "While running Iris in unstable mode, you won't be eligible for support.");
    Iris.info(C.DARK_RED + "CAUSE: " + C.RED + UtilsSFG.MSGIncompatibleWarnings());
 
-   if (IrisSettings.get().getGeneral().bootUnstable) {
+   if (IrisSettings.get().getGeneral().ignoreBootMode) {
     Iris.info(C.DARK_RED + "Boot Unstable is set to true, continuing with the startup process.");
    } else {
-    Iris.info(C.DARK_RED + "Go to plugins/iris/settings.json and set ignoreUnstable to true if you wish to proceed.");
+    Iris.info(C.DARK_RED + "Go to plugins/iris/settings.json and set ignoreBootMode to true if you wish to proceed.");
     while (true) {
      try {
       Thread.sleep(1000);
@@ -50,6 +55,25 @@ public class UnstableModeSFG {
      }
     }
    }
+   Iris.info("");
+  }
+ }
+
+ public static void warning() {
+
+  UtilsSFG.printIncompatibleWarnings();
+
+  if (IrisSafeguard.warningmode) {
+   Iris.info("");
+   Iris.info(C.DARK_GRAY + "--==<" + C.GOLD + " IMPORTANT " + C.DARK_GRAY + ">==--");
+   Iris.info(C.GOLD + "Iris is running in warning mode which may cause the following issues:");
+   Iris.info(C.YELLOW + "- Data Loss");
+   Iris.info(C.YELLOW + "- Errors");
+   Iris.info(C.YELLOW + "- Broken worlds");
+   Iris.info(C.YELLOW + "- Unexpected behavior.");
+   Iris.info(C.YELLOW + "- And perhaps further complications.");
+   Iris.info(C.GOLD + "ATTENTION: " + C.YELLOW + "While running Iris in unstable mode, you won't be eligible for support.");
+   Iris.info(C.GOLD + "CAUSE: " + C.YELLOW + UtilsSFG.MSGIncompatibleWarnings());
    Iris.info("");
   }
  }

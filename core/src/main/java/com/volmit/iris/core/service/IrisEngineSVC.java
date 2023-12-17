@@ -13,112 +13,51 @@ import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import static com.volmit.iris.util.mantle.Mantle.tectonicLimit;
 
 public class IrisEngineSVC implements IrisService {
-    private JavaPlugin plugin;
-    public Looper ticker1;
-    public Looper ticker2;
-    public Looper engineTicker;
-    public World selectedWorld;
-    public List<World> IrisWorlds = new ArrayList<>();
+    public Looper trimTicker;
+    public Looper unloadTicker;
     public List<World> corruptedIrisWorlds = new ArrayList<>();
 
     // todo make this work with multiple worlds
 
     @Override
     public void onEnable() {
-        this.plugin = Iris.instance;
         tectonicLimit.set(2);
         long t = getHardware.getProcessMemory();
-        for (; t > 250; ) {
+        while (t > 250) {
             tectonicLimit.getAndAdd(1);
             t = t - 250;
         }
         tectonicLimit.set(10); // DEBUG CODE
-        this.IrisEngine();
-        engineTicker.start();
-        ticker1.start();
-        ticker2.start();
+        this.setup();
+        trimTicker.start();
+        unloadTicker.start();
     }
 
-    private final AtomicReference<World> selectedWorldRef = new AtomicReference<>();
+    private void setup() {
+        trimTicker = new Looper() {
+            private final Supplier<Engine> supplier = createSupplier();
+            private Engine engine = supplier.get();
 
-    public CompletableFuture<World> initializeAsync() {
-        return CompletableFuture.supplyAsync(() -> {
-            World selectedWorld = null;
-            while (selectedWorld == null) {
-                synchronized (this) {
-                    IrisWorlds.clear();
-                    for (World w : Bukkit.getServer().getWorlds()) {
-                        if (IrisToolbelt.access(w) != null) {
-                            IrisWorlds.add(w);
-                        }
-                    }
-                    if (!IrisWorlds.isEmpty()) {
-                        Random rand = new Random();
-                        int randomIndex = rand.nextInt(IrisWorlds.size());
-                        selectedWorld = IrisWorlds.get(randomIndex);
-                    }
-                }
-                if (selectedWorld == null) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        return null;
-                    }
-                }
-            }
-            return selectedWorld;
-        });
-    }
-
-    public void IrisEngine() {
-        engineTicker = new Looper() {
             @Override
             protected long loop() {
                 try {
-                    World world = selectedWorldRef.get();
-                    PlatformChunkGenerator generator = IrisToolbelt.access(world);
-                    if (generator == null) {
-                        initializeAsync().thenAcceptAsync(foundWorld -> selectedWorldRef.set(foundWorld));
-                    } else {
-                        selectedWorld = world;
+                    if (engine != null) {
+                        engine.getMantle().trim();
                     }
-                    selectedWorld = Bukkit.getWorld("localmemtest"); // debug code
-                } catch (Throwable e) {
-                    Iris.reportError(e);
-                    e.printStackTrace();
-                    return -1;
-                }
-
-                return 1000;
-            }
-
-        };
-        ticker1 = new Looper() {
-            @Override
-            protected long loop() {
-                try {
-                    World world = selectedWorld;
-                    PlatformChunkGenerator generator = IrisToolbelt.access(world);
-                    if (generator != null) {
-                        Engine engine = IrisToolbelt.access(world).getEngine();
-                        if (generator != null && generator.getEngine() != null) {
-                            engine.getMantle().trim();
-                        } else {
-                            Iris.info("something is null 1");
-                        }
-
-                    }
+                    engine = supplier.get();
                 } catch (Throwable e) {
                     Iris.reportError(e);
                     e.printStackTrace();
@@ -129,20 +68,17 @@ public class IrisEngineSVC implements IrisService {
             }
         };
 
-        ticker2 = new Looper() {
+        unloadTicker = new Looper() {
+            private final Supplier<Engine> supplier = createSupplier();
+            private Engine engine = supplier.get();
+
             @Override
             protected long loop() {
                 try {
-                    World world = selectedWorld;
-                    PlatformChunkGenerator generator = IrisToolbelt.access(world);
-                    if (generator != null) {
-                        Engine engine = IrisToolbelt.access(world).getEngine();
-                        if (generator != null && generator.getEngine() != null) {
-                            engine.getMantle().unloadTectonicPlate();
-                        } else {
-                            Iris.info("something is null 2");
-                        }
+                    if (engine != null) {
+                        engine.getMantle().unloadTectonicPlate();
                     }
+                    engine = supplier.get();
                 } catch (Throwable e) {
                     Iris.reportError(e);
                     e.printStackTrace();
@@ -150,14 +86,33 @@ public class IrisEngineSVC implements IrisService {
                 }
                 return 1000;
             }
+        };
+    }
+
+    private Supplier<Engine> createSupplier() {
+        AtomicInteger i = new AtomicInteger();
+        return () -> {
+            List<World> worlds = Bukkit.getWorlds();
+            if (i.get() >= worlds.size()) {
+                i.set(0);
+            }
+            for (int j = 0; j < worlds.size(); j++) {
+                PlatformChunkGenerator generator = IrisToolbelt.access(worlds.get(i.getAndIncrement()));
+                if (i.get() >= worlds.size()) {
+                    i.set(0);
+                }
+
+                if (generator != null && generator.getEngine() != null) {
+                    return generator.getEngine();
+                }
+            }
+            return null;
         };
     }
 
     @Override
     public void onDisable() {
-        ticker1.interrupt();
-        ticker2.interrupt();
-        engineTicker.interrupt();
+        trimTicker.interrupt();
+        unloadTicker.interrupt();
     }
 }
-

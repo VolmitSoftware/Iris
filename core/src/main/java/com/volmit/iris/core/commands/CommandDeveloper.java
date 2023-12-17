@@ -63,7 +63,6 @@ public class CommandDeveloper implements DecreeExecutor {
             Iris.info(C.DARK_PURPLE + "Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration((long) engine.getMantle().getTectonicDuration()));
             Iris.info(C.DARK_PURPLE + "Cache Size: " + C.LIGHT_PURPLE + Form.f(IrisData.cacheSize()));
             Iris.info(C.DARK_PURPLE + "LastUse Size: " + C.LIGHT_PURPLE + Form.mem(lastUseSize));
-            Iris.info(C.DARK_PURPLE + "Agressive Unload: " + C.LIGHT_PURPLE + IrisSettings.get().getPerformance().AggressiveTectonicUnload);
             Iris.info("-------------------------");
         } else {
             Iris.info(C.RED + "Engine is null!");

@@ -52,7 +52,7 @@ public class ModesSFG {
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException e) {
-                        // Handle interruption
+                        // no
                     }
                 }
             }

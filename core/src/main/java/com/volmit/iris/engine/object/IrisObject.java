@@ -52,6 +52,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
+import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.MultipleFacing;
 import org.bukkit.block.data.Waterlogged;
@@ -63,6 +64,7 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 
 @Accessors(chain = true)
 @EqualsAndHashCode(callSuper = false)
@@ -708,16 +710,27 @@ public class IrisObject extends IrisRegistrant {
             }
         }
 
+        int lowest = Integer.MAX_VALUE;
+        y += yrand;
+
         if (!config.isAllowCave()) {
-            BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
-            for (int i = x - Math.floorDiv(w, 2) + (int) offset.getX(); i <= x + Math.floorDiv(w, 2) - (w % 2 == 0 ? 1 : 0) + (int) offset.getX(); i++) {
-                for (int j = y - Math.floorDiv(h, 2) + (int) offset.getY() - 1; j <= y + Math.floorDiv(h, 2) - (h % 2 == 0 ? 1 : 0) + (int) offset.getY(); j++) {
-                    for (int k = z - Math.floorDiv(d, 2) + (int) offset.getZ(); k <= z + Math.floorDiv(d, 2) - (d % 2 == 0 ? 1 : 0) + (int) offset.getX(); k++) {
-                        if (placer.isCarved(i, j, k)) {
-                            return -1;
-                        }
+            KList<IrisPosition> vectors = new KList<>();
+            if (checkPlacement(rng, placer, config, stilting, warped, lowest, spinx, spiny, spinz, x, y, z, yv, (data, pos) -> {
+                if (!data.getMaterial().isAir()) {
+                    for (int j = 0; j < 3; j++) {
+                        var p = new IrisPosition(pos.getX(), pos.getY() - j, pos.getZ());
+                        if (vectors.contains(p))
+                            continue;
+
+                        if (p.getY() - j > 0 && placer.isCarved(p.getX(), p.getY(), p.getZ()))
+                            return true;
+                        else
+                            vectors.add(p);
                     }
                 }
+                return false;
+            })) {
+                return -1;
             }
         }
 
@@ -732,8 +745,6 @@ public class IrisObject extends IrisRegistrant {
             }
         }
 
-        int lowest = Integer.MAX_VALUE;
-        y += yrand;
         readLock.lock();
 
         KMap<BlockVector, String> markers = null;
@@ -1003,6 +1014,65 @@ public class IrisObject extends IrisRegistrant {
         }
 
         return y;
+    }
+
+    private synchronized boolean checkPlacement(RNG rng, IObjectPlacer placer, IrisObjectPlacement config,
+                                                boolean stilting, boolean warped, int lowest,
+                                                int spinx, int spiny, int spinz,
+                                                int x, int y, int z, int yv,
+                                                BiFunction<BlockData, IrisPosition, Boolean> function) {
+        readLock.lock();
+        try {
+            rng = rng.deepCopy();
+            int xx, zz;
+            for (BlockVector g : getBlocks().keySet()) {
+                BlockData d;
+
+                try {
+                    d = getBlocks().get(g);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
+                    Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (cme)");
+                    d = AIR;
+                }
+
+                if (d == null) {
+                    Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (null)");
+                    d = AIR;
+                }
+
+                BlockVector i = g.clone();
+                BlockData data = d.clone();
+                i = config.getRotation().rotate(i.clone(), spinx, spiny, spinz).clone();
+                i = config.getTranslate().translate(i.clone(), config.getRotation(), spinx, spiny, spinz).clone();
+
+                if (stilting && i.getBlockY() < lowest && !B.isAir(data)) {
+                    lowest = i.getBlockY();
+                }
+                xx = x + (int) Math.round(i.getX());
+
+                int yy = y + (int) Math.round(i.getY());
+                zz = z + (int) Math.round(i.getZ());
+
+                if (warped) {
+                    xx += config.warp(rng, i.getX() + x, i.getY() + y, i.getZ() + z, getLoader());
+                    zz += config.warp(rng, i.getZ() + z, i.getY() + y, i.getX() + x, getLoader());
+                }
+
+                if (yv < 0 && (config.getMode().equals(ObjectPlaceMode.PAINT)) && !B.isVineBlock(data)) {
+                    yy = (int) Math.round(i.getY()) + Math.floorDiv(h, 2) + placer.getHighest(xx, zz, getLoader(), config.isUnderwater());
+                }
+
+                if (function.apply(data, new IrisPosition(xx, yy, zz))) {
+                    return true;
+                }
+            }
+        } catch (Throwable e) {
+            Iris.reportError(e);
+        } finally {
+            readLock.unlock();
+        }
+        return false;
     }
 
     public IrisObject rotateCopy(IrisObjectRotation rt) {

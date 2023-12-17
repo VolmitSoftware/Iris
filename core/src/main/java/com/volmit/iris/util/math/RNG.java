@@ -18,16 +18,30 @@
 
 package com.volmit.iris.util.math;
 
+import sun.misc.Unsafe;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class RNG extends Random {
     public static final RNG r = new RNG();
+    private static final Unsafe unsafe;
+    private static final long offset;
     private static final char[] CHARGEN = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-=!@#$%^&*()_+`~[];',./<>?:\\\"{}|\\\\".toCharArray();
     private static final long serialVersionUID = 5222938581174415179L;
     private final long sx;
+
+    static {
+        try {
+            Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+            unsafeField.setAccessible(true);
+            unsafe = (Unsafe) unsafeField.get(null);
+            offset = unsafe.objectFieldOffset(Random.class.getDeclaredField("seed"));
+        } catch (Exception ex) { throw new Error(ex); }
+    }
 
     public RNG() {
         super();
@@ -46,6 +60,17 @@ public class RNG extends Random {
      */
     public RNG(String seed) {
         this(UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).getLeastSignificantBits() + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).getMostSignificantBits() + (seed.length() * 32564L));
+    }
+
+    public RNG deepCopy() {
+        RNG copy = new RNG(sx);
+        try {
+            AtomicLong seed = new AtomicLong(((AtomicLong) unsafe.getObject(this, offset)).get());
+            unsafe.putObject(copy, offset, seed);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+        return copy;
     }
 
     public RNG nextParallelRNG(int signature) {

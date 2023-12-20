@@ -21,6 +21,7 @@ package com.volmit.iris.core.commands;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.service.IrisEngineSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.EngineMantle;
@@ -56,7 +57,7 @@ public class CommandDeveloper implements DecreeExecutor {
             Iris.info("-------------------------");
             Iris.info(C.DARK_PURPLE + "Engine Status");
             Iris.info(C.DARK_PURPLE + "Tectonic Threads: " + C.LIGHT_PURPLE + engine.getMantle().getDynamicThreads());
-            Iris.info(C.DARK_PURPLE + "Tectonic Limit: " + C.LIGHT_PURPLE + engine.getMantle().getTectonicLimit());
+            Iris.info(C.DARK_PURPLE + "Tectonic Limit: " + C.LIGHT_PURPLE + IrisEngineSVC.getTectonicLimit());
             Iris.info(C.DARK_PURPLE + "Tectonic Loaded Plates: " + C.LIGHT_PURPLE + engine.getMantle().getLoadedRegionCount());
             Iris.info(C.DARK_PURPLE + "Tectonic Plates: " + C.LIGHT_PURPLE + engine.getMantle().getNotClearedLoadedRegions());
             Iris.info(C.DARK_PURPLE + "Tectonic ToUnload: " + C.LIGHT_PURPLE + engine.getMantle().getToUnload());

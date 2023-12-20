@@ -392,7 +392,6 @@ public class Mantle {
 
     @Getter
     private final AtomicDouble adjustedIdleDuration = new AtomicDouble(0);
-    public static final AtomicInteger tectonicLimit = new AtomicInteger(30);
     @Getter
     private final AtomicInteger dynamicThreads = new AtomicInteger(4);
     @Getter
@@ -401,7 +400,6 @@ public class Mantle {
     private final AtomicLong oldestTectonicPlate = new AtomicLong(0);
     @Getter
     public final Set<Long> toUnload = new HashSet<>();
-    private int g = 0;
 
     /**
      * Save & unload regions that have not been used for more than the
@@ -409,7 +407,7 @@ public class Mantle {
      *
      * @param baseIdleDuration the duration
      */
-    public synchronized void trim(long baseIdleDuration) {
+    public synchronized void trim(long baseIdleDuration, int tectonicLimit) {
         if (closed.get()) {
             throw new RuntimeException("The Mantle is closed");
         }
@@ -418,10 +416,9 @@ public class Mantle {
         adjustedIdleDuration.set(baseIdleDuration);
 
         if (loadedRegions != null) {
-            if (loadedRegions.size() > tectonicLimit.get()) {
+            if (loadedRegions.size() > tectonicLimit) {
                 // todo update this correctly and maybe do something when its above a 100%
-                int tectonicLimitValue = tectonicLimit.get();
-                adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (((loadedRegions.size() - tectonicLimitValue) / (double) tectonicLimitValue) * 100) * 0.4), 4000));
+                adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (((loadedRegions.size() - tectonicLimit) / (double) tectonicLimit) * 100) * 0.4), 4000));
             }
         }
 

@@ -451,8 +451,8 @@ public class Mantle {
             List<Future<?>> futures = new ArrayList<>();
             ExecutorService service = Executors.newFixedThreadPool(dynamicThreads.get());
             for (Long id : new ArrayList<>(toUnload)) {
-                hyperLock.withLong(id, () ->
-                        futures.add(service.submit(() -> {
+                futures.add(service.submit(() ->
+                        hyperLock.withLong(id, () -> {
                             TectonicPlate m = loadedRegions.get(id);
                             if (m != null) {
                                 try {

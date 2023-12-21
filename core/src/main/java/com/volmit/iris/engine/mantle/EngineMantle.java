@@ -178,8 +178,8 @@ public interface EngineMantle extends IObjectPlacer {
     default void trim(int limit) {
         getMantle().trim(TimeUnit.SECONDS.toMillis(IrisSettings.get().getPerformance().getMantleKeepAlive()), limit);
     }
-    default void unloadTectonicPlate(){
-        getMantle().unloadTectonicPlate();
+    default int unloadTectonicPlate(){
+        return getMantle().unloadTectonicPlate();
     }
 
     default MultiBurst burst() {

@@ -5,6 +5,8 @@ import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.misc.getHardware;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.scheduling.Looper;
@@ -93,7 +95,11 @@ public class IrisEngineSVC implements IrisService {
                 try {
                     Engine engine = supplier.get();
                     if (engine != null) {
-                        engine.getMantle().unloadTectonicPlate();
+                        long unloadStart = System.currentTimeMillis();
+                        int count = engine.getMantle().unloadTectonicPlate();
+                        if (count > 0) {
+                            Iris.info("Unloaded TectonicPlates in " + C.RED + Form.duration(System.currentTimeMillis() - unloadStart, 2));
+                        }
                     }
                 } catch (Throwable e) {
                     Iris.reportError(e);

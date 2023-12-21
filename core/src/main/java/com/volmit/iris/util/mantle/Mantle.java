@@ -399,7 +399,7 @@ public class Mantle {
     @Getter
     private final AtomicLong oldestTectonicPlate = new AtomicLong(0);
     @Getter
-    public final Set<Long> toUnload = new HashSet<>();
+    private Set<Long> toUnload = new HashSet<>();
 
     /**
      * Save & unload regions that have not been used for more than the
@@ -443,28 +443,42 @@ public class Mantle {
         }
     }
 
-    public void unloadTectonicPlate() {
+    public int unloadTectonicPlate() {
+        AtomicInteger i = new AtomicInteger();
+        Set<Long> toUnload = this.toUnload;
+        this.toUnload = new HashSet<>();
         try {
+            List<Future<?>> futures = new ArrayList<>();
+            ExecutorService service = Executors.newFixedThreadPool(dynamicThreads.get());
             for (Long id : new ArrayList<>(toUnload)) {
-                hyperLock.withLong(id, () -> {
-                    TectonicPlate m = loadedRegions.get(id);
-                    if (m != null) {
-                        try {
-                            m.write(fileForRegion(dataFolder, id));
-                            loadedRegions.remove(id);
-                            lastUse.remove(id);
-                            toUnload.remove(id);
-                            Iris.info("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(id) + " " + Cache.keyZ(id));
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                });
+                hyperLock.withLong(id, () ->
+                        futures.add(service.submit(() -> {
+                            TectonicPlate m = loadedRegions.get(id);
+                            if (m != null) {
+                                try {
+                                    m.write(fileForRegion(dataFolder, id));
+                                    loadedRegions.remove(id);
+                                    lastUse.remove(id);
+                                    toUnload.remove(id);
+                                    i.incrementAndGet();
+                                    Iris.info("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(id) + " " + Cache.keyZ(id));
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        })));
             }
+            while (!futures.isEmpty()) {
+                futures.remove(0).get();
+            }
+            service.shutdown();
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            this.toUnload.addAll(toUnload);
         }
         ioTectonicUnload.set(true);
+        return i.get();
     }
 
 

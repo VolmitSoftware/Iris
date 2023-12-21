@@ -51,7 +51,9 @@ public class IrisEngineSVC implements IrisService {
             protected long loop() {
                 long now = System.currentTimeMillis();
                 for (Engine key : cache.keySet()) {
-                    long last = cache.get(key);
+                    Long last = cache.get(key);
+                    if (last == null)
+                        continue;
                     if (now - last > 600000) { // 10 minutes
                         cache.remove(key);
                     }

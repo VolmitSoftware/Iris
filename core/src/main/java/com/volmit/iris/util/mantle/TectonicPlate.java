@@ -168,7 +168,7 @@ public class TectonicPlate {
         DataOutputStream dos = new DataOutputStream(gzo);
         write(dos);
         dos.close();
-        Iris.debug("Saved Tectonic Plate " + C.DARK_GREEN + file.getName().split("\\Q.\\E")[0] + C.RED + " in " + Form.duration(p.getMilliseconds(), 2));
+        Iris.info("Saved Tectonic Plate " + C.DARK_GREEN + file.getName().split("\\Q.\\E")[0] + C.RED + " in " + Form.duration(p.getMilliseconds(), 2));
     }
 
     /**

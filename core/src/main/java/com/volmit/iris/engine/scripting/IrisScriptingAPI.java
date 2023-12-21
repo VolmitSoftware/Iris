@@ -27,10 +27,14 @@ import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisExpression;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 
 @Data
+@EqualsAndHashCode(exclude = "engine")
+@ToString(exclude = "engine")
 public class IrisScriptingAPI {
     private final Engine engine;
     private IrisRegistrant preprocessorObject;

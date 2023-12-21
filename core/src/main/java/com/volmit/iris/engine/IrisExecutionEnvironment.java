@@ -25,11 +25,15 @@ import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.engine.scripting.IrisScriptingAPI;
 import com.volmit.iris.util.format.C;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.apache.bsf.BSFException;
 import org.apache.bsf.BSFManager;
 import org.apache.bsf.engines.javascript.JavaScriptEngine;
 
 @Data
+@EqualsAndHashCode(exclude = "engine")
+@ToString(exclude = "engine")
 public class IrisExecutionEnvironment implements EngineExecutionEnvironment {
     private final BSFManager manager;
     private final Engine engine;

@@ -50,6 +50,8 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -64,6 +66,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Data
+@EqualsAndHashCode(exclude = "context")
+@ToString(exclude = "context")
 public class IrisEngine implements Engine {
     private final AtomicInteger bud;
     private final AtomicInteger buds;

@@ -41,11 +41,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 
 import java.io.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
 
 @Decree(name = "Developer", origin = DecreeOrigin.BOTH, description = "Iris World Manager", aliases = {"dev"})
 public class CommandDeveloper implements DecreeExecutor {
@@ -149,7 +148,6 @@ public class CommandDeveloper implements DecreeExecutor {
 
         return new DataInputStream(switch (algorithm) {
             case "gzip" -> new GZIPInputStream(in);
-            case "zip" -> new ZipInputStream(in);
             case "lz4f" -> new LZ4FrameInputStream(in);
             case "lz4b" -> new LZ4BlockInputStream(in);
             default -> throw new IllegalStateException("Unexpected value: " + algorithm);
@@ -161,7 +159,6 @@ public class CommandDeveloper implements DecreeExecutor {
 
         return new DataOutputStream(switch (algorithm) {
             case "gzip" -> new GZIPOutputStream(out);
-            case "zip" -> new ZipOutputStream(out);
             case "lz4f" -> new LZ4FrameOutputStream(out);
             case "lz4b" -> new LZ4BlockOutputStream(out);
             default -> throw new IllegalStateException("Unexpected value: " + algorithm);

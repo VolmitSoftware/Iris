@@ -393,7 +393,7 @@ public class Mantle {
     @Getter
     private final AtomicDouble adjustedIdleDuration = new AtomicDouble(0);
     @Getter
-    private final AtomicInteger dynamicThreads = new AtomicInteger(4);
+    private final AtomicInteger dynamicThreads = new AtomicInteger(1);
     @Getter
     private final AtomicInteger forceAggressiveThreshold = new AtomicInteger(30);
     @Getter

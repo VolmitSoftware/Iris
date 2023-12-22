@@ -98,7 +98,7 @@ public class IrisEngineSVC implements IrisService {
                         long unloadStart = System.currentTimeMillis();
                         int count = engine.getMantle().unloadTectonicPlate();
                         if (count > 0) {
-                            Iris.info("Unloaded " + count + " TectonicPlates in " + C.RED + Form.duration(System.currentTimeMillis() - unloadStart, 2));
+                            Iris.info(C.GOLD + "Unloaded " +  C.YELLOW + count + " TectonicPlates in " + C.RED + Form.duration(System.currentTimeMillis() - unloadStart, 2));
                         }
                     }
                 } catch (Throwable e) {

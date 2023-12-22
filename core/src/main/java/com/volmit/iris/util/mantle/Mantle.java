@@ -110,7 +110,7 @@ public class Mantle {
      * @return the file
      */
     public static File fileForRegion(File folder, Long key) {
-        File f = new File(folder, "p." + key + ".ttp.lz4");
+        File f = new File(folder, "p." + key + ".ttp.lz4b");
         if (!f.getParentFile().exists()) {
             f.getParentFile().mkdirs();
         }
@@ -552,7 +552,7 @@ public class Mantle {
 
             File file = fileForRegion(dataFolder, x, z);
             if (!file.exists())
-                file = new File(dataFolder, file.getName().substring(".lz4".length()));
+                file = new File(dataFolder, file.getName().substring(".lz4b".length()));
 
             if (file.exists()) {
                 try {

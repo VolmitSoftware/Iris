@@ -27,6 +27,7 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
 import net.jpountz.lz4.LZ4BlockInputStream;
+import net.jpountz.lz4.LZ4BlockOutputStream;
 import net.jpountz.lz4.LZ4FrameInputStream;
 import net.jpountz.lz4.LZ4FrameOutputStream;
 
@@ -87,7 +88,7 @@ public class TectonicPlate {
             GZIPInputStream gzi = new GZIPInputStream(fin);
             din = new DataInputStream(gzi);
         } else {
-            LZ4FrameInputStream lz4 = new LZ4FrameInputStream(fin);
+            LZ4BlockInputStream lz4 = new LZ4BlockInputStream(fin);
             din = new DataInputStream(lz4);
         }
         TectonicPlate p = new TectonicPlate(worldHeight, din);
@@ -178,7 +179,7 @@ public class TectonicPlate {
             GZIPOutputStream gzo = new GZIPOutputStream(fos);
             dos = new DataOutputStream(gzo);
         } else {
-            LZ4FrameOutputStream lz4 = new LZ4FrameOutputStream(fos);
+            LZ4BlockOutputStream lz4 = new LZ4BlockOutputStream(fos);
             dos = new DataOutputStream(lz4);
         }
         write(dos);

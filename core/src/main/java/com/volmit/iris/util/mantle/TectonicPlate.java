@@ -175,7 +175,7 @@ public class TectonicPlate {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         FileOutputStream fos = new FileOutputStream(file);
         DataOutputStream dos;
-        if (file.getName().endsWith("ttp.lz4")) {
+        if (file.getName().endsWith("ttp")) {
             GZIPOutputStream gzo = new GZIPOutputStream(fos);
             dos = new DataOutputStream(gzo);
         } else {

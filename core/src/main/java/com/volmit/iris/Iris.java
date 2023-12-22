@@ -788,6 +788,7 @@ public class Iris extends VolmitPlugin implements Listener {
                 padd + C.GRAY + "                               " + C.DARK_GRAY + "@@@" + C.GRAY + "@@@@@@@@@@@@@@"
         };
         String[] splash;
+        File freeSpace = new File(Bukkit.getWorldContainer() + ".");
         if (unstablemode) {
             splash = splashunstable;
         } else if (warningmode) {
@@ -835,6 +836,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
         Iris.info("Process Threads: " + getCPUThreads());
         Iris.info("Process Memory: " + getHardware.getProcessMemory() + " MB");
+        Iris.info("Free DiskSpace: " + Form.ofSize(freeSpace.getFreeSpace(), 1024));
         if (getHardware.getProcessMemory() < 5999) {
             Iris.warn("6GB+ Ram is recommended");
         }

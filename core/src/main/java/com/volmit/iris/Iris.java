@@ -98,7 +98,6 @@ import java.util.Map;
 import static com.volmit.iris.core.safeguard.IrisSafeguard.*;
 import static com.volmit.iris.core.safeguard.ServerBootSFG.passedserversoftware;
 import static com.volmit.iris.util.misc.getHardware.getCPUModel;
-import static com.volmit.iris.util.misc.getHardware.getCPUThreads;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -834,7 +833,7 @@ public class Iris extends VolmitPlugin implements Listener {
             Iris.info("Server Cpu: " + C.DARK_RED + "Failed");
         }
 
-        Iris.info("Process Threads: " + getCPUThreads());
+        Iris.info("Process Threads: " +  Runtime.getRuntime().availableProcessors());
         Iris.info("Process Memory: " + getHardware.getProcessMemory() + " MB");
         Iris.info("Free DiskSpace: " + Form.ofSize(freeSpace.getFreeSpace(), 1024));
         if (getHardware.getProcessMemory() < 5999) {

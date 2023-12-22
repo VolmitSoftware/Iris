@@ -4,30 +4,26 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
+import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.misc.getHardware;
 import com.volmit.iris.util.plugin.IrisService;
-import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
-import static com.volmit.iris.util.mantle.Mantle.tectonicLimit;
-
 public class IrisEngineSVC implements IrisService {
-    public Looper trimTicker;
-    public Looper unloadTicker;
+    private static final AtomicInteger tectonicLimit = new AtomicInteger(30);
+    private final KMap<Engine, Long> cache = new KMap<>();
+    private Looper cacheTicker;
+    private Looper trimTicker;
+    private Looper unloadTicker;
     public List<World> corruptedIrisWorlds = new ArrayList<>();
 
     // todo make this work with multiple worlds
@@ -42,49 +38,79 @@ public class IrisEngineSVC implements IrisService {
         }
         tectonicLimit.set(10); // DEBUG CODE
         this.setup();
+        cacheTicker.start();
         trimTicker.start();
         unloadTicker.start();
     }
 
-    private void setup() {
-        trimTicker = new Looper() {
-            private final Supplier<Engine> supplier = createSupplier();
-            private Engine engine = supplier.get();
+    public static int getTectonicLimit() {
+        return tectonicLimit.get();
+    }
 
+    private void setup() {
+        cacheTicker = new Looper() {
             @Override
             protected long loop() {
-                try {
-                    if (engine != null) {
-                        engine.getMantle().trim();
+                long now = System.currentTimeMillis();
+                for (Engine key : cache.keySet()) {
+                    Long last = cache.get(key);
+                    if (last == null)
+                        continue;
+                    if (now - last > 600000) { // 10 minutes
+                        cache.remove(key);
                     }
-                    engine = supplier.get();
+                }
+                return 1000;
+            }
+        };
+        trimTicker = new Looper() {
+            private final Supplier<Engine> supplier = createSupplier();
+            @Override
+            protected long loop() {
+                long start = System.currentTimeMillis();
+                try {
+                    Engine engine = supplier.get();
+                    if (engine != null) {
+                        engine.getMantle().trim(tectonicLimit.get() / cache.size());
+                    }
                 } catch (Throwable e) {
                     Iris.reportError(e);
-                    e.printStackTrace();
                     return -1;
                 }
 
-                return 1000;
+                int size = cache.size();
+                long time = (size > 0 ? 1000/size : 1000) - (System.currentTimeMillis() - start);
+                if (time <= 0)
+                    return 0;
+                return time;
             }
         };
 
         unloadTicker = new Looper() {
             private final Supplier<Engine> supplier = createSupplier();
-            private Engine engine = supplier.get();
 
             @Override
             protected long loop() {
+                long start = System.currentTimeMillis();
                 try {
+                    Engine engine = supplier.get();
                     if (engine != null) {
-                        engine.getMantle().unloadTectonicPlate();
+                        long unloadStart = System.currentTimeMillis();
+                        int count = engine.getMantle().unloadTectonicPlate();
+                        if (count > 0) {
+                            Iris.info("Unloaded " + count + " TectonicPlates in " + C.RED + Form.duration(System.currentTimeMillis() - unloadStart, 2));
+                        }
                     }
-                    engine = supplier.get();
                 } catch (Throwable e) {
                     Iris.reportError(e);
-                    e.printStackTrace();
                     return -1;
                 }
-                return 1000;
+
+                int size = cache.size();
+                long time = (size > 0 ? 1000/size : 1000) - (System.currentTimeMillis() - start);
+                if (time <= 0)
+                    return 0;
+                return time;
             }
         };
     }
@@ -96,15 +122,23 @@ public class IrisEngineSVC implements IrisService {
             if (i.get() >= worlds.size()) {
                 i.set(0);
             }
-            for (int j = 0; j < worlds.size(); j++) {
-                PlatformChunkGenerator generator = IrisToolbelt.access(worlds.get(i.getAndIncrement()));
-                if (i.get() >= worlds.size()) {
-                    i.set(0);
-                }
+            try {
+                for (int j = 0; j < worlds.size(); j++) {
+                    PlatformChunkGenerator generator = IrisToolbelt.access(worlds.get(i.getAndIncrement()));
+                    if (i.get() >= worlds.size()) {
+                        i.set(0);
+                    }
 
-                if (generator != null && generator.getEngine() != null) {
-                    return generator.getEngine();
+                    if (generator != null) {
+                        Engine engine = generator.getEngine();
+                        if (engine != null) {
+                            cache.put(engine, System.currentTimeMillis());
+                            return engine;
+                        }
+                    }
                 }
+            } catch (Throwable e) {
+                Iris.reportError(e);
             }
             return null;
         };
@@ -112,7 +146,9 @@ public class IrisEngineSVC implements IrisService {
 
     @Override
     public void onDisable() {
+        cacheTicker.interrupt();
         trimTicker.interrupt();
         unloadTicker.interrupt();
+        cache.clear();
     }
 }

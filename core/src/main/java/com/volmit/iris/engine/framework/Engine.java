@@ -523,8 +523,9 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return getTarget().getBurster();
     }
 
+    @Deprecated
     default void clean() {
-        burst().lazy(() -> getMantle().trim());
+        burst().lazy(() -> getMantle().trim(10));
     }
 
     @BlockCoordinates

@@ -143,8 +143,8 @@ public interface EngineMantle extends IObjectPlacer {
         return getEngine().getDimension().isDebugSmartBore();
     }
 
-    default void trim(long dur) {
-        getMantle().trim(dur);
+    default void trim(long dur, int limit) {
+        getMantle().trim(dur, limit);
     }
 
     default IrisData getData() {
@@ -175,11 +175,11 @@ public interface EngineMantle extends IObjectPlacer {
 
     }
 
-    default void trim() {
-        getMantle().trim(TimeUnit.SECONDS.toMillis(IrisSettings.get().getPerformance().getMantleKeepAlive()));
+    default void trim(int limit) {
+        getMantle().trim(TimeUnit.SECONDS.toMillis(IrisSettings.get().getPerformance().getMantleKeepAlive()), limit);
     }
-    default void unloadTectonicPlate(){
-        getMantle().unloadTectonicPlate();
+    default int unloadTectonicPlate(){
+        return getMantle().unloadTectonicPlate();
     }
 
     default MultiBurst burst() {
@@ -300,9 +300,6 @@ public interface EngineMantle extends IObjectPlacer {
     }
     default long getDynamicThreads(){
         return getMantle().getDynamicThreads().get();
-    }
-    default double getTectonicLimit(){
-        return Mantle.tectonicLimit.get();
     }
     default long getNotClearedLoadedRegions(){
         return getMantle().getLoadedRegions().size() - getMantle().getToUnload().size();

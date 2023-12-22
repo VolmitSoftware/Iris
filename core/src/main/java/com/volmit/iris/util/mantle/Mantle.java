@@ -392,7 +392,6 @@ public class Mantle {
 
     @Getter
     private final AtomicDouble adjustedIdleDuration = new AtomicDouble(0);
-    public static final AtomicInteger tectonicLimit = new AtomicInteger(30);
     @Getter
     private final AtomicInteger dynamicThreads = new AtomicInteger(4);
     @Getter
@@ -400,10 +399,7 @@ public class Mantle {
     @Getter
     private final AtomicLong oldestTectonicPlate = new AtomicLong(0);
     @Getter
-    public final Set<Long> toUnload = new HashSet<>();
-    @Getter
-    public final Set<Long> toUnloadAsync = new HashSet<>();
-    private int g = 0;
+    private Set<Long> toUnload = new HashSet<>();
 
     /**
      * Save & unload regions that have not been used for more than the
@@ -411,7 +407,7 @@ public class Mantle {
      *
      * @param baseIdleDuration the duration
      */
-    public synchronized void trim(long baseIdleDuration) {
+    public synchronized void trim(long baseIdleDuration, int tectonicLimit) {
         if (closed.get()) {
             throw new RuntimeException("The Mantle is closed");
         }
@@ -420,10 +416,9 @@ public class Mantle {
         adjustedIdleDuration.set(baseIdleDuration);
 
         if (loadedRegions != null) {
-            if (loadedRegions.size() > tectonicLimit.get()) {
+            if (loadedRegions.size() > tectonicLimit) {
                 // todo update this correctly and maybe do something when its above a 100%
-                int tectonicLimitValue = tectonicLimit.get();
-                adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (((loadedRegions.size() - tectonicLimitValue) / (double) tectonicLimitValue) * 100) * 0.4), 4000));
+                adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (((loadedRegions.size() - tectonicLimit) / (double) tectonicLimit) * 100) * 0.4), 4000));
             }
         }
 
@@ -448,42 +443,15 @@ public class Mantle {
         }
     }
 
-    public void unloadTectonicPlate() {
-        if (tectonicLimit.get() > toUnload.size()) {
-            try {
-                for (Long id : new ArrayList<>(toUnload)) {
-                    hyperLock.withLong(id, () -> {
-                        TectonicPlate m = loadedRegions.get(id);
-                        if (m != null) {
-                            try {
-                                m.write(fileForRegion(dataFolder, id));
-                                loadedRegions.remove(id);
-                                lastUse.remove(id);
-                                toUnload.remove(id);
-                                Iris.info("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(id) + " " + Cache.keyZ(id));
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    });
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        } else {
-            try {
-                int u = toUnload.size();
-                for (Long i : new ArrayList<>(toUnload)) {
-                    toUnloadAsync.add(i);
-                    toUnload.remove(i);
-                    if (u <= toUnloadAsync.size()) {
-                        break;
-                    }
-                }
-                BurstExecutor b = MultiBurst.burst.burst(toUnloadAsync.size());
-                b.setMulticore(true);
-                b.queue(() -> {
-                    for (Long id : new ArrayList<>(toUnloadAsync)) {
+    public int unloadTectonicPlate() {
+        AtomicInteger i = new AtomicInteger();
+        Set<Long> toUnload = this.toUnload;
+        this.toUnload = new HashSet<>();
+        try {
+            List<Future<?>> futures = new ArrayList<>();
+            ExecutorService service = Executors.newFixedThreadPool(dynamicThreads.get());
+            for (Long id : new ArrayList<>(toUnload)) {
+                futures.add(service.submit(() ->
                         hyperLock.withLong(id, () -> {
                             TectonicPlate m = loadedRegions.get(id);
                             if (m != null) {
@@ -491,21 +459,26 @@ public class Mantle {
                                     m.write(fileForRegion(dataFolder, id));
                                     loadedRegions.remove(id);
                                     lastUse.remove(id);
-                                    toUnloadAsync.remove(id);
-                                    Iris.info("Async Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(id) + " " + Cache.keyZ(id));
+                                    toUnload.remove(id);
+                                    i.incrementAndGet();
+                                    Iris.info("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(id) + " " + Cache.keyZ(id));
                                 } catch (IOException e) {
                                     e.printStackTrace();
                                 }
                             }
-                        });
-                    }
-                });
-                b.complete();
-            } catch (Exception e) {
-                e.printStackTrace();
+                        })));
             }
+            while (!futures.isEmpty()) {
+                futures.remove(0).get();
+            }
+            service.shutdown();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            this.toUnload.addAll(toUnload);
         }
         ioTectonicUnload.set(true);
+        return i.get();
     }
 
 

@@ -85,9 +85,9 @@ public class CommandDeveloper implements DecreeExecutor {
 
     @Decree(description = "Test the compression algorithms")
     public void compression(
-            @Param(description = "World") World world,
-            @Param(description = "File") String path,
-            @Param(description = "Algorithm") String algorithm,
+            @Param(description = "base IrisWorld") World world,
+            @Param(description = "raw TectonicPlate File") String path,
+            @Param(description = "Algorithm to Test") String algorithm,
             @Param(description = "Amount of Tests") int amount) {
         if (!IrisToolbelt.isIrisWorld(world)) {
             sender().sendMessage(C.RED + "This is not an Iris world. Iris worlds: " + String.join(", ", Bukkit.getServer().getWorlds().stream().filter(IrisToolbelt::isIrisWorld).map(World::getName).toList()));

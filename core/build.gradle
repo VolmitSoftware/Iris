@@ -52,6 +52,7 @@ dependencies {
     implementation 'org.apache.logging.log4j:log4j-core:2.19.0'
     implementation 'commons-lang:commons-lang:2.6'
     implementation 'com.github.oshi:oshi-core:5.8.5'
+    compileOnly 'org.lz4:lz4-java:1.8.0'
 
     // Third Party Integrations
     implementation 'com.ticxo.playeranimator:PlayerAnimator:R1.2.7'

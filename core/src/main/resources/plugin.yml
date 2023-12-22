@@ -17,6 +17,7 @@ libraries:
   - org.ow2.asm:asm:9.2
   - rhino:js:1.7R2
   - bsf:bsf:2.4.0
+  - org.lz4:lz4-java:1.8.0
 commands:
   iris:
     aliases: [ ir, irs ]

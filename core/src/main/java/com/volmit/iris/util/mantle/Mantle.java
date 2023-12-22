@@ -27,7 +27,6 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.documentation.RegionCoordinates;
@@ -40,7 +39,6 @@ import com.volmit.iris.util.matter.MatterSlice;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.HyperLock;
 import com.volmit.iris.util.parallel.MultiBurst;
-import com.volmit.iris.util.scheduling.Looper;
 import lombok.Getter;
 import org.bukkit.Chunk;
 
@@ -112,7 +110,7 @@ public class Mantle {
      * @return the file
      */
     public static File fileForRegion(File folder, Long key) {
-        File f = new File(folder, "p." + key + ".ttp");
+        File f = new File(folder, "p." + key + ".ttp.lz4");
         if (!f.getParentFile().exists()) {
             f.getParentFile().mkdirs();
         }
@@ -447,10 +445,11 @@ public class Mantle {
         AtomicInteger i = new AtomicInteger();
         Set<Long> toUnload = this.toUnload;
         this.toUnload = new HashSet<>();
+        toUnload.removeIf(Objects::isNull);
         try {
             List<Future<?>> futures = new ArrayList<>();
             ExecutorService service = Executors.newFixedThreadPool(dynamicThreads.get());
-            for (Long id : new ArrayList<>(toUnload)) {
+            for (long id : new ArrayList<>(toUnload)) {
                 futures.add(service.submit(() ->
                         hyperLock.withLong(id, () -> {
                             TectonicPlate m = loadedRegions.get(id);
@@ -468,10 +467,13 @@ public class Mantle {
                             }
                         })));
             }
-            while (!futures.isEmpty()) {
-                futures.remove(0).get();
-            }
-            service.shutdown();
+
+            try {
+                while (!futures.isEmpty()) {
+                    futures.remove(0).get();
+                }
+                service.shutdown();
+            } catch (InterruptedException ignored) {}
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -549,6 +551,8 @@ public class Mantle {
             }
 
             File file = fileForRegion(dataFolder, x, z);
+            if (!file.exists())
+                file = new File(dataFolder, file.getName().substring(".lz4".length()));
 
             if (file.exists()) {
                 try {

@@ -34,7 +34,9 @@ public class CommandFind implements DecreeExecutor {
     @Decree(description = "Find a biome")
     public void biome(
             @Param(description = "The biome to look for")
-            IrisBiome biome
+            IrisBiome biome,
+            @Param(description = "Should you be teleported", defaultValue = "true")
+            boolean teleport
     ) {
         Engine e = engine();
 
@@ -43,13 +45,15 @@ public class CommandFind implements DecreeExecutor {
             return;
         }
 
-        e.gotoBiome(biome, player());
+        e.gotoBiome(biome, player(), teleport);
     }
 
     @Decree(description = "Find a region")
     public void region(
             @Param(description = "The region to look for")
-            IrisRegion region
+            IrisRegion region,
+            @Param(description = "Should you be teleported", defaultValue = "true")
+            boolean teleport
     ) {
         Engine e = engine();
 
@@ -58,13 +62,15 @@ public class CommandFind implements DecreeExecutor {
             return;
         }
 
-        e.gotoRegion(region, player());
+        e.gotoRegion(region, player(), teleport);
     }
 
     @Decree(description = "Find a structure")
     public void structure(
             @Param(description = "The structure to look for")
-            IrisJigsawStructure structure
+            IrisJigsawStructure structure,
+            @Param(description = "Should you be teleported", defaultValue = "true")
+            boolean teleport
     ) {
         Engine e = engine();
 
@@ -73,13 +79,15 @@ public class CommandFind implements DecreeExecutor {
             return;
         }
 
-        e.gotoJigsaw(structure, player());
+        e.gotoJigsaw(structure, player(), teleport);
     }
 
     @Decree(description = "Find a point of interest.")
     public void poi(
             @Param(description = "The type of PoI to look for.")
-            String type
+            String type,
+            @Param(description = "Should you be teleported", defaultValue = "true")
+            boolean teleport
     ) {
         Engine e = engine();
         if (e == null) {
@@ -87,13 +95,15 @@ public class CommandFind implements DecreeExecutor {
             return;
         }
 
-        e.gotoPOI(type, player());
+        e.gotoPOI(type, player(), teleport);
     }
 
     @Decree(description = "Find an object")
     public void object(
             @Param(description = "The object to look for", customHandler = ObjectHandler.class)
-            String object
+            String object,
+            @Param(description = "Should you be teleported", defaultValue = "true")
+            boolean teleport
     ) {
         Engine e = engine();
 
@@ -102,6 +112,6 @@ public class CommandFind implements DecreeExecutor {
             return;
         }
 
-        e.gotoObject(object, player());
+        e.gotoObject(object, player(), teleport);
     }
 }

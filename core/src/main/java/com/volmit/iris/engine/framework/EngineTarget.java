@@ -23,8 +23,12 @@ import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.util.parallel.MultiBurst;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 @Data
+@EqualsAndHashCode(exclude = "data")
+@ToString(exclude = "data")
 public class EngineTarget {
     private final MultiBurst burster;
     private final IrisData data;

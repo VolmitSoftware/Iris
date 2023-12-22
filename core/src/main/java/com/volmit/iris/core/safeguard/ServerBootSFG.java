@@ -6,6 +6,7 @@ import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
+import javax.print.attribute.standard.Severity;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,6 +19,7 @@ import static com.volmit.iris.core.safeguard.IrisSafeguard.*;
 public class ServerBootSFG {
     public static final Map<String, Boolean> incompatibilities = new HashMap<>();
     public static boolean isJDK17 = true;
+    public static boolean hasEnoughDiskSpace = false;
     public static boolean isJRE = false;
     public static boolean hasPrivileges = false;
     public static boolean unsuportedversion = false;
@@ -85,7 +87,12 @@ public class ServerBootSFG {
         }
         if (!hasPrivileges()){
             hasPrivileges = true;
-            joiner.add("Has insufficient Privileges");
+            joiner.add("Insufficient Privileges");
+            severityHigh++;
+        }
+        if (!enoughDiskSpace()){
+            hasEnoughDiskSpace = false;
+            joiner.add("Insufficient Disk Space");
             severityHigh++;
         }
 
@@ -144,6 +151,16 @@ public class ServerBootSFG {
             return false;
         }
         return false;
+    }
+
+    public static boolean enoughDiskSpace() {
+        File freeSpace = new File(Bukkit.getWorldContainer() + ".");
+        double gigabytes = freeSpace.getFreeSpace() / (1024.0 * 1024.0 * 1024.0);
+        if (gigabytes > 3){
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private static boolean checkJavac(String path) {

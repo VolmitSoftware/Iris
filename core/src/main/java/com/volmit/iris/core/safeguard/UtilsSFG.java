@@ -47,6 +47,10 @@ public class UtilsSFG {
                 Iris.safeguard(C.RED + "Insufficient Privileges");
                 Iris.safeguard(C.RED + "- The server has insufficient Privileges to run iris. Please contact support.");
             }
+            if (!ServerBootSFG.hasEnoughDiskSpace) {
+                Iris.safeguard(C.RED + "Insufficient Disk Space");
+                Iris.safeguard(C.RED + "- The server has insufficient Free DiskSpace to run iris required 3GB+.");
+            }
             if (!ServerBootSFG.isJDK17) {
                 Iris.safeguard(C.YELLOW + "Unsupported java version");
                 Iris.safeguard(C.YELLOW + "- Please consider using JDK 17 Instead of JDK " + Iris.getJavaVersion());

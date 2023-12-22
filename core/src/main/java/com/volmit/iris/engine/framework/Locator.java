@@ -27,6 +27,7 @@ import com.volmit.iris.engine.object.IrisJigsawStructure;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.context.ChunkContext;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
@@ -39,6 +40,7 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.scheduling.jobs.SingleJob;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import java.util.Set;
@@ -109,23 +111,35 @@ public interface Locator<T> {
 
     boolean matches(Engine engine, Position2 chunk);
 
-    default void find(Player player) {
-        find(player, 30_000);
+    default void find(Player player, boolean teleport, String message) {
+        find(player, location -> {
+            if (teleport) {
+                J.s(() -> player.teleport(location));
+            } else {
+                player.sendMessage(C.GREEN + message + " at: " + location.getBlockX() + " " + location.getBlockY() + " " + location.getBlockZ());
+            }
+        });
     }
 
-    default void find(Player player, long timeout) {
+    default void find(Player player, Consumer<Location> consumer) {
+        find(player, 30_000, consumer);
+    }
+
+    default void find(Player player, long timeout, Consumer<Location> consumer) {
         AtomicLong checks = new AtomicLong();
         long ms = M.ms();
         new SingleJob("Searching", () -> {
             try {
-                Position2 at = find(IrisToolbelt.access(player.getWorld()).getEngine(), new Position2(player.getLocation().getBlockX() >> 4, player.getLocation().getBlockZ() >> 4), timeout, checks::set).get();
+                World world = player.getWorld();
+                Engine engine = IrisToolbelt.access(world).getEngine();
+                Position2 at = find(engine, new Position2(player.getLocation().getBlockX() >> 4, player.getLocation().getBlockZ() >> 4), timeout, checks::set).get();
 
                 if (at != null) {
-                    J.s(() -> player.teleport(new Location(player.getWorld(), (at.getX() << 4) + 8,
-                            IrisToolbelt.access(player.getWorld()).getEngine().getHeight(
+                    consumer.accept(new Location(world, (at.getX() << 4) + 8,
+                            engine.getHeight(
                                     (at.getX() << 4) + 8,
                                     (at.getZ() << 4) + 8, false),
-                            (at.getZ() << 4) + 8)));
+                            (at.getZ() << 4) + 8));
                 }
             } catch (WrongEngineBroException | InterruptedException | ExecutionException e) {
                 e.printStackTrace();

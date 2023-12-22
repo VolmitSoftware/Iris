@@ -84,7 +84,7 @@ public class TectonicPlate {
     public static TectonicPlate read(int worldHeight, File file) throws IOException, ClassNotFoundException {
         FileInputStream fin = new FileInputStream(file);
         DataInputStream din;
-        if (file.getName().endsWith("ttp")) {
+        if (file.getName().endsWith("ttp.lz4")) {
             GZIPInputStream gzi = new GZIPInputStream(fin);
             din = new DataInputStream(gzi);
         } else {
@@ -175,7 +175,7 @@ public class TectonicPlate {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         FileOutputStream fos = new FileOutputStream(file);
         DataOutputStream dos;
-        if (file.getName().endsWith("ttp")) {
+        if (file.getName().endsWith("ttp.lz4")) {
             GZIPOutputStream gzo = new GZIPOutputStream(fos);
             dos = new DataOutputStream(gzo);
         } else {

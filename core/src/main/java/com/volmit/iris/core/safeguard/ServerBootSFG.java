@@ -6,6 +6,7 @@ import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
+import javax.print.attribute.standard.Severity;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,7 +19,9 @@ import static com.volmit.iris.core.safeguard.IrisSafeguard.*;
 public class ServerBootSFG {
     public static final Map<String, Boolean> incompatibilities = new HashMap<>();
     public static boolean isJDK17 = true;
+    public static boolean hasEnoughDiskSpace = false;
     public static boolean isJRE = false;
+    public static boolean hasPrivileges = false;
     public static boolean unsuportedversion = false;
     protected static boolean safeguardPassed;
     public static boolean passedserversoftware = true;
@@ -82,6 +85,16 @@ public class ServerBootSFG {
             joiner.add("Unsupported JDK");
             severityMedium++;
         }
+        if (!hasPrivileges()){
+            hasPrivileges = true;
+            joiner.add("Insufficient Privileges");
+            severityHigh++;
+        }
+        if (!enoughDiskSpace()){
+            hasEnoughDiskSpace = false;
+            joiner.add("Insufficient Disk Space");
+            severityHigh++;
+        }
 
         allIncompatibilities = joiner.toString();
 
@@ -120,6 +133,34 @@ public class ServerBootSFG {
         }
         path = System.getProperty("java.home");
         return path != null && checkJavac(path + File.separator + "bin");
+    }
+
+    public static boolean hasPrivileges() {
+        File pv = new File(Bukkit.getWorldContainer() + "iristest.json");
+        if (pv.exists()){
+            pv.delete();
+        }
+        try {
+            if (pv.createNewFile()){
+                if (pv.canWrite() && pv.canRead()){
+                    pv.delete();
+                    return true;
+                }
+            }
+        } catch (Exception e){
+            return false;
+        }
+        return false;
+    }
+
+    public static boolean enoughDiskSpace() {
+        File freeSpace = new File(Bukkit.getWorldContainer() + ".");
+        double gigabytes = freeSpace.getFreeSpace() / (1024.0 * 1024.0 * 1024.0);
+        if (gigabytes > 3){
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private static boolean checkJavac(String path) {

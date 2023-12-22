@@ -16,11 +16,13 @@ import org.bukkit.World;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
 public class IrisEngineSVC implements IrisService {
     private static final AtomicInteger tectonicLimit = new AtomicInteger(30);
-    private final KMap<Engine, Long> cache = new KMap<>();
+    private final ReentrantLock lastUseLock = new ReentrantLock();
+    private final KMap<Engine, Long> lastUse = new KMap<>();
     private Looper cacheTicker;
     private Looper trimTicker;
     private Looper unloadTicker;
@@ -52,13 +54,18 @@ public class IrisEngineSVC implements IrisService {
             @Override
             protected long loop() {
                 long now = System.currentTimeMillis();
-                for (Engine key : cache.keySet()) {
-                    Long last = cache.get(key);
-                    if (last == null)
-                        continue;
-                    if (now - last > 600000) { // 10 minutes
-                        cache.remove(key);
+                lastUseLock.lock();
+                try {
+                    for (Engine key : new ArrayList<>(lastUse.keySet())) {
+                        Long last = lastUse.get(key);
+                        if (last == null)
+                            continue;
+                        if (now - last > 60000) { // 1 minute
+                            lastUse.remove(key);
+                        }
                     }
+                } finally {
+                    lastUseLock.unlock();
                 }
                 return 1000;
             }
@@ -71,14 +78,14 @@ public class IrisEngineSVC implements IrisService {
                 try {
                     Engine engine = supplier.get();
                     if (engine != null) {
-                        engine.getMantle().trim(tectonicLimit.get() / cache.size());
+                        engine.getMantle().trim(tectonicLimit.get() / lastUse.size());
                     }
                 } catch (Throwable e) {
                     Iris.reportError(e);
                     return -1;
                 }
 
-                int size = cache.size();
+                int size = lastUse.size();
                 long time = (size > 0 ? 1000/size : 1000) - (System.currentTimeMillis() - start);
                 if (time <= 0)
                     return 0;
@@ -106,7 +113,7 @@ public class IrisEngineSVC implements IrisService {
                     return -1;
                 }
 
-                int size = cache.size();
+                int size = lastUse.size();
                 long time = (size > 0 ? 1000/size : 1000) - (System.currentTimeMillis() - start);
                 if (time <= 0)
                     return 0;
@@ -132,7 +139,9 @@ public class IrisEngineSVC implements IrisService {
                     if (generator != null) {
                         Engine engine = generator.getEngine();
                         if (engine != null) {
-                            cache.put(engine, System.currentTimeMillis());
+                            lastUseLock.lock();
+                            lastUse.put(engine, System.currentTimeMillis());
+                            lastUseLock.unlock();
                             return engine;
                         }
                     }
@@ -149,6 +158,6 @@ public class IrisEngineSVC implements IrisService {
         cacheTicker.interrupt();
         trimTicker.interrupt();
         unloadTicker.interrupt();
-        cache.clear();
+        lastUse.clear();
     }
 }

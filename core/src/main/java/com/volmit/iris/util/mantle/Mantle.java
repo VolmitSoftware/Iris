@@ -50,6 +50,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * The mantle can store any type of data slice anywhere and manage regions & IO on it's own.
@@ -396,8 +397,9 @@ public class Mantle {
     private final AtomicInteger forceAggressiveThreshold = new AtomicInteger(30);
     @Getter
     private final AtomicLong oldestTectonicPlate = new AtomicLong(0);
+    private final ReentrantLock unloadLock = new ReentrantLock();
     @Getter
-    private Set<Long> toUnload = new HashSet<>();
+    private final Set<Long> toUnload = new HashSet<>();
 
     /**
      * Save & unload regions that have not been used for more than the
@@ -421,6 +423,7 @@ public class Mantle {
         }
 
         ioTrim.set(true);
+        unloadLock.lock();
         try {
             Iris.debug("Trimming Tectonic Plates older than " + Form.duration(adjustedIdleDuration.get(), 0));
             if (lastUse != null) {
@@ -438,14 +441,13 @@ public class Mantle {
 
         } finally {
             ioTrim.set(false);
+            unloadLock.unlock();
         }
     }
 
     public int unloadTectonicPlate() {
         AtomicInteger i = new AtomicInteger();
-        Set<Long> toUnload = this.toUnload;
-        this.toUnload = new HashSet<>();
-        toUnload.removeIf(Objects::isNull);
+        unloadLock.lock();
         try {
             List<Future<?>> futures = new ArrayList<>();
             ExecutorService service = Executors.newFixedThreadPool(dynamicThreads.get());
@@ -471,15 +473,16 @@ public class Mantle {
             try {
                 while (!futures.isEmpty()) {
                     futures.remove(0).get();
+                    futures.removeIf(Future::isDone);
                 }
                 service.shutdown();
             } catch (InterruptedException ignored) {}
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            this.toUnload.addAll(toUnload);
+            unloadLock.unlock();
+            ioTectonicUnload.set(true);
         }
-        ioTectonicUnload.set(true);
         return i.get();
     }
 

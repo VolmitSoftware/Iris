@@ -18,16 +18,40 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.Iris;
 import lombok.Data;
+import org.bukkit.Bukkit;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Data
 public class IrisEngineStatistics {
     private int totalHotloads = 0;
     private int chunksGenerated = 0;
+    private int IrisCreationVersion = 0;
+    private int MinecraftVersion = 0;
 
     public void generatedChunk() {
         chunksGenerated++;
     }
+
+    public void setVersion(int i) {
+        IrisCreationVersion = i;
+    }
+
+    public void setMCVersion(int i) {
+        MinecraftVersion = i;
+    }
+    public int getMCVersion() {
+        return MinecraftVersion;
+    }
+    public int getVersion() {
+        return MinecraftVersion;
+    }
+
+
+
 
     public void hotloaded() {
         totalHotloads++;

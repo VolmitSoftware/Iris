@@ -26,6 +26,10 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
+import net.jpountz.lz4.LZ4BlockInputStream;
+import net.jpountz.lz4.LZ4BlockOutputStream;
+import net.jpountz.lz4.LZ4FrameInputStream;
+import net.jpountz.lz4.LZ4FrameOutputStream;
 
 import java.io.*;
 import java.util.concurrent.atomic.AtomicReferenceArray;
@@ -79,8 +83,14 @@ public class TectonicPlate {
 
     public static TectonicPlate read(int worldHeight, File file) throws IOException, ClassNotFoundException {
         FileInputStream fin = new FileInputStream(file);
-        GZIPInputStream gzi = new GZIPInputStream(fin);
-        DataInputStream din = new DataInputStream(gzi);
+        DataInputStream din;
+        if (file.getName().endsWith("ttp.lz4")) {
+            GZIPInputStream gzi = new GZIPInputStream(fin);
+            din = new DataInputStream(gzi);
+        } else {
+            LZ4BlockInputStream lz4 = new LZ4BlockInputStream(fin);
+            din = new DataInputStream(lz4);
+        }
         TectonicPlate p = new TectonicPlate(worldHeight, din);
         din.close();
 
@@ -164,11 +174,17 @@ public class TectonicPlate {
     public void write(File file) throws IOException {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         FileOutputStream fos = new FileOutputStream(file);
-        GZIPOutputStream gzo = new GZIPOutputStream(fos);
-        DataOutputStream dos = new DataOutputStream(gzo);
+        DataOutputStream dos;
+        if (file.getName().endsWith("ttp")) {
+            GZIPOutputStream gzo = new GZIPOutputStream(fos);
+            dos = new DataOutputStream(gzo);
+        } else {
+            LZ4BlockOutputStream lz4 = new LZ4BlockOutputStream(fos);
+            dos = new DataOutputStream(lz4);
+        }
         write(dos);
         dos.close();
-        Iris.debug("Saved Tectonic Plate " + C.DARK_GREEN + file.getName().split("\\Q.\\E")[0] + C.RED + " in " + Form.duration(p.getMilliseconds(), 2));
+        Iris.info("Saved Tectonic Plate " + C.DARK_GREEN + file.getName().split("\\Q.\\E")[0] + C.RED + " in " + Form.duration(p.getMilliseconds(), 2));
     }
 
     /**

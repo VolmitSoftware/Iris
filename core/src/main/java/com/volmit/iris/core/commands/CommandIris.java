@@ -23,45 +23,35 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.core.safeguard.UtilsSFG;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.decree.DecreeContext;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.decree.specialhandlers.NullablePlayerHandler;
 import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.parallel.BurstExecutor;
-import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import lombok.Getter;
 import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 import static com.volmit.iris.core.service.EditSVC.deletingWorld;
 import static com.volmit.iris.core.tools.IrisBenchmarking.inProgress;
 import static com.volmit.iris.core.safeguard.IrisSafeguard.unstablemode;
-import static com.volmit.iris.core.safeguard.ServerBootSFG.incompatiblePlugins;
+import static com.volmit.iris.core.safeguard.ServerBootSFG.incompatibilities;
 
 @Decree(name = "iris", aliases = {"ir", "irs"}, description = "Basic Command")
 public class CommandIris implements DecreeExecutor {
     private CommandStudio studio;
     private CommandPregen pregen;
+    private CommandLazyPregen lazyPregen;
     private CommandSettings settings;
     private CommandObject object;
     private CommandJigsaw jigsaw;
@@ -72,6 +62,7 @@ public class CommandIris implements DecreeExecutor {
     private CommandDeveloper developer;
 
     public static @Getter String BenchDimension;
+    public static boolean worldCreation = false;
 
     @Decree(description = "Create a new world", aliases = {"+", "c"})
     public void create(
@@ -83,7 +74,7 @@ public class CommandIris implements DecreeExecutor {
             long seed
     ) {
         if(sender() instanceof Player) {
-            if (incompatiblePlugins.get("Multiverse-Core")) {
+            if (incompatibilities.get("Multiverse-Core")) {
                 sender().sendMessage(C.RED + "Your server has an incompatibility that may corrupt all worlds on the server if not handled properly.");
                 sender().sendMessage(C.RED + "it is strongly advised for you to take action. see log for full detail");
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
@@ -91,7 +82,7 @@ public class CommandIris implements DecreeExecutor {
                 sender().sendMessage(C.RED + UtilsSFG.MSGIncompatibleWarnings());
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
             }
-            if (unstablemode && !incompatiblePlugins.get("Multiverse-Core")) {
+            if (unstablemode && !incompatibilities.get("Multiverse-Core")) {
                 sender().sendMessage(C.RED + "Your server is experiencing an incompatibility with the Iris plugin.");
                 sender().sendMessage(C.RED + "Please rectify this problem to avoid further complications.");
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
@@ -117,6 +108,7 @@ public class CommandIris implements DecreeExecutor {
         }
 
         try {
+            worldCreation = true;
             IrisToolbelt.createWorld()
                     .dimension(type.getLoadKey())
                     .name(name)
@@ -128,9 +120,10 @@ public class CommandIris implements DecreeExecutor {
             sender().sendMessage(C.RED + "Exception raised during creation. See the console for more details.");
             Iris.error("Exception raised during world creation: " + e.getMessage());
             Iris.reportError(e);
+            worldCreation = false;
             return;
         }
-
+        worldCreation = false;
         sender().sendMessage(C.GREEN + "Successfully created your world!");
     }
 
@@ -163,6 +156,8 @@ public class CommandIris implements DecreeExecutor {
     public void version() {
         sender().sendMessage(C.GREEN + "Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");
     }
+
+    //todo Move to React
     @Decree(description = "Benchmark your server", origin = DecreeOrigin.CONSOLE)
     public void serverbenchmark() throws InterruptedException {
         if(!inProgress) {
@@ -171,6 +166,7 @@ public class CommandIris implements DecreeExecutor {
             Iris.info(C.RED + "Benchmark already is in progress.");
         }
     }
+
     /*
     /todo Fix PREGEN
     @Decree(description = "Benchmark a pack", origin = DecreeOrigin.CONSOLE)
@@ -239,7 +235,7 @@ public class CommandIris implements DecreeExecutor {
         IrisToolbelt.evacuate(world, "Deleting world");
         deletingWorld = true;
         Bukkit.unloadWorld(world, false);
-        int retries = 10;
+        int retries = 12;
         if (delete) {
             if (deleteDirectory(world.getWorldFolder())) {
                 sender().sendMessage(C.GREEN + "Successfully removed world folder");
@@ -249,13 +245,12 @@ public class CommandIris implements DecreeExecutor {
                         sender().sendMessage(C.GREEN + "Successfully removed world folder");
                         break;
                     }
-                    sender().sendMessage(C.GREEN + "DEBUG1");
                     retries--;
                     if (retries == 0){
                         sender().sendMessage(C.RED + "Failed to remove world folder");
                         break;
                     }
-                    J.sleep(2000);
+                    J.sleep(3000);
                 }
             }
         }
@@ -362,77 +357,6 @@ public class CommandIris implements DecreeExecutor {
         IrisSettings.invalidate();
         IrisSettings.get();
         sender().sendMessage(C.GREEN + "Hotloaded settings");
-    }
-
-    @Decree(name = "regen", description = "Regenerate nearby chunks.", aliases = "rg", sync = true, origin = DecreeOrigin.PLAYER)
-    public void regen(
-            @Param(name = "radius", description = "The radius of nearby cunks", defaultValue = "5")
-            int radius
-    ) {
-        if (IrisToolbelt.isIrisWorld(player().getWorld())) {
-            VolmitSender sender = sender();
-            J.a(() -> {
-                DecreeContext.touch(sender);
-                PlatformChunkGenerator plat = IrisToolbelt.access(player().getWorld());
-                Engine engine = plat.getEngine();
-                try {
-                    Chunk cx = player().getLocation().getChunk();
-                    KList<Runnable> js = new KList<>();
-                    BurstExecutor b = MultiBurst.burst.burst();
-                    b.setMulticore(false);
-                    int rad = engine.getMantle().getRealRadius();
-                    for (int i = -(radius + rad); i <= radius + rad; i++) {
-                        for (int j = -(radius + rad); j <= radius + rad; j++) {
-                            engine.getMantle().getMantle().deleteChunk(i + cx.getX(), j + cx.getZ());
-                        }
-                    }
-
-                    for (int i = -radius; i <= radius; i++) {
-                        for (int j = -radius; j <= radius; j++) {
-                            int finalJ = j;
-                            int finalI = i;
-                            b.queue(() -> plat.injectChunkReplacement(player().getWorld(), finalI + cx.getX(), finalJ + cx.getZ(), (f) -> {
-                                synchronized (js) {
-                                    js.add(f);
-                                }
-                            }));
-                        }
-                    }
-
-                    b.complete();
-                    sender().sendMessage(C.GREEN + "Regenerating " + Form.f(js.size()) + " Sections");
-                    QueueJob<Runnable> r = new QueueJob<>() {
-                        final KList<Future<?>> futures = new KList<>();
-
-                        @Override
-                        public void execute(Runnable runnable) {
-                            futures.add(J.sfut(runnable));
-
-                            if (futures.size() > 64) {
-                                while (futures.isNotEmpty()) {
-                                    try {
-                                        futures.remove(0).get();
-                                    } catch (InterruptedException | ExecutionException e) {
-                                        e.printStackTrace();
-                                    }
-                                }
-                            }
-                        }
-
-                        @Override
-                        public String getName() {
-                            return "Regenerating";
-                        }
-                    };
-                    r.queue(js);
-                    r.execute(sender());
-                } catch (Throwable e) {
-                    sender().sendMessage("Unable to parse view-distance");
-                }
-            });
-        } else {
-            sender().sendMessage(C.RED + "You must be in an Iris World to use regen!");
-        }
     }
 
     @Decree(description = "Update the pack of a world (UNSAFE!)", name = "^world", aliases = "update-world")

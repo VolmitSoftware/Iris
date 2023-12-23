@@ -141,12 +141,12 @@ public class IrisSettings {
         public int resourceLoaderCacheSize = 1_024;
         public int objectLoaderCacheSize = 4_096;
         public int scriptLoaderCacheSize = 512;
-        public boolean dynamicPerformanceMode = true;
+        public int tectonicUnloadThreads = -1; // -1 = Disabled and instead use the dynamic method
     }
 
     @Data
     public static class IrisSettingsGeneral {
-        public boolean bootUnstable = false;
+        public boolean ignoreBootMode = false;
         public boolean useIntegratedChunkHandler = false;
         public boolean commandSounds = true;
         public boolean debug = false;

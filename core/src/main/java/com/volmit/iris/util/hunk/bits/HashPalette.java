@@ -23,8 +23,10 @@ import com.volmit.iris.util.function.Consumer2;
 
 import java.util.LinkedHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class HashPalette<T> implements Palette<T> {
+    private final ReentrantLock lock = new ReentrantLock();
     private final LinkedHashMap<T, Integer> palette;
     private final KMap<Integer, T> lookup;
     private final AtomicInteger size;
@@ -47,14 +49,18 @@ public class HashPalette<T> implements Palette<T> {
 
     @Override
     public int add(T t) {
-        int index = size.getAndIncrement();
-        palette.put(t, index);
+        lock.lock();
+        try {
+            int index = size.getAndIncrement();
+            palette.put(t, index);
 
-        if (t != null) {
-            lookup.put(index, t);
+            if (t != null) {
+                lookup.put(index, t);
+            }
+            return index;
+        } finally {
+            lock.unlock();
         }
-
-        return index;
     }
 
     @Override
@@ -74,12 +80,17 @@ public class HashPalette<T> implements Palette<T> {
 
     @Override
     public void iterate(Consumer2<T, Integer> c) {
-        for (T i : palette.keySet()) {
-            if (i == null) {
-                continue;
-            }
+        lock.lock();
+        try {
+            for (T i : palette.keySet()) {
+                if (i == null) {
+                    continue;
+                }
 
-            c.accept(i, id(i));
+                c.accept(i, id(i));
+            }
+        } finally {
+            lock.unlock();
         }
     }
 }

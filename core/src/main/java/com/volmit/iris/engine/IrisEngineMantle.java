@@ -38,6 +38,8 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.bukkit.util.BlockVector;
 
 import java.io.File;
@@ -49,6 +51,8 @@ import static com.volmit.iris.core.tools.IrisPackBenchmarking.benchmark;
 import static com.volmit.iris.core.safeguard.PerformanceSFG.*;
 
 @Data
+@EqualsAndHashCode(exclude = "engine")
+@ToString(exclude = "engine")
 public class IrisEngineMantle implements EngineMantle {
     private final Engine engine;
     private final Mantle mantle;

@@ -24,6 +24,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.service.StudioSVC;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.core.safeguard.UtilsSFG;
@@ -45,6 +46,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.volmit.iris.core.tools.IrisPackBenchmarking.benchmark;
 import static com.volmit.iris.core.safeguard.IrisSafeguard.unstablemode;
@@ -173,7 +176,6 @@ public class IrisCreator {
                     }
                 }
             }
-            //if (benchmark){loaded = true;}
         });
 
 

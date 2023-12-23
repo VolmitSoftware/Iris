@@ -50,6 +50,9 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -62,8 +65,12 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Data
+@EqualsAndHashCode(exclude = "context")
+@ToString(exclude = "context")
 public class IrisEngine implements Engine {
     private final AtomicInteger bud;
     private final AtomicInteger buds;
@@ -250,7 +257,10 @@ public class IrisEngine implements Engine {
             if (!f.exists()) {
                 try {
                     f.getParentFile().mkdirs();
-                    IO.writeAll(f, new Gson().toJson(new IrisEngineData()));
+                    IrisEngineData data = new IrisEngineData();
+                    data.getStatistics().setVersion(getIrisVersion());
+                    data.getStatistics().setMCVersion(getMCVersion());
+                    IO.writeAll(f, new Gson().toJson(data));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -418,7 +428,6 @@ public class IrisEngine implements Engine {
 
         J.a(() -> {
             try {
-                getMantle().trim();
                 getData().getObjectLoader().clean();
             } catch (Throwable e) {
                 Iris.reportError(e);
@@ -518,4 +527,37 @@ public class IrisEngine implements Engine {
     public int getCacheID() {
         return cacheId;
     }
+
+    private int getIrisVersion() {
+        String input = Iris.instance.getDescription().getVersion();
+        int hyphenIndex = input.indexOf('-');
+        if (hyphenIndex != -1) {
+            String result = input.substring(0, hyphenIndex);
+            result = result.replaceAll("\\.", "");
+            return Integer.parseInt(result);
+        }
+        Iris.error("Failed to assign a Iris Version");
+        return 0;
+    }
+
+    private int getMCVersion() {
+        try {
+            String version = Bukkit.getVersion();
+            Matcher matcher = Pattern.compile("\\(MC: ([\\d.]+)\\)").matcher(version);
+            if (matcher.find()) {
+                version = matcher.group(1).replaceAll("\\.", "");
+                long versionNumber = Long.parseLong(version);
+                if (versionNumber > Integer.MAX_VALUE) {
+                    return -1;
+                }
+                return (int) versionNumber;
+            }
+            Iris.error("Failed to assign a Minecraft Version");
+            return -1;
+        } catch (Exception e) {
+            Iris.error("Failed to assign a Minecraft Version");
+            return -1;
+        }
+    }
+
 }

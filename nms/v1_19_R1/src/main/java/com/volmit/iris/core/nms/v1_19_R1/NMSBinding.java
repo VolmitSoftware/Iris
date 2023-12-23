@@ -5,6 +5,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.json.JSONObject;
@@ -268,6 +269,11 @@ public class NMSBinding implements INMSBinding {
         }
         baseBiomeCache.put(biome, v);
         return v;
+    }
+
+    @Override
+    public KList<Biome> getBiomes() {
+        return new KList<>(Biome.values()).qdel(Biome.CUSTOM);
     }
 
     @Override

@@ -1,3 +1,5 @@
+import java.util.function.Consumer
+
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
  * Copyright (c) 2021 Arcane Arts (Volmit Software)
@@ -23,7 +25,7 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '3.0.0-1.19.2-1.20.2'
+version '3.0.0-1.19.2-1.20.4'
 def specialSourceVersion = '1.11.0' //[NMS]
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
@@ -34,7 +36,7 @@ registerCustomOutputTask('ArcaneArts', 'C://Users/arcane/Documents/development/s
 registerCustomOutputTask('Coco', 'D://mcsm/plugins')
 registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins')
 registerCustomOutputTask('Vatuu', 'D://Minecraft/Servers/1.19.4/plugins')
-registerCustomOutputTask('CrazyDev22', 'C://Users/Julian/Desktop/server/plugins')
+registerCustomOutputTask('CrazyDev22', 'v1_20_R2', 'C://Users/Julian/Desktop/server/plugins')
 registerCustomOutputTask('Pixel', 'C://Users/repix/Iris Dimension Engine/1.20.1 - Iris Coding/plugins')
 // ========================== UNIX ==============================
 registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/development/server/plugins')
@@ -42,6 +44,7 @@ registerCustomOutputTaskUnix('PsychoLT', '/Volumes/PRO-G40/Minecraft/MinecraftDe
 // ==============================================================
 
 def NMS_BINDINGS = Map.of(
+        "v1_20_R3", "1.20.4-R0.1-SNAPSHOT",
         "v1_20_R2", "1.20.2-R0.1-SNAPSHOT",
         "v1_20_R1", "1.20.1-R0.1-SNAPSHOT",
         "v1_19_R3", "1.19.4-R0.1-SNAPSHOT",
@@ -53,14 +56,14 @@ NMS_BINDINGS.each {
     def value = it.value
     def nms =  value.split("-")[0];
     project(":nms:${key}") {
-        apply plugin: 'java'
         apply plugin: 'java-library'
         apply plugin: 'de.undercouch.download'
+        apply plugin: 'com.github.johnrengelman.shadow'
 
         dependencies {
             implementation project(":core")
-            implementation "org.spigotmc:spigot-api:${value}"
-            implementation "org.bukkit:craftbukkit:${value}:remapped-mojang" //[NMS]
+            compileOnly "org.spigotmc:spigot-api:${value}"
+            compileOnly "org.bukkit:craftbukkit:${value}:remapped-mojang" //[NMS]
         }
 
         def buildToolsJar = new File(rootProject.buildDir, "tools/BuildTools.jar")
@@ -80,29 +83,19 @@ NMS_BINDINGS.each {
         def m2s = m2.getAbsolutePath();
 
         // ======================== Building Mapped Jars =============================
-        Runnable downloadBuildtools = () -> {
+        Runnable executeBuildTools = () -> {
+            //Download
             if (!buildToolsJar.exists()) {
                 download.run {
                     src 'https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar'
                     dest buildToolsJar
                 }
             }
-        }
 
-        Runnable downloadSpecialSource = () -> {
-            if (!specialSourceJar.exists()) {
-                download.run {
-                    src 'https://repo.maven.apache.org/maven2/net/md-5/SpecialSource/' + specialSourceVersion + '/SpecialSource-'+specialSourceVersion+'-shaded.jar'
-                    dest specialSourceJar
-                }
-            }
-        }
-
-        Runnable executeBuildTools = () -> {
+            //Execute
             if (!buildToolsHint.exists()) {
-                downloadBuildtools.run()
                 buildToolsFolder.mkdirs()
-                javaexec {
+                project.javaexec {
                     classpath = files(buildToolsJar)
                     workingDir = buildToolsFolder
                     args = [
@@ -116,72 +109,91 @@ NMS_BINDINGS.each {
             }
         }
 
+        Consumer<File> specialSourceRemap = outputFile -> {
+            //Download
+            if (!specialSourceJar.exists()) {
+                download.run {
+                    src 'https://repo.maven.apache.org/maven2/net/md-5/SpecialSource/' + specialSourceVersion + '/SpecialSource-'+specialSourceVersion+'-shaded.jar'
+                    dest specialSourceJar
+                }
+            }
+            specialSourceFolder.mkdirs();
+
+            //Copy
+            project.copy {
+                from outputFile
+                into specialSourceFolder
+            }
+
+            //obfuscate
+            project.javaexec {
+                workingDir = specialSourceFolder
+                classpath = files(specialSourceJar,
+                        new File(m2s + "/org/spigotmc/spigot/" + value + "/spigot-" + value + "-remapped-mojang.jar"))
+                mainClass = "net.md_5.specialsource.SpecialSource"
+                args = [
+                        "--live",
+                        "-i",
+                        ssiJar.getName(),
+                        "-o",
+                        ssobfJar.getName(),
+                        "-m",
+                        m2s + "/org/spigotmc/minecraft-server/" + value + "/minecraft-server-" + value + "-maps-mojang.txt",
+                        "--reverse",
+                ]
+            }
+
+            //remap
+            project.javaexec {
+                workingDir = specialSourceFolder
+                classpath = files(specialSourceJar,
+                        new File(m2s + "/org/spigotmc/spigot/" + value + "/spigot-" + value + "-remapped-obf.jar"))
+                mainClass = "net.md_5.specialsource.SpecialSource"
+                args = [
+                        "--live",
+                        "-i",
+                        ssobfJar.getName(),
+                        "-o",
+                        ssJar.getName(),
+                        "-m",
+                        m2s + "/org/spigotmc/minecraft-server/" + value + "/minecraft-server-" + value + "-maps-spigot.csrg"
+                ]
+            }
+            //copy
+            project.copy {
+                from ssJar
+                into outputFile.getParentFile()
+                rename {
+                    outputFile.getName()
+                }
+            }
+        }
+
         tasks.register("executeBuildTools") {
             doFirst {
                 executeBuildTools.run()
             }
         }
 
-        tasks.register("copyBuildToSpecialSource", Copy) {
-            doFirst {
-                downloadSpecialSource.run()
-                specialSourceFolder.mkdirs();
-            }
-
-            group "remapping"
-            from outputJar
-            into specialSourceFolder
-            dependsOn(jar)
-        }
-
-        tasks.register("specialSourceRemapObfuscate", JavaExec) {
-            group "remapping"
-            dependsOn(copyBuildToSpecialSource)
-            workingDir = specialSourceFolder
-            classpath = files(specialSourceJar,
-                    new File(m2s + "/org/spigotmc/spigot/" + value + "/spigot-" + value + "-remapped-mojang.jar"))
-            mainClass = "net.md_5.specialsource.SpecialSource"
-            args = [
-                    "--live",
-                    "-i",
-                    ssiJar.getName(),
-                    "-o",
-                    ssobfJar.getName(),
-                    "-m",
-                    m2s + "/org/spigotmc/minecraft-server/" + value + "/minecraft-server-" + value + "-maps-mojang.txt",
-                    "--reverse",
-            ]
-        }
-
         tasks.register("specialSourceRemap", JavaExec) {
-            group "remapping"
-            dependsOn(specialSourceRemapObfuscate)
-            workingDir = specialSourceFolder
-            classpath = files(specialSourceJar,
-                    new File(m2s + "/org/spigotmc/spigot/" + value + "/spigot-" + value + "-remapped-obf.jar"))
-            mainClass = "net.md_5.specialsource.SpecialSource"
-            args = [
-                    "--live",
-                    "-i",
-                    ssobfJar.getName(),
-                    "-o",
-                    ssJar.getName(),
-                    "-m",
-                    m2s + "/org/spigotmc/minecraft-server/" + value + "/minecraft-server-" + value + "-maps-spigot.csrg"
-            ]
-        }
-
-        tasks.register("copySpecialSourceToBuild", Copy) {
-            group "remapping"
-            from ssJar
-            into outputJar.getParentFile()
-            rename {
-                outputJar.getName()
+            doFirst {
+                specialSourceRemap.accept(outputJar)
             }
-            dependsOn(specialSourceRemap)
         }
 
-        tasks.build.dependsOn(copySpecialSourceToBuild)
+        shadowJar {
+            append("plugin.yml")
+            relocate('com.dfsek.paralithic', 'com.volmit.iris.util.paralithic')
+            relocate('io.papermc.lib', 'com.volmit.iris.util.paper')
+            relocate('net.kyori', 'com.volmit.iris.util.kyori')
+            archiveFileName.set("Iris-${project.name}.jar")
+
+            doLast {
+                specialSourceRemap.accept(archiveFile.get().asFile)
+            }
+        }
+
+        tasks.build.dependsOn(specialSourceRemap)
         executeBuildTools.run()
     }
 }
@@ -194,13 +206,6 @@ shadowJar {
     relocate 'com.dfsek.paralithic', 'com.volmit.iris.util.paralithic'
     relocate 'io.papermc.lib', 'com.volmit.iris.util.paper'
     relocate 'net.kyori', 'com.volmit.iris.util.kyori'
-    dependencies {
-        include(dependency('io.papermc:paperlib'))
-        include(dependency('com.dfsek:Paralithic'))
-        include(dependency('net.kyori:'))
-        include(project(":core"))
-        NMS_BINDINGS.each {include(project(":nms:${it.key}"))}
-    }
     archiveFileName.set("Iris-${project.version}.jar")
 }
 
@@ -211,13 +216,13 @@ dependencies {
     }
 }
 
-configurations.all {
+configurations.configureEach {
     resolutionStrategy.cacheChangingModulesFor 60, 'minutes'
     resolutionStrategy.cacheDynamicVersionsFor 60, 'minutes'
 }
 
 allprojects {
-    getPlugins().apply("java")
+    apply plugin: 'java'
 
     repositories {
         mavenLocal {
@@ -250,20 +255,20 @@ allprojects {
         implementation "net.kyori:adventure-text-minimessage:4.13.1"
         implementation 'net.kyori:adventure-platform-bukkit:4.3.0'
         implementation 'net.kyori:adventure-api:4.13.1'
-        implementation 'io.lumine:Mythic-Dist:5.2.1'
+        compileOnly 'io.lumine:Mythic-Dist:5.2.1'
 
         // Dynamically Loaded
-        implementation 'io.timeandspace:smoothie-map:2.0.2'
-        implementation 'it.unimi.dsi:fastutil:8.5.8'
-        implementation 'com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'
-        implementation 'org.zeroturnaround:zt-zip:1.14'
-        implementation 'com.google.code.gson:gson:2.9.0'
-        implementation 'org.ow2.asm:asm:9.2'
-        implementation 'com.google.guava:guava:31.1-jre'
-        implementation 'bsf:bsf:2.4.0'
-        implementation 'rhino:js:1.7R2'
-        implementation 'com.github.ben-manes.caffeine:caffeine:3.0.6'
-        implementation 'org.apache.commons:commons-lang3:3.12.0'
+        compileOnly 'io.timeandspace:smoothie-map:2.0.2'
+        compileOnly 'it.unimi.dsi:fastutil:8.5.8'
+        compileOnly 'com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2'
+        compileOnly 'org.zeroturnaround:zt-zip:1.14'
+        compileOnly 'com.google.code.gson:gson:2.9.0'
+        compileOnly 'org.ow2.asm:asm:9.2'
+        compileOnly 'com.google.guava:guava:31.1-jre'
+        compileOnly 'bsf:bsf:2.4.0'
+        compileOnly 'rhino:js:1.7R2'
+        compileOnly 'com.github.ben-manes.caffeine:caffeine:3.0.6'
+        compileOnly 'org.apache.commons:commons-lang3:3.12.0'
     }
 
     /**
@@ -307,6 +312,15 @@ task setup() {
     }
 }
 
+NMS_BINDINGS.keySet().forEach {
+    tasks.register(it, Copy) {
+        group('single version')
+        dependsOn(":nms:${name}:shadowJar")
+        from new File(project(":nms:${name}").buildDir, "libs${File.separator}Iris-${name}.jar")
+        into buildDir
+    }
+}
+
 def registerCustomOutputTask(name, path) {
     if (!System.properties['os.name'].toLowerCase().contains('windows')) {
         return;
@@ -324,6 +338,23 @@ def registerCustomOutputTask(name, path) {
     }
 }
 
+def registerCustomOutputTask(name, nms, path) {
+    if (!System.properties['os.name'].toLowerCase().contains('windows')) {
+        return;
+    }
+
+    tasks.register('build' + name, Copy) {
+        group('development')
+        outputs.upToDateWhen { false }
+        dependsOn(":${nms}")
+        from(new File(buildDir, "Iris-${nms}.jar"))
+        into(file(path))
+        rename { String fileName ->
+            fileName.replace("Iris-${nms}.jar", "Iris.jar")
+        }
+    }
+}
+
 def registerCustomOutputTaskUnix(name, path) {
     if (System.properties['os.name'].toLowerCase().contains('windows')) {
         return;
@@ -337,6 +368,23 @@ def registerCustomOutputTaskUnix(name, path) {
         into(file(path))
         rename { String fileName ->
             fileName.replace("Iris-" + version + ".jar", "Iris.jar")
+        }
+    }
+}
+
+def registerCustomOutputTaskUnix(name, nms, path) {
+    if (System.properties['os.name'].toLowerCase().contains('windows')) {
+        return;
+    }
+
+    tasks.register('build' + name, Copy) {
+        group('development')
+        outputs.upToDateWhen { false }
+        dependsOn(":${nms}")
+        from(new File(buildDir, "Iris-${nms}.jar"))
+        into(file(path))
+        rename { String fileName ->
+            fileName.replace("Iris-${nms}.jar", "Iris.jar")
         }
     }
 }

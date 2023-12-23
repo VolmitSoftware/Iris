@@ -36,7 +36,7 @@ registerCustomOutputTask('ArcaneArts', 'C://Users/arcane/Documents/development/s
 registerCustomOutputTask('Coco', 'D://mcsm/plugins')
 registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins')
 registerCustomOutputTask('Vatuu', 'D://Minecraft/Servers/1.19.4/plugins')
-registerCustomOutputTask('CrazyDev22', 'v1_20_R2', 'C://Users/Julian/Desktop/server/plugins')
+registerCustomOutputTask('CrazyDev22', 'C://Users/Julian/Desktop/server/plugins')
 registerCustomOutputTask('Pixel', 'C://Users/repix/Iris Dimension Engine/1.20.1 - Iris Coding/plugins')
 // ========================== UNIX ==============================
 registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/development/server/plugins')
@@ -58,14 +58,12 @@ NMS_BINDINGS.each {
     project(":nms:${key}") {
         apply plugin: 'java-library'
         apply plugin: 'de.undercouch.download'
-        apply plugin: 'com.github.johnrengelman.shadow'
 
         dependencies {
             implementation project(":core")
             compileOnly "org.spigotmc:spigot-api:${value}"
             compileOnly "org.bukkit:craftbukkit:${value}:remapped-mojang" //[NMS]
         }
-
         def buildToolsJar = new File(rootProject.buildDir, "tools/BuildTools.jar")
         def specialSourceJar = new File(rootProject.buildDir, "tools/SpecialSource.jar")
 
@@ -83,33 +81,44 @@ NMS_BINDINGS.each {
         def m2s = m2.getAbsolutePath();
 
         // ======================== Building Mapped Jars =============================
-        Runnable executeBuildTools = () -> {
-            //Download
-            if (!buildToolsJar.exists()) {
-                download.run {
-                    src 'https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar'
-                    dest buildToolsJar
-                }
-            }
 
-            //Execute
-            if (!buildToolsHint.exists()) {
-                buildToolsFolder.mkdirs()
-                project.javaexec {
-                    classpath = files(buildToolsJar)
-                    workingDir = buildToolsFolder
-                    args = [
-                            "--rev",
-                            nms,
-                            "--compile",
-                            "craftbukkit",
-                            "--remap"
-                    ]
+        ext {
+            executeBuildTools = new Runnable() {
+                @Override
+                void run() {
+                    //Download
+                    if (!buildToolsJar.exists()) {
+                        download.run {
+                            src 'https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar'
+                            dest buildToolsJar
+                        }
+                    }
+
+                    //Execute
+                    if (!buildToolsHint.exists()) {
+                        buildToolsFolder.mkdirs()
+                        project.javaexec {
+                            classpath = files(buildToolsJar)
+                            workingDir = buildToolsFolder
+                            args = [
+                                    "--rev",
+                                    nms,
+                                    "--compile",
+                                    "craftbukkit",
+                                    "--remap"
+                            ]
+                        }
+                    }
                 }
             }
         }
+        tasks.register("executeBuildTools") {
+            doLast {
+                property("executeBuildTools").run();
+            }
+        }
 
-        Consumer<File> specialSourceRemap = outputFile -> {
+        tasks.build.doLast {
             //Download
             if (!specialSourceJar.exists()) {
                 download.run {
@@ -120,13 +129,13 @@ NMS_BINDINGS.each {
             specialSourceFolder.mkdirs();
 
             //Copy
-            project.copy {
-                from outputFile
+            copy {
+                from outputJar
                 into specialSourceFolder
             }
 
             //obfuscate
-            project.javaexec {
+            javaexec {
                 workingDir = specialSourceFolder
                 classpath = files(specialSourceJar,
                         new File(m2s + "/org/spigotmc/spigot/" + value + "/spigot-" + value + "-remapped-mojang.jar"))
@@ -144,7 +153,7 @@ NMS_BINDINGS.each {
             }
 
             //remap
-            project.javaexec {
+            javaexec {
                 workingDir = specialSourceFolder
                 classpath = files(specialSourceJar,
                         new File(m2s + "/org/spigotmc/spigot/" + value + "/spigot-" + value + "-remapped-obf.jar"))
@@ -160,41 +169,14 @@ NMS_BINDINGS.each {
                 ]
             }
             //copy
-            project.copy {
+            copy {
                 from ssJar
-                into outputFile.getParentFile()
+                into outputJar.getParentFile()
                 rename {
-                    outputFile.getName()
+                    outputJar.getName()
                 }
             }
         }
-
-        tasks.register("executeBuildTools") {
-            doFirst {
-                executeBuildTools.run()
-            }
-        }
-
-        tasks.register("specialSourceRemap", JavaExec) {
-            doFirst {
-                specialSourceRemap.accept(outputJar)
-            }
-        }
-
-        shadowJar {
-            append("plugin.yml")
-            relocate('com.dfsek.paralithic', 'com.volmit.iris.util.paralithic')
-            relocate('io.papermc.lib', 'com.volmit.iris.util.paper')
-            relocate('net.kyori', 'com.volmit.iris.util.kyori')
-            archiveFileName.set("Iris-${project.name}.jar")
-
-            doLast {
-                specialSourceRemap.accept(archiveFile.get().asFile)
-            }
-        }
-
-        tasks.build.dependsOn(specialSourceRemap)
-        executeBuildTools.run()
     }
 }
 
@@ -307,17 +289,24 @@ task iris(type: Copy) {
 
 task setup() {
     group "iris"
+    dependsOn(clean)
     NMS_BINDINGS.each {
-        dependsOn(project(":nms:${it.key}").executeBuildTools)
+        dependsOn(":nms:${it.key}:clean");
+    }
+
+    doLast {
+        NMS_BINDINGS.each {
+            project(":nms:${it.key}").property("executeBuildTools").run();
+        }
     }
 }
 
 NMS_BINDINGS.keySet().forEach {
-    tasks.register(it, Copy) {
-        group('single version')
-        dependsOn(":nms:${name}:shadowJar")
-        from new File(project(":nms:${name}").buildDir, "libs${File.separator}Iris-${name}.jar")
-        into buildDir
+    def nms = it
+    tasks.register("setup-${nms}") {
+        group "iris"
+        dependsOn(":nms:${nms}:clean")
+        dependsOn(":nms:${nms}:executeBuildTools")
     }
 }
 
@@ -338,23 +327,6 @@ def registerCustomOutputTask(name, path) {
     }
 }
 
-def registerCustomOutputTask(name, nms, path) {
-    if (!System.properties['os.name'].toLowerCase().contains('windows')) {
-        return;
-    }
-
-    tasks.register('build' + name, Copy) {
-        group('development')
-        outputs.upToDateWhen { false }
-        dependsOn(":${nms}")
-        from(new File(buildDir, "Iris-${nms}.jar"))
-        into(file(path))
-        rename { String fileName ->
-            fileName.replace("Iris-${nms}.jar", "Iris.jar")
-        }
-    }
-}
-
 def registerCustomOutputTaskUnix(name, path) {
     if (System.properties['os.name'].toLowerCase().contains('windows')) {
         return;
@@ -368,23 +340,6 @@ def registerCustomOutputTaskUnix(name, path) {
         into(file(path))
         rename { String fileName ->
             fileName.replace("Iris-" + version + ".jar", "Iris.jar")
-        }
-    }
-}
-
-def registerCustomOutputTaskUnix(name, nms, path) {
-    if (System.properties['os.name'].toLowerCase().contains('windows')) {
-        return;
-    }
-
-    tasks.register('build' + name, Copy) {
-        group('development')
-        outputs.upToDateWhen { false }
-        dependsOn(":${nms}")
-        from(new File(buildDir, "Iris-${nms}.jar"))
-        into(file(path))
-        rename { String fileName ->
-            fileName.replace("Iris-${nms}.jar", "Iris.jar")
         }
     }
 }

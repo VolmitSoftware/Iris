@@ -81,5 +81,3 @@ processResources {
         )
     }
 }
-
-tasks.compileJava.dependsOn(delombok)

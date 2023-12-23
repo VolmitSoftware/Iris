@@ -29,35 +29,28 @@ import java.util.regex.Pattern;
 public class IrisEngineStatistics {
     private int totalHotloads = 0;
     private int chunksGenerated = 0;
-    private String IrisCreationVersion = getVersion();
-    private String MinecraftVersion = getMCVersion();
+    private int IrisCreationVersion = 0;
+    private int MinecraftVersion = 0;
 
     public void generatedChunk() {
         chunksGenerated++;
     }
 
-    public String getVersion() {
-        String input = Iris.instance.getDescription().getVersion();
-        int hyphenIndex = input.indexOf('-');
-
-        String result = null;
-        if (hyphenIndex != -1) {
-            result = input.substring(0, hyphenIndex);
-        }
-        return result;
+    public void setVersion(int i) {
+        IrisCreationVersion = i;
     }
-    public String getMCVersion() {
-        String bukkitVersion = "git-Purpur-2023 (MC: 1.20.1)";
 
-        Pattern pattern = Pattern.compile("\\(MC: (\\d+\\.\\d+(\\.\\d+)?)\\)");
-        Matcher matcher = pattern.matcher(bukkitVersion);
-
-        if (matcher.find()) {
-            return matcher.group(1);
-        } else {
-            return "ERROR";  //  todo: Maybe do something ?
-        }
+    public void setMCVersion(int i) {
+        MinecraftVersion = i;
     }
+    public int getMCVersion() {
+        return MinecraftVersion;
+    }
+    public int getVersion() {
+        return MinecraftVersion;
+    }
+
+
 
 
     public void hotloaded() {

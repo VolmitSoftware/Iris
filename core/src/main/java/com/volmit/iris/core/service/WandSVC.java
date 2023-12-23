@@ -54,6 +54,7 @@ import java.util.Objects;
 
 public class WandSVC implements IrisService {
     private static ItemStack dust;
+    private static ItemStack wand;
 
     public static void pasteSchematic(IrisObject s, Location at) {
         s.place(at);
@@ -226,17 +227,19 @@ public class WandSVC implements IrisService {
             return getCuboidFromItem(p.getInventory().getItemInMainHand());
         }
 
-        Cuboid c = WorldEditLink.getSelection(p);
+        if (IrisSettings.get().getWorld().worldEditWandCUI) {
+            Cuboid c = WorldEditLink.getSelection(p);
 
-        if (c != null) {
-            return new Location[]{c.getLowerNE(), c.getUpperSW()};
+            if (c != null) {
+                return new Location[]{c.getLowerNE(), c.getUpperSW()};
+            }
         }
 
         return null;
     }
 
     public static boolean isHoldingWand(Player p) {
-        return isHoldingIrisWand(p) || WorldEditLink.getSelection(p) != null;
+        return isHoldingIrisWand(p) || (IrisSettings.get().getWorld().worldEditWandCUI && WorldEditLink.getSelection(p) != null);
     }
 
     public static boolean isHoldingIrisWand(Player p) {
@@ -251,7 +254,6 @@ public class WandSVC implements IrisService {
      * @return True if it is
      */
     public static boolean isWand(ItemStack is) {
-        ItemStack wand = createWand();
         if (is.getItemMeta() == null) return false;
         return is.getType().equals(wand.getType()) &&
                 is.getItemMeta().getDisplayName().equals(wand.getItemMeta().getDisplayName()) &&
@@ -261,7 +263,7 @@ public class WandSVC implements IrisService {
 
     @Override
     public void onEnable() {
-        ItemStack wand = createWand();
+        wand = createWand();
         dust = createDust();
 
         J.ar(() -> {

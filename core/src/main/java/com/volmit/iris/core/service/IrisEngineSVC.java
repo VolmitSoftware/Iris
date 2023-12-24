@@ -100,13 +100,7 @@ public class IrisEngineSVC implements IrisService {
                     Engine engine = supplier.get();
                     if (engine != null) {
                         long unloadStart = System.currentTimeMillis();
-                        int count = 0;
-                        if (!lastUse.isEmpty()){
-                             count = engine.getMantle().unloadTectonicPlate(tectonicLimit.get() / lastUse.size());
-                        } else {
-                             count = engine.getMantle().unloadTectonicPlate(tectonicLimit.get());
-                        }
-
+                        int count = engine.getMantle().unloadTectonicPlate();
                         if (count > 0) {
                             Iris.debug(C.GOLD + "Unloaded " +  C.YELLOW + count + " TectonicPlates in " + C.RED + Form.duration(System.currentTimeMillis() - unloadStart, 2));
                         }

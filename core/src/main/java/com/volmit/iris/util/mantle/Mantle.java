@@ -445,6 +445,7 @@ public class Mantle {
     }
 
     public int unloadTectonicPlate() {
+        // todo: Make it advanced with bursts etc
         AtomicInteger i = new AtomicInteger();
         unloadLock.lock();
         try {

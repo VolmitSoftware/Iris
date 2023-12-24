@@ -21,6 +21,7 @@ package com.volmit.iris.engine;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.core.gui.PregeneratorJob;
@@ -258,8 +259,11 @@ public class IrisEngine implements Engine {
                 try {
                     f.getParentFile().mkdirs();
                     IrisEngineData data = new IrisEngineData();
-                    data.getStatistics().setVersion(getIrisVersion());
-                    data.getStatistics().setMCVersion(getMCVersion());
+                    data.getStatistics().setVersion(Iris.instance.getIrisVersion());
+                    data.getStatistics().setMCVersion(Iris.instance.getMCVersion());
+                    if (data.getStatistics().getVersion() == -1 || data.getStatistics().getMCVersion() == -1 ) {
+                        Iris.error("Failed to setup Engine Data!");
+                    }
                     IO.writeAll(f, new Gson().toJson(data));
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -528,36 +532,18 @@ public class IrisEngine implements Engine {
         return cacheId;
     }
 
-    private int getIrisVersion() {
-        String input = Iris.instance.getDescription().getVersion();
-        int hyphenIndex = input.indexOf('-');
-        if (hyphenIndex != -1) {
-            String result = input.substring(0, hyphenIndex);
-            result = result.replaceAll("\\.", "");
-            return Integer.parseInt(result);
+    private boolean EngineSafe() {
+        // Todo: this has potential if done right
+        int EngineMCVersion = getEngineData().getStatistics().getMCVersion();
+        int EngineIrisVersion = getEngineData().getStatistics().getVersion();
+        int MinecraftVersion = Iris.instance.getMCVersion();
+        int IrisVersion = Iris.instance.getIrisVersion();
+        if (EngineIrisVersion != IrisVersion) {
+            return false;
         }
-        Iris.error("Failed to assign a Iris Version");
-        return 0;
-    }
-
-    private int getMCVersion() {
-        try {
-            String version = Bukkit.getVersion();
-            Matcher matcher = Pattern.compile("\\(MC: ([\\d.]+)\\)").matcher(version);
-            if (matcher.find()) {
-                version = matcher.group(1).replaceAll("\\.", "");
-                long versionNumber = Long.parseLong(version);
-                if (versionNumber > Integer.MAX_VALUE) {
-                    return -1;
-                }
-                return (int) versionNumber;
-            }
-            Iris.error("Failed to assign a Minecraft Version");
-            return -1;
-        } catch (Exception e) {
-            Iris.error("Failed to assign a Minecraft Version");
-            return -1;
+        if (EngineMCVersion != MinecraftVersion) {
+            return false;
         }
+        return true;
     }
-
 }

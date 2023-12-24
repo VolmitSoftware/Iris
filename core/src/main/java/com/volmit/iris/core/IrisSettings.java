@@ -117,6 +117,7 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsWorld {
+        public boolean forceBootWorlds = false;
         public IrisAsyncTeleport asyncTeleport = new IrisAsyncTeleport();
         public boolean postLoadBlockUpdates = true;
         public boolean forcePersistEntities = true;

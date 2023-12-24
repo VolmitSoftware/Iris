@@ -94,6 +94,8 @@ import java.lang.management.OperatingSystemMXBean;
 import java.net.URL;
 import java.util.Date;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.volmit.iris.core.safeguard.IrisSafeguard.*;
 import static com.volmit.iris.core.safeguard.ServerBootSFG.passedserversoftware;
@@ -872,5 +874,34 @@ public class Iris extends VolmitPlugin implements Listener {
         } catch (IOException | JsonParseException ignored) {
         }
         Iris.info("  " + dimName + " v" + version);
+    }
+
+    public int getIrisVersion() {
+        String input = Iris.instance.getDescription().getVersion();
+        int hyphenIndex = input.indexOf('-');
+        if (hyphenIndex != -1) {
+            String result = input.substring(0, hyphenIndex);
+            result = result.replaceAll("\\.", "");
+            return Integer.parseInt(result);
+        }
+        return -1;
+    }
+
+    public int getMCVersion() {
+        try {
+            String version = Bukkit.getVersion();
+            Matcher matcher = Pattern.compile("\\(MC: ([\\d.]+)\\)").matcher(version);
+            if (matcher.find()) {
+                version = matcher.group(1).replaceAll("\\.", "");
+                long versionNumber = Long.parseLong(version);
+                if (versionNumber > Integer.MAX_VALUE) {
+                    return -1;
+                }
+                return (int) versionNumber;
+            }
+            return -1;
+        } catch (Exception e) {
+            return -1;
+        }
     }
 }

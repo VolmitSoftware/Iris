@@ -28,8 +28,6 @@ public class IrisEngineSVC implements IrisService {
     private Looper unloadTicker;
     public List<World> corruptedIrisWorlds = new ArrayList<>();
 
-    // todo make this work with multiple worlds
-
     @Override
     public void onEnable() {
         tectonicLimit.set(2);
@@ -104,7 +102,7 @@ public class IrisEngineSVC implements IrisService {
                         long unloadStart = System.currentTimeMillis();
                         int count = engine.getMantle().unloadTectonicPlate(tectonicLimit.get());
                         if (count > 0) {
-                            Iris.info(C.GOLD + "Unloaded " +  C.YELLOW + count + " TectonicPlates in " + C.RED + Form.duration(System.currentTimeMillis() - unloadStart, 2));
+                            Iris.debug(C.GOLD + "Unloaded " +  C.YELLOW + count + " TectonicPlates in " + C.RED + Form.duration(System.currentTimeMillis() - unloadStart, 2));
                         }
                     }
                 } catch (Throwable e) {

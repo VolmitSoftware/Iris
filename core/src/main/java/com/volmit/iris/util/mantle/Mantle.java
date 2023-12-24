@@ -411,7 +411,6 @@ public class Mantle {
         if (closed.get()) {
             throw new RuntimeException("The Mantle is closed");
         }
-        Iris.debug(C.BLUE + "TECTONIC TRIM HAS RUN");
 
         adjustedIdleDuration.set(baseIdleDuration);
 
@@ -466,7 +465,7 @@ public class Mantle {
                                     lastUse.remove(id);
                                     toUnload.remove(id);
                                     i.incrementAndGet();
-                                    Iris.info("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(id) + " " + Cache.keyZ(id));
+                                    Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(id) + " " + Cache.keyZ(id));
                                 } catch (IOException e) {
                                     e.printStackTrace();
                                 }

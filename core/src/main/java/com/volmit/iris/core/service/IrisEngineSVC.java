@@ -38,7 +38,6 @@ public class IrisEngineSVC implements IrisService {
             tectonicLimit.getAndAdd(1);
             t = t - 250;
         }
-        tectonicLimit.set(10); // DEBUG CODE
         this.setup();
         cacheTicker.start();
         trimTicker.start();

@@ -446,7 +446,7 @@ public class Mantle {
 
     public int unloadTectonicPlate(int tectonicLimit) {
         // todo: make a advanced unloader
-        if (toUnload.size() > tectonicLimit){
+        if (toUnload.size() > tectonicLimit / lastUse.size()){
             dynamicThreads.set(2);
         }
         AtomicInteger i = new AtomicInteger();

@@ -727,7 +727,7 @@ public class Iris extends VolmitPlugin implements Listener {
         File ff = new File(w.worldFolder(), "iris/pack");
         if (!ff.exists() || ff.listFiles().length == 0) {
             ff.mkdirs();
-            service(StudioSVC.class).installIntoWorld(sender, dim.getLoadKey(), ff.getParentFile());
+            service(StudioSVC.class).installIntoWorld(sender, dim.getLoadKey(), w.worldFolder());
         }
 
         return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey());

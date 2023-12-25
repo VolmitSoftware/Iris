@@ -444,15 +444,15 @@ public class Mantle {
         }
     }
 
-    public int unloadTectonicPlate() {
+    public int unloadTectonicPlate(int tectonicLimit) {
         // todo: Make it advanced with bursts etc
         AtomicInteger i = new AtomicInteger();
         unloadLock.lock();
         try {
-            List<Future<?>> futures = new ArrayList<>();
-            ExecutorService service = Executors.newFixedThreadPool(dynamicThreads.get());
+            BurstExecutor burst = MultiBurst.burst.burst(toUnload.size());
+            burst.setMulticore(toUnload.size() > tectonicLimit);
             for (long id : new ArrayList<>(toUnload)) {
-                futures.add(service.submit(() ->
+                burst.queue(() ->
                         hyperLock.withLong(id, () -> {
                             TectonicPlate m = loadedRegions.get(id);
                             if (m != null) {
@@ -467,16 +467,10 @@ public class Mantle {
                                     e.printStackTrace();
                                 }
                             }
-                        })));
+                        }));
             }
 
-            try {
-                while (!futures.isEmpty()) {
-                    futures.remove(0).get();
-                    futures.removeIf(Future::isDone);
-                }
-                service.shutdown();
-            } catch (InterruptedException ignored) {}
+            burst.complete();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

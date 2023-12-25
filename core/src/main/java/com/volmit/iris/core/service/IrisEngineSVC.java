@@ -22,7 +22,7 @@ import java.util.function.Supplier;
 public class IrisEngineSVC implements IrisService {
     private static final AtomicInteger tectonicLimit = new AtomicInteger(30);
     private final ReentrantLock lastUseLock = new ReentrantLock();
-    private final KMap<Engine, Long> lastUse = new KMap<>();
+    private final KMap<World, Long> lastUse = new KMap<>();
     private Looper cacheTicker;
     private Looper trimTicker;
     private Looper unloadTicker;
@@ -53,7 +53,7 @@ public class IrisEngineSVC implements IrisService {
                 long now = System.currentTimeMillis();
                 lastUseLock.lock();
                 try {
-                    for (Engine key : new ArrayList<>(lastUse.keySet())) {
+                    for (World key : new ArrayList<>(lastUse.keySet())) {
                         Long last = lastUse.get(key);
                         if (last == null)
                             continue;
@@ -100,7 +100,7 @@ public class IrisEngineSVC implements IrisService {
                     Engine engine = supplier.get();
                     if (engine != null) {
                         long unloadStart = System.currentTimeMillis();
-                        int count = engine.getMantle().unloadTectonicPlate();
+                        int count = engine.getMantle().unloadTectonicPlate(tectonicLimit.get() / lastUse.size());
                         if (count > 0) {
                             Iris.debug(C.GOLD + "Unloaded " +  C.YELLOW + count + " TectonicPlates in " + C.RED + Form.duration(System.currentTimeMillis() - unloadStart, 2));
                         }
@@ -128,7 +128,8 @@ public class IrisEngineSVC implements IrisService {
             }
             try {
                 for (int j = 0; j < worlds.size(); j++) {
-                    PlatformChunkGenerator generator = IrisToolbelt.access(worlds.get(i.getAndIncrement()));
+                    World world = worlds.get(i.getAndIncrement());
+                    PlatformChunkGenerator generator = IrisToolbelt.access(world);
                     if (i.get() >= worlds.size()) {
                         i.set(0);
                     }
@@ -137,7 +138,7 @@ public class IrisEngineSVC implements IrisService {
                         Engine engine = generator.getEngine();
                         if (engine != null) {
                             lastUseLock.lock();
-                            lastUse.put(engine, System.currentTimeMillis());
+                            lastUse.put(world, System.currentTimeMillis());
                             lastUseLock.unlock();
                             return engine;
                         }

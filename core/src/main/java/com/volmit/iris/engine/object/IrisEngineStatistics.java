@@ -18,12 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.Iris;
 import lombok.Data;
-import org.bukkit.Bukkit;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Data
 public class IrisEngineStatistics {

@@ -261,6 +261,7 @@ public class IrisEngine implements Engine {
                     IrisEngineData data = new IrisEngineData();
                     data.getStatistics().setVersion(Iris.instance.getIrisVersion());
                     data.getStatistics().setMCVersion(Iris.instance.getMCVersion());
+                    data.getStatistics().setUpgradedVersion(Iris.instance.getIrisVersion());
                     if (data.getStatistics().getVersion() == -1 || data.getStatistics().getMCVersion() == -1 ) {
                         Iris.error("Failed to setup Engine Data!");
                     }

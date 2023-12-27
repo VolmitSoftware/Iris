@@ -32,9 +32,9 @@ public class IrisEngineSVC implements IrisService {
     public void onEnable() {
         tectonicLimit.set(2);
         long t = getHardware.getProcessMemory();
-        while (t > 250) {
+        while (t > 200) {
             tectonicLimit.getAndAdd(1);
-            t = t - 250;
+            t = t - 200;
         }
         this.setup();
         cacheTicker.start();

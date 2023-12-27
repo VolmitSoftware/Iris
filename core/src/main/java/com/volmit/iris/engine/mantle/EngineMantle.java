@@ -298,9 +298,6 @@ public interface EngineMantle extends IObjectPlacer {
     default long getToUnload(){
         return getMantle().getToUnload().size();
     }
-    default long getDynamicThreads(){
-        return getMantle().getDynamicThreads().get();
-    }
     default long getNotClearedLoadedRegions(){
         return getMantle().getLoadedRegions().size() - getMantle().getToUnload().size();
     }

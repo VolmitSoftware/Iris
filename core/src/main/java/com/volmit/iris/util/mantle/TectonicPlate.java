@@ -184,7 +184,7 @@ public class TectonicPlate {
         }
         write(dos);
         dos.close();
-        Iris.info("Saved Tectonic Plate " + C.DARK_GREEN + file.getName().split("\\Q.\\E")[0] + C.RED + " in " + Form.duration(p.getMilliseconds(), 2));
+        Iris.debug("Saved Tectonic Plate " + C.DARK_GREEN + file.getName().split("\\Q.\\E")[0] + C.RED + " in " + Form.duration(p.getMilliseconds(), 2));
     }
 
     /**

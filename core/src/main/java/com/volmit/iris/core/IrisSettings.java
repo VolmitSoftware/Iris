@@ -117,7 +117,6 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsWorld {
-        public boolean forceBootWorlds = false;
         public IrisAsyncTeleport asyncTeleport = new IrisAsyncTeleport();
         public boolean postLoadBlockUpdates = true;
         public boolean forcePersistEntities = true;
@@ -142,7 +141,6 @@ public class IrisSettings {
         public int resourceLoaderCacheSize = 1_024;
         public int objectLoaderCacheSize = 4_096;
         public int scriptLoaderCacheSize = 512;
-        public int tectonicUnloadThreads = -1; // -1 = Disabled and instead use the dynamic method
     }
 
     @Data

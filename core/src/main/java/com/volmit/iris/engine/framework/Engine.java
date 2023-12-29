@@ -523,8 +523,9 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return getTarget().getBurster();
     }
 
+    @Deprecated
     default void clean() {
-        burst().lazy(() -> getMantle().trim());
+        burst().lazy(() -> getMantle().trim(10));
     }
 
     @BlockCoordinates
@@ -803,7 +804,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return getBiomeOrMantle(l.getBlockX(), l.getBlockY(), l.getBlockZ());
     }
 
-    default void gotoBiome(IrisBiome biome, Player player) {
+    default void gotoBiome(IrisBiome biome, Player player, boolean teleport) {
         Set<String> regionKeys = getDimension()
                 .getAllRegions(this).stream()
                 .filter((i) -> i.getAllBiomes(this).contains(biome))
@@ -815,13 +816,13 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 && lb.matches(engine, chunk);
 
         if (!regionKeys.isEmpty()) {
-            locator.find(player);
+            locator.find(player, teleport, "Biome " + biome.getName());
         } else {
             player.sendMessage(C.RED + biome.getName() + " is not in any defined regions!");
         }
     }
 
-    default void gotoJigsaw(IrisJigsawStructure s, Player player) {
+    default void gotoJigsaw(IrisJigsawStructure s, Player player, boolean teleport) {
         if (s.getLoadKey().equals(getDimension().getStronghold())) {
             KList<Position2> p = getDimension().getStrongholds(getSeedManager().getSpawn());
 
@@ -858,7 +859,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         if (getDimension().getJigsawStructures().stream()
                 .map(IrisJigsawStructurePlacement::getStructure)
                 .collect(Collectors.toSet()).contains(s.getLoadKey())) {
-            Locator.jigsawStructure(s.getLoadKey()).find(player);
+            Locator.jigsawStructure(s.getLoadKey()).find(player, teleport, "Structure " + s.getLoadKey());
         } else {
             Set<String> biomeKeys = getDimension().getAllBiomes(this).stream()
                     .filter((i) -> i.getJigsawStructures()
@@ -885,7 +886,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             };
 
             if (!regionKeys.isEmpty()) {
-                locator.find(player);
+                locator.find(player, teleport, "Structure " + s.getLoadKey());
             } else {
                 player.sendMessage(C.RED + s.getLoadKey() + " is not in any defined regions, biomes or dimensions!");
             }
@@ -893,7 +894,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     }
 
-    default void gotoObject(String s, Player player) {
+    default void gotoObject(String s, Player player, boolean teleport) {
         Set<String> biomeKeys = getDimension().getAllBiomes(this).stream()
                 .filter((i) -> i.getObjects().stream().anyMatch((f) -> f.getPlace().contains(s)))
                 .map(IrisRegistrant::getLoadKey)
@@ -916,23 +917,23 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         };
 
         if (!regionKeys.isEmpty()) {
-            locator.find(player);
+            locator.find(player, teleport, "Object " + s);
         } else {
             player.sendMessage(C.RED + s + " is not in any defined regions or biomes!");
         }
     }
 
-    default void gotoRegion(IrisRegion r, Player player) {
+    default void gotoRegion(IrisRegion r, Player player, boolean teleport) {
         if (!getDimension().getAllRegions(this).contains(r)) {
             player.sendMessage(C.RED + r.getName() + " is not defined in the dimension!");
             return;
         }
 
-        Locator.region(r.getLoadKey()).find(player);
+        Locator.region(r.getLoadKey()).find(player, teleport, "Region " + r.getName());
     }
 
-    default void gotoPOI(String type, Player p) {
-        Locator.poi(type).find(p);
+    default void gotoPOI(String type, Player p, boolean teleport) {
+        Locator.poi(type).find(p, teleport, "POI " + type);
     }
 
     default void cleanupMantleChunk(int x, int z) {

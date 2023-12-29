@@ -40,6 +40,8 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.io.*;
 import java.util.Locale;
@@ -52,6 +54,8 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 @Data
+@EqualsAndHashCode(exclude = "manager")
+@ToString(exclude = "manager")
 public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
     public static final AtomicDouble tlt = new AtomicDouble(0);
     private static final int CACHE_SIZE = 100000;

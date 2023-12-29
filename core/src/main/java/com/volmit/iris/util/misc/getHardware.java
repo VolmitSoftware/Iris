@@ -13,11 +13,6 @@ public class getHardware {
         OperatingSystem os = systemInfo.getOperatingSystem();
         return os.toString();
     }
-    public static int getCPUThreads(){
-        SystemInfo systemInfo = new SystemInfo();
-        CentralProcessor processor = systemInfo.getHardware().getProcessor();
-        return processor.getLogicalProcessorCount();
-    }
     public static long getProcessMemory(){
         long maxMemory = Runtime.getRuntime().maxMemory() / (1024 * 1024);
         return maxMemory;

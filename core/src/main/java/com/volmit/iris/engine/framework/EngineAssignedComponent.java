@@ -21,8 +21,12 @@ package com.volmit.iris.engine.framework;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.math.RollingSequence;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 @Data
+@EqualsAndHashCode(exclude = "engine")
+@ToString(exclude = "engine")
 public class EngineAssignedComponent implements EngineComponent {
     private final Engine engine;
     private final RollingSequence metrics;

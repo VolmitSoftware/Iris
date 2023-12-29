@@ -30,7 +30,6 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
-import com.volmit.iris.core.safeguard.ServerBootSFG;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.EnginePanic;
@@ -64,6 +63,7 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
 import io.papermc.lib.PaperLib;
+import lombok.Getter;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
 import org.bukkit.Bukkit;
@@ -94,11 +94,12 @@ import java.lang.management.OperatingSystemMXBean;
 import java.net.URL;
 import java.util.Date;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import static com.volmit.iris.core.safeguard.IrisSafeguard.unstablemode;
+import static com.volmit.iris.core.safeguard.IrisSafeguard.*;
 import static com.volmit.iris.core.safeguard.ServerBootSFG.passedserversoftware;
 import static com.volmit.iris.util.misc.getHardware.getCPUModel;
-import static com.volmit.iris.util.misc.getHardware.getCPUThreads;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -350,7 +351,7 @@ public class Iris extends VolmitPlugin implements Listener {
         }
     }
 
-    private static int getJavaVersion() {
+    public static int getJavaVersion() {
         String version = System.getProperty("java.version");
         if (version.startsWith("1.")) {
             version = version.substring(2, 3);
@@ -469,13 +470,9 @@ public class Iris extends VolmitPlugin implements Listener {
             J.s(this::setupPapi);
             J.a(ServerConfigurator::configure, 20);
             splash();
-            UtilsSFG.UnstableMode();
-            UtilsSFG.SupportedServerSoftware();
-            UtilsSFG.printIncompatibleWarnings();
-            UtilsSFG.unstablePrompt();
+            UtilsSFG.splash();
 
             autoStartStudio();
-            ServerBootSFG.CheckIrisWorlds();
             checkForBukkitWorlds();
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
             IrisToolbelt.retainMantleDataForSlice(BlockData.class.getCanonicalName());
@@ -596,9 +593,11 @@ public class Iris extends VolmitPlugin implements Listener {
         if (unstablemode) {
             return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.RED + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
         }
-        else {
-            return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.IRIS + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
+        if (warningmode) {
+            return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.GOLD + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
         }
+        return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.IRIS + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
+
     }
 
     private boolean setupChecks() {
@@ -728,7 +727,7 @@ public class Iris extends VolmitPlugin implements Listener {
         File ff = new File(w.worldFolder(), "iris/pack");
         if (!ff.exists() || ff.listFiles().length == 0) {
             ff.mkdirs();
-            service(StudioSVC.class).installIntoWorld(sender, dim.getLoadKey(), ff.getParentFile());
+            service(StudioSVC.class).installIntoWorld(sender, dim.getLoadKey(), w.worldFolder());
         }
 
         return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey());
@@ -744,6 +743,9 @@ public class Iris extends VolmitPlugin implements Listener {
         String[] info = {"", "", "", "", "", padd2 + C.IRIS + " Iris", padd2 + C.GRAY + " by " + "<rainbow>Volmit Software", padd2 + C.GRAY + " v" + C.IRIS + getDescription().getVersion()};
         if (unstablemode) {
              info = new String[]{"", "", "", "", "", padd2 + C.RED + " Iris", padd2 + C.GRAY + " by " + C.DARK_RED + "Volmit Software", padd2 + C.GRAY + " v" + C.RED + getDescription().getVersion()};
+        }
+        if (warningmode) {
+            info = new String[]{"", "", "", "", "", padd2 + C.GOLD + " Iris", padd2 + C.GRAY + " by " + C.GOLD + "Volmit Software", padd2 + C.GRAY + " v" + C.GOLD + getDescription().getVersion()};
         }
 
         String[] splashstable = {
@@ -773,9 +775,28 @@ public class Iris extends VolmitPlugin implements Listener {
                 padd + C.GRAY + "" + C.RED + "                     '(((())))'   " + C.DARK_GRAY + "&&&&&&&&" + C.GRAY + "&&&&&&&@@",
                 padd + C.GRAY + "                               " + C.DARK_GRAY + "@@@" + C.GRAY + "@@@@@@@@@@@@@@"
         };
-        String[] splash = unstablemode ? splashunstable : splashstable; // Choose the appropriate splash array based on unstablemode
-
-
+        String[] splashwarning = {
+                padd + C.GRAY + "   @@@@@@@@@@@@@@" + C.DARK_GRAY + "@@@",
+                padd + C.GRAY + " @@&&&&&&&&&" + C.DARK_GRAY + "&&&&&&" + C.GOLD + "   .(((()))).                     ",
+                padd + C.GRAY + "@@@&&&&&&&&" + C.DARK_GRAY + "&&&&&" + C.GOLD + "  .((((((())))))).                  ",
+                padd + C.GRAY + "@@@&&&&&" + C.DARK_GRAY + "&&&&&&&" + C.GOLD + "  ((((((((()))))))))               " + C.GRAY + " @",
+                padd + C.GRAY + "@@@&&&&" + C.DARK_GRAY + "@@@@@&" + C.GOLD + "    ((((((((-)))))))))              " + C.GRAY + " @@",
+                padd + C.GRAY + "@@@&&" + C.GOLD + "            ((((((({ }))))))))           " + C.GRAY + " &&@@@",
+                padd + C.GRAY + "@@" + C.GOLD + "               ((((((((-)))))))))    " + C.DARK_GRAY + "&@@@@@" + C.GRAY + "&&&&@@@",
+                padd + C.GRAY + "@" + C.GOLD + "                ((((((((()))))))))  " + C.DARK_GRAY + "&&&&&" + C.GRAY + "&&&&&&&@@@",
+                padd + C.GRAY + "" + C.GOLD + "                  '((((((()))))))'  " + C.DARK_GRAY + "&&&&&" + C.GRAY + "&&&&&&&&@@@",
+                padd + C.GRAY + "" + C.GOLD + "                     '(((())))'   " + C.DARK_GRAY + "&&&&&&&&" + C.GRAY + "&&&&&&&@@",
+                padd + C.GRAY + "                               " + C.DARK_GRAY + "@@@" + C.GRAY + "@@@@@@@@@@@@@@"
+        };
+        String[] splash;
+        File freeSpace = new File(Bukkit.getWorldContainer() + ".");
+        if (unstablemode) {
+            splash = splashunstable;
+        } else if (warningmode) {
+            splash = splashwarning;
+        } else {
+            splash = splashstable;
+        }
         OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
         String osArch = osBean.getArch();
         String osName = osBean.getName();
@@ -783,17 +804,40 @@ public class Iris extends VolmitPlugin implements Listener {
         if (!passedserversoftware) {
             Iris.info("Server type & version: " + C.RED + Bukkit.getVersion());
         } else { Iris.info("Server type & version: " + Bukkit.getVersion()); }
-
+        if (!instance.getServer().getVersion().contains("Purpur")) {
+            if (instance.getServer().getVersion().contains("Spigot") && instance.getServer().getVersion().contains("Bukkit")) {
+                 Iris.info(C.RED + " Iris requires paper or above to function properly..");
+            } else {
+                Iris.info(C.YELLOW + "Purpur is recommended to use with iris.");
+            }
+        }
         Iris.info("Server OS: " + osName + " (" + osArch + ")");
 
-        if(unstablemode) Iris.info("Server Cpu: " + C.DARK_RED + getCPUModel());
+        try {
+            if (warningmode){
+                Iris.info("Server Cpu: " + C.GOLD + getCPUModel());
+            } else {
+            if(unstablemode){
+                Iris.info("Server Cpu: " + C.DARK_RED + getCPUModel());
+            } else {
+                if (getCPUModel().contains("Intel")) {
+                    Iris.info("Server Cpu: " + C.BLUE + getCPUModel());
+                }
+                if (getCPUModel().contains("Ryzen")) {
+                    Iris.info("Server Cpu: " + C.RED + getCPUModel());
+                }
+                if (!getCPUModel().contains("Ryzen") && !getCPUModel().contains("Intel")) {
+                    Iris.info("Server Cpu: " + C.GRAY + getCPUModel());
+                }
+            }
+            }
+        } catch (Exception e){
+            Iris.info("Server Cpu: " + C.DARK_RED + "Failed");
+        }
 
-        if(getCPUModel().contains("Intel")) Iris.info("Server Cpu: " + C.BLUE + getCPUModel());
-        if(getCPUModel().contains("Ryzen")) Iris.info("Server Cpu: " + C.RED + getCPUModel());
-        if(!getCPUModel().contains("Intel") && !getCPUModel().contains("Ryzen")) Iris.info("Server Cpu: " + C.DARK_GRAY + getCPUModel());
-
-        Iris.info("Process Threads: " + getCPUThreads());
+        Iris.info("Process Threads: " +  Runtime.getRuntime().availableProcessors());
         Iris.info("Process Memory: " + getHardware.getProcessMemory() + " MB");
+        Iris.info("Free DiskSpace: " + Form.ofSize(freeSpace.getFreeSpace(), 1024));
         if (getHardware.getProcessMemory() < 5999) {
             Iris.warn("6GB+ Ram is recommended");
         }
@@ -830,5 +874,34 @@ public class Iris extends VolmitPlugin implements Listener {
         } catch (IOException | JsonParseException ignored) {
         }
         Iris.info("  " + dimName + " v" + version);
+    }
+
+    public int getIrisVersion() {
+        String input = Iris.instance.getDescription().getVersion();
+        int hyphenIndex = input.indexOf('-');
+        if (hyphenIndex != -1) {
+            String result = input.substring(0, hyphenIndex);
+            result = result.replaceAll("\\.", "");
+            return Integer.parseInt(result);
+        }
+        return -1;
+    }
+
+    public int getMCVersion() {
+        try {
+            String version = Bukkit.getVersion();
+            Matcher matcher = Pattern.compile("\\(MC: ([\\d.]+)\\)").matcher(version);
+            if (matcher.find()) {
+                version = matcher.group(1).replaceAll("\\.", "");
+                long versionNumber = Long.parseLong(version);
+                if (versionNumber > Integer.MAX_VALUE) {
+                    return -1;
+                }
+                return (int) versionNumber;
+            }
+            return -1;
+        } catch (Exception e) {
+            return -1;
+        }
     }
 }

@@ -24,9 +24,34 @@ import lombok.Data;
 public class IrisEngineStatistics {
     private int totalHotloads = 0;
     private int chunksGenerated = 0;
+    private int IrisToUpgradedVersion = 0;
+    private int IrisCreationVersion = 0;
+    private int MinecraftVersion = 0;
 
     public void generatedChunk() {
         chunksGenerated++;
+    }
+
+    public void setUpgradedVersion(int i) {
+        IrisToUpgradedVersion = i;
+    }
+    public int getUpgradedVersion() {
+        return IrisToUpgradedVersion;
+    }
+    public void setVersion(int i) {
+        IrisCreationVersion = i;
+    }
+
+    public int getVersion() {
+        return IrisCreationVersion;
+    }
+
+    public void setMCVersion(int i) {
+        MinecraftVersion = i;
+    }
+
+    public int getMCVersion() {
+        return MinecraftVersion;
     }
 
     public void hotloaded() {

@@ -53,6 +53,7 @@ dependencies {
     compileOnly 'commons-io:commons-io:2.13.0'
     compileOnly 'commons-lang:commons-lang:2.6'
     compileOnly 'com.github.oshi:oshi-core:5.8.5'
+    compileOnly 'org.lz4:lz4-java:1.8.0'
 
     // Third Party Integrations
     compileOnly 'com.ticxo.playeranimator:PlayerAnimator:R1.2.7'

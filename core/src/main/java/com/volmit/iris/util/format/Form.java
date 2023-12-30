@@ -683,23 +683,23 @@ public class Form {
      */
     public static String ofSize(long s, int div) {
         double d = (double) s;
-        String sub = "Bytes";
+        String sub = " Bytes";
 
         if (d > div - 1) {
             d /= div;
-            sub = "KB";
+            sub = " KB";
 
             if (d > div - 1) {
                 d /= div;
-                sub = "MB";
+                sub = " MB";
 
                 if (d > div - 1) {
                     d /= div;
-                    sub = "GB";
+                    sub = " GB";
 
                     if (d > div - 1) {
                         d /= div;
-                        sub = "TB";
+                        sub = " TB";
                     }
                 }
             }

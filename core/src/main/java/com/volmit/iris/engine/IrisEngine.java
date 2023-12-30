@@ -21,6 +21,7 @@ package com.volmit.iris.engine;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.core.gui.PregeneratorJob;
@@ -50,6 +51,9 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -62,8 +66,12 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Data
+@EqualsAndHashCode(exclude = "context")
+@ToString(exclude = "context")
 public class IrisEngine implements Engine {
     private final AtomicInteger bud;
     private final AtomicInteger buds;
@@ -250,7 +258,14 @@ public class IrisEngine implements Engine {
             if (!f.exists()) {
                 try {
                     f.getParentFile().mkdirs();
-                    IO.writeAll(f, new Gson().toJson(new IrisEngineData()));
+                    IrisEngineData data = new IrisEngineData();
+                    data.getStatistics().setVersion(Iris.instance.getIrisVersion());
+                    data.getStatistics().setMCVersion(Iris.instance.getMCVersion());
+                    data.getStatistics().setUpgradedVersion(Iris.instance.getIrisVersion());
+                    if (data.getStatistics().getVersion() == -1 || data.getStatistics().getMCVersion() == -1 ) {
+                        Iris.error("Failed to setup Engine Data!");
+                    }
+                    IO.writeAll(f, new Gson().toJson(data));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -418,7 +433,6 @@ public class IrisEngine implements Engine {
 
         J.a(() -> {
             try {
-                getMantle().trim();
                 getData().getObjectLoader().clean();
             } catch (Throwable e) {
                 Iris.reportError(e);
@@ -517,5 +531,20 @@ public class IrisEngine implements Engine {
     @Override
     public int getCacheID() {
         return cacheId;
+    }
+
+    private boolean EngineSafe() {
+        // Todo: this has potential if done right
+        int EngineMCVersion = getEngineData().getStatistics().getMCVersion();
+        int EngineIrisVersion = getEngineData().getStatistics().getVersion();
+        int MinecraftVersion = Iris.instance.getMCVersion();
+        int IrisVersion = Iris.instance.getIrisVersion();
+        if (EngineIrisVersion != IrisVersion) {
+            return false;
+        }
+        if (EngineMCVersion != MinecraftVersion) {
+            return false;
+        }
+        return true;
     }
 }

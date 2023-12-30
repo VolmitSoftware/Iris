@@ -14,22 +14,32 @@ import com.volmit.iris.util.scheduling.J;
 import io.papermc.lib.PaperLib;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldUnloadEvent;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class LazyPregenerator extends Thread implements Listener {
+    @Getter
+    private static LazyPregenerator instance;
     private final LazyPregenJob job;
     private final File destination;
     private final int maxPosition;
-    private final World world;
+    private World world;
     private final long rate;
     private final ChronoLatch latch;
     private static AtomicInteger lazyGeneratedChunks;
@@ -37,6 +47,10 @@ public class LazyPregenerator extends Thread implements Listener {
     private final AtomicInteger lazyTotalChunks;
     private final AtomicLong startTime;
     private final RollingSequence chunksPerSecond;
+    private final RollingSequence chunksPerMinute;
+
+    // A map to keep track of jobs for each world
+    private static final Map<String, LazyPregenJob> jobs = new HashMap<>();
 
     public LazyPregenerator(LazyPregenJob job, File destination) {
         this.job = job;
@@ -44,16 +58,16 @@ public class LazyPregenerator extends Thread implements Listener {
         this.maxPosition = new Spiraler(job.getRadiusBlocks() * 2, job.getRadiusBlocks() * 2, (x, z) -> {
         }).count();
         this.world = Bukkit.getWorld(job.getWorld());
-        this.rate = Math.round((1D / (job.chunksPerMinute / 60D)) * 1000D);
-        this.latch = new ChronoLatch(6000);
-        startTime = new AtomicLong(M.ms());
-        chunksPerSecond = new RollingSequence(10);
+        this.rate = Math.round((1D / (job.getChunksPerMinute() / 60D)) * 1000D);
+        this.latch = new ChronoLatch(15000);
+        this.startTime = new AtomicLong(M.ms());
+        this.chunksPerSecond = new RollingSequence(10);
+        this.chunksPerMinute = new RollingSequence(10);
         lazyGeneratedChunks = new AtomicInteger(0);
-        generatedLast = new AtomicInteger(0);
-        lazyTotalChunks = new AtomicInteger();
-
-        int radius = job.getRadiusBlocks();
-        lazyTotalChunks.set((int) Math.ceil(Math.pow((2.0 * radius) / 16, 2)));
+        this.generatedLast = new AtomicInteger(0);
+        this.lazyTotalChunks = new AtomicInteger((int) Math.ceil(Math.pow((2.0 * job.getRadiusBlocks()) / 16, 2)));
+        jobs.put(job.getWorld(), job);
+        LazyPregenerator.instance = this;
     }
 
     public LazyPregenerator(File file) throws IOException {
@@ -63,7 +77,6 @@ public class LazyPregenerator extends Thread implements Listener {
     public static void loadLazyGenerators() {
         for (World i : Bukkit.getWorlds()) {
             File lazygen = new File(i.getWorldFolder(), "lazygen.json");
-
             if (lazygen.exists()) {
                 try {
                     LazyPregenerator p = new LazyPregenerator(lazygen);
@@ -97,18 +110,18 @@ public class LazyPregenerator extends Thread implements Listener {
     }
 
     public void tick() {
-        if (latch.flip()) {
+        LazyPregenJob job = jobs.get(world.getName());
+        if (latch.flip() && !job.paused) {
             long eta = computeETA();
             save();
             int secondGenerated = lazyGeneratedChunks.get() - generatedLast.get();
             generatedLast.set(lazyGeneratedChunks.get());
-            secondGenerated = secondGenerated / 6;
+            secondGenerated = secondGenerated / 15;
             chunksPerSecond.put(secondGenerated);
-            Iris.info("LazyGen: " + C.IRIS + world.getName() + C.RESET + " RTT: " + Form.f(lazyGeneratedChunks.get()) + " of " + Form.f(lazyTotalChunks.get()) + " " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration((double) eta, 2));
-            //Iris.info("Debug: " + maxPosition);
-            //Iris.info("Debug1: " + job.getPosition());
-
-            // todo: Maxpos borked
+            chunksPerMinute.put(secondGenerated * 60);
+            if (!job.isSilent()) {
+                Iris.info("LazyGen: " + C.IRIS + world.getName() + C.RESET + " RTT: " + Form.f(lazyGeneratedChunks.get()) + " of " + Form.f(lazyTotalChunks.get()) + " " + Form.f((int) chunksPerMinute.getAverage()) + "/m ETA: " + Form.duration((double) eta, 2));
+            }
         }
 
         if (lazyGeneratedChunks.get() >= lazyTotalChunks.get()) {
@@ -123,27 +136,43 @@ public class LazyPregenerator extends Thread implements Listener {
         } else {
             int pos = job.getPosition() + 1;
             job.setPosition(pos);
-            tickGenerate(getChunk(pos));
+            if (!job.paused) {
+                tickGenerate(getChunk(pos));
+            }
         }
     }
 
     private long computeETA() {
-        return (long) (lazyTotalChunks.get() > 1024 ? // Generated chunks exceed 1/8th of total?
-                // If yes, use smooth function (which gets more accurate over time since its less sensitive to outliers)
-                ((lazyTotalChunks.get() - lazyGeneratedChunks.get()) * ((double) (M.ms() - startTime.get()) / (double) lazyGeneratedChunks.get())) :
-                // If no, use quick function (which is less accurate over time but responds better to the initial delay)
-                ((lazyTotalChunks.get() - lazyGeneratedChunks.get()) / chunksPerSecond.getAverage()) * 1000 //
-        );
+        return (long) ((lazyTotalChunks.get() - lazyGeneratedChunks.get()) / chunksPerMinute.getAverage()) * 1000;
+        // todo broken
     }
 
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
     private void tickGenerate(Position2 chunk) {
-        if (PaperLib.isPaper()) {
-            PaperLib.getChunkAtAsync(world, chunk.getX(), chunk.getZ(), true).thenAccept((i) -> Iris.verbose("Generated Async " + chunk));
-        } else {
-            J.s(() -> world.getChunkAt(chunk.getX(), chunk.getZ()));
-            Iris.verbose("Generated " + chunk);
-        }
-        lazyGeneratedChunks.addAndGet(1);
+        executorService.submit(() -> {
+            CountDownLatch latch = new CountDownLatch(1);
+            if (PaperLib.isPaper()) {
+                PaperLib.getChunkAtAsync(world, chunk.getX(), chunk.getZ(), true)
+                        .thenAccept((i) -> {
+                            LazyPregenJob j = jobs.get(world.getName());
+                            if (!j.paused) {
+                                Iris.verbose("Generated Async " + chunk);
+                            }
+                            latch.countDown();
+                        });
+            } else {
+                J.s(() -> {
+                    world.getChunkAt(chunk.getX(), chunk.getZ());
+                    Iris.verbose("Generated " + chunk);
+                    latch.countDown();
+                });
+            }
+            try {
+                latch.await();
+            } catch (InterruptedException ignored) {}
+            lazyGeneratedChunks.addAndGet(1);
+        });
     }
 
     private void tickRegenerate(Position2 chunk) {
@@ -177,6 +206,64 @@ public class LazyPregenerator extends Thread implements Listener {
         });
     }
 
+    public static void setPausedLazy(World world) {
+        // todo: doesnt actually pause
+        LazyPregenJob job = jobs.get(world.getName());
+        if (isPausedLazy(world)){
+            job.paused = false;
+        } else {
+            job.paused = true;
+        }
+
+        if ( job.paused) {
+            Iris.info(C.BLUE + "LazyGen: " + C.IRIS + world.getName() + C.BLUE + " Paused");
+        } else {
+            Iris.info(C.BLUE + "LazyGen: " + C.IRIS + world.getName() + C.BLUE + " Resumed");
+        }
+    }
+
+    public static boolean isPausedLazy(World world) {
+        LazyPregenJob job = jobs.get(world.getName());
+        return job != null && job.isPaused();
+    }
+
+    public void shutdownInstance(World world) throws IOException {
+        Iris.info("LazyGen: " + C.IRIS + world.getName() + C.BLUE + " Shutting down..");
+        LazyPregenJob job = jobs.get(world.getName());
+        File worldDirectory = new File(Bukkit.getWorldContainer(), world.getName());
+        File lazyFile = new File(worldDirectory, "lazygen.json");
+
+        if (job == null) {
+            Iris.error("No Lazygen job found for world: " + world.getName());
+            return;
+        }
+
+        try {
+            if (!job.isPaused()) {
+                job.setPaused(true);
+            }
+            save();
+            jobs.remove(world.getName());
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    while (lazyFile.exists()){
+                        lazyFile.delete();
+                        J.sleep(1000);
+                    }
+                    Iris.info("LazyGen: " + C.IRIS + world.getName() + C.BLUE + " File deleted and instance closed.");
+                }
+            }.runTaskLater(Iris.instance, 20L);
+        } catch (Exception e) {
+            Iris.error("Failed to shutdown Lazygen for " + world.getName());
+            e.printStackTrace();
+        } finally {
+            saveNow();
+            interrupt();
+        }
+    }
+
+
     public void saveNow() throws IOException {
         IO.writeAll(this.destination, new Gson().toJson(job));
     }
@@ -190,10 +277,15 @@ public class LazyPregenerator extends Thread implements Listener {
         @Builder.Default
         private boolean healing = false;
         @Builder.Default
-        private int chunksPerMinute = 32; // 48 hours is roughly 5000 radius
+        private int chunksPerMinute = 32;
         @Builder.Default
         private int radiusBlocks = 5000;
         @Builder.Default
         private int position = 0;
+        @Builder.Default
+        boolean silent = false;
+        @Builder.Default
+        boolean paused = false;
     }
 }
+

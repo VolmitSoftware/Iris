@@ -35,6 +35,8 @@ import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.stream.ProceduralStream;
 import com.volmit.iris.util.stream.interpolation.Interpolated;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -42,6 +44,8 @@ import org.bukkit.block.data.BlockData;
 import java.util.UUID;
 
 @Data
+@EqualsAndHashCode(exclude = "data")
+@ToString(exclude = "data")
 public class IrisComplex implements DataProvider {
     private static final BlockData AIR = Material.AIR.createBlockData();
     private RNG rng;

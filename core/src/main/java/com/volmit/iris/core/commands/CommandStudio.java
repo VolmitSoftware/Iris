@@ -29,9 +29,11 @@ import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.decree.DecreeContext;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
@@ -48,8 +50,13 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.noise.CNG;
+import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import io.papermc.lib.PaperLib;
 import org.bukkit.*;
 import org.bukkit.event.inventory.InventoryType;
@@ -67,6 +74,8 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 @Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
@@ -141,6 +150,77 @@ public class CommandStudio implements DecreeExecutor {
             IrisDimension dimension
     ) {
         sender().sendMessage(C.GREEN + "The \"" + dimension.getName() + "\" pack has version: " + dimension.getVersion());
+    }
+
+    @Decree(name = "regen", description = "Regenerate nearby chunks.", aliases = "rg", sync = true, origin = DecreeOrigin.PLAYER)
+    public void regen(
+            @Param(name = "radius", description = "The radius of nearby cunks", defaultValue = "5")
+            int radius
+    ) {
+        if (IrisToolbelt.isIrisWorld(player().getWorld())) {
+            VolmitSender sender = sender();
+            J.a(() -> {
+                DecreeContext.touch(sender);
+                PlatformChunkGenerator plat = IrisToolbelt.access(player().getWorld());
+                Engine engine = plat.getEngine();
+                try {
+                    Chunk cx = player().getLocation().getChunk();
+                    KList<Runnable> js = new KList<>();
+                    BurstExecutor b = MultiBurst.burst.burst();
+                    b.setMulticore(false);
+                    int rad = engine.getMantle().getRealRadius();
+                    for (int i = -(radius + rad); i <= radius + rad; i++) {
+                        for (int j = -(radius + rad); j <= radius + rad; j++) {
+                            engine.getMantle().getMantle().deleteChunk(i + cx.getX(), j + cx.getZ());
+                        }
+                    }
+
+                    for (int i = -radius; i <= radius; i++) {
+                        for (int j = -radius; j <= radius; j++) {
+                            int finalJ = j;
+                            int finalI = i;
+                            b.queue(() -> plat.injectChunkReplacement(player().getWorld(), finalI + cx.getX(), finalJ + cx.getZ(), (f) -> {
+                                synchronized (js) {
+                                    js.add(f);
+                                }
+                            }));
+                        }
+                    }
+
+                    b.complete();
+                    sender().sendMessage(C.GREEN + "Regenerating " + Form.f(js.size()) + " Sections");
+                    QueueJob<Runnable> r = new QueueJob<>() {
+                        final KList<Future<?>> futures = new KList<>();
+
+                        @Override
+                        public void execute(Runnable runnable) {
+                            futures.add(J.sfut(runnable));
+
+                            if (futures.size() > 64) {
+                                while (futures.isNotEmpty()) {
+                                    try {
+                                        futures.remove(0).get();
+                                    } catch (InterruptedException | ExecutionException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }
+                        }
+
+                        @Override
+                        public String getName() {
+                            return "Regenerating";
+                        }
+                    };
+                    r.queue(js);
+                    r.execute(sender());
+                } catch (Throwable e) {
+                    sender().sendMessage("Unable to parse view-distance");
+                }
+            });
+        } else {
+            sender().sendMessage(C.RED + "You must be in an Iris World to use regen!");
+        }
     }
 
     @Decree(description = "Convert objects in the \"convert\" folder")

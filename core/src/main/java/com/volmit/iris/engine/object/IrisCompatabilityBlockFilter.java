@@ -57,13 +57,13 @@ public class IrisCompatabilityBlockFilter {
     public BlockData getReplace() {
         return replaceData.aquire(() ->
         {
-            BlockData b = B.getOrNull(supplement);
+            BlockData b = B.getOrNull(supplement, false);
 
             if (b == null) {
                 return null;
             }
 
-            Iris.warn("Compat: Using " + supplement + " in place of " + when + " since this server doesnt support '" + supplement + "'");
+            Iris.warn("Compat: Using '%s' in place of '%s' since this server doesnt support '%s'", supplement, when, when);
 
             return b;
         });

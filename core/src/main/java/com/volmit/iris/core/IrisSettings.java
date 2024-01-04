@@ -184,6 +184,7 @@ public class IrisSettings {
     public static class IrisSettingsStudio {
         public boolean studio = true;
         public boolean openVSCode = true;
+        public boolean displayTrueHeight = false;
         public boolean disableTimeAndWeather = true;
         public boolean autoStartDefaultStudio = false;
     }

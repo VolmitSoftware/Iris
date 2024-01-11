@@ -421,7 +421,7 @@ public class Mantle {
         }
 
         ioTrim.set(true);
-        unloadLock.lock();
+        //unloadLock.lock();
         try {
             Iris.debug("Trimming Tectonic Plates older than " + Form.duration(adjustedIdleDuration.get(), 0));
             if (lastUse != null) {

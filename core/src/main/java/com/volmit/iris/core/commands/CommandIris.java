@@ -72,6 +72,7 @@ public class CommandIris implements DecreeExecutor {
     private CommandEdit edit;
     private CommandFind find;
     private CommandDeveloper developer;
+    private CommandTurboPregen turboPregen;
 
     public static @Getter String BenchDimension;
     public static boolean worldCreation = false;

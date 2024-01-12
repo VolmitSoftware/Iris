@@ -26,7 +26,7 @@ public class UtilsSFG {
                 Iris.safeguard(C.RED + "- The plugin Multiverse is not compatible with the server.");
                 Iris.safeguard(C.RED + "- If you want to have a world manager, consider using PhantomWorlds or MyWorlds instead.");
             }
-            if (ServerBootSFG.incompatibilities.get("Dynmap")) {
+            if (ServerBootSFG.incompatibilities.get("dynmap")) {
                 Iris.safeguard(C.RED + "Dynmap");
                 Iris.safeguard(C.RED + "- The plugin Dynmap is not compatible with the server.");
                 Iris.safeguard(C.RED + "- If you want to have a map plugin like Dynmap, consider Bluemap.");

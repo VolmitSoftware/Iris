@@ -42,9 +42,6 @@ public class ServerBootSFG {
 
     public static void BootCheck() {
         Iris.info("Checking for possible conflicts..");
-        ExecutorService executorServices = Executors.newSingleThreadExecutor();
-
-        executorServices.submit(() -> {
         org.bukkit.plugin.PluginManager pluginManager = Bukkit.getPluginManager();
         Plugin[] plugins = pluginManager.getPlugins();
 
@@ -129,7 +126,6 @@ public class ServerBootSFG {
                 Iris.safeguard("Unstable mode has been activated.");
             }
         }
-        });
     }
 
     public static boolean isJDK() {

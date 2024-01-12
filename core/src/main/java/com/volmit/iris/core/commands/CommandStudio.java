@@ -47,6 +47,7 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.noise.CNG;
@@ -76,12 +77,14 @@ import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 @Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
 public class CommandStudio implements DecreeExecutor {
     private CommandFind find;
     private CommandEdit edit;
+    private CommandDeepSearch deepSearch;
 
     public static String hrf(Duration duration) {
         return duration.toString().substring(2).replaceAll("(\\d[HMS])(?!$)", "$1 ").toLowerCase();

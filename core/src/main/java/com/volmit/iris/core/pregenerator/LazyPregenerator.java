@@ -203,7 +203,6 @@ public class LazyPregenerator extends Thread implements Listener {
     }
 
     public static void setPausedLazy(World world) {
-        // todo: doesnt actually pause
         LazyPregenJob job = jobs.get(world.getName());
         if (isPausedLazy(world)){
             job.paused = false;

@@ -40,22 +40,22 @@ public class UtilsSFG {
                 Iris.safeguard(C.RED + "- Iris only supports 1.19.2 > 1.20.2");
             }
             if (!ServerBootSFG.passedserversoftware) {
-                Iris.safeguard(C.RED + "Unsupported Server Software");
-                Iris.safeguard(C.RED + "- Please consider using Paper or Purpur instead.");
+                Iris.safeguard(C.YELLOW + "Unsupported Server Software");
+                Iris.safeguard(C.YELLOW + "- Please consider using Paper or Purpur instead.");
             }
             if (!ServerBootSFG.hasPrivileges) {
-                Iris.safeguard(C.RED + "Insufficient Privileges");
-                Iris.safeguard(C.RED + "- The server has insufficient Privileges to run iris. Please contact support.");
+                Iris.safeguard(C.YELLOW + "Insufficient Privileges");
+                Iris.safeguard(C.YELLOW + "- The server has insufficient Privileges to run iris. Please contact support.");
             }
             if (!ServerBootSFG.hasEnoughDiskSpace) {
-                Iris.safeguard(C.RED + "Insufficient Disk Space");
-                Iris.safeguard(C.RED + "- The server has insufficient Free DiskSpace to run iris required 3GB+.");
+                Iris.safeguard(C.YELLOW + "Insufficient Disk Space");
+                Iris.safeguard(C.YELLOW + "- The server has insufficient Free DiskSpace to run iris required 3GB+.");
             }
             if (!ServerBootSFG.isJDK17) {
                 Iris.safeguard(C.YELLOW + "Unsupported java version");
                 Iris.safeguard(C.YELLOW + "- Please consider using JDK 17 Instead of JDK " + Iris.getJavaVersion());
             }
-            if (!ServerBootSFG.isJRE) {
+            if (ServerBootSFG.isJRE) {
                 Iris.safeguard(C.YELLOW + "Unsupported Server JDK");
                 Iris.safeguard(C.YELLOW + "- Please consider using JDK 17 Instead of JRE " + Iris.getJavaVersion());
             }

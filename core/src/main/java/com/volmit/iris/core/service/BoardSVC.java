@@ -19,6 +19,7 @@
 package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
@@ -131,7 +132,11 @@ public class BoardSVC implements IrisService, BoardProvider {
                 lines.add("&7&m                   ");
                 lines.add(C.AQUA + "Region" + C.GRAY + ": " + engine.getRegion(x, z).getName());
                 lines.add(C.AQUA + "Biome" + C.GRAY + ":  " + engine.getBiomeOrMantle(x, y, z).getName());
-                lines.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z) + player.getWorld().getMinHeight()));
+                if (!IrisSettings.get().getStudio().displayTrueHeight) {
+                    lines.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z) + player.getWorld().getMinHeight()));
+                } else {
+                    lines.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z)));
+                }
                 lines.add(C.AQUA + "Slope" + C.GRAY + ":  " + Form.f(engine.getComplex().getSlopeStream().get(x, z), 2));
                 lines.add(C.AQUA + "BUD/s" + C.GRAY + ": " + Form.f(engine.getBlockUpdatesPerSecond()));
                 lines.add("&7&m                   ");

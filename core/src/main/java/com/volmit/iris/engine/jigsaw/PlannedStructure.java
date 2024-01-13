@@ -101,7 +101,7 @@ public class PlannedStructure {
         int sz = (v.getD() / 2);
         int xx = i.getPosition().getX() + sx;
         int zz = i.getPosition().getZ() + sz;
-        RNG rng = new RNG(Cache.key(xx, zz));
+        RNG rngf = new RNG(Cache.key(xx, zz));
         int offset = i.getPosition().getY() - startHeight;
         int height;
 

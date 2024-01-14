@@ -97,7 +97,7 @@ public class ServerBootSFG {
         }
 
         if (!hasPrivileges()){
-            hasPrivileges = true;
+            hasPrivileges = false;
             joiner.add("Insufficient Privileges");
             severityMedium++;
         }

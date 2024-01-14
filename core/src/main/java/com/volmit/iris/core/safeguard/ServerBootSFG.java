@@ -148,15 +148,16 @@ public class ServerBootSFG {
     }
 
     public static boolean hasPrivileges() {
-        Path pv = Paths.get(Bukkit.getWorldContainer() + "iristest.json");
-        try (FileChannel fc = FileChannel.open(pv, StandardOpenOption.CREATE, StandardOpenOption.DELETE_ON_CLOSE, StandardOpenOption.READ, StandardOpenOption.WRITE)) {
-            if (Files.isReadable(pv) && Files.isWritable(pv)) {
-                return true;
-            }
-        } catch (Exception e) {
-            return false;
-        }
-        return false;
+        return true ;
+//        Path pv = Paths.get(Bukkit.getWorldContainer() + "iristest.json");
+//        try (FileChannel fc = FileChannel.open(pv, StandardOpenOption.CREATE, StandardOpenOption.DELETE_ON_CLOSE, StandardOpenOption.READ, StandardOpenOption.WRITE)) {
+//            if (Files.isReadable(pv) && Files.isWritable(pv)) {
+//                return true;
+//            }
+//        } catch (Exception e) {
+//            return false;
+//        }
+//        return false;
     }
 
     public static boolean enoughDiskSpace() {

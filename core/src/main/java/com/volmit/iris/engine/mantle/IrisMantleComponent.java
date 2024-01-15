@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,21 +15,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-pluginManagement {
-    repositories {
-        mavenLocal()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
-rootProject.name = 'Iris'
 
-include(':core')
-include(
-        ':nms:v1_20_R3',
-        ':nms:v1_20_R2',
-        ':nms:v1_20_R1',
-        ':nms:v1_19_R3',
-        ':nms:v1_19_R2',
-        ':nms:v1_19_R1'
-)
+package com.volmit.iris.engine.mantle;
+
+import com.volmit.iris.util.mantle.MantleFlag;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+
+@Data
+@EqualsAndHashCode(exclude = "engineMantle")
+@ToString(exclude = "engineMantle")
+public abstract class IrisMantleComponent implements MantleComponent {
+    private final EngineMantle engineMantle;
+    private final MantleFlag flag;
+}

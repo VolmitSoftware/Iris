@@ -10,4 +10,4 @@ libs/
 
 collection/
 
-src/main/java/com/volmit/iris/util/uniques/
+/core/src/main/java/com/volmit/iris/util/uniques/

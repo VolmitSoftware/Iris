@@ -421,22 +421,27 @@ public class Mantle {
         }
 
         ioTrim.set(true);
-        //unloadLock.lock();
+        unloadLock.lock();
         try {
             Iris.debug("Trimming Tectonic Plates older than " + Form.duration(adjustedIdleDuration.get(), 0));
             if (lastUse != null) {
-                for (Long i : new ArrayList<>(lastUse.keySet())) {
-                    double finalAdjustedIdleDuration = adjustedIdleDuration.get();
-                    hyperLock.withLong(i, () -> {
-                        Long lastUseTime = lastUse.get(i);
-                        if (lastUseTime != null && M.ms() - lastUseTime >= finalAdjustedIdleDuration) {
-                            toUnload.add(i);
-                            Iris.debug("Tectonic Region added to unload");
-                        }
-                    });
+                if (!lastUse.isEmpty()) {
+                    for (Long i : new ArrayList<>(lastUse.keySet())) {
+                        double finalAdjustedIdleDuration = adjustedIdleDuration.get();
+                        hyperLock.withLong(i, () -> {
+                            Long lastUseTime = lastUse.get(i);
+                            if (lastUseTime != null && M.ms() - lastUseTime >= finalAdjustedIdleDuration) {
+                                toUnload.add(i);
+                                Iris.debug("Tectonic Region added to unload");
+                                //Iris.panic();
+                            }
+                        });
+                    }
                 }
             }
 
+        } catch (Throwable e) {
+            Iris.reportError(e);
         } finally {
             ioTrim.set(false);
             unloadLock.unlock();
@@ -444,7 +449,6 @@ public class Mantle {
     }
 
     public synchronized int unloadTectonicPlate(int tectonicLimit) {
-        // todo: Make it advanced with bursts etc
         AtomicInteger i = new AtomicInteger();
         unloadLock.lock();
         BurstExecutor burst = null;
@@ -465,12 +469,12 @@ public class Mantle {
                                     i.incrementAndGet();
                                     Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(id) + " " + Cache.keyZ(id));
                                 } catch (IOException e) {
-                                    e.printStackTrace();
+                                    Iris.reportError(e);
                                 }
                             }
                         }));
-            }
 
+            }
             burst.complete();
         } catch (Throwable e) {
             e.printStackTrace();

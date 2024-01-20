@@ -2,6 +2,8 @@ package com.volmit.iris.core.pregenerator;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
@@ -24,68 +26,69 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import java.util.HashMap;
-import java.util.Map;
-
-public class LazyPregenerator extends Thread implements Listener {
+public class TurboPregenerator extends Thread implements Listener {
     @Getter
-    private static LazyPregenerator instance;
-    private final LazyPregenJob job;
+    private static TurboPregenerator instance;
+    private final TurboPregenJob job;
     private final File destination;
     private final int maxPosition;
     private World world;
-    private final long rate;
     private final ChronoLatch latch;
-    private static AtomicInteger lazyGeneratedChunks;
+    private static AtomicInteger turboGeneratedChunks;
     private final AtomicInteger generatedLast;
-    private final AtomicInteger lazyTotalChunks;
+    private final AtomicInteger turboTotalChunks;
     private final AtomicLong startTime;
     private final RollingSequence chunksPerSecond;
     private final RollingSequence chunksPerMinute;
+    private KList<Position2> queue = new KList<>();
+    private AtomicInteger maxWaiting;
+    private static final Map<String, TurboPregenJob> jobs = new HashMap<>();
 
-    private static final Map<String, LazyPregenJob> jobs = new HashMap<>();
-
-    public LazyPregenerator(LazyPregenJob job, File destination) {
+    public TurboPregenerator(TurboPregenJob job, File destination) {
         this.job = job;
+        queue = new KList<>(512);
+        this.maxWaiting = new AtomicInteger(128);
         this.destination = destination;
         this.maxPosition = new Spiraler(job.getRadiusBlocks() * 2, job.getRadiusBlocks() * 2, (x, z) -> {
         }).count();
         this.world = Bukkit.getWorld(job.getWorld());
-        this.rate = Math.round((1D / (job.getChunksPerMinute() / 60D)) * 1000D);
-        this.latch = new ChronoLatch(15000);
+        this.latch = new ChronoLatch(3000);
         this.startTime = new AtomicLong(M.ms());
         this.chunksPerSecond = new RollingSequence(10);
         this.chunksPerMinute = new RollingSequence(10);
-        lazyGeneratedChunks = new AtomicInteger(0);
+        turboGeneratedChunks = new AtomicInteger(0);
         this.generatedLast = new AtomicInteger(0);
-        this.lazyTotalChunks = new AtomicInteger((int) Math.ceil(Math.pow((2.0 * job.getRadiusBlocks()) / 16, 2)));
+        this.turboTotalChunks = new AtomicInteger((int) Math.ceil(Math.pow((2.0 * job.getRadiusBlocks()) / 16, 2)));
         jobs.put(job.getWorld(), job);
-        LazyPregenerator.instance = this;
+        TurboPregenerator.instance = this;
+    }
+    public TurboPregenerator(File file) throws IOException {
+        this(new Gson().fromJson(IO.readAll(file), TurboPregenerator.TurboPregenJob.class), file);
     }
 
-    public LazyPregenerator(File file) throws IOException {
-        this(new Gson().fromJson(IO.readAll(file), LazyPregenJob.class), file);
-    }
-
-    public static void loadLazyGenerators() {
-        for (World i : Bukkit.getWorlds()) {
-            File lazygen = new File(i.getWorldFolder(), "lazygen.json");
-            if (lazygen.exists()) {
+    public static void loadTurboGenerator(String i) {
+        World x = Bukkit.getWorld(i);
+            File turbogen = new File(x.getWorldFolder(), "turbogen.json");
+            if (turbogen.exists()) {
                 try {
-                    LazyPregenerator p = new LazyPregenerator(lazygen);
+                    TurboPregenerator p = new TurboPregenerator(turbogen);
                     p.start();
-                    Iris.info("Started Lazy Pregenerator: " + p.job);
+                    Iris.info("Started Turbo Pregenerator: " + p.job);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
             }
-        }
+
     }
 
     @EventHandler
@@ -97,7 +100,6 @@ public class LazyPregenerator extends Thread implements Listener {
 
     public void run() {
         while (!interrupted()) {
-            J.sleep(rate);
             tick();
         }
 
@@ -109,71 +111,67 @@ public class LazyPregenerator extends Thread implements Listener {
     }
 
     public void tick() {
-        LazyPregenJob job = jobs.get(world.getName());
+        TurboPregenJob job = jobs.get(world.getName());
         if (latch.flip() && !job.paused) {
             long eta = computeETA();
             save();
-            int secondGenerated = lazyGeneratedChunks.get() - generatedLast.get();
-            generatedLast.set(lazyGeneratedChunks.get());
-            secondGenerated = secondGenerated / 15;
+            int secondGenerated = turboGeneratedChunks.get() - generatedLast.get();
+            generatedLast.set(turboGeneratedChunks.get());
+            secondGenerated = secondGenerated / 3;
             chunksPerSecond.put(secondGenerated);
             chunksPerMinute.put(secondGenerated * 60);
-            if (!job.isSilent()) {
-                Iris.info("LazyGen: " + C.IRIS + world.getName() + C.RESET + " RTT: " + Form.f(lazyGeneratedChunks.get()) + " of " + Form.f(lazyTotalChunks.get()) + " " + Form.f((int) chunksPerMinute.getAverage()) + "/m ETA: " + Form.duration((double) eta, 2));
-            }
-        }
+            Iris.info("TurboGen: " + C.IRIS + world.getName() + C.RESET + " RTT: " + Form.f(turboGeneratedChunks.get()) + " of " + Form.f(turboTotalChunks.get()) + " " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration((double) eta, 2));
 
-        if (lazyGeneratedChunks.get() >= lazyTotalChunks.get()) {
-            if (job.isHealing()) {
-                int pos = (job.getHealingPosition() + 1) % maxPosition;
-                job.setHealingPosition(pos);
-                tickRegenerate(getChunk(pos));
-            } else {
-                Iris.info("Completed Lazy Gen!");
-                interrupt();
-            }
+        }
+        if (turboGeneratedChunks.get() >= turboTotalChunks.get()) {
+            Iris.info("Completed Turbo Gen!");
+            interrupt();
         } else {
             int pos = job.getPosition() + 1;
             job.setPosition(pos);
             if (!job.paused) {
-                tickGenerate(getChunk(pos));
+                if (queue.size() < maxWaiting.get()) {
+                    Position2 chunk = getChunk(pos);
+                    queue.add(chunk);
+                }
+                waitForChunksPartial();
+            }
+        }
+    }
+
+    private void waitForChunksPartial() {
+        while (!queue.isEmpty() && maxWaiting.get() > queue.size()) {
+            try {
+                for (Position2 c : new KList<>(queue)) {
+                    tickGenerate(c);
+                    queue.remove(c);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
 
     private long computeETA() {
-        return (long) ((lazyTotalChunks.get() - lazyGeneratedChunks.get()) / chunksPerMinute.getAverage()) * 1000;
+        return (long) ((turboTotalChunks.get() - turboGeneratedChunks.get()) / chunksPerMinute.getAverage()) * 1000;
         // todo broken
     }
 
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
-
+    private final ExecutorService executorService = Executors.newFixedThreadPool(10);
     private void tickGenerate(Position2 chunk) {
         executorService.submit(() -> {
             CountDownLatch latch = new CountDownLatch(1);
-            if (PaperLib.isPaper()) {
-                PaperLib.getChunkAtAsync(world, chunk.getX(), chunk.getZ(), true)
-                        .thenAccept((i) -> {
-                            Iris.verbose("Generated Async " + chunk);
-                            latch.countDown();
-                        });
-            } else {
-                J.s(() -> {
-                    world.getChunkAt(chunk.getX(), chunk.getZ());
-                    Iris.verbose("Generated " + chunk);
-                    latch.countDown();
-                });
-            }
+            PaperLib.getChunkAtAsync(world, chunk.getX(), chunk.getZ(), true)
+                    .thenAccept((i) -> {
+                        Iris.verbose("Generated Async " + chunk);
+                        latch.countDown();
+                    });
             try {
                 latch.await();
-            } catch (InterruptedException ignored) {}
-            lazyGeneratedChunks.addAndGet(1);
+            } catch (InterruptedException ignored) {
+            }
+            turboGeneratedChunks.addAndGet(1);
         });
-    }
-
-    private void tickRegenerate(Position2 chunk) {
-        J.s(() -> world.regenerateChunk(chunk.getX(), chunk.getZ()));
-        Iris.verbose("Regenerated " + chunk);
     }
 
     public Position2 getChunk(int position) {
@@ -202,34 +200,34 @@ public class LazyPregenerator extends Thread implements Listener {
         });
     }
 
-    public static void setPausedLazy(World world) {
-        LazyPregenJob job = jobs.get(world.getName());
-        if (isPausedLazy(world)){
+    public static void setPausedTurbo(World world) {
+        TurboPregenJob job = jobs.get(world.getName());
+        if (isPausedTurbo(world)) {
             job.paused = false;
         } else {
             job.paused = true;
         }
 
-        if ( job.paused) {
-            Iris.info(C.BLUE + "LazyGen: " + C.IRIS + world.getName() + C.BLUE + " Paused");
+        if (job.paused) {
+            Iris.info(C.BLUE + "TurboGen: " + C.IRIS + world.getName() + C.BLUE + " Paused");
         } else {
-            Iris.info(C.BLUE + "LazyGen: " + C.IRIS + world.getName() + C.BLUE + " Resumed");
+            Iris.info(C.BLUE + "TurboGen: " + C.IRIS + world.getName() + C.BLUE + " Resumed");
         }
     }
 
-    public static boolean isPausedLazy(World world) {
-        LazyPregenJob job = jobs.get(world.getName());
+    public static boolean isPausedTurbo(World world) {
+        TurboPregenJob job = jobs.get(world.getName());
         return job != null && job.isPaused();
     }
 
     public void shutdownInstance(World world) throws IOException {
-        Iris.info("LazyGen: " + C.IRIS + world.getName() + C.BLUE + " Shutting down..");
-        LazyPregenJob job = jobs.get(world.getName());
+        Iris.info("turboGen: " + C.IRIS + world.getName() + C.BLUE + " Shutting down..");
+        TurboPregenJob job = jobs.get(world.getName());
         File worldDirectory = new File(Bukkit.getWorldContainer(), world.getName());
-        File lazyFile = new File(worldDirectory, "lazygen.json");
+        File turboFile = new File(worldDirectory, "turbogen.json");
 
         if (job == null) {
-            Iris.error("No Lazygen job found for world: " + world.getName());
+            Iris.error("No turbogen job found for world: " + world.getName());
             return;
         }
 
@@ -242,15 +240,15 @@ public class LazyPregenerator extends Thread implements Listener {
             new BukkitRunnable() {
                 @Override
                 public void run() {
-                    while (lazyFile.exists()){
-                        lazyFile.delete();
+                    while (turboFile.exists()) {
+                        turboFile.delete();
                         J.sleep(1000);
                     }
-                    Iris.info("LazyGen: " + C.IRIS + world.getName() + C.BLUE + " File deleted and instance closed.");
+                    Iris.info("turboGen: " + C.IRIS + world.getName() + C.BLUE + " File deleted and instance closed.");
                 }
             }.runTaskLater(Iris.instance, 20L);
         } catch (Exception e) {
-            Iris.error("Failed to shutdown Lazygen for " + world.getName());
+            Iris.error("Failed to shutdown turbogen for " + world.getName());
             e.printStackTrace();
         } finally {
             saveNow();
@@ -265,20 +263,12 @@ public class LazyPregenerator extends Thread implements Listener {
 
     @Data
     @Builder
-    public static class LazyPregenJob {
+    public static class TurboPregenJob {
         private String world;
-        @Builder.Default
-        private int healingPosition = 0;
-        @Builder.Default
-        private boolean healing = false;
-        @Builder.Default
-        private int chunksPerMinute = 32;
         @Builder.Default
         private int radiusBlocks = 5000;
         @Builder.Default
         private int position = 0;
-        @Builder.Default
-        boolean silent = false;
         @Builder.Default
         boolean paused = false;
     }

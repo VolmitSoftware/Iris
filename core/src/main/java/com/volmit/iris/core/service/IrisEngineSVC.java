@@ -79,7 +79,7 @@ public class IrisEngineSVC implements IrisService {
                     }
                 } catch (Throwable e) {
                     Iris.reportError(e);
-                    return -1;
+                 //   return -1;
                 }
 
                 int size = lastUse.size();

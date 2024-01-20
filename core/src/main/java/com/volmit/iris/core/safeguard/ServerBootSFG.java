@@ -3,14 +3,23 @@ package com.volmit.iris.core.safeguard;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
+import org.apache.logging.log4j.core.util.ExecutorServices;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 import javax.print.attribute.standard.Severity;
 import java.io.File;
+import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static com.volmit.iris.Iris.getJavaVersion;
 import static com.volmit.iris.Iris.instance;
@@ -19,9 +28,9 @@ import static com.volmit.iris.core.safeguard.IrisSafeguard.*;
 public class ServerBootSFG {
     public static final Map<String, Boolean> incompatibilities = new HashMap<>();
     public static boolean isJDK17 = true;
-    public static boolean hasEnoughDiskSpace = false;
+    public static boolean hasEnoughDiskSpace = true;
     public static boolean isJRE = false;
-    public static boolean hasPrivileges = false;
+    public static boolean hasPrivileges = true;
     public static boolean unsuportedversion = false;
     protected static boolean safeguardPassed;
     public static boolean passedserversoftware = true;
@@ -38,7 +47,7 @@ public class ServerBootSFG {
 
         incompatibilities.clear();
         incompatibilities.put("Multiverse-Core", false);
-        incompatibilities.put("Dynmap", false);
+        incompatibilities.put("dynmap", false);
         incompatibilities.put("TerraformGenerator", false);
         incompatibilities.put("Stratos", false);
 
@@ -80,20 +89,23 @@ public class ServerBootSFG {
             joiner.add("Unsupported Java version");
             severityMedium++;
         }
+
         if (!isJDK()) {
             isJRE = true;
             joiner.add("Unsupported JDK");
             severityMedium++;
         }
+
         if (!hasPrivileges()){
             hasPrivileges = true;
             joiner.add("Insufficient Privileges");
-            severityHigh++;
+            severityMedium++;
         }
+
         if (!enoughDiskSpace()){
             hasEnoughDiskSpace = false;
             joiner.add("Insufficient Disk Space");
-            severityHigh++;
+            severityMedium++;
         }
 
         allIncompatibilities = joiner.toString();
@@ -136,18 +148,12 @@ public class ServerBootSFG {
     }
 
     public static boolean hasPrivileges() {
-        File pv = new File(Bukkit.getWorldContainer() + "iristest.json");
-        if (pv.exists()){
-            pv.delete();
-        }
-        try {
-            if (pv.createNewFile()){
-                if (pv.canWrite() && pv.canRead()){
-                    pv.delete();
-                    return true;
-                }
+        Path pv = Paths.get(Bukkit.getWorldContainer() + "iristest.json");
+        try (FileChannel fc = FileChannel.open(pv, StandardOpenOption.CREATE, StandardOpenOption.DELETE_ON_CLOSE, StandardOpenOption.READ, StandardOpenOption.WRITE)) {
+            if (Files.isReadable(pv) && Files.isWritable(pv)) {
+                return true;
             }
-        } catch (Exception e){
+        } catch (Exception e) {
             return false;
         }
         return false;

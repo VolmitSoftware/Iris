@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
@@ -138,23 +139,6 @@ public class DeepSearchPregenerator extends Thread implements Listener {
         // todo broken
     }
 
-    private void chunkCache() {
-        if (chunkCache.isEmpty()) {
-            cacheLock.lock();
-            PrecisionStopwatch p = PrecisionStopwatch.start();
-            executorService.submit(() -> {
-                for (; chunkCacheSize.get() > chunkCachePos.get(); chunkCacheSize.getAndAdd(-1)) {
-                    chunkCache.put(chunkCachePos.get(), getChunk(chunkCachePos.get()));
-                    chunkCachePos.getAndAdd(1);
-                }
-                Iris.info("Total Time: " + p.getMinutes());
-            });
-        }
-        if (cacheLock.isLocked()) {
-            cacheLock.unlock();
-        }
-    }
-
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     private void tickSearch(Position2 chunk) {
@@ -188,8 +172,10 @@ public class DeepSearchPregenerator extends Thread implements Listener {
                     if (!found.exists()) {
                         found.createNewFile();
                     }
-                   Iris.info("Found at! " + x + ", " + z);
-                    writer.write("Found at: X: " + xx + " Z: " + zz + ", ");
+                    IrisBiome biome = engine.getBiome(xx, engine.getHeight(), zz);
+                    Iris.info("Found at! " + xx + ", " + zz + "Biome ID: " + biome.getName() + ", ");
+                    writer.write("Biome at: X: " + xx + " Z: " + zz + "Biome ID: " + biome.getName() +  ", ");
+                    return;
                }
             }
         }

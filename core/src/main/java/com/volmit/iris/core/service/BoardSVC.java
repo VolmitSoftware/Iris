@@ -125,21 +125,32 @@ public class BoardSVC implements IrisService, BoardProvider {
                 int y = player.getLocation().getBlockY() - player.getWorld().getMinHeight();
                 int z = player.getLocation().getBlockZ();
 
-                lines.add("&7&m                   ");
-                lines.add(C.GREEN + "Speed" + C.GRAY + ":  " + Form.f(engine.getGeneratedPerSecond(), 0) + "/s " + Form.duration(1000D / engine.getGeneratedPerSecond(), 0));
-                lines.add(C.AQUA + "Cache" + C.GRAY + ": " + Form.f(IrisData.cacheSize()));
-                lines.add(C.AQUA + "Mantle" + C.GRAY + ": " + engine.getMantle().getLoadedRegionCount());
-                lines.add("&7&m                   ");
-                lines.add(C.AQUA + "Region" + C.GRAY + ": " + engine.getRegion(x, z).getName());
-                lines.add(C.AQUA + "Biome" + C.GRAY + ":  " + engine.getBiomeOrMantle(x, y, z).getName());
-                if (!IrisSettings.get().getStudio().displayTrueHeight) {
-                    lines.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z) + player.getWorld().getMinHeight()));
-                } else {
+                if(IrisSettings.get().getGeneral().debug){
+                    lines.add("&7&m                   ");
+                    lines.add(C.GREEN + "Speed" + C.GRAY + ":  " + Form.f(engine.getGeneratedPerSecond(), 0) + "/s " + Form.duration(1000D / engine.getGeneratedPerSecond(), 0));
+                    lines.add(C.AQUA + "Cache" + C.GRAY + ": " + Form.f(IrisData.cacheSize()));
+                    lines.add(C.AQUA + "Mantle" + C.GRAY + ": " + engine.getMantle().getLoadedRegionCount());
+                    lines.add(C.LIGHT_PURPLE + "Carving" + C.GRAY + ": " + engine.getMantle().isCarved(x,y,z));
+                    lines.add("&7&m                   ");
+                    lines.add(C.AQUA + "Region" + C.GRAY + ": " + engine.getRegion(x, z).getName());
+                    lines.add(C.AQUA + "Biome" + C.GRAY + ":  " + engine.getBiomeOrMantle(x, y, z).getName());
                     lines.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z)));
+                    lines.add(C.AQUA + "Slope" + C.GRAY + ":  " + Form.f(engine.getComplex().getSlopeStream().get(x, z), 2));
+                    lines.add(C.AQUA + "BUD/s" + C.GRAY + ": " + Form.f(engine.getBlockUpdatesPerSecond()));
+                    lines.add("&7&m                   ");
+                } else {
+                    lines.add("&7&m                   ");
+                    lines.add(C.GREEN + "Speed" + C.GRAY + ":  " + Form.f(engine.getGeneratedPerSecond(), 0) + "/s " + Form.duration(1000D / engine.getGeneratedPerSecond(), 0));
+                    lines.add(C.AQUA + "Cache" + C.GRAY + ": " + Form.f(IrisData.cacheSize()));
+                    lines.add(C.AQUA + "Mantle" + C.GRAY + ": " + engine.getMantle().getLoadedRegionCount());
+                    lines.add("&7&m                   ");
+                    lines.add(C.AQUA + "Region" + C.GRAY + ": " + engine.getRegion(x, z).getName());
+                    lines.add(C.AQUA + "Biome" + C.GRAY + ":  " + engine.getBiomeOrMantle(x, y, z).getName());
+                    lines.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z)));
+                    lines.add(C.AQUA + "Slope" + C.GRAY + ":  " + Form.f(engine.getComplex().getSlopeStream().get(x, z), 2));
+                    lines.add(C.AQUA + "BUD/s" + C.GRAY + ": " + Form.f(engine.getBlockUpdatesPerSecond()));
+                    lines.add("&7&m                   ");
                 }
-                lines.add(C.AQUA + "Slope" + C.GRAY + ":  " + Form.f(engine.getComplex().getSlopeStream().get(x, z), 2));
-                lines.add(C.AQUA + "BUD/s" + C.GRAY + ": " + Form.f(engine.getBlockUpdatesPerSecond()));
-                lines.add("&7&m                   ");
             }
         }
     }

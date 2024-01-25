@@ -18,25 +18,33 @@
 
 package com.volmit.iris.core.pregenerator.methods;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.scheduling.J;
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
+import java.util.ArrayList;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class MedievalPregenMethod implements PregeneratorMethod {
     private final World world;
     private final KList<CompletableFuture<?>> futures;
+    private final Map<Chunk, Long> lastUse;
 
     public MedievalPregenMethod(World world) {
         this.world = world;
         futures = new KList<>();
+        this.lastUse = new KMap<>();
     }
 
     private void waitForChunks() {
@@ -52,11 +60,19 @@ public class MedievalPregenMethod implements PregeneratorMethod {
     }
 
     private void unloadAndSaveAllChunks() {
-        waitForChunks();
         try {
             J.sfut(() -> {
-                for (Chunk i : world.getLoadedChunks()) {
-                    i.unload(true);
+                if (world == null) {
+                    Iris.warn("World was null somehow...");
+                    return;
+                }
+
+                for (Chunk i : new ArrayList<>(lastUse.keySet())) {
+                    Long lastUseTime = lastUse.get(i);
+                    if (lastUseTime != null && M.ms() - lastUseTime >= 10) {
+                        i.unload();
+                        lastUse.remove(i);
+                    }
                 }
                 world.save();
             }).get();
@@ -104,6 +120,8 @@ public class MedievalPregenMethod implements PregeneratorMethod {
         listener.onChunkGenerating(x, z);
         futures.add(J.sfut(() -> {
             world.getChunkAt(x, z);
+            Chunk c = Bukkit.getWorld(world.getUID()).getChunkAt(x, z);
+            lastUse.put(c, M.ms());
             listener.onChunkGenerated(x, z);
             listener.onChunkCleaned(x, z);
         }));

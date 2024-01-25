@@ -104,6 +104,8 @@ public class MantleJigsawComponent extends IrisMantleComponent {
 
     @ChunkCoordinates
     public IrisJigsawStructure guess(int x, int z) {
+        // todo The guess doesnt bring into account that the placer may return -1
+        boolean t = false;
         RNG rng = new RNG(cng.fit(-Integer.MAX_VALUE, Integer.MAX_VALUE, x, z));
         IrisBiome biome = getEngineMantle().getEngine().getSurfaceBiome((x << 4) + 8, (z << 4) + 8);
         IrisRegion region = getEngineMantle().getEngine().getRegion((x << 4) + 8, (z << 4) + 8);

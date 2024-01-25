@@ -505,6 +505,13 @@ public class IrisObject extends IrisRegistrant {
                 return -1;
             }
 
+//            if (config.getCarvingSupport().supportsSurface()) {
+//                int y = placer.getHighest(x, z, rdata);
+//                if (placer.isCarved(x, y, z)) {
+//                    return -1;
+//                }
+//            }
+
             // Rotation calculation
             int slopeRotationY = 0;
             ProceduralStream<Double> heightStream = rdata.getEngine().getComplex().getHeightStream();
@@ -699,7 +706,7 @@ public class IrisObject extends IrisRegistrant {
                         key = engine.getObjectPlacementKey(i, j, k);
                         if (key != null) {
                             if (config.getForbiddenCollisions().contains(key) && !config.getAllowedCollisions().contains(key)) {
-                                Iris.warn("%s collides with %s (%s / %s / %s)", getLoadKey(), key, i, j, k);
+                                // Iris.debug("%s collides with %s (%s / %s / %s)", getLoadKey(), key, i, j, k);
                                 return -1;
                             }
                         }

@@ -144,6 +144,7 @@ public class B {
         Arrays.stream(new Material[]{
                 GRASS,
                 TALL_GRASS,
+                TALL_SEAGRASS,
                 FERN,
                 LARGE_FERN,
                 CORNFLOWER,

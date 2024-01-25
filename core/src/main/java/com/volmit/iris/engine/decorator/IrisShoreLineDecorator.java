@@ -46,7 +46,13 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
 
                 if (decorator != null) {
                     if (!decorator.isStacking()) {
-                        data.set(x, height + 1, z, decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData()));
+                        if (null != decorator.getBlockDataForTop(biome, getRng(), realX, height, realZ, getData())) {
+                            data.set(x, height, z, decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData()));
+                            height++;
+                            data.set(x, height, z, decorator.getBlockDataForTop(biome, getRng(), realX, height, realZ, getData()));
+                        } else {
+                            data.set(x, height, z, decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData()));
+                        }
                     } else {
                         int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
                         if (decorator.isScaleStack()) {

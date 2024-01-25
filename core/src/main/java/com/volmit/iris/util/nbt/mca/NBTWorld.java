@@ -107,7 +107,7 @@ public class NBTWorld {
             p.deleteCharAt(p.length() - 1).append(']');
         }
 
-        BlockData b = B.getOrNull(p.toString());
+        BlockData b = B.getOrNull(p.toString(), true);
 
         if (b == null) {
             return B.getAir();

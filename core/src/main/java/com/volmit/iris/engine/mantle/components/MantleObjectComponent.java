@@ -123,6 +123,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
     }
 
     public Set<String> guess(int x, int z) {
+        // todo The guess doesnt bring into account that the placer may return -1
         RNG rng = applyNoise(x, z, Cache.key(x, z) + seed());
         IrisBiome biome = getEngineMantle().getEngine().getSurfaceBiome((x << 4) + 8, (z << 4) + 8);
         IrisRegion region = getEngineMantle().getEngine().getRegion((x << 4) + 8, (z << 4) + 8);

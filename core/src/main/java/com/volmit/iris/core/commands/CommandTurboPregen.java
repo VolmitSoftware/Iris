@@ -48,7 +48,7 @@ public class CommandTurboPregen implements DecreeExecutor {
 
         worldName = world.getName();
         File worldDirectory = new File(Bukkit.getWorldContainer(), world.getName());
-        File TurboFile = new File(worldDirectory, "Turbogen.json");
+        File TurboFile = new File(worldDirectory, "turbogen.json");
         if (TurboFile.exists()) {
             if (TurboPregenerator.getInstance() != null) {
                 sender().sendMessage(C.BLUE + "Turbo pregen is already in progress");

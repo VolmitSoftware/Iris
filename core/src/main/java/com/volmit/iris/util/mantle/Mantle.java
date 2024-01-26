@@ -423,9 +423,9 @@ public class Mantle {
         ioTrim.set(true);
         unloadLock.lock();
         try {
-            Iris.debug("Trimming Tectonic Plates older than " + Form.duration(adjustedIdleDuration.get(), 0));
             if (lastUse != null) {
                 if (!lastUse.isEmpty()) {
+                    Iris.debug("Trimming Tectonic Plates older than " + Form.duration(adjustedIdleDuration.get(), 0));
                     for (Long i : new ArrayList<>(lastUse.keySet())) {
                         double finalAdjustedIdleDuration = adjustedIdleDuration.get();
                         hyperLock.withLong(i, () -> {

@@ -11,30 +11,35 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.math.Spiraler;
+import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.HyperLock;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import io.papermc.lib.PaperLib;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
+import org.apache.logging.log4j.core.util.ExecutorServices;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.checkerframework.checker.units.qual.N;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.lang.reflect.Array;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.IntStream;
 
 public class TurboPregenerator extends Thread implements Listener {
     @Getter
@@ -46,12 +51,19 @@ public class TurboPregenerator extends Thread implements Listener {
     private final ChronoLatch latch;
     private static AtomicInteger turboGeneratedChunks;
     private final AtomicInteger generatedLast;
+    private final AtomicLong cachedLast;
+    private final RollingSequence cachePerSecond;
     private final AtomicInteger turboTotalChunks;
     private final AtomicLong startTime;
     private final RollingSequence chunksPerSecond;
     private final RollingSequence chunksPerMinute;
-    private KList<Position2> queue = new KList<>();
+    private KList<Position2> queue;
+    private ConcurrentHashMap<Integer, Position2> cache;
     private AtomicInteger maxWaiting;
+    private ReentrantLock cachinglock;
+    private AtomicBoolean caching;
+    private final HyperLock hyperLock;
+    private MultiBurst burst;
     private static final Map<String, TurboPregenJob> jobs = new HashMap<>();
 
     public TurboPregenerator(TurboPregenJob job, File destination) {
@@ -63,31 +75,39 @@ public class TurboPregenerator extends Thread implements Listener {
         }).count();
         this.world = Bukkit.getWorld(job.getWorld());
         this.latch = new ChronoLatch(3000);
+        this.burst = MultiBurst.burst;
+        this.hyperLock = new HyperLock();
         this.startTime = new AtomicLong(M.ms());
+        this.cachePerSecond = new RollingSequence(10);
         this.chunksPerSecond = new RollingSequence(10);
         this.chunksPerMinute = new RollingSequence(10);
         turboGeneratedChunks = new AtomicInteger(0);
         this.generatedLast = new AtomicInteger(0);
+        this.cachedLast = new AtomicLong(0);
+        this.caching = new AtomicBoolean(false);
         this.turboTotalChunks = new AtomicInteger((int) Math.ceil(Math.pow((2.0 * job.getRadiusBlocks()) / 16, 2)));
+        cache = new ConcurrentHashMap<>(turboTotalChunks.get());
+        this.cachinglock = new ReentrantLock();
         jobs.put(job.getWorld(), job);
         TurboPregenerator.instance = this;
     }
+
     public TurboPregenerator(File file) throws IOException {
         this(new Gson().fromJson(IO.readAll(file), TurboPregenerator.TurboPregenJob.class), file);
     }
 
     public static void loadTurboGenerator(String i) {
         World x = Bukkit.getWorld(i);
-            File turbogen = new File(x.getWorldFolder(), "turbogen.json");
-            if (turbogen.exists()) {
-                try {
-                    TurboPregenerator p = new TurboPregenerator(turbogen);
-                    p.start();
-                    Iris.info("Started Turbo Pregenerator: " + p.job);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+        File turbogen = new File(x.getWorldFolder(), "turbogen.json");
+        if (turbogen.exists()) {
+            try {
+                TurboPregenerator p = new TurboPregenerator(turbogen);
+                p.start();
+                Iris.info("Started Turbo Pregenerator: " + p.job);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
+        }
 
     }
 
@@ -112,7 +132,20 @@ public class TurboPregenerator extends Thread implements Listener {
 
     public void tick() {
         TurboPregenJob job = jobs.get(world.getName());
-        if (latch.flip() && !job.paused) {
+        if (!cachinglock.isLocked() && cache.isEmpty() && !caching.get()) {
+            ExecutorService cache = Executors.newFixedThreadPool(1);
+            cache.submit(this::cache);
+        }
+
+        if (latch.flip() && caching.get()) {
+            long secondCached = cache.mappingCount() - cachedLast.get();
+            cachedLast.set(cache.mappingCount());
+            secondCached = secondCached / 3;
+            cachePerSecond.put(secondCached);
+            Iris.info("TurboGen: " + C.IRIS + world.getName() + C.RESET + C.BLUE + " Caching: " + Form.f(cache.mappingCount()) + " of " + Form.f(turboTotalChunks.get()) + " " + Form.f((int) cachePerSecond.getAverage()) + "/s");
+        }
+
+        if (latch.flip() && !job.paused && !cachinglock.isLocked()) {
             long eta = computeETA();
             save();
             int secondGenerated = turboGeneratedChunks.get() - generatedLast.get();
@@ -127,15 +160,49 @@ public class TurboPregenerator extends Thread implements Listener {
             Iris.info("Completed Turbo Gen!");
             interrupt();
         } else {
-            int pos = job.getPosition() + 1;
-            job.setPosition(pos);
-            if (!job.paused) {
-                if (queue.size() < maxWaiting.get()) {
-                    Position2 chunk = getChunk(pos);
-                    queue.add(chunk);
+            if (!cachinglock.isLocked()) {
+                int pos = job.getPosition() + 1;
+                job.setPosition(pos);
+                if (!job.paused) {
+                    if (queue.size() < maxWaiting.get()) {
+                        Position2 chunk = cache.get(pos);
+                        queue.add(chunk);
+                    }
+                    waitForChunksPartial();
                 }
-                waitForChunksPartial();
             }
+        }
+    }
+
+    private void cache() {
+        if (!cachinglock.isLocked()) {
+            cachinglock.lock();
+            caching.set(true);
+            PrecisionStopwatch p = PrecisionStopwatch.start();
+            BurstExecutor b = MultiBurst.burst.burst(turboTotalChunks.get());
+            b.setMulticore(true);
+            int[] list = IntStream.rangeClosed(0, turboTotalChunks.get()).toArray();
+            AtomicInteger order = new AtomicInteger(turboTotalChunks.get());
+
+            int threads = Runtime.getRuntime().availableProcessors();
+            if (threads > 1) threads--;
+            ExecutorService process = Executors.newFixedThreadPool(threads);
+
+            for (int id : list) {
+                b.queue(() -> {
+                    cache.put(id, getChunk(id));
+                    order.addAndGet(-1);
+                });
+            }
+            b.complete();
+
+            if (order.get() < 0) {
+                cachinglock.unlock();
+                caching.set(false);
+                Iris.info("Completed Caching in: " + Form.duration(p.getMilliseconds(), 2));
+            }
+        } else {
+            Iris.error("TurboCache is locked!");
         }
     }
 
@@ -163,7 +230,6 @@ public class TurboPregenerator extends Thread implements Listener {
             CountDownLatch latch = new CountDownLatch(1);
             PaperLib.getChunkAtAsync(world, chunk.getX(), chunk.getZ(), true)
                     .thenAccept((i) -> {
-                        Iris.verbose("Generated Async " + chunk);
                         latch.countDown();
                     });
             try {

@@ -37,7 +37,7 @@ public class UtilsSFG {
             }
             if (ServerBootSFG.unsuportedversion) {
                 Iris.safeguard(C.RED + "Server Version");
-                Iris.safeguard(C.RED + "- Iris only supports 1.19.2 > 1.20.2");
+                Iris.safeguard(C.RED + "- Iris only supports 1.19.2 > 1.20.4");
             }
             if (!ServerBootSFG.passedserversoftware) {
                 Iris.safeguard(C.YELLOW + "Unsupported Server Software");

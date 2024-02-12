@@ -240,34 +240,36 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
         lock.lock();
 
-        if (setup.get()) {
-            return getEngine();
-        }
-
-
-        setup.set(true);
-        getWorld().setRawWorldSeed(world.getSeed());
-        setupEngine();
-        this.hotloader = studio ? new Looper() {
-            @Override
-            protected long loop() {
-                if (hotloadChecker.flip()) {
-                    folder.check();
-                }
-
-                return 250;
+        try {
+            if (setup.get()) {
+                return getEngine();
             }
-        } : null;
 
-        if (studio) {
-            hotloader.setPriority(Thread.MIN_PRIORITY);
-            hotloader.start();
-            hotloader.setName(getTarget().getWorld().name() + " Hotloader");
+
+            getWorld().setRawWorldSeed(world.getSeed());
+            setupEngine();
+            setup.set(true);
+            this.hotloader = studio ? new Looper() {
+                @Override
+                protected long loop() {
+                    if (hotloadChecker.flip()) {
+                        folder.check();
+                    }
+
+                    return 250;
+                }
+            } : null;
+
+            if (studio) {
+                hotloader.setPriority(Thread.MIN_PRIORITY);
+                hotloader.start();
+                hotloader.setName(getTarget().getWorld().name() + " Hotloader");
+            }
+
+            return engine;
+        } finally {
+            lock.unlock();
         }
-
-        lock.unlock();
-
-        return engine;
     }
 
     @Override

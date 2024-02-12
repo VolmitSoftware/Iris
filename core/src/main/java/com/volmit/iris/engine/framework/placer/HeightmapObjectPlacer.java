@@ -60,7 +60,7 @@ public class HeightmapObjectPlacer implements IObjectPlacer {
 
     @Override
     public boolean isCarved(int x, int y, int z) {
-        return false;
+        return oplacer.isCarved(x,y,z);
     }
 
     public boolean isSolid(int param1Int1, int param1Int2, int param1Int3) {

@@ -146,7 +146,6 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsGeneral {
         public boolean ignoreBootMode = false;
-        public boolean useIntegratedChunkHandler = false;
         public boolean commandSounds = true;
         public boolean debug = false;
         public boolean disableNMS = false;
@@ -184,7 +183,6 @@ public class IrisSettings {
     public static class IrisSettingsStudio {
         public boolean studio = true;
         public boolean openVSCode = true;
-        public boolean displayTrueHeight = false;
         public boolean disableTimeAndWeather = true;
         public boolean autoStartDefaultStudio = false;
     }

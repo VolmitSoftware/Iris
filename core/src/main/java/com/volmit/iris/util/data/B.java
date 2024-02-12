@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.service.ExternalDataSVC;
+import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.scheduling.ChronoLatch;
@@ -144,6 +145,7 @@ public class B {
         Arrays.stream(new Material[]{
                 GRASS,
                 TALL_GRASS,
+                TALL_SEAGRASS,
                 FERN,
                 LARGE_FERN,
                 CORNFLOWER,
@@ -406,7 +408,7 @@ public class B {
         return mat.getMaterial().isSolid();
     }
 
-    public static BlockData getOrNull(String bdxf) {
+    public static BlockData getOrNull(String bdxf, boolean warn) {
         try {
             String bd = bdxf.trim();
 
@@ -422,9 +424,9 @@ public class B {
                 return DIRT_PATH.createBlockData();
             }
 
-            BlockData bdx = parseBlockData(bd);
+            BlockData bdx = parseBlockData(bd, warn);
 
-            if (bdx == null) {
+            if (bdx == null && warn) {
                 if (clw.flip()) {
                     Iris.warn("Unknown Block Data '" + bd + "'");
                 }
@@ -443,8 +445,8 @@ public class B {
         return null;
     }
 
-    public static BlockData get(String bdxf) {
-        BlockData bd = getOrNull(bdxf);
+    public static BlockData getNoCompat(String bdxf) {
+        BlockData bd = getOrNull(bdxf, true);
 
         if (bd != null) {
             return bd;
@@ -453,20 +455,34 @@ public class B {
         return AIR;
     }
 
-    private static synchronized BlockData createBlockData(String s) {
+    public static BlockData get(String bdxf) {
+        if (bdxf.contains(":")) {
+            if (bdxf.startsWith("minecraft:")) {
+                return Iris.compat.getBlock(bdxf);
+            } else {
+                return getNoCompat(bdxf);
+            }
+        } else {
+            return Iris.compat.getBlock(bdxf);
+        }
+    }
+
+    private static synchronized BlockData createBlockData(String s, boolean warn) {
         try {
             return Bukkit.createBlockData(s);
         } catch (IllegalArgumentException e) {
             if (s.contains("[")) {
-                return createBlockData(s.split("\\Q[\\E")[0]);
+                return createBlockData(s.split("\\Q[\\E")[0], warn);
             }
         }
 
-        Iris.error("Can't find block data for " + s);
+        if (warn) {
+            Iris.error("Can't find block data for " + s);
+        }
         return null;
     }
 
-    private static BlockData parseBlockData(String ix) {
+    private static BlockData parseBlockData(String ix, boolean warn) {
         try {
             BlockData bx = null;
 
@@ -480,7 +496,7 @@ public class B {
 
             if (bx == null) {
                 try {
-                    bx = createBlockData(ix.toLowerCase());
+                    bx = createBlockData(ix.toLowerCase(), warn);
                 } catch (Throwable e) {
                     e.printStackTrace();
                 }
@@ -488,7 +504,7 @@ public class B {
 
             if (bx == null) {
                 try {
-                    bx = createBlockData("minecraft:" + ix.toLowerCase());
+                    bx = createBlockData("minecraft:" + ix.toLowerCase(), warn);
                 } catch (Throwable e) {
 
                 }
@@ -548,7 +564,7 @@ public class B {
             for (String key : stateMap.keySet()) { //Iterate through every state and check if its valid
                 try {
                     String newState = block + "[" + key + "=" + stateMap.get(key) + "]";
-                    createBlockData(newState);
+                    createBlockData(newState, warn);
                     newStates.put(key, stateMap.get(key));
 
                 } catch (IllegalArgumentException ignored) {
@@ -562,7 +578,7 @@ public class B {
             Iris.debug("Converting " + ix + " to " + newBlock);
 
             try {
-                return createBlockData(newBlock);
+                return createBlockData(newBlock, warn);
             } catch (Throwable e1) {
                 Iris.reportError(e1);
             }

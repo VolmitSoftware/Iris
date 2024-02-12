@@ -23,20 +23,28 @@ import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.J;
 import io.papermc.lib.PaperLib;
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 
 public class AsyncPregenMethod implements PregeneratorMethod {
     private final World world;
     private final MultiBurst burst;
     private final KList<Future<?>> future;
+    private final Map<Chunk, Long> lastUse;
 
     public AsyncPregenMethod(World world, int threads) {
         if (!PaperLib.isPaper()) {
@@ -46,6 +54,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         this.world = world;
         burst = MultiBurst.burst;
         future = new KList<>(1024);
+        this.lastUse = new KMap<>();
     }
 
     private void unloadAndSaveAllChunks() {
@@ -56,8 +65,12 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                     return;
                 }
 
-                for (Chunk i : world.getLoadedChunks()) {
-                    i.unload(true);
+                for (Chunk i : new ArrayList<>(lastUse.keySet())) {
+                    Long lastUseTime = lastUse.get(i);
+                    if (lastUseTime != null && M.ms() - lastUseTime >= 10000) {
+                        i.unload();
+                        lastUse.remove(i);
+                    }
                 }
                 world.save();
             }).get();
@@ -72,7 +85,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 if (i == null) {
 
                 }
-
+                Chunk c = Bukkit.getWorld(world.getUID()).getChunkAt(x, z);
+                lastUse.put(c, M.ms());
                 listener.onChunkGenerated(x, z);
                 listener.onChunkCleaned(x, z);
                 return 0;

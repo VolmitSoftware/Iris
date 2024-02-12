@@ -73,7 +73,6 @@ public class ModesSFG {
             Iris.info(C.YELLOW + "- Broken worlds");
             Iris.info(C.YELLOW + "- Unexpected behavior.");
             Iris.info(C.YELLOW + "- And perhaps further complications.");
-            Iris.info(C.GOLD + "ATTENTION: " + C.YELLOW + "While running Iris in unstable mode, you won't be eligible for support.");
             Iris.info(C.GOLD + "CAUSE: " + C.YELLOW + UtilsSFG.MSGIncompatibleWarnings());
             Iris.info("");
         }

@@ -96,11 +96,11 @@ public class ServerBootSFG {
             severityMedium++;
         }
 
-        if (!hasPrivileges()){
-            hasPrivileges = true;
-            joiner.add("Insufficient Privileges");
-            severityMedium++;
-        }
+//        if (!hasPrivileges()){
+//            hasPrivileges = false;
+//            joiner.add("Insufficient Privileges");
+//            severityMedium++;
+//        } Some servers dont like this
 
         if (!enoughDiskSpace()){
             hasEnoughDiskSpace = false;

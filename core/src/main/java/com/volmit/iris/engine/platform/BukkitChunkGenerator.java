@@ -126,9 +126,26 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             if (!initialized) {
                 world.setRawWorldSeed(event.getWorld().getSeed());
                 if (world.name().equals(event.getWorld().getName())) {
-                    INMS.get().inject(event.getWorld().getSeed(), getEngine(event.getWorld()), event.getWorld());
-                    Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
-                    initialized = true;
+                    Engine engine = getEngine(event.getWorld());
+                    if (engine == null) {
+                        Iris.warn("Failed to get Engine!");
+                        J.s(() -> {
+                            Engine engine1 = getEngine(event.getWorld());
+                            if (engine1 != null) {
+								try {
+									INMS.get().inject(event.getWorld().getSeed(), engine1, event.getWorld());
+                                    Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
+                                    initialized = true;
+								} catch (Throwable e) {
+									e.printStackTrace();
+								}
+							}
+                        }, 10);
+                    } else {
+                        INMS.get().inject(event.getWorld().getSeed(), engine, event.getWorld());
+                        Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
+                        initialized = true;
+                    }
                 }
             }
         } catch (Throwable e) {

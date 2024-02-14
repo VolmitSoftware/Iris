@@ -28,7 +28,6 @@ import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.matter.slices.JigsawPieceMatter;
 import com.volmit.iris.util.matter.slices.container.JigsawPieceContainer;
 import lombok.Data;
 import org.bukkit.Axis;
@@ -75,7 +74,7 @@ public class PlannedStructure {
         }
     }
 
-    public void place(MantleWriter placer, Mantle e, Engine eng) {
+    public void place(IObjectPlacer placer, Mantle e, Engine eng) {
         IrisObjectPlacement options = new IrisObjectPlacement();
         options.getRotation().setEnabled(false);
         int startHeight = pieces.get(0).getPosition().getY();
@@ -85,7 +84,7 @@ public class PlannedStructure {
         }
     }
 
-    public void place(PlannedPiece i, int startHeight, IrisObjectPlacement o, MantleWriter placer, Mantle e, Engine eng) {
+    public void place(PlannedPiece i, int startHeight, IrisObjectPlacement o, IObjectPlacer placer, Mantle e, Engine eng) {
         IrisObjectPlacement options = o;
 
         if (i.getPiece().getPlacementOptions() != null) {
@@ -123,69 +122,10 @@ public class PlannedStructure {
 
         int id = rng.i(0, Integer.MAX_VALUE);
         JigsawPieceContainer container = JigsawPieceContainer.toContainer(i.getPiece());
-        vo.place(xx, height, zz, new IObjectPlacer() {
-            @Override
-            public int getHighest(int x, int z, IrisData data) {
-                return placer.getHighest(x, z, data);
-            }
-
-            @Override
-            public int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
-                return placer.getHighest(x, z, data, ignoreFluid);
-            }
-
-            @Override
-            public void set(int x, int y, int z, BlockData d) {
-                placer.setData(x, y, z, container);
-                placer.set(x, y, z, d);
-            }
-
-            @Override
-            public BlockData get(int x, int y, int z) {
-                placer.setData(x, y, z, container);
-                return placer.get(x, y, z);
-            }
-
-            @Override
-            public boolean isPreventingDecay() {
-                return placer.isPreventingDecay();
-            }
-
-            @Override
-            public boolean isCarved(int x, int y, int z) {
-                return placer.isCarved(x, y, z);
-            }
-
-            @Override
-            public boolean isSolid(int x, int y, int z) {
-                return placer.isSolid(x, y, z);
-            }
-
-            @Override
-            public boolean isUnderwater(int x, int z) {
-                return placer.isUnderwater(x, z);
-            }
-
-            @Override
-            public int getFluidHeight() {
-                return placer.getFluidHeight();
-            }
-
-            @Override
-            public boolean isDebugSmartBore() {
-                return placer.isDebugSmartBore();
-            }
-
-            @Override
-            public void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile) {
-                placer.setTile(xx, yy, zz, tile);
-            }
-
-            @Override
-            public Engine getEngine() {
-                return placer.getEngine();
-            }
-        }, options, rng, (b, data) -> e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id), null, getData());
+        vo.place(xx, height, zz, placer, options, rng, (b, data) -> {
+            e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);
+            e.set(b.getX(), b.getY(), b.getZ(), container);
+        }, null, getData());
     }
 
     public void place(World world) {
@@ -361,10 +301,6 @@ public class PlannedStructure {
 
     public boolean collidesWith(PlannedPiece piece, PlannedPiece ignore) {
         for (PlannedPiece i : pieces) {
-            if (i.equals(ignore)) {
-                continue;
-            }
-
             if (i.collidesWith(piece)) {
                 return true;
             }

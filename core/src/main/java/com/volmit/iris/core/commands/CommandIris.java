@@ -49,6 +49,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.io.Console;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
@@ -199,7 +200,7 @@ public class CommandIris implements DecreeExecutor {
 
     @Decree(description = "Print world height information", origin = DecreeOrigin.PLAYER)
     public void height() {
-        if (sender() instanceof Player) {
+        if (sender().isPlayer()) {
             sender().sendMessage(C.GREEN + "" + sender().player().getWorld().getMinHeight() + " to " + sender().player().getWorld().getMaxHeight());
             sender().sendMessage(C.GREEN + "Total Height: " + (sender().player().getWorld().getMaxHeight() - sender().player().getWorld().getMinHeight()));
         } else {

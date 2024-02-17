@@ -24,6 +24,7 @@ import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisRange;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.C;
@@ -94,6 +95,29 @@ public class ServerConfigurator {
     public static void installDataPacks(boolean fullInstall) {
         Iris.info("Checking Data Packs...");
         File packs = new File("plugins/Iris/packs");
+        double ultimateMaxHeight = 0;
+        double ultimateMinHeight = 0;
+        if (packs.exists() && packs.isDirectory()) {
+            for (File pack : packs.listFiles()) {
+                IrisData data = IrisData.get(pack);
+                if (pack.isDirectory()) {
+                    File dimensionsFolder = new File(pack, "dimensions");
+                    if (dimensionsFolder.exists() && dimensionsFolder.isDirectory()) {
+                        for (File file : dimensionsFolder.listFiles()) {
+                            if (file.isFile() && file.getName().endsWith(".json")) {
+                                IrisDimension dim = data.getDimensionLoader().load(file.getName().split("\\Q.\\E")[0]);
+                                if (ultimateMaxHeight < dim.getDimensionHeight().getMax()) {
+                                    ultimateMaxHeight = dim.getDimensionHeight().getMax();
+                                }
+                                if (ultimateMinHeight > dim.getDimensionHeight().getMin()) {
+                                    ultimateMinHeight = dim.getDimensionHeight().getMin();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         if (packs.exists()) {
             for (File i : packs.listFiles()) {
@@ -113,7 +137,7 @@ public class ServerConfigurator {
 
                                 Iris.verbose("  Checking Dimension " + dim.getLoadFile().getPath());
                                 for (File dpack : getDatapacksFolder()) {
-                                    dim.installDataPack(() -> data, dpack);
+                                    dim.installDataPack(() -> data, dpack, ultimateMaxHeight, ultimateMinHeight);
                                 }
                             }
                         }

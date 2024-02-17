@@ -447,7 +447,7 @@ public class CommandIris implements DecreeExecutor {
         }
         WorldToLoad = world;
         File BUKKIT_YML = new File("bukkit.yml");
-        String pathtodim = world + "\\iris\\pack\\dimensions\\";
+        String pathtodim = world + File.separator +"iris"+File.separator +"pack"+File.separator +"dimensions"+File.separator;
         File directory = new File(Bukkit.getWorldContainer(), pathtodim);
 
         String dimension = null;

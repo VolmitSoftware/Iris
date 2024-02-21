@@ -37,7 +37,7 @@ registerCustomOutputTask('Coco', 'D://mcsm/plugins')
 registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins')
 registerCustomOutputTask('Vatuu', 'D://Minecraft/Servers/1.19.4/plugins')
 registerCustomOutputTask('CrazyDev22', 'C://Users/Julian/Desktop/server/plugins')
-registerCustomOutputTask('Pixel', 'C://Users/repix/Iris Dimension Engine/1.20.1 - Iris Coding/plugins')
+registerCustomOutputTask('Pixel', 'C://Users/repix/Iris Dimension Engine/Iris Development/plugins')
 // ========================== UNIX ==============================
 registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/development/server/plugins')
 registerCustomOutputTaskUnix('PsychoLT', '/Volumes/PRO-G40/Minecraft/MinecraftDevelopment/Server/plugins')
@@ -235,7 +235,7 @@ allprojects {
         implementation 'com.dfsek:Paralithic:0.4.0'
         implementation 'io.papermc:paperlib:1.0.5'
         implementation "net.kyori:adventure-text-minimessage:4.13.1"
-        implementation 'net.kyori:adventure-platform-bukkit:4.3.0'
+        implementation 'net.kyori:adventure-platform-bukkit:4.3.2'
         implementation 'net.kyori:adventure-api:4.13.1'
         compileOnly 'io.lumine:Mythic-Dist:5.2.1'
 

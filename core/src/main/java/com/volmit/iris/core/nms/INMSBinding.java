@@ -32,6 +32,9 @@ import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 
@@ -103,4 +106,5 @@ public interface INMSBinding {
     void setTreasurePos(Dolphin dolphin, com.volmit.iris.core.nms.container.BlockPos pos);
 
     void inject(long seed, Engine engine, World world) throws NoSuchFieldException, IllegalAccessException;
+    Entity spawnEntity(Location location, EntityType type, CreatureSpawnEvent.SpawnReason reason);
 }

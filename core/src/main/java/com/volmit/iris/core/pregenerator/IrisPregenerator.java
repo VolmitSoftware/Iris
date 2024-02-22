@@ -167,7 +167,10 @@ public class IrisPregenerator {
         generator.close();
         ticker.interrupt();
         listener.onClose();
-        getMantle().trim(0, 0);
+        Mantle mantle = getMantle();
+        if (mantle != null) {
+            mantle.trim(0, 0);
+        }
     }
 
     private void visitRegion(int x, int z, boolean regions) {

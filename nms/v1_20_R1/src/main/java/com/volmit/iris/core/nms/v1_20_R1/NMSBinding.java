@@ -45,6 +45,8 @@ import org.bukkit.craftbukkit.v1_20_R1.entity.CraftDolphin;
 import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -485,6 +487,12 @@ public class NMSBinding implements INMSBinding {
         CustomBiomeSource customBiomeSource = new CustomBiomeSource(seed, engine, world);
         unsafe.putObject(biomeSource.get(serverLevel.getChunkSource().chunkMap.generator), unsafe.objectFieldOffset(biomeSource), customBiomeSource);
         biomeSource.set(serverLevel.getChunkSource().chunkMap.generator, customBiomeSource);
+    }
+
+
+    @Override
+    public Entity spawnEntity(Location location, EntityType type, CreatureSpawnEvent.SpawnReason reason) {
+        return ((CraftWorld) location.getWorld()).spawn(location, type.getEntityClass(), null, reason);
     }
 
     private static Field getField(Class<?> clazz, Class<?> fieldType) throws NoSuchFieldException {

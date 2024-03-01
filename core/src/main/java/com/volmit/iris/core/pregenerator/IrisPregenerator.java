@@ -128,7 +128,7 @@ public class IrisPregenerator {
                 // If yes, use smooth function (which gets more accurate over time since its less sensitive to outliers)
                 ((totalChunks.get() - generated.get()) * ((double) (M.ms() - startTime.get()) / (double) generated.get())) :
                 // If no, use quick function (which is less accurate over time but responds better to the initial delay)
-                ((totalChunks.get() - generated.get()) / chunksPerSecond.getAverage()) * 1000 //
+                ((totalChunks.get() - generated.get()) / chunksPerSecond.getAverage()) * 100 //
         );
     }
 

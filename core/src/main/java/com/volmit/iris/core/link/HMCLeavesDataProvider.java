@@ -3,6 +3,7 @@ package com.volmit.iris.core.link;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.data.IrisBlockData;
 import com.volmit.iris.util.reflect.WrappedField;
 import com.volmit.iris.util.reflect.WrappedReturningMethod;
 import org.bukkit.Bukkit;
@@ -53,7 +54,7 @@ public class HMCLeavesDataProvider extends ExternalDataProvider {
 		Material material = worldBlockType.invoke(o, new Object[0]);
 		if (material == null)
 			throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
-		return Bukkit.createBlockData(material);
+		return new IrisBlockData(Bukkit.createBlockData(material), blockId);
 	}
 
 	@Override

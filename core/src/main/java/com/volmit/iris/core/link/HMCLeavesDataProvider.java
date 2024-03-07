@@ -37,7 +37,7 @@ public class HMCLeavesDataProvider extends ExternalDataProvider {
 		try {
 			worldBlockType = new WrappedReturningMethod<>((Class<Object>) Class.forName("io.github.fisher2911.hmcleaves.data.BlockData"), "worldBlockType");
 			apiInstance = getApiInstance(Class.forName("io.github.fisher2911.hmcleaves.api.HMCLeavesAPI"));
-			setCustomBlock = new WrappedReturningMethod<>((Class<Object>) apiInstance.getClass(), "setCustomBlock");
+			setCustomBlock = new WrappedReturningMethod<>((Class<Object>) apiInstance.getClass(), "setCustomBlock", Location.class, String.class, boolean.class);
 			Object config = getLeavesConfig(apiInstance.getClass());
 			blockDataMap = getMap(config, "blockDataMap");
 			itemDataField = getMap(config, "itemSupplierMap");

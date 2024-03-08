@@ -259,6 +259,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         }
         if (data instanceof IrisBlockData d) {
             getMantle().getMantle().set(x, y, z, d.getCustom());
+        } else {
+            getMantle().getMantle().remove(x, y, z, Identifier.class);
         }
     }
 
@@ -285,7 +287,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             }));
             getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.CUSTOM, () -> J.s(() -> {
                 getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), Identifier.class, (x, y, z, v) -> {
-                    Iris.service(ExternalDataSVC.class).processUpdate(this, new Location(c.getWorld(), x, y + getWorld().minHeight(), z), v);
+                    Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
                 });
             }));
 

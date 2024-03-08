@@ -25,7 +25,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.plugin.IrisService;
 import lombok.Data;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.server.PluginEnableEvent;
@@ -111,13 +111,13 @@ public class ExternalDataSVC implements IrisService {
         }
     }
 
-    public void processUpdate(Engine engine, Location location, Identifier blockId) {
+    public void processUpdate(Engine engine, Block block, Identifier blockId) {
         Optional<ExternalDataProvider> provider = activeProviders.stream().filter(p -> p.isValidProvider(blockId, true)).findFirst();
         if (provider.isEmpty()) {
             Iris.warn("No matching Provider found for modded material \"%s\"!", blockId);
             return;
         }
-        provider.get().processUpdate(engine, location, blockId);
+        provider.get().processUpdate(engine, block, blockId);
     }
 
     public Identifier[] getAllBlockIdentifiers() {

@@ -36,9 +36,8 @@ import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.StringBlockMechanicFactory;
 import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.MultipleFacing;
 import org.bukkit.inventory.ItemStack;
@@ -90,10 +89,10 @@ public class OraxenDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public void processUpdate(Engine engine, Location location, Identifier blockId) {
+    public void processUpdate(Engine engine, Block block, Identifier blockId) {
         Mechanic mechanic = getFactory(blockId).getMechanic(blockId.key());
         if (mechanic instanceof FurnitureMechanic f) {
-            f.place(location);
+            f.place(block.getLocation());
         }
     }
 

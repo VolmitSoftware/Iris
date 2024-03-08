@@ -9,7 +9,9 @@ import com.volmit.iris.util.reflect.WrappedReturningMethod;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.type.Leaves;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.Map;
@@ -54,7 +56,10 @@ public class HMCLeavesDataProvider extends ExternalDataProvider {
 		Material material = worldBlockType.invoke(o, new Object[0]);
 		if (material == null)
 			throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
-		return new IrisBlockData(Bukkit.createBlockData(material), blockId);
+		BlockData blockData = Bukkit.createBlockData(material);
+		if (blockData instanceof Leaves leaves)
+			leaves.setPersistent(true);
+		return new IrisBlockData(blockData, blockId);
 	}
 
 	@Override
@@ -65,8 +70,10 @@ public class HMCLeavesDataProvider extends ExternalDataProvider {
 	}
 
 	@Override
-	public void processUpdate(Engine engine, Location location, Identifier blockId) {
-		setCustomBlock.invoke(apiInstance, new Object[]{location, blockId.key(), true});
+	public void processUpdate(Engine engine, Block block, Identifier blockId) {
+		Boolean result = setCustomBlock.invoke(apiInstance, new Object[]{block.getLocation(), blockId.key(), true});
+		if (result == null || !result)
+			Iris.warn("Failed to set custom block! " + blockId.key() + " " + block.getX() + " " + block.getY() + " " + block.getZ());
 	}
 
 	@Override

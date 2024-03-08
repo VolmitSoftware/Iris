@@ -4,7 +4,7 @@ import com.volmit.iris.engine.framework.Engine;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -30,7 +30,7 @@ public abstract class ExternalDataProvider {
     public abstract BlockData getBlockData(Identifier blockId) throws MissingResourceException;
 
     public abstract ItemStack getItemStack(Identifier itemId) throws MissingResourceException;
-    public void processUpdate(Engine engine, Location location, Identifier blockId) {};
+    public void processUpdate(Engine engine, Block block, Identifier blockId) {};
 
     public abstract Identifier[] getBlockTypes();
 

@@ -38,9 +38,13 @@ import net.jpountz.lz4.LZ4FrameInputStream;
 import net.jpountz.lz4.LZ4FrameOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.World;
 
 import java.io.*;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.zip.GZIPInputStream;
@@ -51,33 +55,119 @@ public class CommandDeveloper implements DecreeExecutor {
     private CommandTurboPregen turboPregen;
 
     @Decree(description = "Get Loaded TectonicPlates Count", origin = DecreeOrigin.BOTH, sync = true)
-    public void EngineStatus(
-            @Param(description = "World")
-            World world
-    ) {
-        if (!IrisToolbelt.isIrisWorld(world)) {
-            sender().sendMessage(C.RED + "This is not an Iris world. Iris worlds: " + String.join(", ", Bukkit.getServer().getWorlds().stream().filter(IrisToolbelt::isIrisWorld).map(World::getName).toList()));
-            return;
+    public void EngineStatus() {
+        List<World> IrisWorlds = new ArrayList<>();
+        int TotalLoadedChunks = 0;
+        int TotalQueuedTectonicPlates = 0;
+        int TotalNotQueuedTectonicPlates = 0;
+        int TotalTectonicPlates = 0;
+
+        long lowestUnloadDuration = 0;
+        long highestUnloadDuration = 0;
+
+        for (World world : Bukkit.getWorlds()) {
+            try {
+                if (IrisToolbelt.access(world).getEngine() != null) {
+                    IrisWorlds.add(world);
+                }
+            } catch (Exception e) {
+                // no
+            }
         }
 
-        Engine engine = IrisToolbelt.access(world).getEngine();
-        if(engine != null) {
-            long lastUseSize = engine.getMantle().getLastUseMapMemoryUsage();
+        for (World world : IrisWorlds) {
+            Engine engine = IrisToolbelt.access(world).getEngine();
+            TotalQueuedTectonicPlates += (int) engine.getMantle().getToUnload();
+            TotalNotQueuedTectonicPlates += (int) engine.getMantle().getNotQueuedLoadedRegions();
+            TotalTectonicPlates += engine.getMantle().getLoadedRegionCount();
+            if (highestUnloadDuration <= (long) engine.getMantle().getTectonicDuration()) {
+                highestUnloadDuration = (long) engine.getMantle().getTectonicDuration();
+            }
+            if (lowestUnloadDuration >= (long) engine.getMantle().getTectonicDuration()) {
+                lowestUnloadDuration = (long) engine.getMantle().getTectonicDuration();
+            }
+            for (Chunk chunk : world.getLoadedChunks()) {
+                if (chunk.isLoaded()) {
+                    TotalLoadedChunks++;
+                }
+            }
+        }
+        Iris.info("-------------------------");
+        Iris.info(C.DARK_PURPLE + "Engine Status");
+        Iris.info(C.DARK_PURPLE + "Total Loaded Chunks: " + C.LIGHT_PURPLE + TotalLoadedChunks);
+        Iris.info(C.DARK_PURPLE + "Tectonic Limit: " + C.LIGHT_PURPLE + IrisEngineSVC.getTectonicLimit());
+        Iris.info(C.DARK_PURPLE + "Tectonic Total Plates: " + C.LIGHT_PURPLE + TotalTectonicPlates);
+        Iris.info(C.DARK_PURPLE + "Tectonic Active Plates: " + C.LIGHT_PURPLE + TotalNotQueuedTectonicPlates);
+        Iris.info(C.DARK_PURPLE + "Tectonic ToUnload: " + C.LIGHT_PURPLE + TotalQueuedTectonicPlates);
+        Iris.info(C.DARK_PURPLE + "Lowest Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration(lowestUnloadDuration));
+        Iris.info(C.DARK_PURPLE + "Highest Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration(highestUnloadDuration));
+        Iris.info(C.DARK_PURPLE + "Cache Size: " + C.LIGHT_PURPLE + Form.f(IrisData.cacheSize()));
+        Iris.info("-------------------------");
+    }
 
-            Iris.info("-------------------------");
-            Iris.info(C.DARK_PURPLE + "Engine Status");
-            Iris.info(C.DARK_PURPLE + "Tectonic Limit: " + C.LIGHT_PURPLE + IrisEngineSVC.getTectonicLimit());
-            Iris.info(C.DARK_PURPLE + "Tectonic Loaded Plates: " + C.LIGHT_PURPLE + engine.getMantle().getLoadedRegionCount());
-            Iris.info(C.DARK_PURPLE + "Tectonic Plates: " + C.LIGHT_PURPLE + engine.getMantle().getNotClearedLoadedRegions());
-            Iris.info(C.DARK_PURPLE + "Tectonic ToUnload: " + C.LIGHT_PURPLE + engine.getMantle().getToUnload());
-            Iris.info(C.DARK_PURPLE + "Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration((long) engine.getMantle().getTectonicDuration()));
-            Iris.info(C.DARK_PURPLE + "Cache Size: " + C.LIGHT_PURPLE + Form.f(IrisData.cacheSize()));
-            Iris.info(C.DARK_PURPLE + "LastUse Size: " + C.LIGHT_PURPLE + Form.mem(lastUseSize));
-            Iris.info("-------------------------");
-        } else {
-            Iris.info(C.RED + "Engine is null!");
+    @Decree(description = "Test")
+    public void benchmarkMantle(
+            @Param(description = "The world to bench", aliases = {"world"})
+            World world
+    ) throws IOException, ClassNotFoundException {
+        Engine engine = IrisToolbelt.access(world).getEngine();
+        int maxHeight = engine.getTarget().getHeight();
+        File folder = new File(Bukkit.getWorldContainer(), world.getName());
+        int c = 0;
+        //MCAUtil.read()
+
+        File tectonicplates = new File(folder, "mantle");
+        for (File i : Objects.requireNonNull(tectonicplates.listFiles())) {
+            TectonicPlate.read(maxHeight, i);
+            c++;
+            Iris.info("Loaded count: " + c );
+
+        }
+
+    }
+
+    @Decree(description = "UnloadChunks for good reasons.")
+    public void unloadchunks() {
+        List<World> IrisWorlds = new ArrayList<>();
+        int chunksUnloaded = 0;
+        for (World world : Bukkit.getWorlds()) {
+            try {
+                if (IrisToolbelt.access(world).getEngine() != null) {
+                    IrisWorlds.add(world);
+                }
+            } catch (Exception e) {
+                // no
+            }
+        }
+
+        for (World world : IrisWorlds) {
+            for (Chunk chunk : world.getLoadedChunks()) {
+                if (chunk.isLoaded()) {
+                    chunk.unload();
+                    chunksUnloaded++;
+                }
+            }
+        }
+        Iris.info(C.IRIS + "Chunks Unloaded: " + chunksUnloaded);
+
+    }
+
+    @Decree(description = "Test", aliases = {"ip"})
+    public void network() {
+        try {
+            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+            for (NetworkInterface ni : Collections.list(networkInterfaces)) {
+                Iris.info("Display Name: %s", ni.getDisplayName());
+                Enumeration<InetAddress> inetAddresses = ni.getInetAddresses();
+                for (InetAddress ia : Collections.list(inetAddresses)) {
+                    Iris.info("IP: %s", ia.getHostAddress());
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
+
     @Decree(description = "Test", origin = DecreeOrigin.BOTH)
     public void test() {
         Iris.info("Test Developer CMD Executed");

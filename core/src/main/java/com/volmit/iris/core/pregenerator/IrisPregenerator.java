@@ -19,9 +19,7 @@
 package com.volmit.iris.core.pregenerator;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.M;
@@ -30,15 +28,12 @@ import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
-import lombok.Getter;
-import lombok.Setter;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.volmit.iris.core.tools.IrisPackBenchmarking.benchmark;
 
 public class IrisPregenerator {
     private final PregenTask task;
@@ -112,11 +107,7 @@ public class IrisPregenerator {
 
                 if (cl.flip()) {
                     double percentage = ((double) generated.get() / (double) totalChunks.get()) * 100;
-                    if(benchmark) {
-                        Iris.info(C.GREEN +"Benchmark: " + C.WHITE + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (%.0f%%) " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration((double) eta, 2), percentage);
-                    } else {
-                        Iris.info("Pregen: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (%.0f%%) " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration(eta, 2), percentage);
-                    }
+                    Iris.info("Pregen: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (%.0f%%) " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration(eta, 2), percentage);
                 }
                 return 1000;
             }

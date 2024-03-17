@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.matter.slices;
 
+import com.volmit.iris.util.data.IrisBlockData;
 import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.Sliced;
 import org.bukkit.Bukkit;
@@ -39,7 +40,11 @@ public class BlockMatter extends RawMatter<BlockData> {
 
     public BlockMatter(int width, int height, int depth) {
         super(width, height, depth, BlockData.class);
-        registerWriter(World.class, ((w, d, x, y, z) -> w.getBlockAt(x, y, z).setBlockData(d)));
+        registerWriter(World.class, ((w, d, x, y, z) -> {
+            if (d instanceof IrisBlockData c)
+                w.getBlockAt(x, y, z).setBlockData(c.getBase());
+            else w.getBlockAt(x, y, z).setBlockData(d);
+        }));
         registerReader(World.class, (w, x, y, z) -> {
             BlockData d = w.getBlockAt(x, y, z).getBlockData();
             return d.getMaterial().isAir() ? null : d;

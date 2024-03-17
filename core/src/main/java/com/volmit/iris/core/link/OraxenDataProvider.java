@@ -19,18 +19,25 @@
 package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.data.IrisBlockData;
 import com.volmit.iris.util.reflect.WrappedField;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.items.ItemBuilder;
+import io.th0rgal.oraxen.mechanics.Mechanic;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.block.BlockMechanic;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.block.BlockMechanicFactory;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureFactory;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.StringBlockMechanicFactory;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.MultipleFacing;
 import org.bukkit.inventory.ItemStack;
@@ -69,6 +76,8 @@ public class OraxenDataProvider extends ExternalDataProvider {
             return newBlockData;
         } else if (factory instanceof StringBlockMechanicFactory f) {
             return f.createTripwireData(blockId.key());
+        } else if (factory instanceof FurnitureFactory) {
+            return new IrisBlockData(B.getAir(), blockId);
         } else
             throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
     }
@@ -77,6 +86,14 @@ public class OraxenDataProvider extends ExternalDataProvider {
     public ItemStack getItemStack(Identifier itemId) throws MissingResourceException {
         Optional<ItemBuilder> opt = OraxenItems.getOptionalItemById(itemId.key());
         return opt.orElseThrow(() -> new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key())).build();
+    }
+
+    @Override
+    public void processUpdate(Engine engine, Block block, Identifier blockId) {
+        Mechanic mechanic = getFactory(blockId).getMechanic(blockId.key());
+        if (mechanic instanceof FurnitureMechanic f) {
+            f.place(block.getLocation());
+        }
     }
 
     @Override

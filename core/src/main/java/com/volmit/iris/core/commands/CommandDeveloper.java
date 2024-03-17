@@ -20,9 +20,12 @@ package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.service.IrisEngineSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.IrisEntity;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
@@ -31,7 +34,9 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.mantle.TectonicPlate;
+import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.plugin.VolmitSender;
+import io.lumine.mythic.bukkit.adapters.BukkitEntity;
 import net.jpountz.lz4.LZ4BlockInputStream;
 import net.jpountz.lz4.LZ4BlockOutputStream;
 import net.jpountz.lz4.LZ4FrameInputStream;
@@ -40,6 +45,8 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
+import org.bukkit.entity.Creeper;
+import org.bukkit.entity.EntityType;
 
 import java.io.*;
 import java.net.InetAddress;
@@ -126,6 +133,12 @@ public class CommandDeveloper implements DecreeExecutor {
 
     }
 
+    @Decree(description = "test")
+    public void test() throws NoSuchFieldException, IllegalAccessException {
+        Iris.info("CMD Executed");
+        Vector3d box2 = INMS.get().getBoundingbox(EntityType.CREEPER);
+    }
+
     @Decree(description = "UnloadChunks for good reasons.")
     public void unloadchunks() {
         List<World> IrisWorlds = new ArrayList<>();
@@ -166,11 +179,6 @@ public class CommandDeveloper implements DecreeExecutor {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    @Decree(description = "Test", origin = DecreeOrigin.BOTH)
-    public void test() {
-        Iris.info("Test Developer CMD Executed");
     }
 
     @Decree(description = "Test the compression algorithms")

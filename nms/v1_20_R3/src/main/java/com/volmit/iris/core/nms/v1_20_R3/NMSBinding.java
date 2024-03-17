@@ -5,16 +5,21 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.IrisEntity;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.matter.MatterBiomeInject;
 import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.mca.palette.*;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import io.lumine.mythic.bukkit.adapters.BukkitEntity;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -26,6 +31,8 @@ import net.minecraft.nbt.TagParser;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.EntityTypeTags;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -44,6 +51,7 @@ import org.bukkit.craftbukkit.v1_20_R3.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_20_R3.entity.CraftDolphin;
 import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.v1_20_R3.util.CraftNamespacedKey;
+import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
 import org.bukkit.generator.ChunkGenerator;
@@ -57,8 +65,11 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
+import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class NMSBinding implements INMSBinding {
@@ -484,6 +495,29 @@ public class NMSBinding implements INMSBinding {
         CustomBiomeSource customBiomeSource = new CustomBiomeSource(seed, engine, world);
         unsafe.putObject(biomeSource.get(serverLevel.getChunkSource().chunkMap.generator), unsafe.objectFieldOffset(biomeSource), customBiomeSource);
         biomeSource.set(serverLevel.getChunkSource().chunkMap.generator, customBiomeSource);
+    }
+
+    public Vector3d getBoundingbox(org.bukkit.entity.EntityType entity) {
+        Field[] fields = EntityType.class.getDeclaredFields();
+        for (Field field : fields) {
+            if (Modifier.isStatic(field.getModifiers()) && field.getType().equals(EntityType.class)) {
+                try {
+                    EntityType entityType = (EntityType) field.get(null);
+                    if (entityType.getDescriptionId().equals("entity.minecraft." + entity.name().toLowerCase())) {
+                        Vector<Float> v1 = new Vector<>();
+                        v1.add(entityType.getHeight());
+                        entityType.getDimensions();
+                        Vector3d box = new Vector3d( entityType.getWidth(), entityType.getHeight(),  entityType.getWidth());
+                        //System.out.println("Entity Type: " + entityType.getDescriptionId() + ", " + "Height: " + height + ", Width: " + width);
+                        return box;
+                    }
+                } catch (IllegalAccessException e) {
+                    Iris.error("Unable to get entity dimensions!");
+                    e.printStackTrace();
+                }
+            }
+        }
+        return null;
     }
 
     private static Field getField(Class<?> clazz, Class<?> fieldType) throws NoSuchFieldException {

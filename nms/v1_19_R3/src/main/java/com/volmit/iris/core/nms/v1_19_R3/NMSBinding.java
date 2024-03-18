@@ -491,6 +491,9 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public Entity spawnEntity(Location location, EntityType type, CreatureSpawnEvent.SpawnReason reason) {
+        if (type == EntityType.CAMEL) {
+            type = EntityType.HORSE;
+        }
         return ((CraftWorld) location.getWorld()).spawn(location, type.getEntityClass(), null, reason);
     }
 

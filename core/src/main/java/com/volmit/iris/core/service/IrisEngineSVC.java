@@ -281,7 +281,7 @@ public class IrisEngineSVC implements IrisService {
 
                     if (generator != null) {
                         Engine engine = generator.getEngine();
-                        if (engine != null) {
+                        if (engine != null && !engine.isStudio()) {
                             lastUseLock.lock();
                             lastUse.put(world, System.currentTimeMillis());
                             lastUseLock.unlock();
@@ -290,7 +290,7 @@ public class IrisEngineSVC implements IrisService {
                     }
                 }
             } catch (Throwable e) {
-                Iris.info(C.RED + "EngineSVC: Failed to create supplier. Please contact support!");
+                Iris.info(C.RED + "EngineSVC: Failed to create supplier.");
                 e.printStackTrace();
                 Iris.reportError(e);
             }

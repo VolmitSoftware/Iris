@@ -278,7 +278,7 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public KList<Biome> getBiomes() {
-        return new KList<>(Biome.values()).qadd(Biome.CHERRY_GROVE).qdel(Biome.CUSTOM);
+        return new KList<>(Biome.values()).qdel(Biome.CHERRY_GROVE).qdel(Biome.CUSTOM);
     }
 
     @Override

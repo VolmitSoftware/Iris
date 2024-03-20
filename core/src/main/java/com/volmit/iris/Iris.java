@@ -450,10 +450,10 @@ public class Iris extends VolmitPlugin implements Listener {
     private void enable() {
         instance = this;
         services = new KMap<>();
+        setupAudience();
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
         INMS.get();
         IO.delete(new File("iris"));
-        setupAudience();
         IrisSafeguard.IrisSafeguardSystem();
         getSender().setTag(getTag());
         compat = IrisCompat.configured(getDataFile("compat.json"));

@@ -25,6 +25,9 @@ import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.service.IrisEngineSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisCave;
 import com.volmit.iris.engine.object.IrisEntity;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
@@ -44,6 +47,7 @@ import net.jpountz.lz4.LZ4FrameOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.EntityType;
@@ -136,7 +140,13 @@ public class CommandDeveloper implements DecreeExecutor {
     @Decree(description = "test")
     public void test() throws NoSuchFieldException, IllegalAccessException {
         Iris.info("CMD Executed");
-        Vector3d box2 = INMS.get().getBoundingbox(EntityType.CREEPER);
+        Engine engine = IrisToolbelt.access(player().getWorld()).getEngine();
+        Location at = player().getLocation();
+        IrisBiome caveBiome = engine.getMantle().getComplex().getCaveBiomeStream().get(at.getBlockX(), at.getBlockZ());
+        if (!caveBiome.getName().contains("Subterranean Land")) {
+            sender().sendMessage("Cool cave?: " + caveBiome.getName());
+        }
+
     }
 
     @Decree(description = "UnloadChunks for good reasons.")

@@ -128,6 +128,10 @@ public class Iris extends VolmitPlugin implements Listener {
     private KMap<Class<? extends IrisService>, IrisService> services;
 
     public static VolmitSender getSender() {
+        if (sender == null) {
+            sender = new VolmitSender(Bukkit.getConsoleSender());
+            sender.setTag(instance.getTag());
+        }
         return sender;
     }
 
@@ -194,10 +198,10 @@ public class Iris extends VolmitPlugin implements Listener {
 
     public static void msg(String string) {
         try {
-            sender.sendMessage(string);
+            getSender().sendMessage(string);
         } catch (Throwable e) {
             try {
-                System.out.println(instance.getTag() + string.replaceAll("(<([^>]+)>)", ""));
+                instance.getLogger().info(instance.getTag() + string.replaceAll("(<([^>]+)>)", ""));
             } catch (Throwable ignored1) {
 
             }
@@ -426,7 +430,7 @@ public class Iris extends VolmitPlugin implements Listener {
             }
 
             pw.close();
-            System.out.println("DUMPED! See " + fi.getAbsolutePath());
+            Iris.info("DUMPED! See " + fi.getAbsolutePath());
         } catch (Throwable e) {
             e.printStackTrace();
         }
@@ -446,14 +450,12 @@ public class Iris extends VolmitPlugin implements Listener {
     private void enable() {
         instance = this;
         services = new KMap<>();
+        setupAudience();
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
         INMS.get();
         IO.delete(new File("iris"));
-        setupAudience();
         IrisSafeguard.IrisSafeguardSystem();
-        sender = new VolmitSender(Bukkit.getConsoleSender());
-        sender.setTag(getTag());
-        instance = this;
+        getSender().setTag(getTag());
         compat = IrisCompat.configured(getDataFile("compat.json"));
         linkMultiverseCore = new MultiverseCoreLink();
         linkMythicMobs = new MythicMobsLink();
@@ -526,7 +528,7 @@ public class Iris extends VolmitPlugin implements Listener {
             Iris.info("Starting up auto Studio!");
             try {
                 Player r = new KList<>(getServer().getOnlinePlayers()).getRandom();
-                Iris.service(StudioSVC.class).open(r != null ? new VolmitSender(r) : sender, 1337, IrisSettings.get().getGenerator().getDefaultWorldType(), (w) -> {
+                Iris.service(StudioSVC.class).open(r != null ? new VolmitSender(r) : getSender(), 1337, IrisSettings.get().getGenerator().getDefaultWorldType(), (w) -> {
                     J.s(() -> {
                         for (Player i : getServer().getOnlinePlayers()) {
                             i.setGameMode(GameMode.SPECTATOR);
@@ -727,7 +729,7 @@ public class Iris extends VolmitPlugin implements Listener {
         File ff = new File(w.worldFolder(), "iris/pack");
         if (!ff.exists() || ff.listFiles().length == 0) {
             ff.mkdirs();
-            service(StudioSVC.class).installIntoWorld(sender, dim.getLoadKey(), w.worldFolder());
+            service(StudioSVC.class).installIntoWorld(getSender(), dim.getLoadKey(), w.worldFolder());
         }
 
         return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey());

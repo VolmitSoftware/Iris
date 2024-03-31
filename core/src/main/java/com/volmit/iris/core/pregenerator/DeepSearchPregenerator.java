@@ -5,18 +5,16 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
-import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import io.papermc.lib.PaperLib;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
@@ -33,7 +31,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -56,10 +53,12 @@ public class DeepSearchPregenerator extends Thread implements Listener {
     private final RollingSequence chunksPerMinute;
     private final AtomicInteger chunkCachePos;
     private final AtomicInteger chunkCacheSize;
+    private int pos;
     private final AtomicInteger foundCacheLast;
     private final AtomicInteger foundCache;
     private LinkedHashMap<Integer, Position2> chunkCache;
-    private final ReentrantLock cacheLock = new ReentrantLock();
+    private KList<Position2> chunkQueue;
+    private final ReentrantLock cacheLock;
 
     private static final Map<String, DeepSearchJob> jobs = new HashMap<>();
 
@@ -69,11 +68,13 @@ public class DeepSearchPregenerator extends Thread implements Listener {
         this.chunkCachePos = new AtomicInteger(1000);
         this.foundCacheLast = new AtomicInteger();
         this.foundCache = new AtomicInteger();
+        this.cacheLock = new ReentrantLock();
         this.destination = destination;
-        this.chunkCache = new LinkedHashMap();
+        this.chunkCache = new LinkedHashMap<>();
         this.maxPosition = new Spiraler(job.getRadiusBlocks() * 2, job.getRadiusBlocks() * 2, (x, z) -> {
         }).count();
-        this.world = Bukkit.getWorld(job.getWorld());
+        this.world = Bukkit.getWorld(job.getWorld().getUID());
+        this.chunkQueue = new KList<>();
         this.latch = new ChronoLatch(3000);
         this.startTime = new AtomicLong(M.ms());
         this.chunksPerSecond = new RollingSequence(10);
@@ -81,7 +82,9 @@ public class DeepSearchPregenerator extends Thread implements Listener {
         foundChunks = new AtomicInteger(0);
         this.foundLast = new AtomicInteger(0);
         this.foundTotalChunks = new AtomicInteger((int) Math.ceil(Math.pow((2.0 * job.getRadiusBlocks()) / 16, 2)));
-        jobs.put(job.getWorld(), job);
+
+        this.pos = 0;
+        jobs.put(job.getWorld().getName(), job);
         DeepSearchPregenerator.instance = this;
     }
 
@@ -108,29 +111,22 @@ public class DeepSearchPregenerator extends Thread implements Listener {
        // chunkCache(); //todo finish this
         if (latch.flip() && !job.paused) {
             if (cacheLock.isLocked()) {
-
                 Iris.info("DeepFinder: Caching: " + chunkCachePos.get() + " Of " + chunkCacheSize.get());
+            } else {
+                long eta = computeETA();
+                save();
+                int secondGenerated = foundChunks.get() - foundLast.get();
+                foundLast.set(foundChunks.get());
+                secondGenerated = secondGenerated / 3;
+                chunksPerSecond.put(secondGenerated);
+                chunksPerMinute.put(secondGenerated * 60);
+                Iris.info("DeepFinder: " + C.IRIS + world.getName() + C.RESET + " Searching: " + Form.f(foundChunks.get()) + " of " + Form.f(foundTotalChunks.get()) + " " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration((double) eta, 2));
             }
-            long eta = computeETA();
-            save();
-            int secondGenerated = foundChunks.get() - foundLast.get();
-            foundLast.set(foundChunks.get());
-            secondGenerated = secondGenerated / 3;
-            chunksPerSecond.put(secondGenerated);
-            chunksPerMinute.put(secondGenerated * 60);
-            Iris.info("deepFinder: " + C.IRIS + world.getName() + C.RESET + " RTT: " + Form.f(foundChunks.get()) + " of " + Form.f(foundTotalChunks.get()) + " " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration((double) eta, 2));
 
         }
-
         if (foundChunks.get() >= foundTotalChunks.get()) {
             Iris.info("Completed DeepSearch!");
             interrupt();
-        } else {
-            int pos = job.getPosition() + 1;
-            job.setPosition(pos);
-            if (!job.paused) {
-                tickSearch(getChunk(pos));
-            }
         }
     }
 
@@ -141,22 +137,18 @@ public class DeepSearchPregenerator extends Thread implements Listener {
 
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
-    private void tickSearch(Position2 chunk) {
-        executorService.submit(() -> {
-            CountDownLatch latch = new CountDownLatch(1);
-            try {
-                findInChunk(world, chunk.getX(), chunk.getZ());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+    private void queueSystem(Position2 chunk) {
+        if (chunkQueue.isEmpty()) {
+            for (int limit = 512; limit != 0; limit--) {
+                pos = job.getPosition() + 1;
+                chunkQueue.add(getChunk(pos));
             }
-            Iris.verbose("Generated Async " + chunk);
-            latch.countDown();
+        } else {
+            //MCAUtil.read();
 
-            try {
-                latch.await();
-            } catch (InterruptedException ignored) {}
-            foundChunks.addAndGet(1);
-        });
+        }
+
+
     }
 
     private void findInChunk(World world, int x, int z) throws IOException {
@@ -271,7 +263,7 @@ public class DeepSearchPregenerator extends Thread implements Listener {
     @Data
     @Builder
     public static class DeepSearchJob {
-        private String world;
+        private World world;
         @Builder.Default
         private int radiusBlocks = 5000;
         @Builder.Default

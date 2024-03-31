@@ -1,35 +1,76 @@
 package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.mantle.TectonicPlate;
 import com.volmit.iris.util.misc.getHardware;
 import com.volmit.iris.util.plugin.IrisService;
+import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.Looper;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.server.PluginDisableEvent;
+import org.bukkit.event.server.ServerLoadEvent;
+import org.bukkit.event.world.WorldLoadEvent;
+import org.bukkit.event.world.WorldUnloadEvent;
+import org.checkerframework.checker.units.qual.A;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
 public class IrisEngineSVC implements IrisService {
+    public static IrisEngineSVC instance;
+    public boolean isServerShuttingDown = false;
+    public boolean isServerLoaded = false;
     private static final AtomicInteger tectonicLimit = new AtomicInteger(30);
-    private final ReentrantLock lastUseLock = new ReentrantLock();
-    private final KMap<World, Long> lastUse = new KMap<>();
+    private ReentrantLock lastUseLock;
+    private KMap<World, Long> lastUse;
+    private List<World> IrisWorlds;
     private Looper cacheTicker;
     private Looper trimTicker;
     private Looper unloadTicker;
+    private Looper updateTicker;
+    private PrecisionStopwatch trimAlive;
+    private PrecisionStopwatch unloadAlive;
+    public PrecisionStopwatch trimActiveAlive;
+    public PrecisionStopwatch unloadActiveAlive;
+    private AtomicInteger TotalTectonicPlates;
+    private AtomicInteger TotalQueuedTectonicPlates;
+    private AtomicInteger TotalNotQueuedTectonicPlates;
+    private AtomicBoolean IsUnloadAlive;
+    private AtomicBoolean IsTrimAlive;
+    ChronoLatch cl;
+
     public List<World> corruptedIrisWorlds = new ArrayList<>();
 
     @Override
     public void onEnable() {
+        this.cl = new ChronoLatch(5000);
+        lastUse = new KMap<>();
+        lastUseLock = new ReentrantLock();
+        IrisWorlds = new ArrayList<>();
+        IsUnloadAlive = new AtomicBoolean(true);
+        IsTrimAlive = new AtomicBoolean(true);
+        trimActiveAlive = new PrecisionStopwatch();
+        unloadActiveAlive = new PrecisionStopwatch();
+        trimAlive = new PrecisionStopwatch();
+        unloadAlive = new PrecisionStopwatch();
+        TotalTectonicPlates = new AtomicInteger();
+        TotalQueuedTectonicPlates = new AtomicInteger();
+        TotalNotQueuedTectonicPlates = new AtomicInteger();
         tectonicLimit.set(2);
         long t = getHardware.getProcessMemory();
         while (t > 200) {
@@ -37,13 +78,68 @@ public class IrisEngineSVC implements IrisService {
             t = t - 200;
         }
         this.setup();
+        trimAlive.begin();
+        unloadAlive.begin();
+        trimActiveAlive.begin();
+        unloadActiveAlive.begin();
+
+        updateTicker.start();
         cacheTicker.start();
         trimTicker.start();
         unloadTicker.start();
+        instance = this;
+
+    }
+
+    public void engineStatus() {
+        boolean trimAlive = trimTicker.isAlive();
+        boolean unloadAlive = unloadTicker.isAlive();
+        Iris.info("Status:");
+        Iris.info("- Trim: " + trimAlive);
+        Iris.info("- Unload: " + unloadAlive);
+
     }
 
     public static int getTectonicLimit() {
         return tectonicLimit.get();
+    }
+
+    public void EngineReport() {
+        Iris.info(C.RED + "CRITICAL ENGINE FAILURE! The Tectonic Trim subsystem has not responded for: " + Form.duration(trimAlive.getMillis()) + ".");
+    }
+
+    @EventHandler
+    public void onWorldUnload(WorldUnloadEvent event) {
+        updateWorlds();
+    }
+
+    @EventHandler
+    public void onWorldLoad(WorldLoadEvent event) {
+        updateWorlds();
+    }
+
+    @EventHandler
+    public void onServerBoot(ServerLoadEvent event) {
+        isServerLoaded = true;
+    }
+
+    @EventHandler
+    public void onPluginDisable(PluginDisableEvent event) {
+        if (event.getPlugin().equals(Iris.instance)) {
+            isServerShuttingDown = true;
+        }
+    }
+
+    public void updateWorlds() {
+        for (World world : Bukkit.getWorlds()) {
+            try {
+                if (IrisToolbelt.access(world).getEngine() != null) {
+                    IrisWorlds.add(world);
+                }
+            } catch (Exception e) {
+                // no
+            }
+        }
     }
 
     private void setup() {
@@ -57,7 +153,7 @@ public class IrisEngineSVC implements IrisService {
                         Long last = lastUse.get(key);
                         if (last == null)
                             continue;
-                        if (now - last > 60000) { // 1 minute
+                        if (now - last > 60000) {
                             lastUse.remove(key);
                         }
                     }
@@ -67,11 +163,55 @@ public class IrisEngineSVC implements IrisService {
                 return 1000;
             }
         };
+
+        updateTicker = new Looper() {
+            @Override
+            protected long loop() {
+                try {
+                    TotalQueuedTectonicPlates.set(0);
+                    TotalNotQueuedTectonicPlates.set(0);
+                    TotalTectonicPlates.set(0);
+                    for (World world : IrisWorlds) {
+                        Engine engine = Objects.requireNonNull(IrisToolbelt.access(world)).getEngine();
+                        TotalQueuedTectonicPlates.addAndGet((int) engine.getMantle().getToUnload());
+                        TotalNotQueuedTectonicPlates.addAndGet((int) engine.getMantle().getNotQueuedLoadedRegions());
+                        TotalTectonicPlates.addAndGet(engine.getMantle().getLoadedRegionCount());
+                    }
+                    if (!isServerShuttingDown && isServerLoaded) {
+                        if (!trimTicker.isAlive()) {
+                            Iris.info(C.IRIS + "TrimTicker found dead! Booting it up!");
+                            try {
+                                trimTicker.start();
+                            } catch (Exception e) {
+                                Iris.error("What happened?");
+                                e.printStackTrace();
+                            }
+                        }
+
+                        if (!unloadTicker.isAlive()) {
+                            Iris.info(C.IRIS + "UnloadTicker found dead! Booting it up!");
+                            try {
+                                unloadTicker.start();
+                            } catch (Exception e) {
+                                Iris.error("What happened?");
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+
+                } catch (Exception e) {
+                    return -1;
+                }
+                return 1000;
+            }
+        };
+
         trimTicker = new Looper() {
             private final Supplier<Engine> supplier = createSupplier();
             @Override
             protected long loop() {
                 long start = System.currentTimeMillis();
+                trimAlive.reset();
                 try {
                     Engine engine = supplier.get();
                     if (engine != null) {
@@ -79,7 +219,9 @@ public class IrisEngineSVC implements IrisService {
                     }
                 } catch (Throwable e) {
                     Iris.reportError(e);
-                 //   return -1;
+                    Iris.info(C.RED + "EngineSVC: Failed to trim. Please contact support!");
+                    e.printStackTrace();
+                    return -1;
                 }
 
                 int size = lastUse.size();
@@ -96,6 +238,7 @@ public class IrisEngineSVC implements IrisService {
             @Override
             protected long loop() {
                 long start = System.currentTimeMillis();
+                unloadAlive.reset();
                 try {
                     Engine engine = supplier.get();
                     if (engine != null) {
@@ -107,6 +250,8 @@ public class IrisEngineSVC implements IrisService {
                     }
                 } catch (Throwable e) {
                     Iris.reportError(e);
+                    Iris.info(C.RED + "EngineSVC: Failed to unload.");
+                    e.printStackTrace();
                     return -1;
                 }
 
@@ -136,7 +281,7 @@ public class IrisEngineSVC implements IrisService {
 
                     if (generator != null) {
                         Engine engine = generator.getEngine();
-                        if (engine != null) {
+                        if (engine != null && !engine.isStudio()) {
                             lastUseLock.lock();
                             lastUse.put(world, System.currentTimeMillis());
                             lastUseLock.unlock();
@@ -145,6 +290,8 @@ public class IrisEngineSVC implements IrisService {
                     }
                 }
             } catch (Throwable e) {
+                Iris.info(C.RED + "EngineSVC: Failed to create supplier.");
+                e.printStackTrace();
                 Iris.reportError(e);
             }
             return null;

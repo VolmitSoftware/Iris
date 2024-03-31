@@ -56,6 +56,7 @@ public class CommandPregen implements DecreeExecutor {
             IrisToolbelt.pregenerate(PregenTask
                     .builder()
                     .center(new Position2(center.getBlockX() >> 9, center.getBlockZ() >> 9))
+                    .gui(true)
                     .width(w)
                     .height(w)
                     .build(), world);

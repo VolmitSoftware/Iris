@@ -368,6 +368,13 @@ public class Iris extends VolmitPlugin implements Listener {
         return Integer.parseInt(version);
     }
 
+    public static String getJava() {
+        String javaRuntimeName = System.getProperty("java.vm.name");
+        String javaRuntimeVendor = System.getProperty("java.vendor");
+        String javaRuntimeVersion = System.getProperty("java.vm.version");
+        return String.format("%s %s (build %s)", javaRuntimeName, javaRuntimeVendor, javaRuntimeVersion);
+    }
+
     public static void reportErrorChunk(int x, int z, Throwable e, String extra) {
         if (IrisSettings.get().getGeneral().isDebug()) {
             File f = instance.getDataFile("debug", "chunk-errors", "chunk." + x + "." + z + ".txt");
@@ -806,6 +813,7 @@ public class Iris extends VolmitPlugin implements Listener {
         if (!passedserversoftware) {
             Iris.info("Server type & version: " + C.RED + Bukkit.getVersion());
         } else { Iris.info("Server type & version: " + Bukkit.getVersion()); }
+        Iris.info("Java: " + getJava());
         if (!instance.getServer().getVersion().contains("Purpur")) {
             if (instance.getServer().getVersion().contains("Spigot") && instance.getServer().getVersion().contains("Bukkit")) {
                  Iris.info(C.RED + " Iris requires paper or above to function properly..");
@@ -844,7 +852,6 @@ public class Iris extends VolmitPlugin implements Listener {
             Iris.warn("6GB+ Ram is recommended");
         }
         Iris.info("Bukkit version: " + Bukkit.getBukkitVersion());
-        Iris.info("Java version: " + getJavaVersion());
         Iris.info("Custom Biomes: " + INMS.get().countCustomBiomes());
         setupChecks();
         printPacks();

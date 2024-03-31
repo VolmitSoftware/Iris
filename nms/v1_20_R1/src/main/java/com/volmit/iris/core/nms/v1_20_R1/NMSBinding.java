@@ -10,6 +10,7 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.matter.MatterBiomeInject;
 import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
@@ -25,6 +26,7 @@ import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -47,6 +49,7 @@ import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.entity.EntityType;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -58,8 +61,10 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class NMSBinding implements INMSBinding {
@@ -476,6 +481,34 @@ public class NMSBinding implements INMSBinding {
         cd.getHandle().setGotFish(true);
     }
 
+    public Vector3d getBoundingbox(org.bukkit.entity.EntityType entity) {
+        Field[] fields = net.minecraft.world.entity.EntityType.class.getDeclaredFields();
+        for (Field field : fields) {
+            if (Modifier.isStatic(field.getModifiers()) && field.getType().equals(net.minecraft.world.entity.EntityType.class)) {
+                try {
+                    net.minecraft.world.entity.EntityType entityType = (net.minecraft.world.entity.EntityType) field.get(null);
+                    if (entityType.getDescriptionId().equals("entity.minecraft." + entity.name().toLowerCase())) {
+                        Vector<Float> v1 = new Vector<>();
+                        v1.add(entityType.getHeight());
+                        entityType.getDimensions();
+                        Vector3d box = new Vector3d( entityType.getWidth(), entityType.getHeight(),  entityType.getWidth());
+                        //System.out.println("Entity Type: " + entityType.getDescriptionId() + ", " + "Height: " + height + ", Width: " + width);
+                        return box;
+                    }
+                } catch (IllegalAccessException e) {
+                    Iris.error("Unable to get entity dimensions!");
+                    e.printStackTrace();
+                }
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public Entity spawnEntity(Location location,  org.bukkit.entity.EntityType type, CreatureSpawnEvent.SpawnReason reason) {
+        return ((CraftWorld) location.getWorld()).spawn(location, type.getEntityClass(), null, reason);
+    }
+
     public void inject(long seed, Engine engine, World world) throws NoSuchFieldException, IllegalAccessException {
         ServerLevel serverLevel = ((CraftWorld)world).getHandle();
         Class<?> clazz = serverLevel.getChunkSource().chunkMap.generator.getClass();
@@ -487,12 +520,6 @@ public class NMSBinding implements INMSBinding {
         CustomBiomeSource customBiomeSource = new CustomBiomeSource(seed, engine, world);
         unsafe.putObject(biomeSource.get(serverLevel.getChunkSource().chunkMap.generator), unsafe.objectFieldOffset(biomeSource), customBiomeSource);
         biomeSource.set(serverLevel.getChunkSource().chunkMap.generator, customBiomeSource);
-    }
-
-
-    @Override
-    public Entity spawnEntity(Location location, EntityType type, CreatureSpawnEvent.SpawnReason reason) {
-        return ((CraftWorld) location.getWorld()).spawn(location, type.getEntityClass(), null, reason);
     }
 
     private static Field getField(Class<?> clazz, Class<?> fieldType) throws NoSuchFieldException {

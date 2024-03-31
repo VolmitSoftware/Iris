@@ -19,21 +19,28 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.matter.MatterMarker;
 import com.volmit.iris.util.matter.slices.MarkerMatter;
+import io.lumine.mythic.bukkit.adapters.BukkitEntity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.util.BoundingBox;
 
 @Snippet("entity-spawn")
 @Accessors(chain = true)
@@ -165,11 +172,18 @@ public class IrisEntitySpawn implements IRare {
                 return null;
             }
 
-            Entity e = irisEntity.spawn(g, at.add(0.5, 0, 0.5), rng.aquire(() -> new RNG(g.getSeedManager().getEntity())));
+            Vector3d boundingBox = INMS.get().getBoundingbox(irisEntity.getType());
+            if (!ignoreSurfaces && boundingBox != null) {
+                boolean isClearForSpawn = isAreaClearForSpawn(at, boundingBox);
+                if (!isClearForSpawn) {
+                    return null;
+                }
+            }
+
+            Entity e = irisEntity.spawn(g, at.add(0.5, 0.5, 0.5), rng.aquire(() -> new RNG(g.getSeedManager().getEntity())));
             if (e != null) {
                 Iris.debug("Spawned " + C.DARK_AQUA + "Entity<" + getEntity() + "> " + C.GREEN + e.getType() + C.LIGHT_PURPLE + " @ " + C.GRAY + e.getLocation().getX() + ", " + e.getLocation().getY() + ", " + e.getLocation().getZ());
             }
-
 
             return e;
         } catch (Throwable e) {
@@ -178,5 +192,26 @@ public class IrisEntitySpawn implements IRare {
             Iris.error("      Failed to retrieve real entity @ " + at + " (entity: " + getEntity() + ")");
             return null;
         }
+    }
+
+    private boolean isAreaClearForSpawn(Location center, Vector3d boundingBox) {
+        World world = center.getWorld();
+        int startX = center.getBlockX() - (int) (boundingBox.x / 2);
+        int endX = center.getBlockX() + (int) (boundingBox.x / 2);
+        int startY = center.getBlockY();
+        int endY = center.getBlockY() + (int) boundingBox.y;
+        int startZ = center.getBlockZ() - (int) (boundingBox.z / 2);
+        int endZ = center.getBlockZ() + (int) (boundingBox.z / 2);
+
+        for (int x = startX; x <= endX; x++) {
+            for (int y = startY; y <= endY; y++) {
+                for (int z = startZ; z <= endZ; z++) {
+                    if (world.getBlockAt(x, y, z).getType() != Material.AIR) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 }

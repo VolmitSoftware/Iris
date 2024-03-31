@@ -19,9 +19,11 @@
 package com.volmit.iris.core.nms;
 
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.IrisEntity;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
 import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
@@ -106,5 +108,8 @@ public interface INMSBinding {
     void setTreasurePos(Dolphin dolphin, com.volmit.iris.core.nms.container.BlockPos pos);
 
     void inject(long seed, Engine engine, World world) throws NoSuchFieldException, IllegalAccessException;
+
+    Vector3d getBoundingbox(org.bukkit.entity.EntityType entity);
+    
     Entity spawnEntity(Location location, EntityType type, CreatureSpawnEvent.SpawnReason reason);
 }

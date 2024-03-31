@@ -82,13 +82,17 @@ public class IrisCavePlacer implements IRare {
         }
 
         if (y == -1) {
-            int h = (int) caveStartHeight.get(rng, x, z, data);
-            int ma = breakSurface ? h : (int) (engine.getComplex().getHeightStream().get(x, z) - 9);
-            y = Math.min(h, ma);
+            if(!breakSurface) {
+                int eH = engine.getHeight(x, z);
+                if (caveStartHeight.getMax() > eH) {
+                    caveStartHeight.setMax(eH);
+                }
+            }
+            y = (int) caveStartHeight.get(rng, x, z, data);
         }
 
         try {
-            cave.generate(mantle, rng, engine, x + rng.nextInt(15), y, z + rng.nextInt(15), waterHint);
+             cave.generate(mantle, rng, engine, x + rng.nextInt(15), y, z + rng.nextInt(15), waterHint);
         } catch (Throwable e) {
             e.printStackTrace();
             fail.set(true);

@@ -24,6 +24,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.core.safeguard.UtilsSFG;
 import com.volmit.iris.engine.object.IrisWorld;
@@ -52,6 +53,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.io.Console;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -74,8 +76,6 @@ public class CommandIris implements DecreeExecutor {
     private CommandEdit edit;
     private CommandFind find;
     private CommandDeveloper developer;
-
-    public static @Getter String BenchDimension;
     public static boolean worldCreation = false;
     String WorldToLoad;
     String WorldEngine;
@@ -214,6 +214,44 @@ public class CommandIris implements DecreeExecutor {
     public void so() {
         sender().sendMessage(C.GREEN + "Opening studio for the \"Overworld\" pack (seed: 1337)");
         Iris.service(StudioSVC.class).open(sender(), 1337, "overworld");
+    }
+
+    @Decree(description = "Check if iris has access to that specific world")
+    public void hasAccess(
+            @Param(description = "The world to access", aliases = {"world"})
+            World world
+    ) {
+        Engine engine = IrisToolbelt.access(world).getEngine();
+        if (engine != null) {
+            sender().sendMessage("Access granted successfully.");
+        } else {
+            sender().sendMessage(C.RED + "Failed to grant access.");
+        }
+    }
+
+    @Decree(description = "All Iris Worlds on the server.", aliases = {"worlds"})
+    public void irisworlds() {
+        List<World> IrisWorlds = new ArrayList<>();
+        for (World world : Bukkit.getWorlds()) {
+            try {
+                if (IrisToolbelt.access(world).getEngine() != null) {
+                    IrisWorlds.add(world);
+                }
+            } catch (Exception e) {
+                // no
+            }
+        }
+        if (sender().isPlayer()) {
+            sender.sendMessage(C.IRIS + "Iris Worlds:");
+            for (World world : IrisWorlds) {
+                sender.sendMessage(C.GREEN + "- " + world.getName());
+            }
+        } else {
+            Iris.info(C.IRIS + "Iris Worlds:");
+            for (World world : IrisWorlds) {
+                sender.sendMessage(C.GREEN + "- " + world.getName());
+            }
+        }
     }
 
     @Decree(description = "Remove an Iris world", aliases = {"del", "rm", "delete"}, sync = true)

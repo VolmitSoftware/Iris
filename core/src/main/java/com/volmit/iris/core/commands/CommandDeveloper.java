@@ -23,12 +23,15 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.service.IrisEngineSVC;
+import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisCave;
+import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisEntity;
+import com.volmit.iris.util.data.Dimension;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
@@ -137,15 +140,19 @@ public class CommandDeveloper implements DecreeExecutor {
 
     }
 
+    @Decree(description = "Test")
+    public void packBenchmark(
+            @Param(description = "The pack to bench", aliases = {"pack"})
+            IrisDimension dimension
+    ) {
+        Iris.info("test");
+        IrisPackBenchmarking benchmark = new IrisPackBenchmarking(dimension, 1);
+
+    }
+
     @Decree(description = "test")
     public void test() throws NoSuchFieldException, IllegalAccessException {
-        Iris.info("CMD Executed");
-        Engine engine = IrisToolbelt.access(player().getWorld()).getEngine();
-        Location at = player().getLocation();
-        IrisBiome caveBiome = engine.getMantle().getComplex().getCaveBiomeStream().get(at.getBlockX(), at.getBlockZ());
-        if (!caveBiome.getName().contains("Subterranean Land")) {
-            sender().sendMessage("Cool cave?: " + caveBiome.getName());
-        }
+        IrisEngineSVC.instance.engineStatus();
 
     }
 

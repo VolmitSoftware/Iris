@@ -52,8 +52,6 @@ public class IrisCavePlacer implements IRare {
     private String cave;
     @Desc("If set to true, this cave is allowed to break the surface")
     private boolean breakSurface = true;
-    @Desc("If set to true, this cave is allowed to get placed above the terrain level")
-    private boolean ignoreHeightLimit = false;
     @Desc("The height range this cave can spawn at. If breakSurface is false, the output of this range will be clamped by the current world height to prevent surface breaking.")
     private IrisStyledRange caveStartHeight = new IrisStyledRange(13, 120, new IrisGeneratorStyle(NoiseStyle.STATIC));
 
@@ -84,15 +82,13 @@ public class IrisCavePlacer implements IRare {
         }
 
         if (y == -1) {
-            if(!ignoreHeightLimit) {
+            if(!breakSurface) {
                 int eH = engine.getHeight(x, z);
                 if (caveStartHeight.getMax() > eH) {
                     caveStartHeight.setMax(eH);
                 }
             }
-            int h = (int) caveStartHeight.get(rng, x, z, data);
-            int ma = breakSurface ? h : (int) (engine.getComplex().getHeightStream().get(x, z) - 9);
-            y = Math.min(h, ma);
+            y = (int) caveStartHeight.get(rng, x, z, data);
         }
 
         try {

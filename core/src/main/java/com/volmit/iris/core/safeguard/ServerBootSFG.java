@@ -3,11 +3,11 @@ package com.volmit.iris.core.safeguard;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
-import org.apache.logging.log4j.core.util.ExecutorServices;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
-import javax.print.attribute.standard.Severity;
+import javax.tools.JavaCompiler;
+import javax.tools.ToolProvider;
 import java.io.File;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
@@ -17,9 +17,6 @@ import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringJoiner;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static com.volmit.iris.Iris.getJavaVersion;
 import static com.volmit.iris.Iris.instance;
@@ -128,25 +125,15 @@ public class ServerBootSFG {
         }
     }
 
-    public static boolean isJDK() {
-        String path = System.getProperty("sun.boot.library.path");
-        if (path != null) {
-            String javacPath = "";
-            if (path.endsWith(File.separator + "bin")) {
-                javacPath = path;
-            } else {
-                int libIndex = path.lastIndexOf(File.separator + "lib");
-                if (libIndex > 0) {
-                    javacPath = path.substring(0, libIndex) + File.separator + "bin";
-                }
-            }
-            if (checkJavac(javacPath))
-                return true;
-        }
-        path = System.getProperty("java.home");
-        return path != null && checkJavac(path + File.separator + "bin");
-    }
 
+    public static boolean isJDK() {
+        try {
+            JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+            // If the compiler is null, it means this is a JRE environment, not a JDK.
+            return compiler != null;
+        } catch (Exception ignored) {}
+        return false;
+    }
     public static boolean hasPrivileges() {
         Path pv = Paths.get(Bukkit.getWorldContainer() + "iristest.json");
         try (FileChannel fc = FileChannel.open(pv, StandardOpenOption.CREATE, StandardOpenOption.DELETE_ON_CLOSE, StandardOpenOption.READ, StandardOpenOption.WRITE)) {

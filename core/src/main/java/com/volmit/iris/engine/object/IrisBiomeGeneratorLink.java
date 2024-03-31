@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.data.DataProvider;
@@ -69,6 +70,17 @@ public class IrisBiomeGeneratorLink {
         double g = getCachedGenerator(xg).getHeight(x, z, seed);
         g = g < 0 ? 0 : g;
         g = g > 1 ? 1 : g;
+//        if (IrisSettings.get().getGenerator().forceConvertTo320Height) {
+//           if (max > 320 || min > 320) {
+//                double scaleFactor = 320.0 / Math.max(max, min);
+//                min *= (int) scaleFactor;
+//                max *= (int) scaleFactor;
+//                if (min < 0) {
+//
+//                }
+//            }
+//        }
+        // todo This
 
         return IrisInterpolation.lerp(min, max, g);
     }

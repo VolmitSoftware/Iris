@@ -74,7 +74,7 @@ public class CommandDeepSearch implements DecreeExecutor {
             }
 
             DeepSearchPregenerator.DeepSearchJob DeepSearchJob = DeepSearchPregenerator.DeepSearchJob.builder()
-                    .world(worldName)
+                    .world(world)
                     .radiusBlocks(radius)
                     .position(0)
                     .build();

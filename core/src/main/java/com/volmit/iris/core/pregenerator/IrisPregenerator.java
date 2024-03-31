@@ -19,7 +19,11 @@
 package com.volmit.iris.core.pregenerator;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.pack.IrisPack;
+import com.volmit.iris.core.tools.IrisPackBenchmarking;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.M;
@@ -45,6 +49,7 @@ public class IrisPregenerator {
     private final RollingSequence chunksPerSecond;
     private final RollingSequence chunksPerMinute;
     private final RollingSequence regionsPerMinute;
+    private final KList<Integer> chunksPerSecondHistory;
     private static AtomicInteger generated;
     private final AtomicInteger generatedLast;
     private final AtomicInteger generatedLastMinute;
@@ -57,8 +62,6 @@ public class IrisPregenerator {
     private final KSet<Position2> net;
     private final ChronoLatch cl;
     private final ChronoLatch saveLatch = new ChronoLatch(30000);
-    static long long_generatedChunks = 0;
-    static long long_totalChunks = 0;
 
     public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener) {
         this.listener = listenify(listener);
@@ -75,6 +78,7 @@ public class IrisPregenerator {
         chunksPerSecond = new RollingSequence(10);
         chunksPerMinute = new RollingSequence(10);
         regionsPerMinute = new RollingSequence(10);
+        chunksPerSecondHistory = new KList<>();
         generated = new AtomicInteger(0);
         generatedLast = new AtomicInteger(0);
         generatedLastMinute = new AtomicInteger(0);
@@ -88,6 +92,7 @@ public class IrisPregenerator {
                 int secondGenerated = generated.get() - generatedLast.get();
                 generatedLast.set(generated.get());
                 chunksPerSecond.put(secondGenerated);
+                chunksPerSecondHistory.add(secondGenerated);
 
                 if (minuteLatch.flip()) {
                     int minuteGenerated = generated.get() - generatedLastMinute.get();
@@ -95,8 +100,6 @@ public class IrisPregenerator {
                     chunksPerMinute.put(minuteGenerated);
                     regionsPerMinute.put((double) minuteGenerated / 1024D);
                 }
-                long_generatedChunks = generated.get();
-                long_totalChunks = totalChunks.get();
 
                 listener.onTick(chunksPerSecond.getAverage(), chunksPerMinute.getAverage(),
                         regionsPerMinute.getAverage(),
@@ -107,7 +110,11 @@ public class IrisPregenerator {
 
                 if (cl.flip()) {
                     double percentage = ((double) generated.get() / (double) totalChunks.get()) * 100;
-                    Iris.info("Pregen: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (%.0f%%) " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration(eta, 2), percentage);
+                    if (!IrisPackBenchmarking.benchmarkInProgress) {
+                        Iris.info("Pregen: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (%.0f%%) " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration(eta, 2), percentage);
+                    } else {
+                        Iris.info("Benchmarking: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (%.0f%%) " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration(eta, 2), percentage);
+                    }
                 }
                 return 1000;
             }
@@ -123,13 +130,6 @@ public class IrisPregenerator {
         );
     }
 
-    public static long getLongGeneratedChunks() {
-        return long_generatedChunks;
-    }
-    public static long getLongTotalChunks() {
-        return long_totalChunks;
-    }
-
 
     public void close() {
         shutdown.set(true);
@@ -142,6 +142,11 @@ public class IrisPregenerator {
         task.iterateRegions((x, z) -> visitRegion(x, z, true));
         task.iterateRegions((x, z) -> visitRegion(x, z, false));
         shutdown();
+        if (!IrisPackBenchmarking.benchmarkInProgress) {
+            Iris.info(C.IRIS + "Pregen stopped.");
+        } else {
+            IrisPackBenchmarking.instance.finishedBenchmark(chunksPerSecondHistory);
+        }
     }
 
     private void checkRegions() {

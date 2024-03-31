@@ -27,10 +27,16 @@ import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
 import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
-import org.bukkit.*;
+import org.bukkit.Chunk;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 
@@ -104,4 +110,6 @@ public interface INMSBinding {
     void inject(long seed, Engine engine, World world) throws NoSuchFieldException, IllegalAccessException;
 
     Vector3d getBoundingbox(org.bukkit.entity.EntityType entity);
+    
+    Entity spawnEntity(Location location, EntityType type, CreatureSpawnEvent.SpawnReason reason);
 }

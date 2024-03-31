@@ -20,6 +20,7 @@ package com.volmit.iris.engine.data.chunk;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.BiomeBaseInjector;
+import com.volmit.iris.util.data.IrisBlockData;
 import com.volmit.iris.util.nbt.mca.Chunk;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
 import lombok.AllArgsConstructor;
@@ -88,6 +89,8 @@ public class MCATerrainChunk implements TerrainChunk {
         if (blockData == null) {
             Iris.error("NULL BD");
         }
+        if (blockData instanceof IrisBlockData data)
+            blockData = data.getBase();
 
         mcaChunk.setBlockStateAt(xx, y, zz, NBTWorld.getCompound(blockData), false);
     }

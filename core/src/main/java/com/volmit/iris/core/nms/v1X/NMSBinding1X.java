@@ -35,6 +35,8 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 
@@ -88,6 +90,11 @@ public class NMSBinding1X implements INMSBinding {
 
     public Vector3d getBoundingbox() {
         return null;
+    }
+
+    @Override
+    public Entity spawnEntity(Location location, EntityType type, CreatureSpawnEvent.SpawnReason reason) {
+        return location.getWorld().spawnEntity(location, type);
     }
 
     @Override

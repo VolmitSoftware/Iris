@@ -21,6 +21,7 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
@@ -41,6 +42,7 @@ import org.bukkit.*;
 import org.bukkit.attribute.Attributable;
 import org.bukkit.entity.*;
 import org.bukkit.entity.Panda.Gene;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.loot.LootContext;
@@ -66,6 +68,9 @@ public class IrisEntity extends IrisRegistrant {
     @Required
     @Desc("The type of entity to spawn. To spawn a mythic mob, set this type to unknown and define mythic type.")
     private EntityType type = EntityType.UNKNOWN;
+
+    @Desc("The SpawnReason to spawn the entity with.")
+    private CreatureSpawnEvent.SpawnReason reason = CreatureSpawnEvent.SpawnReason.NATURAL;
 
     @Desc("The custom name of this entity")
     private String customName = "";
@@ -457,7 +462,7 @@ public class IrisEntity extends IrisRegistrant {
         }
 
 
-        return at.getWorld().spawnEntity(at, getType());
+        return INMS.get().spawnEntity(at, getType(), getReason());
     }
 
     public boolean isCitizens() {

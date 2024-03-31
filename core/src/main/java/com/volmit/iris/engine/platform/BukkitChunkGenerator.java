@@ -126,9 +126,26 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             if (!initialized) {
                 world.setRawWorldSeed(event.getWorld().getSeed());
                 if (world.name().equals(event.getWorld().getName())) {
-                    INMS.get().inject(event.getWorld().getSeed(), getEngine(event.getWorld()), event.getWorld());
-                    Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
-                    initialized = true;
+                    Engine engine = getEngine(event.getWorld());
+                    if (engine == null) {
+                        Iris.warn("Failed to get Engine!");
+                        J.s(() -> {
+                            Engine engine1 = getEngine(event.getWorld());
+                            if (engine1 != null) {
+								try {
+									INMS.get().inject(event.getWorld().getSeed(), engine1, event.getWorld());
+                                    Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
+                                    initialized = true;
+								} catch (Throwable e) {
+									e.printStackTrace();
+								}
+							}
+                        }, 10);
+                    } else {
+                        INMS.get().inject(event.getWorld().getSeed(), engine, event.getWorld());
+                        Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
+                        initialized = true;
+                    }
                 }
             }
         } catch (Throwable e) {
@@ -240,34 +257,36 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
         lock.lock();
 
-        if (setup.get()) {
-            return getEngine();
-        }
-
-
-        setup.set(true);
-        getWorld().setRawWorldSeed(world.getSeed());
-        setupEngine();
-        this.hotloader = studio ? new Looper() {
-            @Override
-            protected long loop() {
-                if (hotloadChecker.flip()) {
-                    folder.check();
-                }
-
-                return 250;
+        try {
+            if (setup.get()) {
+                return getEngine();
             }
-        } : null;
 
-        if (studio) {
-            hotloader.setPriority(Thread.MIN_PRIORITY);
-            hotloader.start();
-            hotloader.setName(getTarget().getWorld().name() + " Hotloader");
+
+            getWorld().setRawWorldSeed(world.getSeed());
+            setupEngine();
+            setup.set(true);
+            this.hotloader = studio ? new Looper() {
+                @Override
+                protected long loop() {
+                    if (hotloadChecker.flip()) {
+                        folder.check();
+                    }
+
+                    return 250;
+                }
+            } : null;
+
+            if (studio) {
+                hotloader.setPriority(Thread.MIN_PRIORITY);
+                hotloader.start();
+                hotloader.setName(getTarget().getWorld().name() + " Hotloader");
+            }
+
+            return engine;
+        } finally {
+            lock.unlock();
         }
-
-        lock.unlock();
-
-        return engine;
     }
 
     @Override

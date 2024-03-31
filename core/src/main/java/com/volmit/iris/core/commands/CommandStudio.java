@@ -229,12 +229,9 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Convert objects in the \"convert\" folder")
     public void convert() {
-        //Iris.service(ConversionSVC.class).check(sender());
-        IrisConverter.convertSchematics(sender());
-
-
+        Iris.service(ConversionSVC.class).check(sender());
+        //IrisConverter.convertSchematics(sender());
     }
-
 
     @Decree(description = "Execute a script", aliases = "run", origin = DecreeOrigin.PLAYER)
     public void execute(

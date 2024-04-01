@@ -112,7 +112,7 @@ public class ExternalDataSVC implements IrisService {
     }
 
     public void processUpdate(Engine engine, Block block, Identifier blockId) {
-        Optional<ExternalDataProvider> provider = activeProviders.stream().filter(p -> p.isValidProvider(blockId, true)).findFirst();
+        Optional<ExternalDataProvider> provider = activeProviders.stream().filter(p -> p.isValidProvider(blockId, false)).findFirst();
         if (provider.isEmpty()) {
             Iris.warn("No matching Provider found for modded material \"%s\"!", blockId);
             return;

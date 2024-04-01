@@ -2,13 +2,17 @@ package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.scheduling.J;
 import net.Indyuce.mmoitems.MMOItems;
 import net.Indyuce.mmoitems.api.Type;
 import net.Indyuce.mmoitems.api.block.CustomBlock;
+import org.bukkit.Bukkit;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.MissingResourceException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 public class MMOItemsDataProvider extends ExternalDataProvider {
 
@@ -37,7 +41,16 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
         String[] parts = itemId.namespace().split("_", 2);
         if (parts.length != 2)
             throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());
-        ItemStack item = api().getItem(parts[1], itemId.key());
+        CompletableFuture<ItemStack> future = new CompletableFuture<>();
+        if (Bukkit.isPrimaryThread()) {
+            future.complete(api().getItem(parts[1], itemId.key()));
+        } else {
+            J.s(() -> future.complete(api().getItem(parts[1], itemId.key())));
+        }
+        ItemStack item = null;
+        try {
+            item = future.get();
+        } catch (InterruptedException | ExecutionException ignored) {}
         if (item == null)
             throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());
         return item;

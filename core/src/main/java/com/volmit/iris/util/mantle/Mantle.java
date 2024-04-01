@@ -60,6 +60,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 
 public class Mantle {
+    private static final boolean disableClear = System.getProperty("disableClear", "false").equals("true");
     private final File dataFolder;
     @Getter
     private final int worldHeight;
@@ -427,7 +428,7 @@ public class Mantle {
             if (lastUse != null && IrisEngineSVC.instance != null) {
                 if (!lastUse.isEmpty()) {
                     Iris.debug("Trimming Tectonic Plates older than " + Form.duration(adjustedIdleDuration.get(), 0));
-                    for (Long i : new ArrayList<>(lastUse.keySet())) {
+                    for (long i : new ArrayList<>(lastUse.keySet())) {
                         double finalAdjustedIdleDuration = adjustedIdleDuration.get();
                         hyperLock.withLong(i, () -> {
                             Long lastUseTime = lastUse.get(i);
@@ -456,9 +457,16 @@ public class Mantle {
         if (IrisEngineSVC.instance != null) {
             try {
                 KList<Long> copy = toUnload.copy();
+                if (!disableClear) toUnload.clear();
                 burst = MultiBurst.burst.burst(copy.size());
                 burst.setMulticore(copy.size() > tectonicLimit);
-                for (long id : copy) {
+                for (int j = 0; j < copy.size(); j++) {
+                    Long id = copy.get(j);
+                    if (id == null) {
+                        Iris.error("Null id in unloadTectonicPlate at index " + j);
+                        continue;
+                    }
+
                     burst.queue(() ->
                             hyperLock.withLong(id, () -> {
                                 TectonicPlate m = loadedRegions.get(id);
@@ -467,7 +475,7 @@ public class Mantle {
                                         m.write(fileForRegion(dataFolder, id));
                                         loadedRegions.remove(id);
                                         lastUse.remove(id);
-                                        toUnload.remove(id);
+                                        if (disableClear) toUnload.remove(id);
                                         i.incrementAndGet();
                                         Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(id) + " " + Cache.keyZ(id));
                                         IrisEngineSVC.instance.unloadActiveAlive.reset();
@@ -476,7 +484,6 @@ public class Mantle {
                                     }
                                 }
                             }));
-
                 }
                 burst.complete();
             } catch (Throwable e) {

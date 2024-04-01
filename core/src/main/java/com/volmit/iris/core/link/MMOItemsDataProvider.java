@@ -63,7 +63,7 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
         for (Type type : api().getTypes().getAll()) {
             for (String name : api().getTemplates().getTemplateNames(type)) {
                 try {
-                    Identifier key = new Identifier("mmoitems_" + type, name);
+                    Identifier key = new Identifier("mmoitems_" + type.getId(), name);
                     if (getItemStack(key) != null)
                         names.add(key);
                 } catch (MissingResourceException ignored) {

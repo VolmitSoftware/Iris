@@ -60,6 +60,10 @@ public class ExternalDataSVC implements IrisService {
         if (Bukkit.getPluginManager().getPlugin("HMCLeaves") != null) {
             Iris.info("BlockAdder found, loading HMCLeavesDataProvider...");
         }
+        providers.add(new MMOItemsDataProvider());
+        if (Bukkit.getPluginManager().getPlugin("MMOItems") != null) {
+            Iris.info("MMOItems found, loading MMOItemsDataProvider...");
+        }
 
         for (ExternalDataProvider p : providers) {
             if (p.isReady()) {

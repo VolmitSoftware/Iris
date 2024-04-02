@@ -60,6 +60,10 @@ public class ExternalDataSVC implements IrisService {
         if (Bukkit.getPluginManager().getPlugin("HMCLeaves") != null) {
             Iris.info("BlockAdder found, loading HMCLeavesDataProvider...");
         }
+        providers.add(new MMOItemsDataProvider());
+        if (Bukkit.getPluginManager().getPlugin("MMOItems") != null) {
+            Iris.info("MMOItems found, loading MMOItemsDataProvider...");
+        }
 
         for (ExternalDataProvider p : providers) {
             if (p.isReady()) {
@@ -112,7 +116,7 @@ public class ExternalDataSVC implements IrisService {
     }
 
     public void processUpdate(Engine engine, Block block, Identifier blockId) {
-        Optional<ExternalDataProvider> provider = activeProviders.stream().filter(p -> p.isValidProvider(blockId, true)).findFirst();
+        Optional<ExternalDataProvider> provider = activeProviders.stream().filter(p -> p.isValidProvider(blockId, false)).findFirst();
         if (provider.isEmpty()) {
             Iris.warn("No matching Provider found for modded material \"%s\"!", blockId);
             return;

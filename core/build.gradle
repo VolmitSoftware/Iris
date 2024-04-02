@@ -33,6 +33,10 @@ compileJava {
     options.encoding = "UTF-8"
 }
 
+repositories {
+    maven { url 'https://nexus.phoenixdevt.fr/repository/maven-public/'}
+}
+
 /**
  * Dependencies.
  *
@@ -61,6 +65,7 @@ dependencies {
     compileOnly 'com.github.LoneDev6:api-itemsadder:3.4.1-r4'
     compileOnly 'com.github.PlaceholderAPI:placeholderapi:2.11.3'
     compileOnly 'com.github.Ssomar-Developement:SCore:4.23.10.8'
+    compileOnly 'net.Indyuce:MMOItems-API:6.9.5-SNAPSHOT'
     //implementation files('libs/CustomItems.jar')
 }
 

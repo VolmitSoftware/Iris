@@ -42,11 +42,9 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
         if (parts.length != 2)
             throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());
         CompletableFuture<ItemStack> future = new CompletableFuture<>();
-        if (Bukkit.isPrimaryThread()) {
-            future.complete(api().getItem(parts[1], itemId.key()));
-        } else {
-            J.s(() -> future.complete(api().getItem(parts[1], itemId.key())));
-        }
+        Runnable run = () -> future.complete(api().getItem(parts[1], itemId.key()));
+        if (Bukkit.isPrimaryThread()) run.run();
+        else J.s(run);
         ItemStack item = null;
         try {
             item = future.get();
@@ -73,14 +71,25 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
     @Override
     public Identifier[] getItemTypes() {
         KList<Identifier> names = new KList<>();
-        for (Type type : api().getTypes().getAll()) {
-            for (String name : api().getTemplates().getTemplateNames(type)) {
-                try {
-                    Identifier key = new Identifier("mmoitems_" + type.getId(), name);
-                    if (getItemStack(key) != null)
-                        names.add(key);
-                } catch (MissingResourceException ignored) {
+        Runnable run = () -> {
+            for (Type type : api().getTypes().getAll()) {
+                for (String name : api().getTemplates().getTemplateNames(type)) {
+                    try {
+                        Identifier key = new Identifier("mmoitems_" + type.getId(), name);
+                        if (getItemStack(key) != null)
+                            names.add(key);
+                    } catch (MissingResourceException ignored) {
+                    }
                 }
+            }
+        };
+        if (Bukkit.isPrimaryThread()) run.run();
+        else {
+            try {
+                J.sfut(run).get();
+            } catch (InterruptedException | ExecutionException e) {
+                Iris.error("Failed getting MMOItems item types!");
+                Iris.reportError(e);
             }
         }
         return names.toArray(new Identifier[0]);

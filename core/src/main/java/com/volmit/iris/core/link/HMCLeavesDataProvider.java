@@ -1,6 +1,7 @@
 package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.IrisBlockData;
@@ -57,7 +58,7 @@ public class HMCLeavesDataProvider extends ExternalDataProvider {
 		if (material == null)
 			throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
 		BlockData blockData = Bukkit.createBlockData(material);
-		if (blockData instanceof Leaves leaves)
+		if (IrisSettings.get().getGenerator().preventLeafDecay && blockData instanceof Leaves leaves)
 			leaves.setPersistent(true);
 		return new IrisBlockData(blockData, blockId);
 	}
@@ -71,9 +72,14 @@ public class HMCLeavesDataProvider extends ExternalDataProvider {
 
 	@Override
 	public void processUpdate(Engine engine, Block block, Identifier blockId) {
-		Boolean result = setCustomBlock.invoke(apiInstance, new Object[]{block.getLocation(), blockId.key(), true});
+		Boolean result = setCustomBlock.invoke(apiInstance, new Object[]{block.getLocation(), blockId.key(), false});
 		if (result == null || !result)
 			Iris.warn("Failed to set custom block! " + blockId.key() + " " + block.getX() + " " + block.getY() + " " + block.getZ());
+		else if (IrisSettings.get().getGenerator().preventLeafDecay) {
+			BlockData blockData = block.getBlockData();
+			if (blockData instanceof Leaves leaves)
+				leaves.setPersistent(true);
+		}
 	}
 
 	@Override

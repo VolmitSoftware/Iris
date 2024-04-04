@@ -29,6 +29,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.data.IrisBlockData;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.json.JSONObject;
@@ -811,7 +812,7 @@ public class IrisObject extends IrisRegistrant {
                             if (j.isExact() ? k.matches(data) : k.getMaterial().equals(data.getMaterial())) {
                                 BlockData newData = j.getReplace(rng, i.getX() + x, i.getY() + y, i.getZ() + z, rdata).clone();
 
-                                if (newData.getMaterial() == data.getMaterial())
+                                if (newData.getMaterial() == data.getMaterial() && !(newData instanceof IrisBlockData || data instanceof IrisBlockData))
                                     data = data.merge(newData);
                                 else
                                     data = newData;

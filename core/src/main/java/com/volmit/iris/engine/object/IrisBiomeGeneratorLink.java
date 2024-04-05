@@ -22,6 +22,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.data.DataProvider;
+
 import com.volmit.iris.util.interpolation.IrisInterpolation;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -66,20 +67,24 @@ public class IrisBiomeGeneratorLink {
         });
     }
 
+    public int getMax() {
+        return 320;
+    }
+
     public double getHeight(DataProvider xg, double x, double z, long seed) {
         double g = getCachedGenerator(xg).getHeight(x, z, seed);
         g = g < 0 ? 0 : g;
         g = g > 1 ? 1 : g;
-//        if (IrisSettings.get().getGenerator().forceConvertTo320Height) {
-//           if (max > 320 || min > 320) {
-//                double scaleFactor = 320.0 / Math.max(max, min);
-//                min *= (int) scaleFactor;
-//                max *= (int) scaleFactor;
-//                if (min < 0) {
-//
-//                }
-//            }
-//        }
+        if (xg.getData().getEngine().getDimension().getForceConvertTo320Height()) {
+           if (max > 320 || min > 320) {
+                double scaleFactor = 320.0 / Math.max(max, min);
+                min *= (int) scaleFactor;
+                max *= (int) scaleFactor;
+                if (min < 0) {
+                    min = 10;
+                }
+            }
+        }
         // todo This
 
         return IrisInterpolation.lerp(min, max, g);

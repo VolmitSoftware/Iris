@@ -450,7 +450,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return real;
     }
 
-    public int getMaxHeight() {
+    public int getMaxHeight(int test) {
         return maxHeight.aquire(() ->
         {
             int maxHeight = 0;

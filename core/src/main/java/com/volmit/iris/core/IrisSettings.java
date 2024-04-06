@@ -177,7 +177,7 @@ public class IrisSettings {
     public static class IrisSettingsGenerator {
         public String defaultWorldType = "overworld";
         public int maxBiomeChildDepth = 4;
-        public boolean forceConvertTo320Height = false;
+       // public boolean forceConvertTo320Height = false;
         public boolean preventLeafDecay = true;
     }
 

@@ -19,7 +19,6 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
@@ -211,8 +210,6 @@ public class IrisDimension extends IrisRegistrant {
     private IrisCarving carving = new IrisCarving();
     @Desc("Configuration of fluid bodies such as rivers & lakes")
     private IrisFluidBodies fluidBodies = new IrisFluidBodies();
-    @Desc("forceConvertTo320Height")
-    private Boolean forceConvertTo320Height = false;
     @Desc("The world environment")
     private Environment environment = Environment.NORMAL;
     @RegistryListResource(IrisRegion.class)

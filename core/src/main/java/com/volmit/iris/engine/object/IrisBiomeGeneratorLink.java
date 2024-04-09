@@ -73,7 +73,7 @@ public class IrisBiomeGeneratorLink {
         int dmn = engine.getDimension().getMinHeight();
         int mx = max; // 500
         int mn = min; // 160
-        if (true) { // todo after merge
+        if (engine.getDimension().isSmartVanillaHeight()) {
             if (mx > 0) mx = Math.min((int)(((float)mx / (float)dmx) * 300.0f), 300);
             if (mx < 0) mx = Math.min((int)(((float)mx / (float)dmn) * 300.0f), 56);
 

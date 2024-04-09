@@ -18,14 +18,14 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.Accessors;
 
 @Snippet("generator-layer")
@@ -45,11 +45,13 @@ public class IrisBiomeGeneratorLink {
     @MinNumber(-2032) // TODO: WARNING HEIGHT
     @MaxNumber(2032) // TODO: WARNING HEIGHT
     @Desc("The min block value (value + fluidHeight)")
+    @Getter(AccessLevel.NONE)
     private int min = 0;
     @DependsOn({"min", "max"})
     @Required
     @MinNumber(-2032) // TODO: WARNING HEIGHT
     @MaxNumber(2032) // TODO: WARNING HEIGHT
+    @Getter(AccessLevel.NONE)
     @Desc("The max block value (value + fluidHeight)")
     private int max = 0;
 
@@ -66,21 +68,41 @@ public class IrisBiomeGeneratorLink {
         });
     }
 
+    private int calculateHeight(Engine engine, int option) {
+        int dmx = engine.getDimension().getMaxHeight();
+        int dmn = engine.getDimension().getMinHeight();
+        int mx = max; // 500
+        int mn = min; // 160
+        if (true) { // todo after merge
+            if (mx > 0) mx = Math.min((int)(((float)mx / (float)dmx) * 300.0f), 300);
+            if (mx < 0) mx = Math.min((int)(((float)mx / (float)dmn) * 300.0f), 56);
+
+            if (mn > 0) mn = Math.min((int)(((float)mn / (float)dmx) * 300.0f), 300);
+            if (mn < 0) mn = Math.min((int)(((float)mn / (float)dmn) * 300.0f), 56);
+
+        }
+
+        if (option == 1) {
+            return mx;
+        }
+        if (option == 0) {
+            return mn;
+        }
+        Iris.error("Fatal Generator error!");
+        return 0;
+    }
+
+    public int getMax(Engine engine) {
+        return calculateHeight(engine, 1);
+    }
+    public int getMin(Engine engine) {
+        return calculateHeight(engine, 0);
+    }
+
     public double getHeight(DataProvider xg, double x, double z, long seed) {
         double g = getCachedGenerator(xg).getHeight(x, z, seed);
         g = g < 0 ? 0 : g;
         g = g > 1 ? 1 : g;
-//        if (IrisSettings.get().getGenerator().forceConvertTo320Height) {
-//           if (max > 320 || min > 320) {
-//                double scaleFactor = 320.0 / Math.max(max, min);
-//                min *= (int) scaleFactor;
-//                max *= (int) scaleFactor;
-//                if (min < 0) {
-//
-//                }
-//            }
-//        }
-        // todo This
 
         return IrisInterpolation.lerp(min, max, g);
     }

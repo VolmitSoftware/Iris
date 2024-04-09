@@ -78,6 +78,9 @@ public class IrisEngineSVC implements IrisService {
             t = t - 200;
         }
         this.setup();
+        this.TrimLogic();
+        this.UnloadLogic();
+
         trimAlive.begin();
         unloadAlive.begin();
         trimActiveAlive.begin();
@@ -85,8 +88,8 @@ public class IrisEngineSVC implements IrisService {
 
         updateTicker.start();
         cacheTicker.start();
-        trimTicker.start();
-        unloadTicker.start();
+        //trimTicker.start();
+        //unloadTicker.start();
         instance = this;
 
     }
@@ -102,10 +105,6 @@ public class IrisEngineSVC implements IrisService {
 
     public static int getTectonicLimit() {
         return tectonicLimit.get();
-    }
-
-    public void EngineReport() {
-        Iris.info(C.RED + "CRITICAL ENGINE FAILURE! The Tectonic Trim subsystem has not responded for: " + Form.duration(trimAlive.getMillis()) + ".");
     }
 
     @EventHandler
@@ -179,9 +178,9 @@ public class IrisEngineSVC implements IrisService {
                     }
                     if (!isServerShuttingDown && isServerLoaded) {
                         if (!trimTicker.isAlive()) {
-                            Iris.info(C.IRIS + "TrimTicker found dead! Booting it up!");
+                            Iris.info(C.RED + "TrimTicker found dead! Booting it up!");
                             try {
-                                trimTicker.start();
+                                TrimLogic();
                             } catch (Exception e) {
                                 Iris.error("What happened?");
                                 e.printStackTrace();
@@ -189,9 +188,9 @@ public class IrisEngineSVC implements IrisService {
                         }
 
                         if (!unloadTicker.isAlive()) {
-                            Iris.info(C.IRIS + "UnloadTicker found dead! Booting it up!");
+                            Iris.info(C.RED + "UnloadTicker found dead! Booting it up!");
                             try {
-                                unloadTicker.start();
+                               UnloadLogic();
                             } catch (Exception e) {
                                 Iris.error("What happened?");
                                 e.printStackTrace();
@@ -205,63 +204,72 @@ public class IrisEngineSVC implements IrisService {
                 return 1000;
             }
         };
+    }
+    public void TrimLogic() {
+        if (trimTicker == null || !trimTicker.isAlive()) {
+            trimTicker = new Looper() {
+                private final Supplier<Engine> supplier = createSupplier();
 
-        trimTicker = new Looper() {
-            private final Supplier<Engine> supplier = createSupplier();
-            @Override
-            protected long loop() {
-                long start = System.currentTimeMillis();
-                trimAlive.reset();
-                try {
-                    Engine engine = supplier.get();
-                    if (engine != null) {
-                        engine.getMantle().trim(tectonicLimit.get() / lastUse.size());
-                    }
-                } catch (Throwable e) {
-                    Iris.reportError(e);
-                    Iris.info(C.RED + "EngineSVC: Failed to trim. Please contact support!");
-                    e.printStackTrace();
-                    return -1;
-                }
-
-                int size = lastUse.size();
-                long time = (size > 0 ? 1000/size : 1000) - (System.currentTimeMillis() - start);
-                if (time <= 0)
-                    return 0;
-                return time;
-            }
-        };
-
-        unloadTicker = new Looper() {
-            private final Supplier<Engine> supplier = createSupplier();
-
-            @Override
-            protected long loop() {
-                long start = System.currentTimeMillis();
-                unloadAlive.reset();
-                try {
-                    Engine engine = supplier.get();
-                    if (engine != null) {
-                        long unloadStart = System.currentTimeMillis();
-                        int count = engine.getMantle().unloadTectonicPlate(tectonicLimit.get() / lastUse.size());
-                        if (count > 0) {
-                            Iris.debug(C.GOLD + "Unloaded " +  C.YELLOW + count + " TectonicPlates in " + C.RED + Form.duration(System.currentTimeMillis() - unloadStart, 2));
+                @Override
+                protected long loop() {
+                    long start = System.currentTimeMillis();
+                    trimAlive.reset();
+                    try {
+                        Engine engine = supplier.get();
+                        if (engine != null) {
+                            engine.getMantle().trim(tectonicLimit.get() / lastUse.size());
                         }
+                    } catch (Throwable e) {
+                        Iris.reportError(e);
+                        Iris.info(C.RED + "EngineSVC: Failed to trim.");
+                        e.printStackTrace();
+                        return -1;
                     }
-                } catch (Throwable e) {
-                    Iris.reportError(e);
-                    Iris.info(C.RED + "EngineSVC: Failed to unload.");
-                    e.printStackTrace();
-                    return -1;
-                }
 
-                int size = lastUse.size();
-                long time = (size > 0 ? 1000/size : 1000) - (System.currentTimeMillis() - start);
-                if (time <= 0)
-                    return 0;
-                return time;
-            }
-        };
+                    int size = lastUse.size();
+                    long time = (size > 0 ? 1000 / size : 1000) - (System.currentTimeMillis() - start);
+                    if (time <= 0)
+                        return 0;
+                    return time;
+                }
+            };
+            trimTicker.start();
+        }
+    }
+    public void UnloadLogic() {
+        if (unloadTicker == null || !unloadTicker.isAlive()) {
+            unloadTicker = new Looper() {
+                private final Supplier<Engine> supplier = createSupplier();
+
+                @Override
+                protected long loop() {
+                    long start = System.currentTimeMillis();
+                    unloadAlive.reset();
+                    try {
+                        Engine engine = supplier.get();
+                        if (engine != null) {
+                            long unloadStart = System.currentTimeMillis();
+                            int count = engine.getMantle().unloadTectonicPlate(tectonicLimit.get() / lastUse.size());
+                            if (count > 0) {
+                                Iris.debug(C.GOLD + "Unloaded " + C.YELLOW + count + " TectonicPlates in " + C.RED + Form.duration(System.currentTimeMillis() - unloadStart, 2));
+                            }
+                        }
+                    } catch (Throwable e) {
+                        Iris.reportError(e);
+                        Iris.info(C.RED + "EngineSVC: Failed to unload.");
+                        e.printStackTrace();
+                        return -1;
+                    }
+
+                    int size = lastUse.size();
+                    long time = (size > 0 ? 1000 / size : 1000) - (System.currentTimeMillis() - start);
+                    if (time <= 0)
+                        return 0;
+                    return time;
+                }
+            };
+            unloadTicker.start();
+        }
     }
 
     private Supplier<Engine> createSupplier() {
@@ -281,7 +289,8 @@ public class IrisEngineSVC implements IrisService {
 
                     if (generator != null) {
                         Engine engine = generator.getEngine();
-                        if (engine != null && !engine.isStudio()) {
+                        boolean closed = engine.getMantle().getData().isClosed();
+                        if (engine != null && !engine.isStudio() && !closed) {
                             lastUseLock.lock();
                             lastUse.put(world, System.currentTimeMillis());
                             lastUseLock.unlock();

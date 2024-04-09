@@ -19,7 +19,6 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
@@ -40,14 +39,14 @@ public class IrisBiomeGeneratorLink {
     @RegistryListResource(IrisGenerator.class)
     @Desc("The generator id")
     private String generator = "default";
-    @DependsOn({"min", "max"})
+    @DependsOn({ "min", "max" })
     @Required
     @MinNumber(-2032) // TODO: WARNING HEIGHT
     @MaxNumber(2032) // TODO: WARNING HEIGHT
     @Desc("The min block value (value + fluidHeight)")
     @Getter(AccessLevel.NONE)
     private int min = 0;
-    @DependsOn({"min", "max"})
+    @DependsOn({ "min", "max" })
     @Required
     @MinNumber(-2032) // TODO: WARNING HEIGHT
     @MaxNumber(2032) // TODO: WARNING HEIGHT
@@ -56,8 +55,7 @@ public class IrisBiomeGeneratorLink {
     private int max = 0;
 
     public IrisGenerator getCachedGenerator(DataProvider g) {
-        return gen.aquire(() ->
-        {
+        return gen.aquire(() -> {
             IrisGenerator gen = g.getData().getGeneratorLoader().load(getGenerator());
 
             if (gen == null) {
@@ -68,18 +66,42 @@ public class IrisBiomeGeneratorLink {
         });
     }
 
+    private int[] getBiomeGeneratorsRaw(Engine engine) {
+        int max = engine.getDimension().getMinHeight();
+        int min = engine.getDimension().getMaxHeight();
+        for (IrisBiome biome : engine.getAllBiomes()) {
+            for (IrisBiomeGeneratorLink i : biome.getGenerators()) {
+                int biomeRawMax = i.getMaxRaw();
+                int biomeRawMin = i.getMinRaw();
+                if (max < biomeRawMax)
+                    max = biomeRawMax;
+                if (min > biomeRawMin)
+                    min = biomeRawMin;
+            }
+        }
+
+        return new int[] { min, max };
+    }
+
     private int calculateHeight(Engine engine, int option) {
         int dmx = engine.getDimension().getMaxHeight();
         int dmn = engine.getDimension().getMinHeight();
-        int mx = max; // 500
-        int mn = min; // 160
+        int[] heights = getBiomeGeneratorsRaw(engine);
+        int gmx = heights[1];
+        int gmn = heights[0];
+
+        int mx = max;
+        int mn = min;
         if (engine.getDimension().isSmartVanillaHeight()) {
-            if (mx > 0) mx = Math.min((int)(((float)mx / (float)dmx) * 300.0f), 300);
-            if (mx < 0) mx = Math.min((int)(((float)mx / (float)dmn) * 300.0f), 56);
+            if (mx > 0)
+                mx = Math.min((int) (((float) mx / (float) gmx) * 300.0f), 300);
+            if (mx < 0)
+                mx = Math.min((int) (((float) mx / (float) gmn) * 300.0f), 56);
 
-            if (mn > 0) mn = Math.min((int)(((float)mn / (float)dmx) * 300.0f), 300);
-            if (mn < 0) mn = Math.min((int)(((float)mn / (float)dmn) * 300.0f), 56);
-
+            if (mn > 0)
+                mn = Math.min((int) (((float) mn / (float) gmx) * 300.0f), 300);
+            if (mn < 0)
+                mn = Math.min((int) (((float) mn / (float) gmn) * 300.0f), 56);
         }
 
         if (option == 1) {
@@ -95,8 +117,17 @@ public class IrisBiomeGeneratorLink {
     public int getMax(Engine engine) {
         return calculateHeight(engine, 1);
     }
+
     public int getMin(Engine engine) {
         return calculateHeight(engine, 0);
+    }
+
+    private int getMaxRaw() {
+        return max;
+    }
+
+    private int getMinRaw() {
+        return min;
     }
 
     public double getHeight(DataProvider xg, double x, double z, long seed) {

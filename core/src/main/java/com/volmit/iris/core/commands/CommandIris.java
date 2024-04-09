@@ -622,6 +622,6 @@ public class CommandIris implements DecreeExecutor {
             ff.mkdirs();
             service(StudioSVC.class).installIntoWorld(sender, dim.getLoadKey(), ff.getParentFile());
         }
-        return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey());
+        return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey(), false);
     }
 }

@@ -533,10 +533,16 @@ public class IrisObject extends IrisRegistrant {
                 } else if (min == hWest) {
                     slopeRotationY = 270;
                 }
+
+                double newRotation = config.getRotation().getYAxis().getMin() + slopeRotationY;
+                if (newRotation == 0) {
+                    config.getRotation().setYAxis(new IrisAxisRotationClamp(false, false, 0, 0, 90));
+                    config.getRotation().setEnabled(config.getRotation().canRotateX() || config.getRotation().canRotateZ());
+                } else {
+                    config.getRotation().setYAxis(new IrisAxisRotationClamp(true, false, newRotation, newRotation, 90));
+                    config.getRotation().setEnabled(true);
+                }
             }
-            double newRotation = config.getRotation().getYAxis().getMin() + slopeRotationY;
-            config.getRotation().setYAxis(new IrisAxisRotationClamp(true, false, newRotation, newRotation, 90));
-            config.getRotation().setEnabled(true);
         }
 
         if (config.isSmartBore()) {

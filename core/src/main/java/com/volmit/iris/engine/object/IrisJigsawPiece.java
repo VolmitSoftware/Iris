@@ -101,19 +101,8 @@ public class IrisJigsawPiece extends IrisRegistrant {
     }
 
     public IrisJigsawPiece copy() {
-        IrisJigsawPiece p = new IrisJigsawPiece();
-        p.setObject(getObject());
-        p.setLoader(getLoader());
-        p.setLoadKey(getLoadKey());
-        p.setLoadFile(getLoadFile());
-        p.setConnectors(new KList<>());
-        p.setPlacementOptions(getPlacementOptions());
-
-        for (IrisJigsawPieceConnector i : getConnectors()) {
-            p.getConnectors().add(i.copy());
-        }
-
-        return p;
+        var gson = getLoader().getGson();
+        return gson.fromJson(gson.toJson(this), IrisJigsawPiece.class);
     }
 
     public boolean isTerminal() {

@@ -23,7 +23,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.mantle.Mantle;
@@ -32,8 +31,6 @@ import com.volmit.iris.util.matter.slices.container.JigsawPieceContainer;
 import lombok.Data;
 import org.bukkit.Axis;
 import org.bukkit.World;
-import org.bukkit.block.TileState;
-import org.bukkit.block.data.BlockData;
 
 @Data
 public class PlannedStructure {
@@ -76,7 +73,7 @@ public class PlannedStructure {
 
     public void place(IObjectPlacer placer, Mantle e, Engine eng) {
         IrisObjectPlacement options = new IrisObjectPlacement();
-        options.getRotation().setEnabled(false);
+        options.setRotation(IrisObjectRotation.of(0,0,0));
         int startHeight = pieces.get(0).getPosition().getY();
 
         for (PlannedPiece i : pieces) {
@@ -90,11 +87,11 @@ public class PlannedStructure {
         if (i.getPiece().getPlacementOptions() != null) {
             options = i.getPiece().getPlacementOptions();
             options.getRotation().setEnabled(false);
+            options.setRotateTowardsSlope(false);
         } else {
             options.setMode(i.getPiece().getPlaceMode());
         }
 
-        IrisObject vo = i.getOgObject();
         IrisObject v = i.getObject();
         int sx = (v.getW() / 2);
         int sz = (v.getD() / 2);
@@ -122,7 +119,7 @@ public class PlannedStructure {
 
         int id = rng.i(0, Integer.MAX_VALUE);
         JigsawPieceContainer container = JigsawPieceContainer.toContainer(i.getPiece());
-        vo.place(xx, height, zz, placer, options, rng, (b, data) -> {
+        v.place(xx, height, zz, placer, options, rng, (b, data) -> {
             e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);
             e.set(b.getX(), b.getY(), b.getZ(), container);
         }, null, getData());
@@ -167,9 +164,7 @@ public class PlannedStructure {
 
     private boolean generateRotatedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, IrisJigsawPiece idea) {
         if (!piece.getPiece().getPlacementOptions().getRotation().isEnabled()) {
-            if (generateRotatedPiece(piece, pieceConnector, idea, 0, 0, 0)) {
-                return true;
-            }
+            return generateRotatedPiece(piece, pieceConnector, idea, 0, 0, 0);
         }
 
         KList<Integer> forder1 = new KList<Integer>().qadd(0).qadd(1).qadd(2).qadd(3).shuffle(rng);
@@ -216,7 +211,7 @@ public class PlannedStructure {
     }
 
     private boolean generateRotatedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, IrisJigsawPiece idea, int x, int y, int z) {
-        return generateRotatedPiece(piece, pieceConnector, idea, IrisObjectRotation.of(x, y, z));
+        return generateRotatedPiece(piece, pieceConnector, idea, IrisObjectRotation.of(x * 90D, y * 90D, z * 90D));
     }
 
     private boolean generatePositionedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, PlannedPiece test, IrisJigsawPieceConnector testConnector) {

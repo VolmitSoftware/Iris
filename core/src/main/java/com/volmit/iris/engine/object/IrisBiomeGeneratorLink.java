@@ -90,8 +90,8 @@ public class IrisBiomeGeneratorLink {
         int gmx = heights[1];
         int gmn = heights[0];
 
-        int mx = max;
-        int mn = min;
+        int mx = getMaxRaw();
+        int mn = getMinRaw();
         if (engine.getDimension().isSmartVanillaHeight()) {
             if (mx > 0)
                 mx = Math.min((int) (((float) mx / (float) gmx) * 300.0f), 300);

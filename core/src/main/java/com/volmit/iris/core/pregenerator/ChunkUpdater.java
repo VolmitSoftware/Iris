@@ -3,22 +3,42 @@ package com.volmit.iris.core.pregenerator;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.nbt.mca.Chunk;
 import com.volmit.iris.util.nbt.mca.MCAFile;
 import com.volmit.iris.util.nbt.mca.MCAUtil;
+import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import it.unimi.dsi.fastutil.ints.IntArrays;
 import org.bukkit.World;
+import org.ehcache.Cache;
+import org.ehcache.CacheManager;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.SerializerException;
+
 
 import java.io.File;
-import java.util.concurrent.ExecutorService;
+
+import java.nio.ByteBuffer;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import java.util.concurrent.locks.ReentrantLock;
+
 public class ChunkUpdater {
-    private AtomicBoolean cancelled = new AtomicBoolean(false);
-    private KList<Position2> cache;
+    private AtomicBoolean cancelled;
+    private KList<int[]> chunkMap;
     private final RollingSequence chunksPerSecond;
     private final RollingSequence mcaregionsPerSecond;
     private final AtomicInteger worldheightsize;
@@ -27,46 +47,43 @@ public class ChunkUpdater {
     private final AtomicInteger totalMaxChunks;
     private final AtomicInteger totalMcaregions;
     private final AtomicInteger position;
-    private final KMap<int[], Chunk> chunk;
     private final File[] McaFiles;
     private final World world;
 
     public ChunkUpdater(World world) {
+        File cacheDir = new File("plugins" + File.separator + "iris" + File.separator + "cache");
+        File chunkCacheDir = new File("plugins" + File.separator + "iris" + File.separator + "cache" + File.separator + "spiral");
         this.chunksPerSecond = new RollingSequence(10);
         this.mcaregionsPerSecond = new RollingSequence(10);
         this.world = world;
-        this.chunk = new KMap<>();
+        this.chunkMap = new KList<>();
         this.McaFiles = new File(world.getWorldFolder(), "region").listFiles((dir, name) -> name.endsWith(".mca"));
         this.worldheightsize = new AtomicInteger(calculateWorldDimensions(new File(world.getWorldFolder(), "region"), 1));
         this.worldwidthsize = new AtomicInteger(calculateWorldDimensions(new File(world.getWorldFolder(), "region"), 0));
         this.totalMaxChunks = new AtomicInteger((worldheightsize.get() / 16 ) * (worldwidthsize.get() / 16));
         this.position = new AtomicInteger(0);
         this.cancelled = new AtomicBoolean(false);
-        this.cache = new KList<>();
         this.totalChunks = new AtomicInteger(0);
         this.totalMcaregions = new AtomicInteger(0);
-        Initialize();
+    }
 
+    public void start() {
+        Initialize();
     }
 
     public void Initialize() {
         Iris.info("Initializing..");
         try {
-            for (File file : McaFiles) {
-                MCAFile MCARegion = MCAUtil.read(file);
-                //MCARegion.hasChunk(x,z);
-
-
+            for (File mca : McaFiles) {
+                MCAFile MCARegion = MCAUtil.read(mca);
+                for (int pos = 0; pos != totalMaxChunks.get(); pos++) {
+                    int[] coords = getChunk(pos);
+                    if(MCARegion.hasChunk(coords[0], coords[1])) chunkMap.add(coords);
+                }
             }
+            Iris.info("Finished Initializing..");
         } catch (Exception e) {
             e.printStackTrace();
-        }
-    }
-
-    public void cache() {
-        int position = this.position.get();
-        for(; position < this.totalMaxChunks.get(); position++) {
-            cache.add(getChunk(position));
         }
     }
 
@@ -101,7 +118,7 @@ public class ChunkUpdater {
         return 0;
     }
 
-    public Position2 getChunk(int position) {
+    public int[] getChunk(int position) {
         int p = -1;
         AtomicInteger xx = new AtomicInteger();
         AtomicInteger zz = new AtomicInteger();
@@ -113,7 +130,10 @@ public class ChunkUpdater {
         while (s.hasNext() && p++ < position) {
             s.next();
         }
+        int[] coords = new int[2];
+        coords[0] = xx.get();
+        coords[1] = zz.get();
 
-        return new Position2(xx.get(), zz.get());
+        return coords;
     }
 }

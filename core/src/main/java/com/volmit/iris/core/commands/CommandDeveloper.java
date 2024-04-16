@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
+import com.volmit.iris.core.pregenerator.ChunkUpdater;
 import com.volmit.iris.core.service.IrisEngineSVC;
 import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -40,7 +41,10 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.mantle.TectonicPlate;
+import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.math.Vector3d;
+import com.volmit.iris.util.nbt.mca.MCAFile;
+import com.volmit.iris.util.nbt.mca.MCAUtil;
 import com.volmit.iris.util.plugin.VolmitSender;
 import io.lumine.mythic.bukkit.adapters.BukkitEntity;
 import net.jpountz.lz4.LZ4BlockInputStream;
@@ -61,6 +65,7 @@ import java.net.NetworkInterface;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -150,9 +155,29 @@ public class CommandDeveloper implements DecreeExecutor {
 
     }
 
+    @Decree(description = "Test")
+    public void updater(
+            @Param(description = "Updater for chunks")
+            World world
+    ) {
+        Iris.info("test");
+        ChunkUpdater updater = new ChunkUpdater(world);
+        updater.start();
+
+
+    }
+
     @Decree(description = "test")
-    public void test() throws NoSuchFieldException, IllegalAccessException {
-        IrisEngineSVC.instance.engineStatus();
+    public void mca (
+            @Param(description = "String") String world) {
+        try {
+            File[] McaFiles = new File(world, "region").listFiles((dir, name) -> name.endsWith(".mca"));
+            for (File mca : McaFiles) {
+                MCAFile MCARegion = MCAUtil.read(mca);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
     }
 

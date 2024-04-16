@@ -30,6 +30,7 @@ import com.volmit.iris.core.safeguard.UtilsSFG;
 import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.engine.platform.DummyChunkGenerator;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
@@ -89,7 +90,9 @@ public class CommandIris implements DecreeExecutor {
             @Param(aliases = "dimension", description = "The dimension type to create the world with", defaultValue = "default")
             IrisDimension type,
             @Param(description = "The seed to generate the world with", defaultValue = "1337")
-            long seed
+            long seed,
+            @Param(description = "If it should convert the dimension to match the vanilla height system.", defaultValue = "false")
+            boolean vanillaheight
     ) {
         if(sender() instanceof Player) {
             if (incompatibilities.get("Multiverse-Core")) {
@@ -133,6 +136,7 @@ public class CommandIris implements DecreeExecutor {
                     .seed(seed)
                     .sender(sender())
                     .studio(false)
+                    .smartVanillaHeight(vanillaheight)
                     .create();
         } catch (Throwable e) {
             sender().sendMessage(C.RED + "Exception raised during creation. See the console for more details.");
@@ -216,41 +220,41 @@ public class CommandIris implements DecreeExecutor {
         Iris.service(StudioSVC.class).open(sender(), 1337, "overworld");
     }
 
-    @Decree(description = "Check if iris has access to that specific world")
-    public void hasAccess(
-            @Param(description = "The world to access", aliases = {"world"})
-            World world
-    ) {
-        Engine engine = IrisToolbelt.access(world).getEngine();
-        if (engine != null) {
-            sender().sendMessage("Access granted successfully.");
-        } else {
-            sender().sendMessage(C.RED + "Failed to grant access.");
-        }
-    }
+    @Decree(description = "Check access of all worlds.", aliases = {"accesslist"})
+    public void worlds() {
+        KList<World> IrisWorlds = new KList<>();
+        KList<World> BukkitWorlds = new KList<>();
 
-    @Decree(description = "All Iris Worlds on the server.", aliases = {"worlds"})
-    public void irisworlds() {
-        List<World> IrisWorlds = new ArrayList<>();
-        for (World world : Bukkit.getWorlds()) {
+        for (World w : Bukkit.getServer().getWorlds()) {
             try {
-                if (IrisToolbelt.access(world).getEngine() != null) {
-                    IrisWorlds.add(world);
+                Engine engine = IrisToolbelt.access(w).getEngine();
+                if (engine != null) {
+                    IrisWorlds.add(w);
                 }
             } catch (Exception e) {
-                // no
+                BukkitWorlds.add(w);
             }
         }
+
         if (sender().isPlayer()) {
-            sender.sendMessage(C.IRIS + "Iris Worlds:");
-            for (World world : IrisWorlds) {
-                sender.sendMessage(C.GREEN + "- " + world.getName());
+            sender().sendMessage(C.BLUE + "Iris Worlds: ");
+            for (World IrisWorld : IrisWorlds.copy()) {
+                sender().sendMessage(C.IRIS + "- " +IrisWorld.getName());
+            }
+            sender().sendMessage(C.GOLD + "Bukkit Worlds: ");
+            for (World BukkitWorld : BukkitWorlds.copy()) {
+                sender().sendMessage(C.GRAY + "- " +BukkitWorld.getName());
             }
         } else {
-            Iris.info(C.IRIS + "Iris Worlds:");
-            for (World world : IrisWorlds) {
-                sender.sendMessage(C.GREEN + "- " + world.getName());
+            Iris.info(C.BLUE + "Iris Worlds: ");
+            for (World IrisWorld : IrisWorlds.copy()) {
+                Iris.info(C.IRIS + "- " +IrisWorld.getName());
             }
+            Iris.info(C.GOLD + "Bukkit Worlds: ");
+            for (World BukkitWorld : BukkitWorlds.copy()) {
+                Iris.info(C.GRAY + "- " +BukkitWorld.getName());
+            }
+            
         }
     }
 
@@ -622,6 +626,6 @@ public class CommandIris implements DecreeExecutor {
             ff.mkdirs();
             service(StudioSVC.class).installIntoWorld(sender, dim.getLoadKey(), ff.getParentFile());
         }
-        return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey());
+        return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey(), false);
     }
 }

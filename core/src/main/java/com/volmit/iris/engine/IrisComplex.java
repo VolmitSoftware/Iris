@@ -292,7 +292,7 @@ public class IrisComplex implements DataProvider {
                 double b = 0;
 
                 for (IrisGenerator gen : generators) {
-                    b += bx.getGenLinkMax(gen.getLoadKey());
+                    b += bx.getGenLinkMax(gen.getLoadKey(), engine);
                 }
 
                 return b;
@@ -311,7 +311,7 @@ public class IrisComplex implements DataProvider {
                 double b = 0;
 
                 for (IrisGenerator gen : generators) {
-                    b += bx.getGenLinkMin(gen.getLoadKey());
+                    b += bx.getGenLinkMin(gen.getLoadKey(), engine);
                 }
 
                 return b;

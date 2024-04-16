@@ -73,10 +73,11 @@ public class Chunk {
     }
 
     public static Chunk newChunk() {
+        World mainWorld = getServer().getWorlds().get(0);
         Chunk c = new Chunk(0);
         c.dataVersion = DEFAULT_DATA_VERSION;
         c.data = new CompoundTag();
-        c.biomes = INMS.get().newBiomeContainer(0, 256);
+        c.biomes = INMS.get().newBiomeContainer(mainWorld.getMinHeight(), mainWorld.getMaxHeight());
         c.data.put("Level", defaultLevel());
         c.status = "full";
         return c;

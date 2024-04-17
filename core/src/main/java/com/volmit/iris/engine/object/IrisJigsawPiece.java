@@ -102,7 +102,11 @@ public class IrisJigsawPiece extends IrisRegistrant {
 
     public IrisJigsawPiece copy() {
         var gson = getLoader().getGson();
-        return gson.fromJson(gson.toJson(this), IrisJigsawPiece.class);
+        IrisJigsawPiece copy = gson.fromJson(gson.toJson(this), IrisJigsawPiece.class);
+        copy.setLoader(getLoader());
+        copy.setLoadKey(getLoadKey());
+        copy.setLoadFile(getLoadFile());
+        return copy;
     }
 
     public boolean isTerminal() {

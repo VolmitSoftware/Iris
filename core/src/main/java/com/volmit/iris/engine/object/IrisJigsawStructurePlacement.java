@@ -18,10 +18,13 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -45,4 +48,20 @@ public class IrisJigsawStructurePlacement {
     @Required
     @Desc("The 1 in X chance rarity")
     private int rarity = 100;
+
+    @ArrayType(type = IrisJigsawDistance.class)
+    @Desc("List of distances to check for")
+    private KList<IrisJigsawDistance> distances = new KList<>();
+
+    public KMap<String, Integer> collectDistances() {
+        KMap<String, Integer> map = new KMap<>();
+        for (IrisJigsawDistance d : distances) {
+            map.compute(d.getStructure(), (k, v) -> v != null ? Math.min(toChunks(d.getDistance()), v) : toChunks(d.getDistance()));
+        }
+        return map;
+    }
+
+    private int toChunks(int blocks) {
+        return (int) Math.ceil(blocks / 16d);
+    }
 }

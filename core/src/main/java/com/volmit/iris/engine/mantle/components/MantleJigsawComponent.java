@@ -24,12 +24,15 @@ import com.volmit.iris.engine.mantle.IrisMantleComponent;
 import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.slices.container.JigsawStructuresContainer;
 import com.volmit.iris.util.noise.CNG;
 
 import java.util.List;
@@ -68,21 +71,58 @@ public class MantleJigsawComponent extends IrisMantleComponent {
             }
         }
 
-        boolean placed = placeStructures(writer, rng, x, z, biome.getJigsawStructures());
+        KSet<Position2> cachedRegions = new KSet<>();
+        KMap<String, KSet<Position2>> cache = new KMap<>();
+        KMap<Position2, Double> distanceCache = new KMap<>();
+        boolean placed = placeStructures(writer, rng, x, z, biome.getJigsawStructures(), cachedRegions, cache, distanceCache);
         if (!placed)
-            placed = placeStructures(writer, rng, x, z, region.getJigsawStructures());
+            placed = placeStructures(writer, rng, x, z, region.getJigsawStructures(), cachedRegions, cache, distanceCache);
         if (!placed)
-            placeStructures(writer, rng, x, z, getDimension().getJigsawStructures());
+            placeStructures(writer, rng, x, z, getDimension().getJigsawStructures(), cachedRegions, cache, distanceCache);
     }
 
     @ChunkCoordinates
-    private boolean placeStructures(MantleWriter writer, RNG rng, int x, int z, KList<IrisJigsawStructurePlacement> structures) {
+    private boolean placeStructures(MantleWriter writer, RNG rng, int x, int z, KList<IrisJigsawStructurePlacement> structures,
+            KSet<Position2> cachedRegions, KMap<String, KSet<Position2>> cache, KMap<Position2, Double> distanceCache) {
         for (IrisJigsawStructurePlacement i : structures) {
             if (rng.nextInt(i.getRarity()) == 0) {
+                if (checkDistances(i.collectDistances(), x, z, cachedRegions, cache, distanceCache))
+                    continue;
                 IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
                 IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
-                place(writer, position, structure, rng);
-                return true;
+                if (place(writer, position, structure, rng))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    @ChunkCoordinates
+    private boolean checkDistances(KMap<String, Integer> distances, int x, int z, KSet<Position2> cachedRegions, KMap<String, KSet<Position2>> cache, KMap<Position2, Double> distanceCache) {
+        int range = 0;
+        for (int d : distances.values())
+            range = Math.max(range, d);
+
+        for (int xx = -range; xx <= range; xx++) {
+            for (int zz = -range; zz <= range; zz++) {
+                Position2 pos = new Position2((xx + x) >> 5, (zz + z) >> 5);
+                if (cachedRegions.contains(pos)) continue;
+                cachedRegions.add(pos);
+                JigsawStructuresContainer container = getMantle().get(pos.getX(), 0, pos.getZ(), JigsawStructuresContainer.class);
+                if (container == null) continue;
+                for (String key : container.getStructures()) {
+                    cache.computeIfAbsent(key, k -> new KSet<>()).addAll(container.getPositions(key));
+                }
+            }
+        }
+        Position2 pos = new Position2(x, z);
+        for (String structure : distances.keySet()) {
+            if (!cache.containsKey(structure)) continue;
+            double maxDist = distances.get(structure);
+            maxDist = maxDist * maxDist;
+            for (Position2 sPos : cache.get(structure)) {
+                double dist = distanceCache.computeIfAbsent(sPos,  position2 -> position2.distance(pos));
+                if (dist > maxDist) return true;
             }
         }
         return false;
@@ -91,7 +131,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
     @ChunkCoordinates
     public IrisJigsawStructure guess(int x, int z) {
         // todo The guess doesnt bring into account that the placer may return -1
-        boolean t = false;
+        // todo doesnt bring skipped placements into account
         RNG rng = new RNG(cng.fit(-Integer.MAX_VALUE, Integer.MAX_VALUE, x, z));
         IrisBiome biome = getEngineMantle().getEngine().getSurfaceBiome((x << 4) + 8, (z << 4) + 8);
         IrisRegion region = getEngineMantle().getEngine().getRegion((x << 4) + 8, (z << 4) + 8);
@@ -130,7 +170,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
     }
 
     @BlockCoordinates
-    private void place(MantleWriter writer, IrisPosition position, IrisJigsawStructure structure, RNG rng) {
-        new PlannedStructure(structure, position, rng).place(writer, getMantle(), writer.getEngine());
+    private boolean place(MantleWriter writer, IrisPosition position, IrisJigsawStructure structure, RNG rng) {
+        return new PlannedStructure(structure, position, rng).place(writer, getMantle(), writer.getEngine());
     }
 }

@@ -85,7 +85,7 @@ import java.util.function.Supplier;
 public class CommandStudio implements DecreeExecutor {
     private CommandFind find;
     private CommandEdit edit;
-    private CommandDeepSearch deepSearch;
+    //private CommandDeepSearch deepSearch;
 
     public static String hrf(Duration duration) {
         return duration.toString().substring(2).replaceAll("(\\d[HMS])(?!$)", "$1 ").toLowerCase();

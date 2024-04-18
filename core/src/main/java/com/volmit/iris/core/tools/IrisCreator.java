@@ -113,13 +113,6 @@ public class IrisCreator {
      */
 
     public World create() throws IrisException {
-        if (unstablemode){
-            Iris.info(C.RED + "Your server is experiencing an incompatibility with the Iris plugin. Please rectify this problem to avoid further complications.");
-            Iris.info(C.RED + "----------------------------------------------------------------");
-            Iris.info(C.RED + "Operation ran: Loading Iris World..");
-            UtilsSFG.printIncompatibleWarnings();
-            Iris.info(C.RED + "----------------------------------------------------------------");
-        }
         if (Bukkit.isPrimaryThread()) {
             throw new IrisException("You cannot invoke create() on the main thread.");
         }

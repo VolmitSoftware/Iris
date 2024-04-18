@@ -27,10 +27,12 @@ import com.volmit.iris.util.nbt.io.NamedTag;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
+import org.bukkit.World;
 
 import java.io.*;
 
 import static com.volmit.iris.util.nbt.mca.LoadFlags.*;
+import static org.bukkit.Bukkit.getServer;
 
 public class Chunk {
     public static final int DEFAULT_DATA_VERSION = 2730;
@@ -71,10 +73,11 @@ public class Chunk {
     }
 
     public static Chunk newChunk() {
+        World mainWorld = getServer().getWorlds().get(0);
         Chunk c = new Chunk(0);
         c.dataVersion = DEFAULT_DATA_VERSION;
         c.data = new CompoundTag();
-        c.biomes = INMS.get().newBiomeContainer(0, 256);
+        c.biomes = INMS.get().newBiomeContainer(mainWorld.getMinHeight(), mainWorld.getMaxHeight());
         c.data.put("Level", defaultLevel());
         c.status = "full";
         return c;
@@ -95,11 +98,12 @@ public class Chunk {
         if ((level = data.getCompoundTag("Level")) == null) {
             throw new IllegalArgumentException("data does not contain \"Level\" tag");
         }
+        World mainWorld = getServer().getWorlds().get(0);
         dataVersion = data.getInt("DataVersion");
         inhabitedTime = level.getLong("InhabitedTime");
         lastUpdate = level.getLong("LastUpdate");
         if ((loadFlags & BIOMES) != 0) {
-            biomes = INMS.get().newBiomeContainer(0, 256, level.getIntArray("Biomes"));
+            biomes = INMS.get().newBiomeContainer(mainWorld.getMinHeight(), mainWorld.getMaxHeight(), level.getIntArray("Biomes"));
         }
         if ((loadFlags & HEIGHTMAPS) != 0) {
             heightMaps = level.getCompoundTag("Heightmaps");

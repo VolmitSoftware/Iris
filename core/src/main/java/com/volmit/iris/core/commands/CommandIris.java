@@ -78,7 +78,6 @@ public class CommandIris implements DecreeExecutor {
     private CommandFind find;
     private CommandDeveloper developer;
     public static boolean worldCreation = false;
-    String WorldToLoad;
     String WorldEngine;
     String worldNameToCheck = "YourWorldName";
     VolmitSender sender = Iris.getSender();
@@ -477,7 +476,7 @@ public class CommandIris implements DecreeExecutor {
             sender().sendMessage(C.YELLOW + world + " Doesnt exist on the server.");
             return;
         }
-        WorldToLoad = world;
+
         File BUKKIT_YML = new File("bukkit.yml");
         String pathtodim = world + File.separator +"iris"+File.separator +"pack"+File.separator +"dimensions"+File.separator;
         File directory = new File(Bukkit.getWorldContainer(), pathtodim);
@@ -515,7 +514,7 @@ public class CommandIris implements DecreeExecutor {
                 e.printStackTrace();
             }
         }
-        checkForBukkitWorlds();
+        checkForBukkitWorlds(world);
         sender().sendMessage(C.GREEN + world + " loaded successfully.");
     }
     @Decree(description = "Evacuate an iris world", origin = DecreeOrigin.PLAYER, sync = true)
@@ -536,7 +535,7 @@ public class CommandIris implements DecreeExecutor {
         File worldDirectory = new File(worldContainer, worldName);
         return worldDirectory.exists() && worldDirectory.isDirectory();
     }
-    private void checkForBukkitWorlds() {
+    private void checkForBukkitWorlds(String world) {
         FileConfiguration fc = new YamlConfiguration();
         try {
             fc.load(new File("bukkit.yml"));
@@ -545,9 +544,9 @@ public class CommandIris implements DecreeExecutor {
                 return;
             }
 
-            List<String> worldsToLoad = Collections.singletonList(WorldToLoad);
+            List<String> worldsToLoad = Collections.singletonList(world);
 
-            for (String s : section.getKeys(false)) {
+             for (String s : section.getKeys(false)) {
                 if (!worldsToLoad.contains(s)) {
                     continue;
                 }

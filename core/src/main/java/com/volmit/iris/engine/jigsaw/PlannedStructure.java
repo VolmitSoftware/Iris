@@ -118,7 +118,7 @@ public class PlannedStructure {
             if (i.getStructure().getStructure().getOverrideYRange() != null) {
                 height = (int) i.getStructure().getStructure().getOverrideYRange().get(rng, xx, zz, getData());
             } else {
-                height = placer.getHighest(xx, zz, getData());
+                height = placer.getHighest(xx, zz, getData(), options.isUnderwater());
             }
         } else {
             height = i.getStructure().getStructure().getLockY();

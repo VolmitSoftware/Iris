@@ -4,28 +4,30 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.math.Spiraler;
+import com.volmit.iris.util.reflect.V;
+import com.volmit.iris.util.scheduling.J;
 import io.papermc.lib.PaperLib;
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
 
 import java.io.File;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ChunkUpdater {
     private AtomicBoolean cancelled;
-    private KList<int[]> chunkMap;
+    private KMap<Chunk, Long> lastUse;
     private final RollingSequence chunksPerSecond;
     private final RollingSequence mcaregionsPerSecond;
     private final AtomicInteger worldheightsize;
@@ -50,7 +52,7 @@ public class ChunkUpdater {
         this.chunksPerSecond = new RollingSequence(10);
         this.mcaregionsPerSecond = new RollingSequence(10);
         this.world = world;
-        this.chunkMap = new KList<>();
+        this.lastUse = new KMap();
         this.McaFiles = new File(world.getWorldFolder(), "region").listFiles((dir, name) -> name.endsWith(".mca"));
         this.worldheightsize = new AtomicInteger(calculateWorldDimensions(new File(world.getWorldFolder(), "region"), 1));
         this.worldwidthsize = new AtomicInteger(calculateWorldDimensions(new File(world.getWorldFolder(), "region"), 0));
@@ -74,6 +76,7 @@ public class ChunkUpdater {
     }
 
     public void start() {
+        unloadAndSaveAllChunks();
         update();
     }
 
@@ -90,7 +93,7 @@ public class ChunkUpdater {
                     double cps = elapsedSeconds > 0 ? processed / (double) elapsedSeconds : 0;
                     chunksPerSecond.put(cps);
                     double percentage = ((double) chunksProcessed.get() / (double) totalMaxChunks.get()) * 100;
-                    Iris.info("Updated: " + Form.f(processed) + " of : " + Form.f(totalMaxChunks.get()) + " (%.0f%%) " + Form.f(chunksPerSecond.getAverage()) + "/s, ETA: " + Form.duration(eta, 2), percentage);
+                    Iris.info("Updated: " + Form.f(processed) + " of " + Form.f(totalMaxChunks.get()) + " (%.0f%%) " + Form.f(chunksPerSecond.getAverage()) + "/s, ETA: " + Form.duration(eta, 2), percentage);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -113,12 +116,73 @@ public class ChunkUpdater {
     private void processNextChunk() {
         int pos = position.getAndIncrement();
         int[] coords = getChunk(pos);
-        if (PaperLib.isChunkGenerated(world, coords[0], coords[1])) {
-            Chunk chunk = world.getChunkAt(coords[0], coords[1]);
-            engine.updateChunk(chunk);
-            chunksUpdated.getAndIncrement();
+        if (areAllChunksGenerated(coords[0], coords[1])) {
+            CompletableFuture<Void> chunkFuture = loadChunksIfGenerated(coords[0], coords[1]);
+            chunkFuture.thenAccept(chunk -> {
+                Chunk c = world.getChunkAt(coords[0], coords[1]);
+                engine.updateChunk(c);
+                chunksUpdated.getAndIncrement();
+            });
         }
         chunksProcessed.getAndIncrement();
+    }
+
+    private boolean areAllChunksGenerated(int x, int z) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                if (!PaperLib.isChunkGenerated(world, x + dx, z + dz)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private CompletableFuture<Void> loadChunksIfGenerated(int x, int z) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        if (areAllChunksGenerated(x, z)) {
+            Runnable task = () -> {
+                try {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        for (int dz = -1; dz <= 1; dz++) {
+                            Chunk c = world.getChunkAt(x + dx, z + dz);
+                            world.loadChunk(c);
+                            lastUse.put(c, M.ms());
+                        }
+                    }
+                    future.complete(null);
+                } catch (Exception e) {
+                    future.completeExceptionally(e);
+                }
+            };
+            Bukkit.getScheduler().runTask(Iris.instance, task);
+        } else {
+            future.completeExceptionally(new IllegalStateException("Not all chunks are generated"));
+        }
+        return future;
+    }
+
+
+    private void unloadAndSaveAllChunks() {
+        try {
+            J.sfut(() -> {
+                if (world == null) {
+                    Iris.warn("World was null somehow...");
+                    return;
+                }
+
+                for (Chunk i : new ArrayList<>(lastUse.keySet())) {
+                    Long lastUseTime = lastUse.get(i);
+                    if (lastUseTime != null && M.ms() - lastUseTime >= 5000) {
+                        i.unload();
+                        lastUse.remove(i);
+                    }
+                }
+                world.save();
+            }).get();
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
     }
 
     private long computeETA() {

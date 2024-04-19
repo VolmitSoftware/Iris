@@ -165,7 +165,7 @@ public class PlannedPiece {
         return connected.size() >= piece.getConnectors().size() || isDead();
     }
 
-    public void place(World world) {
+    public boolean place(World world) {
         PlatformChunkGenerator a = IrisToolbelt.access(world);
 
         int minY = 0;
@@ -175,14 +175,16 @@ public class PlannedPiece {
             if (!a.getEngine().getDimension().isBedrock())
                 minY--; //If the dimension has no bedrock, allow it to go a block lower
         }
+        Engine engine = a != null ? a.getEngine() : IrisContext.get().getEngine();
 
         getPiece().getPlacementOptions().setTranslate(new IrisObjectTranslate());
-        getPiece().getPlacementOptions().setRotation(rotation);
+        getPiece().getPlacementOptions().getRotation().setEnabled(false);
+        getPiece().getPlacementOptions().setRotateTowardsSlope(false);
         int finalMinY = minY;
         RNG rng = getStructure().getRng().nextParallelRNG(37555);
 
         // TODO: REAL CLASSES!!!!!!!
-        getOgObject().place(position.getX() + getObject().getCenter().getBlockX(), position.getY() + getObject().getCenter().getBlockY(), position.getZ() + getObject().getCenter().getBlockZ(), new IObjectPlacer() {
+        return getObject().place(position.getX() + getObject().getCenter().getBlockX(), position.getY() + getObject().getCenter().getBlockY(), position.getZ() + getObject().getCenter().getBlockZ(), new IObjectPlacer() {
             @Override
             public int getHighest(int x, int z, IrisData data) {
                 return position.getY();
@@ -207,7 +209,6 @@ public class PlannedPiece {
 
                     IrisLootTable table = getPiece().getPlacementOptions().getTable(block.getBlockData(), getData());
                     if (table == null) return;
-                    Engine engine = a.getEngine();
                     engine.addItems(false, ((InventoryHolder) block.getState()).getInventory(),
                             rng.nextParallelRNG(BlockPosition.toLong(x, y, z)),
                             new KList<>(table), InventorySlotType.STORAGE, x, y, z, 15);
@@ -258,12 +259,8 @@ public class PlannedPiece {
 
             @Override
             public Engine getEngine() {
-                if (IrisToolbelt.isIrisWorld(world)) {
-                    return IrisToolbelt.access(world).getEngine();
-                }
-
-                return IrisContext.get().getEngine();
+                return engine;
             }
-        }, piece.getPlacementOptions(), rng, getData());
+        }, piece.getPlacementOptions(), rng, getData().getEngine() == null ? engine.getData() : getData()) != -1;
     }
 }

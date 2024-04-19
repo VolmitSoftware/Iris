@@ -34,6 +34,9 @@ import lombok.Data;
 import org.bukkit.Axis;
 import org.bukkit.World;
 
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntConsumer;
+
 @Data
 public class PlannedStructure {
     private static ConcurrentLinkedHashMap<String, IrisObject> objectRotationCache
@@ -138,9 +141,16 @@ public class PlannedStructure {
         }, null, getData()) != -1;
     }
 
-    public void place(World world) {
+    public void place(World world, IntConsumer consumer) {
+        AtomicInteger processed = new AtomicInteger();
+        AtomicInteger failures = new AtomicInteger();
         for (PlannedPiece i : pieces) {
-            Iris.sq(() -> i.place(world));
+            Iris.sq(() -> {
+                if (!i.place(world)) failures.incrementAndGet();
+                if (processed.incrementAndGet() == pieces.size()) {
+                    consumer.accept(failures.get());
+                }
+            });
         }
     }
 

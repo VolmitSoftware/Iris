@@ -1,18 +1,27 @@
 package com.volmit.iris.core.pregenerator;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.math.Spiraler;
-import com.volmit.iris.util.nbt.mca.MCAFile;
-import com.volmit.iris.util.nbt.mca.MCAUtil;
+import io.papermc.lib.PaperLib;
+import org.bukkit.Chunk;
 import org.bukkit.World;
 
 
 import java.io.File;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class ChunkUpdater {
     private AtomicBoolean cancelled;
@@ -25,12 +34,19 @@ public class ChunkUpdater {
     private final AtomicInteger totalMaxChunks;
     private final AtomicInteger totalMcaregions;
     private final AtomicInteger position;
+    private AtomicInteger chunksProcessed;
+    private AtomicInteger chunksUpdated;
+    private AtomicLong startTime;
+    private ExecutorService executor;
+    private ScheduledExecutorService scheduler;
     private final File[] McaFiles;
+    private final Engine engine;
     private final World world;
 
     public ChunkUpdater(World world) {
         File cacheDir = new File("plugins" + File.separator + "iris" + File.separator + "cache");
         File chunkCacheDir = new File("plugins" + File.separator + "iris" + File.separator + "cache" + File.separator + "spiral");
+        this.engine = IrisToolbelt.access(world).getEngine();
         this.chunksPerSecond = new RollingSequence(10);
         this.mcaregionsPerSecond = new RollingSequence(10);
         this.world = world;
@@ -38,31 +54,80 @@ public class ChunkUpdater {
         this.McaFiles = new File(world.getWorldFolder(), "region").listFiles((dir, name) -> name.endsWith(".mca"));
         this.worldheightsize = new AtomicInteger(calculateWorldDimensions(new File(world.getWorldFolder(), "region"), 1));
         this.worldwidthsize = new AtomicInteger(calculateWorldDimensions(new File(world.getWorldFolder(), "region"), 0));
-        this.totalMaxChunks = new AtomicInteger((worldheightsize.get() / 16 ) * (worldwidthsize.get() / 16));
+        int m = Math.max(worldheightsize.get(), worldwidthsize.get());
+        this.executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() - 2);
+        this.scheduler = Executors.newScheduledThreadPool(1);
+        this.startTime = new AtomicLong();
+        this.worldheightsize.set(m);
+        this.worldwidthsize.set(m);
+        this.totalMaxChunks = new AtomicInteger((worldheightsize.get() / 16) * (worldwidthsize.get() / 16));
+        this.chunksProcessed = new AtomicInteger();
+        this.chunksUpdated = new AtomicInteger();
         this.position = new AtomicInteger(0);
         this.cancelled = new AtomicBoolean(false);
         this.totalChunks = new AtomicInteger(0);
         this.totalMcaregions = new AtomicInteger(0);
     }
 
-    public void start() {
-        Initialize();
+    public int getChunks() {
+        return totalMaxChunks.get();
     }
 
-    public void Initialize() {
-        Iris.info("Initializing..");
+    public void start() {
+        update();
+    }
+
+
+    private void update() {
+        Iris.info("Updating..");
         try {
-            for (File mca : McaFiles) {
-                MCAFile MCARegion = MCAUtil.read(mca);
-                for (int pos = 0; pos != totalMaxChunks.get(); pos++) {
-                    int[] coords = getChunk(pos);
-                    if(MCARegion.hasChunk(coords[0], coords[1])) chunkMap.add(coords);
+            startTime.set(System.currentTimeMillis());
+            scheduler.scheduleAtFixedRate(() -> {
+                try {
+                    long eta = computeETA();
+                    long elapsedSeconds = (System.currentTimeMillis() - startTime.get()) / 1000;
+                    int processed = chunksProcessed.get();
+                    double cps = elapsedSeconds > 0 ? processed / (double) elapsedSeconds : 0;
+                    chunksPerSecond.put(cps);
+                    double percentage = ((double) chunksProcessed.get() / (double) totalMaxChunks.get()) * 100;
+                    Iris.info("Updated: " + Form.f(processed) + " of : " + Form.f(totalMaxChunks.get()) + " (%.0f%%) " + Form.f(chunksPerSecond.getAverage()) + "/s, ETA: " + Form.duration(eta, 2), percentage);
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
+            }, 0, 3, TimeUnit.SECONDS);
+
+            for (int i = 0; i < totalMaxChunks.get(); i++) {
+                executor.submit(this::processNextChunk);
             }
-            Iris.info("Finished Initializing..");
+
+            executor.shutdown();
+            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            scheduler.shutdownNow();
+            Iris.info("Processed: " + Form.f(chunksProcessed.get()) + " Chunks");
+            Iris.info("Finished Updating: " + Form.f(chunksUpdated.get()) + " Chunks");
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void processNextChunk() {
+        int pos = position.getAndIncrement();
+        int[] coords = getChunk(pos);
+        if (PaperLib.isChunkGenerated(world, coords[0], coords[1])) {
+            Chunk chunk = world.getChunkAt(coords[0], coords[1]);
+            engine.updateChunk(chunk);
+            chunksUpdated.getAndIncrement();
+        }
+        chunksProcessed.getAndIncrement();
+    }
+
+    private long computeETA() {
+        return (long) (totalMaxChunks.get() > 1024 ? // Generated chunks exceed 1/8th of total?
+                // If yes, use smooth function (which gets more accurate over time since its less sensitive to outliers)
+                ((totalMaxChunks.get() - chunksProcessed.get()) * ((double) (M.ms() - startTime.get()) / (double) chunksProcessed.get())) :
+                // If no, use quick function (which is less accurate over time but responds better to the initial delay)
+                ((totalMaxChunks.get() - chunksProcessed.get()) / chunksPerSecond.getAverage()) * 1000
+        );
     }
 
     public int calculateWorldDimensions(File regionDir, Integer o) {

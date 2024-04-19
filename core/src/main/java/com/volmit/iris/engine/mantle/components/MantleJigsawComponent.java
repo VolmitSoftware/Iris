@@ -118,11 +118,11 @@ public class MantleJigsawComponent extends IrisMantleComponent {
         Position2 pos = new Position2(x, z);
         for (String structure : distances.keySet()) {
             if (!cache.containsKey(structure)) continue;
-            double maxDist = distances.get(structure);
-            maxDist = maxDist * maxDist;
+            double minDist = distances.get(structure);
+            minDist = minDist * minDist;
             for (Position2 sPos : cache.get(structure)) {
                 double dist = distanceCache.computeIfAbsent(sPos,  position2 -> position2.distance(pos));
-                if (dist > maxDist) return true;
+                if (minDist > dist) return true;
             }
         }
         return false;

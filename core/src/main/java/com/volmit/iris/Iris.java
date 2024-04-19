@@ -806,9 +806,6 @@ public class Iris extends VolmitPlugin implements Listener {
         } else {
             splash = splashstable;
         }
-        OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
-        String osArch = osBean.getArch();
-        String osName = osBean.getName();
 
         if (!passedserversoftware) {
             Iris.info("Server type & version: " + C.RED + Bukkit.getVersion());
@@ -821,35 +818,9 @@ public class Iris extends VolmitPlugin implements Listener {
                 Iris.info(C.YELLOW + "Purpur is recommended to use with iris.");
             }
         }
-        Iris.info("Server OS: " + osName + " (" + osArch + ")");
-
-        try {
-            if (warningmode){
-                Iris.info("Server Cpu: " + C.GOLD + getCPUModel());
-            } else {
-            if(unstablemode){
-                Iris.info("Server Cpu: " + C.DARK_RED + getCPUModel());
-            } else {
-                if (getCPUModel().contains("Intel")) {
-                    Iris.info("Server Cpu: " + C.BLUE + getCPUModel());
-                }
-                if (getCPUModel().contains("Ryzen")) {
-                    Iris.info("Server Cpu: " + C.RED + getCPUModel());
-                }
-                if (!getCPUModel().contains("Ryzen") && !getCPUModel().contains("Intel")) {
-                    Iris.info("Server Cpu: " + C.GRAY + getCPUModel());
-                }
-            }
-            }
-        } catch (Exception e){
-            Iris.info("Server Cpu: " + C.DARK_RED + "Failed");
-        }
-
-        Iris.info("Process Threads: " +  Runtime.getRuntime().availableProcessors());
-        Iris.info("Process Memory: " + getHardware.getProcessMemory() + " MB");
-        Iris.info("Free DiskSpace: " + Form.ofSize(freeSpace.getFreeSpace(), 1024));
         if (getHardware.getProcessMemory() < 5999) {
             Iris.warn("6GB+ Ram is recommended");
+            Iris.warn("Process Memory: " + getHardware.getProcessMemory() + " MB");
         }
         Iris.info("Bukkit version: " + Bukkit.getBukkitVersion());
         Iris.info("Custom Biomes: " + INMS.get().countCustomBiomes());

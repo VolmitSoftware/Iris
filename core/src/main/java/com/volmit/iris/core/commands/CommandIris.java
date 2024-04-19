@@ -78,6 +78,7 @@ public class CommandIris implements DecreeExecutor {
     private CommandWhat what;
     private CommandEdit edit;
     private CommandFind find;
+    private CommandSupport support;
     private CommandDeveloper developer;
     public static boolean worldCreation = false;
     String WorldEngine;
@@ -532,6 +533,7 @@ public class CommandIris implements DecreeExecutor {
             } catch (IOException e) {
                 Iris.error("Failed to update bukkit.yml!");
                 e.printStackTrace();
+                return;
             }
         }
         checkForBukkitWorlds(world);

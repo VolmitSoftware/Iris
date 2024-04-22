@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.mantle.components;
 
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.jigsaw.PlannedStructure;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.IrisMantleComponent;
@@ -34,20 +35,25 @@ import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.slices.container.JigsawStructuresContainer;
 import com.volmit.iris.util.noise.CNG;
+import com.volmit.iris.util.noise.NoiseType;
 
 import java.util.List;
 
 public class MantleJigsawComponent extends IrisMantleComponent {
-    private final CNG cng;
 
     public MantleJigsawComponent(EngineMantle engineMantle) {
         super(engineMantle, MantleFlag.JIGSAW);
-        cng = NoiseStyle.STATIC.create(new RNG(engineMantle.getEngine().getSeedManager().getJigsaw()));
+    }
+
+    private RNG applyNoise(int x, int z) {
+        long seed = Cache.key(x, z) + getEngineMantle().getEngine().getSeedManager().getJigsaw();
+        CNG cng = CNG.signatureFast(new RNG(seed), NoiseType.WHITE, NoiseType.GLOB);
+        return new RNG((long) (seed * cng.noise(x, z)));
     }
 
     @Override
     public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
-        RNG rng = new RNG(cng.fit(-Integer.MAX_VALUE, Integer.MAX_VALUE, x, z));
+        RNG rng = applyNoise(x, z);
         int xxx = 8 + (x << 4);
         int zzz = 8 + (z << 4);
         IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
@@ -132,7 +138,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
     public IrisJigsawStructure guess(int x, int z) {
         // todo The guess doesnt bring into account that the placer may return -1
         // todo doesnt bring skipped placements into account
-        RNG rng = new RNG(cng.fit(-Integer.MAX_VALUE, Integer.MAX_VALUE, x, z));
+        RNG rng = applyNoise(x, z);
         IrisBiome biome = getEngineMantle().getEngine().getSurfaceBiome((x << 4) + 8, (z << 4) + 8);
         IrisRegion region = getEngineMantle().getEngine().getRegion((x << 4) + 8, (z << 4) + 8);
 

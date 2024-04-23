@@ -92,7 +92,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
             KSet<Position2> cachedRegions, KMap<String, KSet<Position2>> cache, KMap<Position2, Double> distanceCache) {
         for (IrisJigsawStructurePlacement i : structures) {
             if (rng.nextInt(i.getRarity()) == 0) {
-                if (checkDistances(i.collectDistances(), x, z, cachedRegions, cache, distanceCache))
+                if (checkMinDistances(i.collectMinDistances(), x, z, cachedRegions, cache, distanceCache))
                     continue;
                 IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
                 IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
@@ -104,9 +104,9 @@ public class MantleJigsawComponent extends IrisMantleComponent {
     }
 
     @ChunkCoordinates
-    private boolean checkDistances(KMap<String, Integer> distances, int x, int z, KSet<Position2> cachedRegions, KMap<String, KSet<Position2>> cache, KMap<Position2, Double> distanceCache) {
+    private boolean checkMinDistances(KMap<String, Integer> minDistances, int x, int z, KSet<Position2> cachedRegions, KMap<String, KSet<Position2>> cache, KMap<Position2, Double> distanceCache) {
         int range = 0;
-        for (int d : distances.values())
+        for (int d : minDistances.values())
             range = Math.max(range, d);
 
         for (int xx = -range; xx <= range; xx++) {
@@ -122,9 +122,9 @@ public class MantleJigsawComponent extends IrisMantleComponent {
             }
         }
         Position2 pos = new Position2(x, z);
-        for (String structure : distances.keySet()) {
+        for (String structure : minDistances.keySet()) {
             if (!cache.containsKey(structure)) continue;
-            double minDist = distances.get(structure);
+            double minDist = minDistances.get(structure);
             minDist = minDist * minDist;
             for (Position2 sPos : cache.get(structure)) {
                 double dist = distanceCache.computeIfAbsent(sPos,  position2 -> position2.distance(pos));

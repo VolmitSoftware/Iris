@@ -1,7 +1,6 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
@@ -11,13 +10,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-@Snippet("jigsaw-structure-distance")
+@Snippet("jigsaw-structure-min-distance")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Desc("Represents the min distance between jigsaw structure placements")
 @Data
-public class IrisJigsawDistance {
+public class IrisJigsawMinDistance {
     @Required
     @RegistryListResource(IrisJigsawStructure.class)
     @Desc("The structure to check against")
@@ -25,7 +24,6 @@ public class IrisJigsawDistance {
 
     @Required
     @MinNumber(0)
-    @MaxNumber(5000)
     @Desc("The min distance in blocks to a placed structure\nWARNING: The performance impact scales exponentially!")
     private int distance;
 }

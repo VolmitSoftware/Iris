@@ -49,13 +49,13 @@ public class IrisJigsawStructurePlacement {
     @Desc("The 1 in X chance rarity")
     private int rarity = 100;
 
-    @ArrayType(type = IrisJigsawDistance.class)
-    @Desc("List of distances to check for")
-    private KList<IrisJigsawDistance> distances = new KList<>();
+    @ArrayType(type = IrisJigsawMinDistance.class)
+    @Desc("List of minimum distances to check for")
+    private KList<IrisJigsawMinDistance> minDistances = new KList<>();
 
-    public KMap<String, Integer> collectDistances() {
+    public KMap<String, Integer> collectMinDistances() {
         KMap<String, Integer> map = new KMap<>();
-        for (IrisJigsawDistance d : distances) {
+        for (IrisJigsawMinDistance d : minDistances) {
             map.compute(d.getStructure(), (k, v) -> v != null ? Math.min(toChunks(d.getDistance()), v) : toChunks(d.getDistance()));
         }
         return map;

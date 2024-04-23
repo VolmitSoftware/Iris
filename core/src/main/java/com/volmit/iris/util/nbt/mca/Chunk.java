@@ -41,6 +41,7 @@ public class Chunk {
     private int lastMCAUpdate;
     private CompoundTag data;
     private int dataVersion;
+    private int nativeIrisVersion;
     private long lastUpdate;
     private long inhabitedTime;
     private MCABiomeContainer biomes;
@@ -83,6 +84,11 @@ public class Chunk {
         return c;
     }
 
+    public static void injectIrisData(Chunk c) {
+        World mainWorld = getServer().getWorlds().get(0);
+        c.data.put("Iris", nativeIrisVersion());
+    }
+
     private static CompoundTag defaultLevel() {
         CompoundTag level = new CompoundTag();
         level.putString("Status", "full");
@@ -90,14 +96,19 @@ public class Chunk {
         return level;
     }
 
+    private static CompoundTag nativeIrisVersion() {
+        CompoundTag level = new CompoundTag();
+        level.putString("Generator", "Iris " + Iris.instance.getDescription().getVersion());
+        return level;
+    }
+
     private void initReferences(long loadFlags) {
         if (data == null) {
             throw new NullPointerException("data cannot be null");
         }
-        CompoundTag level;
-        if ((level = data.getCompoundTag("Level")) == null) {
-            throw new IllegalArgumentException("data does not contain \"Level\" tag");
-        }
+
+        CompoundTag level = data;
+
         World mainWorld = getServer().getWorlds().get(0);
         dataVersion = data.getInt("DataVersion");
         inhabitedTime = level.getLong("InhabitedTime");

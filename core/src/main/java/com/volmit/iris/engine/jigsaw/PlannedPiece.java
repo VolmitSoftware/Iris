@@ -30,6 +30,7 @@ import com.volmit.iris.util.math.AxisAlignedBB;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.RNG;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -50,10 +51,12 @@ public class PlannedPiece {
     private IrisObject ogObject;
     private IrisJigsawPiece piece;
     private IrisObjectRotation rotation;
+    @EqualsAndHashCode.Exclude
     private IrisData data;
     private KList<IrisJigsawPieceConnector> connected;
     private boolean dead = false;
     private AxisAlignedBB box;
+    @EqualsAndHashCode.Exclude
     private PlannedStructure structure;
 
     public PlannedPiece(PlannedStructure structure, IrisPosition position, IrisJigsawPiece piece) {

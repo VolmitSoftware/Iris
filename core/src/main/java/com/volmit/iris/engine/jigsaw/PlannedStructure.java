@@ -23,17 +23,19 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.slices.container.JigsawPieceContainer;
+import com.volmit.iris.util.matter.slices.container.JigsawStructuresContainer;
 import lombok.Data;
 import org.bukkit.Axis;
 import org.bukkit.World;
-import org.bukkit.block.TileState;
-import org.bukkit.block.data.BlockData;
+
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntConsumer;
 
 @Data
 public class PlannedStructure {
@@ -74,27 +76,38 @@ public class PlannedStructure {
         }
     }
 
-    public void place(IObjectPlacer placer, Mantle e, Engine eng) {
+    public boolean place(IObjectPlacer placer, Mantle e, Engine eng) {
         IrisObjectPlacement options = new IrisObjectPlacement();
-        options.getRotation().setEnabled(false);
+        options.setRotation(IrisObjectRotation.of(0,0,0));
         int startHeight = pieces.get(0).getPosition().getY();
 
+        boolean placed = false;
         for (PlannedPiece i : pieces) {
-            place(i, startHeight, options, placer, e, eng);
+            if (place(i, startHeight, options, placer, e, eng))
+                placed = true;
         }
+        if (placed) {
+            Position2 chunkPos = new Position2(position.getX() >> 4, position.getZ() >> 4);
+            Position2 regionPos = new Position2(chunkPos.getX() >> 5, chunkPos.getZ() >> 5);
+            JigsawStructuresContainer slice = e.get(regionPos.getX(), 0, regionPos.getZ(), JigsawStructuresContainer.class);
+            if (slice == null) slice = new JigsawStructuresContainer();
+            slice.add(structure, chunkPos);
+            e.set(regionPos.getX(), 0, regionPos.getZ(), slice);
+        }
+        return placed;
     }
 
-    public void place(PlannedPiece i, int startHeight, IrisObjectPlacement o, IObjectPlacer placer, Mantle e, Engine eng) {
+    public boolean place(PlannedPiece i, int startHeight, IrisObjectPlacement o, IObjectPlacer placer, Mantle e, Engine eng) {
         IrisObjectPlacement options = o;
 
         if (i.getPiece().getPlacementOptions() != null) {
             options = i.getPiece().getPlacementOptions();
             options.getRotation().setEnabled(false);
+            options.setRotateTowardsSlope(false);
         } else {
             options.setMode(i.getPiece().getPlaceMode());
         }
 
-        IrisObject vo = i.getOgObject();
         IrisObject v = i.getObject();
         int sx = (v.getW() / 2);
         int sz = (v.getD() / 2);
@@ -108,7 +121,7 @@ public class PlannedStructure {
             if (i.getStructure().getStructure().getOverrideYRange() != null) {
                 height = (int) i.getStructure().getStructure().getOverrideYRange().get(rng, xx, zz, getData());
             } else {
-                height = placer.getHighest(xx, zz, getData());
+                height = placer.getHighest(xx, zz, getData(), options.isUnderwater());
             }
         } else {
             height = i.getStructure().getStructure().getLockY();
@@ -122,15 +135,22 @@ public class PlannedStructure {
 
         int id = rng.i(0, Integer.MAX_VALUE);
         JigsawPieceContainer container = JigsawPieceContainer.toContainer(i.getPiece());
-        vo.place(xx, height, zz, placer, options, rng, (b, data) -> {
+        return v.place(xx, height, zz, placer, options, rng, (b, data) -> {
             e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);
             e.set(b.getX(), b.getY(), b.getZ(), container);
-        }, null, getData());
+        }, null, getData()) != -1;
     }
 
-    public void place(World world) {
+    public void place(World world, IntConsumer consumer) {
+        AtomicInteger processed = new AtomicInteger();
+        AtomicInteger failures = new AtomicInteger();
         for (PlannedPiece i : pieces) {
-            Iris.sq(() -> i.place(world));
+            Iris.sq(() -> {
+                if (!i.place(world)) failures.incrementAndGet();
+                if (processed.incrementAndGet() == pieces.size()) {
+                    consumer.accept(failures.get());
+                }
+            });
         }
     }
 
@@ -167,9 +187,7 @@ public class PlannedStructure {
 
     private boolean generateRotatedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, IrisJigsawPiece idea) {
         if (!piece.getPiece().getPlacementOptions().getRotation().isEnabled()) {
-            if (generateRotatedPiece(piece, pieceConnector, idea, 0, 0, 0)) {
-                return true;
-            }
+            return generateRotatedPiece(piece, pieceConnector, idea, 0, 0, 0);
         }
 
         KList<Integer> forder1 = new KList<Integer>().qadd(0).qadd(1).qadd(2).qadd(3).shuffle(rng);
@@ -216,7 +234,7 @@ public class PlannedStructure {
     }
 
     private boolean generateRotatedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, IrisJigsawPiece idea, int x, int y, int z) {
-        return generateRotatedPiece(piece, pieceConnector, idea, IrisObjectRotation.of(x, y, z));
+        return generateRotatedPiece(piece, pieceConnector, idea, IrisObjectRotation.of(x * 90D, y * 90D, z * 90D));
     }
 
     private boolean generatePositionedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, PlannedPiece test, IrisJigsawPieceConnector testConnector) {

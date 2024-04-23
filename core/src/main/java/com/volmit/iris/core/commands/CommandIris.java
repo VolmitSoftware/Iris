@@ -78,6 +78,7 @@ public class CommandIris implements DecreeExecutor {
     private CommandWhat what;
     private CommandEdit edit;
     private CommandFind find;
+    private CommandUpdater updater;
     private CommandDeveloper developer;
     public static boolean worldCreation = false;
     String WorldEngine;
@@ -317,24 +318,6 @@ public class CommandIris implements DecreeExecutor {
             }
         }
         return dir.delete();
-    }
-
-    @Decree(description = "Updates all chunk in the specified world")
-    public void updater(
-            @Param(description = "World to update chunks at")
-            World world
-    ) {
-        if (!IrisToolbelt.isIrisWorld(world)) {
-            sender().sendMessage(C.GOLD + "This is not an Iris world");
-            return;
-        }
-        ChunkUpdater updater = new ChunkUpdater(world);
-        if (sender().isPlayer()) {
-            sender().sendMessage(C.GREEN + "Updating " + world.getName() + " Total chunks: " + Form.f(updater.getChunks()));
-        } else {
-            Iris.info(C.GREEN + "Updating " + world.getName() + " Total chunks: " + Form.f(updater.getChunks()));
-        }
-        updater.start();
     }
 
     @Decree(description = "Set aura spins")

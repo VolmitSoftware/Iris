@@ -37,7 +37,8 @@ public class Section {
 
     public Section(CompoundTag sectionRoot, int dataVersion, long loadFlags) {
         data = sectionRoot;
-        ListTag<?> rawPalette = sectionRoot.getListTag("Palette");
+        //ListTag<?> rawPalette = sectionRoot.getListTag("palette");
+        ListTag<?> rawPalette = sectionRoot.getCompoundTag("biomes").getListTag("palette");
         if (rawPalette == null) {
             return;
         }

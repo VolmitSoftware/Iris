@@ -42,6 +42,7 @@ public class MCAWrappedPalettedContainer<T> implements MCAPaletteAccess {
     }
 
     public void readFromSection(CompoundTag tag) {
-        container.read(tag.getListTag("Palette"), tag.getLongArrayTag("BlockStates").getValue());
+        //container.read(tag.getListTag("palette"), tag.getLongArrayTag("block_states").getValue());
+        container.read(tag.getCompoundTag("block_states").getListTag("palette"), tag.getCompoundTag("block_states").getLongArrayTag("data").getValue());
     }
 }

@@ -26,6 +26,7 @@ import com.volmit.iris.core.pregenerator.ChunkUpdater;
 import com.volmit.iris.core.service.IrisEngineSVC;
 import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.core.tools.IrisWorldDump;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
 import com.volmit.iris.engine.object.IrisBiome;
@@ -169,11 +170,12 @@ public class CommandDeveloper implements DecreeExecutor {
 
     @Decree(description = "test")
     public void mca (
-            @Param(description = "String") String world) {
+            @Param(description = "String") World world) {
         try {
-            File[] McaFiles = new File(world, "region").listFiles((dir, name) -> name.endsWith(".mca"));
+            File[] McaFiles = new File(world.getName(), "region").listFiles((dir, name) -> name.endsWith(".mca"));
             for (File mca : McaFiles) {
-                MCAFile MCARegion = MCAUtil.read(mca);
+                IrisWorldDump dump = new IrisWorldDump(world, sender());
+                dump.dump();
             }
         } catch (Exception e) {
             e.printStackTrace();

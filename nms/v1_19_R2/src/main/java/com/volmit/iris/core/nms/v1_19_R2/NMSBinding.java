@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import net.minecraft.world.level.Level;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -171,6 +172,17 @@ public class NMSBinding implements INMSBinding {
         return null;
     }
 
+    private RegistryAccess getRegistryAccess(World world) {
+        try {
+            var field = getField(Level.class, RegistryAccess.class);
+            field.setAccessible(true);
+            return  (RegistryAccess) field.get(((CraftWorld) world).getHandle());
+        } catch (Throwable e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public void deserializeTile(CompoundTag c, Location pos) {
         ((CraftWorld) pos.getWorld()).getHandle().getChunkAt(new BlockPos(pos.getBlockX(), 0, pos.getBlockZ())).setBlockEntityNbt(convert(c));
@@ -254,8 +266,7 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public Object getBiomeBase(World world, Biome biome) {
-        return CraftBlock.biomeToBiomeBase(((CraftWorld) world).getHandle()
-                .registryAccess().registry(Registries.BIOME).orElse(null), biome);
+        return CraftBlock.biomeToBiomeBase(getRegistryAccess(world).registry(Registries.BIOME).orElse(null), biome);
     }
 
     @Override
@@ -292,8 +303,11 @@ public class NMSBinding implements INMSBinding {
     public int getBiomeId(Biome biome) {
         for (World i : Bukkit.getWorlds()) {
             if (i.getEnvironment().equals(World.Environment.NORMAL)) {
-                Registry<net.minecraft.world.level.biome.Biome> registry = ((CraftWorld) i).getHandle().registryAccess().registry(Registries.BIOME).orElse(null);
-                return registry.getId((net.minecraft.world.level.biome.Biome) getBiomeBase(registry, biome));
+                var registry = getRegistryAccess(i).registry(Registries.BIOME).orElse(null);
+                if (registry != null) {
+                    var holder = (Holder<net.minecraft.world.level.biome.Biome>) getBiomeBase(registry, biome);
+                    return registry.getId(holder.value());
+                }
             }
         }
 

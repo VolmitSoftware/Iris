@@ -31,15 +31,20 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+
+import static org.bukkit.Bukkit.getServer;
 
 public class ServerConfigurator {
     public static void configure() {
@@ -53,6 +58,14 @@ public class ServerConfigurator {
         }
 
         installDataPacks(true);
+    }
+
+    public static boolean postConfigure() {
+        if(postVerifyDataPacks(true)) {
+            configure();
+            return true;
+        }
+        return false;
     }
 
     private static void increaseKeepAliveSpigot() throws IOException, InvalidConfigurationException {
@@ -91,6 +104,22 @@ public class ServerConfigurator {
         return worlds;
     }
 
+    private static boolean postVerifyDataPacks(boolean fast) {
+        try {
+            Properties prop = new Properties();
+            prop.load(new FileInputStream("server.properties"));
+            String world = prop.getProperty("level-name");
+            File worldFolder = new File(Bukkit.getWorldContainer(), world);
+            File datapacksFolder = new File(worldFolder, "datapacks");
+            File IrisDatapacks = new File(datapacksFolder, "iris");
+            if (!datapacksFolder.exists() || !IrisDatapacks.exists()) {
+                return (true);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 
     public static void installDataPacks(boolean fullInstall) {
         Iris.info("Checking Data Packs...");

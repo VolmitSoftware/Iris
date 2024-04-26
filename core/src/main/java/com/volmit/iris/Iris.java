@@ -66,10 +66,7 @@ import io.papermc.lib.PaperLib;
 import lombok.Getter;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
-import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.WorldCreator;
+import org.bukkit.*;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -100,6 +97,7 @@ import java.util.regex.Pattern;
 import static com.volmit.iris.core.safeguard.IrisSafeguard.*;
 import static com.volmit.iris.core.safeguard.ServerBootSFG.passedserversoftware;
 import static com.volmit.iris.util.misc.getHardware.getCPUModel;
+import static org.bukkit.Bukkit.getServer;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -122,6 +120,10 @@ public class Iris extends VolmitPlugin implements Listener {
         } catch (Throwable ignored) {
 
         }
+    }
+
+    public Iris() {
+        System.out.println("Hello!");
     }
 
     private final KList<Runnable> postShutdown = new KList<>();
@@ -456,12 +458,13 @@ public class Iris extends VolmitPlugin implements Listener {
     }
     private void enable() {
         instance = this;
+        boolean configured;
         services = new KMap<>();
         setupAudience();
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
         INMS.get();
         IO.delete(new File("iris"));
-        IrisSafeguard.IrisSafeguardSystem();
+        IrisSafeguardSystem();
         getSender().setTag(getTag());
         compat = IrisCompat.configured(getDataFile("compat.json"));
         linkMultiverseCore = new MultiverseCoreLink();
@@ -469,6 +472,7 @@ public class Iris extends VolmitPlugin implements Listener {
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
+        configured = ServerConfigurator.postConfigure();
         J.s(() -> {
             J.a(() -> PaperLib.suggestPaper(this));
             J.a(() -> IO.delete(getTemp()));
@@ -477,10 +481,9 @@ public class Iris extends VolmitPlugin implements Listener {
             J.ar(this::checkConfigHotload, 60);
             J.sr(this::tickQueue, 0);
             J.s(this::setupPapi);
-            J.a(ServerConfigurator::configure, 20);
+            if (!configured) J.a(ServerConfigurator::configure, 20);
             splash();
             UtilsSFG.splash();
-
             autoStartStudio();
             checkForBukkitWorlds();
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());

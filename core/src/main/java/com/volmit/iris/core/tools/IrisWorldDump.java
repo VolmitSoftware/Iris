@@ -19,6 +19,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
 public class IrisWorldDump {
+    public static int Failed = 0;
+    public static int Success = 0;
     private KList<MCAFile> mcaList;
     private World world;
     private File MCADirectory;
@@ -65,18 +67,13 @@ public class IrisWorldDump {
                     for (int x = 0; x < 16; x++) {
                         for (int z = 0; z < 16; z++) {
                             for (int y = 0; y < CHUNK_HEIGHT; y++) {
-                                CompoundTag tag = chunk.getBlockStateAt(x,y,z);
-                                int i1 = 0;
+                              //  CompoundTag tag = chunk.getBlockStateAt(x,y,z);
                             }
                         }
                     }
                 }
-
             }
-
         }
-
-
     }
 
 
@@ -93,6 +90,8 @@ public class IrisWorldDump {
         int l = 0;
         int f = 0;
         for (File mca : MCADirectory.listFiles()) {
+          //  net.minecraft.world.level.chunk.PalettedContainer
+                //    take a look at the classes `net.minecraft.world.level.chunk.PalettedContainer` and `net.minecraft.world.level.chunk.storage.ChunkSerializer`
             if (mca.getName().endsWith(".mca")) {
                 try {
                     mcaFiles.add(MCAUtil.read(mca));
@@ -108,6 +107,8 @@ public class IrisWorldDump {
         if (f > 0) {
             sender.sendMessage(C.RED +"Failed " + C.GRAY + "to load: " + f + " MCA Regions");
         }
+        Iris.info("Successfull: " + Form.f(Success));
+        Iris.info("Failed: " + Form.f(Failed));
         return mcaFiles;
     }
 

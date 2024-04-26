@@ -28,7 +28,6 @@ import java.io.InputStreamReader;
 
 import static com.google.common.math.LongMath.isPrime;
 import static com.volmit.iris.util.misc.getHardware.getCPUModel;
-import static com.volmit.iris.util.misc.getHardware.getDiskModel;
 public class IrisBenchmarking {
     static String ServerOS;
     static String filePath = "benchmark.dat";
@@ -180,12 +179,12 @@ public class IrisBenchmarking {
         Iris.info("- Data Compression: " + formatDouble(calculateDataCompression) + " MBytes/Sec");
 
         if (WindowsDiskSpeed) {
-            Iris.info("Disk Model: " + getDiskModel());
+            //Iris.info("Disk Model: " + getDiskModel());
             Iris.info(C.BLUE + "- Running with Windows System Assessment Tool");
             Iris.info("- Sequential 64.0 Write: " + C.BLUE + formatDouble(avgWriteSpeedMBps) + " Mbps");
             Iris.info("- Sequential 64.0 Read: " + C.BLUE + formatDouble(avgReadSpeedMBps) + " Mbps");
         } else {
-            Iris.info("Disk Model: " + getDiskModel());
+           // Iris.info("Disk Model: " + getDiskModel());
             Iris.info(C.GREEN + "- Running in Native Mode");
             Iris.info("- Average Write Speed: " + C.GREEN + formatDouble(avgWriteSpeedMBps) + " Mbps");
             Iris.info("- Average Read Speed: " + C.GREEN + formatDouble(avgReadSpeedMBps) + " Mbps");

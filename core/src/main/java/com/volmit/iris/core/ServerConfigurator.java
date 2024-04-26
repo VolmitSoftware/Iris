@@ -69,7 +69,7 @@ public class ServerConfigurator {
     }
 
     private static void increaseKeepAliveSpigot() throws IOException, InvalidConfigurationException {
-        File spigotConfig = new File("config/spigot.yml");
+        File spigotConfig = new File("spigot.yml");
         FileConfiguration f = new YamlConfiguration();
         f.load(spigotConfig);
         long tt = f.getLong("settings.timeout-time");
@@ -101,16 +101,27 @@ public class ServerConfigurator {
         }
         KList<File> worlds = new KList<>();
         Bukkit.getServer().getWorlds().forEach(w -> worlds.add(new File(w.getWorldFolder(), "datapacks")));
+        if (worlds.isEmpty()) {
+            worlds.add(new File(getMainWorldFolder(), "datapacks"));
+        }
         return worlds;
     }
 
-    private static boolean postVerifyDataPacks(boolean fast) {
+    private static File getMainWorldFolder() {
         try {
             Properties prop = new Properties();
             prop.load(new FileInputStream("server.properties"));
             String world = prop.getProperty("level-name");
-            File worldFolder = new File(Bukkit.getWorldContainer(), world);
-            File datapacksFolder = new File(worldFolder, "datapacks");
+            return new File(Bukkit.getWorldContainer(), world);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private static boolean postVerifyDataPacks(boolean fast) {
+        try {
+            File datapacksFolder = new File(getMainWorldFolder(), "datapacks");
             File IrisDatapacks = new File(datapacksFolder, "iris");
             if (!datapacksFolder.exists() || !IrisDatapacks.exists()) {
                 return (true);

@@ -40,6 +40,8 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 
+import java.io.File;
+
 public class NMSBinding1X implements INMSBinding {
     private static final boolean supportsCustomHeight = testCustomHeight();
 
@@ -95,6 +97,11 @@ public class NMSBinding1X implements INMSBinding {
     @Override
     public Entity spawnEntity(Location location, EntityType type, CreatureSpawnEvent.SpawnReason reason) {
         return location.getWorld().spawnEntity(location, type);
+    }
+
+    @Override
+    public boolean loadDatapack(File datapackFolder) {
+        return false;
     }
 
     @Override

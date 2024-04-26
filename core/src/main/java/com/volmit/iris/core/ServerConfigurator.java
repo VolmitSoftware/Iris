@@ -213,6 +213,10 @@ public class ServerConfigurator {
         }
 
         if (bad) {
+            for (File folder : getDatapacksFolder()) {
+                if (INMS.get().loadDatapack(folder)) return;
+            }
+
             if (allowRestarting) {
                 restart();
             } else if (INMS.get().supportsDataPacks()) {

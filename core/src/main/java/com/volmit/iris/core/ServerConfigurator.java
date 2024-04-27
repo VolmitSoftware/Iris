@@ -224,19 +224,19 @@ public class ServerConfigurator {
         }
 
         if (bad) {
-            for (File folder : getDatapacksFolder()) {
-                if (INMS.get().loadDatapack(folder)) return;
-            }
-
-            if (allowRestarting) {
-                restart();
-            } else if (INMS.get().supportsDataPacks()) {
-                Iris.error("============================================================================");
-                Iris.error(C.ITALIC + "You need to restart your server to properly generate custom biomes.");
-                Iris.error(C.ITALIC + "By continuing, Iris will use backup biomes in place of the custom biomes.");
-                Iris.error("----------------------------------------------------------------------------");
-                Iris.error(C.UNDERLINE + "IT IS HIGHLY RECOMMENDED YOU RESTART THE SERVER BEFORE GENERATING!");
-                Iris.error("============================================================================");
+           // Iris.info("");
+            Iris.info( "Hotloading all Datapacks!");
+            if (INMS.get().supportsDataPacks()) {
+                for (File folder : getDatapacksFolder()) {
+                    INMS.get().loadDatapack(folder);
+                }
+                Iris.info("Datapacks Hotloaded!");
+                Iris.info(C.YELLOW + "============================================================================");
+                Iris.info(C.ITALIC + "" + C.YELLOW + "To ensure the stability of custom biome generation, a server restart is necessary.");
+                Iris.info(C.ITALIC + "" + C.YELLOW + "While datapacks have been hotloaded, a complete restart is advised.");
+                Iris.info(C.YELLOW + "----------------------------------------------------------------------------");
+                Iris.info(C.UNDERLINE + "" + C.YELLOW + "IT IS HIGHLY RECOMMENDED YOU RESTART THE SERVER BEFORE GENERATING!");
+                Iris.info(C.YELLOW + "============================================================================");
 
                 for (Player i : Bukkit.getOnlinePlayers()) {
                     if (i.isOp() || i.hasPermission("iris.all")) {
@@ -257,7 +257,7 @@ public class ServerConfigurator {
             Iris.warn("This will only happen when your pack changes (updates/first time setup)");
             Iris.warn("(You can disable this auto restart in iris settings)");
             J.s(() -> {
-                Iris.warn("Looks like the restart command diddn't work. Stopping the server instead!");
+                Iris.warn("Looks like the restart command didn't work. Stopping the server instead!");
                 Bukkit.shutdown();
             }, 100);
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "restart");
@@ -300,7 +300,7 @@ public class ServerConfigurator {
 
         if (warn) {
             Iris.error("The Pack " + dimension.getLoadKey() + " is INCAPABLE of generating custom biomes");
-            Iris.error("If not done automatically, restart your server before generating with this pack!");
+            Iris.error("Queued for Datapack Hotload.");
         }
 
         return !warn;

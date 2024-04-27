@@ -34,6 +34,7 @@ import com.volmit.iris.util.decree.specialhandlers.ObjectHandler;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
 import java.io.File;
@@ -56,8 +57,9 @@ public class CommandJigsaw implements DecreeExecutor {
     ) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         PlannedStructure ps = new PlannedStructure(structure, new IrisPosition(player().getLocation()), new RNG());
-        sender().sendMessage(C.GREEN + "Generated " + ps.getPieces().size() + " pieces in " + Form.duration(p.getMilliseconds(), 2));
-        ps.place(world(), failed -> sender().sendMessage(failed == 0 ? C.GREEN + "Placed the structure!" : C.RED + "Failed to place " + failed + " pieces!"));
+        VolmitSender sender = sender();
+        sender.sendMessage(C.GREEN + "Generated " + ps.getPieces().size() + " pieces in " + Form.duration(p.getMilliseconds(), 2));
+        ps.place(world(), failed -> sender.sendMessage(failed == 0 ? C.GREEN + "Placed the structure!" : C.RED + "Failed to place " + failed + " pieces!"));
     }
 
     @Decree(description = "Create a jigsaw piece")

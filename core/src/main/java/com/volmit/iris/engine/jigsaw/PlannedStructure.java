@@ -31,6 +31,7 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.slices.container.JigsawPieceContainer;
 import com.volmit.iris.util.matter.slices.container.JigsawStructuresContainer;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.bukkit.Axis;
 import org.bukkit.World;
 
@@ -319,6 +320,10 @@ public class PlannedStructure {
 
     public boolean collidesWith(PlannedPiece piece, PlannedPiece ignore) {
         for (PlannedPiece i : pieces) {
+            if (i.equals(ignore)) {
+                continue;
+            }
+
             if (i.collidesWith(piece)) {
                 return true;
             }

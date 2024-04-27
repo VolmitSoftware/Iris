@@ -279,6 +279,8 @@ public class IrisObject extends IrisRegistrant {
     public synchronized IrisObject copy() {
         IrisObject o = new IrisObject(w, h, d);
         o.setLoadKey(o.getLoadKey());
+        o.setLoader(getLoader());
+        o.setLoadFile(getLoadFile());
         o.setCenter(getCenter().clone());
 
         for (BlockVector i : getBlocks().keySet()) {
@@ -898,6 +900,7 @@ public class IrisObject extends IrisRegistrant {
                 }
             }
         } catch (Throwable e) {
+            e.printStackTrace();
             Iris.reportError(e);
         }
         readLock.unlock();

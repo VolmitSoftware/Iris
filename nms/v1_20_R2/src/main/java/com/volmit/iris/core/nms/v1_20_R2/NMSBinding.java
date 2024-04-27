@@ -4,15 +4,27 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FilenameFilter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.JsonOps;
+import com.mojang.serialization.Lifecycle;
+import com.volmit.iris.util.io.IO;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import net.minecraft.core.MappedRegistry;
+import net.minecraft.util.GsonHelper;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.dimension.DimensionType;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -533,6 +545,146 @@ public class NMSBinding implements INMSBinding {
     public Entity spawnEntity(Location location,  org.bukkit.entity.EntityType type, CreatureSpawnEvent.SpawnReason reason) {
         return ((CraftWorld) location.getWorld()).spawn(location, type.getEntityClass(), null, reason);
     }
+
+    @Override
+    public boolean loadDatapack(File folder) {
+        var data = new File(folder, "iris/data");
+        if (!data.exists() || !data.isDirectory()) return false;
+        FilenameFilter jsonFilter = (dir, name) -> new File(dir, name).isFile() && name.toLowerCase().endsWith(".json");
+
+        var dimensionFolder = new File(data, "minecraft/dimension_type");
+        if (dimensionFolder.exists()) {
+            var files = dimensionFolder.listFiles(jsonFilter);
+            if (files != null) {
+                for (File file : files) {
+                    try {
+                        modifyDimension(file);
+                    } catch (Throwable e) {
+                        Iris.error("Unable to modify dimension!");
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        var files = data.listFiles((dir, name) -> new File(dir, name).isDirectory());
+        if (files == null) return false;
+        for (File file : files) {
+            var biome = new File(file, "worldgen/biome");
+            if (!biome.exists()) continue;
+            var biomeFiles = biome.listFiles(jsonFilter);
+            if (biomeFiles == null) continue;
+            for (File biomeFile : biomeFiles) {
+                try {
+                    registerBiome(file.getName(), biomeFile);
+                } catch (Throwable e) {
+                    Iris.error("Failed to register biome " + file.getName() + ":" + biomeFile.getName());
+                    e.printStackTrace();
+                }
+            }
+        }
+        return true;
+    }
+
+    private ResourceLocation from(String namespace, File file) {
+        var name = file.getName();
+        return new ResourceLocation(namespace, name.substring(0, name.lastIndexOf('.')));
+    }
+
+    private void registerBiome(String namespace, File file) throws Throwable {
+        var rawRegistry = registry().registry(Registries.BIOME).orElse(null);
+        var key = ResourceKey.create(Registries.BIOME, from(namespace, file));
+        if (!(rawRegistry instanceof MappedRegistry<net.minecraft.world.level.biome.Biome> registry))
+            throw new IllegalStateException("The Biome Registry is not a mapped Registry!");
+        if (registry.containsKey(key)) return;
+        Field field = getField(MappedRegistry.class, boolean.class);
+        field.setAccessible(true);
+        boolean frozen = field.getBoolean(registry);
+        field.setBoolean(registry, false);
+        Field holdersField = null;
+        boolean holders = false;
+        for (Field f : MappedRegistry.class.getDeclaredFields()) {
+            if (!f.getGenericType().getTypeName().startsWith("java.util.Map<T, "))
+                continue;
+            holdersField = f;
+        }
+        if (holdersField != null) {
+            holdersField.setAccessible(true);
+            holders = holdersField.get(registry) == null;
+            if (holders) holdersField.set(registry, new IdentityHashMap<>());
+        }
+
+        try {
+            var biome = net.minecraft.world.level.biome.Biome.CODEC.decode(JsonOps.INSTANCE, GsonHelper.parse(IO.readAll(file)))
+                    .get().left().map(Pair::getFirst).map(Holder::value).orElse(null);
+            if (biome == null)
+                throw new IllegalStateException("Failed to decode biome " + file.getName());
+
+            registry.createIntrusiveHolder(biome);
+            registry.register(key, biome, Lifecycle.stable());
+        } finally {
+            field.setBoolean(registry, frozen);
+            if (holders) {
+                holdersField.set(registry, null);
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void modifyDimension(File file) throws Throwable {
+        var key = ResourceKey.create(Registries.DIMENSION_TYPE, from("minecraft", file));
+        var rawRegistry = registry().registry(Registries.DIMENSION_TYPE).orElse(null);
+        if (!(rawRegistry instanceof MappedRegistry<DimensionType> registry))
+            throw new IllegalStateException("The Dimension Registry is not a mapped Registry!");
+
+        var holder = registry.getHolder(key).orElseThrow(() -> new IllegalStateException("Unknown dimension type: " + key));
+        var oldValue = holder.value();
+        Field valueField = getField(Holder.Reference.class, "T");
+        valueField.setAccessible(true);
+        Field toIdField = getField(MappedRegistry.class, buildType(Reference2IntMap.class, "T"));
+        toIdField.setAccessible(true);
+        Field byValueField = getField(MappedRegistry.class, buildType(Map.class, "T", buildType(Holder.Reference.class, "T")));
+        byValueField.setAccessible(true);
+        Field lifecyclesField = getField(MappedRegistry.class, buildType(Map.class, "T", Lifecycle.class.getName()));
+        lifecyclesField.setAccessible(true);
+        var toId = (Reference2IntMap<DimensionType>) toIdField.get(registry);
+        var byValue = (Map<DimensionType, Holder.Reference<DimensionType>>) byValueField.get(registry);
+        var lifecycles = (Map<DimensionType, Lifecycle>) lifecyclesField.get(registry);
+
+        var newValue = DimensionType.CODEC.decode(JsonOps.INSTANCE, GsonHelper.parse(IO.readAll(file)))
+                .get().left().map(Pair::getFirst).map(Holder::value).orElse(null);
+        if (newValue == null)
+            throw new IllegalArgumentException("Failed to parse dimension type " + key.location() + " from " + file);
+
+        valueField.set(holder, newValue);
+        toId.put(newValue, toId.removeInt(oldValue));
+        byValue.put(newValue, byValue.remove(oldValue));
+        lifecycles.put(newValue, lifecycles.remove(oldValue));
+    }
+
+    private static String buildType(Class<?> clazz, String... parameterTypes) {
+        if (parameterTypes.length == 0) return clazz.getName();
+        var builder = new StringBuilder(clazz.getName())
+                .append("<");
+        for (int i = 0; i < parameterTypes.length; i++) {
+            builder.append(parameterTypes[i]).append(parameterTypes.length - 1 == i ? ">" : ", ");
+        }
+        return builder.toString();
+    }
+
+    private static Field getField(Class<?> clazz, String type) throws NoSuchFieldException {
+        try {
+            for (Field f : clazz.getDeclaredFields()) {
+                if (f.getGenericType().getTypeName().equals(type))
+                    return f;
+            }
+            throw new NoSuchFieldException(type);
+        } catch (NoSuchFieldException e) {
+            Class<?> superClass = clazz.getSuperclass();
+            if (superClass == null) throw e;
+            return getField(superClass, type);
+        }
+    }
+
 
     private static Field getField(Class<?> clazz, Class<?> fieldType) throws NoSuchFieldException {
         try {

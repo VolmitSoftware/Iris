@@ -614,7 +614,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
     private boolean setupChecks() {
         boolean passed = true;
-        Iris.info("Version Information: " + instance.getServer().getVersion() + " | " + instance.getServer().getBukkitVersion());
+        Iris.info("Server type & version: " + instance.getServer().getVersion() + " | " + instance.getServer().getBukkitVersion());
         if (INMS.get() instanceof NMSBinding1X) {
             passed = false;
             Iris.warn("============================================");
@@ -801,7 +801,6 @@ public class Iris extends VolmitPlugin implements Listener {
                 padd + C.GRAY + "                               " + C.DARK_GRAY + "@@@" + C.GRAY + "@@@@@@@@@@@@@@"
         };
         String[] splash;
-        File freeSpace = new File(Bukkit.getWorldContainer() + ".");
         if (unstablemode) {
             splash = splashunstable;
         } else if (warningmode) {
@@ -810,9 +809,7 @@ public class Iris extends VolmitPlugin implements Listener {
             splash = splashstable;
         }
 
-        if (!passedserversoftware) {
-            Iris.info("Server type & version: " + C.RED + Bukkit.getVersion());
-        } else { Iris.info("Server type & version: " + Bukkit.getVersion()); }
+        setupChecks();
         Iris.info("Java: " + getJava());
         if (!instance.getServer().getVersion().contains("Purpur")) {
             if (instance.getServer().getVersion().contains("Spigot") && instance.getServer().getVersion().contains("Bukkit")) {
@@ -825,9 +822,7 @@ public class Iris extends VolmitPlugin implements Listener {
             Iris.warn("6GB+ Ram is recommended");
             Iris.warn("Process Memory: " + getHardware.getProcessMemory() + " MB");
         }
-        Iris.info("Bukkit version: " + Bukkit.getBukkitVersion());
         Iris.info("Custom Biomes: " + INMS.get().countCustomBiomes());
-        setupChecks();
         printPacks();
 
         for (int i = 0; i < info.length; i++) {

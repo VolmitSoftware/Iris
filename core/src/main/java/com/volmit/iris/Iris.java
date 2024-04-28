@@ -64,6 +64,7 @@ import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
 import io.papermc.lib.PaperLib;
 import lombok.Getter;
+import net.bytebuddy.agent.ByteBuddyAgent;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
 import org.bukkit.*;
@@ -120,10 +121,6 @@ public class Iris extends VolmitPlugin implements Listener {
         } catch (Throwable ignored) {
 
         }
-    }
-
-    public Iris() {
-        System.out.println("Hello!");
     }
 
     private final KList<Runnable> postShutdown = new KList<>();
@@ -458,14 +455,18 @@ public class Iris extends VolmitPlugin implements Listener {
     }
     private void enable() {
         instance = this;
+        InitializeSafeguard();
+        ByteBuddyAgent.install();
         boolean configured;
         services = new KMap<>();
         setupAudience();
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
         INMS.get();
         IO.delete(new File("iris"));
-        IrisSafeguardSystem();
+        IrisSafeguard.instance.IrisSafeguardSystem();
         getSender().setTag(getTag());
+        INMS.get().injectBukkit();
+        if (IrisSafeguard.instance.unstablemode && !IrisSafeguard.instance.acceptUnstable) IrisSafeguard.instance.earlySplash();
         compat = IrisCompat.configured(getDataFile("compat.json"));
         linkMultiverseCore = new MultiverseCoreLink();
         linkMythicMobs = new MythicMobsLink();
@@ -473,22 +474,27 @@ public class Iris extends VolmitPlugin implements Listener {
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
         configured = ServerConfigurator.postConfigure();
-        J.s(() -> {
-            J.a(() -> PaperLib.suggestPaper(this));
-            J.a(() -> IO.delete(getTemp()));
-            J.a(LazyPregenerator::loadLazyGenerators, 100);
-            J.a(this::bstats);
-            J.ar(this::checkConfigHotload, 60);
-            J.sr(this::tickQueue, 0);
-            J.s(this::setupPapi);
-            if (!configured) J.a(ServerConfigurator::configure, 20);
-            splash();
-            UtilsSFG.splash();
-            autoStartStudio();
-            checkForBukkitWorlds();
-            IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
-            IrisToolbelt.retainMantleDataForSlice(BlockData.class.getCanonicalName());
-        });
+        if (!IrisSafeguard.instance.acceptUnstable && IrisSafeguard.instance.unstablemode) {
+            Iris.info(C.RED + "World loading has been disabled until the incompatibility is resolved.");
+            Iris.info(C.DARK_RED + "Alternatively, go to plugins/iris/settings.json and set ignoreBootMode to true.");
+        } else {
+            J.s(() -> {
+                J.a(() -> PaperLib.suggestPaper(this));
+                J.a(() -> IO.delete(getTemp()));
+                J.a(LazyPregenerator::loadLazyGenerators, 100);
+                J.a(this::bstats);
+                J.ar(this::checkConfigHotload, 60);
+                J.sr(this::tickQueue, 0);
+                J.s(this::setupPapi);
+                if (!configured) J.a(ServerConfigurator::configure, 20);
+                splash();
+                UtilsSFG.splash();
+                autoStartStudio();
+                checkForBukkitWorlds();
+                IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
+                IrisToolbelt.retainMantleDataForSlice(BlockData.class.getCanonicalName());
+            });
+        }
     }
 
     private void checkForBukkitWorlds() {
@@ -602,10 +608,10 @@ public class Iris extends VolmitPlugin implements Listener {
 
     @Override
     public String getTag(String subTag) {
-        if (unstablemode) {
+        if (IrisSafeguard.instance.unstablemode) {
             return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.RED + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
         }
-        if (warningmode) {
+        if (IrisSafeguard.instance.warningmode) {
             return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.GOLD + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
         }
         return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.IRIS + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
@@ -753,10 +759,10 @@ public class Iris extends VolmitPlugin implements Listener {
         String padd = Form.repeat(" ", 8);
         String padd2 = Form.repeat(" ", 4);
         String[] info = {"", "", "", "", "", padd2 + C.IRIS + " Iris", padd2 + C.GRAY + " by " + "<rainbow>Volmit Software", padd2 + C.GRAY + " v" + C.IRIS + getDescription().getVersion()};
-        if (unstablemode) {
+        if (IrisSafeguard.instance.unstablemode) {
              info = new String[]{"", "", "", "", "", padd2 + C.RED + " Iris", padd2 + C.GRAY + " by " + C.DARK_RED + "Volmit Software", padd2 + C.GRAY + " v" + C.RED + getDescription().getVersion()};
         }
-        if (warningmode) {
+        if (IrisSafeguard.instance.warningmode) {
             info = new String[]{"", "", "", "", "", padd2 + C.GOLD + " Iris", padd2 + C.GRAY + " by " + C.GOLD + "Volmit Software", padd2 + C.GRAY + " v" + C.GOLD + getDescription().getVersion()};
         }
 
@@ -801,9 +807,9 @@ public class Iris extends VolmitPlugin implements Listener {
                 padd + C.GRAY + "                               " + C.DARK_GRAY + "@@@" + C.GRAY + "@@@@@@@@@@@@@@"
         };
         String[] splash;
-        if (unstablemode) {
+        if (IrisSafeguard.instance.unstablemode) {
             splash = splashunstable;
-        } else if (warningmode) {
+        } else if (IrisSafeguard.instance.warningmode) {
             splash = splashwarning;
         } else {
             splash = splashstable;

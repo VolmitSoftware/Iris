@@ -3,18 +3,20 @@ package com.volmit.iris.core.safeguard;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.format.C;
+import org.bukkit.Bukkit;
+import org.bukkit.scheduler.BukkitScheduler;
 
 public class ModesSFG {
     public static void selectMode() {
-        if (IrisSafeguard.unstablemode) {
+        if (IrisSafeguard.instance.unstablemode) {
             Iris.safeguard(C.DARK_RED + "Iris is running in Unstable Mode");
             unstable();
         }
-        if (IrisSafeguard.warningmode) {
+        if (IrisSafeguard.instance.warningmode) {
             Iris.safeguard(C.GOLD + "Iris is running in Warning Mode");
             warning();
         }
-        if (IrisSafeguard.stablemode) {
+        if (IrisSafeguard.instance.stablemode) {
             stable();
         }
     }
@@ -27,7 +29,7 @@ public class ModesSFG {
 
         UtilsSFG.printIncompatibleWarnings();
 
-        if (IrisSafeguard.unstablemode) {
+        if (IrisSafeguard.instance.unstablemode) {
             Iris.info("");
             Iris.info(C.DARK_GRAY + "--==<" + C.RED + " IMPORTANT " + C.DARK_GRAY + ">==--");
             Iris.info(C.RED + "Iris is running in unstable mode which may cause the following issues:");
@@ -48,23 +50,22 @@ public class ModesSFG {
                 Iris.info(C.DARK_RED + "Boot Unstable is set to true, continuing with the startup process.");
             } else {
                 Iris.info(C.DARK_RED + "Go to plugins/iris/settings.json and set ignoreBootMode to true if you wish to proceed.");
-                while (true) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        // no
-                    }
+                Iris.info(C.DARK_RED + "Shutting down server in " + C.UNDERLINE + "" + C.DARK_RED + "50 Seconds");
+                try {
+                    Thread.sleep(50000);
+                    Bukkit.shutdown();
+                } catch (Exception ignored) {
                 }
             }
-            Iris.info("");
         }
+        Iris.info("");
     }
 
     public static void warning() {
 
         UtilsSFG.printIncompatibleWarnings();
 
-        if (IrisSafeguard.warningmode) {
+        if (IrisSafeguard.instance.warningmode) {
             Iris.info("");
             Iris.info(C.DARK_GRAY + "--==<" + C.GOLD + " IMPORTANT " + C.DARK_GRAY + ">==--");
             Iris.info(C.GOLD + "Iris is running in warning mode which may cause the following issues:");

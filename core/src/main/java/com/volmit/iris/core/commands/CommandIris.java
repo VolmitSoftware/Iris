@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.pregenerator.ChunkUpdater;
+import com.volmit.iris.core.safeguard.IrisSafeguard;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -63,7 +64,6 @@ import java.util.List;
 import static com.volmit.iris.Iris.service;
 import static com.volmit.iris.core.service.EditSVC.deletingWorld;
 import static com.volmit.iris.core.tools.IrisBenchmarking.inProgress;
-import static com.volmit.iris.core.safeguard.IrisSafeguard.unstablemode;
 import static com.volmit.iris.core.safeguard.ServerBootSFG.incompatibilities;
 import static org.bukkit.Bukkit.getServer;
 
@@ -105,7 +105,7 @@ public class CommandIris implements DecreeExecutor {
                 sender().sendMessage(C.RED + UtilsSFG.MSGIncompatibleWarnings());
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");
             }
-            if (unstablemode && !incompatibilities.get("Multiverse-Core")) {
+            if (IrisSafeguard.instance.unstablemode && !incompatibilities.get("Multiverse-Core")) {
                 sender().sendMessage(C.RED + "Your server is experiencing an incompatibility with the Iris plugin.");
                 sender().sendMessage(C.RED + "Please rectify this problem to avoid further complications.");
                 sender().sendMessage(C.RED + "----------------------------------------------------------------");

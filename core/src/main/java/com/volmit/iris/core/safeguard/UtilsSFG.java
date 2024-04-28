@@ -14,10 +14,10 @@ public class UtilsSFG {
         if (ServerBootSFG.safeguardPassed) {
             Iris.safeguard(C.BLUE + "0 Conflicts found");
         } else {
-            if (IrisSafeguard.unstablemode) {
+            if (IrisSafeguard.instance.unstablemode) {
                 Iris.safeguard(C.DARK_RED + "" + ServerBootSFG.count + " Conflicts found");
             }
-            if (IrisSafeguard.warningmode) {
+            if (IrisSafeguard.instance.warningmode) {
                 Iris.safeguard(C.YELLOW + "" + ServerBootSFG.count + " Conflicts found");
             }
 

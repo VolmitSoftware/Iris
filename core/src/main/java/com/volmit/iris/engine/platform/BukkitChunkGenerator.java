@@ -21,6 +21,7 @@ package com.volmit.iris.engine.platform;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.safeguard.IrisSafeguard;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
@@ -32,6 +33,7 @@ import com.volmit.iris.engine.object.StudioMode;
 import com.volmit.iris.engine.platform.studio.StudioGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.IrisBiomeStorage;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.hunk.view.BiomeGridHunkHolder;
 import com.volmit.iris.util.hunk.view.ChunkDataHunkHolder;
@@ -263,6 +265,15 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     private Engine getEngine(WorldInfo world) {
+//        if (!IrisSafeguard.instance.acceptUnstable && IrisSafeguard.instance.unstablemode) {
+//            Iris.info(C.RED + "------------------------------------------------------------");
+//            Iris.info(C.DARK_RED + "Cancelled World Loading of " + world.getName() + "!");
+//            Iris.info(C.RED + "World loading has been disabled until the incompatibility is resolved.");
+//            Iris.info(C.DARK_RED + "Alternatively, go to plugins/iris/settings.json and set ignoreBootMode to true.");
+//            Iris.info(C.RED + "------------------------------------------------------------");
+//            return null;
+//        }
+
         if (setup.get()) {
             return getEngine();
         }

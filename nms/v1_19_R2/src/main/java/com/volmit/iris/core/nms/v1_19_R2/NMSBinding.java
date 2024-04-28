@@ -16,11 +16,17 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.google.common.base.Preconditions;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.Lifecycle;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.io.IO;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.asm.Advice;
+import net.bytebuddy.dynamic.loading.ClassReloadingStrategy;
+import net.bytebuddy.matcher.ElementMatchers;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.GsonHelper;
@@ -698,6 +704,41 @@ public class NMSBinding implements INMSBinding {
                 throw var4;
             } else {
                 return getField(superClass, fieldType);
+            }
+        }
+    }
+
+    public void injectBukkit() {
+        try {
+            Iris.info("Injecting Bukkit");
+            new ByteBuddy()
+                    .redefine(WorldCreator.class)
+                    .visit(Advice.to(WorldCreatorAdvice.class).on(ElementMatchers.isConstructor().and(ElementMatchers.takesArguments(String.class))))
+                    .make()
+                    .load(WorldCreator.class.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
+            Iris.info("Injected Bukkit Successfully!");
+        } catch (Exception e) {
+            Iris.info(C.RED + "Failed to Inject Bukkit!");
+            e.printStackTrace();
+            Iris.reportError(e);
+        }
+
+    }
+
+    private static class WorldCreatorAdvice {
+        @Advice.OnMethodEnter
+        static void enter(@Advice.Argument(0) String name) {
+            File isIrisWorld = new File(name, "iris");
+            boolean isFromIris = false;
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            for (StackTraceElement stack : stackTrace) {
+                if (stack.getClassName().contains("Iris")) {
+                    isFromIris = true;
+                    break;
+                }
+            }
+            if (!isFromIris) {
+                Preconditions.checkArgument(!isIrisWorld.exists(), "Only Iris can load Iris Worlds!");
             }
         }
     }

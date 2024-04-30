@@ -162,17 +162,11 @@ public class Chunk {
                 if (sectionIndex > 15 || sectionIndex < 0) {
                     continue;
                 }
-                try {
-                    Section newSection = new Section(section, dataVersion, loadFlags);
-                    if (newSection.isEmpty()) {
-                        continue;
-                    }
-                    sections.put(sectionIndex, newSection);
-                    IrisWorldDump.Success++;
-                } catch (Exception e) {
-                    IrisWorldDump.Failed++;
-                   // e.printStackTrace();
+                Section newSection = new Section(section, dataVersion, loadFlags);
+                if (newSection.isEmpty()) {
+                    continue;
                 }
+                sections.put(sectionIndex, newSection);
             }
         }
 

@@ -174,7 +174,7 @@ public class CommandDeveloper implements DecreeExecutor {
         try {
             File[] McaFiles = new File(world.getName(), "region").listFiles((dir, name) -> name.endsWith(".mca"));
             for (File mca : McaFiles) {
-                IrisWorldDump dump = new IrisWorldDump(world, sender());
+                IrisWorldDump dump = new IrisWorldDump(world, sender(), IrisWorldDump.mode.RAW);
                 dump.dump();
             }
         } catch (Exception e) {

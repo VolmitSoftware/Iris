@@ -19,8 +19,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
 public class IrisWorldDump {
-    public static int Failed = 0;
-    public static int Success = 0;
     private KList<MCAFile> mcaList;
     private World world;
     private File MCADirectory;
@@ -29,8 +27,9 @@ public class IrisWorldDump {
     private Engine engine = null;
     private Boolean IrisWorld;
     private VolmitSender sender;
+    private mode mode;
 
-    public IrisWorldDump(World world, VolmitSender sender) {
+    public IrisWorldDump(World world, VolmitSender sender, mode mode) {
         this.world = world;
         this.sender = sender;
         this.MCADirectory = new File(world.getWorldFolder(), "region");
@@ -54,6 +53,22 @@ public class IrisWorldDump {
         }
     }
 
+    public enum mode {
+        RAW {
+            @Override
+            public void methodDump() {
+
+            }
+        },
+        DISK {
+            @Override
+          public void methodDump() {
+
+            }
+        };
+        public abstract void methodDump();
+    }
+
     public void dump() {
         for (MCAFile mca : mcaList) {
             AtomicReferenceArray<Chunk> chunks = new AtomicReferenceArray<>(1024);
@@ -68,6 +83,8 @@ public class IrisWorldDump {
                         for (int z = 0; z < 16; z++) {
                             for (int y = 0; y < CHUNK_HEIGHT; y++) {
                               //  CompoundTag tag = chunk.getBlockStateAt(x,y,z);
+                                //net.minecraft.world.level.chunk.PalettedContainer;
+                                //net.minecraft.world.level.chunk.storage.ChunkSerializer;
                             }
                         }
                     }
@@ -107,8 +124,8 @@ public class IrisWorldDump {
         if (f > 0) {
             sender.sendMessage(C.RED +"Failed " + C.GRAY + "to load: " + f + " MCA Regions");
         }
-        Iris.info("Successfull: " + Form.f(Success));
-        Iris.info("Failed: " + Form.f(Failed));
+        Iris.info("Successfull: " + Form.f(l));
+        Iris.info("Failed: " + Form.f(f));
         return mcaFiles;
     }
 

@@ -43,7 +43,11 @@ public class Section {
             return;
         }
         palette = INMS.get().createPalette();
-        palette.readFromSection(sectionRoot);
+        try {
+            palette.readFromSection(sectionRoot);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         ByteArrayTag blockLight = sectionRoot.getByteArrayTag("BlockLight");
         ByteArrayTag skyLight = sectionRoot.getByteArrayTag("SkyLight");
         this.blockLight = blockLight != null ? blockLight.getValue() : null;

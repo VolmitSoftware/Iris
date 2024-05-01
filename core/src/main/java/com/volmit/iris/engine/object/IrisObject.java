@@ -1036,6 +1036,7 @@ public class IrisObject extends IrisRegistrant {
 
         blocks = d;
         states = dx;
+        shrinkwrap();
     }
 
     public void place(Location at) {

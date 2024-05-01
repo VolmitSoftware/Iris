@@ -59,7 +59,7 @@ public class CommandJigsaw implements DecreeExecutor {
         PlannedStructure ps = new PlannedStructure(structure, new IrisPosition(player().getLocation()), new RNG());
         VolmitSender sender = sender();
         sender.sendMessage(C.GREEN + "Generated " + ps.getPieces().size() + " pieces in " + Form.duration(p.getMilliseconds(), 2));
-        ps.place(world(), failed -> sender.sendMessage(failed == 0 ? C.GREEN + "Placed the structure!" : C.RED + "Failed to place " + failed + " pieces!"));
+        ps.place(world(), failed -> sender.sendMessage(failed ? C.GREEN + "Placed the structure!" : C.RED + "Failed to place the structure!"));
     }
 
     @Decree(description = "Create a jigsaw piece")

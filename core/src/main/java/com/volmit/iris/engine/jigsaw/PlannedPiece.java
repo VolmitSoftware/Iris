@@ -97,7 +97,15 @@ public class PlannedPiece {
         }
 
         BlockVector v = getObject().getCenter();
-        box = object.getAABB().shifted(position.add(new IrisPosition(object.getCenter())));
+        IrisPosition pos = new IrisPosition();
+        IrisObjectPlacement options = piece.getPlacementOptions();
+        if (options != null && options.getTranslate() != null) {
+            IrisObjectTranslate translate = options.getTranslate();
+            pos.setX(translate.getX());
+            pos.setY(translate.getY());
+            pos.setZ(translate.getZ());
+        }
+        box = object.getAABB().shifted(position.add(new IrisPosition(object.getCenter())).add(pos));
         return box;
     }
 

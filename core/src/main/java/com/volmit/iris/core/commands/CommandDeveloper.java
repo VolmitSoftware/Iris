@@ -28,6 +28,7 @@ import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.core.tools.IrisWorldDump;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.jvm.VMJavaFX;
 import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisCave;
@@ -172,11 +173,20 @@ public class CommandDeveloper implements DecreeExecutor {
     public void mca (
             @Param(description = "String") World world) {
         try {
-            File[] McaFiles = new File(world.getName(), "region").listFiles((dir, name) -> name.endsWith(".mca"));
-            for (File mca : McaFiles) {
-                IrisWorldDump dump = new IrisWorldDump(world, sender(), IrisWorldDump.mode.RAW);
-                dump.dump();
-            }
+                IrisWorldDump dump = new IrisWorldDump(world, sender(), IrisWorldDump.mode.PACKED);
+                dump.start();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    @Decree(description = "test")
+    public void javafx () {
+        try {
+            VMJavaFX javaFX = new VMJavaFX(sender());
+            javaFX.start();
         } catch (Exception e) {
             e.printStackTrace();
         }

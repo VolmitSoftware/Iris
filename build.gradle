@@ -43,6 +43,7 @@ registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/development/serve
 registerCustomOutputTaskUnix('PsychoLT', '/Volumes/PRO-G40/Minecraft/MinecraftDevelopment/Server/plugins')
 // ==============================================================
 
+
 def NMS_BINDINGS = Map.of(
         "v1_20_R3", "1.20.4-R0.1-SNAPSHOT",
         "v1_20_R2", "1.20.2-R0.1-SNAPSHOT",
@@ -182,6 +183,7 @@ NMS_BINDINGS.each {
 
 shadowJar {
     NMS_BINDINGS.each {dependsOn(":nms:${it.key}:build")}
+    dependsOn(':com.volmit.gui:build')
 
     //minimize()
     append("plugin.yml")
@@ -228,6 +230,7 @@ allprojects {
 
     dependencies {
         // Provided or Classpath
+       // implementation project(':com.volmit.gui')
         compileOnly 'org.projectlombok:lombok:1.18.24'
         annotationProcessor 'org.projectlombok:lombok:1.18.24'
 

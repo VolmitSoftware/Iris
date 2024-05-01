@@ -42,6 +42,7 @@ public class IrisSettings {
     private IrisSettingsConcurrency concurrency = new IrisSettingsConcurrency();
     private IrisSettingsStudio studio = new IrisSettingsStudio();
     private IrisSettingsPerformance performance = new IrisSettingsPerformance();
+    private IrisWorldDump worldDump = new IrisWorldDump();
 
     public static int getThreadCount(int c) {
         return switch (c) {
@@ -186,5 +187,9 @@ public class IrisSettings {
         public boolean openVSCode = true;
         public boolean disableTimeAndWeather = true;
         public boolean autoStartDefaultStudio = false;
+    }
+    @Data
+    public static class IrisWorldDump {
+        public int mcaCacheSize = 3;
     }
 }

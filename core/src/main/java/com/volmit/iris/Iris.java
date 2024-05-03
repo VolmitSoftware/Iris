@@ -728,6 +728,11 @@ public class Iris extends VolmitPlugin implements Listener {
                 Iris.info("Resolved missing dimension, proceeding with generation.");
             }
         }
+        File packFolder = new File(Bukkit.getWorldContainer(), worldName + "/iris/pack");
+        if (packFolder.exists()) {
+            IrisDimension worldDim = IrisData.get(packFolder).getDimensionLoader().load(id);
+            if (worldDim != null) dim = worldDim;
+        }
 
         Iris.debug("Assuming IrisDimension: " + dim.getName());
 

@@ -73,10 +73,6 @@ public class IrisDimension extends IrisRegistrant {
     @MaxNumber(2032)
     @Desc("Maximum height at which players can be teleported to through gameplay.")
     private int logicalHeight = 256;
-    @Desc("Maximum height at which players can be teleported to through gameplay.")
-    private int logicalHeightEnd = 256;
-    @Desc("Maximum height at which players can be teleported to through gameplay.")
-    private int logicalHeightNether = 256;
     @RegistryListResource(IrisJigsawStructure.class)
     @Desc("If defined, Iris will place the given jigsaw structure where minecraft should place the overworld stronghold.")
     private String stronghold;

@@ -13,13 +13,19 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Vector;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.base.Preconditions;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.Lifecycle;
+import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.io.IO;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
@@ -28,9 +34,15 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.dynamic.loading.ClassReloadingStrategy;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.minecraft.core.MappedRegistry;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.progress.ChunkProgressListener;
 import net.minecraft.util.GsonHelper;
+import net.minecraft.world.RandomSequences;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.dimension.LevelStem;
+import net.minecraft.world.level.storage.LevelStorageSource;
+import net.minecraft.world.level.storage.PrimaryLevelData;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -44,6 +56,7 @@ import org.bukkit.craftbukkit.v1_20_R2.util.CraftNamespacedKey;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -553,25 +566,34 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
-    public boolean loadDatapack(File folder) {
+    public boolean registerDimension(String name, IrisDimension dimension) {
+        var registry = registry(Registries.DIMENSION_TYPE);
+        var baseLocation = switch (dimension.getEnvironment()) {
+            case NORMAL -> new ResourceLocation("minecraft", "overworld");
+            case NETHER -> new ResourceLocation("minecraft", "the_nether");
+            case THE_END -> new ResourceLocation("minecraft", "the_end");
+            case CUSTOM -> throw new IllegalArgumentException("Cannot register custom dimension");
+        };
+        var base = registry.getHolder(ResourceKey.create(Registries.DIMENSION_TYPE, baseLocation)).orElse(null);
+        if (base == null) return false;
+        var json = encode(DimensionType.CODEC, base).orElse(null);
+        if (json == null) return false;
+        var object = json.getAsJsonObject();
+        var height = dimension.getDimensionHeight();
+        object.addProperty("min_y", height.getMin());
+        object.addProperty("height", height.getMax() - height.getMin());
+        object.addProperty("logical_height", dimension.getLogicalHeight());
+        var value = decode(DimensionType.CODEC, object.toString()).map(Holder::value).orElse(null);
+        if (value == null) return false;
+        return register(Registries.DIMENSION_TYPE, new ResourceLocation("iris", name), value, true);
+    }
+
+    @Override
+    public boolean loadDatapack(File folder, boolean replace) {
         var data = new File(folder, "iris/data");
         if (!data.exists() || !data.isDirectory()) return false;
         FilenameFilter jsonFilter = (dir, name) -> new File(dir, name).isFile() && name.toLowerCase().endsWith(".json");
 
-        var dimensionFolder = new File(data, "minecraft/dimension_type");
-        if (dimensionFolder.exists()) {
-            var files = dimensionFolder.listFiles(jsonFilter);
-            if (files != null) {
-                for (File file : files) {
-                    try {
-                        modifyDimension(file);
-                    } catch (Throwable e) {
-                        Iris.error("Unable to modify dimension!");
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
         var files = data.listFiles((dir, name) -> new File(dir, name).isDirectory());
         if (files == null) return false;
         for (File file : files) {
@@ -581,7 +603,8 @@ public class NMSBinding implements INMSBinding {
             if (biomeFiles == null) continue;
             for (File biomeFile : biomeFiles) {
                 try {
-                    registerBiome(file.getName(), biomeFile);
+                    var value = decode(net.minecraft.world.level.biome.Biome.CODEC, IO.readAll(file)).map(Holder::value).orElse(null);
+                    register(Registries.BIOME, from(file.getName(), biomeFile), value, replace);
                 } catch (Throwable e) {
                     Iris.error("Failed to register biome " + file.getName() + ":" + biomeFile.getName());
                     e.printStackTrace();
@@ -596,75 +619,95 @@ public class NMSBinding implements INMSBinding {
         return new ResourceLocation(namespace, name.substring(0, name.lastIndexOf('.')));
     }
 
-    private void registerBiome(String namespace, File file) throws Throwable {
-        var rawRegistry = registry().registry(Registries.BIOME).orElse(null);
-        var key = ResourceKey.create(Registries.BIOME, from(namespace, file));
-        if (!(rawRegistry instanceof MappedRegistry<net.minecraft.world.level.biome.Biome> registry))
-            throw new IllegalStateException("The Biome Registry is not a mapped Registry!");
-        if (registry.containsKey(key)) return;
-        Field field = getField(MappedRegistry.class, boolean.class);
-        field.setAccessible(true);
-        boolean frozen = field.getBoolean(registry);
-        field.setBoolean(registry, false);
-        Field holdersField = null;
-        boolean holders = false;
-        for (Field f : MappedRegistry.class.getDeclaredFields()) {
-            if (!f.getGenericType().getTypeName().startsWith("java.util.Map<T, "))
-                continue;
-            holdersField = f;
-        }
-        if (holdersField != null) {
-            holdersField.setAccessible(true);
-            holders = holdersField.get(registry) == null;
-            if (holders) holdersField.set(registry, new IdentityHashMap<>());
-        }
+    private <T> Optional<T> decode(Codec<T> codec, String json) {
+        return codec.decode(JsonOps.INSTANCE, GsonHelper.parse(json)).get().left().map(Pair::getFirst);
+    }
 
+    private <T> Optional<JsonElement> encode(Codec<T> codec, T value) {
+        return codec.encode(value, JsonOps.INSTANCE, new JsonObject()).result();
+    }
+
+    private <T> boolean register(ResourceKey<Registry<T>> registryKey, ResourceLocation location, T value, boolean replace) {
+        Preconditions.checkArgument(registryKey != null, "The registry cannot be null!");
+        Preconditions.checkArgument(location != null, "The location cannot be null!");
+        Preconditions.checkArgument(value != null, "The value cannot be null!");
+        var registry = registry(registryKey);
+        var key = ResourceKey.create(registryKey, location);
         try {
-            var biome = net.minecraft.world.level.biome.Biome.CODEC.decode(JsonOps.INSTANCE, GsonHelper.parse(IO.readAll(file)))
-                    .get().left().map(Pair::getFirst).map(Holder::value).orElse(null);
-            if (biome == null)
-                throw new IllegalStateException("Failed to decode biome " + file.getName());
-
-            registry.createIntrusiveHolder(biome);
-            registry.register(key, biome, Lifecycle.stable());
-        } finally {
-            field.setBoolean(registry, frozen);
-            if (holders) {
-                holdersField.set(registry, null);
+            if (registry.containsKey(key)) {
+                if (!replace) return false;
+                return replace(registryKey, location, value);
             }
+            Field field = getField(MappedRegistry.class, boolean.class);
+            field.setAccessible(true);
+            boolean frozen = field.getBoolean(registry);
+            field.setBoolean(registry, false);
+            Field holdersField = null;
+            boolean holders = false;
+            for (Field f : MappedRegistry.class.getDeclaredFields()) {
+                if (!f.getGenericType().getTypeName().startsWith("java.util.Map<T, "))
+                    continue;
+                holdersField = f;
+            }
+            if (holdersField != null) {
+                holdersField.setAccessible(true);
+                holders = holdersField.get(registry) == null;
+                if (holders) holdersField.set(registry, new IdentityHashMap<>());
+            }
+
+            try {
+                registry.createIntrusiveHolder(value);
+                registry.register(key, value, Lifecycle.stable());
+                return true;
+            } finally {
+                field.setBoolean(registry, frozen);
+                if (holders) {
+                    holdersField.set(registry, null);
+                }
+            }
+        } catch (Throwable e) {
+            throw new IllegalStateException(e);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private void modifyDimension(File file) throws Throwable {
-        var key = ResourceKey.create(Registries.DIMENSION_TYPE, from("minecraft", file));
-        var rawRegistry = registry().registry(Registries.DIMENSION_TYPE).orElse(null);
-        if (!(rawRegistry instanceof MappedRegistry<DimensionType> registry))
-            throw new IllegalStateException("The Dimension Registry is not a mapped Registry!");
+    private <T> boolean replace(ResourceKey<Registry<T>> registryKey, ResourceLocation location, T value) {
+        Preconditions.checkArgument(registryKey != null, "The registryKey cannot be null!");
+        Preconditions.checkArgument(location != null, "The location cannot be null!");
+        Preconditions.checkArgument(value != null, "The value cannot be null!");
+        var registry = registry(registryKey);
+        var key = ResourceKey.create(registryKey, location);
+        try {
+            var holder = registry.getHolder(key).orElse(null);
+            if (holder == null) return false;
+            var oldValue = holder.value();
+            Field valueField = getField(Holder.Reference.class, "T");
+            valueField.setAccessible(true);
+            Field toIdField = getField(MappedRegistry.class, buildType(Reference2IntMap.class, "T"));
+            toIdField.setAccessible(true);
+            Field byValueField = getField(MappedRegistry.class, buildType(Map.class, "T", buildType(Holder.Reference.class, "T")));
+            byValueField.setAccessible(true);
+            Field lifecyclesField = getField(MappedRegistry.class, buildType(Map.class, "T", Lifecycle.class.getName()));
+            lifecyclesField.setAccessible(true);
+            var toId = (Reference2IntMap<T>) toIdField.get(registry);
+            var byValue = (Map<T, Holder.Reference<T>>) byValueField.get(registry);
+            var lifecycles = (Map<T, Lifecycle>) lifecyclesField.get(registry);
 
-        var holder = registry.getHolder(key).orElseThrow(() -> new IllegalStateException("Unknown dimension type: " + key));
-        var oldValue = holder.value();
-        Field valueField = getField(Holder.Reference.class, "T");
-        valueField.setAccessible(true);
-        Field toIdField = getField(MappedRegistry.class, buildType(Reference2IntMap.class, "T"));
-        toIdField.setAccessible(true);
-        Field byValueField = getField(MappedRegistry.class, buildType(Map.class, "T", buildType(Holder.Reference.class, "T")));
-        byValueField.setAccessible(true);
-        Field lifecyclesField = getField(MappedRegistry.class, buildType(Map.class, "T", Lifecycle.class.getName()));
-        lifecyclesField.setAccessible(true);
-        var toId = (Reference2IntMap<DimensionType>) toIdField.get(registry);
-        var byValue = (Map<DimensionType, Holder.Reference<DimensionType>>) byValueField.get(registry);
-        var lifecycles = (Map<DimensionType, Lifecycle>) lifecyclesField.get(registry);
+            valueField.set(holder, value);
+            toId.put(value, toId.removeInt(oldValue));
+            byValue.put(value, byValue.remove(oldValue));
+            lifecycles.put(value, lifecycles.remove(oldValue));
+            return true;
+        } catch (Throwable e) {
+            throw new IllegalStateException(e);
+        }
+    }
 
-        var newValue = DimensionType.CODEC.decode(JsonOps.INSTANCE, GsonHelper.parse(IO.readAll(file)))
-                .get().left().map(Pair::getFirst).map(Holder::value).orElse(null);
-        if (newValue == null)
-            throw new IllegalArgumentException("Failed to parse dimension type " + key.location() + " from " + file);
-
-        valueField.set(holder, newValue);
-        toId.put(newValue, toId.removeInt(oldValue));
-        byValue.put(newValue, byValue.remove(oldValue));
-        lifecycles.put(newValue, lifecycles.remove(oldValue));
+    private <T> MappedRegistry<T> registry(ResourceKey<Registry<T>> registryKey) {
+        var rawRegistry = registry().registry(registryKey).orElse(null);
+        if (!(rawRegistry instanceof MappedRegistry<T> registry))
+            throw new IllegalStateException("The Registry is not a mapped Registry!");
+        return registry;
     }
 
     private static String buildType(Class<?> clazz, String... parameterTypes) {
@@ -721,6 +764,13 @@ public class NMSBinding implements INMSBinding {
                     .visit(Advice.to(WorldCreatorAdvice.class).on(ElementMatchers.isConstructor().and(ElementMatchers.takesArguments(String.class))))
                     .make()
                     .load(WorldCreator.class.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
+            new ByteBuddy()
+                    .redefine(ServerLevel.class)
+                    .visit(Advice.to(ServerLevelAdvice.class).on(ElementMatchers.isConstructor().and(ElementMatchers.takesArguments(MinecraftServer.class, Executor.class, LevelStorageSource.LevelStorageAccess.class,
+                            PrimaryLevelData.class, ResourceKey.class, LevelStem.class, ChunkProgressListener.class, boolean.class, long.class,
+                            List.class, boolean.class, RandomSequences.class, World.Environment.class, ChunkGenerator.class, BiomeProvider.class))))
+                    .make()
+                    .load(ServerLevel.class.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
             Iris.info("Injected Bukkit Successfully!");
         } catch (Exception e) {
             Iris.info(C.RED + "Failed to Inject Bukkit!");
@@ -728,6 +778,28 @@ public class NMSBinding implements INMSBinding {
             Iris.reportError(e);
         }
 
+    }
+
+    private static class ServerLevelAdvice {
+        @Advice.OnMethodEnter
+        static void enter(@Advice.Argument(0) MinecraftServer server, @Advice.Argument(2) LevelStorageSource.LevelStorageAccess access, @Advice.Argument(4) ResourceKey<Level> key, @Advice.Argument(value = 5, readOnly = false) LevelStem levelStem) {
+            File iris = new File(access.levelDirectory.path().toFile(), "iris");
+            if (!iris.exists()) return;
+            var logger = MinecraftServer.LOGGER;
+            ResourceKey<DimensionType> typeKey = ResourceKey.create(Registries.DIMENSION_TYPE, new ResourceLocation("iris", key.location().getPath()));
+            RegistryAccess registryAccess = server.registryAccess();
+            Registry<DimensionType> registry = registryAccess.registry(Registries.DIMENSION_TYPE).orElse(null);
+            if (registry == null) {
+                logger.warn("Unable to find registry for dimension type {}", typeKey);
+                return;
+            }
+            Holder<DimensionType> holder = registry.getHolder(typeKey).orElse(null);
+            if (holder == null) {
+                logger.warn("Unable to find dimension type {}", typeKey);
+                return;
+            }
+            levelStem = new LevelStem(holder, levelStem.generator());
+        }
     }
 
     private static class WorldCreatorAdvice {

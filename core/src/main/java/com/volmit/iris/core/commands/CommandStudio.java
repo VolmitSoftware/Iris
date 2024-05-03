@@ -20,9 +20,11 @@ package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.core.gui.VisionGUI;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.service.ConversionSVC;
 import com.volmit.iris.core.service.StudioSVC;
@@ -279,13 +281,23 @@ public class CommandStudio implements DecreeExecutor {
     }
 
     @Decree(description = "Hotload a studio", aliases = {"reload", "h"})
-    public void hotload() {
+    public void hotload(@Param(defaultValue = "false") boolean reloadDataPack) {
         if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender().sendMessage(C.RED + "No studio world open!");
             return;
         }
-        Iris.service(StudioSVC.class).getActiveProject().getActiveProvider().getEngine().hotload();
+        var provider = Iris.service(StudioSVC.class).getActiveProject().getActiveProvider();
+        provider.getEngine().hotload();
         sender().sendMessage(C.GREEN + "Hotloaded");
+        if (reloadDataPack) {
+            var world = provider.getTarget().getWorld().realWorld();
+            if (world == null) {
+                sender().sendMessage(C.RED + "Failed to reload datapacks.");
+                return;
+            }
+            boolean success = INMS.get().loadDatapack(new File(world.getWorldFolder(), "datapacks"), true);
+            sender().sendMessage(success ? C.GREEN + "Reloaded datapacks." : C.RED + "Failed to reload datapacks.");
+        }
     }
 
     @Decree(description = "Show loot if a chest were right here", origin = DecreeOrigin.PLAYER, sync = true)

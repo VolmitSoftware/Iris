@@ -107,7 +107,7 @@ public class NMSBinding1X implements INMSBinding {
     }
 
     @Override
-    public boolean loadDatapack(File datapackFolder) {
+    public boolean loadDatapack(File datapackFolder, boolean replace) {
         return false;
     }
 

@@ -747,6 +747,9 @@ public class Iris extends VolmitPlugin implements Listener {
             ff.mkdirs();
             service(StudioSVC.class).installIntoWorld(getSender(), dim.getLoadKey(), w.worldFolder());
         }
+        if (!INMS.get().registerDimension(worldName, dim)) {
+            throw new IllegalStateException("Unable to register dimension " + dim.getName());
+        }
 
         return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey(), false);
     }

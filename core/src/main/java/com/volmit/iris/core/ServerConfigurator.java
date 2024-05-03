@@ -228,7 +228,7 @@ public class ServerConfigurator {
             Iris.info( "Hotloading all Datapacks!");
             if (INMS.get().supportsDataPacks()) {
                 for (File folder : getDatapacksFolder()) {
-                    INMS.get().loadDatapack(folder);
+                    INMS.get().loadDatapack(folder, false);
                 }
                 Iris.info("Datapacks Hotloaded!");
                 Iris.info(C.YELLOW + "============================================================================");

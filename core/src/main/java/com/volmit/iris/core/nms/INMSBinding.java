@@ -116,9 +116,7 @@ public interface INMSBinding {
 
     boolean loadDatapack(File datapackFolder, boolean replace);
 
-    default boolean registerDimension(String name, IrisDimension dimension) {
-        return false;
-    }
+    boolean registerDimension(String name, IrisDimension dimension);
 
     void injectBukkit();
 }

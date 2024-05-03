@@ -6,6 +6,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -602,8 +603,25 @@ public class NMSBinding implements INMSBinding {
             var biomeFiles = biome.listFiles(jsonFilter);
             if (biomeFiles == null) continue;
             for (File biomeFile : biomeFiles) {
+                String json = null;
+                int tries = 10;
+                while (json == null && tries-- > 0) {
+                    try {
+                        json = IO.readAll(biomeFile);
+                    } catch (IOException e) {
+                        Iris.error("Failed to read biome " + file.getName() + ":" + biomeFile.getName() + " tries left: " + tries);
+                        if (tries == 0) {
+                            e.printStackTrace();
+                        }
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException ignored) {}
+                    }
+                }
+                if (json == null) continue;
+
                 try {
-                    var value = decode(net.minecraft.world.level.biome.Biome.CODEC, IO.readAll(file)).map(Holder::value).orElse(null);
+                    var value = decode(net.minecraft.world.level.biome.Biome.CODEC, json).map(Holder::value).orElse(null);
                     register(Registries.BIOME, from(file.getName(), biomeFile), value, replace);
                 } catch (Throwable e) {
                     Iris.error("Failed to register biome " + file.getName() + ":" + biomeFile.getName());
@@ -642,28 +660,15 @@ public class NMSBinding implements INMSBinding {
             field.setAccessible(true);
             boolean frozen = field.getBoolean(registry);
             field.setBoolean(registry, false);
-            Field holdersField = null;
-            boolean holders = false;
-            for (Field f : MappedRegistry.class.getDeclaredFields()) {
-                if (!f.getGenericType().getTypeName().startsWith("java.util.Map<T, "))
-                    continue;
-                holdersField = f;
-            }
-            if (holdersField != null) {
-                holdersField.setAccessible(true);
-                holders = holdersField.get(registry) == null;
-                if (holders) holdersField.set(registry, new IdentityHashMap<>());
-            }
+            Field valueField = getField(Holder.Reference.class, "T");
+            valueField.setAccessible(true);
 
             try {
-                registry.createIntrusiveHolder(value);
-                registry.register(key, value, Lifecycle.stable());
+                var holder = registry.register(key, value, Lifecycle.stable());
+                if (frozen) valueField.set(holder, value);
                 return true;
             } finally {
                 field.setBoolean(registry, frozen);
-                if (holders) {
-                    holdersField.set(registry, null);
-                }
             }
         } catch (Throwable e) {
             throw new IllegalStateException(e);
@@ -784,20 +789,13 @@ public class NMSBinding implements INMSBinding {
         @Advice.OnMethodEnter
         static void enter(@Advice.Argument(0) MinecraftServer server, @Advice.Argument(2) LevelStorageSource.LevelStorageAccess access, @Advice.Argument(4) ResourceKey<Level> key, @Advice.Argument(value = 5, readOnly = false) LevelStem levelStem) {
             File iris = new File(access.levelDirectory.path().toFile(), "iris");
-            if (!iris.exists()) return;
-            var logger = MinecraftServer.LOGGER;
+            if (!iris.exists() && !key.location().getPath().startsWith("iris/")) return;
             ResourceKey<DimensionType> typeKey = ResourceKey.create(Registries.DIMENSION_TYPE, new ResourceLocation("iris", key.location().getPath()));
             RegistryAccess registryAccess = server.registryAccess();
             Registry<DimensionType> registry = registryAccess.registry(Registries.DIMENSION_TYPE).orElse(null);
-            if (registry == null) {
-                logger.warn("Unable to find registry for dimension type {}", typeKey);
-                return;
-            }
+            if (registry == null) throw new IllegalStateException("Unable to find registry for dimension type " + typeKey);
             Holder<DimensionType> holder = registry.getHolder(typeKey).orElse(null);
-            if (holder == null) {
-                logger.warn("Unable to find dimension type {}", typeKey);
-                return;
-            }
+            if (holder == null) throw new IllegalStateException("Unable to find dimension type " + typeKey);
             levelStem = new LevelStem(holder, levelStem.generator());
         }
     }

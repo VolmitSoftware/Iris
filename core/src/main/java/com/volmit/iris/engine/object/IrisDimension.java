@@ -305,6 +305,10 @@ public class IrisDimension extends IrisRegistrant {
         return smartVanillaHeight ? new IrisRange(-64, 320) : dimensionHeight;
     }
 
+    public int getLogicalHeight() {
+        return smartVanillaHeight ? 256 : logicalHeight;
+    }
+
     public boolean hasFocusRegion() {
         return !focusRegion.equals("");
     }

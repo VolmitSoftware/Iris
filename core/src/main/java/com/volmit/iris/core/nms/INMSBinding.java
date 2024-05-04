@@ -19,6 +19,7 @@
 package com.volmit.iris.core.nms;
 
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.mantle.Mantle;
@@ -113,7 +114,9 @@ public interface INMSBinding {
     
     Entity spawnEntity(Location location, EntityType type, CreatureSpawnEvent.SpawnReason reason);
 
-    boolean loadDatapack(File datapackFolder);
+    boolean loadDatapack(File datapackFolder, boolean replace);
+
+    boolean registerDimension(String name, IrisDimension dimension);
 
     void injectBukkit();
 }

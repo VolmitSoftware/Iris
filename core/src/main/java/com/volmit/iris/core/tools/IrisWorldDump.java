@@ -18,6 +18,7 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.World;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -31,7 +32,6 @@ public class IrisWorldDump {
     private File MCADirectory;
     private AtomicInteger regionsProcessed;
     private AtomicInteger chunksProcessed;
-    private AtomicInteger totalToProcess;
     private AtomicInteger totalMaxChunks;
     private AtomicInteger totalMCAFiles;
     private RollingSequence chunksPerSecond;
@@ -41,7 +41,6 @@ public class IrisWorldDump {
     private ExecutorService executor;
     private ScheduledExecutorService scheduler;
     private AtomicLong startTime;
-    private mode mode;
     private File dumps;
     private File worldDump;
     private int mcaCacheSize;
@@ -49,8 +48,8 @@ public class IrisWorldDump {
     private File blocks;
     private File structures;
 
-    public IrisWorldDump(World world, VolmitSender sender, mode mode) {
-        sender.sendMessage("Initializing IrisWorldDump...");
+    public IrisWorldDump(World world, VolmitSender sender) {
+        sender.sendMessage("Building IrisWorldDump...");
         this.world = world;
         this.sender = sender;
         this.MCADirectory = new File(world.getWorldFolder(), "region");
@@ -60,8 +59,6 @@ public class IrisWorldDump {
         this.mcaCacheSize = IrisSettings.get().getWorldDump().mcaCacheSize;
         this.regionsProcessed = new AtomicInteger(0);
         this.chunksProcessed = new AtomicInteger(0);
-        this.totalToProcess = new AtomicInteger(0);
-        this.totalMaxChunks = new AtomicInteger(totalMCAFiles.get() * 1024);
         this.chunksPerSecond = new RollingSequence(10);
         this.temp = new File(worldDump, "temp");
         this.executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() - 1);
@@ -69,76 +66,35 @@ public class IrisWorldDump {
         this.startTime = new AtomicLong();
         this.storage = new KMap<>();
         this.airStorage = new AtomicLong(0);
-        this.blocks = new File(worldDump, "blocks");
-        this.structures = new File(worldDump, "structures");
-        initialize();
         try {
             this.engine = IrisToolbelt.access(world).getEngine();
             this.IrisWorld = true;
         } catch (Exception e) {
             this.IrisWorld = false;
         }
+        CompletableFuture<Void> setupFuture = CompletableFuture.runAsync(this::initialize, executor);
+        setupFuture.join();
+
     }
 
     private void initialize() {
-        if (!dumps.exists()) {
-            if (!dumps.mkdirs()) {
-                System.err.println("Failed to create dump directory.");
-                return;
+        try {
+            this.blocks = new File(worldDump, "blocks");
+            this.structures = new File(worldDump, "structures");
+            if (worldDump.exists()) {
+                deleteFileOrDirectory(worldDump);
             }
-        }
-
-        if (worldDump.exists() && !worldDump.delete()) {
-            System.err.println("Failed to delete existing world dump directory.");
-            return;
-        }
-
-        if (!worldDump.mkdir()) {
-            System.err.println("Failed to create world dump directory.");
-            return;
-        }
-
-        if (!blocks.mkdir()) {
-            System.err.println("Failed to create blocks directory.");
-            return;
-        }
-
-        if (!structures.mkdir()) {
-            System.err.println("Failed to create structures directory.");
-            return;
-        }
-        for (File mcaFile : MCADirectory.listFiles()) {
-            if (mcaFile.getName().endsWith(".mca")) {
-                totalToProcess.getAndIncrement();
-            }
+            this.totalMaxChunks = new AtomicInteger(getChunkCount().get());
+            this.totalMCAFiles = new AtomicInteger(getMCACount().get());
+            sender.sendMessage("Finished Building!");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
     public void start() {
         dump();
         updater();
-    }
-
-    public enum mode {
-        RAW {
-            @Override
-            public void methodDump() {
-
-            }
-        },
-        DISK {
-            @Override
-          public void methodDump() {
-
-            }
-        },
-        PACKED {
-            @Override
-            public void methodDump() {
-
-            }
-        };
-        public abstract void methodDump();
     }
     
     private void updater() {
@@ -156,24 +112,79 @@ public class IrisWorldDump {
         
     }
 
-
     private void dump() {
         Iris.info("Starting the dump process.");
-        int threads = Runtime.getRuntime().availableProcessors();
-        AtomicInteger f = new AtomicInteger();
+        CompletableFuture<Void> dump = CompletableFuture.runAsync(() -> {
+            AtomicInteger f = new AtomicInteger();
             for (File mcaFile : MCADirectory.listFiles()) {
                 if (mcaFile.getName().endsWith(".mca")) {
                     executor.submit(() -> {
-                    try {
-                        processMCARegion( MCAUtil.read(mcaFile));
-                    } catch (Exception e) {
-                        f.getAndIncrement();
-                        Iris.error("Failed to read mca file");
-                        e.printStackTrace();
-                    }
+                        try {
+                            processMCARegion( MCAUtil.read(mcaFile));
+                        } catch (Exception e) {
+                            f.getAndIncrement();
+                            Iris.error("Failed to read mca file");
+                            e.printStackTrace();
+                        }
                     });
                 }
             }
+
+        }).thenRun(() -> {
+            try {
+                executor.shutdown();
+                executor.awaitTermination(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        try {
+            dump.join();
+            Iris.info("Dump process completed.");
+        } catch (Exception e) {
+            Iris.error("An error occurred during the dump process: " + e.getMessage());
+        }
+    }
+
+    private AtomicInteger getChunkCount() {
+        AtomicInteger count = new AtomicInteger();
+        CompletableFuture.runAsync(() -> {
+            for (File mcaFile : MCADirectory.listFiles()) {
+                executor.submit(() -> {
+                    try {
+                        if (mcaFile.getName().endsWith(".mca")) {
+                            MCAFile mca = MCAUtil.read(mcaFile);
+                            for (int x = 0; x < 32; x++) {
+                                for (int z = 0; z < 32; z++) {
+                                    if (mca.hasChunk(x, z)) count.getAndIncrement();
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
+        }).thenRunAsync(() -> {
+            try {
+                executor.shutdown();
+                executor.awaitTermination(4, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                // e.printStackTrace();
+            }
+        });
+        return count;
+    }
+
+    private AtomicInteger getMCACount() {
+        AtomicInteger i = new AtomicInteger(0);
+        for (File mca : MCADirectory.listFiles()) {
+            if (mca.toPath().endsWith(".mca")) {
+                i.getAndIncrement();
+
+            }
+        }
+        return i;
     }
 
     private void processMCARegion(MCAFile mca) {
@@ -228,4 +239,17 @@ public class IrisWorldDump {
         );
     }
 
+    public static void deleteFileOrDirectory(File file) throws IOException {
+        if (file.isDirectory()) {
+            File[] entries = file.listFiles();
+            if (entries != null) {
+                for (File entry : entries) {
+                    deleteFileOrDirectory(entry);
+                }
+            }
+        }
+        if (!file.delete()) {
+            throw new IOException("Failed to delete " + file.getAbsolutePath());
+        }
+    }
 }

@@ -728,6 +728,11 @@ public class Iris extends VolmitPlugin implements Listener {
                 Iris.info("Resolved missing dimension, proceeding with generation.");
             }
         }
+        File packFolder = new File(Bukkit.getWorldContainer(), worldName + "/iris/pack");
+        if (packFolder.exists()) {
+            IrisDimension worldDim = IrisData.get(packFolder).getDimensionLoader().load(id);
+            if (worldDim != null) dim = worldDim;
+        }
 
         Iris.debug("Assuming IrisDimension: " + dim.getName());
 
@@ -746,6 +751,9 @@ public class Iris extends VolmitPlugin implements Listener {
         if (!ff.exists() || ff.listFiles().length == 0) {
             ff.mkdirs();
             service(StudioSVC.class).installIntoWorld(getSender(), dim.getLoadKey(), w.worldFolder());
+        }
+        if (!INMS.get().registerDimension(worldName, dim)) {
+            throw new IllegalStateException("Unable to register dimension " + dim.getName());
         }
 
         return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey(), false);

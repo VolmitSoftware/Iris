@@ -69,7 +69,6 @@ IrisAccess access=IrisToolbelt.createWorld() // If you like builders...
   .name("myWorld") // The world name
   .dimension("terrifyinghands")
   .seed(69133742) // The world seed
-  .headless(true)  // Headless make gen go fast
   .pregen(PregenTask // Define a pregen job to run
   .builder()
     .center(new Position2(0,0)) // REGION coords (1 region = 32x32 chunks)

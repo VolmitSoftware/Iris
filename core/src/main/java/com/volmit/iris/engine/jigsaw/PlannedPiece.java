@@ -20,24 +20,11 @@ package com.volmit.iris.engine.jigsaw;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.*;
-import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.math.AxisAlignedBB;
-import com.volmit.iris.util.math.BlockPosition;
-import com.volmit.iris.util.math.RNG;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.TileState;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.util.BlockVector;
 
 import java.util.ArrayList;
@@ -174,104 +161,5 @@ public class PlannedPiece {
 
     public boolean isFull() {
         return connected.size() >= piece.getConnectors().size() || isDead();
-    }
-
-    public boolean place(World world) {
-        PlatformChunkGenerator a = IrisToolbelt.access(world);
-
-        int minY = 0;
-        if (a != null) {
-            minY = a.getEngine().getMinHeight();
-
-            if (!a.getEngine().getDimension().isBedrock())
-                minY--; //If the dimension has no bedrock, allow it to go a block lower
-        }
-        Engine engine = a != null ? a.getEngine() : IrisContext.get().getEngine();
-
-        getPiece().getPlacementOptions().setTranslate(new IrisObjectTranslate());
-        getPiece().getPlacementOptions().getRotation().setEnabled(false);
-        getPiece().getPlacementOptions().setRotateTowardsSlope(false);
-        int finalMinY = minY;
-        RNG rng = getStructure().getRng().nextParallelRNG(37555);
-
-        // TODO: REAL CLASSES!!!!!!!
-        return getObject().place(position.getX() + getObject().getCenter().getBlockX(), position.getY() + getObject().getCenter().getBlockY(), position.getZ() + getObject().getCenter().getBlockZ(), new IObjectPlacer() {
-            @Override
-            public int getHighest(int x, int z, IrisData data) {
-                return position.getY();
-            }
-
-            @Override
-            public int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
-                return position.getY();
-            }
-
-            @Override
-            public void set(int x, int y, int z, BlockData d) {
-                Block block = world.getBlockAt(x, y, z);
-
-                //Prevent blocks being set in or bellow bedrock
-                if (y <= finalMinY || block.getType() == Material.BEDROCK) return;
-
-                block.setBlockData(d);
-
-                if (a != null && getPiece().getPlacementOptions().getLoot().isNotEmpty() &&
-                        block.getState() instanceof InventoryHolder) {
-
-                    IrisLootTable table = getPiece().getPlacementOptions().getTable(block.getBlockData(), getData());
-                    if (table == null) return;
-                    engine.addItems(false, ((InventoryHolder) block.getState()).getInventory(),
-                            rng.nextParallelRNG(BlockPosition.toLong(x, y, z)),
-                            new KList<>(table), InventorySlotType.STORAGE, x, y, z, 15);
-                }
-            }
-
-            @Override
-            public BlockData get(int x, int y, int z) {
-                return world.getBlockAt(x, y, z).getBlockData();
-            }
-
-            @Override
-            public boolean isPreventingDecay() {
-                return false;
-            }
-
-            @Override
-            public boolean isCarved(int x, int y, int z) {
-                return false;
-            }
-
-            @Override
-            public boolean isSolid(int x, int y, int z) {
-                return world.getBlockAt(x, y, z).getType().isSolid();
-            }
-
-            @Override
-            public boolean isUnderwater(int x, int z) {
-                return false;
-            }
-
-            @Override
-            public int getFluidHeight() {
-                return 0;
-            }
-
-            @Override
-            public boolean isDebugSmartBore() {
-                return false;
-            }
-
-            @Override
-            public void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile) {
-                BlockState state = world.getBlockAt(xx, yy, zz).getState();
-                tile.toBukkitTry(state);
-                state.update();
-            }
-
-            @Override
-            public Engine getEngine() {
-                return engine;
-            }
-        }, piece.getPlacementOptions(), rng, getData().getEngine() == null ? engine.getData() : getData()) != -1;
     }
 }

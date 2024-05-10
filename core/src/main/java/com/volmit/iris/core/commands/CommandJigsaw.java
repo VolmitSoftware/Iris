@@ -21,6 +21,7 @@ package com.volmit.iris.core.commands;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.edit.JigsawEditor;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.framework.placer.WorldObjectPlacer;
 import com.volmit.iris.engine.jigsaw.PlannedStructure;
 import com.volmit.iris.engine.object.IrisJigsawPiece;
 import com.volmit.iris.engine.object.IrisJigsawStructure;
@@ -56,10 +57,16 @@ public class CommandJigsaw implements DecreeExecutor {
             IrisJigsawStructure structure
     ) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        PlannedStructure ps = new PlannedStructure(structure, new IrisPosition(player().getLocation()), new RNG());
-        VolmitSender sender = sender();
-        sender.sendMessage(C.GREEN + "Generated " + ps.getPieces().size() + " pieces in " + Form.duration(p.getMilliseconds(), 2));
-        ps.place(world(), failed -> sender.sendMessage(failed ? C.GREEN + "Placed the structure!" : C.RED + "Failed to place the structure!"));
+        try {
+            var world = world();
+            WorldObjectPlacer placer = new WorldObjectPlacer(world);
+            PlannedStructure ps = new PlannedStructure(structure, new IrisPosition(player().getLocation().add(0, world.getMinHeight(), 0)), new RNG());
+            VolmitSender sender = sender();
+            sender.sendMessage(C.GREEN + "Generated " + ps.getPieces().size() + " pieces in " + Form.duration(p.getMilliseconds(), 2));
+            ps.place(placer, failed -> sender.sendMessage(failed ? C.GREEN + "Placed the structure!" : C.RED + "Failed to place the structure!"));
+        } catch (IllegalArgumentException e) {
+            sender().sendMessage(C.RED + "Failed to place the structure: " + e.getMessage());
+        }
     }
 
     @Decree(description = "Create a jigsaw piece")

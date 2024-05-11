@@ -160,6 +160,6 @@ public class PlannedPiece {
     }
 
     public boolean isFull() {
-        return connected.size() >= piece.getConnectors().size() || isDead();
+        return connected.size() >= piece.getConnectors().size();
     }
 }

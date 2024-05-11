@@ -257,7 +257,8 @@ public class PlannedStructure {
     private KList<IrisJigsawPiece> getShuffledPiecesFor(IrisJigsawPieceConnector c) {
         KList<IrisJigsawPiece> p = new KList<>();
 
-        for (String i : c.getPools().shuffleCopy(rng)) {
+        KList<String> pools = terminating && getStructure().getTerminatePool() != null ? new KList<>(getStructure().getTerminatePool()) : c.getPools().shuffleCopy(rng);
+        for (String i : pools) {
             for (String j : getData().getJigsawPoolLoader().load(i).getPieces().shuffleCopy(rng)) {
                 IrisJigsawPiece pi = getData().getJigsawPieceLoader().load(j);
 
@@ -283,7 +284,9 @@ public class PlannedStructure {
     }
 
     public KList<PlannedPiece> getPiecesWithAvailableConnectors() {
-        return pieces.copy().removeWhere(PlannedPiece::isFull);
+        KList<PlannedPiece> available = pieces.copy().removeWhere(PlannedPiece::isFull);
+        if (!terminating) available.removeIf(PlannedPiece::isDead);
+        return available;
     }
 
     public int getVolume() {

@@ -102,8 +102,11 @@ public class IrisJigsawStructurePlacement implements IRare {
         return i * spacing + l == x && j * spacing + m == z;
     }
 
+    @Desc("Spread type")
     public enum SpreadType {
+        @Desc("Linear spread")
         LINEAR(RNG::i),
+        @Desc("Triangular spread")
         TRIANGULAR((rng, bound) -> (rng.i(bound) + rng.i(bound)) / 2);
         private final SpreadMethod method;
 

@@ -101,7 +101,7 @@ public class WandSelection {
                             int g = color.getGreen();
                             int b = color.getBlue();
 
-                            p.spawnParticle(Particle.REDSTONE, a.getX(), a.getY(), a.getZ(),
+                            p.spawnParticle(Particle.DUST, a.getX(), a.getY(), a.getZ(),
                                     1, 0, 0, 0, 0,
                                     new Particle.DustOptions(org.bukkit.Color.fromRGB(r, g, b),
                                             (float) dist * 3f));

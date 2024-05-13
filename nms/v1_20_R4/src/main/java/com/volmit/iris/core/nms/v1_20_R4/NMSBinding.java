@@ -1,4 +1,33 @@
-package com.volmit.iris.core.nms.v1_20_R1;
+package com.volmit.iris.core.nms.v1_20_R4;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.bukkit.*;
+import org.bukkit.block.Biome;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.craftbukkit.v1_20_R4.CraftChunk;
+import org.bukkit.craftbukkit.v1_20_R4.CraftServer;
+import org.bukkit.craftbukkit.v1_20_R4.CraftWorld;
+import org.bukkit.craftbukkit.v1_20_R4.block.data.CraftBlockData;
+import org.bukkit.craftbukkit.v1_20_R4.entity.CraftDolphin;
+import org.bukkit.craftbukkit.v1_20_R4.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_20_R4.util.CraftNamespacedKey;
+import org.bukkit.entity.Dolphin;
+import org.bukkit.entity.Entity;
+import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.volmit.iris.Iris;
@@ -16,60 +45,31 @@ import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.mca.palette.*;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
+
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.TagParser;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
-import org.bukkit.*;
-import org.bukkit.block.Biome;
-import org.bukkit.block.data.BlockData;
-
-import org.bukkit.craftbukkit.v1_20_R1.CraftChunk;
-import org.bukkit.craftbukkit.v1_20_R1.CraftServer;
-import org.bukkit.craftbukkit.v1_20_R1.CraftWorld;
-import org.bukkit.craftbukkit.v1_20_R1.block.CraftBlock;
-import org.bukkit.craftbukkit.v1_20_R1.block.data.CraftBlockData;
-import org.bukkit.craftbukkit.v1_20_R1.entity.CraftDolphin;
-import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
-import org.bukkit.entity.Dolphin;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.entity.EntityType;
-import org.bukkit.generator.ChunkGenerator;
-import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import sun.misc.Unsafe;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Vector;
-import java.util.concurrent.atomic.AtomicInteger;
-
 public class NMSBinding implements INMSBinding {
-
-    public static final String NMS_VERSION = "1.20.1";
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
     private final BlockData AIR = Material.AIR.createBlockData();
     private final AtomicCache<MCAIdMap<net.minecraft.world.level.biome.Biome>> biomeMapCache = new AtomicCache<>();
@@ -125,10 +125,6 @@ public class NMSBinding implements INMSBinding {
         return null;
     }
 
-    private static Class<?> getClassType(Class<?> type, int ordinal) {
-        return type.getDeclaredClasses()[ordinal];
-    }
-
     @Override
     public boolean hasTile(Location l) {
         return ((CraftWorld) l.getWorld()).getHandle().getBlockEntity(new BlockPos(l.getBlockX(), l.getBlockY(), l.getBlockZ()), false) != null;
@@ -136,13 +132,14 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public CompoundTag serializeTile(Location location) {
-        BlockEntity e = ((CraftWorld) location.getWorld()).getHandle().getBlockEntity(new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()), true);
+        ServerLevel l = ((CraftWorld) location.getWorld()).getHandle();
+        BlockEntity e = l.getBlockEntity(new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()), true);
 
         if (e == null) {
             return null;
         }
 
-        net.minecraft.nbt.CompoundTag tag = e.saveWithFullMetadata();
+        net.minecraft.nbt.CompoundTag tag = e.saveWithFullMetadata(l.getServer().registryAccess());
         return convert(tag);
     }
 
@@ -258,7 +255,7 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public Object getBiomeBase(World world, Biome biome) {
-        return CraftBlock.biomeToBiomeBase(((CraftWorld) world).getHandle()
+        return biomeToBiomeBase(((CraftWorld) world).getHandle()
                 .registryAccess().registry(Registries.BIOME).orElse(null), biome);
     }
 
@@ -270,13 +267,13 @@ public class NMSBinding implements INMSBinding {
             return v;
         }
         //noinspection unchecked
-        v = CraftBlock.biomeToBiomeBase((Registry<net.minecraft.world.level.biome.Biome>) registry, biome);
+        v = biomeToBiomeBase((Registry<net.minecraft.world.level.biome.Biome>) registry, biome);
         if (v == null) {
             // Ok so there is this new biome name called "CUSTOM" in Paper's new releases.
             // But, this does NOT exist within CraftBukkit which makes it return an error.
             // So, we will just return the ID that the plains biome returns instead.
             //noinspection unchecked
-            return CraftBlock.biomeToBiomeBase((Registry<net.minecraft.world.level.biome.Biome>) registry, Biome.PLAINS);
+            return biomeToBiomeBase((Registry<net.minecraft.world.level.biome.Biome>) registry, Biome.PLAINS);
         }
         baseBiomeCache.put(biome, v);
         return v;
@@ -463,8 +460,9 @@ public class NMSBinding implements INMSBinding {
 
             try {
                 net.minecraft.nbt.CompoundTag tag = TagParser.parseTag((new JSONObject(customNbt)).toString());
-                tag.merge(s.getOrCreateTag());
-                s.setTag(tag);
+
+                tag.merge(s.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).getUnsafe());
+                s.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
             } catch (CommandSyntaxException var5) {
                 throw new IllegalArgumentException(var5);
             }
@@ -481,12 +479,25 @@ public class NMSBinding implements INMSBinding {
         cd.getHandle().setGotFish(true);
     }
 
+    public void inject(long seed, Engine engine, World world) throws NoSuchFieldException, IllegalAccessException {
+        ServerLevel serverLevel = ((CraftWorld)world).getHandle();
+        Class<?> clazz = serverLevel.getChunkSource().chunkMap.generator.getClass();
+        Field biomeSource = getField(clazz, BiomeSource.class);
+        biomeSource.setAccessible(true);
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+        unsafeField.setAccessible(true);
+        Unsafe unsafe = (Unsafe)unsafeField.get(null);
+        CustomBiomeSource customBiomeSource = new CustomBiomeSource(seed, engine, world);
+        unsafe.putObject(biomeSource.get(serverLevel.getChunkSource().chunkMap.generator), unsafe.objectFieldOffset(biomeSource), customBiomeSource);
+        biomeSource.set(serverLevel.getChunkSource().chunkMap.generator, customBiomeSource);
+    }
+
     public Vector3d getBoundingbox(org.bukkit.entity.EntityType entity) {
-        Field[] fields = net.minecraft.world.entity.EntityType.class.getDeclaredFields();
+        Field[] fields = EntityType.class.getDeclaredFields();
         for (Field field : fields) {
-            if (Modifier.isStatic(field.getModifiers()) && field.getType().equals(net.minecraft.world.entity.EntityType.class)) {
+            if (Modifier.isStatic(field.getModifiers()) && field.getType().equals(EntityType.class)) {
                 try {
-                    net.minecraft.world.entity.EntityType entityType = (net.minecraft.world.entity.EntityType) field.get(null);
+                    EntityType entityType = (EntityType) field.get(null);
                     if (entityType.getDescriptionId().equals("entity.minecraft." + entity.name().toLowerCase())) {
                         Vector<Float> v1 = new Vector<>();
                         v1.add(entityType.getHeight());
@@ -504,22 +515,10 @@ public class NMSBinding implements INMSBinding {
         return null;
     }
 
+
     @Override
     public Entity spawnEntity(Location location,  org.bukkit.entity.EntityType type, CreatureSpawnEvent.SpawnReason reason) {
         return ((CraftWorld) location.getWorld()).spawn(location, type.getEntityClass(), null, reason);
-    }
-
-    public void inject(long seed, Engine engine, World world) throws NoSuchFieldException, IllegalAccessException {
-        ServerLevel serverLevel = ((CraftWorld)world).getHandle();
-        Class<?> clazz = serverLevel.getChunkSource().chunkMap.generator.getClass();
-        Field biomeSource = getField(clazz, BiomeSource.class);
-        biomeSource.setAccessible(true);
-        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
-        unsafeField.setAccessible(true);
-        Unsafe unsafe = (Unsafe)unsafeField.get(null);
-        CustomBiomeSource customBiomeSource = new CustomBiomeSource(seed, engine, world);
-        unsafe.putObject(biomeSource.get(serverLevel.getChunkSource().chunkMap.generator), unsafe.objectFieldOffset(biomeSource), customBiomeSource);
-        biomeSource.set(serverLevel.getChunkSource().chunkMap.generator, customBiomeSource);
     }
 
     private static Field getField(Class<?> clazz, Class<?> fieldType) throws NoSuchFieldException {
@@ -537,5 +536,9 @@ public class NMSBinding implements INMSBinding {
                 return getField(superClass, fieldType);
             }
         }
+    }
+
+    public static Holder<net.minecraft.world.level.biome.Biome> biomeToBiomeBase(Registry<net.minecraft.world.level.biome.Biome> registry, Biome biome) {
+        return registry.getHolderOrThrow(ResourceKey.create(Registries.BIOME, CraftNamespacedKey.toMinecraft(biome.getKey())));
     }
 }

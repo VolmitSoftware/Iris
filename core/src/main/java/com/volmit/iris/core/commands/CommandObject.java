@@ -52,7 +52,7 @@ import java.util.*;
 @Decree(name = "object", aliases = "o", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris object manipulation")
 public class CommandObject implements DecreeExecutor {
 
-    private static final Set<Material> skipBlocks = Set.of(Material.GRASS, Material.SNOW, Material.VINE, Material.TORCH, Material.DEAD_BUSH,
+    private static final Set<Material> skipBlocks = Set.of(Material.SHORT_GRASS, Material.SNOW, Material.VINE, Material.TORCH, Material.DEAD_BUSH,
             Material.POPPY, Material.DANDELION);
 
     public static IObjectPlacer createPlacer(World world, Map<Block, BlockData> futureBlockChanges) {
@@ -253,7 +253,7 @@ public class CommandObject implements DecreeExecutor {
             } else {
                 g[1] = player().getLocation().getBlock().getLocation().clone().add(0, -1, 0);
             }
-            player().setItemInHand(WandSVC.createWand(g[0], g[1]));
+            player().getInventory().setItemInMainHand(WandSVC.createWand(g[0], g[1]));
         }
     }
 

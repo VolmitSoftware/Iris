@@ -21,12 +21,12 @@ import java.util.function.Consumer
 plugins {
     id 'java'
     id 'java-library'
-    id "com.github.johnrengelman.shadow" version "7.1.2"
+    id "io.github.goooler.shadow" version "8.1.7"
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '3.2.6-1.19.2-1.20.4'
-def specialSourceVersion = '1.11.0' //[NMS]
+version '3.2.7-1.20.6'
+def specialSourceVersion = '1.11.4' //[NMS]
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================
@@ -44,12 +44,8 @@ registerCustomOutputTaskUnix('PsychoLT', '/Volumes/PRO-G40/Minecraft/MinecraftDe
 // ==============================================================
 
 def NMS_BINDINGS = Map.of(
-        "v1_20_R3", "1.20.4-R0.1-SNAPSHOT",
-        "v1_20_R2", "1.20.2-R0.1-SNAPSHOT",
-        "v1_20_R1", "1.20.1-R0.1-SNAPSHOT",
-        "v1_19_R3", "1.19.4-R0.1-SNAPSHOT",
-        "v1_19_R2", "1.19.3-R0.1-SNAPSHOT",
-        "v1_19_R1", "1.19.2-R0.1-SNAPSHOT"
+        "v1_20_R4", "1.20.6-R0.1-SNAPSHOT",
+        "v1_20_R3", "1.20.4-R0.1-SNAPSHOT"
 )
 NMS_BINDINGS.each {
     def key = it.key
@@ -264,18 +260,18 @@ allprojects {
     }
 }
 
-if (JavaVersion.current().toString() != "17") {
+if (JavaVersion.current().toString() < "21") {
     System.err.println()
     System.err.println("=========================================================================================================")
-    System.err.println("You must run gradle on Java 17. You are using " + JavaVersion.current())
+    System.err.println("You must run gradle on Java 21 or newer. You are using " + JavaVersion.current())
     System.err.println()
     System.err.println("=== For IDEs ===")
-    System.err.println("1. Configure the project for Java 17")
-    System.err.println("2. Configure the bundled gradle to use Java 17 in settings")
+    System.err.println("1. Configure the project for Java 21")
+    System.err.println("2. Configure the bundled gradle to use Java 21 in settings")
     System.err.println()
     System.err.println("=== For Command Line (gradlew) ===")
-    System.err.println("1. Install JDK 17 from https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html")
-    System.err.println("2. Set JAVA_HOME environment variable to the new jdk installation folder such as C:\\Program Files\\Java\\jdk-17.0.1")
+    System.err.println("1. Install JDK 21 from https://www.oracle.com/java/technologies/javase/jdk21-archive-downloads.html")
+    System.err.println("2. Set JAVA_HOME environment variable to the new jdk installation folder such as C:\\Program Files\\Java\\jdk-21.0.1")
     System.err.println("3. Open a new command prompt window to get the new environment variables if need be.")
     System.err.println("=========================================================================================================")
     System.err.println()

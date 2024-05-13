@@ -18,7 +18,7 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import io.papermc.lib.PaperLib;
-import lombok.Builder;
+import lombok.Builder.Default;
 import lombok.Data;
 import lombok.Getter;
 import org.apache.logging.log4j.core.util.ExecutorServices;
@@ -328,14 +328,14 @@ public class TurboPregenerator extends Thread implements Listener {
     }
 
     @Data
-    @Builder
+    @lombok.Builder
     public static class TurboPregenJob {
         private String world;
-        @Builder.Default
+        @Default
         private int radiusBlocks = 5000;
-        @Builder.Default
+        @Default
         private int position = 0;
-        @Builder.Default
+        @Default
         boolean paused = false;
     }
 }

@@ -36,15 +36,15 @@ public class IrisBiomeCustomSpawn {
     @Desc("The biome's entity type")
     private EntityType type = EntityType.COW;
 
-    @MinNumber(1)
-    @MaxNumber(20)
+    @MinNumber(0)
+    @MaxNumber(0.9999999)
     @Desc("The min to spawn")
-    private int minCount = 2;
+    private double minCount = 0.1;
 
-    @MinNumber(1)
-    @MaxNumber(20)
+    @MinNumber(0)
+    @MaxNumber(0.9999999)
     @Desc("The max to spawn")
-    private int maxCount = 5;
+    private double maxCount = 0.25;
 
     @MinNumber(1)
     @MaxNumber(1000)

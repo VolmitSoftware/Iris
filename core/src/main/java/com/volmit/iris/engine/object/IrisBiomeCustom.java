@@ -54,7 +54,7 @@ public class IrisBiomeCustom {
     private double humidity = 0.4;
 
     @DependsOn("spawnRarity")
-    @ArrayType(min = 1, type = IrisBiomeCustomSpawn.class)
+    @ArrayType(min = 0, type = IrisBiomeCustomSpawn.class)
     @Desc("The biome's mob spawns")
     private KList<IrisBiomeCustomSpawn> spawns = new KList<>();
 
@@ -69,7 +69,7 @@ public class IrisBiomeCustom {
     private IrisBiomeCustomCategory category = IrisBiomeCustomCategory.plains;
 
     @Desc("The spawn rarity of any defined spawners")
-    private int spawnRarity = -1;
+    private double spawnRarity = 0;
 
     @Desc("The color of the sky, top half of sky. (hex format)")
     private String skyColor = "#79a8e1";

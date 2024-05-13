@@ -3,6 +3,8 @@ package com.volmit.iris.util.data;
 import com.volmit.iris.core.link.Identifier;
 import lombok.Data;
 import lombok.NonNull;
+
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.SoundGroup;
@@ -15,7 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Data
-public class IrisBlockData implements BlockData{
+public class IrisBlockData implements BlockData {
 	private final @NonNull BlockData base;
 	private final @NotNull Identifier custom;
 
@@ -123,5 +125,17 @@ public class IrisBlockData implements BlockData{
 	@Override
 	public BlockState createBlockState() {
 		return base.createBlockState();
+	}
+
+	@Override
+	public Color getMapColor() {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Unimplemented method 'getMapColor'");
+	}
+
+	@Override
+	public void copyTo(BlockData other) {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Unimplemented method 'copyTo'");
 	}
 }

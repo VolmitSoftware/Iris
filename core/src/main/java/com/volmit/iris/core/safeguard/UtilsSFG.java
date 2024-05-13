@@ -51,13 +51,13 @@ public class UtilsSFG {
                 Iris.safeguard(C.YELLOW + "Insufficient Disk Space");
                 Iris.safeguard(C.YELLOW + "- The server has insufficient Free DiskSpace to run iris required 3GB+.");
             }
-            if (!ServerBootSFG.isJDK17) {
+            if (!ServerBootSFG.isJDK21) {
                 Iris.safeguard(C.YELLOW + "Unsupported java version");
-                Iris.safeguard(C.YELLOW + "- Please consider using JDK 17 Instead of JDK " + Iris.getJavaVersion());
+                Iris.safeguard(C.YELLOW + "- Please consider using JDK 21 Instead of JDK " + Iris.getJavaVersion());
             }
             if (ServerBootSFG.isJRE) {
                 Iris.safeguard(C.YELLOW + "Unsupported Server JDK");
-                Iris.safeguard(C.YELLOW + "- Please consider using JDK 17 Instead of JRE " + Iris.getJavaVersion());
+                Iris.safeguard(C.YELLOW + "- Please consider using JDK 21 Instead of JRE " + Iris.getJavaVersion());
             }
         }
     }

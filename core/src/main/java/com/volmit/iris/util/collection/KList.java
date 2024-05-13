@@ -83,10 +83,8 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     /**
      * Remove the last element
      */
-    public KList<T> removeLast() {
-        remove(last());
-
-        return this;
+    public T removeLast() {
+        return remove(last());
     }
 
     public void addMultiple(T t, int c) {

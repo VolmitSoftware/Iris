@@ -162,11 +162,11 @@ public class WandSVC implements IrisService {
      */
     public static ItemStack createDust() {
         ItemStack is = new ItemStack(Material.GLOWSTONE_DUST);
-        is.addUnsafeEnchantment(Enchantment.ARROW_INFINITE, 1);
+        is.addUnsafeEnchantment(Enchantment.INFINITY, 1);
         ItemMeta im = is.getItemMeta();
         im.setDisplayName(C.BOLD + "" + C.YELLOW + "Dust of Revealing");
         im.setUnbreakable(true);
-        im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_PLACED_ON, ItemFlag.HIDE_POTION_EFFECTS, ItemFlag.HIDE_DESTROYS, ItemFlag.HIDE_ENCHANTS);
+        im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_PLACED_ON, ItemFlag.HIDE_DESTROYS, ItemFlag.HIDE_ENCHANTS);
         im.setLore(new KList<String>().qadd("Right click on a block to reveal it's placement structure!"));
         is.setItemMeta(im);
 
@@ -206,11 +206,11 @@ public class WandSVC implements IrisService {
      */
     public static ItemStack createWand(Location a, Location b) {
         ItemStack is = new ItemStack(Material.BLAZE_ROD);
-        is.addUnsafeEnchantment(Enchantment.ARROW_INFINITE, 1);
+        is.addUnsafeEnchantment(Enchantment.INFINITY, 1);
         ItemMeta im = is.getItemMeta();
         im.setDisplayName(C.BOLD + "" + C.GOLD + "Wand of Iris");
         im.setUnbreakable(true);
-        im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_PLACED_ON, ItemFlag.HIDE_POTION_EFFECTS, ItemFlag.HIDE_DESTROYS, ItemFlag.HIDE_ENCHANTS);
+        im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_PLACED_ON, ItemFlag.HIDE_DESTROYS, ItemFlag.HIDE_ENCHANTS);
         im.setLore(new KList<String>().add(locationToString(a), locationToString(b)));
         is.setItemMeta(im);
 
@@ -311,7 +311,7 @@ public class WandSVC implements IrisService {
      */
     public void draw(Location[] d, Player p) {
         Vector gx = Vector.getRandom().subtract(Vector.getRandom()).normalize().clone().multiply(0.65);
-        d[0].getWorld().spawnParticle(Particle.CRIT_MAGIC, d[0], 1, 0.5 + gx.getX(), 0.5 + gx.getY(), 0.5 + gx.getZ(), 0, null, false);
+        d[0].getWorld().spawnParticle(Particle.CRIT, d[0], 1, 0.5 + gx.getX(), 0.5 + gx.getY(), 0.5 + gx.getZ(), 0, null, false);
         Vector gxx = Vector.getRandom().subtract(Vector.getRandom()).normalize().clone().multiply(0.65);
         d[1].getWorld().spawnParticle(Particle.CRIT, d[1], 1, 0.5 + gxx.getX(), 0.5 + gxx.getY(), 0.5 + gxx.getZ(), 0, null, false);
 
@@ -370,7 +370,7 @@ public class WandSVC implements IrisService {
                             int r = color.getRed();
                             int g = color.getGreen();
                             int b = color.getBlue();
-                            p.spawnParticle(Particle.REDSTONE, lv.getX(), lv.getY(), lv.getZ(), 1, 0, 0, 0, 0, new Particle.DustOptions(org.bukkit.Color.fromRGB(r, g, b), 0.75f));
+                            p.spawnParticle(Particle.DUST, lv.getX(), lv.getY(), lv.getZ(), 1, 0, 0, 0, 0, new Particle.DustOptions(org.bukkit.Color.fromRGB(r, g, b), 0.75f));
                         }
                     }
                 }

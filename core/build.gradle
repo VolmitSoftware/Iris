@@ -19,10 +19,10 @@
 plugins {
     id 'java'
     id 'java-library'
-    id "io.freefair.lombok" version "6.3.0"
+    id "io.freefair.lombok" version "8.6"
 }
 
-def apiVersion = '1.19'
+def apiVersion = '1.20'
 def main = 'com.volmit.iris.Iris'
 
 /**
@@ -52,7 +52,7 @@ repositories {
  */
 dependencies {
     // Provided or Classpath
-    compileOnly 'org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT'
+    compileOnly 'org.spigotmc:spigot-api:1.20.6-R0.1-SNAPSHOT'
     compileOnly 'org.apache.logging.log4j:log4j-api:2.19.0'
     compileOnly 'org.apache.logging.log4j:log4j-core:2.19.0'
     compileOnly 'commons-io:commons-io:2.13.0'

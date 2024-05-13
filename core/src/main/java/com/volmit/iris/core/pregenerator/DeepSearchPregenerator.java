@@ -15,7 +15,7 @@ import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
-import lombok.Builder;
+import lombok.Builder.Default;
 import lombok.Data;
 import lombok.Getter;
 import org.bukkit.Bukkit;
@@ -167,6 +167,7 @@ public class DeepSearchPregenerator extends Thread implements Listener {
                     IrisBiome biome = engine.getBiome(xx, engine.getHeight(), zz);
                     Iris.info("Found at! " + xx + ", " + zz + "Biome ID: " + biome.getName() + ", ");
                     writer.write("Biome at: X: " + xx + " Z: " + zz + "Biome ID: " + biome.getName() +  ", ");
+                    writer.close();
                     return;
                }
             }
@@ -261,14 +262,14 @@ public class DeepSearchPregenerator extends Thread implements Listener {
     }
 
     @Data
-    @Builder
+    @lombok.Builder
     public static class DeepSearchJob {
         private World world;
-        @Builder.Default
+        @Default
         private int radiusBlocks = 5000;
-        @Builder.Default
+        @Default
         private int position = 0;
-        @Builder.Default
+        @Default
         boolean paused = false;
     }
 }

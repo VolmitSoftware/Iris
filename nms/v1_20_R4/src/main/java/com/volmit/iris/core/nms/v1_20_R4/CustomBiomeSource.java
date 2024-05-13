@@ -1,6 +1,7 @@
-package com.volmit.iris.core.nms.v1_20_R1;
+package com.volmit.iris.core.nms.v1_20_R4;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
@@ -19,9 +20,8 @@ import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.Climate;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.craftbukkit.v1_20_R1.CraftServer;
-import org.bukkit.craftbukkit.v1_20_R1.CraftWorld;
-import org.bukkit.craftbukkit.v1_20_R1.block.CraftBlock;
+import org.bukkit.craftbukkit.v1_20_R4.CraftServer;
+import org.bukkit.craftbukkit.v1_20_R4.CraftWorld;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -58,7 +58,7 @@ public class CustomBiomeSource extends BiomeSource {
                             .get(new ResourceLocation(engine.getDimension().getLoadKey() + ":" + j.getId()))).get()).get());
                 }
             } else {
-                b.add(CraftBlock.biomeToBiomeBase(registry, i.getVanillaDerivative()));
+                b.add(NMSBinding.biomeToBiomeBase(registry, i.getVanillaDerivative()));
             }
         }
 
@@ -151,7 +151,7 @@ public class CustomBiomeSource extends BiomeSource {
     }
 
     @Override
-    protected Codec<? extends BiomeSource> codec() {
+    protected MapCodec<? extends BiomeSource> codec() {
         throw new UnsupportedOperationException("Not supported");
     }
 
@@ -163,7 +163,7 @@ public class CustomBiomeSource extends BiomeSource {
             return customBiomes.get(ib.getCustomBiome(rng, x << 2, m, z << 2).getId());
         } else {
             org.bukkit.block.Biome v = ib.getSkyBiome(rng, x << 2, m, z << 2);
-            return CraftBlock.biomeToBiomeBase(biomeRegistry, v);
+            return NMSBinding.biomeToBiomeBase(biomeRegistry, v);
         }
     }
 }

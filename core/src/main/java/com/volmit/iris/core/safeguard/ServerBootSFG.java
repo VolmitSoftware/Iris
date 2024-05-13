@@ -24,7 +24,7 @@ import static com.volmit.iris.core.safeguard.IrisSafeguard.*;
 
 public class ServerBootSFG {
     public static final Map<String, Boolean> incompatibilities = new HashMap<>();
-    public static boolean isJDK17 = true;
+    public static boolean isJDK21 = true;
     public static boolean hasEnoughDiskSpace = true;
     public static boolean isJRE = false;
     public static boolean hasPrivileges = true;
@@ -81,8 +81,8 @@ public class ServerBootSFG {
             severityHigh++;
         }
 
-        if (getJavaVersion() != 17) {
-            isJDK17 = false;
+        if (getJavaVersion() != 21) {
+            isJDK21 = false;
             joiner.add("Unsupported Java version");
             severityMedium++;
         }

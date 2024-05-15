@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -68,8 +69,10 @@ public class IrisBiomeCustom {
     @Desc("The biome's category type")
     private IrisBiomeCustomCategory category = IrisBiomeCustomCategory.plains;
 
+    @MinNumber(0)
+    @MaxNumber(20)
     @Desc("The spawn rarity of any defined spawners")
-    private int spawnRarity = -1;
+    private int spawnRarity = 0;
 
     @Desc("The color of the sky, top half of sky. (hex format)")
     private String skyColor = "#79a8e1";
@@ -155,7 +158,7 @@ public class IrisBiomeCustom {
             j.put("spawners", spawners);
         }
 
-        return j.toString(4);
+        return INMS.get().fixCustomBiome(this, j).toString(4);
     }
 
     private int parseColor(String c) {

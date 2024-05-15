@@ -212,7 +212,7 @@ public class UIElement implements Element {
             im.setLore(getLore().copy());
 
             if (isEnchanted()) {
-                im.addEnchant(Enchantment.DURABILITY, 1, true);
+                im.addEnchant(Enchantment.FIRE_ASPECT, 1, true);
             }
 
             is.setItemMeta(im);

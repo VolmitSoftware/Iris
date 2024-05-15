@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
@@ -81,7 +82,7 @@ public class ServerBootSFG {
             severityHigh++;
         }
 
-        if (getJavaVersion() != 17) {
+        if (!List.of(17, 21).contains(getJavaVersion())) {
             isJDK17 = false;
             joiner.add("Unsupported Java version");
             severityMedium++;

@@ -53,11 +53,11 @@ public class UtilsSFG {
             }
             if (!ServerBootSFG.isJDK17) {
                 Iris.safeguard(C.YELLOW + "Unsupported java version");
-                Iris.safeguard(C.YELLOW + "- Please consider using JDK 17 Instead of JDK " + Iris.getJavaVersion());
+                Iris.safeguard(C.YELLOW + "- Please consider using JDK 17 (or 21 for 1.20.6) Instead of JDK " + Iris.getJavaVersion());
             }
             if (ServerBootSFG.isJRE) {
                 Iris.safeguard(C.YELLOW + "Unsupported Server JDK");
-                Iris.safeguard(C.YELLOW + "- Please consider using JDK 17 Instead of JRE " + Iris.getJavaVersion());
+                Iris.safeguard(C.YELLOW + "- Please consider using JDK 17 (or 21 for 1.20.6) Instead of JRE " + Iris.getJavaVersion());
             }
         }
     }

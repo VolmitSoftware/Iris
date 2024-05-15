@@ -421,9 +421,10 @@ public class IrisObject extends IrisRegistrant {
             max.setZ(Math.max(max.getZ(), i.getZ()));
         }
 
-        w = max.getBlockX() - min.getBlockX();
-        h = max.getBlockY() - min.getBlockY();
-        d = max.getBlockZ() - min.getBlockZ();
+        w = max.getBlockX() - min.getBlockX() + (min.getBlockX() <= 0 && max.getBlockX() >= 0 && min.getBlockX() != max.getBlockX() ? 1 : 0);
+        h = max.getBlockY() - min.getBlockY() + (min.getBlockY() <= 0 && max.getBlockY() >= 0 && min.getBlockY() != max.getBlockY() ? 1 : 0);
+        d = max.getBlockZ() - min.getBlockZ() + (min.getBlockZ() <= 0 && max.getBlockZ() >= 0 && min.getBlockZ() != max.getBlockZ() ? 1 : 0);
+        center = new BlockVector(w / 2, h / 2, d / 2);
     }
 
     public void clean() {
@@ -505,7 +506,7 @@ public class IrisObject extends IrisRegistrant {
         if (rdata != null) {
             // Slope condition
             if (!config.getSlopeCondition().isDefault() &&
-                    !config.getSlopeCondition().isValid(rdata.getEngine().getComplex().getSlopeStream().get(x, z))) {
+                    !config.getSlopeCondition().isValid(rdata.getEngine().getComplex().getSlopeStream().get(x, z)) && !config.isForcePlace()) {
                 return -1;
             }
 
@@ -570,8 +571,10 @@ public class IrisObject extends IrisRegistrant {
         if (yv < 0) {
             if (config.getMode().equals(ObjectPlaceMode.CENTER_HEIGHT) || config.getMode() == ObjectPlaceMode.CENTER_STILT) {
                 y = (c != null ? c.getSurface() : placer.getHighest(x, z, getLoader(), config.isUnderwater())) + rty;
-                if (placer.isCarved(x, y, z) || placer.isCarved(x, y - 1, z) || placer.isCarved(x, y - 2, z) || placer.isCarved(x, y - 3, z)) {
-                    bail = true;
+                if (!config.isForcePlace()) {
+                    if (placer.isCarved(x, y, z) || placer.isCarved(x, y - 1, z) || placer.isCarved(x, y - 2, z) || placer.isCarved(x, y - 3, z)) {
+                        bail = true;
+                    }
                 }
             } else if (config.getMode().equals(ObjectPlaceMode.MAX_HEIGHT) || config.getMode().equals(ObjectPlaceMode.STILT)) {
                 BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
@@ -585,9 +588,11 @@ public class IrisObject extends IrisRegistrant {
                 for (int i = minX; i <= maxX; i++) {
                     for (int ii = minZ; ii <= maxZ; ii++) {
                         int h = placer.getHighest(i, ii, getLoader(), config.isUnderwater()) + rty;
-                        if (placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
-                            bail = true;
-                            break;
+                        if (!config.isForcePlace()) {
+                            if (placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
+                                bail = true;
+                                break;
+                            }
                         }
                         if (h > y)
                             y = h;
@@ -609,9 +614,11 @@ public class IrisObject extends IrisRegistrant {
                 for (int i = minX; i <= maxX; i += Math.abs(xRadius) + 1) {
                     for (int ii = minZ; ii <= maxZ; ii += Math.abs(zRadius) + 1) {
                         int h = placer.getHighest(i, ii, getLoader(), config.isUnderwater()) + rty;
-                        if (placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
-                            bail = true;
-                            break;
+                        if (!config.isForcePlace()) {
+                            if (placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
+                                bail = true;
+                                break;
+                            }
                         }
                         if (h > y)
                             y = h;
@@ -631,9 +638,11 @@ public class IrisObject extends IrisRegistrant {
                 for (int i = minX; i <= maxX; i++) {
                     for (int ii = minZ; ii <= maxZ; ii++) {
                         int h = placer.getHighest(i, ii, getLoader(), config.isUnderwater()) + rty;
-                        if (placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
-                            bail = true;
-                            break;
+                        if (!config.isForcePlace()) {
+                            if (placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
+                                bail = true;
+                                break;
+                            }
                         }
                         if (h < y) {
                             y = h;
@@ -657,9 +666,11 @@ public class IrisObject extends IrisRegistrant {
                 for (int i = minX; i <= maxX; i += Math.abs(xRadius) + 1) {
                     for (int ii = minZ; ii <= maxZ; ii += Math.abs(zRadius) + 1) {
                         int h = placer.getHighest(i, ii, getLoader(), config.isUnderwater()) + rty;
-                        if (placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
-                            bail = true;
-                            break;
+                        if (!config.isForcePlace()) {
+                            if (placer.isCarved(i, h, ii) || placer.isCarved(i, h - 1, ii) || placer.isCarved(i, h - 2, ii) || placer.isCarved(i, h - 3, ii)) {
+                                bail = true;
+                                break;
+                            }
                         }
                         if (h < y) {
                             y = h;
@@ -668,45 +679,51 @@ public class IrisObject extends IrisRegistrant {
                 }
             } else if (config.getMode().equals(ObjectPlaceMode.PAINT)) {
                 y = placer.getHighest(x, z, getLoader(), config.isUnderwater()) + rty;
-                if (placer.isCarved(x, y, z) || placer.isCarved(x, y - 1, z) || placer.isCarved(x, y - 2, z) || placer.isCarved(x, y - 3, z)) {
-                    bail = true;
+                if (!config.isForcePlace()) {
+                    if (placer.isCarved(x, y, z) || placer.isCarved(x, y - 1, z) || placer.isCarved(x, y - 2, z) || placer.isCarved(x, y - 3, z)) {
+                        bail = true;
+                    }
                 }
             }
         } else {
             y = yv;
-            if (placer.isCarved(x, y, z) || placer.isCarved(x, y - 1, z) || placer.isCarved(x, y - 2, z) || placer.isCarved(x, y - 3, z)) {
-                bail = true;
+            if (!config.isForcePlace()) {
+                if (placer.isCarved(x, y, z) || placer.isCarved(x, y - 1, z) || placer.isCarved(x, y - 2, z) || placer.isCarved(x, y - 3, z)) {
+                    bail = true;
+                }
             }
         }
 
         if (yv >= 0 && config.isBottom()) {
             y += Math.floorDiv(h, 2);
-            bail = placer.isCarved(x, y, z) || placer.isCarved(x, y - 1, z) || placer.isCarved(x, y - 2, z) || placer.isCarved(x, y - 3, z);
+            if (!config.isForcePlace()) {
+                bail = placer.isCarved(x, y, z) || placer.isCarved(x, y - 1, z) || placer.isCarved(x, y - 2, z) || placer.isCarved(x, y - 3, z);
+            }
         }
 
-        if (bail) {
+        if (bail && !config.isForcePlace()) {
             return -1;
         }
 
         if (yv < 0) {
-            if (!config.isUnderwater() && !config.isOnwater() && placer.isUnderwater(x, z)) {
+            if (!config.isForcePlace() && !config.isUnderwater() && !config.isOnwater() && placer.isUnderwater(x, z)) {
                 return -1;
             }
         }
 
-        if (c != null && Math.max(0, h + yrand + ty) + 1 >= c.getHeight()) {
+        if (!config.isForcePlace() && c != null && Math.max(0, h + yrand + ty) + 1 >= c.getHeight()) {
             return -1;
         }
 
-        if (config.isUnderwater() && y + rty + ty >= placer.getFluidHeight()) {
+        if (!config.isForcePlace() && config.isUnderwater() && y + rty + ty >= placer.getFluidHeight()) {
             return -1;
         }
 
-        if (!config.getClamp().canPlace(y + rty + ty, y - rty + ty)) {
+        if (!config.isForcePlace() && !config.getClamp().canPlace(y + rty + ty, y - rty + ty)) {
             return -1;
         }
 
-        if (!config.getAllowedCollisions().isEmpty() || !config.getForbiddenCollisions().isEmpty()) {
+        if (!config.isForcePlace() && (!config.getAllowedCollisions().isEmpty() || !config.getForbiddenCollisions().isEmpty())) {
             Engine engine = rdata.getEngine();
             BlockVector offset = new BlockVector(config.getTranslate().getX(), config.getTranslate().getY(), config.getTranslate().getZ());
             for (int i = x - Math.floorDiv(w, 2) + (int) offset.getX(); i <= x + Math.floorDiv(w, 2) - (w % 2 == 0 ? 1 : 0) + (int) offset.getX(); i++) {
@@ -1035,6 +1052,7 @@ public class IrisObject extends IrisRegistrant {
 
         blocks = d;
         states = dx;
+        shrinkwrap();
     }
 
     public void place(Location at) {

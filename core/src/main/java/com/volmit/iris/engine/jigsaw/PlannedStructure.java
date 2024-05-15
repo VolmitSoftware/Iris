@@ -21,8 +21,8 @@ package com.volmit.iris.engine.jigsaw;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.framework.placer.WorldObjectPlacer;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.mantle.Mantle;
@@ -30,13 +30,11 @@ import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.slices.container.JigsawPieceContainer;
 import com.volmit.iris.util.matter.slices.container.JigsawStructuresContainer;
+import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import org.bukkit.Axis;
-import org.bukkit.World;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.IntConsumer;
+import java.util.function.Consumer;
 
 @Data
 public class PlannedStructure {
@@ -114,7 +112,6 @@ public class PlannedStructure {
         int sz = (v.getD() / 2);
         int xx = i.getPosition().getX() + sx;
         int zz = i.getPosition().getZ() + sz;
-        RNG rngf = new RNG(Cache.key(xx, zz));
         int offset = i.getPosition().getY() - startHeight;
         int height;
 
@@ -139,20 +136,11 @@ public class PlannedStructure {
         return v.place(xx, height, zz, placer, options, rng, (b, data) -> {
             e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);
             e.set(b.getX(), b.getY(), b.getZ(), container);
-        }, null, getData()) != -1;
+        }, null, getData().getEngine() != null ? getData() : eng.getData()) != -1;
     }
 
-    public void place(World world, IntConsumer consumer) {
-        AtomicInteger processed = new AtomicInteger();
-        AtomicInteger failures = new AtomicInteger();
-        for (PlannedPiece i : pieces) {
-            Iris.sq(() -> {
-                if (!i.place(world)) failures.incrementAndGet();
-                if (processed.incrementAndGet() == pieces.size()) {
-                    consumer.accept(failures.get());
-                }
-            });
-        }
+    public void place(WorldObjectPlacer placer, Consumer<Boolean> consumer) {
+        J.s(() -> consumer.accept(place(placer, placer.getMantle().getMantle(), placer.getEngine())));
     }
 
     private void generateOutwards() {
@@ -269,7 +257,8 @@ public class PlannedStructure {
     private KList<IrisJigsawPiece> getShuffledPiecesFor(IrisJigsawPieceConnector c) {
         KList<IrisJigsawPiece> p = new KList<>();
 
-        for (String i : c.getPools().shuffleCopy(rng)) {
+        KList<String> pools = terminating && getStructure().getTerminatePool() != null ? new KList<>(getStructure().getTerminatePool()) : c.getPools().shuffleCopy(rng);
+        for (String i : pools) {
             for (String j : getData().getJigsawPoolLoader().load(i).getPieces().shuffleCopy(rng)) {
                 IrisJigsawPiece pi = getData().getJigsawPieceLoader().load(j);
 
@@ -295,7 +284,9 @@ public class PlannedStructure {
     }
 
     public KList<PlannedPiece> getPiecesWithAvailableConnectors() {
-        return pieces.copy().removeWhere(PlannedPiece::isFull);
+        KList<PlannedPiece> available = pieces.copy().removeWhere(PlannedPiece::isFull);
+        if (!terminating) available.removeIf(PlannedPiece::isDead);
+        return available;
     }
 
     public int getVolume() {

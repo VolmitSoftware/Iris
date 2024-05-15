@@ -33,6 +33,7 @@ import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
+import com.volmit.iris.engine.platform.studio.StudioGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -41,6 +42,7 @@ import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
+import com.volmit.iris.util.decree.specialhandlers.NullablePlayerHandler;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Function2;
@@ -63,6 +65,7 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import io.papermc.lib.PaperLib;
 import org.bukkit.*;
+import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.util.BlockVector;
@@ -344,18 +347,10 @@ public class CommandStudio implements DecreeExecutor {
     }
 
     @Decree(description = "Render a world map (External GUI)", aliases = "render")
-    public void map(
-            @Param(name = "world", description = "The world to open the generator for", contextual = true)
-            World world
-    ) {
+    public void map() {
         if (noGUI()) return;
-
-        if (!IrisToolbelt.isIrisWorld(world)) {
-            sender().sendMessage(C.RED + "You need to be in or specify an Iris-generated world!");
-            return;
-        }
-
-        VisionGUI.launch(IrisToolbelt.access(world).getEngine(), 0);
+        if (noStudio()) return;
+        VisionGUI.launch(IrisToolbelt.access(player().getWorld()).getEngine(), 0);
         sender().sendMessage(C.GREEN + "Opening map!");
     }
 

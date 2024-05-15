@@ -15,7 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Data
-public class IrisBlockData implements BlockData{
+public class IrisBlockData implements BlockData {
 	private final @NonNull BlockData base;
 	private final @NotNull Identifier custom;
 

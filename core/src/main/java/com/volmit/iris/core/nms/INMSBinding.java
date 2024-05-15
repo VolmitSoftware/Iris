@@ -19,9 +19,10 @@
 package com.volmit.iris.core.nms;
 
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.IrisEntity;
+import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
@@ -36,7 +37,6 @@ import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 
@@ -112,4 +112,12 @@ public interface INMSBinding {
     Vector3d getBoundingbox(org.bukkit.entity.EntityType entity);
     
     Entity spawnEntity(Location location, EntityType type, CreatureSpawnEvent.SpawnReason reason);
+
+    default JSONObject fixCustomBiome(IrisBiomeCustom biome, JSONObject json) {
+        return json;
+    }
+
+    default JSONObject fixDimension(JSONObject json) {
+        return json;
+    }
 }

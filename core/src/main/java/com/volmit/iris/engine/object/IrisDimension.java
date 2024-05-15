@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
@@ -563,7 +564,7 @@ public class IrisDimension extends IrisRegistrant {
         obj.put("min_y", dimensionHeight.getMin());
         obj.put("height", dimensionHeight.getMax() - dimensionHeight.getMin());
         obj.put("logical_height", logicalHeight);
-        return obj.toString(4);
+        return INMS.get().fixDimension(obj).toString(4);
     }
 
     private String generateDatapackJsonNether() {
@@ -571,7 +572,7 @@ public class IrisDimension extends IrisRegistrant {
         obj.put("min_y", dimensionHeightNether.getMin());
         obj.put("height", dimensionHeightNether.getMax() - dimensionHeightNether.getMin());
         obj.put("logical_height", logicalHeightNether);
-        return obj.toString(4);
+        return INMS.get().fixDimension(obj).toString(4);
     }
 
     private String generateDatapackJsonEnd() {
@@ -579,6 +580,6 @@ public class IrisDimension extends IrisRegistrant {
         obj.put("min_y", dimensionHeightEnd.getMin());
         obj.put("height", dimensionHeightEnd.getMax() - dimensionHeightEnd.getMin());
         obj.put("logical_height", logicalHeightEnd);
-        return obj.toString(4);
+        return INMS.get().fixDimension(obj).toString(4);
     }
 }

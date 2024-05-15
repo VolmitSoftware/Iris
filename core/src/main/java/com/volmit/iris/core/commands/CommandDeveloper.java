@@ -173,7 +173,7 @@ public class CommandDeveloper implements DecreeExecutor {
     public void mca (
             @Param(description = "String") World world) {
         try {
-                IrisWorldDump dump = new IrisWorldDump(world, sender(), IrisWorldDump.mode.PACKED);
+                IrisWorldDump dump = new IrisWorldDump(world, sender());
                 dump.start();
 
         } catch (Exception e) {

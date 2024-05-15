@@ -5,7 +5,6 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RollingSequence;
@@ -15,6 +14,8 @@ import com.volmit.iris.util.nbt.mca.MCAUtil;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.StringTag;
 import com.volmit.iris.util.plugin.VolmitSender;
+import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.World;
 
 import java.io.File;
@@ -24,11 +25,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
 public class IrisWorldDump {
-    private KList<MCAFile> mcaList;
-    private KMap<String, Long> storage;
+    private KMap<blockData, Long> storage;
     private AtomicLong airStorage;
     private World world;
     private File MCADirectory;
+    private AtomicInteger threads;
     private AtomicInteger regionsProcessed;
     private AtomicInteger chunksProcessed;
     private AtomicInteger totalToProcess;
@@ -41,7 +42,6 @@ public class IrisWorldDump {
     private ExecutorService executor;
     private ScheduledExecutorService scheduler;
     private AtomicLong startTime;
-    private mode mode;
     private File dumps;
     private File worldDump;
     private int mcaCacheSize;
@@ -49,19 +49,17 @@ public class IrisWorldDump {
     private File blocks;
     private File structures;
 
-    public IrisWorldDump(World world, VolmitSender sender, mode mode) {
+    public IrisWorldDump(World world, VolmitSender sender) {
         sender.sendMessage("Initializing IrisWorldDump...");
         this.world = world;
         this.sender = sender;
         this.MCADirectory = new File(world.getWorldFolder(), "region");
-        this.totalMCAFiles = new AtomicInteger(MCACount());
         this.dumps = new File("plugins"  + File.separator + "iris", "dumps");
         this.worldDump = new File(dumps, world.getName());
         this.mcaCacheSize = IrisSettings.get().getWorldDump().mcaCacheSize;
         this.regionsProcessed = new AtomicInteger(0);
         this.chunksProcessed = new AtomicInteger(0);
         this.totalToProcess = new AtomicInteger(0);
-        this.totalMaxChunks = new AtomicInteger(totalMCAFiles.get() * 1024);
         this.chunksPerSecond = new RollingSequence(10);
         this.temp = new File(worldDump, "temp");
         this.executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() - 1);
@@ -69,9 +67,10 @@ public class IrisWorldDump {
         this.startTime = new AtomicLong();
         this.storage = new KMap<>();
         this.airStorage = new AtomicLong(0);
+
         this.blocks = new File(worldDump, "blocks");
         this.structures = new File(worldDump, "structures");
-        initialize();
+
         try {
             this.engine = IrisToolbelt.access(world).getEngine();
             this.IrisWorld = true;
@@ -80,7 +79,9 @@ public class IrisWorldDump {
         }
     }
 
-    private void initialize() {
+
+    public void start() {
+
         if (!dumps.exists()) {
             if (!dumps.mkdirs()) {
                 System.err.println("Failed to create dump directory.");
@@ -88,59 +89,18 @@ public class IrisWorldDump {
             }
         }
 
-        if (worldDump.exists() && !worldDump.delete()) {
-            System.err.println("Failed to delete existing world dump directory.");
-            return;
+        try {
+            CompletableFuture<Integer> mcaCount = CompletableFuture.supplyAsync(this::totalMcaFiles);
+            CompletableFuture<Integer> chunkCount = CompletableFuture.supplyAsync(this::totalMCAChunks);
+            this.totalMCAFiles = new AtomicInteger(mcaCount.get());
+            this.totalMaxChunks = new AtomicInteger(chunkCount.get());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
         }
-
-        if (!worldDump.mkdir()) {
-            System.err.println("Failed to create world dump directory.");
-            return;
-        }
-
-        if (!blocks.mkdir()) {
-            System.err.println("Failed to create blocks directory.");
-            return;
-        }
-
-        if (!structures.mkdir()) {
-            System.err.println("Failed to create structures directory.");
-            return;
-        }
-        for (File mcaFile : MCADirectory.listFiles()) {
-            if (mcaFile.getName().endsWith(".mca")) {
-                totalToProcess.getAndIncrement();
-            }
-        }
-    }
-
-    public void start() {
         dump();
         updater();
     }
 
-    public enum mode {
-        RAW {
-            @Override
-            public void methodDump() {
-
-            }
-        },
-        DISK {
-            @Override
-          public void methodDump() {
-
-            }
-        },
-        PACKED {
-            @Override
-            public void methodDump() {
-
-            }
-        };
-        public abstract void methodDump();
-    }
-    
     private void updater() {
         startTime.set(System.currentTimeMillis());
         scheduler.scheduleAtFixedRate(() -> {
@@ -154,6 +114,20 @@ public class IrisWorldDump {
 
         }, 1, 3, TimeUnit.SECONDS);
         
+    }
+
+    public class blockData {
+        @Getter
+        @Setter
+        private String block;
+        private int biome;
+        private int height;
+
+        public blockData(String b, int bm, int h) {
+            this.block = b;
+            this.height = h;
+            this.biome = bm;
+        }
     }
 
 
@@ -189,6 +163,7 @@ public class IrisWorldDump {
                     for (int z = 0; z < 16; z++) {
                         for (int y = 0; y < CHUNK_HEIGHT; y++) {
                             CompoundTag tag = chunk.getBlockStateAt(x, y, z);
+                            int biome = chunk.getBiomeAt(x, y, z);
                             if (tag == null) {
                                 String blockName = "minecraft:air";
                                 //storage.compute(blockName, (key, count) -> (count == null) ? 1 : count + 1);
@@ -197,7 +172,8 @@ public class IrisWorldDump {
                             } else {
                                 StringTag nameTag = tag.getStringTag("Name");
                                 String blockName = nameTag.getValue();
-                                storage.compute(blockName, (key, count) -> (count == null) ? 1 : count + 1);
+                                blockData data = new blockData(blockName, biome, y);
+                                storage.compute(data, (key, count) -> (count == null) ? 1 : count + 1);
                                 int ii = 0;
                             }
                         }
@@ -209,7 +185,41 @@ public class IrisWorldDump {
         regionsProcessed.getAndIncrement();
     }
 
-    private int MCACount() {
+    private int totalMCAChunks() {
+        AtomicInteger chunks = new AtomicInteger();
+        CountDownLatch latch = new CountDownLatch(totalMcaFiles() * 1024);
+        for (File mcafile : MCADirectory.listFiles()) {
+            executor.submit(() -> {
+                try {
+                    if (mcafile.getName().endsWith(".mca")) {
+                        MCAFile mca = MCAUtil.read(mcafile);
+                        for (int width = 0; width < 32; width++) {
+                            for (int depth = 0; depth < 32; depth++) {
+                                Chunk chunk = mca.getChunk(width, depth);
+                                if (chunk != null) {
+                                    chunks.getAndIncrement();
+                                }
+                                latch.countDown();
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    Iris.error("Failed to read mca file");
+                    e.printStackTrace();
+                }
+            });
+        }
+
+        try {
+            latch.await();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return chunks.get();
+    }
+
+    private int totalMcaFiles() {
         int size = 0;
         for (File mca : MCADirectory.listFiles()) {
             if (mca.getName().endsWith(".mca")) {

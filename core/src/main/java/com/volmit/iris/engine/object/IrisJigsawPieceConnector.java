@@ -79,6 +79,9 @@ public class IrisJigsawPieceConnector {
     @Required
     private IrisDirection direction = IrisDirection.UP_POSITIVE_Y;
 
+    @Desc("Lock the Y position of this connector")
+    private boolean lockY = false;
+
     public String toString() {
         return direction.getFace().name() + "@(" + position.getX() + "," + position.getY() + "," + position.getZ() + ")";
     }

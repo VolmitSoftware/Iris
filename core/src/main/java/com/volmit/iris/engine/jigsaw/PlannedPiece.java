@@ -22,15 +22,17 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.AxisAlignedBB;
+import lombok.AccessLevel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Setter;
 import org.bukkit.util.BlockVector;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@SuppressWarnings("ALL")
 @Data
 public class PlannedPiece {
     private IrisPosition position;
@@ -45,6 +47,12 @@ public class PlannedPiece {
     private AxisAlignedBB box;
     @EqualsAndHashCode.Exclude
     private PlannedStructure structure;
+    @EqualsAndHashCode.Exclude
+    @Setter(AccessLevel.NONE)
+    private ParentConnection parent = null;
+    @EqualsAndHashCode.Exclude
+    @Setter(AccessLevel.NONE)
+    private KMap<IrisJigsawPieceConnector, IrisPosition> realPositions;
 
     public PlannedPiece(PlannedStructure structure, IrisPosition position, IrisJigsawPiece piece) {
         this(structure, position, piece, 0, 0, 0);
@@ -66,6 +74,7 @@ public class PlannedPiece {
         this.object.setLoadKey(piece.getObject());
         this.ogObject.setLoadKey(piece.getObject());
         this.connected = new KList<>();
+        this.realPositions = new KMap<>();
 
     }
 
@@ -124,11 +133,21 @@ public class PlannedPiece {
         return c;
     }
 
-    public boolean connect(IrisJigsawPieceConnector c) {
-        if (piece.getConnectors().contains(c)) {
-            return connected.addIfMissing(c);
-        }
+    public KList<IrisJigsawPieceConnector> getChildConnectors() {
+        ParentConnection pc = getParent();
+        KList<IrisJigsawPieceConnector> c = getConnected().copy();
+        if (pc != null) c.removeIf(i -> i.equals(pc.connector));
+        return c;
+    }
 
+    public boolean connect(IrisJigsawPieceConnector c, PlannedPiece p, IrisJigsawPieceConnector pc) {
+        if (piece.getConnectors().contains(c) && p.getPiece().getConnectors().contains(pc)) {
+            if (connected.contains(c) || p.connected.contains(pc)) return false;
+            connected.add(c);
+            p.connected.add(pc);
+            p.parent = new ParentConnection(this, c, p, pc);
+            return true;
+        }
         return false;
     }
 
@@ -161,5 +180,28 @@ public class PlannedPiece {
 
     public boolean isFull() {
         return connected.size() >= piece.getConnectors().size();
+    }
+
+    public void setRealPositions(int x, int y, int z, IObjectPlacer placer) {
+        boolean isUnderwater = piece.getPlacementOptions().isUnderwater();
+        for (IrisJigsawPieceConnector c : piece.getConnectors()) {
+            var pos = c.getPosition().add(new IrisPosition(x, 0, z));
+            if (y < 0) {
+                pos.setY(pos.getY() + placer.getHighest(pos.getX(), pos.getZ(), getData(), isUnderwater) + (object.getH() / 2));
+            } else {
+                pos.setY(pos.getY() + y);
+            }
+            realPositions.put(c, pos);
+        }
+    }
+
+    public record ParentConnection(PlannedPiece parent, IrisJigsawPieceConnector parentConnector, PlannedPiece self, IrisJigsawPieceConnector connector) {
+        public IrisPosition getTargetPosition() {
+            var pos = parent.realPositions.get(parentConnector);
+            if (pos == null) return null;
+            return pos.add(new IrisPosition(parentConnector.getDirection().toVector()))
+                    .sub(connector.getPosition())
+                    .sub(new IrisPosition(self.object.getCenter()));
+        }
     }
 }

@@ -103,6 +103,7 @@ public class PlannedStructure {
             options = i.getPiece().getPlacementOptions();
             options.getRotation().setEnabled(false);
             options.setRotateTowardsSlope(false);
+            options.setWarp(new IrisGeneratorStyle(NoiseStyle.FLAT));
         } else {
             options.setMode(i.getPiece().getPlaceMode());
         }

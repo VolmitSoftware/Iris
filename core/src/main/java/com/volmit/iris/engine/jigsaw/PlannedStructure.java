@@ -126,6 +126,17 @@ public class PlannedStructure {
             height = i.getStructure().getStructure().getLockY();
         }
 
+        PlannedPiece.ParentConnection connection = i.getParent();
+        if (connection != null && connection.connector().isLockY()) {
+            var pos = connection.getTargetPosition();
+            if (pos != null) {
+                height = pos.getY();
+                offset = 0;
+            } else {
+                Iris.warn("Failed to get target position for " + v.getLoadKey());
+            }
+        }
+
         height += offset + (v.getH() / 2);
 
         if (options.getMode().equals(ObjectPlaceMode.PAINT)) {
@@ -134,6 +145,7 @@ public class PlannedStructure {
 
         int id = rng.i(0, Integer.MAX_VALUE);
         JigsawPieceContainer container = JigsawPieceContainer.toContainer(i.getPiece());
+        i.setRealPositions(xx, height, zz, placer);
         return v.place(xx, height, zz, placer, options, rng, (b, data) -> {
             e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);
             e.set(b.getX(), b.getY(), b.getZ(), container);
@@ -248,8 +260,7 @@ public class PlannedStructure {
             return false;
         }
 
-        piece.connect(pieceConnector);
-        test.connect(testConnector);
+        piece.connect(pieceConnector, test, testConnector);
         pieces.add(test);
 
         return true;

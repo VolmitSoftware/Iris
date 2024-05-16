@@ -20,30 +20,19 @@ package com.volmit.iris.engine.jigsaw;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.*;
-import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.context.IrisContext;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.AxisAlignedBB;
-import com.volmit.iris.util.math.BlockPosition;
-import com.volmit.iris.util.math.RNG;
+import lombok.AccessLevel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.TileState;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.inventory.InventoryHolder;
+import lombok.Setter;
 import org.bukkit.util.BlockVector;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@SuppressWarnings("ALL")
 @Data
 public class PlannedPiece {
     private IrisPosition position;
@@ -58,6 +47,12 @@ public class PlannedPiece {
     private AxisAlignedBB box;
     @EqualsAndHashCode.Exclude
     private PlannedStructure structure;
+    @EqualsAndHashCode.Exclude
+    @Setter(AccessLevel.NONE)
+    private ParentConnection parent = null;
+    @EqualsAndHashCode.Exclude
+    @Setter(AccessLevel.NONE)
+    private KMap<IrisJigsawPieceConnector, IrisPosition> realPositions;
 
     public PlannedPiece(PlannedStructure structure, IrisPosition position, IrisJigsawPiece piece) {
         this(structure, position, piece, 0, 0, 0);
@@ -79,6 +74,7 @@ public class PlannedPiece {
         this.object.setLoadKey(piece.getObject());
         this.ogObject.setLoadKey(piece.getObject());
         this.connected = new KList<>();
+        this.realPositions = new KMap<>();
 
     }
 
@@ -97,7 +93,15 @@ public class PlannedPiece {
         }
 
         BlockVector v = getObject().getCenter();
-        box = object.getAABB().shifted(position.add(new IrisPosition(object.getCenter())));
+        IrisPosition pos = new IrisPosition();
+        IrisObjectPlacement options = piece.getPlacementOptions();
+        if (options != null && options.getTranslate() != null) {
+            IrisObjectTranslate translate = options.getTranslate();
+            pos.setX(translate.getX());
+            pos.setY(translate.getY());
+            pos.setZ(translate.getZ());
+        }
+        box = object.getAABB().shifted(position.add(new IrisPosition(object.getCenter())).add(pos));
         return box;
     }
 
@@ -129,11 +133,21 @@ public class PlannedPiece {
         return c;
     }
 
-    public boolean connect(IrisJigsawPieceConnector c) {
-        if (piece.getConnectors().contains(c)) {
-            return connected.addIfMissing(c);
-        }
+    public KList<IrisJigsawPieceConnector> getChildConnectors() {
+        ParentConnection pc = getParent();
+        KList<IrisJigsawPieceConnector> c = getConnected().copy();
+        if (pc != null) c.removeIf(i -> i.equals(pc.connector));
+        return c;
+    }
 
+    public boolean connect(IrisJigsawPieceConnector c, PlannedPiece p, IrisJigsawPieceConnector pc) {
+        if (piece.getConnectors().contains(c) && p.getPiece().getConnectors().contains(pc)) {
+            if (connected.contains(c) || p.connected.contains(pc)) return false;
+            connected.add(c);
+            p.connected.add(pc);
+            p.parent = new ParentConnection(this, c, p, pc);
+            return true;
+        }
         return false;
     }
 
@@ -165,105 +179,29 @@ public class PlannedPiece {
     }
 
     public boolean isFull() {
-        return connected.size() >= piece.getConnectors().size() || isDead();
+        return connected.size() >= piece.getConnectors().size();
     }
 
-    public boolean place(World world) {
-        PlatformChunkGenerator a = IrisToolbelt.access(world);
-
-        int minY = 0;
-        if (a != null) {
-            minY = a.getEngine().getMinHeight();
-
-            if (!a.getEngine().getDimension().isBedrock())
-                minY--; //If the dimension has no bedrock, allow it to go a block lower
+    public void setRealPositions(int x, int y, int z, IObjectPlacer placer) {
+        boolean isUnderwater = piece.getPlacementOptions().isUnderwater();
+        for (IrisJigsawPieceConnector c : piece.getConnectors()) {
+            var pos = c.getPosition().add(new IrisPosition(x, 0, z));
+            if (y < 0) {
+                pos.setY(pos.getY() + placer.getHighest(pos.getX(), pos.getZ(), getData(), isUnderwater) + (object.getH() / 2));
+            } else {
+                pos.setY(pos.getY() + y);
+            }
+            realPositions.put(c, pos);
         }
-        Engine engine = a != null ? a.getEngine() : IrisContext.get().getEngine();
+    }
 
-        getPiece().getPlacementOptions().setTranslate(new IrisObjectTranslate());
-        getPiece().getPlacementOptions().getRotation().setEnabled(false);
-        getPiece().getPlacementOptions().setRotateTowardsSlope(false);
-        int finalMinY = minY;
-        RNG rng = getStructure().getRng().nextParallelRNG(37555);
-
-        // TODO: REAL CLASSES!!!!!!!
-        return getObject().place(position.getX() + getObject().getCenter().getBlockX(), position.getY() + getObject().getCenter().getBlockY(), position.getZ() + getObject().getCenter().getBlockZ(), new IObjectPlacer() {
-            @Override
-            public int getHighest(int x, int z, IrisData data) {
-                return position.getY();
-            }
-
-            @Override
-            public int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
-                return position.getY();
-            }
-
-            @Override
-            public void set(int x, int y, int z, BlockData d) {
-                Block block = world.getBlockAt(x, y, z);
-
-                //Prevent blocks being set in or bellow bedrock
-                if (y <= finalMinY || block.getType() == Material.BEDROCK) return;
-
-                block.setBlockData(d);
-
-                if (a != null && getPiece().getPlacementOptions().getLoot().isNotEmpty() &&
-                        block.getState() instanceof InventoryHolder) {
-
-                    IrisLootTable table = getPiece().getPlacementOptions().getTable(block.getBlockData(), getData());
-                    if (table == null) return;
-                    engine.addItems(false, ((InventoryHolder) block.getState()).getInventory(),
-                            rng.nextParallelRNG(BlockPosition.toLong(x, y, z)),
-                            new KList<>(table), InventorySlotType.STORAGE, x, y, z, 15);
-                }
-            }
-
-            @Override
-            public BlockData get(int x, int y, int z) {
-                return world.getBlockAt(x, y, z).getBlockData();
-            }
-
-            @Override
-            public boolean isPreventingDecay() {
-                return false;
-            }
-
-            @Override
-            public boolean isCarved(int x, int y, int z) {
-                return false;
-            }
-
-            @Override
-            public boolean isSolid(int x, int y, int z) {
-                return world.getBlockAt(x, y, z).getType().isSolid();
-            }
-
-            @Override
-            public boolean isUnderwater(int x, int z) {
-                return false;
-            }
-
-            @Override
-            public int getFluidHeight() {
-                return 0;
-            }
-
-            @Override
-            public boolean isDebugSmartBore() {
-                return false;
-            }
-
-            @Override
-            public void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile) {
-                BlockState state = world.getBlockAt(xx, yy, zz).getState();
-                tile.toBukkitTry(state);
-                state.update();
-            }
-
-            @Override
-            public Engine getEngine() {
-                return engine;
-            }
-        }, piece.getPlacementOptions(), rng, getData().getEngine() == null ? engine.getData() : getData()) != -1;
+    public record ParentConnection(PlannedPiece parent, IrisJigsawPieceConnector parentConnector, PlannedPiece self, IrisJigsawPieceConnector connector) {
+        public IrisPosition getTargetPosition() {
+            var pos = parent.realPositions.get(parentConnector);
+            if (pos == null) return null;
+            return pos.add(new IrisPosition(parentConnector.getDirection().toVector()))
+                    .sub(connector.getPosition())
+                    .sub(new IrisPosition(self.object.getCenter()));
+        }
     }
 }

@@ -16,7 +16,7 @@ libraries:
   - commons-io:commons-io:2.13.0
   - io.timeandspace:smoothie-map:2.0.2
   - com.google.guava:guava:31.0.1-jre
-  - com.google.code.gson:gson:2.8.9
+  - com.google.code.gson:gson:2.10.1
   - org.zeroturnaround:zt-zip:1.14
   - it.unimi.dsi:fastutil:8.5.6
   - org.ow2.asm:asm:9.2

@@ -21,9 +21,8 @@ package com.volmit.iris.engine.jigsaw;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.framework.placer.WorldObjectPlacer;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.mantle.Mantle;
@@ -34,12 +33,6 @@ import com.volmit.iris.util.matter.slices.container.JigsawStructuresContainer;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
 import org.bukkit.Axis;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.TileState;
-import org.bukkit.block.data.BlockData;
 
 import java.util.function.Consumer;
 
@@ -110,6 +103,7 @@ public class PlannedStructure {
             options = i.getPiece().getPlacementOptions();
             options.getRotation().setEnabled(false);
             options.setRotateTowardsSlope(false);
+            options.setWarp(new IrisGeneratorStyle(NoiseStyle.FLAT));
         } else {
             options.setMode(i.getPiece().getPlaceMode());
         }
@@ -119,7 +113,6 @@ public class PlannedStructure {
         int sz = (v.getD() / 2);
         int xx = i.getPosition().getX() + sx;
         int zz = i.getPosition().getZ() + sz;
-        RNG rngf = new RNG(Cache.key(xx, zz));
         int offset = i.getPosition().getY() - startHeight;
         int height;
 
@@ -133,6 +126,17 @@ public class PlannedStructure {
             height = i.getStructure().getStructure().getLockY();
         }
 
+        PlannedPiece.ParentConnection connection = i.getParent();
+        if (connection != null && connection.connector().isLockY()) {
+            var pos = connection.getTargetPosition();
+            if (pos != null) {
+                height = pos.getY();
+                offset = 0;
+            } else {
+                Iris.warn("Failed to get target position for " + v.getLoadKey());
+            }
+        }
+
         height += offset + (v.getH() / 2);
 
         if (options.getMode().equals(ObjectPlaceMode.PAINT)) {
@@ -141,89 +145,15 @@ public class PlannedStructure {
 
         int id = rng.i(0, Integer.MAX_VALUE);
         JigsawPieceContainer container = JigsawPieceContainer.toContainer(i.getPiece());
+        i.setRealPositions(xx, height, zz, placer);
         return v.place(xx, height, zz, placer, options, rng, (b, data) -> {
             e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);
             e.set(b.getX(), b.getY(), b.getZ(), container);
         }, null, getData().getEngine() != null ? getData() : eng.getData()) != -1;
     }
 
-    public void place(World world, Consumer<Boolean> consumer) {
-        var a = IrisToolbelt.access(world);
-        if (a == null || a.getEngine() == null) {
-            consumer.accept(null);
-            return;
-        }
-        var engine = a.getEngine();
-        var engineMantle = engine.getMantle();
-        var placer = new IObjectPlacer() {
-            @Override
-            public int getHighest(int x, int z, IrisData data) {
-                return engineMantle.getHighest(x, z, data);
-            }
-
-            @Override
-            public int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
-                return engineMantle.getHighest(x, z, data, ignoreFluid);
-            }
-
-            @Override
-            public void set(int x, int y, int z, BlockData d) {
-                Block block = world.getBlockAt(x, y + world.getMinHeight(), z);
-
-                //Prevent blocks being set in or bellow bedrock
-                if (y <= world.getMinHeight() || block.getType() == Material.BEDROCK) return;
-
-                block.setBlockData(d);
-            }
-
-            @Override
-            public BlockData get(int x, int y, int z) {
-                return world.getBlockAt(x, y + world.getMinHeight(), z).getBlockData();
-            }
-
-            @Override
-            public boolean isPreventingDecay() {
-                return engineMantle.isPreventingDecay();
-            }
-
-            @Override
-            public boolean isCarved(int x, int y, int z) {
-                return engineMantle.isCarved(x, y, z);
-            }
-
-            @Override
-            public boolean isSolid(int x, int y, int z) {
-                return world.getBlockAt(x, y + world.getMinHeight(), z).getType().isSolid();
-            }
-
-            @Override
-            public boolean isUnderwater(int x, int z) {
-                return engineMantle.isUnderwater(x, z);
-            }
-
-            @Override
-            public int getFluidHeight() {
-                return engineMantle.getFluidHeight();
-            }
-
-            @Override
-            public boolean isDebugSmartBore() {
-                return engineMantle.isDebugSmartBore();
-            }
-
-            @Override
-            public void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile) {
-                BlockState state = world.getBlockAt(xx, yy + world.getMinHeight(), zz).getState();
-                tile.toBukkitTry(state);
-                state.update();
-            }
-
-            @Override
-            public Engine getEngine() {
-                return engine;
-            }
-        };
-        J.s(() -> consumer.accept(place(placer, engineMantle.getMantle(), engine)));
+    public void place(WorldObjectPlacer placer, Consumer<Boolean> consumer) {
+        J.s(() -> consumer.accept(place(placer, placer.getMantle().getMantle(), placer.getEngine())));
     }
 
     private void generateOutwards() {
@@ -330,8 +260,7 @@ public class PlannedStructure {
             return false;
         }
 
-        piece.connect(pieceConnector);
-        test.connect(testConnector);
+        piece.connect(pieceConnector, test, testConnector);
         pieces.add(test);
 
         return true;
@@ -340,7 +269,8 @@ public class PlannedStructure {
     private KList<IrisJigsawPiece> getShuffledPiecesFor(IrisJigsawPieceConnector c) {
         KList<IrisJigsawPiece> p = new KList<>();
 
-        for (String i : c.getPools().shuffleCopy(rng)) {
+        KList<String> pools = terminating && getStructure().getTerminatePool() != null ? new KList<>(getStructure().getTerminatePool()) : c.getPools().shuffleCopy(rng);
+        for (String i : pools) {
             for (String j : getData().getJigsawPoolLoader().load(i).getPieces().shuffleCopy(rng)) {
                 IrisJigsawPiece pi = getData().getJigsawPieceLoader().load(j);
 
@@ -366,7 +296,9 @@ public class PlannedStructure {
     }
 
     public KList<PlannedPiece> getPiecesWithAvailableConnectors() {
-        return pieces.copy().removeWhere(PlannedPiece::isFull);
+        KList<PlannedPiece> available = pieces.copy().removeWhere(PlannedPiece::isFull);
+        if (!terminating) available.removeIf(PlannedPiece::isDead);
+        return available;
     }
 
     public int getVolume() {

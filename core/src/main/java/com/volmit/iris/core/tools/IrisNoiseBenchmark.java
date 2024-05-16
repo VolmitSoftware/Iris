@@ -34,7 +34,7 @@ public class IrisNoiseBenchmark {
     public void runAll() {
         // Todo: Make this more accurate
         File pack = dimension.getLoadFile().getParentFile().getParentFile();
-        File report = Iris.instance.getDataFile("profile.txt");
+        File report = Iris.instance.getDataFile(pack.getName() + "-profile.txt");
         IrisProject project = new IrisProject(pack);
         IrisData data = IrisData.get(pack);
 
@@ -45,6 +45,7 @@ public class IrisNoiseBenchmark {
         KMap<String, Double> generatorTimings = new KMap<>();
         KMap<String, Double> biomeTimings = new KMap<>();
         KMap<String, Double> regionTimings = new KMap<>();
+        KMap<String, Double> dimensionTimings = new KMap<>();
 
         sender.sendMessage("Calculating Performance Metrics for Noise generators");
 
@@ -202,6 +203,40 @@ public class IrisNoiseBenchmark {
         }
         mmm /= regionTimings.size();
         m += mmm;
+
+        KMap<String, KList<String>> dt = new KMap<>();
+
+        for (String i : data.getDimensionLoader().getPossibleKeys()) {
+            IrisDimension d = data.getDimensionLoader().load(i);
+            KList<String> vv = new KList<>();
+            double score = 0;
+
+            score += styleTimings.get(d.getContinentalStyle().getStyle());
+            vv.add("Continental Style: " + styleTimings.get(d.getContinentalStyle().getStyle()));
+            score += styleTimings.get(d.getRegionStyle().getStyle());
+            vv.add("Region Style: " + styleTimings.get(d.getRegionStyle().getStyle()));
+            score += styleTimings.get(d.getBiomeStyle(InferredType.LAND).getStyle());
+            vv.add("LandBiome Style: " + styleTimings.get(d.getBiomeStyle(InferredType.LAND).getStyle()));
+            score += styleTimings.get(d.getBiomeStyle(InferredType.SEA).getStyle());
+            vv.add("OceanBiome Style: " + styleTimings.get(d.getBiomeStyle(InferredType.SEA).getStyle()));
+            score += styleTimings.get(d.getCaveBiomeStyle().getStyle());
+            vv.add("CaveBiome Style: " + styleTimings.get(d.getCaveBiomeStyle().getStyle()));
+            score += styleTimings.get(d.getShoreBiomeStyle().getStyle());
+            vv.add("ShoreBiome Style: " + styleTimings.get(d.getShoreBiomeStyle().getStyle()));
+            dimensionTimings.put(i, score);
+            dt.put(i, vv);
+
+        }
+
+        fileText.add("Project Dimension Performance Impacts: ");
+
+        for (String i : dimensionTimings.sortKNumber()) {
+            fileText.add(i + ": " + dimensionTimings.get(i));
+
+            dt.get(i).forEach((ff) -> fileText.add("  " + ff));
+        }
+
+        fileText.add("");
 
         fileText.add("Average Score: " + m);
         sender.sendMessage("Score: " + Form.duration(m, 0));

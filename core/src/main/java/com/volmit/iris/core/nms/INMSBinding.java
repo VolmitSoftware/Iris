@@ -22,6 +22,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
@@ -119,4 +120,8 @@ public interface INMSBinding {
     boolean registerDimension(String name, IrisDimension dimension);
 
     void injectBukkit();
+
+    default IHeadless createHeadless(Engine engine) {
+        throw new IllegalStateException("Headless mode not supported");
+    }
 }

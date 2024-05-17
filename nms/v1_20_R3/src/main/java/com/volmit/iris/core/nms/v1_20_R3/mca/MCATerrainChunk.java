@@ -42,6 +42,9 @@ public record MCATerrainChunk(ChunkAccess chunk) implements TerrainChunk {
 
     @Override
     public void setBiome(int x, int y, int z, Biome bio) {
+        if (y < 0) return;
+        y += getMinHeight();
+        if (y > getMaxHeight()) return;
         chunk.setBiome(x & 15, y, z & 15, CraftBiome.bukkitToMinecraftHolder(bio));
     }
 
@@ -61,9 +64,9 @@ public record MCATerrainChunk(ChunkAccess chunk) implements TerrainChunk {
 
     @Override
     public void setBlock(int x, int y, int z, BlockData blockData) {
-        if (y > getMaxHeight() || y < getMinHeight()) {
-            return;
-        }
+        if (y < 0) return;
+        y += getMinHeight();
+        if (y > getMaxHeight()) return;
 
         if (blockData == null) {
             Iris.error("NULL BD");
@@ -76,12 +79,12 @@ public record MCATerrainChunk(ChunkAccess chunk) implements TerrainChunk {
     }
 
     private BlockState getBlockState(int x, int y, int z) {
+        if (y < 0) {
+            y = 0;
+        }
+        y += getMinHeight();
         if (y > getMaxHeight()) {
             y = getMaxHeight();
-        }
-
-        if (y < getMinHeight()) {
-            y = getMinHeight();
         }
 
         return chunk.getBlockState(new BlockPos(x & 15, y, z & 15));

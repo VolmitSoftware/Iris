@@ -153,7 +153,7 @@ public class IrisPackBenchmarking {
                 return new IrisEngine(new EngineTarget(world, dim, data), false);
             }
             return IrisToolbelt.access(IrisToolbelt.createWorld()
-                    .dimension(IrisDimension.getName())
+                    .dimension(IrisDimension.getLoadKey())
                     .name("benchmark")
                     .seed(1337)
                     .studio(false)

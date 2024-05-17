@@ -184,7 +184,7 @@ public class Headless implements IHeadless, LevelHeightAccessor {
                 IrisContext.getOr(engine).setChunkContext(ctx);
 
                 for (EngineStage i : engine.getMode().getStages()) {
-                    i.generate(x, z, blocks, vbiomes, true, ctx);
+                    i.generate(x, z, blocks, vbiomes, false, ctx);
                 }
             }
 

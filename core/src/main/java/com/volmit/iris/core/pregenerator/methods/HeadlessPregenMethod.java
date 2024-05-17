@@ -6,25 +6,23 @@ import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.parallel.MultiBurst;
 
 import java.io.IOException;
-import java.util.Objects;
-import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 
 public class HeadlessPregenMethod implements PregeneratorMethod {
     private final Engine engine;
     private final IHeadless headless;
     private final MultiBurst burst;
-    private final KList<Future<?>> futures;
+    private final Semaphore semaphore;
 
     public HeadlessPregenMethod(Engine engine) {
         this.engine = engine;
         this.headless = INMS.get().createHeadless(engine);
         this.burst = new MultiBurst("Iris Headless", Thread.MAX_PRIORITY);
-        this.futures = new KList<>();
+        this.semaphore = new Semaphore(1024);
     }
 
     @Override
@@ -32,7 +30,9 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
 
     @Override
     public void close() {
-        waitForChunksPartial(0);
+        try {
+            semaphore.acquire(1024);
+        } catch (InterruptedException ignored) {}
         burst.close();
         headless.saveAll();
         try {
@@ -63,34 +63,25 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
 
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
-        futures.removeIf(Future::isDone);
-        waitForChunksPartial(512);
-        futures.add(burst.complete(() -> {
-            listener.onChunkGenerating(x, z);
-            headless.generateChunk(x, z);
-            listener.onChunkGenerated(x, z);
-        }));
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException ignored) {
+            semaphore.release();
+            return;
+        }
+        burst.complete(() -> {
+            try {
+                listener.onChunkGenerating(x, z);
+                headless.generateChunk(x, z);
+                listener.onChunkGenerated(x, z);
+            } finally {
+                semaphore.release();
+            }
+        });
     }
 
     @Override
     public Mantle getMantle() {
         return engine.getMantle().getMantle();
-    }
-
-    private void waitForChunksPartial(int maxWaiting) {
-        futures.removeWhere(Objects::isNull);
-        while (futures.size() > maxWaiting) {
-            try {
-                Future<?> i = futures.remove(0);
-
-                if (i == null) {
-                    continue;
-                }
-
-                i.get();
-            } catch (Throwable e) {
-                e.printStackTrace();
-            }
-        }
     }
 }

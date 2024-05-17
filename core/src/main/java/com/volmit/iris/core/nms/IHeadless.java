@@ -11,7 +11,7 @@ public interface IHeadless extends Closeable {
 
     void saveAll();
 
-    @RegionCoordinates
+    @ChunkCoordinates
     boolean exists(int x, int z);
 
     @RegionCoordinates

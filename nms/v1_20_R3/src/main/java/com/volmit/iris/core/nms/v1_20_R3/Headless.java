@@ -76,7 +76,8 @@ public class Headless implements IHeadless, LevelHeightAccessor {
     public boolean exists(int x, int z) {
         if (closed) return false;
         try {
-            return storage.getRegionFile(new ChunkPos(x << 5, z << 5), true) != null;
+            CompoundTag tag = storage.read(new ChunkPos(x, z));
+            return tag != null && !"empty".equals(tag.getString("Status"));
         } catch (IOException e) {
             return false;
         }
@@ -137,16 +138,9 @@ public class Headless implements IHeadless, LevelHeightAccessor {
 
     @Override
     public void generateChunk(int x, int z) {
-        if (closed) return;
+        if (closed || exists(x, z)) return;
         try {
             var pos = new ChunkPos(x, z);
-            try {
-                CompoundTag tag = storage.read(pos);
-                if (tag != null && !"empty".equals(tag.getString("Status"))) {
-                    return;
-                }
-            } catch (Throwable ignored) {}
-
             ProtoChunk chunk = binding.createProtoChunk(pos, this);
             var tc = new MCATerrainChunk(chunk);
 

@@ -287,6 +287,13 @@ public class IrisEngine implements Engine {
     }
 
     @Override
+    public void addGenerated() {
+        if (generated.incrementAndGet() == 661) {
+            J.a(() -> getData().savePrefetch(this));
+        }
+    }
+
+    @Override
     public double getGeneratedPerSecond() {
         if (perSecondLatch.flip()) {
             double g = generated.get() - generatedLast.get();
@@ -468,11 +475,7 @@ public class IrisEngine implements Engine {
 
             getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.REAL, true);
             getMetrics().getTotal().put(p.getMilliseconds());
-            generated.incrementAndGet();
-
-            if (generated.get() == 661) {
-                J.a(() -> getData().savePrefetch(this));
-            }
+            addGenerated();
         } catch (Throwable e) {
             Iris.reportError(e);
             fail("Failed to generate " + x + ", " + z, e);

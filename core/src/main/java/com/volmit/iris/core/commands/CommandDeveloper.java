@@ -150,10 +150,12 @@ public class CommandDeveloper implements DecreeExecutor {
     @Decree(description = "Test")
     public void packBenchmark(
             @Param(description = "The pack to bench", aliases = {"pack"})
-            IrisDimension dimension
+            IrisDimension dimension,
+            @Param(description = "Headless", defaultValue = "false")
+            boolean headless
     ) {
         Iris.info("test");
-        IrisPackBenchmarking benchmark = new IrisPackBenchmarking(dimension, 1);
+        IrisPackBenchmarking benchmark = new IrisPackBenchmarking(dimension, 1, headless);
 
     }
 

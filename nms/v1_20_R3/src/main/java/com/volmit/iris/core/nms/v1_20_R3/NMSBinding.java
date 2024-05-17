@@ -21,9 +21,18 @@ import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.Lifecycle;
+import com.volmit.iris.core.nms.IHeadless;
+import com.volmit.iris.core.nms.v1_20_R3.mca.ChunkSerializer;
+import com.volmit.iris.core.nms.v1_20_R3.mca.MCATerrainChunk;
+import com.volmit.iris.core.nms.v1_20_R3.mca.RegionFileStorage;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.hunk.view.BiomeGridHunkHolder;
+import com.volmit.iris.util.hunk.view.ChunkDataHunkHolder;
 import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.asm.Advice;
@@ -35,7 +44,11 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.progress.ChunkProgressListener;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.RandomSequences;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelHeightAccessor;
+import net.minecraft.world.level.chunk.ProtoChunk;
+import net.minecraft.world.level.chunk.UpgradeData;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.storage.LevelStorageSource;
@@ -782,6 +795,11 @@ public class NMSBinding implements INMSBinding {
 
     }
 
+    @Override
+    public IHeadless createHeadless(Engine engine) {
+        return new Headless(this, engine);
+    }
+
     private static class ServerLevelAdvice {
         @Advice.OnMethodEnter
         static void enter(@Advice.Argument(0) MinecraftServer server, @Advice.Argument(2) LevelStorageSource.LevelStorageAccess access, @Advice.Argument(4) ResourceKey<Level> key, @Advice.Argument(value = 5, readOnly = false) LevelStem levelStem) {
@@ -813,5 +831,17 @@ public class NMSBinding implements INMSBinding {
                 Preconditions.checkArgument(!isIrisWorld.exists(), "Only Iris can load Iris Worlds!");
             }
         }
+    }
+
+    Holder.Reference<net.minecraft.world.level.biome.Biome> getBiomeHolder(String namespace, String id) {
+        return getCustomBiomeRegistry().getHolder(ResourceKey.create(Registries.BIOME, new ResourceLocation(namespace, id))).orElse(null);
+    }
+
+    ProtoChunk createProtoChunk(ChunkPos pos, LevelHeightAccessor heightAccessor) {
+        return new ProtoChunk(pos, UpgradeData.EMPTY, heightAccessor, getCustomBiomeRegistry(), null);
+    }
+
+    net.minecraft.nbt.CompoundTag serializeChunk(ChunkAccess chunkAccess, LevelHeightAccessor heightAccessor) {
+        return ChunkSerializer.write(chunkAccess, heightAccessor, getCustomBiomeRegistry());
     }
 }

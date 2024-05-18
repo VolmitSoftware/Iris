@@ -1,6 +1,7 @@
 package com.volmit.iris.core.pregenerator.methods;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.nms.IHeadless;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.pregenerator.PregenListener;
@@ -15,14 +16,14 @@ import java.util.concurrent.Semaphore;
 public class HeadlessPregenMethod implements PregeneratorMethod {
     private final Engine engine;
     private final IHeadless headless;
-    private final MultiBurst burst;
     private final Semaphore semaphore;
+    private final int max;
 
     public HeadlessPregenMethod(Engine engine) {
+        this.max = IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism());
         this.engine = engine;
         this.headless = INMS.get().createHeadless(engine);
-        this.burst = new MultiBurst("Iris Headless", Thread.MAX_PRIORITY);
-        this.semaphore = new Semaphore(1024);
+        this.semaphore = new Semaphore(max);
     }
 
     @Override
@@ -31,10 +32,9 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
     @Override
     public void close() {
         try {
-            semaphore.acquire(1024);
+            semaphore.acquire(max);
         } catch (InterruptedException ignored) {}
-        burst.close();
-        headless.saveAll();
+        headless.save();
         try {
             headless.close();
         } catch (IOException e) {
@@ -45,7 +45,7 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
 
     @Override
     public void save() {
-        headless.saveAll();
+        headless.save();
     }
 
     @Override
@@ -69,7 +69,7 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
             semaphore.release();
             return;
         }
-        burst.complete(() -> {
+        MultiBurst.burst.complete(() -> {
             try {
                 listener.onChunkGenerating(x, z);
                 headless.generateChunk(x, z);

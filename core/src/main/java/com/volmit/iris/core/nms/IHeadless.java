@@ -9,7 +9,7 @@ import java.io.Closeable;
 
 public interface IHeadless extends Closeable {
 
-    void saveAll();
+    void save();
 
     @ChunkCoordinates
     boolean exists(int x, int z);

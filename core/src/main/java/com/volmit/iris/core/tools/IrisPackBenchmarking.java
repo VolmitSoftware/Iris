@@ -45,15 +45,17 @@ public class IrisPackBenchmarking {
      private IrisDimension IrisDimension;
      private int radius;
      private final boolean headless;
+     private final boolean gui;
      private boolean finished = false;
      private Engine engine;
     PrecisionStopwatch stopwatch;
 
-    public IrisPackBenchmarking(IrisDimension dimension, int r, boolean headless) {
+    public IrisPackBenchmarking(IrisDimension dimension, int r, boolean headless, boolean gui) {
         instance = this;
         this.IrisDimension = dimension;
         this.radius = r;
         this.headless = headless;
+        this.gui = gui;
         runBenchmark();
     }
 
@@ -169,7 +171,7 @@ public class IrisPackBenchmarking {
         int z = 0;
             IrisToolbelt.pregenerate(PregenTask
                     .builder()
-                    .gui(false)
+                    .gui(gui)
                     .center(new Position2(x, z))
                     .width(5)
                     .height(5)

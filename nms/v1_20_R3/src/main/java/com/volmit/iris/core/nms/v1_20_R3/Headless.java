@@ -48,7 +48,7 @@ public class Headless implements IHeadless, LevelHeightAccessor {
     private final Engine engine;
     private final RegionFileStorage storage;
     private final Queue<ProtoChunk> chunkQueue = new ArrayDeque<>();
-    private final ReentrantLock manualLock = new ReentrantLock();
+    private final ReentrantLock saveLock = new ReentrantLock();
     private final KMap<String, Holder<Biome>> customBiomes = new KMap<>();
     private final KMap<NamespacedKey, Holder<Biome>> minecraftBiomes = new KMap<>();
     private boolean closed = false;
@@ -60,11 +60,7 @@ public class Headless implements IHeadless, LevelHeightAccessor {
         var queueLooper = new Looper() {
             @Override
             protected long loop() {
-                if (manualLock.isLocked()) {
-                    manualLock.lock();
-                    manualLock.unlock();
-                }
-                saveAll();
+                save();
                 return closed ? -1 : 100;
             }
         };
@@ -84,26 +80,22 @@ public class Headless implements IHeadless, LevelHeightAccessor {
     }
 
     @Override
-    public void saveAll() {
-        manualLock.lock();
-        try {
-            save();
-        } finally {
-            manualLock.unlock();
-        }
-    }
-
-    private void save() {
+    public void save() {
         if (closed) return;
-        while (!chunkQueue.isEmpty()) {
-            ChunkAccess chunk = chunkQueue.poll();
-            if (chunk == null) break;
-            try {
-                storage.write(chunk.getPos(), binding.serializeChunk(chunk, this));
-            } catch (Throwable e) {
-                Iris.error("Failed to save chunk " + chunk.getPos().x + ", " + chunk.getPos().z);
-                e.printStackTrace();
+        saveLock.lock();
+        try {
+            while (!chunkQueue.isEmpty()) {
+                ChunkAccess chunk = chunkQueue.poll();
+                if (chunk == null) break;
+                try {
+                    storage.write(chunk.getPos(), binding.serializeChunk(chunk, this));
+                } catch (Throwable e) {
+                    Iris.error("Failed to save chunk " + chunk.getPos().x + ", " + chunk.getPos().z);
+                    e.printStackTrace();
+                }
             }
+        } finally {
+            saveLock.unlock();
         }
     }
 

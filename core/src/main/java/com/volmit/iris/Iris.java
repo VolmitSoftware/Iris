@@ -92,6 +92,7 @@ import java.lang.management.OperatingSystemMXBean;
 import java.net.URL;
 import java.util.Date;
 import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -474,6 +475,7 @@ public class Iris extends VolmitPlugin implements Listener {
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
         configured = ServerConfigurator.postConfigure();
+        installMainDimension();
         if (!IrisSafeguard.instance.acceptUnstable && IrisSafeguard.instance.unstablemode) {
             Iris.info(C.RED + "World loading has been disabled until the incompatibility is resolved.");
             Iris.info(C.DARK_RED + "Alternatively, go to plugins/iris/settings.json and set ignoreBootMode to true.");
@@ -684,6 +686,48 @@ public class Iris extends VolmitPlugin implements Listener {
 
     public void imsg(CommandSender s, String msg) {
         s.sendMessage(C.IRIS + "[" + C.DARK_GRAY + "Iris" + C.IRIS + "]" + C.GRAY + ": " + msg);
+    }
+
+    private void installMainDimension() {
+        try {
+            Properties props = new Properties();
+            props.load(new FileInputStream("server.properties"));
+            String world = props.getProperty("level-name");
+            if (world == null) return;
+
+            FileConfiguration fc = new YamlConfiguration();
+            fc.load(new File("bukkit.yml"));
+            String id = fc.getString("worlds." + world + ".generator");
+            if (id.startsWith("Iris:")) {
+                id = id.split("\\Q:\\E")[1];
+            } else if (id.equalsIgnoreCase("Iris")) {
+                id = IrisSettings.get().getGenerator().getDefaultWorldType();
+            } else {
+                return;
+            }
+
+            IrisDimension dim;
+            if (id == null || id.isEmpty()) {
+                dim = IrisData.loadAnyDimension(IrisSettings.get().getGenerator().getDefaultWorldType());
+            } else {
+                dim = IrisData.loadAnyDimension(id);
+            }
+
+            File w = new File(Bukkit.getWorldContainer(), world);
+            File packFolder = new File(w, "/iris/pack");
+            if (!packFolder.exists() || packFolder.listFiles().length == 0) {
+                packFolder.mkdirs();
+                service(StudioSVC.class).installIntoWorld(getSender(), dim.getLoadKey(), w);
+            }
+            if (packFolder.exists()) {
+                IrisDimension worldDim = IrisData.get(packFolder).getDimensionLoader().load(id);
+                if (worldDim != null) dim = worldDim;
+            }
+
+            INMS.get().registerDimension("overworld", dim);
+        } catch (Throwable e) {
+
+        }
     }
 
     @Nullable

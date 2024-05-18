@@ -111,7 +111,7 @@ public class ServerConfigurator {
         try {
             Properties prop = new Properties();
             prop.load(new FileInputStream("server.properties"));
-            String world = prop.getProperty("level-name");
+            String world = prop.getProperty("level-name", "world");
             return new File(Bukkit.getWorldContainer(), world);
         } catch (Exception e) {
             e.printStackTrace();

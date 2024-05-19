@@ -19,15 +19,13 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.core.nms.datapack.IDataFixer;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.DataProvider;
-import com.volmit.iris.util.data.Dimension;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.Position2;
@@ -43,7 +41,6 @@ import org.bukkit.Material;
 import org.bukkit.World.Environment;
 import org.bukkit.block.data.BlockData;
 
-import java.io.DataInput;
 import java.io.File;
 import java.io.IOException;
 
@@ -380,7 +377,7 @@ public class IrisDimension extends IrisRegistrant {
         return landBiomeStyle;
     }
 
-    public boolean installDataPack(DataProvider data, File datapacks) {
+    public boolean installDataPack(IDataFixer fixer, DataProvider data, File datapacks) {
         boolean write = false;
         boolean changed = false;
 
@@ -400,7 +397,7 @@ public class IrisDimension extends IrisRegistrant {
                     Iris.verbose("    Installing Data Pack Biome: " + output.getPath());
                     output.getParentFile().mkdirs();
                     try {
-                        IO.writeAll(output, j.generateJson());
+                        IO.writeAll(output, j.generateJson(fixer));
                     } catch (IOException e) {
                         Iris.reportError(e);
                         e.printStackTrace();

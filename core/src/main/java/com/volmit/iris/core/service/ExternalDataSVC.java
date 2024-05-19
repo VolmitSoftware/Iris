@@ -64,6 +64,10 @@ public class ExternalDataSVC implements IrisService {
         if (Bukkit.getPluginManager().getPlugin("MMOItems") != null) {
             Iris.info("MMOItems found, loading MMOItemsDataProvider...");
         }
+        providers.add(new EcoItemsDataProvider());
+        if (Bukkit.getPluginManager().getPlugin("EcoItems") != null) {
+            Iris.info("EcoItems found, loading EcoItemsDataProvider...");
+        }
 
         for (ExternalDataProvider p : providers) {
             if (p.isReady()) {

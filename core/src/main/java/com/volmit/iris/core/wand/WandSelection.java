@@ -21,6 +21,7 @@ package com.volmit.iris.core.wand;
 import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.misc.E;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
@@ -29,6 +30,7 @@ import org.bukkit.util.Vector;
 import java.awt.*;
 
 public class WandSelection {
+    private static final Particle REDSTONE = E.getOrDefault(Particle.class,  "REDSTONE", "DUST");
     private final Cuboid c;
     private final Player p;
 
@@ -101,7 +103,7 @@ public class WandSelection {
                             int g = color.getGreen();
                             int b = color.getBlue();
 
-                            p.spawnParticle(Particle.REDSTONE, a.getX(), a.getY(), a.getZ(),
+                            p.spawnParticle(REDSTONE, a.getX(), a.getY(), a.getZ(),
                                     1, 0, 0, 0, 0,
                                     new Particle.DustOptions(org.bukkit.Color.fromRGB(r, g, b),
                                             (float) dist * 3f));

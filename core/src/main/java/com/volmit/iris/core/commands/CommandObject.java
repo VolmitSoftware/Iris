@@ -198,6 +198,20 @@ public class CommandObject implements DecreeExecutor {
         }
     }
 
+    @Decree(description = "Shrink an object to its minimum size")
+    public void shrink(@Param(description = "The object to shrink", customHandler = ObjectHandler.class) String object) {
+        IrisObject o = IrisData.loadAnyObject(object);
+        sender().sendMessage("Current Object Size: " + o.getW() + " * " + o.getH() + " * " + o.getD());
+        o.shrinkwrap();
+        sender().sendMessage("New Object Size: " + o.getW() + " * " + o.getH() + " * " + o.getD());
+        try {
+            o.write(o.getLoadFile());
+        } catch (IOException e) {
+            sender().sendMessage("Failed to save object " + o.getLoadFile() + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     @Decree(description = "Get a powder that reveals objects", studio = true, aliases = "d")
     public void dust() {
         player().getInventory().addItem(WandSVC.createDust());

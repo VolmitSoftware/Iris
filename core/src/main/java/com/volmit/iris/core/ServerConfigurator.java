@@ -21,6 +21,8 @@ package com.volmit.iris.core;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.nms.datapack.DataVersion;
+import com.volmit.iris.core.nms.datapack.IDataFixer;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -91,8 +93,11 @@ public class ServerConfigurator {
         return worlds;
     }
 
-
     public static void installDataPacks(boolean fullInstall) {
+        installDataPacks(DataVersion.getDefault(), fullInstall);
+    }
+
+    public static void installDataPacks(IDataFixer fixer, boolean fullInstall) {
         Iris.info("Checking Data Packs...");
         File packs = new File("plugins/Iris/packs");
         double ultimateMaxHeight = 0;
@@ -137,7 +142,7 @@ public class ServerConfigurator {
 
                                 Iris.verbose("  Checking Dimension " + dim.getLoadFile().getPath());
                                 for (File dpack : getDatapacksFolder()) {
-                                    dim.installDataPack(() -> data, dpack, ultimateMaxHeight, ultimateMinHeight);
+                                    dim.installDataPack(fixer, () -> data, dpack, ultimateMaxHeight, ultimateMinHeight);
                                 }
                             }
                         }

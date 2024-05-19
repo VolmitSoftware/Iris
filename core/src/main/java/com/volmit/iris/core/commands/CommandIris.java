@@ -20,7 +20,9 @@ package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.core.pregenerator.ChunkUpdater;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisBenchmarking;
@@ -425,6 +427,15 @@ public class CommandIris implements DecreeExecutor {
         IrisSettings.invalidate();
         IrisSettings.get();
         sender().sendMessage(C.GREEN + "Hotloaded settings");
+    }
+
+    @Decree(description = "Upgrade to another Minecraft version")
+    public void upgrade(
+            @Param(description = "The version to upgrade to", defaultValue = "latest")
+            DataVersion version) {
+        sender().sendMessage(C.GREEN + "Upgrading to " + version.getVersion() + "...");
+        ServerConfigurator.installDataPacks(version.get(), false);
+        sender().sendMessage(C.GREEN + "Done upgrading! You can now update your server version to " + version.getVersion());
     }
 
     @Decree(description = "Update the pack of a world (UNSAFE!)", name = "^world", aliases = "update-world")

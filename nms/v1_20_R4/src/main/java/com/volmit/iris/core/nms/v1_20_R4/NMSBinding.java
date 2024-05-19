@@ -9,14 +9,10 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.volmit.iris.engine.object.IrisBiomeCustom;
-import com.volmit.iris.engine.object.IrisBiomeCustomSpawn;
-import com.volmit.iris.engine.object.IrisBiomeCustomSpawnType;
-import com.volmit.iris.util.json.JSONArray;
+import com.volmit.iris.core.nms.datapack.DataVersion;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
@@ -528,47 +524,6 @@ public class NMSBinding implements INMSBinding {
         return ((CraftWorld) location.getWorld()).spawn(location, type.getEntityClass(), null, reason);
     }
 
-    @Override
-    public JSONObject fixCustomBiome(IrisBiomeCustom biome, JSONObject json) {
-        int spawnRarity = biome.getSpawnRarity();
-        if (spawnRarity > 0) {
-            json.put("creature_spawn_probability", Math.min(spawnRarity/20d, 0.9999999));
-        }
-
-        var spawns = biome.getSpawns();
-        if (spawns != null && spawns.isNotEmpty()) {
-            JSONObject spawners = new JSONObject();
-            KMap<IrisBiomeCustomSpawnType, JSONArray> groups = new KMap<>();
-
-            for (IrisBiomeCustomSpawn i : spawns) {
-                JSONArray g = groups.computeIfAbsent(i.getGroup(), (k) -> new JSONArray());
-                JSONObject o = new JSONObject();
-                o.put("type", "minecraft:" + i.getType().name().toLowerCase());
-                o.put("weight", i.getWeight());
-                o.put("minCount", Math.min(i.getMinCount()/20d, 0));
-                o.put("maxCount", Math.min(i.getMaxCount()/20d, 0.9999999));
-                g.put(o);
-            }
-
-            for (IrisBiomeCustomSpawnType i : groups.k()) {
-                spawners.put(i.name().toLowerCase(Locale.ROOT), groups.get(i));
-            }
-
-            json.put("spawners", spawners);
-        }
-        return json;
-    }
-
-    @Override
-    public JSONObject fixDimension(JSONObject json) {
-        if (!(json.get("monster_spawn_light_level") instanceof JSONObject lightLevel))
-            return json;
-        var value = (JSONObject) lightLevel.remove("value");
-        lightLevel.put("max_inclusive", value.get("max_inclusive"));
-        lightLevel.put("min_inclusive", value.get("min_inclusive"));
-        return json;
-    }
-
     private static Field getField(Class<?> clazz, Class<?> fieldType) throws NoSuchFieldException {
         try {
             for (Field f : clazz.getDeclaredFields()) {
@@ -588,5 +543,10 @@ public class NMSBinding implements INMSBinding {
 
     public static Holder<net.minecraft.world.level.biome.Biome> biomeToBiomeBase(Registry<net.minecraft.world.level.biome.Biome> registry, Biome biome) {
         return registry.getHolderOrThrow(ResourceKey.create(Registries.BIOME, CraftNamespacedKey.toMinecraft(biome.getKey())));
+    }
+
+    @Override
+    public DataVersion getDataVersion() {
+        return DataVersion.V1205;
     }
 }

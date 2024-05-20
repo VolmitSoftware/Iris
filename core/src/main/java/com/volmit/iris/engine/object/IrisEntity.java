@@ -454,15 +454,16 @@ public class IrisEntity extends IrisRegistrant {
             return ae.get();
         }
 
-        if (isSpecialType()) {
+        if (isSpecialType() && Iris.linkMythicMobs.isEnabled()) {
             if (specialType.toLowerCase().startsWith("mythicmobs:")) {
                 return Iris.linkMythicMobs.spawnMob(specialType.substring(11), at);
             } else {
                 Iris.warn("Invalid mob type to spawn: '" + specialType + "'!");
                 return null;
             }
+        } else {
+            Iris.warn("MythicMobs is not enabled, falling back to: " + type + "'!");
         }
-
 
         return INMS.get().spawnEntity(at, getType(), getReason());
     }

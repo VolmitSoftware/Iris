@@ -19,7 +19,7 @@
 plugins {
     id 'java'
     id 'java-library'
-    id "io.freefair.lombok" version "6.3.0"
+    id "io.freefair.lombok" version "8.6"
 }
 
 def apiVersion = '1.19'
@@ -35,6 +35,7 @@ compileJava {
 
 repositories {
     maven { url 'https://nexus.phoenixdevt.fr/repository/maven-public/'}
+    maven { url 'https://repo.auxilor.io/repository/maven-public/' }
 }
 
 /**
@@ -66,6 +67,7 @@ dependencies {
     compileOnly 'com.github.PlaceholderAPI:placeholderapi:2.11.3'
     compileOnly 'com.github.Ssomar-Developement:SCore:4.23.10.8'
     compileOnly 'net.Indyuce:MMOItems-API:6.9.5-SNAPSHOT'
+    compileOnly 'com.willfp:EcoItems:5.44.0'
     //implementation files('libs/CustomItems.jar')
 }
 

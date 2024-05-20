@@ -21,12 +21,12 @@ import java.util.function.Consumer
 plugins {
     id 'java'
     id 'java-library'
-    id "com.github.johnrengelman.shadow" version "7.1.2"
+    id "io.github.goooler.shadow" version "8.1.7"
     id "de.undercouch.download" version "5.0.1"
 }
 
 version '3.2.6-1.19.2-1.20.4'
-def specialSourceVersion = '1.11.0' //[NMS]
+def specialSourceVersion = '1.11.4' //[NMS]
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================
@@ -43,8 +43,8 @@ registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/development/serve
 registerCustomOutputTaskUnix('PsychoLT', '/Volumes/PRO-G40/Minecraft/MinecraftDevelopment/Server/plugins')
 // ==============================================================
 
-
 def NMS_BINDINGS = Map.of(
+        "v1_20_R4", "1.20.6-R0.1-SNAPSHOT",
         "v1_20_R3", "1.20.4-R0.1-SNAPSHOT",
         "v1_20_R2", "1.20.2-R0.1-SNAPSHOT",
         "v1_20_R1", "1.20.1-R0.1-SNAPSHOT",
@@ -52,11 +52,15 @@ def NMS_BINDINGS = Map.of(
         "v1_19_R2", "1.19.3-R0.1-SNAPSHOT",
         "v1_19_R1", "1.19.2-R0.1-SNAPSHOT"
 )
+def JVM_VERSION = Map.of(
+        "v1_20_R4", 21,
+)
 NMS_BINDINGS.each {
     def key = it.key
     def value = it.value
     def nms =  value.split("-")[0];
     project(":nms:${key}") {
+        apply plugin: 'java'
         apply plugin: 'java-library'
         apply plugin: 'de.undercouch.download'
 
@@ -65,9 +69,10 @@ NMS_BINDINGS.each {
             compileOnly "org.spigotmc:spigot-api:${value}"
             compileOnly "org.bukkit:craftbukkit:${value}:remapped-mojang" //[NMS]
         }
-        def buildToolsJar = new File(rootProject.buildDir, "tools/BuildTools.jar")
-        def specialSourceJar = new File(rootProject.buildDir, "tools/SpecialSource.jar")
+        def buildToolsJar = new File(rootProject.layout.buildDirectory.asFile.get(), "tools/BuildTools.jar")
+        def specialSourceJar = new File(rootProject.layout.buildDirectory.asFile.get(), "tools/SpecialSource.jar")
 
+        def buildDir = layout.buildDirectory.asFile.get();
         def buildToolsFolder = new File(buildDir, "buildtools")
         def specialSourceFolder = new File(buildDir, "specialsource")
         def buildToolsHint = new File(buildDir, "buildtools/craftbukkit-" + nms + ".jar")
@@ -82,6 +87,22 @@ NMS_BINDINGS.each {
         def m2s = m2.getAbsolutePath();
 
         // ======================== Building Mapped Jars =============================
+        def targetJavaVersion = JVM_VERSION.getOrDefault(key, 17)
+        def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+        def javaLanguageVersion = JavaLanguageVersion.of(targetJavaVersion)
+        project.java.sourceCompatibility = javaVersion
+        project.java.targetCompatibility = javaVersion
+        project.java.toolchain.languageVersion = javaLanguageVersion
+        def launcher = javaToolchains.launcherFor(java.toolchain).get()
+        def javaHome = launcher.executablePath.getAsFile().parentFile.parentFile.getAbsolutePath()
+
+        tasks.withType(JavaCompile).configureEach {
+            options.release.set(targetJavaVersion)
+        }
+
+        tasks.withType(JavaExec).configureEach {
+            javaLauncher.set(launcher)
+        }
 
         ext {
             executeBuildTools = new Runnable() {
@@ -99,6 +120,7 @@ NMS_BINDINGS.each {
                     if (!buildToolsHint.exists()) {
                         buildToolsFolder.mkdirs()
                         project.javaexec {
+                            executable = launcher.executablePath
                             classpath = files(buildToolsJar)
                             workingDir = buildToolsFolder
                             args = [
@@ -108,14 +130,12 @@ NMS_BINDINGS.each {
                                     "craftbukkit",
                                     "--remap"
                             ]
+                            def env = new HashMap(environment)
+                            env.put("JAVA_HOME", javaHome)
+                            environment = env
                         }
                     }
                 }
-            }
-        }
-        tasks.register("executeBuildTools") {
-            doLast {
-                property("executeBuildTools").run();
             }
         }
 
@@ -137,6 +157,7 @@ NMS_BINDINGS.each {
 
             //obfuscate
             javaexec {
+                executable = launcher.executablePath
                 workingDir = specialSourceFolder
                 classpath = files(specialSourceJar,
                         new File(m2s + "/org/spigotmc/spigot/" + value + "/spigot-" + value + "-remapped-mojang.jar"))
@@ -151,10 +172,14 @@ NMS_BINDINGS.each {
                         m2s + "/org/spigotmc/minecraft-server/" + value + "/minecraft-server-" + value + "-maps-mojang.txt",
                         "--reverse",
                 ]
+                def env = new HashMap(environment)
+                env.put("JAVA_HOME", javaHome)
+                environment = env
             }
 
             //remap
             javaexec {
+                executable = launcher.executablePath
                 workingDir = specialSourceFolder
                 classpath = files(specialSourceJar,
                         new File(m2s + "/org/spigotmc/spigot/" + value + "/spigot-" + value + "-remapped-obf.jar"))
@@ -168,6 +193,9 @@ NMS_BINDINGS.each {
                         "-m",
                         m2s + "/org/spigotmc/minecraft-server/" + value + "/minecraft-server-" + value + "-maps-spigot.csrg"
                 ]
+                def env = new HashMap(environment)
+                env.put("JAVA_HOME", javaHome)
+                environment = env
             }
             //copy
             copy {
@@ -182,6 +210,10 @@ NMS_BINDINGS.each {
 }
 
 shadowJar {
+    NMS_BINDINGS.each {
+        dependsOn(":nms:${it.key}:build")
+        from("${project(":nms:${it.key}").layout.buildDirectory.asFile.get()}/libs/${it.key}.jar")
+    }
     NMS_BINDINGS.each {dependsOn(":nms:${it.key}:build")}
     dependsOn(':com.volmit.gui:build')
 
@@ -195,9 +227,6 @@ shadowJar {
 
 dependencies {
     implementation project(':core')
-    NMS_BINDINGS.each {
-        implementation project(":nms:${it.key}")
-    }
 }
 
 configurations.configureEach {
@@ -230,7 +259,6 @@ allprojects {
 
     dependencies {
         // Provided or Classpath
-       // implementation project(':com.volmit.gui')
         compileOnly 'org.projectlombok:lombok:1.18.24'
         annotationProcessor 'org.projectlombok:lombok:1.18.24'
 
@@ -240,6 +268,8 @@ allprojects {
         implementation "net.kyori:adventure-text-minimessage:4.13.1"
         implementation 'net.kyori:adventure-platform-bukkit:4.3.2'
         implementation 'net.kyori:adventure-api:4.13.1'
+        //implementation 'org.bytedeco:javacpp:1.5.10'
+        //implementation 'org.bytedeco:cuda-platform:12.3-8.9-1.5.10'
         compileOnly 'io.lumine:Mythic-Dist:5.2.1'
 
         // Dynamically Loaded
@@ -289,8 +319,8 @@ if (JavaVersion.current().toString() != "17") {
 
 task iris(type: Copy) {
     group "iris"
-    from new File(buildDir, "libs/Iris-${version}.jar")
-    into buildDir
+    from new File(layout.buildDirectory.asFile.get(), "libs/Iris-${version}.jar")
+    into layout.buildDirectory.asFile.get()
     dependsOn(build)
 }
 
@@ -313,7 +343,9 @@ NMS_BINDINGS.keySet().forEach {
     tasks.register("setup-${nms}") {
         group "iris"
         dependsOn(":nms:${nms}:clean")
-        dependsOn(":nms:${nms}:executeBuildTools")
+        doLast {
+            project(":nms:${nms}").property("executeBuildTools").run();
+        }
     }
 }
 

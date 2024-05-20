@@ -9,9 +9,9 @@ import java.io.Closeable;
 
 public interface IHeadless extends Closeable {
 
-    void saveAll();
+    void save();
 
-    @RegionCoordinates
+    @ChunkCoordinates
     boolean exists(int x, int z);
 
     @RegionCoordinates

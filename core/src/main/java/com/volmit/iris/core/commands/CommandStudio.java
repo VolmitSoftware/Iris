@@ -20,21 +20,16 @@ package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.core.gui.VisionGUI;
-import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.service.ConversionSVC;
 import com.volmit.iris.core.service.StudioSVC;
-import com.volmit.iris.core.tools.IrisConverter;
 import com.volmit.iris.core.tools.IrisNoiseBenchmark;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
-import com.volmit.iris.engine.platform.studio.StudioGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -43,30 +38,23 @@ import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
-import com.volmit.iris.util.decree.specialhandlers.NullablePlayerHandler;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Function2;
-import com.volmit.iris.util.function.NoiseProvider;
-import com.volmit.iris.util.interpolation.InterpolationMethod;
-import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.math.Spiraler;
-import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
-import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import io.papermc.lib.PaperLib;
 import org.bukkit.*;
-import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.util.BlockVector;
@@ -85,7 +73,6 @@ import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 @Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
@@ -286,7 +273,7 @@ public class CommandStudio implements DecreeExecutor {
     }
 
     @Decree(description = "Hotload a studio", aliases = {"reload", "h"})
-    public void hotload(@Param(defaultValue = "false") boolean reloadDataPack) {
+    public void hotload() {
         if (!Iris.service(StudioSVC.class).isProjectOpen()) {
             sender().sendMessage(C.RED + "No studio world open!");
             return;
@@ -294,15 +281,6 @@ public class CommandStudio implements DecreeExecutor {
         var provider = Iris.service(StudioSVC.class).getActiveProject().getActiveProvider();
         provider.getEngine().hotload();
         sender().sendMessage(C.GREEN + "Hotloaded");
-        if (reloadDataPack) {
-            var world = provider.getTarget().getWorld().realWorld();
-            if (world == null) {
-                sender().sendMessage(C.RED + "Failed to reload datapacks.");
-                return;
-            }
-            boolean success = INMS.get().loadDatapack(new File(world.getWorldFolder(), "datapacks"), true);
-            sender().sendMessage(success ? C.GREEN + "Reloaded datapacks." : C.RED + "Failed to reload datapacks.");
-        }
     }
 
     @Decree(description = "Show loot if a chest were right here", origin = DecreeOrigin.PLAYER, sync = true)

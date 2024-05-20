@@ -19,8 +19,10 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pregenerator.ChunkUpdater;
 import com.volmit.iris.core.service.IrisEngineSVC;
@@ -152,10 +154,12 @@ public class CommandDeveloper implements DecreeExecutor {
             @Param(description = "The pack to bench", aliases = {"pack"})
             IrisDimension dimension,
             @Param(description = "Headless", defaultValue = "false")
-            boolean headless
+            boolean headless,
+            @Param(description = "GUI", defaultValue = "false")
+            boolean gui
     ) {
         Iris.info("test");
-        IrisPackBenchmarking benchmark = new IrisPackBenchmarking(dimension, 1, headless);
+        IrisPackBenchmarking benchmark = new IrisPackBenchmarking(dimension, 1, headless, gui);
 
     }
 

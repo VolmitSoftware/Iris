@@ -18,17 +18,12 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.DataProvider;
-import com.volmit.iris.util.data.Dimension;
-import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
@@ -42,10 +37,6 @@ import lombok.experimental.Accessors;
 import org.bukkit.Material;
 import org.bukkit.World.Environment;
 import org.bukkit.block.data.BlockData;
-
-import java.io.DataInput;
-import java.io.File;
-import java.io.IOException;
 
 @Accessors(chain = true)
 @AllArgsConstructor
@@ -378,56 +369,6 @@ public class IrisDimension extends IrisRegistrant {
         }
 
         return landBiomeStyle;
-    }
-
-    public boolean installDataPack(DataProvider data, File datapacks) {
-        boolean write = false;
-        boolean changed = false;
-
-        IO.delete(new File(datapacks, "iris/data/" + getLoadKey().toLowerCase()));
-
-        for (IrisBiome i : getAllBiomes(data)) {
-            if (i.isCustom()) {
-                write = true;
-
-                for (IrisBiomeCustom j : i.getCustomDerivitives()) {
-                    File output = new File(datapacks, "iris/data/" + getLoadKey().toLowerCase() + "/worldgen/biome/" + j.getId() + ".json");
-
-                    if (!output.exists()) {
-                        changed = true;
-                    }
-
-                    Iris.verbose("    Installing Data Pack Biome: " + output.getPath());
-                    output.getParentFile().mkdirs();
-                    try {
-                        IO.writeAll(output, j.generateJson());
-                    } catch (IOException e) {
-                        Iris.reportError(e);
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
-
-        if (write) {
-            File mcm = new File(datapacks, "iris/pack.mcmeta");
-            try {
-                IO.writeAll(mcm, """
-                        {
-                            "pack": {
-                                "description": "Iris Data Pack. This pack contains all installed Iris Packs' resources.",
-                                "pack_format": 10
-                            }
-                        }
-                        """);
-            } catch (IOException e) {
-                Iris.reportError(e);
-                e.printStackTrace();
-            }
-            Iris.verbose("    Installing Data Pack MCMeta: " + mcm.getPath());
-        }
-
-        return changed;
     }
 
     @Override

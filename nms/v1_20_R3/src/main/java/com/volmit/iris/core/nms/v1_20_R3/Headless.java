@@ -48,7 +48,7 @@ public class Headless implements IHeadless, LevelHeightAccessor {
     private final Engine engine;
     private final RegionFileStorage storage;
     private final Queue<ProtoChunk> chunkQueue = new ArrayDeque<>();
-    private final ReentrantLock manualLock = new ReentrantLock();
+    private final ReentrantLock saveLock = new ReentrantLock();
     private final KMap<String, Holder<Biome>> customBiomes = new KMap<>();
     private final KMap<NamespacedKey, Holder<Biome>> minecraftBiomes = new KMap<>();
     private boolean closed = false;
@@ -60,49 +60,50 @@ public class Headless implements IHeadless, LevelHeightAccessor {
         var queueLooper = new Looper() {
             @Override
             protected long loop() {
-                if (manualLock.isLocked()) {
-                    manualLock.lock();
-                    manualLock.unlock();
-                }
-                saveAll();
+                save();
                 return closed ? -1 : 100;
             }
         };
         queueLooper.setName("Region Save Looper");
         queueLooper.start();
+
+        var dimKey = engine.getDimension().getLoadKey();
+        for (var biome : engine.getAllBiomes()) {
+            if (!biome.isCustom()) continue;
+            for (var custom : biome.getCustomDerivitives()) {
+                binding.registerBiome(dimKey, custom, false);
+            }
+        }
     }
 
     @Override
     public boolean exists(int x, int z) {
         if (closed) return false;
         try {
-            return storage.getRegionFile(new ChunkPos(x << 5, z << 5), true) != null;
+            CompoundTag tag = storage.read(new ChunkPos(x, z));
+            return tag != null && !"empty".equals(tag.getString("Status"));
         } catch (IOException e) {
             return false;
         }
     }
 
     @Override
-    public void saveAll() {
-        manualLock.lock();
-        try {
-            save();
-        } finally {
-            manualLock.unlock();
-        }
-    }
-
-    private void save() {
+    public void save() {
         if (closed) return;
-        while (!chunkQueue.isEmpty()) {
-            ChunkAccess chunk = chunkQueue.poll();
-            if (chunk == null) break;
-            try {
-                storage.write(chunk.getPos(), binding.serializeChunk(chunk, this));
-            } catch (Throwable e) {
-                Iris.error("Failed to save chunk " + chunk.getPos().x + ", " + chunk.getPos().z);
-                e.printStackTrace();
+        saveLock.lock();
+        try {
+            while (!chunkQueue.isEmpty()) {
+                ChunkAccess chunk = chunkQueue.poll();
+                if (chunk == null) break;
+                try {
+                    storage.write(chunk.getPos(), binding.serializeChunk(chunk, this));
+                } catch (Throwable e) {
+                    Iris.error("Failed to save chunk " + chunk.getPos().x + ", " + chunk.getPos().z);
+                    e.printStackTrace();
+                }
             }
+        } finally {
+            saveLock.unlock();
         }
     }
 
@@ -137,16 +138,9 @@ public class Headless implements IHeadless, LevelHeightAccessor {
 
     @Override
     public void generateChunk(int x, int z) {
-        if (closed) return;
+        if (closed || exists(x, z)) return;
         try {
             var pos = new ChunkPos(x, z);
-            try {
-                CompoundTag tag = storage.read(pos);
-                if (tag != null && !"empty".equals(tag.getString("Status"))) {
-                    return;
-                }
-            } catch (Throwable ignored) {}
-
             ProtoChunk chunk = binding.createProtoChunk(pos, this);
             var tc = new MCATerrainChunk(chunk);
 
@@ -190,7 +184,7 @@ public class Headless implements IHeadless, LevelHeightAccessor {
                 IrisContext.getOr(engine).setChunkContext(ctx);
 
                 for (EngineStage i : engine.getMode().getStages()) {
-                    i.generate(x, z, blocks, vbiomes, true, ctx);
+                    i.generate(x, z, blocks, vbiomes, false, ctx);
                 }
             }
 

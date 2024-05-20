@@ -227,9 +227,6 @@ shadowJar {
 
 dependencies {
     implementation project(':core')
-    NMS_BINDINGS.each {
-        implementation project(":nms:${it.key}")
-    }
 }
 
 configurations.configureEach {

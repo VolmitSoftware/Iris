@@ -19,34 +19,14 @@
 package com.volmit.iris.core;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.core.nms.datapack.DataVersion;
-import com.volmit.iris.core.nms.datapack.IDataFixer;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBiomeCustom;
-import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisRange;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
-import org.bukkit.Bukkit;
-import org.bukkit.World;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Player;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-
-import static org.bukkit.Bukkit.getServer;
 
 public class ServerConfigurator {
     public static void configure() {
@@ -58,16 +38,6 @@ public class ServerConfigurator {
         if (s.isConfigurePaperWatchdogDelay()) {
             J.attempt(ServerConfigurator::increasePaperWatchdog);
         }
-
-        installDataPacks(true);
-    }
-
-    public static boolean postConfigure() {
-        if(postVerifyDataPacks(true)) {
-            configure();
-            return true;
-        }
-        return false;
     }
 
     private static void increaseKeepAliveSpigot() throws IOException, InvalidConfigurationException {
@@ -83,6 +53,7 @@ public class ServerConfigurator {
             f.save(spigotConfig);
         }
     }
+
     private static void increasePaperWatchdog() throws IOException, InvalidConfigurationException {
         File spigotConfig = new File("config/paper-global.yml");
         FileConfiguration f = new YamlConfiguration();
@@ -95,220 +66,5 @@ public class ServerConfigurator {
             f.set("watchdog.early-warning-delay", TimeUnit.MINUTES.toMillis(3));
             f.save(spigotConfig);
         }
-    }
-
-    private static List<File> getDatapacksFolder() {
-        if (!IrisSettings.get().getGeneral().forceMainWorld.isEmpty()) {
-            return new KList<File>().qadd(new File(Bukkit.getWorldContainer(), IrisSettings.get().getGeneral().forceMainWorld + "/datapacks"));
-        }
-        KList<File> worlds = new KList<>();
-        Bukkit.getServer().getWorlds().forEach(w -> worlds.add(new File(w.getWorldFolder(), "datapacks")));
-        if (worlds.isEmpty()) {
-            worlds.add(new File(getMainWorldFolder(), "datapacks"));
-        }
-        return worlds;
-    }
-
-    private static File getMainWorldFolder() {
-        try {
-            Properties prop = new Properties();
-            prop.load(new FileInputStream("server.properties"));
-            String world = prop.getProperty("level-name", "world");
-            return new File(Bukkit.getWorldContainer(), world);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    private static boolean postVerifyDataPacks(boolean fast) {
-        try {
-            File datapacksFolder = new File(getMainWorldFolder(), "datapacks");
-            File IrisDatapacks = new File(datapacksFolder, "iris");
-            if (!datapacksFolder.exists() || !IrisDatapacks.exists()) {
-                return (true);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public static void installDataPacks(boolean fullInstall) {
-        installDataPacks(DataVersion.getDefault(), fullInstall);
-    }
-
-    public static void installDataPacks(IDataFixer fixer, boolean fullInstall) {
-        Iris.info("Checking Data Packs...");
-        File packs = new File("plugins/Iris/packs");
-        double ultimateMaxHeight = 0;
-        double ultimateMinHeight = 0;
-        if (packs.exists() && packs.isDirectory()) {
-            for (File pack : packs.listFiles()) {
-                IrisData data = IrisData.get(pack);
-                if (pack.isDirectory()) {
-                    File dimensionsFolder = new File(pack, "dimensions");
-                    if (dimensionsFolder.exists() && dimensionsFolder.isDirectory()) {
-                        for (File file : dimensionsFolder.listFiles()) {
-                            if (file.isFile() && file.getName().endsWith(".json")) {
-                                IrisDimension dim = data.getDimensionLoader().load(file.getName().split("\\Q.\\E")[0]);
-                                if (ultimateMaxHeight < dim.getDimensionHeight().getMax()) {
-                                    ultimateMaxHeight = dim.getDimensionHeight().getMax();
-                                }
-                                if (ultimateMinHeight > dim.getDimensionHeight().getMin()) {
-                                    ultimateMinHeight = dim.getDimensionHeight().getMin();
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if (packs.exists()) {
-            for (File i : packs.listFiles()) {
-                if (i.isDirectory()) {
-                    Iris.verbose("Checking Pack: " + i.getPath());
-                    IrisData data = IrisData.get(i);
-                    File dims = new File(i, "dimensions");
-
-                    if (dims.exists()) {
-                        for (File j : dims.listFiles()) {
-                            if (j.getName().endsWith(".json")) {
-                                IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
-
-                                if (dim == null) {
-                                    continue;
-                                }
-
-                                Iris.verbose("  Checking Dimension " + dim.getLoadFile().getPath());
-                                for (File dpack : getDatapacksFolder()) {
-                                    dim.installDataPack(fixer, () -> data, dpack);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        Iris.info("Data Packs Setup!");
-
-        if (fullInstall)
-            verifyDataPacksPost(IrisSettings.get().getAutoConfiguration().isAutoRestartOnCustomBiomeInstall());
-    }
-
-    private static void verifyDataPacksPost(boolean allowRestarting) {
-        File packs = new File("plugins/Iris/packs");
-
-        boolean bad = false;
-        if (packs.exists()) {
-            for (File i : packs.listFiles()) {
-                if (i.isDirectory()) {
-                    Iris.verbose("Checking Pack: " + i.getPath());
-                    IrisData data = IrisData.get(i);
-                    File dims = new File(i, "dimensions");
-
-                    if (dims.exists()) {
-                        for (File j : dims.listFiles()) {
-                            if (j.getName().endsWith(".json")) {
-                                IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
-
-                                if (dim == null) {
-                                    Iris.error("Failed to load " + j.getPath() + " ");
-                                    continue;
-                                }
-
-                                if (!verifyDataPackInstalled(dim)) {
-                                    bad = true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if (bad) {
-           // Iris.info("");
-            Iris.info( "Hotloading all Datapacks!");
-            if (INMS.get().supportsDataPacks()) {
-                for (File folder : getDatapacksFolder()) {
-                    INMS.get().loadDatapack(folder, false);
-                }
-                Iris.info("Datapacks Hotloaded!");
-                Iris.info(C.YELLOW + "============================================================================");
-                Iris.info(C.ITALIC + "" + C.YELLOW + "To ensure the stability of custom biome generation, a server restart is necessary.");
-                Iris.info(C.ITALIC + "" + C.YELLOW + "While datapacks have been hotloaded, a complete restart is advised.");
-                Iris.info(C.YELLOW + "----------------------------------------------------------------------------");
-                Iris.info(C.UNDERLINE + "" + C.YELLOW + "IT IS HIGHLY RECOMMENDED YOU RESTART THE SERVER BEFORE GENERATING!");
-                Iris.info(C.YELLOW + "============================================================================");
-
-                for (Player i : Bukkit.getOnlinePlayers()) {
-                    if (i.isOp() || i.hasPermission("iris.all")) {
-                        VolmitSender sender = new VolmitSender(i, Iris.instance.getTag("WARNING"));
-                        sender.sendMessage("There are some Iris Packs that have custom biomes in them");
-                        sender.sendMessage("You need to restart your server to use these packs.");
-                    }
-                }
-
-                J.sleep(3000);
-            }
-        }
-    }
-
-    public static void restart() {
-        J.s(() -> {
-            Iris.warn("New data pack entries have been installed in Iris! Restarting server!");
-            Iris.warn("This will only happen when your pack changes (updates/first time setup)");
-            Iris.warn("(You can disable this auto restart in iris settings)");
-            J.s(() -> {
-                Iris.warn("Looks like the restart command didn't work. Stopping the server instead!");
-                Bukkit.shutdown();
-            }, 100);
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "restart");
-        });
-    }
-
-    public static boolean verifyDataPackInstalled(IrisDimension dimension) {
-        IrisData idm = IrisData.get(Iris.instance.getDataFolder("packs", dimension.getLoadKey()));
-        KSet<String> keys = new KSet<>();
-        boolean warn = false;
-
-        for (IrisBiome i : dimension.getAllBiomes(() -> idm)) {
-            if (i.isCustom()) {
-                for (IrisBiomeCustom j : i.getCustomDerivitives()) {
-                    keys.add(dimension.getLoadKey() + ":" + j.getId());
-                }
-            }
-        }
-
-        if (!INMS.get().supportsDataPacks()) {
-            if (!keys.isEmpty()) {
-                Iris.warn("===================================================================================");
-                Iris.warn("Pack " + dimension.getLoadKey() + " has " + keys.size() + " custom biome(s). ");
-                Iris.warn("Your server version does not yet support datapacks for iris.");
-                Iris.warn("The world will generate these biomes as backup biomes.");
-                Iris.warn("====================================================================================");
-            }
-
-            return true;
-        }
-
-        for (String i : keys) {
-            Object o = INMS.get().getCustomBiomeBaseFor(i);
-
-            if (o == null) {
-                Iris.warn("The Biome " + i + " is not registered on the server.");
-                warn = true;
-            }
-        }
-
-        if (warn) {
-            Iris.error("The Pack " + dimension.getLoadKey() + " is INCAPABLE of generating custom biomes");
-            Iris.error("Queued for Datapack Hotload.");
-        }
-
-        return !warn;
     }
 }

@@ -458,7 +458,6 @@ public class Iris extends VolmitPlugin implements Listener {
         instance = this;
         InitializeSafeguard();
         ByteBuddyAgent.install();
-        boolean configured;
         services = new KMap<>();
         setupAudience();
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
@@ -474,7 +473,6 @@ public class Iris extends VolmitPlugin implements Listener {
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
-        configured = ServerConfigurator.postConfigure();
         installMainDimension();
         if (!IrisSafeguard.instance.acceptUnstable && IrisSafeguard.instance.unstablemode) {
             Iris.info(C.RED + "World loading has been disabled until the incompatibility is resolved.");
@@ -488,7 +486,7 @@ public class Iris extends VolmitPlugin implements Listener {
                 J.ar(this::checkConfigHotload, 60);
                 J.sr(this::tickQueue, 0);
                 J.s(this::setupPapi);
-                if (!configured) J.a(ServerConfigurator::configure, 20);
+                J.a(ServerConfigurator::configure, 20);
                 splash();
                 UtilsSFG.splash();
                 autoStartStudio();

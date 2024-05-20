@@ -23,6 +23,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.core.nms.container.BlockPos;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -108,12 +109,12 @@ public class NMSBinding1X implements INMSBinding {
     }
 
     @Override
-    public boolean loadDatapack(File datapackFolder, boolean replace) {
+    public boolean registerDimension(String name, IrisDimension dimension) {
         return false;
     }
 
     @Override
-    public boolean registerDimension(String name, IrisDimension dimension) {
+    public boolean registerBiome(String dimensionId, IrisBiomeCustom biome, boolean replace) {
         return false;
     }
 

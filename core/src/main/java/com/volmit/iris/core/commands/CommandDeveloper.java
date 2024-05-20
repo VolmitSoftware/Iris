@@ -163,14 +163,6 @@ public class CommandDeveloper implements DecreeExecutor {
 
     }
 
-    @Decree(description = "Upgrade to another Minecraft version")
-    public void upgrade(
-            @Param(description = "The version to upgrade to", defaultValue = "latest") DataVersion version) {
-        sender().sendMessage(C.GREEN + "Upgrading to " + version.getVersion() + "...");
-        ServerConfigurator.installDataPacks(version.get(), false);
-        sender().sendMessage(C.GREEN + "Done upgrading! You can now update your server version to " + version.getVersion());
-    }
-
     @Decree(description = "Test")
     public void updater(
             @Param(description = "Updater for chunks")

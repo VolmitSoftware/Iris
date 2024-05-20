@@ -66,6 +66,14 @@ public class Headless implements IHeadless, LevelHeightAccessor {
         };
         queueLooper.setName("Region Save Looper");
         queueLooper.start();
+
+        var dimKey = engine.getDimension().getLoadKey();
+        for (var biome : engine.getAllBiomes()) {
+            if (!biome.isCustom()) continue;
+            for (var custom : biome.getCustomDerivitives()) {
+                binding.registerBiome(dimKey, custom, false);
+            }
+        }
     }
 
     @Override

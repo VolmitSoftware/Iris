@@ -12,12 +12,12 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.Vector3d;
@@ -47,7 +47,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.progress.ChunkProgressListener;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.RandomSequences;
-import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.block.Block;
@@ -73,9 +72,7 @@ import org.bukkit.craftbukkit.v1_20_R1.entity.CraftDolphin;
 import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.entity.EntityType;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
@@ -87,12 +84,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FilenameFilter;
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -580,51 +574,10 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
-    public boolean loadDatapack(File folder, boolean replace) {
-        var data = new File(folder, "iris/data");
-        if (!data.exists() || !data.isDirectory()) return false;
-        FilenameFilter jsonFilter = (dir, name) -> new File(dir, name).isFile() && name.toLowerCase().endsWith(".json");
-
-        var files = data.listFiles((dir, name) -> new File(dir, name).isDirectory());
-        if (files == null) return false;
-        for (File file : files) {
-            var biome = new File(file, "worldgen/biome");
-            if (!biome.exists()) continue;
-            var biomeFiles = biome.listFiles(jsonFilter);
-            if (biomeFiles == null) continue;
-            for (File biomeFile : biomeFiles) {
-                String json = null;
-                int tries = 10;
-                while (json == null && tries-- > 0) {
-                    try {
-                        json = IO.readAll(biomeFile);
-                    } catch (IOException e) {
-                        Iris.error("Failed to read biome " + file.getName() + ":" + biomeFile.getName() + " tries left: " + tries);
-                        if (tries == 0) {
-                            e.printStackTrace();
-                        }
-                        try {
-                            Thread.sleep(100);
-                        } catch (InterruptedException ignored) {}
-                    }
-                }
-                if (json == null) continue;
-
-                try {
-                    var value = decode(net.minecraft.world.level.biome.Biome.CODEC, json).map(Holder::value).orElse(null);
-                    register(Registries.BIOME, from(file.getName(), biomeFile), value, replace);
-                } catch (Throwable e) {
-                    Iris.error("Failed to register biome " + file.getName() + ":" + biomeFile.getName());
-                    e.printStackTrace();
-                }
-            }
-        }
-        return true;
-    }
-
-    private ResourceLocation from(String namespace, File file) {
-        var name = file.getName();
-        return new ResourceLocation(namespace, name.substring(0, name.lastIndexOf('.')));
+    public boolean registerBiome(String dimensionId, IrisBiomeCustom biome, boolean replace) {
+        var biomeBase = decode(net.minecraft.world.level.biome.Biome.CODEC, biome.generateJson()).map(Holder::value).orElse(null);
+        if (biomeBase == null) return false;
+        return register(Registries.BIOME, new ResourceLocation(dimensionId, biome.getId()), biomeBase, replace);
     }
 
     private <T> Optional<T> decode(Codec<T> codec, String json) {

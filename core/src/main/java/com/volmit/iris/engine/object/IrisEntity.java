@@ -462,8 +462,12 @@ public class IrisEntity extends IrisRegistrant {
                 return null;
             }
         } else {
-            Iris.warn("MythicMobs is not enabled, falling back to: " + type + "'!");
+            if (isSpecialType()) {
+                Iris.warn("MythicMobs is not enabled, falling back to: " + type + "'!");
+            }
         }
+
+
 
         return INMS.get().spawnEntity(at, getType(), getReason());
     }

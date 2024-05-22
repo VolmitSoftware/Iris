@@ -11,6 +11,7 @@ import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Logger;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.JsonElement;
@@ -27,7 +28,12 @@ import com.volmit.iris.util.format.C;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.loading.ClassReloadingStrategy;
+import net.bytebuddy.implementation.bytecode.StackManipulation;
+import net.bytebuddy.implementation.bytecode.assign.Assigner;
+import net.bytebuddy.implementation.bytecode.member.MethodInvocation;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.minecraft.core.IdMapper;
 import net.minecraft.core.MappedRegistry;
@@ -725,10 +731,10 @@ public class NMSBinding implements INMSBinding {
         try {
             Iris.info("Injecting Bukkit");
             new ByteBuddy()
-                    .redefine(WorldCreator.class)
-                    .visit(Advice.to(WorldCreatorAdvice.class).on(ElementMatchers.isConstructor().and(ElementMatchers.takesArguments(String.class))))
+                    .redefine(CraftServer.class)
+                    .visit(Advice.to(CraftServerAdvice.class).on(ElementMatchers.isMethod().and(ElementMatchers.takesArguments(WorldCreator.class))))
                     .make()
-                    .load(WorldCreator.class.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
+                    .load(CraftServer.class.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
             new ByteBuddy()
                     .redefine(ServerLevel.class)
                     .visit(Advice.to(ServerLevelAdvice.class).on(ElementMatchers.isConstructor().and(ElementMatchers.takesArguments(MinecraftServer.class, Executor.class, LevelStorageSource.LevelStorageAccess.class,
@@ -765,10 +771,10 @@ public class NMSBinding implements INMSBinding {
         }
     }
 
-    private static class WorldCreatorAdvice {
-        @Advice.OnMethodEnter
-        static void enter(@Advice.Argument(0) String name) {
-            File isIrisWorld = new File(name, "iris");
+    private static class CraftServerAdvice {
+        @Advice.OnMethodEnter(skipOn = Advice.OnNonDefaultValue.class)
+        static boolean enter(@Advice.This CraftServer self, @Advice.Argument(0) WorldCreator creator) {
+            File isIrisWorld = new File(self.getWorldContainer(), creator.name() + "/iris");
             boolean isFromIris = false;
             StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
             for (StackTraceElement stack : stackTrace) {
@@ -777,8 +783,22 @@ public class NMSBinding implements INMSBinding {
                     break;
                 }
             }
-            if (!isFromIris) {
-                Preconditions.checkArgument(!isIrisWorld.exists(), "Only Iris can load Iris Worlds!");
+            if (isIrisWorld.exists() && !isFromIris) {
+                var logger = Logger.getLogger("Iris");
+                logger.warning("detected another Plugin trying to load " + creator.name() + ". This is not supported and will be ignored.");
+
+                if (System.getProperty("iris.debug", "false").equals("true")) {
+                    new RuntimeException().printStackTrace();
+                }
+                return true;
+            }
+            return false;
+        }
+
+        @Advice.OnMethodExit
+        static void exit(@Advice.Enter boolean bool, @Advice.Return(readOnly = false) World returned) {
+            if (bool) {
+                returned = null;
             }
         }
     }

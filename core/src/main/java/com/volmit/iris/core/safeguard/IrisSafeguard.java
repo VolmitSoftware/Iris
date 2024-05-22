@@ -3,10 +3,13 @@ package com.volmit.iris.core.safeguard;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.safeguard.handler.onCommandWarning;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.misc.getHardware;
+
+import static org.bukkit.Bukkit.getServer;
 
 public class IrisSafeguard {
     public static IrisSafeguard instance;
@@ -20,7 +23,8 @@ public class IrisSafeguard {
     }
 
     public void IrisSafeguardSystem() {
-        acceptUnstable = IrisSettings.get().getGeneral().ignoreBootMode;
+        acceptUnstable = IrisSettings.get().getSafeguard().ignoreBootMode;
+        getServer().getPluginManager().registerEvents(new onCommandWarning(), Iris.instance);
         Iris.info("Enabled Iris SafeGuard");
         ServerBootSFG.BootCheck();
     }

@@ -98,24 +98,7 @@ public class CommandIris implements DecreeExecutor {
             @Param(description = "If it should convert the dimension to match the vanilla height system.", defaultValue = "false")
             boolean vanillaheight
     ) {
-        if(sender() instanceof Player) {
-            if (incompatibilities.get("Multiverse-Core")) {
-                sender().sendMessage(C.RED + "Your server has an incompatibility that may corrupt all worlds on the server if not handled properly.");
-                sender().sendMessage(C.RED + "it is strongly advised for you to take action. see log for full detail");
-                sender().sendMessage(C.RED + "----------------------------------------------------------------");
-                sender().sendMessage(C.RED + "Command ran: /iris create");
-                sender().sendMessage(C.RED + UtilsSFG.MSGIncompatibleWarnings());
-                sender().sendMessage(C.RED + "----------------------------------------------------------------");
-            }
-            if (IrisSafeguard.instance.unstablemode && !incompatibilities.get("Multiverse-Core")) {
-                sender().sendMessage(C.RED + "Your server is experiencing an incompatibility with the Iris plugin.");
-                sender().sendMessage(C.RED + "Please rectify this problem to avoid further complications.");
-                sender().sendMessage(C.RED + "----------------------------------------------------------------");
-                sender().sendMessage(C.RED + "Command ran: /iris create");
-                sender().sendMessage(C.RED + UtilsSFG.MSGIncompatibleWarnings());
-                sender().sendMessage(C.RED + "----------------------------------------------------------------");
-            }
-        }
+
             if (name.equals("iris")) {
                 sender().sendMessage(C.RED + "You cannot use the world name \"iris\" for creating worlds as Iris uses this directory for studio worlds.");
                 sender().sendMessage(C.RED + "May we suggest the name \"IrisWorld\" instead?");

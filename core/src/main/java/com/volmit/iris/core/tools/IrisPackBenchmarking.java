@@ -56,10 +56,9 @@ public class IrisPackBenchmarking {
         this.radius = r;
         this.headless = headless;
         this.gui = gui;
-        runBenchmark();
     }
 
-    private void runBenchmark() {
+    public void runBenchmark() {
         this.stopwatch = new PrecisionStopwatch();
         ExecutorService service = Executors.newSingleThreadExecutor();
         service.submit(() -> {
@@ -138,6 +137,7 @@ public class IrisPackBenchmarking {
      private Engine createBenchmark(){
         try {
             if (headless) {
+                Iris.info("Using headless benchmark!");
                 IrisWorld world = IrisWorld.builder()
                         .name("benchmark")
                         .minHeight(IrisDimension.getMinHeight())
@@ -154,6 +154,7 @@ public class IrisPackBenchmarking {
                 var dim = data.getDimensionLoader().load(IrisDimension.getLoadKey());
                 return new IrisEngine(new EngineTarget(world, dim, data), false);
             }
+            Iris.info("Using Standard benchmark!");
             return IrisToolbelt.access(IrisToolbelt.createWorld()
                     .dimension(IrisDimension.getLoadKey())
                     .name("benchmark")

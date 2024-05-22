@@ -34,6 +34,7 @@ import java.io.IOException;
 @Data
 public class IrisSettings {
     public static IrisSettings settings;
+    private IrisSafeGuard safeguard = new IrisSafeGuard();
     private IrisSettingsGeneral general = new IrisSettingsGeneral();
     private IrisSettingsWorld world = new IrisSettingsWorld();
     private IrisSettingsGUI gui = new IrisSettingsGUI();
@@ -104,6 +105,12 @@ public class IrisSettings {
     }
 
     @Data
+    public static class IrisSafeGuard {
+        public boolean ignoreBootMode = false;
+        public boolean userUnstableWarning = true;
+    }
+
+    @Data
     public static class IrisSettingsAutoconfiguration {
         public boolean configureSpigotTimeoutTime = true;
         public boolean configurePaperWatchdogDelay = true;
@@ -147,7 +154,6 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsGeneral {
-        public boolean ignoreBootMode = false;
         public boolean commandSounds = true;
         public boolean debug = false;
         public boolean disableNMS = false;

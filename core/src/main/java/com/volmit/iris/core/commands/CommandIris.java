@@ -44,6 +44,7 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
+import io.lumine.mythic.bukkit.adapters.BukkitPlayer;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.Difficulty;

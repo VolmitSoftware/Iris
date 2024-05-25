@@ -62,12 +62,12 @@ public class IrisJigsawStructurePlacement implements IRare {
     @Required
     @MinNumber(0)
     @Desc("Average distance in chunks between two neighboring generation attempts")
-    private int spacing = 32;
+    private int spacing = -1;
 
     @Required
     @MinNumber(0)
     @Desc("Minimum distance in chunks between two neighboring generation attempts\nThe maximum distance of two neighboring generation attempts is 2*spacing - separation")
-    private int separation = 16;
+    private int separation = -1;
 
     @Desc("The method used to spread the structure")
     private SpreadType spreadType = SpreadType.TRIANGULAR;
@@ -88,8 +88,21 @@ public class IrisJigsawStructurePlacement implements IRare {
         return (int) Math.ceil(blocks / 16d);
     }
 
+    private void calculateMissing(long seed) {
+        seed = seed + hashCode();
+        if (salt == 0) {
+            salt = new RNG(seed).nextLong(Integer.MIN_VALUE, Integer.MAX_VALUE);
+        }
+
+        if (separation == -1 || spacing == -1) {
+            separation = (int) Math.round(rarity / 20d);
+            spacing = new RNG(seed).nextInt(separation, separation * 2);
+        }
+    }
+
     @ChunkCoordinates
     public boolean shouldPlace(long seed, int x, int z) {
+        calculateMissing(seed);
         if (separation > spacing) {
             separation = spacing;
             Iris.warn("JigsawStructurePlacement: separation must be less than or equal to spacing");

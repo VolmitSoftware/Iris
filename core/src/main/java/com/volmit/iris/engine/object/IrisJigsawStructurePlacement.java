@@ -21,6 +21,7 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
@@ -54,7 +55,9 @@ public class IrisJigsawStructurePlacement implements IRare {
 
     @Required
     @Desc("The salt to use when generating the structure (to differentiate structures)")
-    private int salt = 76134;
+    @MinNumber(Long.MIN_VALUE)
+    @MaxNumber(Long.MAX_VALUE)
+    private long salt = 0;
 
     @Required
     @MinNumber(0)

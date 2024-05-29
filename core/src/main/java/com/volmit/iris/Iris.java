@@ -128,6 +128,10 @@ public class Iris extends VolmitPlugin implements Listener {
     private KMap<Class<? extends IrisService>, IrisService> services;
 
     public static VolmitSender getSender() {
+        if (sender == null) {
+            sender = new VolmitSender(Bukkit.getConsoleSender());
+            sender.setTag(instance.getTag());
+        }
         return sender;
     }
 
@@ -194,10 +198,10 @@ public class Iris extends VolmitPlugin implements Listener {
 
     public static void msg(String string) {
         try {
-            sender.sendMessage(string);
+            getSender().sendMessage(string);
         } catch (Throwable e) {
             try {
-                System.out.println(instance.getTag() + string.replaceAll("(<([^>]+)>)", ""));
+                instance.getLogger().info(instance.getTag() + string.replaceAll("(<([^>]+)>)", ""));
             } catch (Throwable ignored1) {
 
             }
@@ -364,6 +368,13 @@ public class Iris extends VolmitPlugin implements Listener {
         return Integer.parseInt(version);
     }
 
+    public static String getJava() {
+        String javaRuntimeName = System.getProperty("java.vm.name");
+        String javaRuntimeVendor = System.getProperty("java.vendor");
+        String javaRuntimeVersion = System.getProperty("java.vm.version");
+        return String.format("%s %s (build %s)", javaRuntimeName, javaRuntimeVendor, javaRuntimeVersion);
+    }
+
     public static void reportErrorChunk(int x, int z, Throwable e, String extra) {
         if (IrisSettings.get().getGeneral().isDebug()) {
             File f = instance.getDataFile("debug", "chunk-errors", "chunk." + x + "." + z + ".txt");
@@ -426,7 +437,7 @@ public class Iris extends VolmitPlugin implements Listener {
             }
 
             pw.close();
-            System.out.println("DUMPED! See " + fi.getAbsolutePath());
+            Iris.info("DUMPED! See " + fi.getAbsolutePath());
         } catch (Throwable e) {
             e.printStackTrace();
         }
@@ -446,14 +457,12 @@ public class Iris extends VolmitPlugin implements Listener {
     private void enable() {
         instance = this;
         services = new KMap<>();
+        setupAudience();
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
         INMS.get();
         IO.delete(new File("iris"));
-        setupAudience();
         IrisSafeguard.IrisSafeguardSystem();
-        sender = new VolmitSender(Bukkit.getConsoleSender());
-        sender.setTag(getTag());
-        instance = this;
+        getSender().setTag(getTag());
         compat = IrisCompat.configured(getDataFile("compat.json"));
         linkMultiverseCore = new MultiverseCoreLink();
         linkMythicMobs = new MythicMobsLink();
@@ -526,7 +535,7 @@ public class Iris extends VolmitPlugin implements Listener {
             Iris.info("Starting up auto Studio!");
             try {
                 Player r = new KList<>(getServer().getOnlinePlayers()).getRandom();
-                Iris.service(StudioSVC.class).open(r != null ? new VolmitSender(r) : sender, 1337, IrisSettings.get().getGenerator().getDefaultWorldType(), (w) -> {
+                Iris.service(StudioSVC.class).open(r != null ? new VolmitSender(r) : getSender(), 1337, IrisSettings.get().getGenerator().getDefaultWorldType(), (w) -> {
                     J.s(() -> {
                         for (Player i : getServer().getOnlinePlayers()) {
                             i.setGameMode(GameMode.SPECTATOR);
@@ -727,10 +736,10 @@ public class Iris extends VolmitPlugin implements Listener {
         File ff = new File(w.worldFolder(), "iris/pack");
         if (!ff.exists() || ff.listFiles().length == 0) {
             ff.mkdirs();
-            service(StudioSVC.class).installIntoWorld(sender, dim.getLoadKey(), w.worldFolder());
+            service(StudioSVC.class).installIntoWorld(getSender(), dim.getLoadKey(), w.worldFolder());
         }
 
-        return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey());
+        return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey(), false);
     }
 
     public void splash() {
@@ -797,13 +806,11 @@ public class Iris extends VolmitPlugin implements Listener {
         } else {
             splash = splashstable;
         }
-        OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
-        String osArch = osBean.getArch();
-        String osName = osBean.getName();
 
         if (!passedserversoftware) {
             Iris.info("Server type & version: " + C.RED + Bukkit.getVersion());
         } else { Iris.info("Server type & version: " + Bukkit.getVersion()); }
+        Iris.info("Java: " + getJava());
         if (!instance.getServer().getVersion().contains("Purpur")) {
             if (instance.getServer().getVersion().contains("Spigot") && instance.getServer().getVersion().contains("Bukkit")) {
                  Iris.info(C.RED + " Iris requires paper or above to function properly..");
@@ -811,38 +818,11 @@ public class Iris extends VolmitPlugin implements Listener {
                 Iris.info(C.YELLOW + "Purpur is recommended to use with iris.");
             }
         }
-        Iris.info("Server OS: " + osName + " (" + osArch + ")");
-
-        try {
-            if (warningmode){
-                Iris.info("Server Cpu: " + C.GOLD + getCPUModel());
-            } else {
-            if(unstablemode){
-                Iris.info("Server Cpu: " + C.DARK_RED + getCPUModel());
-            } else {
-                if (getCPUModel().contains("Intel")) {
-                    Iris.info("Server Cpu: " + C.BLUE + getCPUModel());
-                }
-                if (getCPUModel().contains("Ryzen")) {
-                    Iris.info("Server Cpu: " + C.RED + getCPUModel());
-                }
-                if (!getCPUModel().contains("Ryzen") && !getCPUModel().contains("Intel")) {
-                    Iris.info("Server Cpu: " + C.GRAY + getCPUModel());
-                }
-            }
-            }
-        } catch (Exception e){
-            Iris.info("Server Cpu: " + C.DARK_RED + "Failed");
-        }
-
-        Iris.info("Process Threads: " +  Runtime.getRuntime().availableProcessors());
-        Iris.info("Process Memory: " + getHardware.getProcessMemory() + " MB");
-        Iris.info("Free DiskSpace: " + Form.ofSize(freeSpace.getFreeSpace(), 1024));
         if (getHardware.getProcessMemory() < 5999) {
             Iris.warn("6GB+ Ram is recommended");
+            Iris.warn("Process Memory: " + getHardware.getProcessMemory() + " MB");
         }
         Iris.info("Bukkit version: " + Bukkit.getBukkitVersion());
-        Iris.info("Java version: " + getJavaVersion());
         Iris.info("Custom Biomes: " + INMS.get().countCustomBiomes());
         setupChecks();
         printPacks();

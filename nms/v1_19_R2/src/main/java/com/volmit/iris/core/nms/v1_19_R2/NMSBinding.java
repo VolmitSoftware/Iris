@@ -1,36 +1,17 @@
 package com.volmit.iris.core.nms.v1_19_R2;
 
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.volmit.iris.Iris;
-import com.volmit.iris.core.nms.INMSBinding;
-import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.json.JSONObject;
-import com.volmit.iris.util.mantle.Mantle;
-import com.volmit.iris.util.matter.MatterBiomeInject;
-import com.volmit.iris.util.nbt.io.NBTUtil;
-import com.volmit.iris.util.nbt.mca.NBTWorld;
-import com.volmit.iris.util.nbt.mca.palette.*;
-import com.volmit.iris.util.nbt.tag.CompoundTag;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.nbt.NbtIo;
-import net.minecraft.nbt.TagParser;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.biome.BiomeSource;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.LevelChunk;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -43,20 +24,46 @@ import org.bukkit.craftbukkit.v1_19_R2.entity.CraftDolphin;
 import org.bukkit.craftbukkit.v1_19_R2.inventory.CraftItemStack;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
-import sun.misc.Unsafe;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.volmit.iris.Iris;
+import com.volmit.iris.core.nms.INMSBinding;
+import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.math.Vector3d;
+import com.volmit.iris.util.matter.MatterBiomeInject;
+import com.volmit.iris.util.nbt.io.NBTUtil;
+import com.volmit.iris.util.nbt.mca.NBTWorld;
+import com.volmit.iris.util.nbt.mca.palette.*;
+import com.volmit.iris.util.nbt.tag.CompoundTag;
+
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.TagParser;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.biome.BiomeSource;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunk;
+import sun.misc.Unsafe;
 
 public class NMSBinding implements INMSBinding {
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
@@ -481,6 +488,35 @@ public class NMSBinding implements INMSBinding {
         CustomBiomeSource customBiomeSource = new CustomBiomeSource(seed, engine, world);
         unsafe.putObject(biomeSource.get(serverLevel.getChunkSource().chunkMap.generator), unsafe.objectFieldOffset(biomeSource), customBiomeSource);
         biomeSource.set(serverLevel.getChunkSource().chunkMap.generator, customBiomeSource);
+    }
+
+
+    public Vector3d getBoundingbox(org.bukkit.entity.EntityType entity) {
+        Field[] fields = EntityType.class.getDeclaredFields();
+        for (Field field : fields) {
+            if (Modifier.isStatic(field.getModifiers()) && field.getType().equals(EntityType.class)) {
+                try {
+                    EntityType entityType = (EntityType) field.get(null);
+                    if (entityType.getDescriptionId().equals("entity.minecraft." + entity.name().toLowerCase())) {
+                        Vector<Float> v1 = new Vector<>();
+                        v1.add(entityType.getHeight());
+                        entityType.getDimensions();
+                        Vector3d box = new Vector3d( entityType.getWidth(), entityType.getHeight(),  entityType.getWidth());
+                        //System.out.println("Entity Type: " + entityType.getDescriptionId() + ", " + "Height: " + height + ", Width: " + width);
+                        return box;
+                    }
+                } catch (IllegalAccessException e) {
+                    Iris.error("Unable to get entity dimensions!");
+                    e.printStackTrace();
+                }
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public Entity spawnEntity(Location location,  org.bukkit.entity.EntityType type, CreatureSpawnEvent.SpawnReason reason) {
+        return ((CraftWorld) location.getWorld()).spawn(location, type.getEntityClass(), null, reason);
     }
 
     private static Field getField(Class<?> clazz, Class<?> fieldType) throws NoSuchFieldException {

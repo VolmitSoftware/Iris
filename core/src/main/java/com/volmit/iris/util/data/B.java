@@ -25,6 +25,7 @@ import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import it.unimi.dsi.fastutil.ints.*;
 import org.bukkit.Bukkit;
@@ -46,6 +47,7 @@ public class B {
     private static final KMap<String, BlockData> custom = new KMap<>();
 
     private static final Material AIR_MATERIAL = Material.AIR;
+    private static final Material SHORT_GRASS = E.getOrDefault(Material.class, "GRASS", "SHORT_GRASS");
     private static final BlockData AIR = AIR_MATERIAL.createBlockData();
     private static final IntSet foliageCache = buildFoliageCache();
     private static final IntSet deepslateCache = buildDeepslateCache();
@@ -85,7 +87,7 @@ public class B {
                 WHITE_TULIP,
                 FERN,
                 LARGE_FERN,
-                GRASS,
+                SHORT_GRASS,
                 TALL_GRASS
         }).forEach((i) -> b.add(i.ordinal()));
 
@@ -143,7 +145,7 @@ public class B {
     private static IntSet buildDecorantCache() {
         IntSet b = new IntOpenHashSet();
         Arrays.stream(new Material[]{
-                GRASS,
+                SHORT_GRASS,
                 TALL_GRASS,
                 TALL_SEAGRASS,
                 FERN,

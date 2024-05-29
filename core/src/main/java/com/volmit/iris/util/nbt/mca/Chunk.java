@@ -27,10 +27,12 @@ import com.volmit.iris.util.nbt.io.NamedTag;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
+import org.bukkit.World;
 
 import java.io.*;
 
 import static com.volmit.iris.util.nbt.mca.LoadFlags.*;
+import static org.bukkit.Bukkit.getServer;
 
 public class Chunk {
     public static final int DEFAULT_DATA_VERSION = 2730;
@@ -39,6 +41,7 @@ public class Chunk {
     private int lastMCAUpdate;
     private CompoundTag data;
     private int dataVersion;
+    private int nativeIrisVersion;
     private long lastUpdate;
     private long inhabitedTime;
     private MCABiomeContainer biomes;
@@ -71,13 +74,19 @@ public class Chunk {
     }
 
     public static Chunk newChunk() {
+        World mainWorld = getServer().getWorlds().get(0);
         Chunk c = new Chunk(0);
         c.dataVersion = DEFAULT_DATA_VERSION;
         c.data = new CompoundTag();
-        c.biomes = INMS.get().newBiomeContainer(0, 256);
+        c.biomes = INMS.get().newBiomeContainer(mainWorld.getMinHeight(), mainWorld.getMaxHeight());
         c.data.put("Level", defaultLevel());
         c.status = "full";
         return c;
+    }
+
+    public static void injectIrisData(Chunk c) {
+        World mainWorld = getServer().getWorlds().get(0);
+        c.data.put("Iris", nativeIrisVersion());
     }
 
     private static CompoundTag defaultLevel() {
@@ -87,19 +96,25 @@ public class Chunk {
         return level;
     }
 
+    private static CompoundTag nativeIrisVersion() {
+        CompoundTag level = new CompoundTag();
+        level.putString("Generator", "Iris " + Iris.instance.getDescription().getVersion());
+        return level;
+    }
+
     private void initReferences(long loadFlags) {
         if (data == null) {
             throw new NullPointerException("data cannot be null");
         }
-        CompoundTag level;
-        if ((level = data.getCompoundTag("Level")) == null) {
-            throw new IllegalArgumentException("data does not contain \"Level\" tag");
-        }
+
+        CompoundTag level = data;
+
+        World mainWorld = getServer().getWorlds().get(0);
         dataVersion = data.getInt("DataVersion");
         inhabitedTime = level.getLong("InhabitedTime");
         lastUpdate = level.getLong("LastUpdate");
         if ((loadFlags & BIOMES) != 0) {
-            biomes = INMS.get().newBiomeContainer(0, 256, level.getIntArray("Biomes"));
+            biomes = INMS.get().newBiomeContainer(mainWorld.getMinHeight(), mainWorld.getMaxHeight(), level.getIntArray("Biomes"));
         }
         if ((loadFlags & HEIGHTMAPS) != 0) {
             heightMaps = level.getCompoundTag("Heightmaps");

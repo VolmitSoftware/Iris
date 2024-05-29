@@ -55,10 +55,10 @@ public class IrisRenderer {
                 IrisBiome b = renderer.getBiome((int) Math.round(x), renderer.getMaxHeight() - 1, (int) Math.round(z));
                 IrisBiomeGeneratorLink g = b.getGenerators().get(0);
                 Color c;
-                if (g.getMax() <= 0) {
+                if (g.getMax(renderer) <= 0) {
                     // Max is below water level, so it is most likely an ocean biome
                     c = Color.BLUE;
-                } else if (g.getMin() < 0) {
+                } else if (g.getMin(renderer) < 0) {
                     // Min is below water level, but max is not, so it is most likely a shore biome
                     c = Color.YELLOW;
                 } else {

@@ -24,6 +24,7 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.scheduling.ChronoLatch;
 import lombok.Data;
 
 import java.io.File;
@@ -135,7 +136,7 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsPerformance {
-        public boolean trimMantleInStudio = false;
+        public boolean trimMantleInStudio = false; 
         public int mantleKeepAlive = 30;
         public int cacheSize = 4_096;
         public int resourceLoaderCacheSize = 1_024;

@@ -35,6 +35,7 @@ import com.volmit.iris.util.decree.specialhandlers.ObjectHandler;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.Direction;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.scheduling.Queue;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -52,7 +53,7 @@ import java.util.*;
 @Decree(name = "object", aliases = "o", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris object manipulation")
 public class CommandObject implements DecreeExecutor {
 
-    private static final Set<Material> skipBlocks = Set.of(Material.GRASS, Material.SNOW, Material.VINE, Material.TORCH, Material.DEAD_BUSH,
+    private static final Set<Material> skipBlocks = Set.of(E.getOrDefault(Material.class, "GRASS", "SHORT_GRASS"), Material.SNOW, Material.VINE, Material.TORCH, Material.DEAD_BUSH,
             Material.POPPY, Material.DANDELION);
 
     public static IObjectPlacer createPlacer(World world, Map<Block, BlockData> futureBlockChanges) {
@@ -194,6 +195,20 @@ public class CommandObject implements DecreeExecutor {
                 sender().sendMessage("  + " + (sortedMats.size() - n) + " other block types");
                 return;
             }
+        }
+    }
+
+    @Decree(description = "Shrink an object to its minimum size")
+    public void shrink(@Param(description = "The object to shrink", customHandler = ObjectHandler.class) String object) {
+        IrisObject o = IrisData.loadAnyObject(object);
+        sender().sendMessage("Current Object Size: " + o.getW() + " * " + o.getH() + " * " + o.getD());
+        o.shrinkwrap();
+        sender().sendMessage("New Object Size: " + o.getW() + " * " + o.getH() + " * " + o.getD());
+        try {
+            o.write(o.getLoadFile());
+        } catch (IOException e) {
+            sender().sendMessage("Failed to save object " + o.getLoadFile() + ": " + e.getMessage());
+            e.printStackTrace();
         }
     }
 

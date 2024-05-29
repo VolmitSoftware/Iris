@@ -19,10 +19,22 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.nms.datapack.DataVersion;
+import com.volmit.iris.core.nms.v1X.NMSBinding1X;
+import com.volmit.iris.core.pregenerator.ChunkUpdater;
 import com.volmit.iris.core.service.IrisEngineSVC;
+import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisCave;
+import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisEntity;
+import com.volmit.iris.util.data.Dimension;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
@@ -31,18 +43,31 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.mantle.TectonicPlate;
+import com.volmit.iris.util.math.Spiraler;
+import com.volmit.iris.util.math.Vector3d;
+import com.volmit.iris.util.nbt.mca.MCAFile;
+import com.volmit.iris.util.nbt.mca.MCAUtil;
 import com.volmit.iris.util.plugin.VolmitSender;
+import io.lumine.mythic.bukkit.adapters.BukkitEntity;
 import net.jpountz.lz4.LZ4BlockInputStream;
 import net.jpountz.lz4.LZ4BlockOutputStream;
 import net.jpountz.lz4.LZ4FrameInputStream;
 import net.jpountz.lz4.LZ4FrameOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.entity.Creeper;
+import org.bukkit.entity.EntityType;
 
 import java.io.*;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -51,36 +76,161 @@ public class CommandDeveloper implements DecreeExecutor {
     private CommandTurboPregen turboPregen;
 
     @Decree(description = "Get Loaded TectonicPlates Count", origin = DecreeOrigin.BOTH, sync = true)
-    public void EngineStatus(
-            @Param(description = "World")
+    public void EngineStatus() {
+        List<World> IrisWorlds = new ArrayList<>();
+        int TotalLoadedChunks = 0;
+        int TotalQueuedTectonicPlates = 0;
+        int TotalNotQueuedTectonicPlates = 0;
+        int TotalTectonicPlates = 0;
+
+        long lowestUnloadDuration = 0;
+        long highestUnloadDuration = 0;
+
+        for (World world : Bukkit.getWorlds()) {
+            try {
+                if (IrisToolbelt.access(world).getEngine() != null) {
+                    IrisWorlds.add(world);
+                }
+            } catch (Exception e) {
+                // no
+            }
+        }
+
+        for (World world : IrisWorlds) {
+            Engine engine = IrisToolbelt.access(world).getEngine();
+            TotalQueuedTectonicPlates += (int) engine.getMantle().getToUnload();
+            TotalNotQueuedTectonicPlates += (int) engine.getMantle().getNotQueuedLoadedRegions();
+            TotalTectonicPlates += engine.getMantle().getLoadedRegionCount();
+            if (highestUnloadDuration <= (long) engine.getMantle().getTectonicDuration()) {
+                highestUnloadDuration = (long) engine.getMantle().getTectonicDuration();
+            }
+            if (lowestUnloadDuration >= (long) engine.getMantle().getTectonicDuration()) {
+                lowestUnloadDuration = (long) engine.getMantle().getTectonicDuration();
+            }
+            for (Chunk chunk : world.getLoadedChunks()) {
+                if (chunk.isLoaded()) {
+                    TotalLoadedChunks++;
+                }
+            }
+        }
+        Iris.info("-------------------------");
+        Iris.info(C.DARK_PURPLE + "Engine Status");
+        Iris.info(C.DARK_PURPLE + "Total Loaded Chunks: " + C.LIGHT_PURPLE + TotalLoadedChunks);
+        Iris.info(C.DARK_PURPLE + "Tectonic Limit: " + C.LIGHT_PURPLE + IrisEngineSVC.getTectonicLimit());
+        Iris.info(C.DARK_PURPLE + "Tectonic Total Plates: " + C.LIGHT_PURPLE + TotalTectonicPlates);
+        Iris.info(C.DARK_PURPLE + "Tectonic Active Plates: " + C.LIGHT_PURPLE + TotalNotQueuedTectonicPlates);
+        Iris.info(C.DARK_PURPLE + "Tectonic ToUnload: " + C.LIGHT_PURPLE + TotalQueuedTectonicPlates);
+        Iris.info(C.DARK_PURPLE + "Lowest Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration(lowestUnloadDuration));
+        Iris.info(C.DARK_PURPLE + "Highest Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration(highestUnloadDuration));
+        Iris.info(C.DARK_PURPLE + "Cache Size: " + C.LIGHT_PURPLE + Form.f(IrisData.cacheSize()));
+        Iris.info("-------------------------");
+    }
+
+    @Decree(description = "Test")
+    public void benchmarkMantle(
+            @Param(description = "The world to bench", aliases = {"world"})
+            World world
+    ) throws IOException, ClassNotFoundException {
+        Engine engine = IrisToolbelt.access(world).getEngine();
+        int maxHeight = engine.getTarget().getHeight();
+        File folder = new File(Bukkit.getWorldContainer(), world.getName());
+        int c = 0;
+        //MCAUtil.read()
+
+        File tectonicplates = new File(folder, "mantle");
+        for (File i : Objects.requireNonNull(tectonicplates.listFiles())) {
+            TectonicPlate.read(maxHeight, i);
+            c++;
+            Iris.info("Loaded count: " + c );
+
+        }
+
+    }
+
+    @Decree(description = "Test")
+    public void packBenchmark(
+            @Param(description = "The pack to bench", aliases = {"pack"})
+            IrisDimension dimension
+    ) {
+        Iris.info("test");
+        IrisPackBenchmarking benchmark = new IrisPackBenchmarking(dimension, 1);
+
+    }
+
+    @Decree(description = "Upgrade to another Minecraft version")
+    public void upgrade(
+            @Param(description = "The version to upgrade to", defaultValue = "latest") DataVersion version) {
+        sender().sendMessage(C.GREEN + "Upgrading to " + version.getVersion() + "...");
+        ServerConfigurator.installDataPacks(version.get(), false);
+        sender().sendMessage(C.GREEN + "Done upgrading! You can now update your server version to " + version.getVersion());
+    }
+
+    @Decree(description = "Test")
+    public void updater(
+            @Param(description = "Updater for chunks")
             World world
     ) {
-        if (!IrisToolbelt.isIrisWorld(world)) {
-            sender().sendMessage(C.RED + "This is not an Iris world. Iris worlds: " + String.join(", ", Bukkit.getServer().getWorlds().stream().filter(IrisToolbelt::isIrisWorld).map(World::getName).toList()));
-            return;
-        }
+        Iris.info("test");
+        ChunkUpdater updater = new ChunkUpdater(world);
+        updater.start();
 
-        Engine engine = IrisToolbelt.access(world).getEngine();
-        if(engine != null) {
-            long lastUseSize = engine.getMantle().getLastUseMapMemoryUsage();
 
-            Iris.info("-------------------------");
-            Iris.info(C.DARK_PURPLE + "Engine Status");
-            Iris.info(C.DARK_PURPLE + "Tectonic Limit: " + C.LIGHT_PURPLE + IrisEngineSVC.getTectonicLimit());
-            Iris.info(C.DARK_PURPLE + "Tectonic Loaded Plates: " + C.LIGHT_PURPLE + engine.getMantle().getLoadedRegionCount());
-            Iris.info(C.DARK_PURPLE + "Tectonic Plates: " + C.LIGHT_PURPLE + engine.getMantle().getNotClearedLoadedRegions());
-            Iris.info(C.DARK_PURPLE + "Tectonic ToUnload: " + C.LIGHT_PURPLE + engine.getMantle().getToUnload());
-            Iris.info(C.DARK_PURPLE + "Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration((long) engine.getMantle().getTectonicDuration()));
-            Iris.info(C.DARK_PURPLE + "Cache Size: " + C.LIGHT_PURPLE + Form.f(IrisData.cacheSize()));
-            Iris.info(C.DARK_PURPLE + "LastUse Size: " + C.LIGHT_PURPLE + Form.mem(lastUseSize));
-            Iris.info("-------------------------");
-        } else {
-            Iris.info(C.RED + "Engine is null!");
-        }
     }
-    @Decree(description = "Test", origin = DecreeOrigin.BOTH)
-    public void test() {
-        Iris.info("Test Developer CMD Executed");
+
+    @Decree(description = "test")
+    public void mca (
+            @Param(description = "String") String world) {
+        try {
+            File[] McaFiles = new File(world, "region").listFiles((dir, name) -> name.endsWith(".mca"));
+            for (File mca : McaFiles) {
+                MCAFile MCARegion = MCAUtil.read(mca);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    @Decree(description = "UnloadChunks for good reasons.")
+    public void unloadchunks() {
+        List<World> IrisWorlds = new ArrayList<>();
+        int chunksUnloaded = 0;
+        for (World world : Bukkit.getWorlds()) {
+            try {
+                if (IrisToolbelt.access(world).getEngine() != null) {
+                    IrisWorlds.add(world);
+                }
+            } catch (Exception e) {
+                // no
+            }
+        }
+
+        for (World world : IrisWorlds) {
+            for (Chunk chunk : world.getLoadedChunks()) {
+                if (chunk.isLoaded()) {
+                    chunk.unload();
+                    chunksUnloaded++;
+                }
+            }
+        }
+        Iris.info(C.IRIS + "Chunks Unloaded: " + chunksUnloaded);
+
+    }
+
+    @Decree(description = "Test", aliases = {"ip"})
+    public void network() {
+        try {
+            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+            for (NetworkInterface ni : Collections.list(networkInterfaces)) {
+                Iris.info("Display Name: %s", ni.getDisplayName());
+                Enumeration<InetAddress> inetAddresses = ni.getInetAddresses();
+                for (InetAddress ia : Collections.list(inetAddresses)) {
+                    Iris.info("IP: %s", ia.getHostAddress());
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Decree(description = "Test the compression algorithms")

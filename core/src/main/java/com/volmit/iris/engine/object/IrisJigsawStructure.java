@@ -56,6 +56,10 @@ public class IrisJigsawStructure extends IrisRegistrant {
     @Desc("If set to true, iris will look for any pieces with only one connector in valid pools for edge connectors and attach them to 'terminate' the paths/piece connectors. Essentially it caps off ends. For example in a village, Iris would add houses to the ends of roads where possible. For terminators to be selected, they can only have one connector or they wont be chosen.")
     private boolean terminate = true;
 
+    @RegistryListResource(IrisJigsawPool.class)
+    @Desc("The pool to use when terminating pieces")
+    private String terminatePool = null;
+
     @Desc("Override the y range instead of placing on the height map")
     private IrisStyledRange overrideYRange = null;
 

@@ -58,6 +58,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Random;
@@ -82,6 +84,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final AtomicBoolean setup;
     private final boolean studio;
     private final AtomicInteger a = new AtomicInteger(0);
+    private final boolean smartVanillaHeight;
     private Engine engine;
     private Looper hotloader;
     private StudioMode lastMode;
@@ -91,7 +94,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     private boolean initialized = false;
 
-    public BukkitChunkGenerator(IrisWorld world, boolean studio, File dataLocation, String dimensionKey) {
+    public BukkitChunkGenerator(IrisWorld world, boolean studio, File dataLocation, String dimensionKey, boolean smartVanillaHeight) {
         setup = new AtomicBoolean(false);
         studioGenerator = null;
         dummyBiomeProvider = new DummyBiomeProvider();
@@ -103,6 +106,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         this.dataLocation = dataLocation;
         this.dimensionKey = dimensionKey;
         this.folder = new ReactiveFolder(dataLocation, (_a, _b, _c) -> hotload());
+        this.smartVanillaHeight = smartVanillaHeight;
         Bukkit.getServer().getPluginManager().registerEvents(this, Iris.instance);
     }
 
@@ -126,9 +130,26 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             if (!initialized) {
                 world.setRawWorldSeed(event.getWorld().getSeed());
                 if (world.name().equals(event.getWorld().getName())) {
-                    INMS.get().inject(event.getWorld().getSeed(), getEngine(event.getWorld()), event.getWorld());
-                    Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
-                    initialized = true;
+                    Engine engine = getEngine(event.getWorld());
+                    if (engine == null) {
+                        Iris.warn("Failed to get Engine!");
+                        J.s(() -> {
+                            Engine engine1 = getEngine(event.getWorld());
+                            if (engine1 != null) {
+								try {
+									INMS.get().inject(event.getWorld().getSeed(), engine1, event.getWorld());
+                                    Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
+                                    initialized = true;
+								} catch (Throwable e) {
+									e.printStackTrace();
+								}
+							}
+                        }, 10);
+                    } else {
+                        INMS.get().inject(event.getWorld().getSeed(), engine, event.getWorld());
+                        Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
+                        initialized = true;
+                    }
                 }
             }
         } catch (Throwable e) {
@@ -162,6 +183,14 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             } else {
                 Iris.error("Nope, you don't have an installation containing " + dimensionKey + " try downloading it?");
                 throw new RuntimeException("Missing Dimension: " + dimensionKey);
+            }
+        }
+        if (smartVanillaHeight) {
+            dimension.setSmartVanillaHeight(true);
+            try (FileWriter writer = new FileWriter(data.getDimensionLoader().fileFor(dimension))) {
+                writer.write(data.getGson().toJson(dimension));
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
 
@@ -240,34 +269,36 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
         lock.lock();
 
-        if (setup.get()) {
-            return getEngine();
-        }
-
-
-        setup.set(true);
-        getWorld().setRawWorldSeed(world.getSeed());
-        setupEngine();
-        this.hotloader = studio ? new Looper() {
-            @Override
-            protected long loop() {
-                if (hotloadChecker.flip()) {
-                    folder.check();
-                }
-
-                return 250;
+        try {
+            if (setup.get()) {
+                return getEngine();
             }
-        } : null;
 
-        if (studio) {
-            hotloader.setPriority(Thread.MIN_PRIORITY);
-            hotloader.start();
-            hotloader.setName(getTarget().getWorld().name() + " Hotloader");
+
+            getWorld().setRawWorldSeed(world.getSeed());
+            setupEngine();
+            setup.set(true);
+            this.hotloader = studio ? new Looper() {
+                @Override
+                protected long loop() {
+                    if (hotloadChecker.flip()) {
+                        folder.check();
+                    }
+
+                    return 250;
+                }
+            } : null;
+
+            if (studio) {
+                hotloader.setPriority(Thread.MIN_PRIORITY);
+                hotloader.start();
+                hotloader.setName(getTarget().getWorld().name() + " Hotloader");
+            }
+
+            return engine;
+        } finally {
+            lock.unlock();
         }
-
-        lock.unlock();
-
-        return engine;
     }
 
     @Override

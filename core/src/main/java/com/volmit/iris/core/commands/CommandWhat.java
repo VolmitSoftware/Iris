@@ -22,7 +22,9 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.edit.BlockSignal;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
@@ -37,6 +39,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Decree(name = "what", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris What?")
@@ -79,6 +82,19 @@ public class CommandWhat implements DecreeExecutor {
                     Iris.reportError(ee);
                 }
             }
+        }
+    }
+
+    @Decree(description = "What region am i in?", origin = DecreeOrigin.PLAYER)
+    public void region() {
+        try {
+            Chunk chunk = world().getChunkAt(player().getLocation().getBlockZ() / 16, player().getLocation().getBlockZ() /  16);
+            IrisRegion r = engine().getRegion(chunk);
+            sender().sendMessage("IRegion: " + r.getLoadKey() + " (" + r.getName() + ")");
+
+        } catch (Throwable e) {
+            Iris.reportError(e);
+            sender().sendMessage(C.IRIS + "Iris worlds only.");
         }
     }
 
@@ -147,7 +163,7 @@ public class CommandWhat implements DecreeExecutor {
 
             sender().sendMessage("Found " + v.get() + " Nearby Markers (" + marker + ")");
         } else {
-            sender().sendMessage("Iris worlds only.");
+            sender().sendMessage(C.IRIS + "Iris worlds only.");
         }
     }
 }

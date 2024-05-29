@@ -20,21 +20,27 @@ package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.nms.datapack.DataVersion;
+import com.volmit.iris.core.pregenerator.ChunkUpdater;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.core.safeguard.UtilsSFG;
 import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.engine.platform.DummyChunkGenerator;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.decree.specialhandlers.NullablePlayerHandler;
 import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Getter;
@@ -49,8 +55,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.io.Console;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -59,6 +67,7 @@ import static com.volmit.iris.core.service.EditSVC.deletingWorld;
 import static com.volmit.iris.core.tools.IrisBenchmarking.inProgress;
 import static com.volmit.iris.core.safeguard.IrisSafeguard.unstablemode;
 import static com.volmit.iris.core.safeguard.ServerBootSFG.incompatibilities;
+import static org.bukkit.Bukkit.getServer;
 
 @Decree(name = "iris", aliases = {"ir", "irs"}, description = "Basic Command")
 public class CommandIris implements DecreeExecutor {
@@ -71,11 +80,9 @@ public class CommandIris implements DecreeExecutor {
     private CommandWhat what;
     private CommandEdit edit;
     private CommandFind find;
+    private CommandSupport support;
     private CommandDeveloper developer;
-
-    public static @Getter String BenchDimension;
     public static boolean worldCreation = false;
-    String WorldToLoad;
     String WorldEngine;
     String worldNameToCheck = "YourWorldName";
     VolmitSender sender = Iris.getSender();
@@ -87,7 +94,9 @@ public class CommandIris implements DecreeExecutor {
             @Param(aliases = "dimension", description = "The dimension type to create the world with", defaultValue = "default")
             IrisDimension type,
             @Param(description = "The seed to generate the world with", defaultValue = "1337")
-            long seed
+            long seed,
+            @Param(description = "If it should convert the dimension to match the vanilla height system.", defaultValue = "false")
+            boolean vanillaheight
     ) {
         if(sender() instanceof Player) {
             if (incompatibilities.get("Multiverse-Core")) {
@@ -131,6 +140,7 @@ public class CommandIris implements DecreeExecutor {
                     .seed(seed)
                     .sender(sender())
                     .studio(false)
+                    .smartVanillaHeight(vanillaheight)
                     .create();
         } catch (Throwable e) {
             sender().sendMessage(C.RED + "Exception raised during creation. See the console for more details.");
@@ -184,7 +194,7 @@ public class CommandIris implements DecreeExecutor {
     }
 
     /*
-    /todo Fix PREGEN
+    /todo
     @Decree(description = "Benchmark a pack", origin = DecreeOrigin.CONSOLE)
     public void packbenchmark(
             @Param(description = "Dimension to benchmark")
@@ -196,34 +206,60 @@ public class CommandIris implements DecreeExecutor {
         IrisPackBenchmarking.runBenchmark();
     } */
 
-    /*  /todo Different approach this feels useless atm
-    @Decree(description = "Check for instabilities", origin = DecreeOrigin.CONSOLE)
-    public void fixunstable() throws InterruptedException {
-        if (unstablemode){
-            sender().sendMessage(C.RED + "Incompatibilities are posted in console..");
-
-            Iris.info(C.RED + "Your server is experiencing an incompatibility with the Iris plugin.");
-            Iris.info(C.RED + "Please rectify this problem to avoid further complications.");
-            Iris.info(C.RED + "----------------------------------------------------------------");
-            Iris.info(C.RED + "Command ran: /iris fixunstable");
-            UtilsSFG.printIncompatibleWarnings();
-            Iris.info(C.RED + "----------------------------------------------------------------");
-     } else {
-            Iris.info(C.BLUE + "Iris is running stable..");
-            sender().sendMessage("Iris is running stable..");
-        }
-    } */
-
     @Decree(description = "Print world height information", origin = DecreeOrigin.PLAYER)
     public void height() {
-        sender().sendMessage(C.GREEN + "" + sender().player().getWorld().getMinHeight() + " to " + sender().player().getWorld().getMaxHeight());
-        sender().sendMessage(C.GREEN + "Total Height: " + (sender().player().getWorld().getMaxHeight() - sender().player().getWorld().getMinHeight()));
+        if (sender().isPlayer()) {
+            sender().sendMessage(C.GREEN + "" + sender().player().getWorld().getMinHeight() + " to " + sender().player().getWorld().getMaxHeight());
+            sender().sendMessage(C.GREEN + "Total Height: " + (sender().player().getWorld().getMaxHeight() - sender().player().getWorld().getMinHeight()));
+        } else {
+            World mainWorld = getServer().getWorlds().get(0);
+            Iris.info(C.GREEN + "" + mainWorld.getMinHeight() + " to " + mainWorld.getMaxHeight());
+            Iris.info(C.GREEN + "Total Height: " + (mainWorld.getMaxHeight() - mainWorld.getMinHeight()));
+        }
     }
 
     @Decree(description = "QOL command to open a overworld studio world.", sync = true)
     public void so() {
         sender().sendMessage(C.GREEN + "Opening studio for the \"Overworld\" pack (seed: 1337)");
         Iris.service(StudioSVC.class).open(sender(), 1337, "overworld");
+    }
+
+    @Decree(description = "Check access of all worlds.", aliases = {"accesslist"})
+    public void worlds() {
+        KList<World> IrisWorlds = new KList<>();
+        KList<World> BukkitWorlds = new KList<>();
+
+        for (World w : Bukkit.getServer().getWorlds()) {
+            try {
+                Engine engine = IrisToolbelt.access(w).getEngine();
+                if (engine != null) {
+                    IrisWorlds.add(w);
+                }
+            } catch (Exception e) {
+                BukkitWorlds.add(w);
+            }
+        }
+
+        if (sender().isPlayer()) {
+            sender().sendMessage(C.BLUE + "Iris Worlds: ");
+            for (World IrisWorld : IrisWorlds.copy()) {
+                sender().sendMessage(C.IRIS + "- " +IrisWorld.getName());
+            }
+            sender().sendMessage(C.GOLD + "Bukkit Worlds: ");
+            for (World BukkitWorld : BukkitWorlds.copy()) {
+                sender().sendMessage(C.GRAY + "- " +BukkitWorld.getName());
+            }
+        } else {
+            Iris.info(C.BLUE + "Iris Worlds: ");
+            for (World IrisWorld : IrisWorlds.copy()) {
+                Iris.info(C.IRIS + "- " +IrisWorld.getName());
+            }
+            Iris.info(C.GOLD + "Bukkit Worlds: ");
+            for (World BukkitWorld : BukkitWorlds.copy()) {
+                Iris.info(C.GRAY + "- " +BukkitWorld.getName());
+            }
+            
+        }
     }
 
     @Decree(description = "Remove an Iris world", aliases = {"del", "rm", "delete"}, sync = true)
@@ -234,7 +270,7 @@ public class CommandIris implements DecreeExecutor {
             boolean delete
     ) {
         if (!IrisToolbelt.isIrisWorld(world)) {
-            sender().sendMessage(C.RED + "This is not an Iris world. Iris worlds: " + String.join(", ", Bukkit.getServer().getWorlds().stream().filter(IrisToolbelt::isIrisWorld).map(World::getName).toList()));
+            sender().sendMessage(C.RED + "This is not an Iris world. Iris worlds: " + String.join(", ", getServer().getWorlds().stream().filter(IrisToolbelt::isIrisWorld).map(World::getName).toList()));
             return;
         }
         sender().sendMessage(C.GREEN + "Removing world: " + world.getName());
@@ -284,6 +320,24 @@ public class CommandIris implements DecreeExecutor {
             }
         }
         return dir.delete();
+    }
+
+    @Decree(description = "Updates all chunk in the specified world")
+    public void updater(
+            @Param(description = "World to update chunks at")
+            World world
+    ) {
+        if (!IrisToolbelt.isIrisWorld(world)) {
+            sender().sendMessage(C.GOLD + "This is not an Iris world");
+            return;
+        }
+        ChunkUpdater updater = new ChunkUpdater(world);
+        if (sender().isPlayer()) {
+            sender().sendMessage(C.GREEN + "Updating " + world.getName() + " Total chunks: " + Form.f(updater.getChunks()));
+        } else {
+            Iris.info(C.GREEN + "Updating " + world.getName() + " Total chunks: " + Form.f(updater.getChunks()));
+        }
+        updater.start();
     }
 
     @Decree(description = "Set aura spins")
@@ -417,7 +471,7 @@ public class CommandIris implements DecreeExecutor {
             World world
     ) {
         if (!IrisToolbelt.isIrisWorld(world)) {
-            sender().sendMessage(C.RED + "This is not an Iris world. Iris worlds: " + String.join(", ", Bukkit.getServer().getWorlds().stream().filter(IrisToolbelt::isIrisWorld).map(World::getName).toList()));
+            sender().sendMessage(C.RED + "This is not an Iris world. Iris worlds: " + String.join(", ", getServer().getWorlds().stream().filter(IrisToolbelt::isIrisWorld).map(World::getName).toList()));
             return;
         }
         sender().sendMessage(C.GREEN + "Unloading world: " + world.getName());
@@ -445,9 +499,9 @@ public class CommandIris implements DecreeExecutor {
             sender().sendMessage(C.YELLOW + world + " Doesnt exist on the server.");
             return;
         }
-        WorldToLoad = world;
+
         File BUKKIT_YML = new File("bukkit.yml");
-        String pathtodim = world + "\\iris\\pack\\dimensions\\";
+        String pathtodim = world + File.separator +"iris"+File.separator +"pack"+File.separator +"dimensions"+File.separator;
         File directory = new File(Bukkit.getWorldContainer(), pathtodim);
 
         String dimension = null;
@@ -481,9 +535,10 @@ public class CommandIris implements DecreeExecutor {
             } catch (IOException e) {
                 Iris.error("Failed to update bukkit.yml!");
                 e.printStackTrace();
+                return;
             }
         }
-        checkForBukkitWorlds();
+        checkForBukkitWorlds(world);
         sender().sendMessage(C.GREEN + world + " loaded successfully.");
     }
     @Decree(description = "Evacuate an iris world", origin = DecreeOrigin.PLAYER, sync = true)
@@ -492,7 +547,7 @@ public class CommandIris implements DecreeExecutor {
             World world
     ) {
         if (!IrisToolbelt.isIrisWorld(world)) {
-            sender().sendMessage(C.RED + "This is not an Iris world. Iris worlds: " + String.join(", ", Bukkit.getServer().getWorlds().stream().filter(IrisToolbelt::isIrisWorld).map(World::getName).toList()));
+            sender().sendMessage(C.RED + "This is not an Iris world. Iris worlds: " + String.join(", ", getServer().getWorlds().stream().filter(IrisToolbelt::isIrisWorld).map(World::getName).toList()));
             return;
         }
         sender().sendMessage(C.GREEN + "Evacuating world" + world.getName());
@@ -504,7 +559,7 @@ public class CommandIris implements DecreeExecutor {
         File worldDirectory = new File(worldContainer, worldName);
         return worldDirectory.exists() && worldDirectory.isDirectory();
     }
-    private void checkForBukkitWorlds() {
+    private void checkForBukkitWorlds(String world) {
         FileConfiguration fc = new YamlConfiguration();
         try {
             fc.load(new File("bukkit.yml"));
@@ -513,9 +568,9 @@ public class CommandIris implements DecreeExecutor {
                 return;
             }
 
-            List<String> worldsToLoad = Collections.singletonList(WorldToLoad);
+            List<String> worldsToLoad = Collections.singletonList(world);
 
-            for (String s : section.getKeys(false)) {
+             for (String s : section.getKeys(false)) {
                 if (!worldsToLoad.contains(s)) {
                     continue;
                 }
@@ -594,6 +649,6 @@ public class CommandIris implements DecreeExecutor {
             ff.mkdirs();
             service(StudioSVC.class).installIntoWorld(sender, dim.getLoadKey(), ff.getParentFile());
         }
-        return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey());
+        return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey(), false);
     }
 }

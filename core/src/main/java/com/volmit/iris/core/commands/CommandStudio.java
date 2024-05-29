@@ -26,6 +26,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.service.ConversionSVC;
 import com.volmit.iris.core.service.StudioSVC;
+import com.volmit.iris.core.tools.IrisConverter;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.*;
@@ -73,6 +74,7 @@ import java.nio.file.Files;
 import java.nio.file.attribute.FileTime;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -84,7 +86,7 @@ import java.util.function.Supplier;
 public class CommandStudio implements DecreeExecutor {
     private CommandFind find;
     private CommandEdit edit;
-    private CommandDeepSearch deepSearch;
+    //private CommandDeepSearch deepSearch;
 
     public static String hrf(Duration duration) {
         return duration.toString().substring(2).replaceAll("(\\d[HMS])(?!$)", "$1 ").toLowerCase();
@@ -229,8 +231,8 @@ public class CommandStudio implements DecreeExecutor {
     @Decree(description = "Convert objects in the \"convert\" folder")
     public void convert() {
         Iris.service(ConversionSVC.class).check(sender());
+        //IrisConverter.convertSchematics(sender());
     }
-
 
     @Decree(description = "Execute a script", aliases = "run", origin = DecreeOrigin.PLAYER)
     public void execute(
@@ -329,6 +331,63 @@ public class CommandStudio implements DecreeExecutor {
 
         sender().sendMessage(C.GREEN + "Opening inventory now!");
         player().openInventory(inv);
+    }
+
+
+    @Decree(description = "Get all structures in a radius of chunks", aliases = "dist", origin = DecreeOrigin.PLAYER)
+    public void distances(@Param(description = "The radius") int radius) {
+        var engine = engine();
+        if (engine == null) {
+            sender().sendMessage(C.RED + "Only works in an Iris world!");
+            return;
+        }
+        var sender = sender();
+        int d = radius*2;
+        KMap<String, KList<Position2>> data = new KMap<>();
+        var multiBurst = new MultiBurst("Distance Sampler", Thread.MIN_PRIORITY);
+        var executor = multiBurst.burst(radius * radius);
+
+        sender.sendMessage(C.GRAY + "Generating data...");
+        var loc = player().getLocation();
+        new Spiraler(d, d, (x, z) -> executor.queue(() -> {
+            var struct = engine.getStructureAt(x, z);
+            if (struct != null) {
+                data.computeIfAbsent(struct.getLoadKey(), (k) -> new KList<>()).add(new Position2(x, z));
+            }
+        })).setOffset(loc.getBlockX(), loc.getBlockZ()).drain();
+
+        executor.complete();
+        multiBurst.close();
+        for (var key : data.keySet()) {
+            var list = data.get(key);
+            KList<Long> distances = new KList<>(list.size() - 1);
+            for (int i = 0; i < list.size(); i++) {
+                var pos = list.get(i);
+                double dist = Integer.MAX_VALUE;
+                for (var p : list) {
+                    if (p.equals(pos)) continue;
+                    dist = Math.min(dist, Math.sqrt(Math.pow(pos.getX() - p.getX(), 2) + Math.pow(pos.getZ() - p.getZ(), 2)));
+                }
+                if (dist == Integer.MAX_VALUE) continue;
+                distances.add(Math.round(dist * 16));
+            }
+            long[] array = new long[distances.size()];
+            for (int i = 0; i < distances.size(); i++) {
+                array[i] = distances.get(i);
+            }
+            Arrays.sort(array);
+            long min = array.length > 0 ? array[0] : 0;
+            long max = array.length > 0 ? array[array.length - 1] : 0;
+            long sum = Arrays.stream(array).sum();
+            long avg = array.length > 0 ? Math.round(sum / (double) array.length) : 0;
+            String msg = "%s: %s => min: %s/max: %s -> avg: %s".formatted(key, list.size(), min, max, avg);
+            sender.sendMessage(msg);
+        }
+        if (data.isEmpty()) {
+            sender.sendMessage(C.RED + "No data found!");
+        } else {
+            sender.sendMessage(C.GREEN + "Done!");
+        }
     }
 
     @Decree(description = "Render a world map (External GUI)", aliases = "render")

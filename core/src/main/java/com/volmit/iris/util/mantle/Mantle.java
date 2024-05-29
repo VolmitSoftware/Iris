@@ -21,6 +21,7 @@ package com.volmit.iris.util.mantle;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.service.IrisEngineSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
@@ -59,6 +60,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 
 public class Mantle {
+    private static final boolean disableClear = System.getProperty("disableClear", "false").equals("true");
     private final File dataFolder;
     @Getter
     private final int worldHeight;
@@ -423,17 +425,17 @@ public class Mantle {
         ioTrim.set(true);
         unloadLock.lock();
         try {
-            if (lastUse != null) {
+            if (lastUse != null && IrisEngineSVC.instance != null) {
                 if (!lastUse.isEmpty()) {
                     Iris.debug("Trimming Tectonic Plates older than " + Form.duration(adjustedIdleDuration.get(), 0));
-                    for (Long i : new ArrayList<>(lastUse.keySet())) {
+                    for (long i : new ArrayList<>(lastUse.keySet())) {
                         double finalAdjustedIdleDuration = adjustedIdleDuration.get();
                         hyperLock.withLong(i, () -> {
                             Long lastUseTime = lastUse.get(i);
                             if (lastUseTime != null && M.ms() - lastUseTime >= finalAdjustedIdleDuration) {
                                 toUnload.add(i);
                                 Iris.debug("Tectonic Region added to unload");
-                                //Iris.panic();
+                                IrisEngineSVC.instance.trimActiveAlive.reset();
                             }
                         });
                     }
@@ -452,37 +454,47 @@ public class Mantle {
         AtomicInteger i = new AtomicInteger();
         unloadLock.lock();
         BurstExecutor burst = null;
-        try {
-            KList<Long> copy = toUnload.copy();
-            burst = MultiBurst.burst.burst(copy.size());
-            burst.setMulticore(copy.size() > tectonicLimit);
-            for (long id : copy) {
-                burst.queue(() ->
-                        hyperLock.withLong(id, () -> {
-                            TectonicPlate m = loadedRegions.get(id);
-                            if (m != null) {
-                                try {
-                                    m.write(fileForRegion(dataFolder, id));
-                                    loadedRegions.remove(id);
-                                    lastUse.remove(id);
-                                    toUnload.remove(id);
-                                    i.incrementAndGet();
-                                    Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(id) + " " + Cache.keyZ(id));
-                                } catch (IOException e) {
-                                    Iris.reportError(e);
-                                }
-                            }
-                        }));
+        if (IrisEngineSVC.instance != null) {
+            try {
+                KList<Long> copy = toUnload.copy();
+                if (!disableClear) toUnload.clear();
+                burst = MultiBurst.burst.burst(copy.size());
+                burst.setMulticore(copy.size() > tectonicLimit);
+                for (int j = 0; j < copy.size(); j++) {
+                    Long id = copy.get(j);
+                    if (id == null) {
+                        Iris.error("Null id in unloadTectonicPlate at index " + j);
+                        continue;
+                    }
 
-            }
-            burst.complete();
-        } catch (Throwable e) {
-            e.printStackTrace();
-            if (burst != null)
+                    burst.queue(() ->
+                            hyperLock.withLong(id, () -> {
+                                TectonicPlate m = loadedRegions.get(id);
+                                if (m != null) {
+                                    try {
+                                        m.write(fileForRegion(dataFolder, id));
+                                        loadedRegions.remove(id);
+                                        lastUse.remove(id);
+                                        if (disableClear) toUnload.remove(id);
+                                        i.incrementAndGet();
+                                        Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(id) + " " + Cache.keyZ(id));
+                                        IrisEngineSVC.instance.unloadActiveAlive.reset();
+                                    } catch (IOException e) {
+                                        Iris.reportError(e);
+                                    }
+                                }
+                            }));
+                }
                 burst.complete();
-        } finally {
-            unloadLock.unlock();
-            ioTectonicUnload.set(true);
+            } catch (Throwable e) {
+                e.printStackTrace();
+                if (burst != null)
+                    burst.complete();
+            } finally {
+                unloadLock.unlock();
+                ioTectonicUnload.set(true);
+            }
+            return i.get();
         }
         return i.get();
     }

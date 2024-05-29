@@ -6,6 +6,10 @@ public record Identifier(String namespace, String key) {
 
     private static final String DEFAULT_NAMESPACE = "minecraft";
 
+    public static Identifier fromNamespacedKey(NamespacedKey key) {
+        return new Identifier(key.getNamespace(), key.getKey());
+    }
+
     public static Identifier fromString(String id) {
         String[] strings = id.split(":", 2);
         if (strings.length == 1) {

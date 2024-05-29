@@ -25,6 +25,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
 import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
@@ -34,6 +35,8 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 
@@ -83,6 +86,15 @@ public class NMSBinding1X implements INMSBinding {
     @Override
     public void inject(long seed, Engine engine, World world) throws NoSuchFieldException, IllegalAccessException {
 
+    }
+
+    public Vector3d getBoundingbox() {
+        return null;
+    }
+
+    @Override
+    public Entity spawnEntity(Location location, EntityType type, CreatureSpawnEvent.SpawnReason reason) {
+        return location.getWorld().spawnEntity(location, type);
     }
 
     @Override
@@ -201,6 +213,11 @@ public class NMSBinding1X implements INMSBinding {
     @Override
     public void forceBiomeInto(int x, int y, int z, Object somethingVeryDirty, ChunkGenerator.BiomeGrid chunk) {
 
+    }
+
+    @Override
+    public Vector3d getBoundingbox(org.bukkit.entity.EntityType entity) {
+      return null;
     }
 
     @Override

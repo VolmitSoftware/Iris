@@ -21,6 +21,7 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.core.nms.datapack.IDataFixer;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
@@ -207,6 +208,8 @@ public class IrisDimension extends IrisRegistrant {
     private IrisCarving carving = new IrisCarving();
     @Desc("Configuration of fluid bodies such as rivers & lakes")
     private IrisFluidBodies fluidBodies = new IrisFluidBodies();
+    @Desc("forceConvertTo320Height")
+    private Boolean forceConvertTo320Height = false;
     @Desc("The world environment")
     private Environment environment = Environment.NORMAL;
     @RegistryListResource(IrisRegion.class)
@@ -228,6 +231,8 @@ public class IrisDimension extends IrisRegistrant {
     private IrisRange dimensionHeightEnd = new IrisRange(-64, 320);
     @Desc("Define the min and max Y bounds of this dimension. Please keep in mind that Iris internally generates from 0 to (max - min). \n\nFor example at -64 to 320, Iris is internally generating to 0 to 384, then on outputting chunks, it shifts it down by the min height (64 blocks). The default is -64 to 320. \n\nThe fluid height is placed at (fluid height + min height). So a fluid height of 63 would actually show up in the world at 1.")
     private IrisRange dimensionHeightNether = new IrisRange(-64, 320);
+    @Desc("Enable smart vanilla height")
+    private boolean smartVanillaHeight = false;
     @RegistryListResource(IrisBiome.class)
     @Desc("Keep this either undefined or empty. Setting any biome name into this will force iris to only generate the specified biome. Great for testing.")
     private String focus = "";
@@ -439,7 +444,7 @@ public class IrisDimension extends IrisRegistrant {
         return landBiomeStyle;
     }
 
-    public boolean installDataPack(DataProvider data, File datapacks) {
+    public boolean installDataPack(IDataFixer fixer, DataProvider data, File datapacks, double ultimateMaxHeight, double ultimateMinHeight) {
         boolean write = false;
         boolean changed = false;
 
@@ -459,7 +464,7 @@ public class IrisDimension extends IrisRegistrant {
                     Iris.verbose("    Installing Data Pack Biome: " + output.getPath());
                     output.getParentFile().mkdirs();
                     try {
-                        IO.writeAll(output, j.generateJson());
+                        IO.writeAll(output, j.generateJson(fixer));
                     } catch (IOException e) {
                         Iris.reportError(e);
                         e.printStackTrace();
@@ -470,7 +475,9 @@ public class IrisDimension extends IrisRegistrant {
 
         if (!dimensionHeight.equals(new IrisRange(-64, 320)) && this.name.equalsIgnoreCase("overworld")) {
             Iris.verbose("    Installing Data Pack Dimension Types: \"minecraft:overworld\", \"minecraft:the_nether\", \"minecraft:the_end\"");
-            changed = writeDimensionType(changed, datapacks);
+            dimensionHeight.setMax(ultimateMaxHeight);
+            dimensionHeight.setMin(ultimateMinHeight);
+            changed = writeDimensionType(fixer, changed, datapacks);
         }
 
         if (write) {
@@ -509,13 +516,13 @@ public class IrisDimension extends IrisRegistrant {
 
     }
 
-    public boolean writeDimensionType(boolean changed, File datapacks) {
+    public boolean writeDimensionType(IDataFixer fixer, boolean changed, File datapacks) {
         File dimTypeOverworld = new File(datapacks, "iris/data/minecraft/dimension_type/overworld.json");
         if (!dimTypeOverworld.exists())
             changed = true;
         dimTypeOverworld.getParentFile().mkdirs();
         try {
-            IO.writeAll(dimTypeOverworld, generateDatapackJsonOverworld());
+            IO.writeAll(dimTypeOverworld, generateDatapackJsonOverworld(fixer));
         } catch (IOException e) {
             Iris.reportError(e);
             e.printStackTrace();
@@ -527,7 +534,7 @@ public class IrisDimension extends IrisRegistrant {
             changed = true;
         dimTypeNether.getParentFile().mkdirs();
         try {
-            IO.writeAll(dimTypeNether, generateDatapackJsonNether());
+            IO.writeAll(dimTypeNether, generateDatapackJsonNether(fixer));
         } catch (IOException e) {
             Iris.reportError(e);
             e.printStackTrace();
@@ -539,7 +546,7 @@ public class IrisDimension extends IrisRegistrant {
             changed = true;
         dimTypeEnd.getParentFile().mkdirs();
         try {
-            IO.writeAll(dimTypeEnd, generateDatapackJsonEnd());
+            IO.writeAll(dimTypeEnd, generateDatapackJsonEnd(fixer));
         } catch (IOException e) {
             Iris.reportError(e);
             e.printStackTrace();
@@ -548,27 +555,27 @@ public class IrisDimension extends IrisRegistrant {
         return changed;
     }
 
-    private String generateDatapackJsonOverworld() {
+    private String generateDatapackJsonOverworld(IDataFixer fixer) {
         JSONObject obj = new JSONObject(DP_OVERWORLD_DEFAULT);
         obj.put("min_y", dimensionHeight.getMin());
         obj.put("height", dimensionHeight.getMax() - dimensionHeight.getMin());
         obj.put("logical_height", logicalHeight);
-        return obj.toString(4);
+        return fixer.fixDimension(obj).toString(4);
     }
 
-    private String generateDatapackJsonNether() {
+    private String generateDatapackJsonNether(IDataFixer fixer) {
         JSONObject obj = new JSONObject(DP_NETHER_DEFAULT);
         obj.put("min_y", dimensionHeightNether.getMin());
         obj.put("height", dimensionHeightNether.getMax() - dimensionHeightNether.getMin());
         obj.put("logical_height", logicalHeightNether);
-        return obj.toString(4);
+        return fixer.fixDimension(obj).toString(4);
     }
 
-    private String generateDatapackJsonEnd() {
+    private String generateDatapackJsonEnd(IDataFixer fixer) {
         JSONObject obj = new JSONObject(DP_END_DEFAULT);
         obj.put("min_y", dimensionHeightEnd.getMin());
         obj.put("height", dimensionHeightEnd.getMax() - dimensionHeightEnd.getMin());
         obj.put("logical_height", logicalHeightEnd);
-        return obj.toString(4);
+        return fixer.fixDimension(obj).toString(4);
     }
 }

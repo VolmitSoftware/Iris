@@ -95,7 +95,7 @@ public class IrisJigsawStructurePlacement implements IRare {
         }
 
         if (separation == -1 || spacing == -1) {
-            separation = (int) Math.round(rarity / 20d);
+            separation = (int) Math.round(rarity / 15d);
             spacing = new RNG(seed).nextInt(separation, separation * 2);
         }
     }

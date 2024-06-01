@@ -66,7 +66,7 @@ public class ServerBootSFG {
             }
         }
         // Legacy ServerInfo
-        String distro = org.bukkit.Bukkit.getName().toLowerCase();
+        String distro = Bukkit.getName().toLowerCase();
         if (
                 !distro.contains("purpur") &&
                         !distro.contains("paper") &&

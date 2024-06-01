@@ -822,7 +822,7 @@ public class Iris extends VolmitPlugin implements Listener {
             Iris.warn("6GB+ Ram is recommended");
             Iris.warn("Process Memory: " + getHardware.getProcessMemory() + " MB");
         }
-        Iris.info("Bukkit version: " + Bukkit.getBukkitVersion());
+        Iris.info("Bukkit distro: " + Bukkit.getName());
         Iris.info("Custom Biomes: " + INMS.get().countCustomBiomes());
         setupChecks();
         printPacks();

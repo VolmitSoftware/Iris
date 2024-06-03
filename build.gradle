@@ -215,7 +215,7 @@ shadowJar {
         from("${project(":nms:${it.key}").layout.buildDirectory.asFile.get()}/libs/${it.key}.jar")
     }
     NMS_BINDINGS.each {dependsOn(":nms:${it.key}:build")}
-    dependsOn(':com.volmit.gui:build')
+    //dependsOn(':com.volmit.gui:build')
 
     //minimize()
     append("plugin.yml")

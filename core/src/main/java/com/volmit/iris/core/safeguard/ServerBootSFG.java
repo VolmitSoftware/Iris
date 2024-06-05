@@ -65,15 +65,18 @@ public class ServerBootSFG {
                 joiner.add(entry.getKey());
             }
         }
+        String distro = Bukkit.getName().toLowerCase();
         if (
-                !instance.getServer().getVersion().contains("Purpur") &&
-                        !instance.getServer().getVersion().contains("Paper") &&
-                        !instance.getServer().getVersion().contains("Spigot") &&
-                        !instance.getServer().getVersion().contains("Pufferfish") &&
-                        !instance.getServer().getVersion().contains("Bukkit")) {
+                !distro.contains("purpur") &&
+                        !distro.contains("paper") &&
+                        !distro.contains("spigot") &&
+                        !distro.contains("pufferfish") &&
+                        !distro.contains("bukkit")) {
+
+
             passedserversoftware = false;
             joiner.add("Server Software");
-            severityHigh++;
+            severityMedium++;
         }
 
         if (INMS.get() instanceof NMSBinding1X) {

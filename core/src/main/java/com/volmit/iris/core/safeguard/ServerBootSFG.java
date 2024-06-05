@@ -5,7 +5,7 @@ import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
-
+import org.bukkit.plugin.PluginManager;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 import java.io.File;
@@ -40,7 +40,7 @@ public class ServerBootSFG {
 
     public static void BootCheck() {
         Iris.info("Checking for possible conflicts..");
-        org.bukkit.plugin.PluginManager pluginManager = Bukkit.getPluginManager();
+        PluginManager pluginManager = Bukkit.getPluginManager();
         Plugin[] plugins = pluginManager.getPlugins();
 
         incompatibilities.clear();
@@ -65,6 +65,7 @@ public class ServerBootSFG {
                 joiner.add(entry.getKey());
             }
         }
+        // Legacy ServerInfo
         String distro = Bukkit.getName().toLowerCase();
         if (
                 !distro.contains("purpur") &&
@@ -78,6 +79,7 @@ public class ServerBootSFG {
             joiner.add("Server Software");
             severityMedium++;
         }
+
 
         if (INMS.get() instanceof NMSBinding1X) {
             unsuportedversion = true;

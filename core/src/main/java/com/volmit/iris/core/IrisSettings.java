@@ -34,6 +34,7 @@ import java.io.IOException;
 @Data
 public class IrisSettings {
     public static IrisSettings settings;
+    private IrisSafeGuard safeguard = new IrisSafeGuard();
     private IrisSettingsGeneral general = new IrisSettingsGeneral();
     private IrisSettingsWorld world = new IrisSettingsWorld();
     private IrisSettingsGUI gui = new IrisSettingsGUI();
@@ -42,6 +43,7 @@ public class IrisSettings {
     private IrisSettingsConcurrency concurrency = new IrisSettingsConcurrency();
     private IrisSettingsStudio studio = new IrisSettingsStudio();
     private IrisSettingsPerformance performance = new IrisSettingsPerformance();
+    private IrisWorldDump worldDump = new IrisWorldDump();
 
     public static int getThreadCount(int c) {
         return switch (c) {
@@ -103,6 +105,12 @@ public class IrisSettings {
     }
 
     @Data
+    public static class IrisSafeGuard {
+        public boolean ignoreBootMode = false;
+        public boolean userUnstableWarning = true;
+    }
+
+    @Data
     public static class IrisSettingsAutoconfiguration {
         public boolean configureSpigotTimeoutTime = true;
         public boolean configurePaperWatchdogDelay = true;
@@ -146,7 +154,6 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsGeneral {
-        public boolean ignoreBootMode = false;
         public boolean commandSounds = true;
         public boolean debug = false;
         public boolean disableNMS = false;
@@ -186,5 +193,9 @@ public class IrisSettings {
         public boolean openVSCode = true;
         public boolean disableTimeAndWeather = true;
         public boolean autoStartDefaultStudio = false;
+    }
+    @Data
+    public static class IrisWorldDump {
+        public int mcaCacheSize = 3;
     }
 }

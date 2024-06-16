@@ -28,7 +28,9 @@ import com.volmit.iris.core.pregenerator.ChunkUpdater;
 import com.volmit.iris.core.service.IrisEngineSVC;
 import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.core.tools.IrisWorldDump;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.jvm.VMJavaFX;
 import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisCave;
@@ -150,19 +152,16 @@ public class CommandDeveloper implements DecreeExecutor {
     @Decree(description = "Test")
     public void packBenchmark(
             @Param(description = "The pack to bench", aliases = {"pack"})
-            IrisDimension dimension
+            IrisDimension dimension,
+            @Param(description = "Headless", defaultValue = "true")
+            boolean headless,
+            @Param(description = "GUI", defaultValue = "false")
+            boolean gui
     ) {
         Iris.info("test");
-        IrisPackBenchmarking benchmark = new IrisPackBenchmarking(dimension, 1);
+        IrisPackBenchmarking benchmark = new IrisPackBenchmarking(dimension, 1, headless, gui);
+        benchmark.runBenchmark();
 
-    }
-
-    @Decree(description = "Upgrade to another Minecraft version")
-    public void upgrade(
-            @Param(description = "The version to upgrade to", defaultValue = "latest") DataVersion version) {
-        sender().sendMessage(C.GREEN + "Upgrading to " + version.getVersion() + "...");
-        ServerConfigurator.installDataPacks(version.get(), false);
-        sender().sendMessage(C.GREEN + "Done upgrading! You can now update your server version to " + version.getVersion());
     }
 
     @Decree(description = "Test")
@@ -179,12 +178,22 @@ public class CommandDeveloper implements DecreeExecutor {
 
     @Decree(description = "test")
     public void mca (
-            @Param(description = "String") String world) {
+            @Param(description = "String") World world) {
         try {
-            File[] McaFiles = new File(world, "region").listFiles((dir, name) -> name.endsWith(".mca"));
-            for (File mca : McaFiles) {
-                MCAFile MCARegion = MCAUtil.read(mca);
-            }
+                IrisWorldDump dump = new IrisWorldDump(world, sender());
+                dump.start();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    @Decree(description = "test")
+    public void javafx () {
+        try {
+            VMJavaFX javaFX = new VMJavaFX(sender());
+            javaFX.start();
         } catch (Exception e) {
             e.printStackTrace();
         }

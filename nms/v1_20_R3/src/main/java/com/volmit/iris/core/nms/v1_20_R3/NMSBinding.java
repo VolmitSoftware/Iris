@@ -4,14 +4,52 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Vector;
+import java.util.*;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Logger;
 
+import com.google.common.base.Preconditions;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.JsonOps;
+import com.mojang.serialization.Lifecycle;
+import com.volmit.iris.core.nms.IHeadless;
+import com.volmit.iris.core.nms.v1_20_R3.mca.ChunkSerializer;
+import com.volmit.iris.engine.object.IrisBiomeCustom;
+import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.util.format.C;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.dynamic.loading.ClassReloadingStrategy;
+import net.bytebuddy.implementation.bytecode.StackManipulation;
+import net.bytebuddy.implementation.bytecode.assign.Assigner;
+import net.bytebuddy.implementation.bytecode.member.MethodInvocation;
+import net.bytebuddy.matcher.ElementMatchers;
+import net.minecraft.core.IdMapper;
+import net.minecraft.core.MappedRegistry;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.progress.ChunkProgressListener;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.world.RandomSequences;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelHeightAccessor;
+import net.minecraft.world.level.chunk.ProtoChunk;
+import net.minecraft.world.level.chunk.UpgradeData;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.dimension.LevelStem;
+import net.minecraft.world.level.storage.LevelStorageSource;
+import net.minecraft.world.level.storage.PrimaryLevelData;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -25,6 +63,7 @@ import org.bukkit.craftbukkit.v1_20_R3.util.CraftNamespacedKey;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -66,6 +105,8 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
 import sun.misc.Unsafe;
+
+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 public class NMSBinding implements INMSBinding {
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
@@ -173,6 +214,17 @@ public class NMSBinding implements INMSBinding {
         return null;
     }
 
+    private RegistryAccess getRegistryAccess(World world) {
+        try {
+            var field = getField(Level.class, RegistryAccess.class);
+            field.setAccessible(true);
+            return  (RegistryAccess) field.get(((CraftWorld) world).getHandle());
+        } catch (Throwable e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public void deserializeTile(CompoundTag c, Location pos) {
         ((CraftWorld) pos.getWorld()).getHandle().getChunkAt(new BlockPos(pos.getBlockX(), 0, pos.getBlockZ())).setBlockEntityNbt(convert(c));
@@ -256,8 +308,7 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public Object getBiomeBase(World world, Biome biome) {
-        return biomeToBiomeBase(((CraftWorld) world).getHandle()
-                .registryAccess().registry(Registries.BIOME).orElse(null), biome);
+        return biomeToBiomeBase(getRegistryAccess(world).registry(Registries.BIOME).orElse(null), biome);
     }
 
     @Override
@@ -294,8 +345,11 @@ public class NMSBinding implements INMSBinding {
     public int getBiomeId(Biome biome) {
         for (World i : Bukkit.getWorlds()) {
             if (i.getEnvironment().equals(World.Environment.NORMAL)) {
-                Registry<net.minecraft.world.level.biome.Biome> registry = ((CraftWorld) i).getHandle().registryAccess().registry(Registries.BIOME).orElse(null);
-                return registry.getId((net.minecraft.world.level.biome.Biome) getBiomeBase(registry, biome));
+                var registry = getRegistryAccess(i).registry(Registries.BIOME).orElse(null);
+                if (registry != null) {
+                    var holder = (Holder<net.minecraft.world.level.biome.Biome>) getBiomeBase(registry, biome);
+                    return registry.getId(holder.value());
+                }
             }
         }
 
@@ -415,13 +469,13 @@ public class NMSBinding implements INMSBinding {
     @Override
     public MCAPaletteAccess createPalette() {
         MCAIdMapper<BlockState> registry = registryCache.aquireNasty(() -> {
-            Field cf = net.minecraft.core.IdMapper.class.getDeclaredField("tToId");
-            Field df = net.minecraft.core.IdMapper.class.getDeclaredField("idToT");
-            Field bf = net.minecraft.core.IdMapper.class.getDeclaredField("nextId");
+            Field cf = IdMapper.class.getDeclaredField("tToId");
+            Field df = IdMapper.class.getDeclaredField("idToT");
+            Field bf = IdMapper.class.getDeclaredField("nextId");
             cf.setAccessible(true);
             df.setAccessible(true);
             bf.setAccessible(true);
-            net.minecraft.core.IdMapper<BlockState> blockData = Block.BLOCK_STATE_REGISTRY;
+            IdMapper<BlockState> blockData = Block.BLOCK_STATE_REGISTRY;
             int b = bf.getInt(blockData);
             Object2IntMap<BlockState> c = (Object2IntMap<BlockState>) cf.get(blockData);
             List<BlockState> d = (List<BlockState>) df.get(blockData);
@@ -515,10 +569,141 @@ public class NMSBinding implements INMSBinding {
         return null;
     }
 
-
     @Override
     public Entity spawnEntity(Location location,  org.bukkit.entity.EntityType type, CreatureSpawnEvent.SpawnReason reason) {
         return ((CraftWorld) location.getWorld()).spawn(location, type.getEntityClass(), null, reason);
+    }
+
+    @Override
+    public boolean registerDimension(String name, IrisDimension dimension) {
+        var registry = registry(Registries.DIMENSION_TYPE);
+        var baseLocation = switch (dimension.getEnvironment()) {
+            case NORMAL -> new ResourceLocation("minecraft", "overworld");
+            case NETHER -> new ResourceLocation("minecraft", "the_nether");
+            case THE_END -> new ResourceLocation("minecraft", "the_end");
+            case CUSTOM -> throw new IllegalArgumentException("Cannot register custom dimension");
+        };
+        var base = registry.getHolder(ResourceKey.create(Registries.DIMENSION_TYPE, baseLocation)).orElse(null);
+        if (base == null) return false;
+        var json = encode(DimensionType.CODEC, base).orElse(null);
+        if (json == null) return false;
+        var object = json.getAsJsonObject();
+        var height = dimension.getDimensionHeight();
+        object.addProperty("min_y", height.getMin());
+        object.addProperty("height", height.getMax() - height.getMin());
+        object.addProperty("logical_height", dimension.getLogicalHeight());
+        var value = decode(DimensionType.CODEC, object.toString()).map(Holder::value).orElse(null);
+        if (value == null) return false;
+        return register(Registries.DIMENSION_TYPE, new ResourceLocation("iris", name), value, true);
+    }
+
+    @Override
+    public boolean registerBiome(String dimensionId, IrisBiomeCustom biome, boolean replace) {
+        var biomeBase = decode(net.minecraft.world.level.biome.Biome.CODEC, biome.generateJson()).map(Holder::value).orElse(null);
+        if (biomeBase == null) return false;
+        return register(Registries.BIOME, new ResourceLocation(dimensionId, biome.getId()), biomeBase, replace);
+    }
+
+    private <T> Optional<T> decode(Codec<T> codec, String json) {
+        return codec.decode(JsonOps.INSTANCE, GsonHelper.parse(json)).get().left().map(Pair::getFirst);
+    }
+
+    private <T> Optional<JsonElement> encode(Codec<T> codec, T value) {
+        return codec.encode(value, JsonOps.INSTANCE, new JsonObject()).result();
+    }
+
+    private <T> boolean register(ResourceKey<Registry<T>> registryKey, ResourceLocation location, T value, boolean replace) {
+        Preconditions.checkArgument(registryKey != null, "The registry cannot be null!");
+        Preconditions.checkArgument(location != null, "The location cannot be null!");
+        Preconditions.checkArgument(value != null, "The value cannot be null!");
+        var registry = registry(registryKey);
+        var key = ResourceKey.create(registryKey, location);
+        try {
+            if (registry.containsKey(key)) {
+                if (!replace) return false;
+                return replace(registryKey, location, value);
+            }
+            Field field = getField(MappedRegistry.class, boolean.class);
+            field.setAccessible(true);
+            boolean frozen = field.getBoolean(registry);
+            field.setBoolean(registry, false);
+            Field valueField = getField(Holder.Reference.class, "T");
+            valueField.setAccessible(true);
+
+            try {
+                var holder = registry.register(key, value, Lifecycle.stable());
+                if (frozen) valueField.set(holder, value);
+                return true;
+            } finally {
+                field.setBoolean(registry, frozen);
+            }
+        } catch (Throwable e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> boolean replace(ResourceKey<Registry<T>> registryKey, ResourceLocation location, T value) {
+        Preconditions.checkArgument(registryKey != null, "The registryKey cannot be null!");
+        Preconditions.checkArgument(location != null, "The location cannot be null!");
+        Preconditions.checkArgument(value != null, "The value cannot be null!");
+        var registry = registry(registryKey);
+        var key = ResourceKey.create(registryKey, location);
+        try {
+            var holder = registry.getHolder(key).orElse(null);
+            if (holder == null) return false;
+            var oldValue = holder.value();
+            Field valueField = getField(Holder.Reference.class, "T");
+            valueField.setAccessible(true);
+            Field toIdField = getField(MappedRegistry.class, buildType(Reference2IntMap.class, "T"));
+            toIdField.setAccessible(true);
+            Field byValueField = getField(MappedRegistry.class, buildType(Map.class, "T", buildType(Holder.Reference.class, "T")));
+            byValueField.setAccessible(true);
+            Field lifecyclesField = getField(MappedRegistry.class, buildType(Map.class, "T", Lifecycle.class.getName()));
+            lifecyclesField.setAccessible(true);
+            var toId = (Reference2IntMap<T>) toIdField.get(registry);
+            var byValue = (Map<T, Holder.Reference<T>>) byValueField.get(registry);
+            var lifecycles = (Map<T, Lifecycle>) lifecyclesField.get(registry);
+
+            valueField.set(holder, value);
+            toId.put(value, toId.removeInt(oldValue));
+            byValue.put(value, byValue.remove(oldValue));
+            lifecycles.put(value, lifecycles.remove(oldValue));
+            return true;
+        } catch (Throwable e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private <T> MappedRegistry<T> registry(ResourceKey<Registry<T>> registryKey) {
+        var rawRegistry = registry().registry(registryKey).orElse(null);
+        if (!(rawRegistry instanceof MappedRegistry<T> registry))
+            throw new IllegalStateException("The Registry is not a mapped Registry!");
+        return registry;
+    }
+
+    private static String buildType(Class<?> clazz, String... parameterTypes) {
+        if (parameterTypes.length == 0) return clazz.getName();
+        var builder = new StringBuilder(clazz.getName())
+                .append("<");
+        for (int i = 0; i < parameterTypes.length; i++) {
+            builder.append(parameterTypes[i]).append(parameterTypes.length - 1 == i ? ">" : ", ");
+        }
+        return builder.toString();
+    }
+
+    private static Field getField(Class<?> clazz, String type) throws NoSuchFieldException {
+        try {
+            for (Field f : clazz.getDeclaredFields()) {
+                if (f.getGenericType().getTypeName().equals(type))
+                    return f;
+            }
+            throw new NoSuchFieldException(type);
+        } catch (NoSuchFieldException e) {
+            Class<?> superClass = clazz.getSuperclass();
+            if (superClass == null) throw e;
+            return getField(superClass, type);
+        }
     }
 
     private static Field getField(Class<?> clazz, Class<?> fieldType) throws NoSuchFieldException {
@@ -540,5 +725,93 @@ public class NMSBinding implements INMSBinding {
 
     public static Holder<net.minecraft.world.level.biome.Biome> biomeToBiomeBase(Registry<net.minecraft.world.level.biome.Biome> registry, Biome biome) {
         return registry.getHolderOrThrow(ResourceKey.create(Registries.BIOME, CraftNamespacedKey.toMinecraft(biome.getKey())));
+    }
+
+    public void injectBukkit() {
+        try {
+            Iris.info("Injecting Bukkit");
+            new ByteBuddy()
+                    .redefine(CraftServer.class)
+                    .visit(Advice.to(CraftServerAdvice.class).on(ElementMatchers.isMethod().and(ElementMatchers.takesArguments(WorldCreator.class))))
+                    .make()
+                    .load(CraftServer.class.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
+            new ByteBuddy()
+                    .redefine(ServerLevel.class)
+                    .visit(Advice.to(ServerLevelAdvice.class).on(ElementMatchers.isConstructor().and(ElementMatchers.takesArguments(MinecraftServer.class, Executor.class, LevelStorageSource.LevelStorageAccess.class,
+                            PrimaryLevelData.class, ResourceKey.class, LevelStem.class, ChunkProgressListener.class, boolean.class, long.class,
+                            List.class, boolean.class, RandomSequences.class, World.Environment.class, ChunkGenerator.class, BiomeProvider.class))))
+                    .make()
+                    .load(ServerLevel.class.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
+            Iris.info("Injected Bukkit Successfully!");
+        } catch (Exception e) {
+            Iris.info(C.RED + "Failed to Inject Bukkit!");
+            e.printStackTrace();
+            Iris.reportError(e);
+        }
+
+    }
+
+    @Override
+    public IHeadless createHeadless(Engine engine) {
+        return new Headless(this, engine);
+    }
+
+    private static class ServerLevelAdvice {
+        @Advice.OnMethodEnter
+        static void enter(@Advice.Argument(0) MinecraftServer server, @Advice.Argument(2) LevelStorageSource.LevelStorageAccess access, @Advice.Argument(4) ResourceKey<Level> key, @Advice.Argument(value = 5, readOnly = false) LevelStem levelStem) {
+            File iris = new File(access.levelDirectory.path().toFile(), "iris");
+            if (!iris.exists() && !key.location().getPath().startsWith("iris/")) return;
+            ResourceKey<DimensionType> typeKey = ResourceKey.create(Registries.DIMENSION_TYPE, new ResourceLocation("iris", key.location().getPath()));
+            RegistryAccess registryAccess = server.registryAccess();
+            Registry<DimensionType> registry = registryAccess.registry(Registries.DIMENSION_TYPE).orElse(null);
+            if (registry == null) throw new IllegalStateException("Unable to find registry for dimension type " + typeKey);
+            Holder<DimensionType> holder = registry.getHolder(typeKey).orElse(null);
+            if (holder == null) throw new IllegalStateException("Unable to find dimension type " + typeKey);
+            levelStem = new LevelStem(holder, levelStem.generator());
+        }
+    }
+
+    private static class CraftServerAdvice {
+        @Advice.OnMethodEnter(skipOn = Advice.OnNonDefaultValue.class)
+        static boolean enter(@Advice.This CraftServer self, @Advice.Argument(0) WorldCreator creator) {
+            File isIrisWorld = new File(self.getWorldContainer(), creator.name() + "/iris");
+            boolean isFromIris = false;
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            for (StackTraceElement stack : stackTrace) {
+                if (stack.getClassName().contains("Iris")) {
+                    isFromIris = true;
+                    break;
+                }
+            }
+            if (isIrisWorld.exists() && !isFromIris) {
+                var logger = Logger.getLogger("Iris");
+                logger.warning("detected another Plugin trying to load " + creator.name() + ". This is not supported and will be ignored.");
+
+                if (System.getProperty("iris.debug", "false").equals("true")) {
+                    new RuntimeException().printStackTrace();
+                }
+                return true;
+            }
+            return false;
+        }
+
+        @Advice.OnMethodExit
+        static void exit(@Advice.Enter boolean bool, @Advice.Return(readOnly = false) World returned) {
+            if (bool) {
+                returned = null;
+            }
+        }
+    }
+
+    Holder.Reference<net.minecraft.world.level.biome.Biome> getBiomeHolder(String namespace, String id) {
+        return getCustomBiomeRegistry().getHolder(ResourceKey.create(Registries.BIOME, new ResourceLocation(namespace, id))).orElse(null);
+    }
+
+    ProtoChunk createProtoChunk(ChunkPos pos, LevelHeightAccessor heightAccessor) {
+        return new ProtoChunk(pos, UpgradeData.EMPTY, heightAccessor, getCustomBiomeRegistry(), null);
+    }
+
+    net.minecraft.nbt.CompoundTag serializeChunk(ChunkAccess chunkAccess, LevelHeightAccessor heightAccessor) {
+        return ChunkSerializer.write(chunkAccess, heightAccessor, getCustomBiomeRegistry());
     }
 }

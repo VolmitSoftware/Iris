@@ -119,7 +119,8 @@ public class MedievalPregenMethod implements PregeneratorMethod {
 
         listener.onChunkGenerating(x, z);
         futures.add(J.sfut(() -> {
-            Chunk c = world.getChunkAt(x, z);
+            world.getChunkAt(x, z);
+            Chunk c = Bukkit.getWorld(world.getUID()).getChunkAt(x, z);
             lastUse.put(c, M.ms());
             listener.onChunkGenerated(x, z);
             listener.onChunkCleaned(x, z);

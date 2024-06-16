@@ -41,8 +41,7 @@ public class MCAPalettedContainer<T> implements MCAPaletteResize<T> {
 
     private final T defaultValue;
 
-    // Todo multiple storage systems cause long isnt the only one?
-    protected MCABitStorageLongArray storage;
+    protected MCABitStorage storage;
 
     private MCAPalette<T> palette;
 
@@ -75,11 +74,11 @@ public class MCAPalettedContainer<T> implements MCAPaletteResize<T> {
             this.bits = MCAMth.ceillog2(this.registry.size());
         }
         this.palette.idFor(this.defaultValue);
-        this.storage = new MCABitStorageLongArray(this.bits, 4096);
+        this.storage = new MCABitStorage(this.bits, 4096);
     }
 
     public int onResize(int var0, T var1) {
-        MCABitStorageLongArray var2 = this.storage;
+        MCABitStorage var2 = this.storage;
         MCAPalette<T> var3 = this.palette;
         setBits(var0);
         for (int var4 = 0; var4 < var2.getSize(); var4++) {
@@ -122,12 +121,6 @@ public class MCAPalettedContainer<T> implements MCAPaletteResize<T> {
         T var1 = this.palette.valueFor(this.storage.get(var0));
         return (var1 == null) ? this.defaultValue : var1;
     }
-    /**
-     /**
-     * Reads and processes block data from encoded byte arrays.
-     * @param var0 BlockID Strings - List of block types identified by strings.
-     * @param var1 Encoded Locations - Long array containing compactly encoded block IDs, representing sequential block positions within a chunk.
-     */
 
     public void read(ListTag var0, long[] var1) {
         int var2 = Math.max(4, MCAMth.ceillog2(var0.size()));
@@ -138,68 +131,17 @@ public class MCAPalettedContainer<T> implements MCAPaletteResize<T> {
         if (this.palette == this.globalPalette) {
             MCAPalette<T> var4 = new MCAHashMapPalette<>(this.registry, var2, this.dummyPaletteResize, this.reader, this.writer);
             var4.read(var0);
-            MCABitStorageLongArray var5 = new MCABitStorageLongArray(var2, 4096, var1);
+            MCABitStorage var5 = new MCABitStorage(var2, 4096, var1);
             for (int var6 = 0; var6 < 4096; var6++)
                 this.storage.set(var6, this.globalPalette.idFor(var4.valueFor(var5.get(var6))));
         } else if (var3 == this.bits) {
             System.arraycopy(var1, 0, this.storage.getRaw(), 0, var1.length);
         } else {
-            MCABitStorageLongArray var4 = new MCABitStorageLongArray(var3, 4096, var1);
+            MCABitStorage var4 = new MCABitStorage(var3, 4096, var1);
             for (int var5 = 0; var5 < 4096; var5++)
                 this.storage.set(var5, var4.get(var5));
         }
     }
-
-    /**
-     * Reads and processes block data from encoded byte arrays.
-     * @param var0 BlockID Strings - List of block types identified by strings.
-     * @param var1 Encoded Locations - Byte array containing compactly encoded block IDs, representing sequential block positions within a chunk.
-     * Currently, Minecraft doesn't use ByteArray storage.
-     */
-
-    public void read(ListTag var0, byte[] var1) {
-        int requiredBits = Math.max(4, MCAMth.ceillog2(var0.size()));
-        if (requiredBits != this.bits) {
-            setBits(requiredBits);
-        }
-        this.palette.read(var0);
-
-        int bitsPerByte = 8 * var1.length / 4096;
-        if (this.palette == this.globalPalette) {
-            MCAPalette<T> var4 = new MCAHashMapPalette<>(this.registry, requiredBits, this.dummyPaletteResize, this.reader, this.writer);
-            var4.read(var0);
-            MCABitStorageByteArray var5 = new MCABitStorageByteArray(requiredBits, 4096, var1);
-            for (int var6 = 0; var6 < 4096; var6++) {
-                this.storage.set(var6, this.globalPalette.idFor(var4.valueFor(var5.get(var6))));
-            }
-        } else if (bitsPerByte == this.bits) {
-            System.arraycopy(var1, 0, this.storage.getRaw(), 0, var1.length);
-        } else {
-            MCABitStorageByteArray var4 = new MCABitStorageByteArray(bitsPerByte, 4096, var1);
-            for (int var5 = 0; var5 < 4096; var5++) {
-                this.storage.set(var5, var4.get(var5));
-            }
-        }
-    }
-
-    /**
-     * Reads and processes block data from encoded byte arrays.
-     * @param var0 BlockID Strings - List of block types identified by strings.
-     * This method is primarily used to read air sections.
-     */
-
-    public void read(ListTag var0) {
-        int requiredBits = Math.max(4, MCAMth.ceillog2(var0.size()));
-        if (requiredBits != this.bits) {
-            setBits(requiredBits);
-        }
-        this.palette.read(var0);
-        int defaultValue = 0;
-        for (int i = 0; i < 4096; i++) {
-            this.storage.set(i, defaultValue);
-        }
-    }
-
 
     public void write(CompoundTag var0, String var1, String var2) {
         MCAHashMapPalette<T> var3 = new MCAHashMapPalette<>(this.registry, this.bits, this.dummyPaletteResize, this.reader, this.writer);
@@ -218,7 +160,7 @@ public class MCAPalettedContainer<T> implements MCAPaletteResize<T> {
         var3.write(paletteList);
         var0.put(var1, paletteList);
         int var8 = Math.max(4, MCAMth.ceillog2(paletteList.size()));
-        MCABitStorageLongArray var9 = new MCABitStorageLongArray(var8, 4096);
+        MCABitStorage var9 = new MCABitStorage(var8, 4096);
         for (int var10 = 0; var10 < var6.length; var10++) {
             var9.set(var10, var6[var10]);
         }

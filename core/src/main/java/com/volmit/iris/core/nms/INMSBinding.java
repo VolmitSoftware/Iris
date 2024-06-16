@@ -20,8 +20,6 @@ package com.volmit.iris.core.nms;
 
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.IrisBiomeCustom;
-import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.mantle.Mantle;
@@ -116,15 +114,5 @@ public interface INMSBinding {
 
     default DataVersion getDataVersion() {
         return DataVersion.V1192;
-    }
-
-    boolean registerDimension(String name, IrisDimension dimension);
-
-    boolean registerBiome(String dimensionId, IrisBiomeCustom biome, boolean replace);
-
-    void injectBukkit();
-
-    default IHeadless createHeadless(Engine engine) {
-        throw new IllegalStateException("Headless mode not supported");
     }
 }

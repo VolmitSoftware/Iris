@@ -106,7 +106,7 @@ public class ChunkUpdater {
                 try {
                     if (!paused.get()) {
                         long eta = computeETA();
-                        long elapsedSeconds = (System.currentTimeMillis() - startTime.get()) / 3000;
+                        long elapsedSeconds = (System.currentTimeMillis() - startTime.get()) / 1000;
                         int processed = chunksProcessed.get();
                         double cps = elapsedSeconds > 0 ? processed / (double) elapsedSeconds : 0;
                         chunksPerSecond.put(cps);

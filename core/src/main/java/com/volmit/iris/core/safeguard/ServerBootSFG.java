@@ -116,16 +116,16 @@ public class ServerBootSFG {
         safeguardPassed = (severityHigh == 0 && severityMedium == 0 && severityLow == 0);
         count = severityHigh + severityMedium + severityLow;
         if (safeguardPassed) {
-            IrisSafeguard.instance.stablemode = true;
+            stablemode = true;
             Iris.safeguard("Stable mode has been activated.");
         }
         if (!safeguardPassed) {
             if (severityMedium >= 1 && severityHigh == 0) {
-                IrisSafeguard.instance.warningmode = true;
+                warningmode = true;
                 Iris.safeguard("Warning mode has been activated.");
             }
             if (severityHigh >= 1) {
-                IrisSafeguard.instance.unstablemode = true;
+                unstablemode = true;
                 Iris.safeguard("Unstable mode has been activated.");
             }
         }

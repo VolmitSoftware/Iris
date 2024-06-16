@@ -21,6 +21,8 @@ package com.volmit.iris.engine;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.nms.container.BlockPos;
@@ -51,6 +53,7 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -63,6 +66,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Data
 @EqualsAndHashCode(exclude = "context")
@@ -237,6 +242,11 @@ public class IrisEngine implements Engine {
         getTarget().setDimension(getData().getDimensionLoader().load(getDimension().getLoadKey()));
         prehotload();
         setupEngine();
+        J.a(() -> {
+            synchronized (ServerConfigurator.class) {
+                ServerConfigurator.installDataPacks(false);
+            }
+        });
     }
 
     @Override
@@ -274,13 +284,6 @@ public class IrisEngine implements Engine {
     @Override
     public int getGenerated() {
         return generated.get();
-    }
-
-    @Override
-    public void addGenerated() {
-        if (generated.incrementAndGet() == 661) {
-            J.a(() -> getData().savePrefetch(this));
-        }
     }
 
     @Override
@@ -465,7 +468,11 @@ public class IrisEngine implements Engine {
 
             getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.REAL, true);
             getMetrics().getTotal().put(p.getMilliseconds());
-            addGenerated();
+            generated.incrementAndGet();
+
+            if (generated.get() == 661) {
+                J.a(() -> getData().savePrefetch(this));
+            }
         } catch (Throwable e) {
             Iris.reportError(e);
             fail("Failed to generate " + x + ", " + z, e);

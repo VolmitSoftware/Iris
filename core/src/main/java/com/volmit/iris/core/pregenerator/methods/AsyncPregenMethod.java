@@ -82,8 +82,11 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private void completeChunk(int x, int z, PregenListener listener) {
         try {
             future.add(PaperLib.getChunkAtAsync(world, x, z, true).thenApply((i) -> {
-                if (i == null) return 0;
-                lastUse.put(i, M.ms());
+                if (i == null) {
+
+                }
+                Chunk c = Bukkit.getWorld(world.getUID()).getChunkAt(x, z);
+                lastUse.put(c, M.ms());
                 listener.onChunkGenerated(x, z);
                 listener.onChunkCleaned(x, z);
                 return 0;

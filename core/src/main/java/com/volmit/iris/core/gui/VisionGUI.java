@@ -80,7 +80,6 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
     private boolean lowtile = false;
     private boolean follow = false;
     private boolean alt = false;
-    private boolean dragging = false;
     private IrisRenderer renderer;
     private IrisWorld world;
     private double velocity = 0;
@@ -202,7 +201,6 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        dragging = true;
         Point cp = e.getPoint();
         ox += (lx - cp.getX()) * scale;
         oz += (lz - cp.getY()) * scale;
@@ -415,7 +413,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
 
     private double getWorldX(double screenX) {
         //return (mscale * screenX) + ((oxp / scale) * mscale);
-        return (mscale * screenX) + ((oxp / scale) * mscale);
+        return (mscale * screenX) + ((oxp / scale));
     }
 
     private double getWorldZ(double screenZ) {

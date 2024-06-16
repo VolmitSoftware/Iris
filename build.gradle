@@ -1,5 +1,3 @@
-import java.util.function.Consumer
-
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
  * Copyright (c) 2021 Arcane Arts (Volmit Software)
@@ -214,8 +212,6 @@ shadowJar {
         dependsOn(":nms:${it.key}:build")
         from("${project(":nms:${it.key}").layout.buildDirectory.asFile.get()}/libs/${it.key}.jar")
     }
-    NMS_BINDINGS.each {dependsOn(":nms:${it.key}:build")}
-    //dependsOn(':com.volmit.gui:build')
 
     //minimize()
     append("plugin.yml")
@@ -284,10 +280,6 @@ allprojects {
         compileOnly 'rhino:js:1.7R2'
         compileOnly 'com.github.ben-manes.caffeine:caffeine:3.0.6'
         compileOnly 'org.apache.commons:commons-lang3:3.12.0'
-        compileOnly 'net.bytebuddy:byte-buddy:1.14.14'
-        compileOnly 'net.bytebuddy:byte-buddy-agent:1.12.8'
-        compileOnly 'org.bytedeco:javacpp:1.5.10'
-        compileOnly 'org.bytedeco:cuda-platform:12.3-8.9-1.5.10'
     }
 
     /**

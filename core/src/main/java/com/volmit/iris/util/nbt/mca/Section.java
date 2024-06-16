@@ -37,17 +37,12 @@ public class Section {
 
     public Section(CompoundTag sectionRoot, int dataVersion, long loadFlags) {
         data = sectionRoot;
-        //ListTag<?> rawPalette = sectionRoot.getListTag("palette");
-        ListTag<?> rawPalette = sectionRoot.getCompoundTag("biomes").getListTag("palette");
+        ListTag<?> rawPalette = sectionRoot.getListTag("Palette");
         if (rawPalette == null) {
             return;
         }
         palette = INMS.get().createPalette();
-        try {
-            palette.readFromSection(sectionRoot);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        palette.readFromSection(sectionRoot);
         ByteArrayTag blockLight = sectionRoot.getByteArrayTag("BlockLight");
         ByteArrayTag skyLight = sectionRoot.getByteArrayTag("SkyLight");
         this.blockLight = blockLight != null ? blockLight.getValue() : null;

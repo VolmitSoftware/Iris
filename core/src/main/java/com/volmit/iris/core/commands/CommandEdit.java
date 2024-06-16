@@ -19,19 +19,13 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
-import com.volmit.iris.util.decree.specialhandlers.NullableBiomeHandler;
-import com.volmit.iris.util.decree.specialhandlers.NullablePlayerHandler;
-import com.volmit.iris.util.decree.specialhandlers.NullableRegionHandler;
 import com.volmit.iris.util.format.C;
-import org.bukkit.Location;
-import org.bukkit.block.Biome;
 
 import java.awt.*;
 
@@ -57,31 +51,12 @@ public class CommandEdit implements DecreeExecutor {
 
 
     @Decree(description = "Edit the biome you specified", aliases = {"b"}, origin = DecreeOrigin.PLAYER)
-    public void biome(@Param(contextual = false, description = "The biome to edit", defaultValue = "---", customHandler = NullableBiomeHandler.class) IrisBiome biome ) {
+    public void biome(@Param(contextual = false, description = "The biome to edit") IrisBiome biome) {
         if (noStudio()) {
             return;
         }
-        if(biome == null) {
-            try {
-                IrisBiome b = engine().getBiome(player().getLocation().getBlockX(), player().getLocation().getBlockY() - player().getWorld().getMinHeight(), player().getLocation().getBlockZ());
-                Desktop.getDesktop().open(b.getLoadFile());
-                sender().sendMessage(C.GREEN + "Opening " + b.getTypeName() + " " + b.getLoadFile().getName().split("\\Q.\\E")[0] + " in VSCode! ");
-            } catch (Throwable e) {
-                Iris.reportError(e);
-                sender().sendMessage("Non-Iris Biome: " + player().getLocation().getBlock().getBiome().name());
-                if (player().getLocation().getBlock().getBiome().equals(Biome.CUSTOM)) {
-                    try {
-                        sender().sendMessage("Data Pack Biome: " + INMS.get().getTrueBiomeBaseKey(player().getLocation()) + " (ID: " + INMS.get().getTrueBiomeBaseId(INMS.get().getTrueBiomeBase(player().getLocation())) + ")");
-                    } catch (Throwable ee) {
-                        Iris.reportError(ee);
-                    }
-                }
-            }
-            return;
-        }
-
         try {
-            if (biome.getLoadFile() == null) {
+            if (biome == null || biome.getLoadFile() == null) {
                 sender().sendMessage(C.GOLD + "Cannot find the file; Perhaps it was not loaded directly from a file?");
                 return;
             }
@@ -94,18 +69,8 @@ public class CommandEdit implements DecreeExecutor {
     }
 
     @Decree(description = "Edit the region you specified", aliases = {"r"}, origin = DecreeOrigin.PLAYER)
-    public void region(@Param(contextual = false, description = "The region to edit", defaultValue = "---", customHandler = NullableRegionHandler.class) IrisRegion region) {
+    public void region(@Param(contextual = false, description = "The region to edit") IrisRegion region) {
         if (noStudio()) {
-            return;
-        }
-        if(region == null) {
-            try {
-                IrisRegion r = engine().getRegion(player().getLocation().getBlockX(), player().getLocation().getBlockZ());
-                Desktop.getDesktop().open(r.getLoadFile());
-                sender().sendMessage(C.GREEN + "Opening " + r.getTypeName() + " " + r.getLoadFile().getName().split("\\Q.\\E")[0] + " in VSCode! ");
-            } catch (Throwable e) {
-                sender().sendMessage(C.RED + "Failed to get region.");
-            }
             return;
         }
         try {

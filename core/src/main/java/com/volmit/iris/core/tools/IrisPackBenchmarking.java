@@ -2,17 +2,9 @@ package com.volmit.iris.core.tools;
 
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.pregenerator.PregenTask;
-import com.volmit.iris.core.pregenerator.methods.HeadlessPregenMethod;
-import com.volmit.iris.core.pregenerator.methods.HybridPregenMethod;
-import com.volmit.iris.core.service.StudioSVC;
-import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.exceptions.IrisException;
@@ -44,32 +36,28 @@ public class IrisPackBenchmarking {
      public static boolean benchmarkInProgress = false;
      private IrisDimension IrisDimension;
      private int radius;
-     private final boolean headless;
-     private final boolean gui;
      private boolean finished = false;
-     private Engine engine;
     PrecisionStopwatch stopwatch;
 
-    public IrisPackBenchmarking(IrisDimension dimension, int r, boolean headless, boolean gui) {
+    public IrisPackBenchmarking(IrisDimension dimension, int r) {
         instance = this;
         this.IrisDimension = dimension;
         this.radius = r;
-        this.headless = headless;
-        this.gui = gui;
+        runBenchmark();
     }
 
-    public void runBenchmark() {
+    private void runBenchmark() {
         this.stopwatch = new PrecisionStopwatch();
         ExecutorService service = Executors.newSingleThreadExecutor();
         service.submit(() -> {
             Iris.info("Setting up benchmark environment ");
             benchmarkInProgress = true;
-            File file = new File(Bukkit.getWorldContainer(), "benchmark");
+            File file = new File("benchmark");
             if (file.exists()) {
                 deleteDirectory(file.toPath());
             }
-            engine = createBenchmark();
-            while (!headless && !IrisToolbelt.isIrisWorld(Bukkit.getWorld("benchmark"))) {
+            createBenchmark();
+            while (!IrisToolbelt.isIrisWorld(Bukkit.getWorld("benchmark"))) {
                 J.sleep(1000);
                 Iris.debug("Iris PackBenchmark: Waiting...");
             }
@@ -87,6 +75,7 @@ public class IrisPackBenchmarking {
     public void finishedBenchmark(KList<Integer> cps) {
         try {
             String time = Form.duration(stopwatch.getMillis());
+            Engine engine = IrisToolbelt.access(Bukkit.getWorld("benchmark")).getEngine();
             Iris.info("-----------------");
             Iris.info("Results:");
             Iris.info("- Total time: " + time);
@@ -99,8 +88,8 @@ public class IrisPackBenchmarking {
             File profilers = new File("plugins" + File.separator + "Iris" + File.separator + "packbenchmarks");
             profilers.mkdir();
 
-            File results = new File("plugins" + File.separator + "Iris", IrisDimension.getName()  + " " + LocalDateTime.now(Clock.systemDefaultZone()).toString().replace(':', '-') + ".txt");
-            results.getParentFile().mkdirs();
+            File results = new File("plugins " + File.separator + "Iris", IrisDimension.getName() + LocalDateTime.now(Clock.systemDefaultZone()) + ".txt");
+            results.createNewFile();
             KMap<String, Double> metrics = engine.getMetrics().pull();
             try (FileWriter writer = new FileWriter(results)) {
                 writer.write("-----------------\n");
@@ -134,34 +123,15 @@ public class IrisPackBenchmarking {
             e.printStackTrace();
         }
     }
-     private Engine createBenchmark(){
+     private void createBenchmark(){
         try {
-            if (headless) {
-                Iris.info("Using headless benchmark!");
-                IrisWorld world = IrisWorld.builder()
-                        .name("benchmark")
-                        .minHeight(IrisDimension.getMinHeight())
-                        .maxHeight(IrisDimension.getMaxHeight())
-                        .seed(1337)
-                        .worldFolder(new File(Bukkit.getWorldContainer(), "benchmark"))
-                        .environment(IrisDimension.getEnvironment())
-                        .build();
-                Iris.service(StudioSVC.class).installIntoWorld(
-                        Iris.getSender(),
-                        IrisDimension.getLoadKey(),
-                        world.worldFolder());
-                var data = IrisData.get(new File(world.worldFolder(), "iris/pack"));
-                var dim = data.getDimensionLoader().load(IrisDimension.getLoadKey());
-                return new IrisEngine(new EngineTarget(world, dim, data), false);
-            }
-            Iris.info("Using Standard benchmark!");
-            return IrisToolbelt.access(IrisToolbelt.createWorld()
-                    .dimension(IrisDimension.getLoadKey())
+            IrisToolbelt.createWorld()
+                    .dimension(IrisDimension.getName())
                     .name("benchmark")
                     .seed(1337)
                     .studio(false)
                     .benchmark(true)
-                    .create()).getEngine();
+                    .create();
         } catch (IrisException e) {
             throw new RuntimeException(e);
         }
@@ -172,12 +142,12 @@ public class IrisPackBenchmarking {
         int z = 0;
             IrisToolbelt.pregenerate(PregenTask
                     .builder()
-                    .gui(gui)
+                    .gui(false)
                     .center(new Position2(x, z))
                     .width(5)
                     .height(5)
-                    .build(), headless ? new HeadlessPregenMethod(engine) : new HybridPregenMethod(engine.getWorld().realWorld(),
-                 IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())), engine);
+                    .build(), Bukkit.getWorld("benchmark")
+            );
     }
 
     private double calculateAverage(KList<Integer> list) {

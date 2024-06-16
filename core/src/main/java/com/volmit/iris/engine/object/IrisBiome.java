@@ -170,6 +170,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Desc("Collection of ores to be generated")
     @ArrayType(type = IrisOreGenerator.class, min = 1)
     private KList<IrisOreGenerator> ores = new KList<>();
+
     public BlockData generateOres(int x, int y, int z, RNG rng, IrisData data) {
         if (ores.isEmpty()) {
             return null;

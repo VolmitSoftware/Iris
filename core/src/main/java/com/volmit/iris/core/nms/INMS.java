@@ -28,7 +28,8 @@ import java.util.Map;
 public class INMS {
     private static final Map<String, String> REVISION = Map.of(
         "1.20.5", "v1_20_R4",
-        "1.20.6", "v1_20_R4"
+        "1.20.6", "v1_20_R4",
+        "1.21", "v1_21_R1"
     );
     //@done
     private static final INMSBinding binding = bind();

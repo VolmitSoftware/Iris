@@ -3,6 +3,7 @@ package com.volmit.iris.core.nms.v1_20_R1;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
+import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
@@ -27,6 +28,7 @@ import net.minecraft.nbt.TagParser;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -55,6 +57,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import sun.misc.Unsafe;
 
+import java.awt.Color;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -520,6 +523,24 @@ public class NMSBinding implements INMSBinding {
         CustomBiomeSource customBiomeSource = new CustomBiomeSource(seed, engine, world);
         unsafe.putObject(biomeSource.get(serverLevel.getChunkSource().chunkMap.generator), unsafe.objectFieldOffset(biomeSource), customBiomeSource);
         biomeSource.set(serverLevel.getChunkSource().chunkMap.generator, customBiomeSource);
+    }
+
+    @Override
+    public Color getBiomeColor(Location location, BiomeColor type) {
+        LevelReader reader = ((CraftWorld) location.getWorld()).getHandle();
+        var holder = reader.getBiome(new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()));
+        var biome = holder.value();
+        if (biome == null) throw new IllegalArgumentException("Invalid biome: " + holder.unwrapKey().orElse(null));
+
+        int rgba = switch (type) {
+            case FOG -> biome.getFogColor();
+            case WATER -> biome.getWaterColor();
+            case WATER_FOG -> biome.getWaterFogColor();
+            case SKY -> biome.getSkyColor();
+            case FOLIAGE -> biome.getFoliageColor();
+            case GRASS -> biome.getGrassColor(location.getBlockX(), location.getBlockZ());
+        };
+        return new Color(rgba, true);
     }
 
     private static Field getField(Class<?> clazz, Class<?> fieldType) throws NoSuchFieldException {

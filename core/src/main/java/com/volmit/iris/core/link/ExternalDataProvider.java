@@ -1,6 +1,7 @@
 package com.volmit.iris.core.link;
 
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.util.collection.KMap;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
@@ -27,10 +28,19 @@ public abstract class ExternalDataProvider {
 
     public abstract void init();
 
-    public abstract BlockData getBlockData(Identifier blockId) throws MissingResourceException;
+    public BlockData getBlockData(Identifier blockId) throws MissingResourceException {
+        return getBlockData(blockId, new KMap<>());
+    }
 
-    public abstract ItemStack getItemStack(Identifier itemId) throws MissingResourceException;
-    public void processUpdate(Engine engine, Block block, Identifier blockId) {};
+    public abstract BlockData getBlockData(Identifier blockId, KMap<String, String> state) throws MissingResourceException;
+
+    public ItemStack getItemStack(Identifier itemId) throws MissingResourceException {
+        return getItemStack(itemId, new KMap<>());
+    }
+
+    public abstract ItemStack getItemStack(Identifier itemId, KMap<String, Object> customNbt) throws MissingResourceException;
+
+    public void processUpdate(Engine engine, Block block, Identifier blockId) {}
 
     public abstract Identifier[] getBlockTypes();
 

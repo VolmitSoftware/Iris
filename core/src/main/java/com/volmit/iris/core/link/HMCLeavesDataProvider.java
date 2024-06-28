@@ -2,8 +2,10 @@ package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.IrisBlockData;
 import com.volmit.iris.util.reflect.WrappedField;
 import com.volmit.iris.util.reflect.WrappedReturningMethod;
@@ -50,7 +52,7 @@ public class HMCLeavesDataProvider extends ExternalDataProvider {
 	}
 
 	@Override
-	public BlockData getBlockData(Identifier blockId) throws MissingResourceException {
+	public BlockData getBlockData(Identifier blockId, KMap<String, String> state) throws MissingResourceException {
 		Object o = blockDataMap.get(blockId.key());
 		if (o == null)
 			throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
@@ -60,11 +62,11 @@ public class HMCLeavesDataProvider extends ExternalDataProvider {
 		BlockData blockData = Bukkit.createBlockData(material);
 		if (IrisSettings.get().getGenerator().preventLeafDecay && blockData instanceof Leaves leaves)
 			leaves.setPersistent(true);
-		return new IrisBlockData(blockData, blockId);
+		return new IrisBlockData(blockData, ExternalDataSVC.buildState(blockId, state));
 	}
 
 	@Override
-	public ItemStack getItemStack(Identifier itemId) throws MissingResourceException {
+	public ItemStack getItemStack(Identifier itemId, KMap<String, Object> customNbt) throws MissingResourceException {
 		if (!itemDataField.containsKey(itemId.key()))
 			throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());
 		return itemDataField.get(itemId.key()).get();
@@ -72,6 +74,8 @@ public class HMCLeavesDataProvider extends ExternalDataProvider {
 
 	@Override
 	public void processUpdate(Engine engine, Block block, Identifier blockId) {
+		var pair = ExternalDataSVC.parseState(blockId);
+		blockId = pair.getA();
 		Boolean result = setCustomBlock.invoke(apiInstance, new Object[]{block.getLocation(), blockId.key(), false});
 		if (result == null || !result)
 			Iris.warn("Failed to set custom block! " + blockId.key() + " " + block.getX() + " " + block.getY() + " " + block.getZ());

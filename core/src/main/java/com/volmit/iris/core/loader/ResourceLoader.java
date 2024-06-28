@@ -362,7 +362,12 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
             if (folderCache.get() == null) {
                 KList<File> fc = new KList<>();
 
-                for (File i : root.listFiles()) {
+                File[] files = root.listFiles();
+                if (files == null) {
+                    throw new IllegalStateException("Failed to list files in " + root);
+                }
+
+                for (File i : files) {
                     if (i.isDirectory()) {
                         if (i.getName().equals(folderName)) {
                             fc.add(i);

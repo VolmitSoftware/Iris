@@ -3,6 +3,7 @@ package com.volmit.iris.core.link;
 import com.ssomar.score.api.executableitems.ExecutableItemsAPI;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 
@@ -20,12 +21,12 @@ public class ExecutableItemsDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public BlockData getBlockData(Identifier blockId) throws MissingResourceException {
+    public BlockData getBlockData(Identifier blockId, KMap<String, String> state) throws MissingResourceException {
         throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
     }
 
     @Override
-    public ItemStack getItemStack(Identifier itemId) throws MissingResourceException {
+    public ItemStack getItemStack(Identifier itemId, KMap<String, Object> customNbt) throws MissingResourceException {
         return ExecutableItemsAPI.getExecutableItemsManager().getExecutableItem(itemId.key())
                 .map(item -> item.buildItem(1, Optional.empty()))
                 .orElseThrow(() -> new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key()));

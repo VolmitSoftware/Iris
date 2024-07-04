@@ -220,6 +220,8 @@ public class IrisDimension extends IrisRegistrant {
     @ArrayType(min = 1, type = IrisJigsawStructurePlacement.class)
     @Desc("Jigsaw structures")
     private KList<IrisJigsawStructurePlacement> jigsawStructures = new KList<>();
+    @Desc("The jigsaw structure divisor to use when generating missing jigsaw placement values")
+    private double jigsawStructureDivisor = 18;
     @Required
     @MinNumber(0)
     @MaxNumber(1024)

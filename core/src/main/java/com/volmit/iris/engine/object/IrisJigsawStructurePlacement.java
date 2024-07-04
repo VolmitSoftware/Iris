@@ -88,21 +88,21 @@ public class IrisJigsawStructurePlacement implements IRare {
         return (int) Math.ceil(blocks / 16d);
     }
 
-    private void calculateMissing(long seed) {
+    private void calculateMissing(double divisor, long seed) {
         seed = seed + hashCode();
         if (salt == 0) {
             salt = new RNG(seed).nextLong(Integer.MIN_VALUE, Integer.MAX_VALUE);
         }
 
         if (separation == -1 || spacing == -1) {
-            separation = (int) Math.round(rarity / 15d);
+            separation = (int) Math.round(rarity / divisor);
             spacing = new RNG(seed).nextInt(separation, separation * 2);
         }
     }
 
     @ChunkCoordinates
-    public boolean shouldPlace(long seed, int x, int z) {
-        calculateMissing(seed);
+    public boolean shouldPlace(double divisor, long seed, int x, int z) {
+        calculateMissing(divisor, seed);
         if (separation > spacing) {
             separation = spacing;
             Iris.warn("JigsawStructurePlacement: separation must be less than or equal to spacing");

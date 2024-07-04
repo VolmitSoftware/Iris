@@ -44,10 +44,10 @@ public class ModesSFG {
             Iris.info(C.DARK_RED + "ATTENTION: " + C.RED + "While running Iris in unstable mode, you won't be eligible for support.");
             Iris.info(C.DARK_RED + "CAUSE: " + C.RED + UtilsSFG.MSGIncompatibleWarnings());
 
-            if (IrisSettings.get().getGeneral().ignoreBootMode) {
+            if (IrisSettings.get().getGeneral().DoomsdayAnnihilationSelfDestructMode) {
                 Iris.info(C.DARK_RED + "Boot Unstable is set to true, continuing with the startup process.");
             } else {
-                Iris.info(C.DARK_RED + "Go to plugins/iris/settings.json and set ignoreBootMode to true if you wish to proceed.");
+                Iris.info(C.DARK_RED + "Go to plugins/iris/settings.json and set DoomsdayAnnihilationSelfDestructMode to true if you wish to proceed.");
                 while (true) {
                     try {
                         Thread.sleep(1000);

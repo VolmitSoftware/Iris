@@ -20,10 +20,9 @@ package com.volmit.iris.util.nbt.mca.palette;
 
 import org.apache.commons.lang3.Validate;
 
-import java.util.BitSet;
 import java.util.function.IntConsumer;
 
-public class MCABitStorageLongArray {
+public class MCABitStorage {
     private static final int[] MAGIC = new int[]{
             -1, -1, 0, Integer.MIN_VALUE, 0, 0, 1431655765, 1431655765, 0, Integer.MIN_VALUE,
             0, 1, 858993459, 858993459, 0, 715827882, 715827882, 0, 613566756, 613566756,
@@ -62,11 +61,11 @@ public class MCABitStorageLongArray {
 
     private final int divideShift;
 
-    public MCABitStorageLongArray(int bits, int length) {
+    public MCABitStorage(int bits, int length) {
         this(bits, length, null);
     }
 
-    public MCABitStorageLongArray(int bits, int length, long[] data) {
+    public MCABitStorage(int bits, int length, long[] data) {
         Validate.inclusiveBetween(1L, 32L, bits);
         this.size = length;
         this.bits = bits;

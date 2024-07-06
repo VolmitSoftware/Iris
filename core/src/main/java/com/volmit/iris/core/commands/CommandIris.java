@@ -24,7 +24,6 @@ import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.core.pregenerator.ChunkUpdater;
-import com.volmit.iris.core.safeguard.IrisSafeguard;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -44,7 +43,6 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
-import io.lumine.mythic.bukkit.adapters.BukkitPlayer;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.Difficulty;
@@ -67,6 +65,7 @@ import java.util.List;
 import static com.volmit.iris.Iris.service;
 import static com.volmit.iris.core.service.EditSVC.deletingWorld;
 import static com.volmit.iris.core.tools.IrisBenchmarking.inProgress;
+import static com.volmit.iris.core.safeguard.IrisSafeguard.unstablemode;
 import static com.volmit.iris.core.safeguard.ServerBootSFG.incompatibilities;
 import static org.bukkit.Bukkit.getServer;
 
@@ -99,7 +98,24 @@ public class CommandIris implements DecreeExecutor {
             @Param(description = "If it should convert the dimension to match the vanilla height system.", defaultValue = "false")
             boolean vanillaheight
     ) {
-
+        if(sender() instanceof Player) {
+            if (incompatibilities.get("Multiverse-Core")) {
+                sender().sendMessage(C.RED + "Your server has an incompatibility that may corrupt all worlds on the server if not handled properly.");
+                sender().sendMessage(C.RED + "it is strongly advised for you to take action. see log for full detail");
+                sender().sendMessage(C.RED + "----------------------------------------------------------------");
+                sender().sendMessage(C.RED + "Command ran: /iris create");
+                sender().sendMessage(C.RED + UtilsSFG.MSGIncompatibleWarnings());
+                sender().sendMessage(C.RED + "----------------------------------------------------------------");
+            }
+            if (unstablemode && !incompatibilities.get("Multiverse-Core")) {
+                sender().sendMessage(C.RED + "Your server is experiencing an incompatibility with the Iris plugin.");
+                sender().sendMessage(C.RED + "Please rectify this problem to avoid further complications.");
+                sender().sendMessage(C.RED + "----------------------------------------------------------------");
+                sender().sendMessage(C.RED + "Command ran: /iris create");
+                sender().sendMessage(C.RED + UtilsSFG.MSGIncompatibleWarnings());
+                sender().sendMessage(C.RED + "----------------------------------------------------------------");
+            }
+        }
             if (name.equals("iris")) {
                 sender().sendMessage(C.RED + "You cannot use the world name \"iris\" for creating worlds as Iris uses this directory for studio worlds.");
                 sender().sendMessage(C.RED + "May we suggest the name \"IrisWorld\" instead?");

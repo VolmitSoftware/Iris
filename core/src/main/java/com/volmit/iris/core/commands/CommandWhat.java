@@ -88,7 +88,8 @@ public class CommandWhat implements DecreeExecutor {
     @Decree(description = "What region am i in?", origin = DecreeOrigin.PLAYER)
     public void region() {
         try {
-            IrisRegion r = engine().getRegion(player().getLocation());
+            Chunk chunk = world().getChunkAt(player().getLocation().getBlockZ() / 16, player().getLocation().getBlockZ() /  16);
+            IrisRegion r = engine().getRegion(chunk);
             sender().sendMessage("IRegion: " + r.getLoadKey() + " (" + r.getName() + ")");
 
         } catch (Throwable e) {

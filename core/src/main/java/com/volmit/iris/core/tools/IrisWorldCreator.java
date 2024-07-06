@@ -19,7 +19,6 @@
 package com.volmit.iris.core.tools;
 
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import org.bukkit.Bukkit;
@@ -85,9 +84,6 @@ public class IrisWorldCreator {
                 ? dim.getLoader().getDataFolder() :
                 new File(w.worldFolder(), "iris/pack"), dimensionName, smartVanillaHeight);
 
-        if (!INMS.get().registerDimension(name, dim)) {
-            throw new IllegalStateException("Unable to register dimension " + dim.getName());
-        }
 
         return new WorldCreator(name)
                 .environment(findEnvironment())

@@ -156,7 +156,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
     @ChunkCoordinates
     private IrisJigsawStructurePlacement pick(List<IrisJigsawStructurePlacement> structures, long seed, int x, int z) {
         return IRare.pick(structures.stream()
-                .filter(p -> p.shouldPlace(jigsaw(), x, z))
+                .filter(p -> p.shouldPlace(getDimension().getJigsawStructureDivisor(), jigsaw(), x, z))
                 .toList(), new RNG(seed).nextDouble());
     }
 

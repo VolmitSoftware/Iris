@@ -577,8 +577,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     int getGenerated();
 
-    void addGenerated();
-
     default <T> IrisPosition lookForStreamResult(T find, ProceduralStream<T> stream, Function2<T, T, Boolean> matcher, long timeout) {
         AtomicInteger checked = new AtomicInteger();
         AtomicLong time = new AtomicLong(M.ms());

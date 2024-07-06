@@ -18,10 +18,7 @@
 
 package com.volmit.iris.util.nbt.mca.palette;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.util.nbt.tag.ByteArrayTag;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
-import com.volmit.iris.util.nbt.tag.LongArrayTag;
 import lombok.RequiredArgsConstructor;
 
 import java.util.function.Function;
@@ -45,22 +42,6 @@ public class MCAWrappedPalettedContainer<T> implements MCAPaletteAccess {
     }
 
     public void readFromSection(CompoundTag tag) {
-        //   container.read(tag.getCompoundTag("block_states").getListTag("palette"), tag.getCompoundTag("block_states").getLongArrayTag("data").getValue());
-        CompoundTag blockStates = tag.getCompoundTag("block_states");
-        if (blockStates == null) {
-            throw new IllegalArgumentException("block_states tag is missing");
-        }
-        LongArrayTag longData = blockStates.getLongArrayTag("data");
-        if (longData != null && longData.getValue() != null) {
-            container.read(tag.getCompoundTag("block_states").getListTag("palette"), tag.getCompoundTag("block_states").getLongArrayTag("data").getValue());
-        } else {
-            ByteArrayTag byteData = blockStates.getByteArrayTag("data");
-            if (byteData == null) {
-                container.read(tag.getCompoundTag("block_states").getListTag("palette"));
-            } else {
-                throw new IllegalArgumentException("No palette data tag found or data value is null");
-            }
-        }
+        container.read(tag.getListTag("Palette"), tag.getLongArrayTag("BlockStates").getValue());
     }
-
 }

@@ -22,6 +22,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.pack.IrisPack;
 import com.volmit.iris.core.project.IrisProject;
@@ -295,6 +296,7 @@ public class StudioSVC implements IrisService {
         }
 
         sender.sendMessage("Successfully Aquired " + d.getName());
+        ServerConfigurator.installDataPacks(true);
     }
 
     public KMap<String, String> getListing(boolean cached) {

@@ -22,8 +22,12 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+plugins {
+    id "org.gradle.toolchains.foojay-resolver-convention" version "0.8.0"
+}
+
 rootProject.name = 'Iris'
-//include 'app', 'com.volmit.gui'
+
 include(':core')
 include(
         ':nms:v1_20_R4',

@@ -20,7 +20,9 @@ package com.volmit.iris.util.nbt.mca;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.tools.IrisWorldDump;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.nbt.io.NBTDeserializer;
 import com.volmit.iris.util.nbt.io.NBTSerializer;
 import com.volmit.iris.util.nbt.io.NamedTag;
@@ -57,6 +59,8 @@ public class Chunk {
     private ListTag<ListTag<?>> postProcessing;
     private String status;
     private CompoundTag structures;
+    private int d;
+    private int f;
 
     Chunk(int lastMCAUpdate) {
         this.lastMCAUpdate = lastMCAUpdate;
@@ -69,6 +73,8 @@ public class Chunk {
      */
     public Chunk(CompoundTag data) {
         this.data = data;
+        d = 0;
+        f = 0;
         initReferences(ALL_DATA);
         setStatus("full");
     }
@@ -150,8 +156,8 @@ public class Chunk {
         if ((loadFlags & STRUCTURES) != 0) {
             structures = level.getCompoundTag("Structures");
         }
-        if ((loadFlags & (BLOCK_LIGHTS | BLOCK_STATES | SKY_LIGHT)) != 0 && level.containsKey("Sections")) {
-            for (CompoundTag section : level.getListTag("Sections").asCompoundTagList()) {
+        if ((loadFlags & (BLOCK_LIGHTS | BLOCK_STATES | SKY_LIGHT)) != 0 && level.containsKey("sections")) {
+            for (CompoundTag section : level.getListTag("sections").asCompoundTagList()) {
                 int sectionIndex = section.getByte("Y");
                 if (sectionIndex > 15 || sectionIndex < 0) {
                     continue;

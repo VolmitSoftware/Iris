@@ -27,7 +27,7 @@ plugins {
 }
 
 rootProject.name = 'Iris'
-
+//include 'app', 'com.volmit.gui'
 include(':core')
 include(
         ':nms:v1_20_R4',

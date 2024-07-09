@@ -39,6 +39,10 @@ public class IrisSeaFloorDecorator extends IrisEngineDecorator {
 
         if (decorator != null) {
             if (!decorator.isStacking()) {
+                if (!decorator.isForcePlace() && !decorator.getSlopeCondition().isDefault()
+                        && !decorator.getSlopeCondition().isValid(getComplex().getSlopeStream().get(realX, realZ))) {
+                    return;
+                }
                 if (height >= 0 || height < getEngine().getHeight()) {
                     if (null != decorator.getBlockDataForTop(biome, getRng(), realX, height, realZ, getData())) {
                         data.set(x, height, z, decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData()));

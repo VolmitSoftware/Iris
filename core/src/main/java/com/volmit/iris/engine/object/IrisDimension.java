@@ -244,7 +244,7 @@ public class IrisDimension extends IrisRegistrant {
     @MinNumber(0.0001)
     @MaxNumber(512)
     @Desc("Zoom in or out the biome size. Higher = bigger biomes")
-    private double biomeZoom = 5D;
+    private double biomeZoom = 1D;
     @MinNumber(0)
     @MaxNumber(360)
     @Desc("You can rotate the input coordinates by an angle. This can make terrain appear more natural (less sharp corners and lines). This literally rotates the entire dimension by an angle. Hint: Try 12 degrees or something not on a 90 or 45 degree angle.")

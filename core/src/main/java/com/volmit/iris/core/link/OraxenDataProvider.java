@@ -147,6 +147,7 @@ public class OraxenDataProvider extends ExternalDataProvider {
 
             if (type != null) {
                 var biomeColor = INMS.get().getBiomeColor(block.getLocation(), type);
+                if (biomeColor == null) return;
                 var potionColor = Color.fromARGB(biomeColor.getAlpha(), biomeColor.getRed(), biomeColor.getGreen(), biomeColor.getBlue());
                 if (itemStack.getItemMeta() instanceof PotionMeta meta) {
                     meta.setColor(potionColor);

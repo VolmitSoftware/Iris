@@ -538,6 +538,12 @@ public class NMSBinding implements INMSBinding {
             case FOLIAGE -> biome.getFoliageColor();
             case GRASS -> biome.getGrassColor(location.getBlockX(), location.getBlockZ());
         };
+        if (rgba == 0) {
+            if (BiomeColor.FOLIAGE == type && biome.getSpecialEffects().getFoliageColorOverride().isEmpty())
+                return null;
+            if (BiomeColor.GRASS == type && biome.getSpecialEffects().getGrassColorOverride().isEmpty())
+                return null;
+        }
         return new Color(rgba, true);
     }
 

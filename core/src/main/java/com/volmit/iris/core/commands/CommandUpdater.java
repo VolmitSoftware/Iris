@@ -30,13 +30,13 @@ import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 
-@Decree(name = "Updater", origin = DecreeOrigin.BOTH, description = "Iris World Updater")
+@Decree(name = "updater", origin = DecreeOrigin.BOTH, description = "Iris World Updater")
 public class CommandUpdater implements DecreeExecutor {
     private ChunkUpdater chunkUpdater;
 
     @Decree(description = "Updates all chunk in the specified world")
     public void start(
-            @Param(description = "World to update chunks at")
+            @Param(description = "World to update chunks at", contextual = true)
             World world
     ) {
         if (!IrisToolbelt.isIrisWorld(world)) {

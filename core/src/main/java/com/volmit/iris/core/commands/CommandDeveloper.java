@@ -74,6 +74,7 @@ import java.util.zip.GZIPOutputStream;
 @Decree(name = "Developer", origin = DecreeOrigin.BOTH, description = "Iris World Manager", aliases = {"dev"})
 public class CommandDeveloper implements DecreeExecutor {
     private CommandTurboPregen turboPregen;
+    private CommandUpdater updater;
 
     @Decree(description = "Get Loaded TectonicPlates Count", origin = DecreeOrigin.BOTH, sync = true)
     public void EngineStatus() {
@@ -163,18 +164,6 @@ public class CommandDeveloper implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Upgrading to " + version.getVersion() + "...");
         ServerConfigurator.installDataPacks(version.get(), false);
         sender().sendMessage(C.GREEN + "Done upgrading! You can now update your server version to " + version.getVersion());
-    }
-
-    @Decree(description = "Test")
-    public void updater(
-            @Param(description = "Updater for chunks")
-            World world
-    ) {
-        Iris.info("test");
-        ChunkUpdater updater = new ChunkUpdater(world);
-        updater.start();
-
-
     }
 
     @Decree(description = "test")

@@ -16,6 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+buildscript() {
+    repositories {
+        maven { url 'https://jitpack.io'}
+    }
+    dependencies {
+        classpath 'com.github.VolmitSoftware:NMSTools:1.0.0'
+    }
+}
+
 plugins {
     id 'java'
     id 'java-library'
@@ -24,7 +33,6 @@ plugins {
 }
 
 version '3.3.1-1.19.2-1.20.6'
-def specialSourceVersion = '1.11.4' //[NMS]
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================
@@ -54,164 +62,26 @@ def NMS_BINDINGS = Map.of(
 def JVM_VERSION = Map.of(
         "v1_20_R4", 21,
 )
-NMS_BINDINGS.each {
-    def key = it.key
-    def value = it.value
-    def nms =  value.split("-")[0];
-    project(":nms:${key}") {
+NMS_BINDINGS.each { nms ->
+    project(":nms:${nms.key}") {
         apply plugin: 'java'
-        apply plugin: 'java-library'
-        apply plugin: 'de.undercouch.download'
+        apply plugin: 'com.volmit.nmstools'
+
+        nmsTools {
+            it.jvm = JVM_VERSION.getOrDefault(nms.key, 17)
+            it.version = nms.value
+        }
 
         dependencies {
             implementation project(":core")
-            compileOnly "org.spigotmc:spigot-api:${value}"
-            compileOnly "org.bukkit:craftbukkit:${value}:remapped-mojang" //[NMS]
-        }
-        def buildToolsJar = new File(rootProject.layout.buildDirectory.asFile.get(), "tools/BuildTools.jar")
-        def specialSourceJar = new File(rootProject.layout.buildDirectory.asFile.get(), "tools/SpecialSource.jar")
-
-        def buildDir = layout.buildDirectory.asFile.get();
-        def buildToolsFolder = new File(buildDir, "buildtools")
-        def specialSourceFolder = new File(buildDir, "specialsource")
-        def buildToolsHint = new File(buildDir, "buildtools/craftbukkit-" + nms + ".jar")
-
-        def outputJar = new File(buildDir, "libs/${key}.jar")
-        def ssiJar = new File(buildDir, "specialsource/${key}.jar")
-        def ssobfJar = new File(buildDir, "specialsource/${key}-rmo.jar")
-        def ssJar = new File(buildDir, "specialsource/${key}-rma.jar")
-
-        def homePath = System.properties['user.home']
-        def m2 = new File(homePath + "/.m2/repository")
-        def m2s = m2.getAbsolutePath();
-
-        // ======================== Building Mapped Jars =============================
-        def targetJavaVersion = JVM_VERSION.getOrDefault(key, 17)
-        def javaVersion = JavaVersion.toVersion(targetJavaVersion)
-        def javaLanguageVersion = JavaLanguageVersion.of(targetJavaVersion)
-        project.java.sourceCompatibility = javaVersion
-        project.java.targetCompatibility = javaVersion
-        project.java.toolchain.languageVersion = javaLanguageVersion
-        def launcher = javaToolchains.launcherFor(java.toolchain).get()
-        def javaHome = launcher.executablePath.getAsFile().parentFile.parentFile.getAbsolutePath()
-
-        tasks.withType(JavaCompile).configureEach {
-            options.release.set(targetJavaVersion)
-        }
-
-        tasks.withType(JavaExec).configureEach {
-            javaLauncher.set(launcher)
-        }
-
-        ext {
-            executeBuildTools = new Runnable() {
-                @Override
-                void run() {
-                    //Download
-                    if (!buildToolsJar.exists()) {
-                        download.run {
-                            src 'https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar'
-                            dest buildToolsJar
-                        }
-                    }
-
-                    //Execute
-                    if (!buildToolsHint.exists()) {
-                        buildToolsFolder.mkdirs()
-                        project.javaexec {
-                            executable = launcher.executablePath
-                            classpath = files(buildToolsJar)
-                            workingDir = buildToolsFolder
-                            args = [
-                                    "--rev",
-                                    nms,
-                                    "--compile",
-                                    "craftbukkit",
-                                    "--remap"
-                            ]
-                            def env = new HashMap(environment)
-                            env.put("JAVA_HOME", javaHome)
-                            environment = env
-                        }
-                    }
-                }
-            }
-        }
-
-        tasks.build.doLast {
-            //Download
-            if (!specialSourceJar.exists()) {
-                download.run {
-                    src 'https://repo.maven.apache.org/maven2/net/md-5/SpecialSource/' + specialSourceVersion + '/SpecialSource-'+specialSourceVersion+'-shaded.jar'
-                    dest specialSourceJar
-                }
-            }
-            specialSourceFolder.mkdirs();
-
-            //Copy
-            copy {
-                from outputJar
-                into specialSourceFolder
-            }
-
-            //obfuscate
-            javaexec {
-                executable = launcher.executablePath
-                workingDir = specialSourceFolder
-                classpath = files(specialSourceJar,
-                        new File(m2s + "/org/spigotmc/spigot/" + value + "/spigot-" + value + "-remapped-mojang.jar"))
-                mainClass = "net.md_5.specialsource.SpecialSource"
-                args = [
-                        "--live",
-                        "-i",
-                        ssiJar.getName(),
-                        "-o",
-                        ssobfJar.getName(),
-                        "-m",
-                        m2s + "/org/spigotmc/minecraft-server/" + value + "/minecraft-server-" + value + "-maps-mojang.txt",
-                        "--reverse",
-                ]
-                def env = new HashMap(environment)
-                env.put("JAVA_HOME", javaHome)
-                environment = env
-            }
-
-            //remap
-            javaexec {
-                executable = launcher.executablePath
-                workingDir = specialSourceFolder
-                classpath = files(specialSourceJar,
-                        new File(m2s + "/org/spigotmc/spigot/" + value + "/spigot-" + value + "-remapped-obf.jar"))
-                mainClass = "net.md_5.specialsource.SpecialSource"
-                args = [
-                        "--live",
-                        "-i",
-                        ssobfJar.getName(),
-                        "-o",
-                        ssJar.getName(),
-                        "-m",
-                        m2s + "/org/spigotmc/minecraft-server/" + value + "/minecraft-server-" + value + "-maps-spigot.csrg"
-                ]
-                def env = new HashMap(environment)
-                env.put("JAVA_HOME", javaHome)
-                environment = env
-            }
-            //copy
-            copy {
-                from ssJar
-                into outputJar.getParentFile()
-                rename {
-                    outputJar.getName()
-                }
-            }
         }
     }
 }
 
 shadowJar {
     NMS_BINDINGS.each {
-        dependsOn(":nms:${it.key}:build")
-        from("${project(":nms:${it.key}").layout.buildDirectory.asFile.get()}/libs/${it.key}.jar")
+        dependsOn(":nms:${it.key}:remap")
+        from("${project(":nms:${it.key}").layout.buildDirectory.asFile.get()}/libs/${it.key}-mapped.jar")
     }
 
     //minimize()
@@ -235,12 +105,6 @@ allprojects {
     apply plugin: 'java'
 
     repositories {
-        mavenLocal {
-            content {
-                includeGroup("org.bukkit")
-                includeGroup("org.spigotmc")
-            }
-        }
         mavenCentral()
         maven { url "https://repo.papermc.io/repository/maven-public/"}
         maven { url "https://repo.codemc.org/repository/maven-public" }
@@ -316,31 +180,6 @@ task iris(type: Copy) {
     from new File(layout.buildDirectory.asFile.get(), "libs/Iris-${version}.jar")
     into layout.buildDirectory.asFile.get()
     dependsOn(build)
-}
-
-task setup() {
-    group "iris"
-    dependsOn(clean)
-    NMS_BINDINGS.each {
-        dependsOn(":nms:${it.key}:clean");
-    }
-
-    doLast {
-        NMS_BINDINGS.each {
-            project(":nms:${it.key}").property("executeBuildTools").run();
-        }
-    }
-}
-
-NMS_BINDINGS.keySet().forEach {
-    def nms = it
-    tasks.register("setup-${nms}") {
-        group "iris"
-        dependsOn(":nms:${nms}:clean")
-        doLast {
-            project(":nms:${nms}").property("executeBuildTools").run();
-        }
-    }
 }
 
 def registerCustomOutputTask(name, path) {

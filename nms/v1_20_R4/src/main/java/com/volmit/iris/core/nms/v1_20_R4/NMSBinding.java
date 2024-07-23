@@ -1,5 +1,6 @@
 package com.volmit.iris.core.nms.v1_20_R4;
 
+import java.awt.Color;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -12,9 +13,11 @@ import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
@@ -522,6 +525,30 @@ public class NMSBinding implements INMSBinding {
     @Override
     public Entity spawnEntity(Location location,  org.bukkit.entity.EntityType type, CreatureSpawnEvent.SpawnReason reason) {
         return ((CraftWorld) location.getWorld()).spawn(location, type.getEntityClass(), null, reason);
+    }
+
+    @Override
+    public Color getBiomeColor(Location location, BiomeColor type) {
+        LevelReader reader = ((CraftWorld) location.getWorld()).getHandle();
+        var holder = reader.getBiome(new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()));
+        var biome = holder.value();
+        if (biome == null) throw new IllegalArgumentException("Invalid biome: " + holder.unwrapKey().orElse(null));
+
+        int rgba = switch (type) {
+            case FOG -> biome.getFogColor();
+            case WATER -> biome.getWaterColor();
+            case WATER_FOG -> biome.getWaterFogColor();
+            case SKY -> biome.getSkyColor();
+            case FOLIAGE -> biome.getFoliageColor();
+            case GRASS -> biome.getGrassColor(location.getBlockX(), location.getBlockZ());
+        };
+        if (rgba == 0) {
+            if (BiomeColor.FOLIAGE == type && biome.getSpecialEffects().getFoliageColorOverride().isEmpty())
+                return null;
+            if (BiomeColor.GRASS == type && biome.getSpecialEffects().getGrassColorOverride().isEmpty())
+                return null;
+        }
+        return new Color(rgba, true);
     }
 
     private static Field getField(Class<?> clazz, Class<?> fieldType) throws NoSuchFieldException {

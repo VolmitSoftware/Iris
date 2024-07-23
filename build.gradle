@@ -39,6 +39,7 @@ registerCustomOutputTask('Pixel', 'C://Users/repix/Iris Dimension Engine/1.20.4 
 // ========================== UNIX ==============================
 registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/development/server/plugins')
 registerCustomOutputTaskUnix('PsychoLT', '/Volumes/PRO-G40/Minecraft/MinecraftDevelopment/Server/plugins')
+registerCustomOutputTaskUnix('CrazyDev22LT', '/home/julian/Desktop/server/plugins')
 // ==============================================================
 
 def NMS_BINDINGS = Map.of(
@@ -251,6 +252,7 @@ allprojects {
         maven { url "https://repo.triumphteam.dev/snapshots" }
         maven { url "https://repo.mineinabyss.com/releases" }
         maven { url 'https://hub.jeff-media.com/nexus/repository/jeff-media-public/' }
+        maven { url "https://repo.oraxen.com/releases" }
     }
 
     dependencies {

@@ -2,6 +2,7 @@ package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.reflect.WrappedField;
 import com.willfp.ecoitems.items.EcoItem;
 import com.willfp.ecoitems.items.EcoItems;
@@ -33,12 +34,12 @@ public class EcoItemsDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public BlockData getBlockData(Identifier blockId) throws MissingResourceException {
+    public BlockData getBlockData(Identifier blockId, KMap<String, String> state) throws MissingResourceException {
         throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
     }
 
     @Override
-    public ItemStack getItemStack(Identifier itemId) throws MissingResourceException {
+    public ItemStack getItemStack(Identifier itemId, KMap<String, Object> customNbt) throws MissingResourceException {
         EcoItem item = EcoItems.INSTANCE.getByID(itemId.key());
         if (item == null) throw new MissingResourceException("Failed to find Item!", itemId.namespace(), itemId.key());
         return itemStack.get(item).clone();

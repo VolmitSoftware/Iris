@@ -20,8 +20,10 @@ package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.link.*;
+import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.plugin.IrisService;
 import lombok.Data;
 import org.bukkit.Bukkit;
@@ -31,8 +33,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.MissingResourceException;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Data
 public class ExternalDataSVC implements IrisService {
@@ -93,26 +95,29 @@ public class ExternalDataSVC implements IrisService {
         }
     }
 
-    public Optional<BlockData> getBlockData(Identifier key) {
-        Optional<ExternalDataProvider> provider = activeProviders.stream().filter(p -> p.isValidProvider(key, false)).findFirst();
+    public Optional<BlockData> getBlockData(final Identifier key) {
+        var pair = parseState(key);
+        Identifier mod = pair.getA();
+
+        Optional<ExternalDataProvider> provider = activeProviders.stream().filter(p -> p.isValidProvider(mod, false)).findFirst();
         if (provider.isEmpty())
             return Optional.empty();
         try {
-            return Optional.of(provider.get().getBlockData(key));
+            return Optional.of(provider.get().getBlockData(mod, pair.getB()));
         } catch (MissingResourceException e) {
             Iris.error(e.getMessage() + " - [" + e.getClassName() + ":" + e.getKey() + "]");
             return Optional.empty();
         }
     }
 
-    public Optional<ItemStack> getItemStack(Identifier key) {
+    public Optional<ItemStack> getItemStack(Identifier key, KMap<String, Object> customNbt) {
         Optional<ExternalDataProvider> provider = activeProviders.stream().filter(p -> p.isValidProvider(key, true)).findFirst();
         if (provider.isEmpty()) {
             Iris.warn("No matching Provider found for modded material \"%s\"!", key);
             return Optional.empty();
         }
         try {
-            return Optional.of(provider.get().getItemStack(key));
+            return Optional.of(provider.get().getItemStack(key, customNbt));
         } catch (MissingResourceException e) {
             Iris.error(e.getMessage() + " - [" + e.getClassName() + ":" + e.getKey() + "]");
             return Optional.empty();
@@ -138,5 +143,28 @@ public class ExternalDataSVC implements IrisService {
         KList<Identifier> names = new KList<>();
         activeProviders.forEach(p -> names.add(p.getItemTypes()));
         return names.toArray(new Identifier[0]);
+    }
+
+    public static Pair<Identifier, KMap<String, String>> parseState(Identifier key) {
+        if (!key.key().contains("[") || !key.key().contains("]")) {
+            return new Pair<>(key, new KMap<>());
+        }
+        String state = key.key().split("\\Q[\\E")[1].split("\\Q]\\E")[0];
+        KMap<String, String> stateMap = new KMap<>();
+        if (!state.isEmpty()) {
+            Arrays.stream(state.split(",")).forEach(s -> stateMap.put(s.split("=")[0], s.split("=")[1]));
+        }
+        return new Pair<>(new Identifier(key.namespace(), key.key().split("\\Q[\\E")[0]), stateMap);
+    }
+
+    public static Identifier buildState(Identifier key, KMap<String, String> state) {
+        if (state.isEmpty()) {
+            return key;
+        }
+        String path = state.entrySet()
+                .stream()
+                .map(e -> e.getKey() + "=" + e.getValue())
+                .collect(Collectors.joining(",", key.key() + "[", "]"));
+        return new Identifier(key.namespace(), path);
     }
 }

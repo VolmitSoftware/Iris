@@ -318,7 +318,7 @@ public class WandSVC implements IrisService {
         Vector gx = Vector.getRandom().subtract(Vector.getRandom()).normalize().clone().multiply(0.65);
         d[0].getWorld().spawnParticle(CRIT_MAGIC, d[0], 1, 0.5 + gx.getX(), 0.5 + gx.getY(), 0.5 + gx.getZ(), 0, null, false);
         Vector gxx = Vector.getRandom().subtract(Vector.getRandom()).normalize().clone().multiply(0.65);
-        d[1].getWorld().spawnParticle(Particle.CRIT, d[1], 1, 0.5 + gxx.getX(), 0.5 + gxx.getY(), 0.5 + gxx.getZ(), 0, null, false);
+        d[1].getWorld().spawnParticle(CRIT_MAGIC, d[1], 1, 0.5 + gxx.getX(), 0.5 + gxx.getY(), 0.5 + gxx.getZ(), 0, null, false);
 
         if (!d[0].getWorld().equals(d[1].getWorld())) {
             return;
@@ -388,7 +388,7 @@ public class WandSVC implements IrisService {
         if (e.getHand() != EquipmentSlot.HAND)
             return;
         try {
-            if (isHoldingWand(e.getPlayer())) {
+            if (isHoldingIrisWand(e.getPlayer())) {
                 if (e.getAction().equals(Action.LEFT_CLICK_BLOCK)) {
                     e.setCancelled(true);
                     e.getPlayer().getInventory().setItemInMainHand(update(true, Objects.requireNonNull(e.getClickedBlock()).getLocation(), e.getPlayer().getInventory().getItemInMainHand()));

@@ -59,6 +59,10 @@ public class IrisLootTable extends IrisRegistrant {
     @Desc("The minimum amount of loot that can be picked in this table at a time.")
     private int minPicked = 1;
 
+    @MinNumber(1)
+    @Desc("The maximum amount of tries to generate loot")
+    private int maxTries = 10;
+
     @Desc("The loot in this table")
     @ArrayType(min = 1, type = IrisLoot.class)
     private KList<IrisLoot> loot = new KList<>();
@@ -67,9 +71,10 @@ public class IrisLootTable extends IrisRegistrant {
         KList<ItemStack> lootf = new KList<>();
 
         int m = 0;
+        int c = 0;
         int mx = rng.i(getMinPicked(), getMaxPicked());
 
-        while (m < mx) {
+        while (m < mx && c++ < getMaxTries()) {
             int num = rng.i(loot.size());
 
             IrisLoot l = loot.get(num);

@@ -2,6 +2,7 @@ package com.volmit.iris.core.nms.v1_19_R3;
 
 import com.mojang.serialization.Codec;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
@@ -125,8 +126,16 @@ public class CustomBiomeSource extends BiomeSource {
         for (IrisBiome i : engine.getAllBiomes()) {
             if (i.isCustom()) {
                 for (IrisBiomeCustom j : i.getCustomDerivitives()) {
-                    ResourceLocation resourceLocation = new ResourceLocation(engine.getDimension().getLoadKey() + ":" + j.getId());
-                    Biome biome = customRegistry.get(resourceLocation);
+                    ResourceLocation location = new ResourceLocation(engine.getDimension().getLoadKey() + ":" + j.getId());
+                    Biome biome = customRegistry.get(location);
+                    if (biome == null) {
+                        INMS.get().registerBiome(location.getNamespace(), j, false);
+                        biome = customRegistry.get(location);
+                        if (biome == null) {
+                            Iris.error("Cannot find biome for IrisBiomeCustom " + j.getId() + " from engine " + engine.getName());
+                            continue;
+                        }
+                    }
                     Optional<ResourceKey<Biome>> optionalBiomeKey = customRegistry.getResourceKey(biome);
                     if (optionalBiomeKey.isEmpty()) {
                         Iris.error("Cannot find biome for IrisBiomeCustom " + j.getId() + " from engine " + engine.getName());

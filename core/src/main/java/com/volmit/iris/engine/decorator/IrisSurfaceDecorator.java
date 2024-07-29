@@ -53,6 +53,11 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
         boolean underwater = height < getDimension().getFluidHeight();
 
         if (decorator != null) {
+            if (!decorator.isForcePlace() && !decorator.getSlopeCondition().isDefault()
+                    && !decorator.getSlopeCondition().isValid(getComplex().getSlopeStream().get(realX, realZ))) {
+                return;
+            }
+
             if (!decorator.isStacking()) {
                 bd = decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData());
 

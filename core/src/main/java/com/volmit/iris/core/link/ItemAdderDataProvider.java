@@ -2,6 +2,7 @@ package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import dev.lone.itemsadder.api.CustomBlock;
 import dev.lone.itemsadder.api.CustomStack;
 import org.bukkit.block.data.BlockData;
@@ -32,12 +33,12 @@ public class ItemAdderDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public BlockData getBlockData(Identifier blockId) throws MissingResourceException {
+    public BlockData getBlockData(Identifier blockId, KMap<String, String> state) throws MissingResourceException {
         return CustomBlock.getBaseBlockData(blockId.toString());
     }
 
     @Override
-    public ItemStack getItemStack(Identifier itemId) throws MissingResourceException {
+    public ItemStack getItemStack(Identifier itemId, KMap<String, Object> customNbt) throws MissingResourceException {
         CustomStack stack = CustomStack.getInstance(itemId.toString());
         if (stack == null) {
             throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());

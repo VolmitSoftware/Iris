@@ -2,6 +2,7 @@ package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.scheduling.J;
 import net.Indyuce.mmoitems.MMOItems;
 import net.Indyuce.mmoitems.api.Type;
@@ -26,7 +27,7 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public BlockData getBlockData(Identifier blockId) throws MissingResourceException {
+    public BlockData getBlockData(Identifier blockId, KMap<String, String> state) throws MissingResourceException {
         int id = -1;
         try {
             id = Integer.parseInt(blockId.key());
@@ -37,12 +38,33 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public ItemStack getItemStack(Identifier itemId) throws MissingResourceException {
+    public ItemStack getItemStack(Identifier itemId, KMap<String, Object> customNbt) throws MissingResourceException {
         String[] parts = itemId.namespace().split("_", 2);
         if (parts.length != 2)
             throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());
         CompletableFuture<ItemStack> future = new CompletableFuture<>();
-        Runnable run = () -> future.complete(api().getItem(parts[1], itemId.key()));
+        Runnable run = () -> {
+            try {
+                var type = api().getTypes().get(parts[1]);
+                int level = customNbt.containsKey("level") ? (int) customNbt.get("level") : -1;
+                var tier = api().getTiers().get(String.valueOf(customNbt.get("tier")));
+
+                ItemStack itemStack;
+                if (type == null) {
+                    future.complete(null);
+                    return;
+                }
+
+                if (level != -1 && tier != null) {
+                    itemStack = api().getItem(type, itemId.key(), level, tier);
+                } else {
+                    itemStack = api().getItem(type, itemId.key());
+                }
+                future.complete(itemStack);
+            } catch (Throwable e) {
+                future.completeExceptionally(e);
+            }
+        };
         if (Bukkit.isPrimaryThread()) run.run();
         else J.s(run);
         ItemStack item = null;

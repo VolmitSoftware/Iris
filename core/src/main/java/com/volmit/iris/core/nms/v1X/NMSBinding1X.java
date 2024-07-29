@@ -21,6 +21,7 @@ package com.volmit.iris.core.nms.v1X;
 import com.google.common.base.Preconditions;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
+import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.container.BlockPos;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
@@ -48,6 +49,8 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
+
+import java.awt.*;
 
 import java.io.File;
 
@@ -116,6 +119,11 @@ public class NMSBinding1X implements INMSBinding {
     @Override
     public boolean registerBiome(String dimensionId, IrisBiomeCustom biome, boolean replace) {
         return false;
+    }
+
+    @Override
+    public Color getBiomeColor(Location location, BiomeColor type) {
+        return Color.GREEN;
     }
 
     @Override

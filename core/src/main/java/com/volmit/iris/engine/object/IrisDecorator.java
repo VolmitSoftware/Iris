@@ -55,6 +55,8 @@ public class IrisDecorator {
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("When set, the decorator will never place onto any of these blocks.")
     private KList<IrisBlockData> blacklist;
+    @Desc("The slope at which this decorator can be placed. Range from 0 to 10 by default. Calculated from a 3-block radius from the center of the decorator placement.")
+    private IrisSlopeClip slopeCondition = new IrisSlopeClip();
     @DependsOn({"scaleStack", "stackMin", "stackMax"})
     @Desc("If stackMax is set to true, use this to limit its max height for large caverns")
     private int absoluteMaxStack = 30;

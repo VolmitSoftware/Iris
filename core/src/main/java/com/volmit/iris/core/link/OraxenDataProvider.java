@@ -19,10 +19,16 @@
 package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.service.ExternalDataSVC;
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.IrisBlockData;
+import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.reflect.WrappedField;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.items.ItemBuilder;
@@ -36,15 +42,22 @@ import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic
 import io.th0rgal.oraxen.mechanics.provided.gameplay.noteblock.NoteBlockMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.stringblock.StringBlockMechanicFactory;
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.MultipleFacing;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.PotionMeta;
 
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public class OraxenDataProvider extends ExternalDataProvider {
 
@@ -66,7 +79,7 @@ public class OraxenDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public BlockData getBlockData(Identifier blockId) throws MissingResourceException {
+    public BlockData getBlockData(Identifier blockId, KMap<String, String> state) throws MissingResourceException {
         MechanicFactory factory = getFactory(blockId);
         if (factory instanceof NoteBlockMechanicFactory f)
             return f.createNoteBlockData(blockId.key());
@@ -77,22 +90,71 @@ public class OraxenDataProvider extends ExternalDataProvider {
         } else if (factory instanceof StringBlockMechanicFactory f) {
             return f.createTripwireData(blockId.key());
         } else if (factory instanceof FurnitureFactory) {
-            return new IrisBlockData(B.getAir(), blockId);
+            return new IrisBlockData(B.getAir(), ExternalDataSVC.buildState(blockId, state));
         } else
             throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
     }
 
     @Override
-    public ItemStack getItemStack(Identifier itemId) throws MissingResourceException {
+    public ItemStack getItemStack(Identifier itemId, KMap<String, Object> customNbt) throws MissingResourceException {
         Optional<ItemBuilder> opt = OraxenItems.getOptionalItemById(itemId.key());
         return opt.orElseThrow(() -> new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key())).build();
     }
 
     @Override
     public void processUpdate(Engine engine, Block block, Identifier blockId) {
+        var pair = ExternalDataSVC.parseState(blockId);
+        var state = pair.getB();
+        blockId = pair.getA();
         Mechanic mechanic = getFactory(blockId).getMechanic(blockId.key());
         if (mechanic instanceof FurnitureMechanic f) {
-            f.place(block.getLocation());
+            float yaw = 0;
+            BlockFace face = BlockFace.NORTH;
+
+            long seed = engine.getSeedManager().getSeed() + Cache.key(block.getX(), block.getZ()) + block.getY();
+            RNG rng = new RNG(seed);
+            if ("true".equals(state.get("randomYaw"))) {
+                yaw = rng.f(0, 360);
+            } else if (state.containsKey("yaw")) {
+                yaw = Float.parseFloat(state.get("yaw"));
+            }
+            if ("true".equals(state.get("randomFace"))) {
+                BlockFace[] faces = BlockFace.values();
+                face = faces[rng.i(0, faces.length - 1)];
+            } else if (state.containsKey("face")) {
+                face = BlockFace.valueOf(state.get("face").toUpperCase());
+            }
+            if (face == BlockFace.SELF) {
+                face = BlockFace.NORTH;
+            }
+            ItemStack itemStack = OraxenItems.getItemById(f.getItemID()).build();
+            Entity entity = f.place(block.getLocation(), itemStack, yaw, face, false);
+
+            Consumer<ItemStack> setter = null;
+            if (entity instanceof ItemFrame frame) {
+                itemStack = frame.getItem();
+                setter = frame::setItem;
+            } else if (entity instanceof ItemDisplay display) {
+                itemStack = display.getItemStack();
+                setter = display::setItemStack;
+            }
+            if (setter == null || itemStack == null) return;
+
+            BiomeColor type = null;
+            try {
+                type = BiomeColor.valueOf(state.get("matchBiome").toUpperCase());
+            } catch (NullPointerException | IllegalArgumentException ignored) {}
+
+            if (type != null) {
+                var biomeColor = INMS.get().getBiomeColor(block.getLocation(), type);
+                if (biomeColor == null) return;
+                var potionColor = Color.fromARGB(biomeColor.getAlpha(), biomeColor.getRed(), biomeColor.getGreen(), biomeColor.getBlue());
+                if (itemStack.getItemMeta() instanceof PotionMeta meta) {
+                    meta.setColor(potionColor);
+                    itemStack.setItemMeta(meta);
+                }
+            }
+            setter.accept(itemStack);
         }
     }
 

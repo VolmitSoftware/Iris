@@ -124,6 +124,7 @@ public class IrisComplex implements DataProvider {
                 ProceduralStream.of((x, z) -> focusRegion,
                         Interpolated.of(a -> 0D, a -> focusRegion))
                 : regionStyleStream
+                .zoom(engine.getDimension().getRegionZoom())
                 .selectRarity(data.getRegionLoader().loadAll(engine.getDimension().getRegions()))
                 .cache2D("regionStream", engine, cacheSize).waste("Region Stream");
         regionIDStream = regionIdentityStream.convertCached((i) -> new UUID(Double.doubleToLongBits(i),
@@ -131,6 +132,7 @@ public class IrisComplex implements DataProvider {
         caveBiomeStream = regionStream.contextInjecting((c, x, z) -> IrisContext.getOr(engine).getChunkContext().getRegion().get(x, z))
                 .convert((r)
                         -> engine.getDimension().getCaveBiomeStyle().create(rng.nextParallelRNG(InferredType.CAVE.ordinal()), getData()).stream()
+                        .zoom(engine.getDimension().getBiomeZoom())
                         .zoom(r.getCaveBiomeZoom())
                         .selectRarity(data.getBiomeLoader().loadAll(r.getCaveBiomes()))
                         .onNull(emptyBiome)
@@ -139,6 +141,8 @@ public class IrisComplex implements DataProvider {
         landBiomeStream = regionStream.contextInjecting((c, x, z) -> IrisContext.getOr(engine).getChunkContext().getRegion().get(x, z))
                 .convert((r)
                         -> engine.getDimension().getLandBiomeStyle().create(rng.nextParallelRNG(InferredType.LAND.ordinal()), getData()).stream()
+                        .zoom(engine.getDimension().getBiomeZoom())
+                        .zoom(engine.getDimension().getLandZoom())
                         .zoom(r.getLandBiomeZoom())
                         .selectRarity(data.getBiomeLoader().loadAll(r.getLandBiomes(), (t) -> t.setInferredType(InferredType.LAND)))
                 ).convertAware2D(ProceduralStream::get)
@@ -147,6 +151,8 @@ public class IrisComplex implements DataProvider {
         seaBiomeStream = regionStream.contextInjecting((c, x, z) -> IrisContext.getOr(engine).getChunkContext().getRegion().get(x, z))
                 .convert((r)
                         -> engine.getDimension().getSeaBiomeStyle().create(rng.nextParallelRNG(InferredType.SEA.ordinal()), getData()).stream()
+                        .zoom(engine.getDimension().getBiomeZoom())
+                        .zoom(engine.getDimension().getSeaZoom())
                         .zoom(r.getSeaBiomeZoom())
                         .selectRarity(data.getBiomeLoader().loadAll(r.getSeaBiomes(), (t) -> t.setInferredType(InferredType.SEA)))
                 ).convertAware2D(ProceduralStream::get)
@@ -155,6 +161,7 @@ public class IrisComplex implements DataProvider {
         shoreBiomeStream = regionStream.contextInjecting((c, x, z) -> IrisContext.getOr(engine).getChunkContext().getRegion().get(x, z))
                 .convert((r)
                         -> engine.getDimension().getShoreBiomeStyle().create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), getData()).stream()
+                        .zoom(engine.getDimension().getBiomeZoom())
                         .zoom(r.getShoreBiomeZoom())
                         .selectRarity(data.getBiomeLoader().loadAll(r.getShoreBiomes(), (t) -> t.setInferredType(InferredType.SHORE)))
                 ).convertAware2D(ProceduralStream::get).cache2D("shoreBiomeStream", engine, cacheSize).waste("Shore Biome Stream");

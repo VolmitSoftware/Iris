@@ -1,5 +1,6 @@
 package com.volmit.iris.core.nms.v1_20_R3;
 
+import java.awt.Color;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -50,6 +51,8 @@ import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.PrimaryLevelData;
+import com.volmit.iris.core.nms.container.BiomeColor;
+import net.minecraft.world.level.LevelReader;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -704,6 +707,30 @@ public class NMSBinding implements INMSBinding {
             if (superClass == null) throw e;
             return getField(superClass, type);
         }
+    }
+
+    @Override
+    public Color getBiomeColor(Location location, BiomeColor type) {
+        LevelReader reader = ((CraftWorld) location.getWorld()).getHandle();
+        var holder = reader.getBiome(new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()));
+        var biome = holder.value();
+        if (biome == null) throw new IllegalArgumentException("Invalid biome: " + holder.unwrapKey().orElse(null));
+
+        int rgba = switch (type) {
+            case FOG -> biome.getFogColor();
+            case WATER -> biome.getWaterColor();
+            case WATER_FOG -> biome.getWaterFogColor();
+            case SKY -> biome.getSkyColor();
+            case FOLIAGE -> biome.getFoliageColor();
+            case GRASS -> biome.getGrassColor(location.getBlockX(), location.getBlockZ());
+        };
+        if (rgba == 0) {
+            if (BiomeColor.FOLIAGE == type && biome.getSpecialEffects().getFoliageColorOverride().isEmpty())
+                return null;
+            if (BiomeColor.GRASS == type && biome.getSpecialEffects().getGrassColorOverride().isEmpty())
+                return null;
+        }
+        return new Color(rgba, true);
     }
 
     private static Field getField(Class<?> clazz, Class<?> fieldType) throws NoSuchFieldException {

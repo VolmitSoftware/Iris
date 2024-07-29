@@ -27,6 +27,7 @@ import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.data.IrisBlockData;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.MantleFlag;
@@ -102,6 +103,9 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 writer.setData(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);
                 if (objectPlacement.isDolphinTarget() && objectPlacement.isUnderwater() && B.isStorageChest(data)) {
                     writer.setData(b.getX(), b.getY(), b.getZ(), MatterStructurePOI.BURIED_TREASURE);
+                }
+                if (data instanceof IrisBlockData d) {
+                    writer.setData(b.getX(), b.getY(), b.getZ(), d.getCustom());
                 }
             }, null, getData());
         }

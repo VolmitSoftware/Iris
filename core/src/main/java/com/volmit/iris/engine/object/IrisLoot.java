@@ -29,7 +29,6 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import lombok.AllArgsConstructor;
@@ -146,7 +145,7 @@ public class IrisLoot {
     // TODO Better Third Party Item Acquisition
     private ItemStack getItemStack(RNG rng) {
         if (!type.startsWith("minecraft:") && type.contains(":")) {
-            Optional<ItemStack> opt = Iris.service(ExternalDataSVC.class).getItemStack(Identifier.fromString(type));
+            Optional<ItemStack> opt = Iris.service(ExternalDataSVC.class).getItemStack(Identifier.fromString(type), customNbt);
             if (opt.isEmpty()) {
                 Iris.warn("Unknown Material: " + type);
                 return new ItemStack(Material.AIR);

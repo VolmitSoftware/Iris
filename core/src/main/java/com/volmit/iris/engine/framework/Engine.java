@@ -269,77 +269,80 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     @ChunkCoordinates
     @Override
     default void updateChunk(Chunk c) {
-        if (c.getWorld().isChunkLoaded(c.getX() + 1, c.getZ() + 1)
-                && c.getWorld().isChunkLoaded(c.getX(), c.getZ() + 1)
-                && c.getWorld().isChunkLoaded(c.getX() + 1, c.getZ())
-                && c.getWorld().isChunkLoaded(c.getX() - 1, c.getZ() - 1)
-                && c.getWorld().isChunkLoaded(c.getX(), c.getZ() - 1)
-                && c.getWorld().isChunkLoaded(c.getX() - 1, c.getZ())
-                && c.getWorld().isChunkLoaded(c.getX() + 1, c.getZ() - 1)
-                && c.getWorld().isChunkLoaded(c.getX() - 1, c.getZ() + 1) && getMantle().getMantle().isLoaded(c)) {
-
-            getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.TILE, () -> J.s(() -> {
-                getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, tile) -> {
-                    int betterY = y + getWorld().minHeight();
-                    if (!TileData.setTileState(c.getBlock(x, betterY, z), tile.getData()))
-                        Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), tile.getData().getTileId());
-                });
-            }));
-            getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.CUSTOM, () -> J.s(() -> {
-                getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), Identifier.class, (x, y, z, v) -> {
-                    Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
-                });
-            }));
-
-            getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.UPDATE, () -> J.s(() -> {
-                PrecisionStopwatch p = PrecisionStopwatch.start();
-                KMap<Long, Integer> updates = new KMap<>();
-                RNG r = new RNG(Cache.key(c.getX(), c.getZ()));
-                getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, yf, z, v) -> {
-                    int y = yf + getWorld().minHeight();
-                    if (!B.isFluid(c.getBlock(x & 15, y, z & 15).getBlockData())) {
-                        return;
-                    }
-                    boolean u = false;
-                    if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.DOWN).getBlockData())) {
-                        u = true;
-                    } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.WEST).getBlockData())) {
-                        u = true;
-                    } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.EAST).getBlockData())) {
-                        u = true;
-                    } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.SOUTH).getBlockData())) {
-                        u = true;
-                    } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.NORTH).getBlockData())) {
-                        u = true;
-                    }
-
-                    if (u) {
-                        updates.compute(Cache.key(x & 15, z & 15), (k, vv) -> {
-                            if (vv != null) {
-                                return Math.max(vv, y);
-                            }
-
-                            return y;
-                        });
-                    }
-                });
-
-                updates.forEach((k, v) -> update(Cache.keyX(k), v, Cache.keyZ(k), c, r));
-                getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterUpdate.class, (x, yf, z, v) -> {
-                    int y = yf + getWorld().minHeight();
-                    if (v != null && v.isUpdate()) {
-                        int vx = x & 15;
-                        int vz = z & 15;
-                        update(x, y, z, c, new RNG(Cache.key(c.getX(), c.getZ())));
-                        if (vx > 0 && vx < 15 && vz > 0 && vz < 15) {
-                            updateLighting(x, y, z, c);
-                        }
-                    }
-                });
-                getMantle().getMantle().deleteChunkSlice(c.getX(), c.getZ(), MatterUpdate.class);
-                getMetrics().getUpdates().put(p.getMilliseconds());
-            }, RNG.r.i(0, 20)));
+        for (int x = -1; x <= 1; x++) {
+            for (int z = -1; z <= 1; z++) {
+                if (c.getWorld().isChunkLoaded(c.getX() + x, c.getZ() + z))
+                    continue;
+                Iris.debug("Chunk %s, %s [%s, %s] is not loaded".formatted(c.getX() + x, c.getZ() + z, x, z));
+                return;
+            }
         }
+        if (!getMantle().getMantle().isLoaded(c)) {
+            Iris.debug("Mantle Chunk " + c.getX() + c.getX() + " is not loaded");
+            return;
+        }
+
+        getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.TILE, () -> J.s(() -> {
+            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, tile) -> {
+                int betterY = y + getWorld().minHeight();
+                if (!TileData.setTileState(c.getBlock(x, betterY, z), tile.getData()))
+                    Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), tile.getData().getTileId());
+            });
+        }));
+        getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.CUSTOM, () -> J.s(() -> {
+            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), Identifier.class, (x, y, z, v) -> {
+                Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
+            });
+        }));
+
+        getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.UPDATE, () -> J.s(() -> {
+            PrecisionStopwatch p = PrecisionStopwatch.start();
+            KMap<Long, Integer> updates = new KMap<>();
+            RNG r = new RNG(Cache.key(c.getX(), c.getZ()));
+            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, yf, z, v) -> {
+                int y = yf + getWorld().minHeight();
+                if (!B.isFluid(c.getBlock(x & 15, y, z & 15).getBlockData())) {
+                    return;
+                }
+                boolean u = false;
+                if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.DOWN).getBlockData())) {
+                    u = true;
+                } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.WEST).getBlockData())) {
+                    u = true;
+                } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.EAST).getBlockData())) {
+                    u = true;
+                } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.SOUTH).getBlockData())) {
+                    u = true;
+                } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.NORTH).getBlockData())) {
+                    u = true;
+                }
+
+                if (u) {
+                    updates.compute(Cache.key(x & 15, z & 15), (k, vv) -> {
+                        if (vv != null) {
+                            return Math.max(vv, y);
+                        }
+
+                        return y;
+                    });
+                }
+            });
+
+            updates.forEach((k, v) -> update(Cache.keyX(k), v, Cache.keyZ(k), c, r));
+            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterUpdate.class, (x, yf, z, v) -> {
+                int y = yf + getWorld().minHeight();
+                if (v != null && v.isUpdate()) {
+                    int vx = x & 15;
+                    int vz = z & 15;
+                    update(x, y, z, c, new RNG(Cache.key(c.getX(), c.getZ())));
+                    if (vx > 0 && vx < 15 && vz > 0 && vz < 15) {
+                        updateLighting(x, y, z, c);
+                    }
+                }
+            });
+            getMantle().getMantle().deleteChunkSlice(c.getX(), c.getZ(), MatterUpdate.class);
+            getMetrics().getUpdates().put(p.getMilliseconds());
+        }, RNG.r.i(0, 20)));
     }
 
     @BlockCoordinates

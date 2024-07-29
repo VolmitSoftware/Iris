@@ -71,4 +71,9 @@ public class HybridPregenMethod implements PregeneratorMethod {
     public Mantle getMantle() {
         return inWorld.getMantle();
     }
+
+    @Override
+    public World getWorld() {
+        return world;
+    }
 }

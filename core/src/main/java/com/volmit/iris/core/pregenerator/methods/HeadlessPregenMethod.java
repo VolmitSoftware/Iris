@@ -9,6 +9,7 @@ import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.parallel.MultiBurst;
+import org.bukkit.World;
 
 import java.io.IOException;
 import java.util.concurrent.Semaphore;
@@ -18,8 +19,10 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
     private final IHeadless headless;
     private final Semaphore semaphore;
     private final int max;
+    private final World world;
 
     public HeadlessPregenMethod(Engine engine) {
+        this.world = engine.getWorld().realWorld();
         this.max = IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism());
         this.engine = engine;
         this.headless = INMS.get().createHeadless(engine);
@@ -83,5 +86,10 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
     @Override
     public Mantle getMantle() {
         return engine.getMantle().getMantle();
+    }
+
+    @Override
+    public World getWorld() {
+        return world;
     }
 }

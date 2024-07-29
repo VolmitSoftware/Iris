@@ -134,4 +134,9 @@ public class MedievalPregenMethod implements PregeneratorMethod {
 
         return null;
     }
+
+    @Override
+    public World getWorld() {
+        return world;
+    }
 }

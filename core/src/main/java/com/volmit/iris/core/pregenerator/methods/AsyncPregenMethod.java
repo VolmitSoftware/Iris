@@ -177,4 +177,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
         return null;
     }
+
+    @Override
+    public World getWorld() {
+        return world;
+    }
 }

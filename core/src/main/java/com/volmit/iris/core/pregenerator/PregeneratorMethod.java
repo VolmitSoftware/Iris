@@ -18,7 +18,9 @@
 
 package com.volmit.iris.core.pregenerator;
 
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.mantle.Mantle;
+import org.bukkit.World;
 
 /**
  * Represents something that is capable of generating in chunks or regions, or both
@@ -77,4 +79,6 @@ public interface PregeneratorMethod {
     void generateChunk(int x, int z, PregenListener listener);
 
     Mantle getMantle();
+
+    World getWorld();
 }

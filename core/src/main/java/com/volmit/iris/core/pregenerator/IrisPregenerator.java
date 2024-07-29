@@ -19,8 +19,12 @@
 package com.volmit.iris.core.pregenerator;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.nms.IHeadless;
+import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pack.IrisPack;
 import com.volmit.iris.core.tools.IrisPackBenchmarking;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.C;

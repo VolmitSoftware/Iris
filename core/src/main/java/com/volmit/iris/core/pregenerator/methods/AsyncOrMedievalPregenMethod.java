@@ -26,8 +26,10 @@ import org.bukkit.World;
 
 public class AsyncOrMedievalPregenMethod implements PregeneratorMethod {
     private final PregeneratorMethod method;
+    private final World world;
 
     public AsyncOrMedievalPregenMethod(World world, int threads) {
+        this.world = world;
         method = PaperLib.isPaper() ? new AsyncPregenMethod(world, threads) : new MedievalPregenMethod(world);
     }
 
@@ -69,5 +71,10 @@ public class AsyncOrMedievalPregenMethod implements PregeneratorMethod {
     @Override
     public Mantle getMantle() {
         return method.getMantle();
+    }
+
+    @Override
+    public World getWorld() {
+        return world;
     }
 }

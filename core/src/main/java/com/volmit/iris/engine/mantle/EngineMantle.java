@@ -194,7 +194,7 @@ public interface EngineMantle extends IObjectPlacer {
 
     @ChunkCoordinates
     default void generateMatter(int x, int z, boolean multicore, ChunkContext context) {
-        synchronized (this) {
+        //synchronized (this) {
             if (!getEngine().getDimension().isUseMantle()) {
                 return;
             }
@@ -220,7 +220,7 @@ public interface EngineMantle extends IObjectPlacer {
             }
 
             burst.complete();
-        }
+       // }
     }
 
     default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, MantleChunk mc, ChunkContext context) {

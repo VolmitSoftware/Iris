@@ -52,6 +52,7 @@ import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.io.JarScanner;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.misc.getHardware;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.IrisService;
@@ -507,32 +508,37 @@ public class Iris extends VolmitPlugin implements Listener {
             }
 
             for (String s : section.getKeys(false)) {
-                ConfigurationSection entry = section.getConfigurationSection(s);
-                if (!entry.contains("generator", true)) {
-                    continue;
+                try {
+
+                    ConfigurationSection entry = section.getConfigurationSection(s);
+                    if (!entry.contains("generator", true)) {
+                        continue;
+                    }
+
+                    String generator = entry.getString("generator");
+                    if (generator.startsWith("Iris:")) {
+                        generator = generator.split("\\Q:\\E")[1];
+                    } else if (generator.equalsIgnoreCase("Iris")) {
+                        generator = IrisSettings.get().getGenerator().getDefaultWorldType();
+                    } else {
+                        continue;
+                    }
+
+                    Iris.info("2 World: %s | Generator: %s", s, generator);
+
+                    if (Bukkit.getWorlds().stream().anyMatch(w -> w.getName().equals(s))) {
+                        continue;
+                    }
+
+                    Iris.info(C.LIGHT_PURPLE + "Preparing Spawn for " + s + "' using Iris:" + generator + "...");
+                    new WorldCreator(s)
+                            .generator(getDefaultWorldGenerator(s, generator))
+                            .environment(IrisData.loadAnyDimension(generator).getEnvironment())
+                            .createWorld();
+                    Iris.info(C.LIGHT_PURPLE + "Loaded " + s + "!");
+                } catch (Exception e) {
+                    Iris.info("Failed to load " + s);
                 }
-
-                String generator = entry.getString("generator");
-                if (generator.startsWith("Iris:")) {
-                    generator = generator.split("\\Q:\\E")[1];
-                } else if (generator.equalsIgnoreCase("Iris")) {
-                    generator = IrisSettings.get().getGenerator().getDefaultWorldType();
-                } else {
-                    continue;
-                }
-
-                Iris.info("2 World: %s | Generator: %s", s, generator);
-
-                if (Bukkit.getWorlds().stream().anyMatch(w -> w.getName().equals(s))) {
-                    continue;
-                }
-
-                Iris.info(C.LIGHT_PURPLE + "Preparing Spawn for " + s + "' using Iris:" + generator + "...");
-                new WorldCreator(s)
-                        .generator(getDefaultWorldGenerator(s, generator))
-                        .environment(IrisData.loadAnyDimension(generator).getEnvironment())
-                        .createWorld();
-                Iris.info(C.LIGHT_PURPLE + "Loaded " + s + "!");
             }
         } catch (Throwable e) {
             e.printStackTrace();

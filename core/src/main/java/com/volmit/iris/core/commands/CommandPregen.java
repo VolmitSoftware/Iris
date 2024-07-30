@@ -33,6 +33,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
 
+import java.awt.*;
 import java.io.File;
 
 @Decree(name = "pregen", aliases = "pregenerate", description = "Pregenerate your Iris worlds!")
@@ -56,7 +57,7 @@ public class CommandPregen implements DecreeExecutor {
             IrisToolbelt.pregenerate(PregenTask
                     .builder()
                     .center(new Position2(center.getBlockX() >> 9, center.getBlockZ() >> 9))
-                    .gui(true)
+                    .gui(!GraphicsEnvironment.isHeadless())
                     .width(w)
                     .height(w)
                     .build(), world);

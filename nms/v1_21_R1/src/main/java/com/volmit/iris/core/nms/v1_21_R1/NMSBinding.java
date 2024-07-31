@@ -1,4 +1,4 @@
-package com.volmit.iris.core.nms.v1_19_R1;
+package com.volmit.iris.core.nms.v1_21_R1;
 
 import java.awt.Color;
 import java.io.ByteArrayInputStream;
@@ -14,17 +14,23 @@ import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.datapack.DataVersion;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.server.level.ChunkMap;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.level.chunk.status.WorldGenContext;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.craftbukkit.v1_19_R1.CraftChunk;
-import org.bukkit.craftbukkit.v1_19_R1.CraftServer;
-import org.bukkit.craftbukkit.v1_19_R1.CraftWorld;
-import org.bukkit.craftbukkit.v1_19_R1.block.CraftBlock;
-import org.bukkit.craftbukkit.v1_19_R1.block.data.CraftBlockData;
-import org.bukkit.craftbukkit.v1_19_R1.entity.CraftDolphin;
-import org.bukkit.craftbukkit.v1_19_R1.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_21_R1.CraftChunk;
+import org.bukkit.craftbukkit.v1_21_R1.CraftServer;
+import org.bukkit.craftbukkit.v1_21_R1.CraftWorld;
+import org.bukkit.craftbukkit.v1_21_R1.block.data.CraftBlockData;
+import org.bukkit.craftbukkit.v1_21_R1.entity.CraftDolphin;
+import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_21_R1.util.CraftNamespacedKey;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -54,8 +60,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.TagParser;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
@@ -140,7 +148,7 @@ public class NMSBinding implements INMSBinding {
             return null;
         }
 
-        net.minecraft.nbt.CompoundTag tag = e.saveWithFullMetadata();
+        net.minecraft.nbt.CompoundTag tag = e.saveWithFullMetadata(registry());
         return convert(tag);
     }
 
@@ -198,11 +206,11 @@ public class NMSBinding implements INMSBinding {
     }
 
     private Registry<net.minecraft.world.level.biome.Biome> getCustomBiomeRegistry() {
-        return registry().registry(Registry.BIOME_REGISTRY).orElse(null);
+        return registry().registry(Registries.BIOME).orElse(null);
     }
 
     private Registry<Block> getBlockRegistry() {
-        return registry().registry(Registry.BLOCK_REGISTRY).orElse(null);
+        return registry().registry(Registries.BLOCK).orElse(null);
     }
 
     @Override
@@ -237,16 +245,16 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public Object getCustomBiomeBaseFor(String mckey) {
-        return getCustomBiomeRegistry().get(new ResourceLocation(mckey));
+        return getCustomBiomeRegistry().get(ResourceLocation.parse(mckey));
     }
 
     @Override
     public Object getCustomBiomeBaseHolderFor(String mckey) {
-        return getCustomBiomeRegistry().getHolder(getTrueBiomeBaseId(getCustomBiomeRegistry().get(new ResourceLocation(mckey)))).get();
+        return getCustomBiomeRegistry().getHolder(getTrueBiomeBaseId(getCustomBiomeRegistry().get(ResourceLocation.parse(mckey)))).get();
     }
 
     public int getBiomeBaseIdForKey(String key) {
-        return getCustomBiomeRegistry().getId(getCustomBiomeRegistry().get(new ResourceLocation(key)));
+        return getCustomBiomeRegistry().getId(getCustomBiomeRegistry().get(ResourceLocation.parse(key)));
     }
 
     @Override
@@ -256,8 +264,8 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public Object getBiomeBase(World world, Biome biome) {
-        return CraftBlock.biomeToBiomeBase(((CraftWorld) world).getHandle()
-                .registryAccess().registry(Registry.BIOME_REGISTRY).orElse(null), biome);
+        return biomeToBiomeBase(((CraftWorld) world).getHandle()
+                .registryAccess().registry(Registries.BIOME).orElse(null), biome);
     }
 
     @Override
@@ -268,13 +276,13 @@ public class NMSBinding implements INMSBinding {
             return v;
         }
         //noinspection unchecked
-        v = CraftBlock.biomeToBiomeBase((Registry<net.minecraft.world.level.biome.Biome>) registry, biome);
+        v = biomeToBiomeBase((Registry<net.minecraft.world.level.biome.Biome>) registry, biome);
         if (v == null) {
             // Ok so there is this new biome name called "CUSTOM" in Paper's new releases.
             // But, this does NOT exist within CraftBukkit which makes it return an error.
             // So, we will just return the ID that the plains biome returns instead.
             //noinspection unchecked
-            return CraftBlock.biomeToBiomeBase((Registry<net.minecraft.world.level.biome.Biome>) registry, Biome.PLAINS);
+            return biomeToBiomeBase((Registry<net.minecraft.world.level.biome.Biome>) registry, Biome.PLAINS);
         }
         baseBiomeCache.put(biome, v);
         return v;
@@ -282,7 +290,7 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public KList<Biome> getBiomes() {
-        return new KList<>(Biome.values()).qdel(Biome.CUSTOM);
+        return new KList<>(Biome.values()).qadd(Biome.CHERRY_GROVE).qdel(Biome.CUSTOM);
     }
 
     @Override
@@ -294,7 +302,7 @@ public class NMSBinding implements INMSBinding {
     public int getBiomeId(Biome biome) {
         for (World i : Bukkit.getWorlds()) {
             if (i.getEnvironment().equals(World.Environment.NORMAL)) {
-                Registry<net.minecraft.world.level.biome.Biome> registry = ((CraftWorld) i).getHandle().registryAccess().registry(Registry.BIOME_REGISTRY).orElse(null);
+                Registry<net.minecraft.world.level.biome.Biome> registry = ((CraftWorld) i).getHandle().registryAccess().registry(Registries.BIOME).orElse(null);
                 return registry.getId((net.minecraft.world.level.biome.Biome) getBiomeBase(registry, biome));
             }
         }
@@ -439,7 +447,7 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public void injectBiomesFromMantle(Chunk e, Mantle mantle) {
-        ChunkAccess chunk = ((CraftChunk) e).getHandle();
+        ChunkAccess chunk = ((CraftChunk) e).getHandle(ChunkStatus.FULL);
         AtomicInteger c = new AtomicInteger();
         AtomicInteger r = new AtomicInteger();
         mantle.iterateChunk(e.getX(), e.getZ(), MatterBiomeInject.class, (x, y, z, b) -> {
@@ -461,8 +469,8 @@ public class NMSBinding implements INMSBinding {
 
             try {
                 net.minecraft.nbt.CompoundTag tag = TagParser.parseTag((new JSONObject(customNbt)).toString());
-                tag.merge(s.getOrCreateTag());
-                s.setTag(tag);
+                tag.merge(s.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).getUnsafe());
+                s.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
             } catch (CommandSyntaxException var5) {
                 throw new IllegalArgumentException(var5);
             }
@@ -480,16 +488,19 @@ public class NMSBinding implements INMSBinding {
     }
 
     public void inject(long seed, Engine engine, World world) throws NoSuchFieldException, IllegalAccessException {
-        ServerLevel serverLevel = ((CraftWorld)world).getHandle();
-        Class<?> clazz = serverLevel.getChunkSource().chunkMap.generator.getClass();
+        var chunkMap = ((CraftWorld)world).getHandle().getChunkSource().chunkMap;
+        var worldGenContextField = getField(chunkMap.getClass(), WorldGenContext.class);
+        worldGenContextField.setAccessible(true);
+        var worldGenContext = (WorldGenContext) worldGenContextField.get(chunkMap);
+        Class<?> clazz = worldGenContext.generator().getClass();
         Field biomeSource = getField(clazz, BiomeSource.class);
         biomeSource.setAccessible(true);
         Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
         unsafeField.setAccessible(true);
         Unsafe unsafe = (Unsafe)unsafeField.get(null);
         CustomBiomeSource customBiomeSource = new CustomBiomeSource(seed, engine, world);
-        unsafe.putObject(biomeSource.get(serverLevel.getChunkSource().chunkMap.generator), unsafe.objectFieldOffset(biomeSource), customBiomeSource);
-        biomeSource.set(serverLevel.getChunkSource().chunkMap.generator, customBiomeSource);
+        unsafe.putObject(biomeSource.get(worldGenContext.generator()), unsafe.objectFieldOffset(biomeSource), customBiomeSource);
+        biomeSource.set(worldGenContext.generator(), customBiomeSource);
     }
 
     public Vector3d getBoundingbox(org.bukkit.entity.EntityType entity) {
@@ -515,13 +526,14 @@ public class NMSBinding implements INMSBinding {
         return null;
     }
 
+
     @Override
-    public Entity spawnEntity(Location location, org.bukkit.entity.EntityType type, CreatureSpawnEvent.SpawnReason reason) {
+    public Entity spawnEntity(Location location,  org.bukkit.entity.EntityType type, CreatureSpawnEvent.SpawnReason reason) {
         return ((CraftWorld) location.getWorld()).spawn(location, type.getEntityClass(), null, reason);
     }
 
     @Override
-    public Color getBiomeColor(Location location, BiomeColor type) {
+    public java.awt.Color getBiomeColor(Location location, BiomeColor type) {
         LevelReader reader = ((CraftWorld) location.getWorld()).getHandle();
         var holder = reader.getBiome(new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()));
         var biome = holder.value();
@@ -559,5 +571,14 @@ public class NMSBinding implements INMSBinding {
                 return getField(superClass, fieldType);
             }
         }
+    }
+
+    public static Holder<net.minecraft.world.level.biome.Biome> biomeToBiomeBase(Registry<net.minecraft.world.level.biome.Biome> registry, Biome biome) {
+        return registry.getHolderOrThrow(ResourceKey.create(Registries.BIOME, CraftNamespacedKey.toMinecraft(biome.getKey())));
+    }
+
+    @Override
+    public DataVersion getDataVersion() {
+        return DataVersion.V1205;
     }
 }

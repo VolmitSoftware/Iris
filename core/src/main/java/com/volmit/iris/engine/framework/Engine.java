@@ -266,6 +266,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     void blockUpdatedMetric();
 
+    boolean exists(int x, int z);
+
     @ChunkCoordinates
     @Override
     default void updateChunk(Chunk c) {
@@ -580,7 +582,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     int getGenerated();
 
-    void addGenerated();
+    void addGenerated(int x, int z);
 
     default <T> IrisPosition lookForStreamResult(T find, ProceduralStream<T> stream, Function2<T, T, Boolean> matcher, long timeout) {
         AtomicInteger checked = new AtomicInteger();

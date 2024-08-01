@@ -23,12 +23,30 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import lombok.Data;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
 @Data
 public class IrisEngineData {
     private IrisEngineStatistics statistics = new IrisEngineStatistics();
     private KList<IrisEngineSpawnerCooldown> spawnerCooldowns = new KList<>();
+    private Set<String> generatedChunks = ConcurrentHashMap.newKeySet();
     private KList<IrisEngineChunkData> chunks = new KList<>();
     private Long seed = null;
+
+    public void addGeneratedChunk(int x, int z) {
+        getGeneratedChunks().add(x + "," + z);
+    }
+
+    public void addGeneratedChunk(Set<String> chunks) {
+        chunks.forEach(getGeneratedChunks()::add);
+    }
+
+
+    public boolean isChunkGenerated(int x, int z) {
+        return getGeneratedChunks().contains(x + "," + z);
+    }
 
     public void removeChunk(int x, int z) {
         long k = Cache.key(x, z);

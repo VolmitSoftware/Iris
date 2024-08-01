@@ -54,8 +54,6 @@ public class IrisEngineSVC implements IrisService {
     private AtomicBoolean IsTrimAlive;
     ChronoLatch cl;
 
-    public List<World> corruptedIrisWorlds = new ArrayList<>();
-
     @Override
     public void onEnable() {
         this.cl = new ChronoLatch(5000);

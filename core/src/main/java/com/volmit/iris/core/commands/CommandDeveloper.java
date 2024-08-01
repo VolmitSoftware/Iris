@@ -179,10 +179,15 @@ public class CommandDeveloper implements DecreeExecutor {
     }
 
     @Decree(description = "test")
-    public void javafx () {
+    public void devtest () {
         try {
-            VMJavaFX javaFX = new VMJavaFX(sender());
-            javaFX.start();
+
+            for (File mcafile : new File("rrtrender1/region").listFiles()) {
+                MCAFile mca = MCAUtil.read(mcafile);
+                int c = 0;
+
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }

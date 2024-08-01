@@ -757,6 +757,7 @@ public class NMSBinding implements INMSBinding {
     public void injectBukkit() {
         try {
             Iris.info("Injecting Bukkit");
+
             new ByteBuddy()
                     .redefine(CraftServer.class)
                     .visit(Advice.to(CraftServerAdvice.class).on(ElementMatchers.isMethod().and(ElementMatchers.takesArguments(WorldCreator.class))))

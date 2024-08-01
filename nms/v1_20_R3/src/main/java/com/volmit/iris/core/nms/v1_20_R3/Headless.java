@@ -76,6 +76,13 @@ public class Headless implements IHeadless, LevelHeightAccessor {
         }
     }
 
+    /**
+     * Checks if the mca plate is fully generated or not.
+     *
+     * @param x coord of the chunk
+     * @param z coord of the chunk
+     * @return true if the chunk exists in .mca
+     */
     @Override
     public boolean exists(int x, int z) {
         if (closed) return false;
@@ -190,7 +197,7 @@ public class Headless implements IHeadless, LevelHeightAccessor {
 
             engine.getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.REAL, true);
             engine.getMetrics().getTotal().put(p.getMilliseconds());
-            engine.addGenerated();
+            engine.addGenerated(x,z);
 
         } catch (Throwable e) {
             Iris.reportError(e);

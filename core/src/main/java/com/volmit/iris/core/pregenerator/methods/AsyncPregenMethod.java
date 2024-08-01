@@ -19,9 +19,12 @@
 package com.volmit.iris.core.pregenerator.methods;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.nms.IHeadless;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.mantle.Mantle;
@@ -42,6 +45,7 @@ import java.util.concurrent.Future;
 
 public class AsyncPregenMethod implements PregeneratorMethod {
     private final World world;
+    private final Engine engine;
     private final MultiBurst burst;
     private final KList<Future<?>> future;
     private final Map<Chunk, Long> lastUse;
@@ -50,8 +54,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         if (!PaperLib.isPaper()) {
             throw new UnsupportedOperationException("Cannot use PaperAsync on non paper!");
         }
-
         this.world = world;
+        this.engine = IrisToolbelt.access(world).getEngine();
         burst = MultiBurst.burst;
         future = new KList<>(1024);
         this.lastUse = new KMap<>();
@@ -81,13 +85,15 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
     private void completeChunk(int x, int z, PregenListener listener) {
         try {
-            future.add(PaperLib.getChunkAtAsync(world, x, z, true).thenApply((i) -> {
-                if (i == null) return 0;
-                lastUse.put(i, M.ms());
-                listener.onChunkGenerated(x, z);
-                listener.onChunkCleaned(x, z);
-                return 0;
-            }));
+            if (!engine.exists(x,z)) {
+                future.add(PaperLib.getChunkAtAsync(world, x, z, true).thenApply((i) -> {
+                    if (i == null) return 0;
+                    lastUse.put(i, M.ms());
+                    listener.onChunkGenerated(x, z);
+                    listener.onChunkCleaned(x, z);
+                    return 0;
+                }));
+            }
         } catch (Throwable e) {
             e.printStackTrace();
         }

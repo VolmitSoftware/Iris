@@ -45,6 +45,7 @@ import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterStructurePOI;
+import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -60,14 +61,17 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Data
 @EqualsAndHashCode(exclude = "context")
 @ToString(exclude = "context")
 public class IrisEngine implements Engine {
+    private Set<String> chunks = ConcurrentHashMap.newKeySet();
     private final AtomicInteger bud;
     private final AtomicInteger buds;
     private final AtomicInteger generated;
@@ -100,6 +104,7 @@ public class IrisEngine implements Engine {
     private double maxBiomeLayerDensity;
     private double maxBiomeDecoratorDensity;
     private IrisComplex complex;
+    private final ReentrantLock dataLock;
 
     public IrisEngine(EngineTarget target, boolean studio) {
         this.studio = studio;
@@ -107,6 +112,7 @@ public class IrisEngine implements Engine {
         getEngineData();
         verifySeed();
         this.seedManager = new SeedManager(target.getWorld().getRawWorldSeed());
+        dataLock = new ReentrantLock();
         bud = new AtomicInteger(0);
         buds = new AtomicInteger(0);
         metrics = new EngineMetrics(32);
@@ -129,6 +135,7 @@ public class IrisEngine implements Engine {
         failing = false;
         closed = false;
         art = J.ar(this::tickRandomPlayer, 0);
+        chunks = getEngineData().getGeneratedChunks();
         setupEngine();
         Iris.debug("Engine Initialized " + getCacheID());
     }
@@ -249,10 +256,10 @@ public class IrisEngine implements Engine {
                 try {
                     f.getParentFile().mkdirs();
                     IrisEngineData data = new IrisEngineData();
-                    data.getStatistics().setVersion(Iris.instance.getIrisVersion());
+                    data.getStatistics().setIrisCreationVersion(Iris.instance.getIrisVersion());
                     data.getStatistics().setMCVersion(Iris.instance.getMCVersion());
-                    data.getStatistics().setUpgradedVersion(Iris.instance.getIrisVersion());
-                    if (data.getStatistics().getVersion() == -1 || data.getStatistics().getMCVersion() == -1 ) {
+                    data.getStatistics().setIrisToUpgradedVersion(Iris.instance.getIrisVersion());
+                    if (data.getStatistics().getIrisCreationVersion() == -1 || data.getStatistics().getMCVersion() == -1 ) {
                         Iris.error("Failed to setup Engine Data!");
                     }
                     IO.writeAll(f, new Gson().toJson(data));
@@ -272,14 +279,42 @@ public class IrisEngine implements Engine {
     }
 
     @Override
+    public void saveEngineData() {
+        //TODO: Method this file
+        if (dataLock.tryLock()) {
+            try {
+                File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + ".json");
+                f.getParentFile().mkdirs();
+                try {
+                    getEngineData().addGeneratedChunk(chunks);
+                    IO.writeAll(f, new Gson().toJson(getEngineData()));
+                    Iris.debug("Saved Engine Data");
+                } catch (IOException e) {
+                    Iris.error("Failed to save Engine Data");
+                    e.printStackTrace();
+                }
+            } finally {
+                dataLock.unlock();
+            }
+        }
+    }
+
+    @Override
     public int getGenerated() {
         return generated.get();
     }
 
     @Override
-    public void addGenerated() {
-        if (generated.incrementAndGet() == 661) {
-            J.a(() -> getData().savePrefetch(this));
+    public void addGenerated(int x, int z) {
+        try {
+            File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + ".json");
+            chunks.add(x + "," + z);
+            if (generated.incrementAndGet() == 661) {
+                J.a(() -> getData().savePrefetch(this));
+            }
+        } catch (Exception e) {
+            Iris.error("Failed to add generated chunk!");
+            e.printStackTrace();
         }
     }
 
@@ -465,7 +500,7 @@ public class IrisEngine implements Engine {
 
             getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.REAL, true);
             getMetrics().getTotal().put(p.getMilliseconds());
-            addGenerated();
+            addGenerated(x,z);
         } catch (Throwable e) {
             Iris.reportError(e);
             fail("Failed to generate " + x + ", " + z, e);
@@ -473,22 +508,13 @@ public class IrisEngine implements Engine {
     }
 
     @Override
-    public void saveEngineData() {
-        //TODO: Method this file
-        File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + ".json");
-        f.getParentFile().mkdirs();
-        try {
-            IO.writeAll(f, new Gson().toJson(getEngineData()));
-            Iris.debug("Saved Engine Data");
-        } catch (IOException e) {
-            Iris.error("Failed to save Engine Data");
-            e.printStackTrace();
-        }
+    public void blockUpdatedMetric() {
+        bud.incrementAndGet();
     }
 
     @Override
-    public void blockUpdatedMetric() {
-        bud.incrementAndGet();
+    public boolean exists(int x, int z) {
+        return chunks.contains(x + "," + z);
     }
 
     @Override
@@ -529,7 +555,7 @@ public class IrisEngine implements Engine {
     private boolean EngineSafe() {
         // Todo: this has potential if done right
         int EngineMCVersion = getEngineData().getStatistics().getMCVersion();
-        int EngineIrisVersion = getEngineData().getStatistics().getVersion();
+        int EngineIrisVersion = getEngineData().getStatistics().getIrisCreationVersion();
         int MinecraftVersion = Iris.instance.getMCVersion();
         int IrisVersion = Iris.instance.getIrisVersion();
         if (EngineIrisVersion != IrisVersion) {

@@ -33,14 +33,24 @@ import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
+import com.volmit.iris.util.misc.E;
+import com.volmit.iris.util.nbt.mca.Chunk;
+import com.volmit.iris.util.nbt.mca.MCAFile;
+import com.volmit.iris.util.nbt.mca.MCAUtil;
+import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
+import org.bukkit.World;
 
+import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class IrisPregenerator {
@@ -68,9 +78,10 @@ public class IrisPregenerator {
     private final ChronoLatch saveLatch = new ChronoLatch(30000);
 
     public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener) {
+        Iris.info("Initializing Pregenerator");
+        generatedRegions = new KSet<>();
         this.listener = listenify(listener);
         cl = new ChronoLatch(5000);
-        generatedRegions = new KSet<>();
         this.shutdown = new AtomicBoolean(false);
         this.paused = new AtomicBoolean(false);
         this.task = task;
@@ -87,7 +98,9 @@ public class IrisPregenerator {
         generatedLast = new AtomicInteger(0);
         generatedLastMinute = new AtomicInteger(0);
         totalChunks = new AtomicInteger(0);
+        IrisToolbelt.access(generator.getWorld()).getEngine().saveEngineData();
         task.iterateRegions((_a, _b) -> totalChunks.addAndGet(1024));
+        Iris.info("Initialization Completed!");
         startTime = new AtomicLong(M.ms());
         ticker = new Looper() {
             @Override
@@ -171,6 +184,43 @@ public class IrisPregenerator {
         if (mantle != null) {
             mantle.trim(0, 0);
         }
+    }
+
+    private void getGeneratedRegions() {
+        World world = generator.getWorld();
+        File[] region = new File(world.getWorldFolder(), "region").listFiles();
+        BurstExecutor b = MultiBurst.burst.burst(region.length);
+        b.setMulticore(true);
+        b.queue(() -> {
+            for (File file : region) {
+                try {
+                    String regex = "r\\.(\\d+)\\.(-?\\d+)\\.mca";
+                    Pattern pattern = Pattern.compile(regex);
+                    Matcher matcher = pattern.matcher(file.getName());
+                    if (!matcher.find()) continue;
+                    int x = Integer.parseInt(matcher.group(1));
+                    int z = Integer.parseInt(matcher.group(2));
+                    Position2 pos = new Position2(x,z);
+                    generatedRegions.add(pos);
+
+                    MCAFile mca = MCAUtil.read(file, 0);
+
+                    boolean notFull = false;
+                    for (int i = 0; i < 1024; i++) {
+                        Chunk chunk = mca.getChunk(i);
+                        if (chunk == null) {
+                            generatedRegions.remove(pos);
+                            notFull = true;
+                            break;
+                        }
+                    }
+                    Iris.info("Completed MCA region: " + file.getName());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        b.complete();
     }
 
     private void visitRegion(int x, int z, boolean regions) {

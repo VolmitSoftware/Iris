@@ -24,7 +24,7 @@ import java.util.HashSet;
 
 @Data
 public class IrisEngineStatistics {
-    private int totalHotloads = 0;
+    private int unsafeShutdown = 0;
     private int chunksGenerated = 0;
     private int IrisToUpgradedVersion = 0;
     private int IrisCreationVersion = 0;
@@ -34,8 +34,8 @@ public class IrisEngineStatistics {
         chunksGenerated++;
     }
 
-    public void hotloaded() {
-        totalHotloads++;
+    public void unsafeShutdown() {
+        unsafeShutdown++;
     }
 
 }

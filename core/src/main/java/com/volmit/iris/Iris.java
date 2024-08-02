@@ -513,7 +513,7 @@ public class Iris extends VolmitPlugin implements Listener {
                 try {
 
                     ConfigurationSection entry = section.getConfigurationSection(s);
-                    if (!entry.contains("generator", true)) {
+                    if (!entry.contains("backup-generator", true)) {
                         continue;
                     }
 

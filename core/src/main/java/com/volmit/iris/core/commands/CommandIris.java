@@ -491,11 +491,11 @@ public class CommandIris implements DecreeExecutor {
                 try {
 
                     ConfigurationSection entry = section.getConfigurationSection(s);
-                    if (!entry.contains("generator", true)) {
+                    if (!entry.contains("backup-generator", true)) {
                         continue;
                     }
 
-                    String generator = entry.getString("generator");
+                    String generator = entry.getString("backup-generator");
                     if (!generator.startsWith("Iris")) {
                         continue;
                     }

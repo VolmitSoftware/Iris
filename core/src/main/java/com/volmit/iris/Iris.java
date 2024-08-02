@@ -66,8 +66,13 @@ import com.volmit.iris.util.scheduling.ShurikenQueue;
 import io.papermc.lib.PaperLib;
 import lombok.Getter;
 import net.bytebuddy.agent.ByteBuddyAgent;
+import net.bytebuddy.implementation.bytecode.Throw;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.io.filefilter.TrueFileFilter;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.bukkit.*;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
@@ -91,9 +96,8 @@ import java.lang.annotation.Annotation;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.URL;
-import java.util.Date;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -516,12 +520,31 @@ public class Iris extends VolmitPlugin implements Listener {
                     }
 
                     String generator = entry.getString("generator");
-                    if (generator.startsWith("Iris:")) {
-                        generator = generator.split("\\Q:\\E")[1];
-                    } else if (generator.equalsIgnoreCase("Iris")) {
-                        generator = IrisSettings.get().getGenerator().getDefaultWorldType();
-                    } else {
+                    if (!generator.startsWith("Iris")) {
                         continue;
+                    }
+
+//                    if (generator.startsWith("Iris:")) {
+//                        generator = generator.split("\\Q:\\E")[1];
+//                    } else if (generator.equalsIgnoreCase("Iris")) {
+//                        generator = IrisSettings.get().getGenerator().getDefaultWorldType();
+//                    } else {
+//                        continue;
+//                    }
+
+                    File world = new File(Bukkit.getWorldContainer().getPath() + "/" + s + "/iris/engine-data/");
+                    IOFileFilter jsonFilter = org.apache.commons.io.filefilter.FileFilterUtils.suffixFileFilter(".json");
+                    Collection<File> files = FileUtils.listFiles(world, jsonFilter, TrueFileFilter.INSTANCE);
+                    if(files.size() != 1) {
+                        Iris.info(C.DARK_GRAY + "------------------------------------------");
+                        Iris.info(C.RED + "Failed to load " + C.GRAY + s + C.RED + ". No valid engine-data file was found.");
+                        Iris.info(C.DARK_GRAY + "------------------------------------------");
+                        continue;
+                    }
+
+                    for (File file : files) {
+                        int lastDotIndex = file.getName().lastIndexOf(".");
+                        generator = file.getName().substring(0, lastDotIndex);
                     }
 
                     Iris.info("2 World: %s | Generator: %s", s, generator);
@@ -537,7 +560,9 @@ public class Iris extends VolmitPlugin implements Listener {
                             .createWorld();
                     Iris.info(C.LIGHT_PURPLE + "Loaded " + s + "!");
                 } catch (Exception e) {
-                    Iris.info("Failed to load " + s);
+                    Iris.info(C.DARK_GRAY + "------------------------------------------");
+                    Iris.info(C.RED + "Failed to load " + C.GRAY + s);
+                    Iris.info(C.DARK_GRAY + "------------------------------------------");
                 }
             }
         } catch (Throwable e) {

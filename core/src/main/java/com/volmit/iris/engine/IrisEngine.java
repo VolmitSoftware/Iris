@@ -73,7 +73,6 @@ import java.util.concurrent.locks.ReentrantLock;
 @EqualsAndHashCode(exclude = "context")
 @ToString(exclude = "context")
 public class IrisEngine implements Engine {
-    private Set<String> chunks = ConcurrentHashMap.newKeySet();
     private final AtomicInteger bud;
     private final AtomicInteger buds;
     private final AtomicInteger generated;
@@ -137,7 +136,6 @@ public class IrisEngine implements Engine {
         failing = false;
         closed = false;
         art = J.ar(this::tickRandomPlayer, 0);
-        chunks = getEngineData().getGeneratedChunks();
         setupEngine();
         Iris.debug("Engine Initialized " + getCacheID());
     }
@@ -288,7 +286,6 @@ public class IrisEngine implements Engine {
                 File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + ".json");
                 f.getParentFile().mkdirs();
                 try {
-                    getEngineData().addGeneratedChunk(chunks);
                     IO.writeAll(f, new Gson().toJson(getEngineData()));
                     Iris.debug("Saved Engine Data");
                 } catch (IOException e) {
@@ -311,7 +308,6 @@ public class IrisEngine implements Engine {
     public void addGenerated(int x, int z) {
         try {
             File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + ".json");
-            chunks.add(x + "," + z);
             if (generated.incrementAndGet() == 661) {
                 J.a(() -> getData().savePrefetch(this));
             }
@@ -513,11 +509,6 @@ public class IrisEngine implements Engine {
     @Override
     public void blockUpdatedMetric() {
         bud.incrementAndGet();
-    }
-
-    @Override
-    public boolean exists(int x, int z) {
-        return chunks.contains(x + "," + z);
     }
 
     @Override

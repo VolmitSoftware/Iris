@@ -238,6 +238,11 @@ public class PregeneratorJob implements PregenListener {
     }
 
     @Override
+    public void onServerShutdown() {
+
+    }
+
+    @Override
     public void onChunkGenerated(int x, int z) {
         if (engine != null) {
             draw(x, z, engine.draw((x << 4) + 8, (z << 4) + 8));
@@ -251,6 +256,27 @@ public class PregeneratorJob implements PregenListener {
     public void onRegionGenerated(int x, int z) {
         shouldGc();
         rgc++;
+
+        // Each region is 32x32 chunks
+        for (int chunkOffsetX = 0; chunkOffsetX < 32; chunkOffsetX++) {
+            for (int chunkOffsetZ = 0; chunkOffsetZ < 32; chunkOffsetZ++) {
+                // Calculate actual chunk coordinates
+                int chunkX = (x << 5) + chunkOffsetX;
+                int chunkZ = (z << 5) + chunkOffsetZ;
+
+                if (engine != null) {
+                    // Calculate the center block of the chunk
+                    int centerBlockX = (chunkX << 4) + 8;
+                    int centerBlockZ = (chunkZ << 4) + 8;
+
+                    // Draw the chunk
+                    draw(chunkX, chunkZ, engine.draw(centerBlockX, centerBlockZ));
+                } else {
+                    // If engine is null, use the default color
+                    draw(chunkX, chunkZ, COLOR_GENERATED);
+                }
+            }
+        }
     }
 
     private void shouldGc() {

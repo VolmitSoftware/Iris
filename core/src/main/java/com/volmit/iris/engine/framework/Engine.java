@@ -266,8 +266,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     void blockUpdatedMetric();
 
-    boolean exists(int x, int z);
-
     @ChunkCoordinates
     @Override
     default void updateChunk(Chunk c) {

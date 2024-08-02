@@ -36,10 +36,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 
@@ -47,6 +45,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private final World world;
     private final Engine engine;
     private final MultiBurst burst;
+
     private final KList<Future<?>> future;
     private final Map<Chunk, Long> lastUse;
 
@@ -85,15 +84,14 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
     private void completeChunk(int x, int z, PregenListener listener) {
         try {
-            if (!engine.exists(x,z)) {
-                future.add(PaperLib.getChunkAtAsync(world, x, z, true).thenApply((i) -> {
-                    if (i == null) return 0;
-                    lastUse.put(i, M.ms());
-                    listener.onChunkGenerated(x, z);
-                    listener.onChunkCleaned(x, z);
-                    return 0;
-                }));
-            }
+            future.add(PaperLib.getChunkAtAsync(world, x, z, true).thenApply((i) -> {
+                if (i == null) return 0;
+                lastUse.put(i, M.ms());
+                listener.onChunkGenerated(x, z);
+                listener.onChunkCleaned(x, z);
+                return 0;
+            }));
+
         } catch (Throwable e) {
             e.printStackTrace();
         }

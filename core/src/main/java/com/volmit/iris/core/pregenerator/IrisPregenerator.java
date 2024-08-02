@@ -18,11 +18,9 @@
 
 package com.volmit.iris.core.pregenerator;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.nms.IHeadless;
-import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.core.nms.v1X.NMSBinding1X;
-import com.volmit.iris.core.pack.IrisPack;
 import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.collection.KList;
@@ -33,7 +31,6 @@ import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
-import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.nbt.mca.Chunk;
 import com.volmit.iris.util.nbt.mca.MCAFile;
 import com.volmit.iris.util.nbt.mca.MCAUtil;
@@ -44,7 +41,11 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
 import org.bukkit.World;
 
-import java.io.File;
+import java.io.*;
+import java.lang.reflect.Type;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -54,6 +55,7 @@ import java.util.regex.Pattern;
 
 
 public class IrisPregenerator {
+    private final String saveFile = "regions.json";
     private final PregenTask task;
     private final PregeneratorMethod generator;
     private final PregenListener listener;
@@ -71,14 +73,14 @@ public class IrisPregenerator {
     private final AtomicLong startTime;
     private final ChronoLatch minuteLatch;
     private final AtomicReference<String> currentGeneratorMethod;
-    private final KSet<Position2> generatedRegions;
+    private Set<Position2> generatedRegions;
     private final KSet<Position2> retry;
     private final KSet<Position2> net;
     private final ChronoLatch cl;
     private final ChronoLatch saveLatch = new ChronoLatch(30000);
 
     public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener) {
-        generatedRegions = new KSet<>();
+        generatedRegions = ConcurrentHashMap.newKeySet();
         this.listener = listenify(listener);
         cl = new ChronoLatch(5000);
         this.shutdown = new AtomicBoolean(false);
@@ -97,6 +99,7 @@ public class IrisPregenerator {
         generatedLast = new AtomicInteger(0);
         generatedLastMinute = new AtomicInteger(0);
         totalChunks = new AtomicInteger(0);
+        loadCompletedRegions();
         IrisToolbelt.access(generator.getWorld()).getEngine().saveEngineData();
         task.iterateRegions((_a, _b) -> totalChunks.addAndGet(1024));
         startTime = new AtomicLong(M.ms());
@@ -183,6 +186,7 @@ public class IrisPregenerator {
         generator.close();
         ticker.interrupt();
         listener.onClose();
+        saveCompletedRegions();
         Mantle mantle = getMantle();
         if (mantle != null) {
             mantle.trim(0, 0);
@@ -239,6 +243,7 @@ public class IrisPregenerator {
         Position2 pos = new Position2(x, z);
 
         if (generatedRegions.contains(pos)) {
+            listener.onRegionGenerated(x,z);
             return;
         }
 
@@ -281,6 +286,31 @@ public class IrisPregenerator {
         generator.supportsRegions(x, z, listener);
     }
 
+    public void saveCompletedRegions() {
+        Gson gson = new Gson();
+        try (Writer writer = new FileWriter(generator.getWorld().getWorldFolder().getPath() + "/" + saveFile)) {
+            gson.toJson(new HashSet<>(generatedRegions), writer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void loadCompletedRegions() {
+        Gson gson = new Gson();
+        try (Reader reader = new FileReader(generator.getWorld().getWorldFolder().getPath() + "/" + saveFile)) {
+            Type setType = new TypeToken<HashSet<Position2>>(){}.getType();
+            Set<Position2> loadedSet = gson.fromJson(reader, setType);
+            if (loadedSet != null) {
+                generatedRegions.clear();
+                generatedRegions.addAll(loadedSet);
+            }
+        } catch (FileNotFoundException e) {
+           // all fine
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void pause() {
         paused.set(true);
     }
@@ -302,6 +332,11 @@ public class IrisPregenerator {
             }
 
             @Override
+            public void onServerShutdown() {
+
+            }
+
+            @Override
             public void onChunkGenerated(int x, int z) {
                 listener.onChunkGenerated(x, z);
                 generated.addAndGet(1);
@@ -309,6 +344,9 @@ public class IrisPregenerator {
 
             @Override
             public void onRegionGenerated(int x, int z) {
+                generatedRegions.add(new Position2(x, z));
+                saveCompletedRegions();
+                generated.addAndGet(1024); // todo. not like this.
                 listener.onRegionGenerated(x, z);
             }
 

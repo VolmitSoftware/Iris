@@ -517,32 +517,34 @@ public class Iris extends VolmitPlugin implements Listener {
                         continue;
                     }
 
-                    String generator = entry.getString("generator");
+                    String generator = entry.getString("backup-generator");
                     if (!generator.startsWith("Iris")) {
                         continue;
                     }
 
-//                    if (generator.startsWith("Iris:")) {
-//                        generator = generator.split("\\Q:\\E")[1];
-//                    } else if (generator.equalsIgnoreCase("Iris")) {
-//                        generator = IrisSettings.get().getGenerator().getDefaultWorldType();
-//                    } else {
-//                        continue;
-//                    }
+                    if (new File(Bukkit.getWorldContainer().getPath() + "/" + s).exists()) {
+                        File world = new File(Bukkit.getWorldContainer().getPath() + "/" + s + "/iris/engine-data/");
+                        IOFileFilter jsonFilter = org.apache.commons.io.filefilter.FileFilterUtils.suffixFileFilter(".json");
+                        Collection<File> files = FileUtils.listFiles(world, jsonFilter, TrueFileFilter.INSTANCE);
+                        if(files.size() != 1) {
+                            Iris.info(C.DARK_GRAY + "------------------------------------------");
+                            Iris.info(C.RED + "Failed to load " + C.GRAY + s + C.RED + ". No valid engine-data file was found.");
+                            Iris.info(C.DARK_GRAY + "------------------------------------------");
+                            continue;
+                        }
 
-                    File world = new File(Bukkit.getWorldContainer().getPath() + "/" + s + "/iris/engine-data/");
-                    IOFileFilter jsonFilter = org.apache.commons.io.filefilter.FileFilterUtils.suffixFileFilter(".json");
-                    Collection<File> files = FileUtils.listFiles(world, jsonFilter, TrueFileFilter.INSTANCE);
-                    if(files.size() != 1) {
-                        Iris.info(C.DARK_GRAY + "------------------------------------------");
-                        Iris.info(C.RED + "Failed to load " + C.GRAY + s + C.RED + ". No valid engine-data file was found.");
-                        Iris.info(C.DARK_GRAY + "------------------------------------------");
-                        continue;
-                    }
-
-                    for (File file : files) {
-                        int lastDotIndex = file.getName().lastIndexOf(".");
-                        generator = file.getName().substring(0, lastDotIndex);
+                        for (File file : files) {
+                            int lastDotIndex = file.getName().lastIndexOf(".");
+                            generator = file.getName().substring(0, lastDotIndex);
+                        }
+                    }  else {
+                        if (generator.startsWith("Iris:")) {
+                            generator = generator.split("\\Q:\\E")[1];
+                        } else if (generator.equalsIgnoreCase("Iris")) {
+                            generator = IrisSettings.get().getGenerator().getDefaultWorldType();
+                        } else {
+                            continue;
+                        }
                     }
 
                     Iris.info("2 World: %s | Generator: %s", s, generator);

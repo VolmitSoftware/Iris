@@ -156,6 +156,7 @@ allprojects {
         compileOnly 'net.bytebuddy:byte-buddy-agent:1.12.8'
         compileOnly 'org.bytedeco:javacpp:1.5.10'
         compileOnly 'org.bytedeco:cuda-platform:12.3-8.9-1.5.10'
+        compileOnly 'org.mapdb:mapdb:3.1.0'
     }
 
     /**

@@ -238,7 +238,7 @@ public class IrisCreator {
         String gen = "Iris:" + dimension;
         ConfigurationSection section = yml.contains("worlds") ? yml.getConfigurationSection("worlds") : yml.createSection("worlds");
         if (!section.contains(name)) {
-            section.createSection(name).set("generator", gen);
+            section.createSection(name).set("backup-generator", gen);
             try {
                 yml.save(BUKKIT_YML);
                 Iris.info("Registered \"" + name + "\" in bukkit.yml");

@@ -6,6 +6,7 @@ authors: [ cyberpwn, NextdoorPsycho, Vatuu ]
 website: volmit.com
 description: More than a Dimension!
 libraries:
+  - org.mapdb:mapdb:3.1.0
   - org.bytedeco:cuda-platform:12.3-8.9-1.5.10
   - org.bytedeco:javacpp:1.5.10
   - net.bytebuddy:byte-buddy:1.14.14

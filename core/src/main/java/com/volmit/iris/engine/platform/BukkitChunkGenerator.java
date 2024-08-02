@@ -265,14 +265,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     private Engine getEngine(WorldInfo world) {
-//        if (!IrisSafeguard.instance.acceptUnstable && IrisSafeguard.instance.unstablemode) {
-//            Iris.info(C.RED + "------------------------------------------------------------");
-//            Iris.info(C.DARK_RED + "Cancelled World Loading of " + world.getName() + "!");
-//            Iris.info(C.RED + "World loading has been disabled until the incompatibility is resolved.");
-//            Iris.info(C.DARK_RED + "Alternatively, go to plugins/iris/settings.json and set ignoreBootMode to true.");
-//            Iris.info(C.RED + "------------------------------------------------------------");
-//            return null;
-//        }
 
         if (setup.get()) {
             return getEngine();

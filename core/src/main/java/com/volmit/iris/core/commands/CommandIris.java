@@ -46,6 +46,9 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import io.lumine.mythic.bukkit.adapters.BukkitPlayer;
 import lombok.Getter;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.bukkit.Bukkit;
 import org.bukkit.Difficulty;
 import org.bukkit.World;
@@ -61,6 +64,7 @@ import java.io.Console;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -449,8 +453,8 @@ public class CommandIris implements DecreeExecutor {
         Iris.service(StudioSVC.class).installIntoWorld(sender(), pack.getLoadKey(), folder);
     }
 
-    @Decree(description = "Unload an Iris World", origin = DecreeOrigin.PLAYER, sync = true)
-    public void unloadWorld(
+    @Decree(description = "Unload an Iris World", sync = true)
+    public void unload(
             @Param(description = "The world to unload")
             World world
     ) {
@@ -470,60 +474,74 @@ public class CommandIris implements DecreeExecutor {
     }
 
     @Decree(description = "Load an Iris World", origin = DecreeOrigin.PLAYER, sync = true, aliases = {"import"})
-    public void loadWorld(
+    public void load(
             @Param(description = "The name of the world to load")
             String world
     ) {
-        World worldloaded = Bukkit.getWorld(world);
-        worldNameToCheck = world;
-        boolean worldExists = doesWorldExist(worldNameToCheck);
-        WorldEngine = world;
 
-        if (!worldExists) {
-            sender().sendMessage(C.YELLOW + world + " Doesnt exist on the server.");
-            return;
-        }
-
-        File BUKKIT_YML = new File("bukkit.yml");
-        String pathtodim = world + File.separator +"iris"+File.separator +"pack"+File.separator +"dimensions"+File.separator;
-        File directory = new File(Bukkit.getWorldContainer(), pathtodim);
-
-        String dimension = null;
-        if (directory.exists() && directory.isDirectory()) {
-            File[] files = directory.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    if (file.isFile()) {
-                        String fileName = file.getName();
-                        if (fileName.endsWith(".json")) {
-                            dimension = fileName.substring(0, fileName.length() - 5);
-                            sender().sendMessage(C.BLUE + "Generator: " + dimension);
-                        }
-                    }
-                }
-            }
-        } else {
-            sender().sendMessage(C.GOLD + world + " is not an iris world.");
-            return;
-        }
-        sender().sendMessage(C.GREEN + "Loading world: " + world);
-
-        YamlConfiguration yml = YamlConfiguration.loadConfiguration(BUKKIT_YML);
-        String gen = "Iris:" + dimension;
-        ConfigurationSection section = yml.contains("worlds") ? yml.getConfigurationSection("worlds") : yml.createSection("worlds");
-        if (!section.contains(world)) {
-            section.createSection(world).set("generator", gen);
-            try {
-                yml.save(BUKKIT_YML);
-                Iris.info("Registered \"" + world + "\" in bukkit.yml");
-            } catch (IOException e) {
-                Iris.error("Failed to update bukkit.yml!");
-                e.printStackTrace();
+        FileConfiguration fc = new YamlConfiguration();
+        try {
+            fc.load(new File("bukkit.yml"));
+            ConfigurationSection section = fc.getConfigurationSection("worlds");
+            if (section == null) {
                 return;
             }
+
+            for (String s : section.getKeys(false)) {
+                try {
+
+                    ConfigurationSection entry = section.getConfigurationSection(s);
+                    if (!entry.contains("generator", true)) {
+                        continue;
+                    }
+
+                    String generator = entry.getString("generator");
+                    if (!generator.startsWith("Iris")) {
+                        continue;
+                    }
+
+                    if (!s.equalsIgnoreCase(world)) {
+                        continue;
+                    }
+
+                    File worldFolder = new File(Bukkit.getWorldContainer().getPath() + "/" + s + "/iris/engine-data/");
+                    IOFileFilter jsonFilter = org.apache.commons.io.filefilter.FileFilterUtils.suffixFileFilter(".json");
+                    Collection<File> files = FileUtils.listFiles(worldFolder, jsonFilter, TrueFileFilter.INSTANCE);
+                    if(files.size() != 1) {
+                        Iris.info(C.DARK_GRAY + "------------------------------------------");
+                        Iris.info(C.RED + "Failed to load " + C.GRAY + s + C.RED + ". No valid engine-data file was found.");
+                        Iris.info(C.DARK_GRAY + "------------------------------------------");
+                        continue;
+                    }
+
+                    for (File file : files) {
+                        int lastDotIndex = file.getName().lastIndexOf(".");
+                        generator = file.getName().substring(0, lastDotIndex);
+                    }
+
+                    Iris.info("2 World: %s | Generator: %s", s, generator);
+
+                    if (Bukkit.getWorlds().stream().anyMatch(w -> w.getName().equals(s))) {
+                        continue;
+                    }
+
+                    Iris.info(C.LIGHT_PURPLE + "Preparing Spawn for " + s + "' using Iris:" + generator + "...");
+                    new WorldCreator(s)
+                            .generator(getDefaultWorldGenerator(s, generator))
+                            .environment(IrisData.loadAnyDimension(generator).getEnvironment())
+                            .createWorld();
+                    Iris.info(C.LIGHT_PURPLE + "Loaded " + s + "!");
+                    break;
+                } catch (Exception e) {
+                    Iris.info(C.DARK_GRAY + "------------------------------------------");
+                    Iris.info(C.RED + "Failed to load " + C.GRAY + s);
+                    Iris.info(C.DARK_GRAY + "------------------------------------------");
+                }
+                sender().sendMessage(C.GOLD + "Failed to find world: " + C.DARK_GRAY + world);
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
         }
-        checkForBukkitWorlds(world);
-        sender().sendMessage(C.GREEN + world + " loaded successfully.");
     }
     @Decree(description = "Evacuate an iris world", origin = DecreeOrigin.PLAYER, sync = true)
     public void evacuate(

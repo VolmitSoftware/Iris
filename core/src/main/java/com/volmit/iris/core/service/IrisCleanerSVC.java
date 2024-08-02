@@ -45,6 +45,9 @@ public class IrisCleanerSVC implements IrisService {
     private AtomicInteger TotalTectonicPlates;
     private AtomicInteger TotalQueuedTectonicPlates;
     private AtomicInteger TotalNotQueuedTectonicPlates;
+    private AtomicInteger failedTrim;
+    private AtomicInteger failedUnload;
+    private AtomicInteger failedSupply;
     private AtomicBoolean IsUnloadAlive;
     private AtomicBoolean IsTrimAlive;
     ChronoLatch cl;
@@ -64,6 +67,9 @@ public class IrisCleanerSVC implements IrisService {
         TotalTectonicPlates = new AtomicInteger();
         TotalQueuedTectonicPlates = new AtomicInteger();
         TotalNotQueuedTectonicPlates = new AtomicInteger();
+        failedTrim = new AtomicInteger();
+        failedUnload = new AtomicInteger();
+        failedSupply = new AtomicInteger();
         tectonicLimit.set(2);
         long t = getHardware.getProcessMemory();
         while (t > 200) {
@@ -93,7 +99,6 @@ public class IrisCleanerSVC implements IrisService {
         Iris.info("Status:");
         Iris.info("- Trim: " + trimAlive);
         Iris.info("- Unload: " + unloadAlive);
-
     }
 
     public static int getTectonicLimit() {
@@ -214,7 +219,8 @@ public class IrisCleanerSVC implements IrisService {
                         }
                     } catch (Throwable e) {
                         Iris.reportError(e);
-                        Iris.info(C.RED + "EngineSVC: Failed to trim.");
+                        Iris.debug(C.RED + "EngineSVC: Failed to trim.");
+                        failedTrim.getAndIncrement();
                         e.printStackTrace();
                         return -1;
                     }
@@ -249,7 +255,8 @@ public class IrisCleanerSVC implements IrisService {
                         }
                     } catch (Throwable e) {
                         Iris.reportError(e);
-                        Iris.info(C.RED + "EngineSVC: Failed to unload.");
+                        Iris.debug(C.RED + "EngineSVC: Failed to unload.");
+                        failedUnload.getAndIncrement();
                         e.printStackTrace();
                         return -1;
                     }
@@ -292,7 +299,8 @@ public class IrisCleanerSVC implements IrisService {
                     }
                 }
             } catch (Throwable e) {
-                Iris.info(C.RED + "EngineSVC: Failed to create supplier.");
+                failedSupply.getAndIncrement();
+                Iris.debug(C.RED + "EngineSVC: Failed to create supplier.");
                 e.printStackTrace();
                 Iris.reportError(e);
             }

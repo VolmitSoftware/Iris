@@ -38,6 +38,8 @@ public class PregenTask {
     @Builder.Default
     private boolean gui = false;
     @Builder.Default
+    private boolean optimizer = false;
+    @Builder.Default
     private Position2 center = new Position2(0, 0);
     @Builder.Default
     private int width = 1;

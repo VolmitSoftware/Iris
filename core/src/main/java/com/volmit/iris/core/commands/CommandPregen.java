@@ -45,7 +45,9 @@ public class CommandPregen implements DecreeExecutor {
             @Param(description = "The world to pregen", contextual = true)
             World world,
             @Param(aliases = "middle", description = "The center location of the pregen. Use \"me\" for your current location", defaultValue = "0,0")
-            Vector center
+            Vector center,
+            @Param(aliases = "optimizer", description = "If it should run the optimizer automatically after the pregen is finished", defaultValue = "true")
+            boolean optimizer
             ) {
         try {
             if (sender().isPlayer() && access() == null) {
@@ -56,6 +58,7 @@ public class CommandPregen implements DecreeExecutor {
             int w = (radius >> 9 + 1) * 2;
             IrisToolbelt.pregenerate(PregenTask
                     .builder()
+                    .optimizer(optimizer)
                     .center(new Position2(center.getBlockX() >> 9, center.getBlockZ() >> 9))
                     .gui(!GraphicsEnvironment.isHeadless())
                     .width(w)

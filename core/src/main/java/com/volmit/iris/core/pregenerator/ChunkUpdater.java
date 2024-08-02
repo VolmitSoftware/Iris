@@ -266,7 +266,7 @@ public class ChunkUpdater {
         );
     }
 
-    public int calculateWorldDimensions(File regionDir, Integer o) {
+    private int calculateWorldDimensions(File regionDir, Integer o) {
         File[] files = regionDir.listFiles((dir, name) -> name.endsWith(".mca"));
 
         int minX = Integer.MAX_VALUE;
@@ -297,7 +297,7 @@ public class ChunkUpdater {
         return 0;
     }
 
-    public int[] getChunk(int position) {
+    private int[] getChunk(int position) {
         int p = -1;
         AtomicInteger xx = new AtomicInteger();
         AtomicInteger zz = new AtomicInteger();

@@ -1,15 +1,12 @@
 package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.mantle.TectonicPlate;
 import com.volmit.iris.util.misc.getHardware;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.scheduling.ChronoLatch;
@@ -22,17 +19,15 @@ import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.ServerLoadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
-import org.checkerframework.checker.units.qual.A;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
-public class IrisEngineSVC implements IrisService {
-    public static IrisEngineSVC instance;
+public class IrisCleanerSVC implements IrisService {
+    public static IrisCleanerSVC instance;
     public boolean isServerShuttingDown = false;
     public boolean isServerLoaded = false;
     private static final AtomicInteger tectonicLimit = new AtomicInteger(30);

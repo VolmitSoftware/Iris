@@ -78,7 +78,6 @@ public class IrisPregenerator {
     private final ChronoLatch saveLatch = new ChronoLatch(30000);
 
     public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener) {
-        Iris.info("Initializing Pregenerator");
         generatedRegions = new KSet<>();
         this.listener = listenify(listener);
         cl = new ChronoLatch(5000);
@@ -100,7 +99,6 @@ public class IrisPregenerator {
         totalChunks = new AtomicInteger(0);
         IrisToolbelt.access(generator.getWorld()).getEngine().saveEngineData();
         task.iterateRegions((_a, _b) -> totalChunks.addAndGet(1024));
-        Iris.info("Initialization Completed!");
         startTime = new AtomicLong(M.ms());
         ticker = new Looper() {
             @Override
@@ -161,6 +159,11 @@ public class IrisPregenerator {
         shutdown();
         if (!IrisPackBenchmarking.benchmarkInProgress) {
             Iris.info(C.IRIS + "Pregen stopped.");
+            if (totalChunks.get() == generated.get() && task.isOptimizer()) {
+                Iris.info("Starting World Optimizer..");
+                ChunkUpdater updater = new ChunkUpdater(generator.getWorld());
+                updater.start();
+            }
         } else {
             IrisPackBenchmarking.instance.finishedBenchmark(chunksPerSecondHistory);
         }

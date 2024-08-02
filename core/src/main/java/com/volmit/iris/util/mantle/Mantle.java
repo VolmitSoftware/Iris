@@ -21,7 +21,7 @@ package com.volmit.iris.util.mantle;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.service.IrisEngineSVC;
+import com.volmit.iris.core.service.IrisCleanerSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
@@ -425,7 +425,7 @@ public class Mantle {
         ioTrim.set(true);
         unloadLock.lock();
         try {
-            if (lastUse != null && IrisEngineSVC.instance != null) {
+            if (lastUse != null && IrisCleanerSVC.instance != null) {
                 if (!lastUse.isEmpty()) {
                     Iris.debug("Trimming Tectonic Plates older than " + Form.duration(adjustedIdleDuration.get(), 0));
                     for (long i : new ArrayList<>(lastUse.keySet())) {
@@ -435,7 +435,7 @@ public class Mantle {
                             if (lastUseTime != null && M.ms() - lastUseTime >= finalAdjustedIdleDuration) {
                                 toUnload.add(i);
                                 Iris.debug("Tectonic Region added to unload");
-                                IrisEngineSVC.instance.trimActiveAlive.reset();
+                                IrisCleanerSVC.instance.trimActiveAlive.reset();
                             }
                         });
                     }
@@ -454,7 +454,7 @@ public class Mantle {
         AtomicInteger i = new AtomicInteger();
         unloadLock.lock();
         BurstExecutor burst = null;
-        if (IrisEngineSVC.instance != null) {
+        if (IrisCleanerSVC.instance != null) {
             try {
                 KList<Long> copy = toUnload.copy();
                 if (!disableClear) toUnload.clear();
@@ -478,7 +478,7 @@ public class Mantle {
                                         if (disableClear) toUnload.remove(id);
                                         i.incrementAndGet();
                                         Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(id) + " " + Cache.keyZ(id));
-                                        IrisEngineSVC.instance.unloadActiveAlive.reset();
+                                        IrisCleanerSVC.instance.unloadActiveAlive.reset();
                                     } catch (IOException e) {
                                         Iris.reportError(e);
                                     }

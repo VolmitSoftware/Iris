@@ -23,6 +23,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.container.BlockPos;
+import com.volmit.iris.core.nms.container.IPackRepository;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -118,6 +119,11 @@ public class NMSBinding1X implements INMSBinding {
 
     @Override
     public boolean registerBiome(String dimensionId, IrisBiomeCustom biome, boolean replace) {
+        return false;
+    }
+
+    @Override
+    public boolean dumpRegistry(File... folders) {
         return false;
     }
 
@@ -270,6 +276,11 @@ public class NMSBinding1X implements INMSBinding {
             Iris.reportError(e);
         }
 
+    }
+
+    @Override
+    public IPackRepository getPackRepository() {
+        return new PackRepository1X();
     }
 
     private static class WorldCreatorAdvice {

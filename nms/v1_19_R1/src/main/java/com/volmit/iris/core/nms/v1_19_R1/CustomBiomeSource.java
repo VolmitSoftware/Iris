@@ -2,6 +2,7 @@ package com.volmit.iris.core.nms.v1_19_R1;
 
 import com.mojang.serialization.Codec;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
@@ -146,6 +147,7 @@ public class CustomBiomeSource extends BiomeSource {
                 }
             }
         }
+        ServerConfigurator.dumpDataPack();
 
         return m;
     }

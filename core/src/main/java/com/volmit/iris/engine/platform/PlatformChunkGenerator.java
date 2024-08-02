@@ -25,6 +25,7 @@ import com.volmit.iris.engine.framework.Hotloadable;
 import com.volmit.iris.util.data.DataProvider;
 import org.bukkit.World;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
@@ -46,4 +47,6 @@ public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
     boolean isStudio();
 
     void touch(World world);
+
+    CompletableFuture<Integer> getSpawnChunks();
 }

@@ -1,6 +1,7 @@
 package com.volmit.iris.core.nms.v1_20_R3;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.nms.BiomeBaseInjector;
 import com.volmit.iris.core.nms.IHeadless;
 import com.volmit.iris.core.nms.v1_20_R3.mca.MCATerrainChunk;
@@ -74,6 +75,7 @@ public class Headless implements IHeadless, LevelHeightAccessor {
                 binding.registerBiome(dimKey, custom, false);
             }
         }
+        ServerConfigurator.dumpDataPack();
     }
 
     /**

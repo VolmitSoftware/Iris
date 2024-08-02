@@ -1,11 +1,7 @@
 package com.volmit.iris.core.nms.v1_19_R2;
 
 import java.awt.Color;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -17,8 +13,12 @@ import java.util.Vector;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
+import com.google.gson.JsonNull;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.container.IPackRepository;
+import com.volmit.iris.util.io.IO;
 import net.minecraft.world.level.LevelReader;
 import com.google.common.base.Preconditions;
 import com.google.gson.JsonElement;
@@ -102,6 +102,8 @@ import sun.misc.Unsafe;
 public class NMSBinding implements INMSBinding {
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
     private final BlockData AIR = Material.AIR.createBlockData();
+    private final WPackRepository packRepository = new WPackRepository();
+    private final KMap<ResourceKey<?>, Boolean> changedRegistries = new KMap<>();
     private final AtomicCache<MCAIdMap<net.minecraft.world.level.biome.Biome>> biomeMapCache = new AtomicCache<>();
     private final AtomicCache<MCAIdMapper<BlockState>> registryCache = new AtomicCache<>();
     private final AtomicCache<MCAPalette<BlockState>> globalCache = new AtomicCache<>();
@@ -625,6 +627,7 @@ public class NMSBinding implements INMSBinding {
             try {
                 var holder = registry.register(key, value, Lifecycle.stable());
                 if (frozen) valueField.set(holder, value);
+                changedRegistries.put(registryKey, true);
                 return true;
             } finally {
                 field.setBoolean(registry, frozen);
@@ -661,6 +664,7 @@ public class NMSBinding implements INMSBinding {
             toId.put(value, toId.removeInt(oldValue));
             byValue.put(value, byValue.remove(oldValue));
             lifecycles.put(value, lifecycles.remove(oldValue));
+            changedRegistries.put(registryKey, true);
             return true;
         } catch (Throwable e) {
             throw new IllegalStateException(e);
@@ -739,6 +743,71 @@ public class NMSBinding implements INMSBinding {
         }
     }
 
+    @Override
+    public boolean dumpRegistry(File... folders) {
+        var biomes = collect(Registries.BIOME, net.minecraft.world.level.biome.Biome.DIRECT_CODEC);
+        var dimensions = collect(Registries.DIMENSION_TYPE, DimensionType.DIRECT_CODEC);
+
+        if (biomes.isEmpty() && dimensions.isEmpty())
+            return false;
+
+        for (File folder : folders) {
+            if (folder.getName().equals("datapacks"))
+                folder = new File(folder, "iris");
+            File data = new File(folder, "data");
+
+            for (var entry : biomes.entrySet()) {
+                File file = new File(data, entry.getKey().getNamespace() + "/worldgen/biome/" + entry.getKey().getPath() + ".json");
+                if (!file.getParentFile().exists() && !file.getParentFile().mkdirs())
+                    continue;
+
+                try {
+                    IO.writeAll(file, entry.getValue().toString());
+                } catch (IOException e) {
+                    Iris.error("Failed to write biome " + entry.getKey().toString() + " to " + file.getPath());
+                }
+            }
+
+            for (var entry : dimensions.entrySet()) {
+                File file = new File(data, entry.getKey().getNamespace() + "/dimension_type/" + entry.getKey().getPath() + ".json");
+                if (!file.getParentFile().exists() && !file.getParentFile().mkdirs())
+                    continue;
+
+                try {
+                    IO.writeAll(file, entry.getValue().toString());
+                } catch (IOException e) {
+                    Iris.error("Failed to write dimension " + entry.getKey().toString() + " to " + file.getPath());
+                }
+            }
+
+            File meta = new File(folder, "pack.mcmeta");
+            if (!meta.getParentFile().exists() && !meta.getParentFile().mkdirs())
+                continue;
+
+            try {
+                IO.writeAll(meta, "{\"pack\": {\"pack_format\": "+getDataVersion().getPackFormat()+", \"description\": \"Iris Data Pack. This pack contains all installed Iris Packs' resources.\"}}");
+            } catch (IOException e) {
+                Iris.error("Failed to write pack.mcmeta to " + meta.getPath());
+            }
+        }
+
+        return true;
+    }
+
+    private <T> Map<ResourceLocation, JsonElement> collect(ResourceKey<Registry<T>> registryKey, Codec<T> codec) {
+        var registry = registry().registry(registryKey).orElse(null);
+        if (registry == null || !changedRegistries.getOrDefault(registryKey, false))
+            return Map.of();
+        try {
+            return registry
+                    .registryKeySet()
+                    .stream()
+                    .collect(Collectors.toMap(ResourceKey::location, id -> encode(codec, registry.get(id)).orElse(JsonNull.INSTANCE)));
+        } finally {
+            changedRegistries.put(registryKey, false);
+        }
+    }
+
     public void injectBukkit() {
         try {
             Iris.info("Injecting Bukkit");
@@ -761,6 +830,11 @@ public class NMSBinding implements INMSBinding {
             Iris.reportError(e);
         }
 
+    }
+
+    @Override
+    public IPackRepository getPackRepository() {
+        return packRepository;
     }
 
     private static class ServerLevelAdvice {

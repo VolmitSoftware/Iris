@@ -19,6 +19,7 @@
 package com.volmit.iris.core.nms;
 
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.container.IPackRepository;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
@@ -43,6 +44,7 @@ import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 
 import java.awt.*;
+import java.io.File;
 
 public interface INMSBinding {
     boolean hasTile(Location l);
@@ -127,9 +129,17 @@ public interface INMSBinding {
 
     boolean registerBiome(String dimensionId, IrisBiomeCustom biome, boolean replace);
 
+    boolean dumpRegistry(File... folders);
+
     void injectBukkit();
 
     default IHeadless createHeadless(Engine engine) {
         throw new IllegalStateException("Headless mode not supported");
     }
+
+    default int getSpawnChunkCount(World world) {
+        return 441;
+    }
+
+    IPackRepository getPackRepository();
 }

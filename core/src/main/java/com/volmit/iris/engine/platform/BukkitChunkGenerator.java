@@ -65,6 +65,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -86,6 +87,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final AtomicBoolean setup;
     private final boolean studio;
     private final AtomicInteger a = new AtomicInteger(0);
+    private final CompletableFuture<Integer> spawnChunks = new CompletableFuture<>();
     private final boolean smartVanillaHeight;
     private Engine engine;
     private Looper hotloader;
@@ -150,6 +152,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                     } else {
                         INMS.get().inject(event.getWorld().getSeed(), engine, event.getWorld());
                         Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
+                        spawnChunks.complete(INMS.get().getSpawnChunkCount(event.getWorld()));
                         initialized = true;
                     }
                 }

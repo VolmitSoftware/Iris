@@ -21,6 +21,7 @@ package com.volmit.iris.core.tools;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -147,7 +148,6 @@ public class IrisCreator {
 
         J.a(() ->
         {
-            int req = 441;
             Supplier<Integer> g = () -> {
                 if (finalAccess1 == null || finalAccess1.getEngine() == null) {
                     return 0;
@@ -155,6 +155,9 @@ public class IrisCreator {
                 return finalAccess1.getEngine().getGenerated();
             };
             if(!benchmark) {
+                if (finalAccess1 == null) return;
+                int req = finalAccess1.getSpawnChunks().join();
+
                 while (g.get() < req) {
                     double v = (double) g.get() / (double) req;
                     if (sender.isPlayer()) {

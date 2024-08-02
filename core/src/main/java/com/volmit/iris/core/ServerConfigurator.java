@@ -19,13 +19,18 @@
 package com.volmit.iris.core;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.scheduling.J;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 public class ServerConfigurator {
@@ -66,5 +71,43 @@ public class ServerConfigurator {
             f.set("watchdog.early-warning-delay", TimeUnit.MINUTES.toMillis(3));
             f.save(spigotConfig);
         }
+    }
+
+    private static KList<File> getDataPacksFolder() {
+        if (!IrisSettings.get().getGeneral().forceMainWorld.isEmpty()) {
+            return new KList<File>().qadd(new File(Bukkit.getWorldContainer(), IrisSettings.get().getGeneral().forceMainWorld + "/datapacks"));
+        }
+        KList<File> worlds = new KList<>();
+        Bukkit.getServer().getWorlds().forEach(w -> worlds.add(new File(w.getWorldFolder(), "datapacks")));
+        if (worlds.isEmpty()) {
+            worlds.add(new File(getMainWorldFolder(), "datapacks"));
+        }
+        return worlds;
+    }
+
+    private static File getMainWorldFolder() {
+        try {
+            Properties prop = new Properties();
+            prop.load(new FileInputStream("server.properties"));
+            String world = prop.getProperty("level-name", "world");
+            return new File(Bukkit.getWorldContainer(), world);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static void dumpDataPack() {
+        if (!INMS.get().dumpRegistry(getDataPacksFolder().toArray(File[]::new)))
+            return;
+        disableDataPack();
+    }
+
+    public static void disableDataPack() {
+        var packs = INMS.get().getPackRepository();
+        packs.reload();
+        if (!packs.removePack("file/iris"))
+            return;
+        packs.reloadWorldData();
     }
 }

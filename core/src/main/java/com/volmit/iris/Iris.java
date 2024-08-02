@@ -469,6 +469,7 @@ public class Iris extends VolmitPlugin implements Listener {
         IrisSafeguard.instance.IrisSafeguardSystem();
         getSender().setTag(getTag());
         INMS.get().injectBukkit();
+        ServerConfigurator.disableDataPack();
         if (IrisSafeguard.instance.unstablemode && !IrisSafeguard.instance.acceptUnstable) IrisSafeguard.instance.earlySplash();
         compat = IrisCompat.configured(getDataFile("compat.json"));
         linkMultiverseCore = new MultiverseCoreLink();

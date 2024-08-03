@@ -29,6 +29,7 @@ import lombok.Data;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 @SuppressWarnings("SynchronizeOnNonFinalField")
 @Data
@@ -166,6 +167,7 @@ public class IrisSettings {
         public int spins = 7;
         public int spinb = 8;
         public String cartographerMessage = "Iris does not allow cartographers in its world due to crashes.";
+        public String[] dataPackPaths = new String[0];
 
 
         @SuppressWarnings("BooleanMethodIsAlwaysInverted")

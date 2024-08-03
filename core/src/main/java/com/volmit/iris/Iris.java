@@ -469,7 +469,6 @@ public class Iris extends VolmitPlugin implements Listener {
         IrisSafeguard.instance.IrisSafeguardSystem();
         getSender().setTag(getTag());
         INMS.get().injectBukkit();
-        ServerConfigurator.disableDataPack();
         if (IrisSafeguard.instance.unstablemode && !IrisSafeguard.instance.acceptUnstable) IrisSafeguard.instance.earlySplash();
         compat = IrisCompat.configured(getDataFile("compat.json"));
         linkMultiverseCore = new MultiverseCoreLink();
@@ -477,6 +476,7 @@ public class Iris extends VolmitPlugin implements Listener {
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
+        ServerConfigurator.setupDataPack();
         installMainDimension();
         if (!IrisSafeguard.instance.acceptUnstable && IrisSafeguard.instance.unstablemode) {
             Iris.info(C.RED + "World loading has been disabled until the incompatibility is resolved.");

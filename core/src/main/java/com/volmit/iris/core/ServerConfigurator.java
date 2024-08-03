@@ -19,18 +19,20 @@
 package com.volmit.iris.core;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.scheduling.J;
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Properties;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 public class ServerConfigurator {
@@ -73,33 +75,50 @@ public class ServerConfigurator {
         }
     }
 
-    private static KList<File> getDataPacksFolder() {
-        if (!IrisSettings.get().getGeneral().forceMainWorld.isEmpty()) {
-            return new KList<File>().qadd(new File(Bukkit.getWorldContainer(), IrisSettings.get().getGeneral().forceMainWorld + "/datapacks"));
-        }
-        KList<File> worlds = new KList<>();
-        Bukkit.getServer().getWorlds().forEach(w -> worlds.add(new File(w.getWorldFolder(), "datapacks")));
-        if (worlds.isEmpty()) {
-            worlds.add(new File(getMainWorldFolder(), "datapacks"));
-        }
-        return worlds;
+    private static File[] getDataPacksFolder() {
+        KList<File> files = new KList<>();
+        files.add(new File("plugins/Iris/datapack"));
+        Arrays.stream(IrisSettings.get().getGeneral().dataPackPaths)
+                .map(File::new)
+                .forEach(files::add);
+        return files.toArray(File[]::new);
     }
 
-    private static File getMainWorldFolder() {
-        try {
-            Properties prop = new Properties();
-            prop.load(new FileInputStream("server.properties"));
-            String world = prop.getProperty("level-name", "world");
-            return new File(Bukkit.getWorldContainer(), world);
-        } catch (Exception e) {
-            e.printStackTrace();
+    public static void setupDataPack() {
+        File packs = new File("plugins/Iris/packs");
+        if (!packs.exists()) {
+            disableDataPack();
+            return;
         }
-        return null;
+        for (File i : packs.listFiles()) {
+            if (!i.isDirectory()) continue;
+
+            Iris.verbose("Checking Pack: " + i.getPath());
+            IrisData data = IrisData.get(i);
+            File dims = new File(i, "dimensions");
+
+            if (dims.exists()) {
+                for (File j : dims.listFiles((f, s) -> s.endsWith(".json"))) {
+                    if (!j.isFile()) continue;
+                    IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
+                    if (dim == null) continue;
+
+                    dim.getAllBiomes(() -> data)
+                            .stream()
+                            .map(IrisBiome::getCustomDerivitives)
+                            .filter(Objects::nonNull)
+                            .flatMap(KList::stream)
+                            .forEach(b -> INMS.get().registerBiome(dim.getLoadKey(), b, false));
+                }
+            }
+        }
+        dumpDataPack();
     }
 
     public static void dumpDataPack() {
-        if (!INMS.get().dumpRegistry(getDataPacksFolder().toArray(File[]::new)))
+        if (!INMS.get().dumpRegistry(getDataPacksFolder())) {
             return;
+        }
         disableDataPack();
     }
 

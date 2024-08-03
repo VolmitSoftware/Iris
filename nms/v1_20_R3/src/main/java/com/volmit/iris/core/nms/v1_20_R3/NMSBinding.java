@@ -817,6 +817,7 @@ public class NMSBinding implements INMSBinding {
             return registry
                     .registryKeySet()
                     .stream()
+                    .filter(id -> !id.location().getNamespace().equals("minecraft"))
                     .collect(Collectors.toMap(ResourceKey::location, id -> encode(codec, registry.get(id)).orElse(JsonNull.INSTANCE)));
         } finally {
             changedRegistries.put(registryKey, false);

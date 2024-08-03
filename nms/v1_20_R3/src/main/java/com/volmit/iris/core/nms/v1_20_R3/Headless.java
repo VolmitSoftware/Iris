@@ -73,7 +73,13 @@ public class Headless implements IHeadless, LevelHeightAccessor {
             if (!biome.isCustom()) continue;
             for (var custom : biome.getCustomDerivitives()) {
                 binding.registerBiome(dimKey, custom, false);
+                customBiomes.put(custom.getId(), binding.getBiomeHolder(dimKey, custom.getId()));
             }
+        }
+        for (var biome : org.bukkit.block.Biome.values()) {
+            if (biome == org.bukkit.block.Biome.CUSTOM) continue;
+            var key = biome.getKey();
+            minecraftBiomes.put(key, binding.getBiomeHolder(key.getNamespace(), key.getKey()));
         }
         ServerConfigurator.dumpDataPack();
     }

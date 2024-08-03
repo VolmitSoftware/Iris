@@ -99,8 +99,10 @@ public class IrisPregenerator {
         generatedLast = new AtomicInteger(0);
         generatedLastMinute = new AtomicInteger(0);
         totalChunks = new AtomicInteger(0);
-        if(!IrisPackBenchmarking.benchmarkInProgress) loadCompletedRegions();
-        IrisToolbelt.access(generator.getWorld()).getEngine().saveEngineData();
+        if(!IrisPackBenchmarking.benchmarkInProgress) {
+            loadCompletedRegions();
+            IrisToolbelt.access(generator.getWorld()).getEngine().saveEngineData();
+        }
         task.iterateRegions((_a, _b) -> totalChunks.addAndGet(1024));
         startTime = new AtomicLong(M.ms());
         ticker = new Looper() {

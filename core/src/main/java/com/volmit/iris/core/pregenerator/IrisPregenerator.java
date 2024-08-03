@@ -244,6 +244,7 @@ public class IrisPregenerator {
 
         if (generatedRegions.contains(pos)) {
             listener.onRegionGenerated(x,z);
+            if(regions) generated.addAndGet(1024);
             return;
         }
 
@@ -346,7 +347,6 @@ public class IrisPregenerator {
             public void onRegionGenerated(int x, int z) {
                 generatedRegions.add(new Position2(x, z));
                 saveCompletedRegions();
-                generated.addAndGet(1024); // todo. not like this.
                 listener.onRegionGenerated(x, z);
             }
 

@@ -34,7 +34,7 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '3.4.0-1.19.2-1.21'
+version '4.0-1.19.2-1.21'
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================

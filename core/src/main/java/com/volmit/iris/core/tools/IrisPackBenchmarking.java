@@ -35,7 +35,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.concurrent.*;
 
 
 public class IrisPackBenchmarking {
@@ -60,8 +59,7 @@ public class IrisPackBenchmarking {
 
     public void runBenchmark() {
         this.stopwatch = new PrecisionStopwatch();
-        ExecutorService service = Executors.newSingleThreadExecutor();
-        service.submit(() -> {
+        new Thread(() -> {
             Iris.info("Setting up benchmark environment ");
             benchmarkInProgress = true;
             File file = new File(Bukkit.getWorldContainer(), "benchmark");
@@ -76,8 +74,7 @@ public class IrisPackBenchmarking {
             Iris.info("Starting Benchmark!");
             stopwatch.begin();
             startBenchmark();
-        });
-
+        }, "PackBenchmarking").start();
     }
 
     public boolean getBenchmarkInProgress() {

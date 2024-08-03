@@ -140,12 +140,18 @@ public class IrisPregenerator {
     }
 
     private long computeETA() {
-        return (long) (totalChunks.get() > 1024 ? // Generated chunks exceed 1/8th of total?
-                // If yes, use smooth function (which gets more accurate over time since its less sensitive to outliers)
-                ((totalChunks.get() - generated.get()) * ((double) (M.ms() - startTime.get()) / (double) generated.get())) :
-                // If no, use quick function (which is less accurate over time but responds better to the initial delay)
-                ((totalChunks.get() - generated.get()) / chunksPerSecond.getAverage()) * 1000
-        );
+        long currentTime = M.ms();
+        long elapsedTime = currentTime - startTime.get();
+        int generatedChunks = generated.get();
+        int remainingChunks = totalChunks.get() - generatedChunks;
+
+        if (generatedChunks <= 12_000) {
+            // quick
+            return (long) (remainingChunks * ((double) elapsedTime / generatedChunks));
+        } else {
+            //smooth
+            return (long) (remainingChunks / chunksPerSecond.getAverage() * 1000);
+        }
     }
 
 
@@ -243,8 +249,10 @@ public class IrisPregenerator {
         Position2 pos = new Position2(x, z);
 
         if (generatedRegions.contains(pos)) {
-            listener.onRegionGenerated(x,z);
-            if(regions) generated.addAndGet(1024);
+            if(regions) {
+                listener.onRegionGenerated(x, z);
+                generated.addAndGet(1024);
+            }
             return;
         }
 

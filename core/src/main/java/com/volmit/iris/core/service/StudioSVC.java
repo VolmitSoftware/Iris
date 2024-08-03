@@ -232,7 +232,7 @@ public class StudioSVC implements IrisService {
         }
 
         try {
-            dir = zipFiles.length == 1 && zipFiles[0].isDirectory() ? zipFiles[0] : null;
+            dir = zipFiles.length > 1 ? work : zipFiles[0].isDirectory() ? zipFiles[0] : null;
         } catch (NullPointerException e) {
             Iris.reportError(e);
             sender.sendMessage("Error when finding home directory. Are there any non-text characters in the file name?");

@@ -99,7 +99,7 @@ public class IrisPregenerator {
         generatedLast = new AtomicInteger(0);
         generatedLastMinute = new AtomicInteger(0);
         totalChunks = new AtomicInteger(0);
-        loadCompletedRegions();
+        if(!IrisPackBenchmarking.benchmarkInProgress) loadCompletedRegions();
         IrisToolbelt.access(generator.getWorld()).getEngine().saveEngineData();
         task.iterateRegions((_a, _b) -> totalChunks.addAndGet(1024));
         startTime = new AtomicLong(M.ms());
@@ -296,6 +296,7 @@ public class IrisPregenerator {
     }
 
     public void saveCompletedRegions() {
+        if(IrisPackBenchmarking.benchmarkInProgress) return;
         Gson gson = new Gson();
         try (Writer writer = new FileWriter(generator.getWorld().getWorldFolder().getPath() + "/" + saveFile)) {
             gson.toJson(new HashSet<>(generatedRegions), writer);

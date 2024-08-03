@@ -10,6 +10,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -575,5 +576,13 @@ public class NMSBinding implements INMSBinding {
     @Override
     public DataVersion getDataVersion() {
         return DataVersion.V1205;
+    }
+
+    @Override
+    public int getSpawnChunkCount(World world) {
+        var radius = Optional.ofNullable(world.getGameRuleValue(GameRule.SPAWN_CHUNK_RADIUS))
+                .orElseGet(() -> world.getGameRuleDefault(GameRule.SPAWN_CHUNK_RADIUS));
+        if (radius == null) throw new IllegalStateException("GameRule.SPAWN_CHUNK_RADIUS is null!");
+        return (int) Math.pow(2 * radius + 1, 2);
     }
 }

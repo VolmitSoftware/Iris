@@ -120,4 +120,8 @@ public interface INMSBinding {
     default DataVersion getDataVersion() {
         return DataVersion.V1192;
     }
+
+    default int getSpawnChunkCount(World world) {
+        return 441;
+    }
 }

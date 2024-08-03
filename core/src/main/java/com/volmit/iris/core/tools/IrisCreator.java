@@ -152,7 +152,6 @@ public class IrisCreator {
 
         J.a(() ->
         {
-            int req = 441;
             Supplier<Integer> g = () -> {
                 if (finalAccess1 == null || finalAccess1.getEngine() == null) {
                     return 0;
@@ -160,6 +159,9 @@ public class IrisCreator {
                 return finalAccess1.getEngine().getGenerated();
             };
             if(!benchmark) {
+                if (finalAccess1 == null) return;
+                int req = finalAccess1.getSpawnChunks().join();
+
                 while (g.get() < req) {
                     double v = (double) g.get() / (double) req;
                     if (sender.isPlayer()) {

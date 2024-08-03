@@ -124,7 +124,6 @@ public class IrisComplex implements DataProvider {
                 ProceduralStream.of((x, z) -> focusRegion,
                         Interpolated.of(a -> 0D, a -> focusRegion))
                 : regionStyleStream
-                .zoom(engine.getDimension().getRegionZoom())
                 .selectRarity(data.getRegionLoader().loadAll(engine.getDimension().getRegions()))
                 .cache2D("regionStream", engine, cacheSize).waste("Region Stream");
         regionIDStream = regionIdentityStream.convertCached((i) -> new UUID(Double.doubleToLongBits(i),

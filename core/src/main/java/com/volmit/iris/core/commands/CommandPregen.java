@@ -46,9 +46,11 @@ public class CommandPregen implements DecreeExecutor {
             World world,
             @Param(aliases = "middle", description = "The center location of the pregen. Use \"me\" for your current location", defaultValue = "0,0")
             Vector center,
-            @Param(aliases = "optimizer", description = "If it should run the optimizer automatically after the pregen is finished", defaultValue = "true")
-            boolean optimizer
-            ) {
+            @Param(aliases = "optimizer", description = "If it should run the optimizer automatically after the pregen is finished", defaultValue = "false")
+            boolean optimizer,
+            @Param(aliases = "gui", description = "Enable or disable the Iris GUI.", defaultValue = "true")
+            boolean gui
+    ) {
         try {
             if (sender().isPlayer() && access() == null) {
                 sender().sendMessage(C.RED + "The engine access for this world is null!");
@@ -60,7 +62,7 @@ public class CommandPregen implements DecreeExecutor {
                     .builder()
                     .optimizer(optimizer)
                     .center(new Position2(center.getBlockX() >> 9, center.getBlockZ() >> 9))
-                    .gui(!GraphicsEnvironment.isHeadless())
+                    .gui(!GraphicsEnvironment.isHeadless() && gui)
                     .width(w)
                     .height(w)
                     .build(), world);

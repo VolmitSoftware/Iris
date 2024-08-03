@@ -34,7 +34,7 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '3.3.1-1.19.2-1.20.6'
+version '3.4.0-1.19.2-1.21'
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================
@@ -48,7 +48,7 @@ registerCustomOutputTask('CrazyDev22', 'C://Users/Julian/Desktop/server/plugins'
 registerCustomOutputTask('Pixel', 'D://Iris Dimension Engine/1.20.4 - Development/plugins')
 // ========================== UNIX ==============================
 registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/development/server/plugins')
-registerCustomOutputTaskUnix('PsychoLT', '/Volumes/PRO-G40/Minecraft/MinecraftDevelopment/Server/plugins')
+registerCustomOutputTaskUnix('PsychoLT', '/Users/brianfopiano/Developer/RemoteGit/Server/plugins')
 registerCustomOutputTaskUnix('CrazyDev22LT', '/home/julian/Desktop/server/plugins')
 // ==============================================================
 

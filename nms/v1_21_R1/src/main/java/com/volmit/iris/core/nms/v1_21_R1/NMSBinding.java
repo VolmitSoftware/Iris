@@ -779,7 +779,7 @@ public class NMSBinding implements INMSBinding {
                 continue;
 
             try {
-                IO.writeAll(meta, "{\"pack\": {\"pack_format\": "+getDataVersion().getPackFormat()+", \"description\": \"Iris Data Pack. This pack contains all installed Iris Packs' resources.\"}}");
+                IO.writeAll(meta, "{\"pack\": {\"pack_format\": "+getDataVersion().getPackFormat()+", \"description\": \"Iris Compat Data Pack. This pack contains all installed Iris Packs' resources for plugin compat.\"}}");
             } catch (IOException e) {
                 Iris.error("Failed to write pack.mcmeta to " + meta.getPath());
             }

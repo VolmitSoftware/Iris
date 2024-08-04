@@ -41,6 +41,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
+import java.util.HashMap;
 import java.util.UUID;
 
 @Data
@@ -287,14 +288,15 @@ public class IrisComplex implements DataProvider {
         return biome;
     }
 
+    private record DPair(double x, double z) {}
     private double interpolateGenerators(Engine engine, IrisInterpolator interpolator, KSet<IrisGenerator> generators, double x, double z, long seed) {
         if (generators.isEmpty()) {
             return 0;
         }
-
+        var cache = new HashMap<DPair, IrisBiome>();
         double hi = interpolator.interpolate(x, z, (xx, zz) -> {
             try {
-                IrisBiome bx = baseBiomeStream.get(xx, zz);
+                IrisBiome bx = cache.computeIfAbsent(new DPair(xx, zz), k -> baseBiomeStream.get(k.x, k.z));
                 double b = 0;
 
                 for (IrisGenerator gen : generators) {
@@ -313,7 +315,7 @@ public class IrisComplex implements DataProvider {
 
         double lo = interpolator.interpolate(x, z, (xx, zz) -> {
             try {
-                IrisBiome bx = baseBiomeStream.get(xx, zz);
+                IrisBiome bx = cache.computeIfAbsent(new DPair(xx, zz), k -> baseBiomeStream.get(k.x, k.z));
                 double b = 0;
 
                 for (IrisGenerator gen : generators) {
@@ -329,6 +331,7 @@ public class IrisComplex implements DataProvider {
 
             return 0;
         });
+        cache.clear();
 
         double d = 0;
 

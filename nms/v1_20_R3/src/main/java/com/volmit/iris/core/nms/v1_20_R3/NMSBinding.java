@@ -906,6 +906,10 @@ public class NMSBinding implements INMSBinding {
         }
     }
 
+    Holder.Reference<net.minecraft.world.level.biome.Biome> getBiomeHolder(NamespacedKey key) {
+        return getBiomeHolder(key.getNamespace(), key.getKey());
+    }
+
     Holder.Reference<net.minecraft.world.level.biome.Biome> getBiomeHolder(String namespace, String id) {
         return getCustomBiomeRegistry().getHolder(ResourceKey.create(Registries.BIOME, new ResourceLocation(namespace, id))).orElse(null);
     }

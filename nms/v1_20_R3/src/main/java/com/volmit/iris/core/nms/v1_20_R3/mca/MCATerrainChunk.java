@@ -3,7 +3,7 @@ package com.volmit.iris.core.nms.v1_20_R3.mca;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.BiomeBaseInjector;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
-import com.volmit.iris.util.data.IrisBlockData;
+import com.volmit.iris.util.data.IrisCustomData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.LevelHeightAccessor;
@@ -22,7 +22,7 @@ public record MCATerrainChunk(ChunkAccess chunk) implements TerrainChunk {
 
     @Override
     public BiomeBaseInjector getBiomeBaseInjector() {
-        return (x, y, z, biomeBase) -> chunk.setBiome(x, y, z, (Holder<net.minecraft.world.level.biome.Biome>) biomeBase);
+        return null;
     }
 
     @Override
@@ -71,7 +71,7 @@ public record MCATerrainChunk(ChunkAccess chunk) implements TerrainChunk {
         if (blockData == null) {
             Iris.error("NULL BD");
         }
-        if (blockData instanceof IrisBlockData data)
+        if (blockData instanceof IrisCustomData data)
             blockData = data.getBase();
         if (!(blockData instanceof CraftBlockData craftBlockData))
             throw new IllegalArgumentException("Expected CraftBlockData, got " + blockData.getClass().getSimpleName() + " instead");

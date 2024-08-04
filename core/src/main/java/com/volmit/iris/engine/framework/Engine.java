@@ -40,7 +40,7 @@ import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
-import com.volmit.iris.util.data.IrisBlockData;
+import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
@@ -257,10 +257,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         if (B.isUpdatable(data)) {
             getMantle().updateBlock(x, y, z);
         }
-        if (data instanceof IrisBlockData d) {
-            getMantle().getMantle().set(x, y, z, d.getCustom());
-        } else {
-            getMantle().getMantle().remove(x, y, z, Identifier.class);
+        if (data instanceof IrisCustomData) {
+            getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.CUSTOM_ACTIVE, true);
         }
     }
 
@@ -282,18 +280,21 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             return;
         }
 
-        getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.TILE, () -> J.s(() -> {
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, tile) -> {
+        var mc = getMantle().getMantle().getChunk(c.getX(), c.getZ());
+        mc.raiseFlag(MantleFlag.TILE, () -> J.s(() -> {
+            mc.iterate(TileWrapper.class, (x, y, z, tile) -> {
                 int betterY = y + getWorld().minHeight();
                 if (!TileData.setTileState(c.getBlock(x, betterY, z), tile.getData()))
                     Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), tile.getData().getTileId());
             });
         }));
-        getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.CUSTOM, () -> J.s(() -> {
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), Identifier.class, (x, y, z, v) -> {
-                Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
-            });
-        }));
+        if (mc.isFlagged(MantleFlag.CUSTOM_ACTIVE)) {
+            mc.raiseFlag(MantleFlag.CUSTOM, () -> J.s(() -> {
+                getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), Identifier.class, (x, y, z, v) -> {
+                    Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
+                });
+            }));
+        }
 
         getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.UPDATE, () -> J.s(() -> {
             PrecisionStopwatch p = PrecisionStopwatch.start();

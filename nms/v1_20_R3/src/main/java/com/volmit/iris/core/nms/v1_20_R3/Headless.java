@@ -2,7 +2,6 @@ package com.volmit.iris.core.nms.v1_20_R3;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.ServerConfigurator;
-import com.volmit.iris.core.nms.BiomeBaseInjector;
 import com.volmit.iris.core.nms.IHeadless;
 import com.volmit.iris.core.nms.v1_20_R3.mca.MCATerrainChunk;
 import com.volmit.iris.core.nms.v1_20_R3.mca.RegionFileStorage;
@@ -33,7 +32,6 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.ProtoChunk;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.BlockData;
 
 import java.io.File;
@@ -51,13 +49,15 @@ public class Headless implements IHeadless, LevelHeightAccessor {
     private final Queue<ProtoChunk> chunkQueue = new ArrayDeque<>();
     private final ReentrantLock saveLock = new ReentrantLock();
     private final KMap<String, Holder<Biome>> customBiomes = new KMap<>();
-    private final KMap<NamespacedKey, Holder<Biome>> minecraftBiomes = new KMap<>();
+    private final KMap<org.bukkit.block.Biome, Holder<Biome>> minecraftBiomes = new KMap<>();
+    private final RNG BIOME_RNG;
     private boolean closed = false;
 
     public Headless(NMSBinding binding, Engine engine) {
         this.binding = binding;
         this.engine = engine;
         this.storage = new RegionFileStorage(new File(engine.getWorld().worldFolder(), "region").toPath(), false);
+        this.BIOME_RNG = new RNG(engine.getSeedManager().getBiome());
         var queueLooper = new Looper() {
             @Override
             protected long loop() {
@@ -78,8 +78,7 @@ public class Headless implements IHeadless, LevelHeightAccessor {
         }
         for (var biome : org.bukkit.block.Biome.values()) {
             if (biome == org.bukkit.block.Biome.CUSTOM) continue;
-            var key = biome.getKey();
-            minecraftBiomes.put(key, binding.getBiomeHolder(key.getNamespace(), key.getKey()));
+            minecraftBiomes.put(biome, binding.getBiomeHolder(biome.getKey()));
         }
         ServerConfigurator.dumpDataPack();
     }
@@ -165,7 +164,7 @@ public class Headless implements IHeadless, LevelHeightAccessor {
             blocks.apply();
             biomes.apply();
 
-            inject(engine, tc.getBiomeBaseInjector(), chunk, ctx); //TODO improve
+            inject(engine, chunk, ctx);
             chunk.setStatus(ChunkStatus.FULL);
             chunkQueue.add(chunk);
         } catch (Throwable e) {
@@ -214,7 +213,7 @@ public class Headless implements IHeadless, LevelHeightAccessor {
         return ctx;
     }
 
-    private void inject(Engine engine, BiomeBaseInjector injector, ChunkAccess chunk, ChunkContext ctx) {
+    private void inject(Engine engine, ChunkAccess chunk, ChunkContext ctx) {
         var pos = chunk.getPos();
         for (int y = engine.getMinHeight(); y < engine.getMaxHeight(); y++) {
             for (int x = 0; x < 16; x++) {
@@ -222,7 +221,7 @@ public class Headless implements IHeadless, LevelHeightAccessor {
                     int wX = pos.getBlockX(x);
                     int wZ = pos.getBlockZ(z);
                     try {
-                        injector.setBiome(x, y, z, getNoiseBiome(engine, ctx, x, z, wX, y, wZ));
+                        chunk.setBiome(x, y, z, getNoiseBiome(engine, ctx, x, z, wX, y, wZ));
                     } catch (Throwable e) {
                         Iris.error("Failed to inject biome for " + wX + ", " + y + ", " + wZ);
                         e.printStackTrace();
@@ -233,17 +232,14 @@ public class Headless implements IHeadless, LevelHeightAccessor {
     }
 
     private Holder<Biome> getNoiseBiome(Engine engine, ChunkContext ctx, int rX, int rZ, int x, int y, int z) {
-        RNG rng = new RNG(engine.getSeedManager().getBiome());
         int m = (y - engine.getMinHeight()) << 2;
         IrisBiome ib = ctx == null ?
                 engine.getComplex().getTrueBiomeStream().get(x << 2, z << 2) :
                 ctx.getBiome().get(rX, rZ);
         if (ib.isCustom()) {
-            return customBiomes.computeIfAbsent(ib.getCustomBiome(rng, x << 2, m, z << 2).getId(),
-                    id -> binding.getBiomeHolder(engine.getDimension().getLoadKey(), id));
+            return customBiomes.get(ib.getCustomBiome(BIOME_RNG, x << 2, m, z << 2).getId());
         } else {
-            return minecraftBiomes.computeIfAbsent(ib.getSkyBiome(rng, x << 2, m, z << 2).getKey(),
-                    id -> binding.getBiomeHolder(id.getNamespace(), id.getKey()));
+            return minecraftBiomes.get(ib.getSkyBiome(BIOME_RNG, x << 2, m, z << 2));
         }
     }
 

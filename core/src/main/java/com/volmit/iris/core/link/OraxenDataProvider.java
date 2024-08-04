@@ -27,7 +27,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
-import com.volmit.iris.util.data.IrisBlockData;
+import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.reflect.WrappedField;
 import io.th0rgal.oraxen.api.OraxenItems;
@@ -90,7 +90,7 @@ public class OraxenDataProvider extends ExternalDataProvider {
         } else if (factory instanceof StringBlockMechanicFactory f) {
             return f.createTripwireData(blockId.key());
         } else if (factory instanceof FurnitureFactory) {
-            return new IrisBlockData(B.getAir(), ExternalDataSVC.buildState(blockId, state));
+            return new IrisCustomData(B.getAir(), ExternalDataSVC.buildState(blockId, state));
         } else
             throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
     }

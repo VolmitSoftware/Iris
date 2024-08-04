@@ -6,7 +6,7 @@ import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.data.IrisBlockData;
+import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.reflect.WrappedField;
 import com.volmit.iris.util.reflect.WrappedReturningMethod;
 import org.bukkit.Bukkit;
@@ -62,7 +62,7 @@ public class HMCLeavesDataProvider extends ExternalDataProvider {
 		BlockData blockData = Bukkit.createBlockData(material);
 		if (IrisSettings.get().getGenerator().preventLeafDecay && blockData instanceof Leaves leaves)
 			leaves.setPersistent(true);
-		return new IrisBlockData(blockData, ExternalDataSVC.buildState(blockId, state));
+		return new IrisCustomData(blockData, ExternalDataSVC.buildState(blockId, state));
 	}
 
 	@Override

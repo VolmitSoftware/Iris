@@ -94,6 +94,8 @@ import java.io.*;
 import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
@@ -215,7 +217,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
         if (!f.exists()) {
             try (BufferedInputStream in = new BufferedInputStream(new URL(url).openStream())) {
-                Files.copy(in, f.toPath());
+                Files.copy(in, f.toPath(), StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
                 Iris.reportError(e);
             }
@@ -229,7 +231,7 @@ public class Iris extends VolmitPlugin implements Listener {
         File f = Iris.instance.getDataFile("cache", h.substring(0, 2), h.substring(3, 5), h);
 
         try (BufferedInputStream in = new BufferedInputStream(new URL(url).openStream())) {
-            Files.copy(in, f.toPath());
+            Files.copy(in, f.toPath(), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             Iris.reportError(e);
         }
@@ -249,7 +251,7 @@ public class Iris extends VolmitPlugin implements Listener {
         Iris.verbose("Download " + name + " -> " + url);
 
         try (BufferedInputStream in = new BufferedInputStream(new URL(url).openStream())) {
-            Files.copy(in, f.toPath());
+            Files.copy(in, f.toPath(), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             e.printStackTrace();
             Iris.reportError(e);
@@ -773,7 +775,7 @@ public class Iris extends VolmitPlugin implements Listener {
         Iris.debug("Generator ID: " + id + " requested by bukkit/plugin");
 
         if (dim == null) {
-            Iris.warn("Unable to find dimension type " + id + " Looking for online packs...");
+            Iris.warn("Unable to find dimension type " + id + ". Looking for online packs...");
 
             service(StudioSVC.class).downloadSearch(new VolmitSender(Bukkit.getConsoleSender()), id, true);
             dim = IrisData.loadAnyDimension(id);

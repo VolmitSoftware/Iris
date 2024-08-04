@@ -625,7 +625,7 @@ public class CommandIris implements DecreeExecutor {
         Iris.debug("Generator ID: " + id + " requested by bukkit/plugin");
 
         if (dim == null) {
-            Iris.warn("Unable to find dimension type " + id + " Looking for online packs...");
+            Iris.warn("Unable to find dimension type " + id + ". Looking for online packs...");
 
             service(StudioSVC.class).downloadSearch(new VolmitSender(Bukkit.getConsoleSender()), id, true);
             dim = IrisData.loadAnyDimension(id);

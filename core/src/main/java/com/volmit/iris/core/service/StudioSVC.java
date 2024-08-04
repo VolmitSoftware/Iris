@@ -369,7 +369,6 @@ public class StudioSVC implements IrisService {
     }
 
     public File compilePackage(VolmitSender sender, String d, boolean obfuscate, boolean minify) {
-        System.out.println(new File(getWorkspaceFolder(), d) + " -> " + new File(getWorkspaceFolder(), d).exists());
         return new IrisProject(new File(getWorkspaceFolder(), d)).compilePackage(sender, obfuscate, minify);
     }
 

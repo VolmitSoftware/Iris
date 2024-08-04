@@ -50,7 +50,7 @@ public class ModesSFG {
                 Iris.info(C.DARK_RED + "Boot Unstable is set to true, continuing with the startup process.");
             } else {
                 Iris.info(C.DARK_RED + "Go to plugins/iris/settings.json and set ignoreBootMode to true if you wish to proceed.");
-                Iris.info(C.DARK_RED + "Shutting down server in " + C.UNDERLINE + "" + C.DARK_RED + "50 Seconds");
+                Iris.info(C.DARK_RED + "Shutting down server in " + C.UNDERLINE + C.DARK_RED + "50 Seconds");
                 try {
                     Thread.sleep(50000);
                     Bukkit.shutdown();

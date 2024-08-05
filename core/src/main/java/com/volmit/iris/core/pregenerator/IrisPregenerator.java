@@ -128,7 +128,7 @@ public class IrisPregenerator {
                         totalChunks.get() - generated.get(),
                         eta, M.ms() - startTime.get(), currentGeneratorMethod.get());
 
-                if (cl.flip()) {
+                if (cl.flip() && !paused.get()) {
                     double percentage = ((double) generated.get() / (double) totalChunks.get()) * 100;
                     if (!IrisPackBenchmarking.benchmarkInProgress) {
                         Iris.info("Pregen: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (%.0f%%) " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration(eta, 2), percentage);

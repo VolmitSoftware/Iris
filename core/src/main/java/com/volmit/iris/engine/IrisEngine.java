@@ -56,8 +56,6 @@ import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
 
 import java.io.File;
 import java.io.IOException;

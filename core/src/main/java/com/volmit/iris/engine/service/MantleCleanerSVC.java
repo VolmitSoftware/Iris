@@ -17,8 +17,6 @@ import static com.volmit.iris.engine.service.EngineStatusSVC.getEngineCount;
 
 public class MantleCleanerSVC extends IrisEngineService {
     private static final AtomicInteger tectonicLimit = new AtomicInteger(30);
-    private static final AtomicInteger idCounter = new AtomicInteger();
-    private int id = -1;
     private Ticker trimmer;
     private Ticker unloader;
 
@@ -30,11 +28,10 @@ public class MantleCleanerSVC extends IrisEngineService {
     public void onEnable(boolean hotload) {
         if (engine.isStudio() && !IrisSettings.get().getPerformance().trimMantleInStudio)
             return;
-        if (id == -1) id = idCounter.getAndIncrement();
         if (trimmer == null || !trimmer.isAlive())
-            trimmer = createTrimmer(id, engine);
+            trimmer = createTrimmer(engine);
         if (unloader == null || !unloader.isAlive())
-            unloader = createUnloader(id, engine);
+            unloader = createUnloader(engine);
     }
 
     @Override

@@ -20,12 +20,12 @@ package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.core.service.IrisCleanerSVC;
 import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.core.tools.IrisWorldDump;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.service.EngineStatusSVC;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
@@ -50,8 +50,6 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -60,55 +58,22 @@ public class CommandDeveloper implements DecreeExecutor {
     private CommandTurboPregen turboPregen;
     private CommandUpdater updater;
 
-    @Decree(description = "Get Loaded TectonicPlates Count", origin = DecreeOrigin.BOTH, sync = true)
+    @Decree(description = "Get Loaded TectonicPlates Count", origin = DecreeOrigin.BOTH, aliases = "status", sync = true)
     public void EngineStatus() {
-        List<World> IrisWorlds = new ArrayList<>();
-        int TotalLoadedChunks = 0;
-        int TotalQueuedTectonicPlates = 0;
-        int TotalNotQueuedTectonicPlates = 0;
-        int TotalTectonicPlates = 0;
+        var status = EngineStatusSVC.getStatus();
 
-        long lowestUnloadDuration = 0;
-        long highestUnloadDuration = 0;
-
-        for (World world : Bukkit.getWorlds()) {
-            try {
-                if (IrisToolbelt.access(world).getEngine() != null) {
-                    IrisWorlds.add(world);
-                }
-            } catch (Exception e) {
-                // no
-            }
-        }
-
-        for (World world : IrisWorlds) {
-            Engine engine = IrisToolbelt.access(world).getEngine();
-            TotalQueuedTectonicPlates += (int) engine.getMantle().getToUnload();
-            TotalNotQueuedTectonicPlates += (int) engine.getMantle().getNotQueuedLoadedRegions();
-            TotalTectonicPlates += engine.getMantle().getLoadedRegionCount();
-            if (highestUnloadDuration <= (long) engine.getMantle().getTectonicDuration()) {
-                highestUnloadDuration = (long) engine.getMantle().getTectonicDuration();
-            }
-            if (lowestUnloadDuration >= (long) engine.getMantle().getTectonicDuration()) {
-                lowestUnloadDuration = (long) engine.getMantle().getTectonicDuration();
-            }
-            for (Chunk chunk : world.getLoadedChunks()) {
-                if (chunk.isLoaded()) {
-                    TotalLoadedChunks++;
-                }
-            }
-        }
-        Iris.info("-------------------------");
-        Iris.info(C.DARK_PURPLE + "Engine Status");
-        Iris.info(C.DARK_PURPLE + "Total Loaded Chunks: " + C.LIGHT_PURPLE + TotalLoadedChunks);
-        Iris.info(C.DARK_PURPLE + "Tectonic Limit: " + C.LIGHT_PURPLE + IrisCleanerSVC.getTectonicLimit());
-        Iris.info(C.DARK_PURPLE + "Tectonic Total Plates: " + C.LIGHT_PURPLE + TotalTectonicPlates);
-        Iris.info(C.DARK_PURPLE + "Tectonic Active Plates: " + C.LIGHT_PURPLE + TotalNotQueuedTectonicPlates);
-        Iris.info(C.DARK_PURPLE + "Tectonic ToUnload: " + C.LIGHT_PURPLE + TotalQueuedTectonicPlates);
-        Iris.info(C.DARK_PURPLE + "Lowest Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration(lowestUnloadDuration));
-        Iris.info(C.DARK_PURPLE + "Highest Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration(highestUnloadDuration));
-        Iris.info(C.DARK_PURPLE + "Cache Size: " + C.LIGHT_PURPLE + Form.f(IrisData.cacheSize()));
-        Iris.info("-------------------------");
+        sender().sendMessage("-------------------------");
+        sender().sendMessage(C.DARK_PURPLE + "Engine Status");
+        sender().sendMessage(C.DARK_PURPLE + "Total Engines: " + C.LIGHT_PURPLE + status.engineCount());
+        sender().sendMessage(C.DARK_PURPLE + "Total Loaded Chunks: " + C.LIGHT_PURPLE + status.loadedChunks());
+        sender().sendMessage(C.DARK_PURPLE + "Tectonic Limit: " + C.LIGHT_PURPLE + status.tectonicLimit());
+        sender().sendMessage(C.DARK_PURPLE + "Tectonic Total Plates: " + C.LIGHT_PURPLE + status.tectonicPlates());
+        sender().sendMessage(C.DARK_PURPLE + "Tectonic Active Plates: " + C.LIGHT_PURPLE + status.activeTectonicPlates());
+        sender().sendMessage(C.DARK_PURPLE + "Tectonic ToUnload: " + C.LIGHT_PURPLE + status.queuedTectonicPlates());
+        sender().sendMessage(C.DARK_PURPLE + "Lowest Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration(status.minTectonicUnloadDuration()));
+        sender().sendMessage(C.DARK_PURPLE + "Highest Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration(status.maxTectonicUnloadDuration()));
+        sender().sendMessage(C.DARK_PURPLE + "Cache Size: " + C.LIGHT_PURPLE + Form.f(IrisData.cacheSize()));
+        sender().sendMessage("-------------------------");
     }
 
     @Decree(description = "Test")
@@ -126,7 +91,7 @@ public class CommandDeveloper implements DecreeExecutor {
         for (File i : Objects.requireNonNull(tectonicplates.listFiles())) {
             TectonicPlate.read(maxHeight, i);
             c++;
-            Iris.info("Loaded count: " + c );
+            sender().sendMessage("Loaded count: " + c );
 
         }
 
@@ -139,12 +104,14 @@ public class CommandDeveloper implements DecreeExecutor {
             @Param(description = "Headless", defaultValue = "true")
             boolean headless,
             @Param(description = "GUI", defaultValue = "false")
-            boolean gui
+            boolean gui,
+            @Param(description = "Diameter in regions", defaultValue = "5")
+            int diameter
     ) {
-        Iris.info("test");
-        IrisPackBenchmarking benchmark = new IrisPackBenchmarking(dimension, 1, headless, gui);
+        int rb = diameter << 9;
+        Iris.info("Benchmarking pack " + dimension.getName() + " with diameter: " + rb + "(" + diameter + ")");
+        IrisPackBenchmarking benchmark = new IrisPackBenchmarking(dimension, diameter, headless, gui);
         benchmark.runBenchmark();
-
     }
 
     @Decree(description = "test")
@@ -235,9 +202,8 @@ public class CommandDeveloper implements DecreeExecutor {
         Engine engine = IrisToolbelt.access(world).getEngine();
         if(engine != null) {
             int height = engine.getTarget().getHeight();
-            ExecutorService service = Executors.newFixedThreadPool(1);
             VolmitSender sender = sender();
-            service.submit(() -> {
+            new Thread(() -> {
                 try {
                     DataInputStream raw = new DataInputStream(new FileInputStream(file));
                     TectonicPlate plate = new TectonicPlate(height, raw);
@@ -271,8 +237,7 @@ public class CommandDeveloper implements DecreeExecutor {
                 } catch (Throwable e) {
                     e.printStackTrace();
                 }
-            });
-            service.shutdown();
+            }, "Compression Test").start();
 		} else {
             Iris.info(C.RED + "Engine is null!");
         }

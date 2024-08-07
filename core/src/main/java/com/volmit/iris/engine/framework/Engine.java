@@ -534,8 +534,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         }
     }
 
-    EngineEffects getEffects();
-
     default MultiBurst burst() {
         return getTarget().getBurster();
     }
@@ -960,4 +958,5 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             J.a(() -> getMantle().cleanupChunk(x, z));
         }
     }
+    <T extends IrisEngineService> T getService(Class<T> clazz);
 }

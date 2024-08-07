@@ -37,7 +37,6 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
         try {
             semaphore.acquire(max);
         } catch (InterruptedException ignored) {}
-        headless.save();
         try {
             headless.close();
         } catch (IOException e) {
@@ -47,9 +46,7 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public void save() {
-        headless.save();
-    }
+    public void save() {}
 
     @Override
     public boolean supportsRegions(int x, int z, PregenListener listener) {

@@ -296,7 +296,8 @@ public class IrisComplex implements DataProvider {
         var cache = new HashMap<DPair, IrisBiome>();
         double hi = interpolator.interpolate(x, z, (xx, zz) -> {
             try {
-                IrisBiome bx = cache.computeIfAbsent(new DPair(xx, zz), k -> baseBiomeStream.get(k.x, k.z));
+                IrisBiome bx = baseBiomeStream.get(xx, zz);
+                cache.put(new DPair(xx, zz), bx);
                 double b = 0;
 
                 for (IrisGenerator gen : generators) {
@@ -315,7 +316,7 @@ public class IrisComplex implements DataProvider {
 
         double lo = interpolator.interpolate(x, z, (xx, zz) -> {
             try {
-                IrisBiome bx = cache.computeIfAbsent(new DPair(xx, zz), k -> baseBiomeStream.get(k.x, k.z));
+                IrisBiome bx = cache.get(new DPair(xx, zz));
                 double b = 0;
 
                 for (IrisGenerator gen : generators) {

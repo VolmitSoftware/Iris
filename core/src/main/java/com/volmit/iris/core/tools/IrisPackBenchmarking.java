@@ -96,7 +96,7 @@ public class IrisPackBenchmarking {
             File profilers = new File("plugins" + File.separator + "Iris" + File.separator + "packbenchmarks");
             profilers.mkdir();
 
-            File results = new File("plugins" + File.separator + "Iris", IrisDimension.getName()  + " " + LocalDateTime.now(Clock.systemDefaultZone()).toString().replace(':', '-') + ".txt");
+            File results = new File(profilers, IrisDimension.getName()  + " " + LocalDateTime.now(Clock.systemDefaultZone()).toString().replace(':', '-') + ".txt");
             results.getParentFile().mkdirs();
             KMap<String, Double> metrics = engine.getMetrics().pull();
             try (FileWriter writer = new FileWriter(results)) {
@@ -124,7 +124,9 @@ public class IrisPackBenchmarking {
                 e.printStackTrace();
             }
 
-            Bukkit.getServer().unloadWorld("benchmark", true);
+            if (headless) engine.close();
+            else J.s(() -> Bukkit.unloadWorld("benchmark", true));
+
             stopwatch.end();
         } catch (Exception e) {
             Iris.error("Something has gone wrong!");
@@ -171,8 +173,8 @@ public class IrisPackBenchmarking {
                     .builder()
                     .gui(gui)
                     .center(new Position2(x, z))
-                    .width(5)
-                    .height(5)
+                    .width(radius)
+                    .height(radius)
                     .build(), headless ? new HeadlessPregenMethod(engine) : new HybridPregenMethod(engine.getWorld().realWorld(),
                  IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())), engine);
     }

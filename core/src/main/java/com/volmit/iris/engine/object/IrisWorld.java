@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.nms.IHeadless;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.collection.KList;
 import lombok.*;
@@ -48,6 +49,7 @@ public class IrisWorld {
     private long seed;
     private World.Environment environment;
     private World realWorld;
+    private IHeadless headless;
     private int minHeight;
     private int maxHeight;
 
@@ -89,6 +91,10 @@ public class IrisWorld {
 
     public boolean hasRealWorld() {
         return realWorld != null;
+    }
+
+    public boolean hasHeadless() {
+        return headless != null;
     }
 
     public List<Player> getPlayers() {

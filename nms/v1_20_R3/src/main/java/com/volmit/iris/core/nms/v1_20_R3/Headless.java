@@ -21,33 +21,32 @@ import com.volmit.iris.util.hunk.view.ChunkDataHunkHolder;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.MultiBurst;
-import com.volmit.iris.util.scheduling.Looper;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import net.minecraft.core.Holder;
+import net.minecraft.core.QuartPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraft.world.level.chunk.PalettedContainer;
 import net.minecraft.world.level.chunk.ProtoChunk;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.Queue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 public class Headless implements IHeadless, LevelHeightAccessor {
     private final NMSBinding binding;
     private final Engine engine;
     private final RegionFileStorage storage;
-    private final Queue<ProtoChunk> chunkQueue = new ArrayDeque<>();
-    private final ReentrantLock saveLock = new ReentrantLock();
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final AtomicInteger loadedChunks = new AtomicInteger();
     private final KMap<String, Holder<Biome>> customBiomes = new KMap<>();
     private final KMap<org.bukkit.block.Biome, Holder<Biome>> minecraftBiomes = new KMap<>();
     private final RNG BIOME_RNG;
@@ -56,17 +55,9 @@ public class Headless implements IHeadless, LevelHeightAccessor {
     public Headless(NMSBinding binding, Engine engine) {
         this.binding = binding;
         this.engine = engine;
-        this.storage = new RegionFileStorage(new File(engine.getWorld().worldFolder(), "region").toPath(), false);
+        this.storage = new RegionFileStorage(new File(engine.getWorld().worldFolder(), "region").toPath(), true);
         this.BIOME_RNG = new RNG(engine.getSeedManager().getBiome());
-        var queueLooper = new Looper() {
-            @Override
-            protected long loop() {
-                save();
-                return closed ? -1 : 100;
-            }
-        };
-        queueLooper.setName("Region Save Looper");
-        queueLooper.start();
+        engine.getWorld().headless(this);
 
         var dimKey = engine.getDimension().getLoadKey();
         for (var biome : engine.getAllBiomes()) {
@@ -81,6 +72,11 @@ public class Headless implements IHeadless, LevelHeightAccessor {
             minecraftBiomes.put(biome, binding.getBiomeHolder(biome.getKey()));
         }
         ServerConfigurator.dumpDataPack();
+    }
+
+    @Override
+    public int getLoadedChunks() {
+        return loadedChunks.get();
     }
 
     /**
@@ -98,26 +94,6 @@ public class Headless implements IHeadless, LevelHeightAccessor {
             return tag != null && !"empty".equals(tag.getString("Status"));
         } catch (IOException e) {
             return false;
-        }
-    }
-
-    @Override
-    public void save() {
-        if (closed) return;
-        saveLock.lock();
-        try {
-            while (!chunkQueue.isEmpty()) {
-                ChunkAccess chunk = chunkQueue.poll();
-                if (chunk == null) break;
-                try {
-                    storage.write(chunk.getPos(), binding.serializeChunk(chunk, this));
-                } catch (Throwable e) {
-                    Iris.error("Failed to save chunk " + chunk.getPos().x + ", " + chunk.getPos().z);
-                    e.printStackTrace();
-                }
-            }
-        } finally {
-            saveLock.unlock();
         }
     }
 
@@ -157,6 +133,7 @@ public class Headless implements IHeadless, LevelHeightAccessor {
             var pos = new ChunkPos(x, z);
             ProtoChunk chunk = binding.createProtoChunk(pos, this);
             var tc = new MCATerrainChunk(chunk);
+            loadedChunks.incrementAndGet();
 
             ChunkDataHunkHolder blocks = new ChunkDataHunkHolder(tc);
             BiomeGridHunkHolder biomes = new BiomeGridHunkHolder(tc, tc.getMinHeight(), tc.getMaxHeight());
@@ -166,11 +143,25 @@ public class Headless implements IHeadless, LevelHeightAccessor {
 
             inject(engine, chunk, ctx);
             chunk.setStatus(ChunkStatus.FULL);
-            chunkQueue.add(chunk);
+            executor.submit(saveChunk(chunk));
         } catch (Throwable e) {
+            loadedChunks.decrementAndGet();
             Iris.error("Failed to generate " + x + ", " + z);
             e.printStackTrace();
         }
+    }
+
+    private Runnable saveChunk(ProtoChunk chunk) {
+        return () -> {
+            if (closed) return;
+            try {
+                storage.write(chunk.getPos(), binding.serializeChunk(chunk, this));
+                loadedChunks.decrementAndGet();
+            } catch (Throwable e) {
+                Iris.error("Failed to save chunk " + chunk.getPos().x + ", " + chunk.getPos().z);
+                e.printStackTrace();
+            }
+        };
     }
 
     @BlockCoordinates
@@ -214,32 +205,33 @@ public class Headless implements IHeadless, LevelHeightAccessor {
     }
 
     private void inject(Engine engine, ChunkAccess chunk, ChunkContext ctx) {
-        var pos = chunk.getPos();
-        for (int y = engine.getMinHeight(); y < engine.getMaxHeight(); y++) {
-            for (int x = 0; x < 16; x++) {
-                for (int z = 0; z < 16; z++) {
-                    int wX = pos.getBlockX(x);
-                    int wZ = pos.getBlockZ(z);
-                    try {
-                        chunk.setBiome(x, y, z, getNoiseBiome(engine, ctx, x, z, wX, y, wZ));
-                    } catch (Throwable e) {
-                        Iris.error("Failed to inject biome for " + wX + ", " + y + ", " + wZ);
-                        e.printStackTrace();
+        chunk.fillBiomesFromNoise((qX, qY, qZ, sampler) -> getNoiseBiome(engine, ctx, qX << 2, qY << 2, qZ << 2), null);
+        /*
+        int qX = QuartPos.fromBlock(chunk.getPos().getMinBlockX());
+        int qZ = QuartPos.fromBlock(chunk.getPos().getMinBlockZ());
+
+        for (int i = chunk.getMinSection(); i < chunk.getMaxSection(); i++) {
+            var section = chunk.getSection(chunk.getSectionIndexFromSectionY(i));
+            PalettedContainer<Holder<Biome>> biomes = (PalettedContainer<Holder<Biome>>) section.getBiomes();
+            int qY = QuartPos.fromSection(i);
+
+            for (int sX = 0; sX < 4; sX++) {
+                for (int sZ = 0; sZ < 4; sZ++) {
+                    for (int sY = 0; sY < 4; sY++) {
+                        biomes.getAndSetUnchecked(sX, sY, sZ, getNoiseBiome(engine, ctx, (qX + sX) << 2, (qY + sY) << 2, (qZ + sZ) << 2));
                     }
                 }
             }
-        }
+        }*/
     }
 
-    private Holder<Biome> getNoiseBiome(Engine engine, ChunkContext ctx, int rX, int rZ, int x, int y, int z) {
-        int m = (y - engine.getMinHeight()) << 2;
-        IrisBiome ib = ctx == null ?
-                engine.getComplex().getTrueBiomeStream().get(x << 2, z << 2) :
-                ctx.getBiome().get(rX, rZ);
+    private Holder<Biome> getNoiseBiome(Engine engine, ChunkContext ctx, int x, int y, int z) {
+        int m = y - engine.getMinHeight();
+        IrisBiome ib = ctx == null ? engine.getSurfaceBiome(x, z) : ctx.getBiome().get(x & 15, z & 15);
         if (ib.isCustom()) {
-            return customBiomes.get(ib.getCustomBiome(BIOME_RNG, x << 2, m, z << 2).getId());
+            return customBiomes.get(ib.getCustomBiome(BIOME_RNG, x, m, z).getId());
         } else {
-            return minecraftBiomes.get(ib.getSkyBiome(BIOME_RNG, x << 2, m, z << 2));
+            return minecraftBiomes.get(ib.getSkyBiome(BIOME_RNG, x, m, z));
         }
     }
 
@@ -247,7 +239,13 @@ public class Headless implements IHeadless, LevelHeightAccessor {
     public void close() throws IOException {
         if (closed) return;
         try {
+            executor.shutdown();
+            try {
+                if (executor.awaitTermination(10, TimeUnit.SECONDS))
+                    executor.shutdownNow();
+            } catch (InterruptedException ignored) {}
             storage.close();
+            engine.getWorld().headless(null);
         } finally {
             closed = true;
             customBiomes.clear();

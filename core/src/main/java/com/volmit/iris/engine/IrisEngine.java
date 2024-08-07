@@ -46,16 +46,19 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterStructurePOI;
 import com.volmit.iris.util.misc.E;
+import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
@@ -229,6 +232,13 @@ public class IrisEngine implements Engine {
     public void hotload() {
         hotloadSilently();
         Iris.callEvent(new IrisEngineHotloadEvent(this));
+        if (isStudio()) {
+            for (Player player : target.getWorld().getPlayers()) {
+                VolmitSender sender = new VolmitSender(player);
+                sender.sendMessage(C.GREEN + "Hotloaded");
+            }
+
+        }
     }
 
     public void hotloadComplex() {

@@ -48,7 +48,8 @@ registerCustomOutputTask('CrazyDev22', 'C://Users/Julian/Desktop/server/plugins'
 registerCustomOutputTask('Pixel', 'D://Iris Dimension Engine/1.20.4 - Development/plugins')
 // ========================== UNIX ==============================
 registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/development/server/plugins')
-registerCustomOutputTaskUnix('PsychoLT', '/Users/brianfopiano/Developer/RemoteGit/Server/plugins')
+registerCustomOutputTaskUnix('PsychoLT', '/Volumes/PRO-G40/Minecraft/MinecraftDevelopment/Server/plugins')
+registerCustomOutputTaskUnix('PixelMac', '/Users/test/Desktop/mcserver/plugins')
 registerCustomOutputTaskUnix('CrazyDev22LT', '/home/julian/Desktop/server/plugins')
 // ==============================================================
 
@@ -156,7 +157,6 @@ allprojects {
         compileOnly 'net.bytebuddy:byte-buddy-agent:1.12.8'
         compileOnly 'org.bytedeco:javacpp:1.5.10'
         compileOnly 'org.bytedeco:cuda-platform:12.3-8.9-1.5.10'
-        compileOnly 'org.mapdb:mapdb:3.1.0'
     }
 
     /**

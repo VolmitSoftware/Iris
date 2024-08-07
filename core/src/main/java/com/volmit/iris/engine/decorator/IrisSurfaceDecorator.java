@@ -78,7 +78,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                     }
                 }
 
-                if (bd instanceof Bisected) {
+                if (bd instanceof Bisected && getDimension().getFluidHeight() - 1 != height) {
                     bd = bd.clone();
                     ((Bisected) bd).setHalf(Bisected.Half.TOP);
                     try {
@@ -88,6 +88,11 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                     }
                     bd = bd.clone();
                     ((Bisected) bd).setHalf(Bisected.Half.BOTTOM);
+                    try {
+                        data.set(x, height + 1, z, bd);
+                    } catch (Throwable e) {
+                        Iris.reportError(e);
+                    }
                 }
 
                 if (B.isAir(data.get(x, height + 1, z))) {

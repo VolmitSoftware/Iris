@@ -37,7 +37,7 @@ public class IrisSeaFloorDecorator extends IrisEngineDecorator {
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1, Hunk<BlockData> data, IrisBiome biome, int height, int max) {
         IrisDecorator decorator = getDecorator(biome, realX, realZ);
 
-        if (decorator != null) {
+        if (decorator != null && height < getDimension().getFluidHeight()) {
             if (!decorator.isStacking()) {
                 if (!decorator.isForcePlace() && !decorator.getSlopeCondition().isDefault()
                         && !decorator.getSlopeCondition().isValid(getComplex().getSlopeStream().get(realX, realZ))) {

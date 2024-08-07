@@ -196,6 +196,13 @@ public class IrisDecorator {
         return null;
     }
 
+    public boolean isBlockDataForTop(IrisData data) {
+        if (topPalette.isEmpty()) {
+            return false;
+        }
+        return true;
+    }
+
     public KList<BlockData> getBlockData(IrisData data) {
         return blockData.aquire(() ->
         {

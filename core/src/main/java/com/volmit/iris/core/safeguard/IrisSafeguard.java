@@ -50,22 +50,25 @@ public class IrisSafeguard {
         for (int i = 0; i < info.length; i++) {
             splashunstable[i] += info[i];
         }
-        Iris.info("Java: " + Iris.instance.getJava());
-        if (!Iris.instance.getServer().getVersion().contains("Purpur")) {
-            if (Iris.instance.getServer().getVersion().contains("Spigot") && Iris.instance.getServer().getVersion().contains("Bukkit")) {
+
+        Iris.info("Java: " + Iris.getJava());
+        String serverName = Iris.instance.getServer().getName();
+        if (!serverName.contains("Purpur")) {
+            if (serverName.contains("Spigot") || serverName.contains("Bukkit")) {
                 Iris.info(C.RED + " Iris requires paper or above to function properly..");
             } else {
                 Iris.info(C.YELLOW + "Purpur is recommended to use with iris.");
             }
         }
+
         if (getHardware.getProcessMemory() < 5999) {
             Iris.warn("6GB+ Ram is recommended");
             Iris.warn("Process Memory: " + getHardware.getProcessMemory() + " MB");
         }
+
         Iris.info("Custom Biomes: " + INMS.get().countCustomBiomes());
         Iris.info("\n\n " + new KList<>(splashunstable).toString("\n") + "\n");
         UtilsSFG.splash();
-
     }
 }
 

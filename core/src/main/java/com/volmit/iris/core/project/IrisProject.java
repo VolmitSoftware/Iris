@@ -19,6 +19,7 @@
 package com.volmit.iris.core.project;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
@@ -383,16 +384,15 @@ public class IrisProject {
 
         dimension.getRegions().forEach((i) -> regions.add(dm.getRegionLoader().load(i)));
         dimension.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i)));
-        regions.forEach((i) -> biomes.addAll(i.getAllBiomes(null)));
+        regions.forEach((r) -> biomes.addAll(r.getAllBiomes(() -> dm)));
         regions.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i))));
         regions.forEach((r) -> r.getEntitySpawners().forEach((sp) -> spawners.add(dm.getSpawnerLoader().load(sp))));
         dimension.getEntitySpawners().forEach((sp) -> spawners.add(dm.getSpawnerLoader().load(sp)));
-        biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator(null))));
+        biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator(() -> dm))));
         biomes.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i))));
         biomes.forEach((r) -> r.getEntitySpawners().forEach((sp) -> spawners.add(dm.getSpawnerLoader().load(sp))));
         spawners.forEach((i) -> i.getSpawns().forEach((j) -> entities.add(dm.getEntityLoader().load(j.getEntity()))));
         KMap<String, String> renameObjects = new KMap<>();
-        String a;
         StringBuilder b = new StringBuilder();
         StringBuilder c = new StringBuilder();
         sender.sendMessage("Serializing Objects");
@@ -423,8 +423,7 @@ public class IrisProject {
         ChronoLatch cl = new ChronoLatch(1000);
         O<Integer> ggg = new O<>();
         ggg.set(0);
-        biomes.forEach((i) -> i.getObjects().forEach((j) -> j.getPlace().forEach((k) ->
-        {
+        biomes.forEach((i) -> i.getObjects().forEach((j) -> j.getPlace().forEach((k) -> {
             try {
                 File f = dm.getObjectLoader().findFile(lookupObjects.get(k).get(0));
                 IO.copyFile(f, new File(folder, "objects/" + k + ".iob"));
@@ -447,13 +446,23 @@ public class IrisProject {
 
         Iris.info("Writing Dimensional Scaffold");
 
+        String a;
         try {
-            a = new JSONObject(new Gson().toJson(dimension)).toString(minify ? 0 : 4);
+            GsonBuilder builder = new GsonBuilder();
+            if (!minify) {
+                builder.setPrettyPrinting();
+            }
+
+            Gson gson = builder.create();
+
+            a = gson.toJson(dimension);
             IO.writeAll(new File(folder, "dimensions/" + dimension.getLoadKey() + ".json"), a);
             b.append(IO.hash(a));
 
             for (IrisGenerator i : generators) {
-                a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
+                if (i == null) continue;
+
+                a = gson.toJson(i);
                 IO.writeAll(new File(folder, "generators/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }
@@ -462,31 +471,41 @@ public class IrisProject {
             b = new StringBuilder();
 
             for (IrisRegion i : regions) {
-                a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
+                if (i == null) continue;
+
+                a = gson.toJson(i);
                 IO.writeAll(new File(folder, "regions/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }
 
             for (IrisBlockData i : blocks) {
-                a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
+                if (i == null) continue;
+
+                a = gson.toJson(i);
                 IO.writeAll(new File(folder, "blocks/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }
 
             for (IrisBiome i : biomes) {
-                a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
+                if (i == null) continue;
+
+                a = gson.toJson(i);
                 IO.writeAll(new File(folder, "biomes/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }
 
             for (IrisEntity i : entities) {
-                a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
+                if (i == null) continue;
+
+                a = gson.toJson(i);
                 IO.writeAll(new File(folder, "entities/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }
 
             for (IrisLootTable i : loot) {
-                a = new JSONObject(new Gson().toJson(i)).toString(minify ? 0 : 4);
+                if (i == null) continue;
+
+                a = gson.toJson(i);
                 IO.writeAll(new File(folder, "loot/" + i.getLoadKey() + ".json"), a);
                 b.append(IO.hash(a));
             }

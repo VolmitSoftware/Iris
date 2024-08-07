@@ -67,12 +67,11 @@ public class ServerBootSFG {
         }
         // Legacy ServerInfo
         String distro = Bukkit.getName().toLowerCase();
-        if (
-                !distro.contains("purpur") &&
-                        !distro.contains("paper") &&
-                        !distro.contains("spigot") &&
-                        !distro.contains("pufferfish") &&
-                        !distro.contains("bukkit")) {
+        if (!distro.contains("purpur") &&
+                !distro.contains("paper") &&
+                !distro.contains("spigot") &&
+                !distro.contains("pufferfish") &&
+                !distro.contains("bukkit")) {
 
 
             passedserversoftware = false;
@@ -155,11 +154,7 @@ public class ServerBootSFG {
     public static boolean enoughDiskSpace() {
         File freeSpace = new File(Bukkit.getWorldContainer() + ".");
         double gigabytes = freeSpace.getFreeSpace() / (1024.0 * 1024.0 * 1024.0);
-        if (gigabytes > 3){
-            return true;
-        } else {
-            return false;
-        }
+        return gigabytes > 3;
     }
 
     private static boolean checkJavac(String path) {

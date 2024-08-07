@@ -48,21 +48,23 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.TileState;
+import org.bukkit.block.*;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.MultipleFacing;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
+import org.bukkit.block.data.type.TurtleEgg;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
@@ -467,7 +469,9 @@ public class IrisObject extends IrisRegistrant {
         }
     }
 
+    //
     public void setUnsigned(int x, int y, int z, Block block) {
+
         BlockVector v = getSigned(x, y, z);
 
         if (block == null) {
@@ -476,13 +480,47 @@ public class IrisObject extends IrisRegistrant {
         } else {
             BlockData data = block.getBlockData();
             getBlocks().put(v, data);
-            TileData<? extends TileState> state = TileData.getTileState(block);
-            if (state != null) {
-                Iris.info("Saved State " + v);
-                getStates().put(v, state);
+
+            if (!TileData.hasTileData(block)){
+                return;
+            }
+            Future<TileData> future = Bukkit.getScheduler().callSyncMethod(Iris.instance, new Callable<TileData>() {
+                @Override
+                public TileData call() throws Exception {
+                    return TileData.getTileState(block);
+                }
+            });
+
+            try {
+                TileData statex = future.get();
+                if (statex != null) {
+                    Iris.info("Saved State:" + v);
+                    getStates().put(v, statex);
+                }
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
             }
         }
     }
+//    public void setUnsigned(int x, int y, int z, Block block) {
+//
+//        BlockVector v = getSigned(x, y, z);
+//
+//        if (block == null) {
+//            getBlocks().remove(v);
+//            getStates().remove(v);
+//        } else {
+//            BlockData data = block.getBlockData();
+//            getBlocks().put(v, data);
+//
+//            TileData<? extends TileState> state = TileData.getTileState(block);
+//
+//            if (state != null) {
+//                Iris.info("Saved State:" + v);
+//                getStates().put(v, state);
+//            }
+//        }
+//    }
 
     public int place(int x, int z, IObjectPlacer placer, IrisObjectPlacement config, RNG rng, IrisData rdata) {
         return place(x, -1, z, placer, config, rng, rdata);

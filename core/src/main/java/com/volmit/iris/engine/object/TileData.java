@@ -21,6 +21,7 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
@@ -64,6 +65,63 @@ public interface TileData<T extends TileState> extends Cloneable {
         return false;
     }
 
+
+    //may need to be supplemented.
+    static boolean hasTileData(Block block){
+        if (block == null) {
+            return false; // Null check
+        }
+
+        Material material = block.getType();
+
+        // 判断该方块是否具有Tile Data
+        switch (material) {
+            case CHEST:
+            case TRAPPED_CHEST:
+            case HOPPER:
+            case DISPENSER:
+            case DROPPER:
+            case FURNACE:
+            case BREWING_STAND:
+            case COMMAND_BLOCK:
+            case END_PORTAL_FRAME:
+            case STRUCTURE_BLOCK:
+            case ITEM_FRAME:
+            case FLOWER_POT:
+            case LECTERN:
+            case SMOKER:
+            case BLAST_FURNACE:
+            case ENDER_CHEST:
+            case BEACON:
+            case PAINTING:
+            case ARMOR_STAND:
+            case OAK_SIGN:
+            case SPRUCE_SIGN:
+            case BIRCH_SIGN:
+            case ACACIA_SIGN:
+            case JUNGLE_SIGN:
+            case DARK_OAK_SIGN:
+            case CRIMSON_SIGN:
+            case WARPED_SIGN:
+            case MANGROVE_SIGN:
+            case BAMBOO_SIGN:
+            case OAK_HANGING_SIGN:
+            case SPRUCE_HANGING_SIGN:
+            case BIRCH_HANGING_SIGN:
+            case ACACIA_HANGING_SIGN:
+            case JUNGLE_HANGING_SIGN:
+            case DARK_OAK_HANGING_SIGN:
+            case CRIMSON_HANGING_SIGN:
+            case WARPED_HANGING_SIGN:
+            case MANGROVE_HANGING_SIGN:
+            case BAMBOO_HANGING_SIGN:
+            case BARREL:
+                return true;
+            default:
+                return false; // 其他方块不具有Tile Data
+        }
+
+    }
     static TileData<? extends TileState> getTileState(Block block) {
         for (TileData<? extends TileState> i : registry) {
             BlockData data = block.getBlockData();

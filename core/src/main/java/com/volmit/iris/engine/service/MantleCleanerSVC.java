@@ -57,7 +57,7 @@ public class MantleCleanerSVC extends IrisEngineService {
         return tectonicLimit.get();
     }
 
-    private static Ticker createTrimmer(int id, Engine engine) {
+    private static Ticker createTrimmer(Engine engine) {
         return new Ticker(() -> {
             if (engine.isClosed()) return -1;
             long start = M.ms();
@@ -72,10 +72,10 @@ public class MantleCleanerSVC extends IrisEngineService {
             if (engine.isClosed()) return -1;
             int size = getEngineCount();
             return Math.max(1000 / size - (M.ms() - start), 0);
-        }, "Iris Mantle Trimmer-" + id);
+        }, "Iris Mantle Trimmer - " + engine.getWorld().name());
     }
 
-    private static Ticker createUnloader(int id, Engine engine) {
+    private static Ticker createUnloader(Engine engine) {
         return new Ticker(() -> {
             if (engine.isClosed()) return -1;
             long start = M.ms();
@@ -90,7 +90,7 @@ public class MantleCleanerSVC extends IrisEngineService {
             if (engine.isClosed()) return -1;
             int size = getEngineCount();
             return Math.max(1000 / size - (M.ms() - start), 0);
-        }, "Iris Mantle Unloader-" + id);
+        }, "Iris Mantle Unloader - " + engine.getWorld().name());
     }
 
     private static class Ticker extends Looper {

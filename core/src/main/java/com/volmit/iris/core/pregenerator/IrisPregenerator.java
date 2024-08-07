@@ -170,11 +170,12 @@ public class IrisPregenerator {
         shutdown();
         if (!IrisPackBenchmarking.benchmarkInProgress) {
             Iris.info(C.IRIS + "Pregen stopped.");
-            if (totalChunks.get() == generated.get() && task.isOptimizer()) {
-                Iris.info("Starting World Optimizer..");
-                ChunkUpdater updater = new ChunkUpdater(generator.getWorld());
-                updater.start();
-            }
+            // todo: optimizer just takes too long.
+//            if (totalChunks.get() == generated.get() && task.isOptimizer()) {
+//                Iris.info("Starting World Optimizer..");
+//                ChunkUpdater updater = new ChunkUpdater(generator.getWorld());
+//                updater.start();
+//            }
         } else {
             IrisPackBenchmarking.instance.finishedBenchmark(chunksPerSecondHistory);
         }
@@ -308,6 +309,12 @@ public class IrisPregenerator {
     }
 
     public void loadCompletedRegions() {
+        if(task.isResetCache()) {
+            File test = new File(generator.getWorld().getWorldFolder().getPath() + "/" + saveFile);
+            if(!test.delete()) {
+                Iris.info(C.RED + "Failed to reset region cache ");
+            }
+        }
         Gson gson = new Gson();
         try (Reader reader = new FileReader(generator.getWorld().getWorldFolder().getPath() + "/" + saveFile)) {
             Type setType = new TypeToken<HashSet<Position2>>(){}.getType();

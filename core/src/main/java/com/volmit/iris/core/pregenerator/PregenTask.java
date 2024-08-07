@@ -35,10 +35,11 @@ public class PregenTask {
     private static final KList<Position2> ORDER_CENTER = computeChunkOrder();
     private static final KMap<Position2, KList<Position2>> ORDERS = new KMap<>();
 
+
+    @Builder.Default
+    private boolean resetCache = false;
     @Builder.Default
     private boolean gui = false;
-    @Builder.Default
-    private boolean optimizer = false;
     @Builder.Default
     private Position2 center = new Position2(0, 0);
     @Builder.Default

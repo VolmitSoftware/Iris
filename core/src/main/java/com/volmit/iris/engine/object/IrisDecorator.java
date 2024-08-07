@@ -197,7 +197,7 @@ public class IrisDecorator {
     }
 
     public boolean isBlockDataForTop(IrisData data) {
-        if (topPalette.isEmpty()) {
+        if (getBlockDataTops(data).isEmpty()) {
             return false;
         }
         return true;

@@ -56,13 +56,15 @@ public class ServerBootSFG {
     protected static byte severityHigh;
 
     public static void BootCheck() {
+        //todo: Stop fucking locking the server, this bricks unix/linux instances, this could get us booted.
+
         Iris.info("Checking for possible conflicts..");
         PluginManager pluginManager = Bukkit.getPluginManager();
         Plugin[] plugins = pluginManager.getPlugins();
 
         incompatibilities.clear();
         incompatibilities.put("Multiverse-Core", false);
-        incompatibilities.put("dynmap", false);
+//        incompatibilities.put("dynmap", false);
         incompatibilities.put("TerraformGenerator", false);
         incompatibilities.put("Stratos", false);
 

@@ -20,9 +20,7 @@ package com.volmit.iris.util.nbt.mca;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.core.tools.IrisWorldDump;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.nbt.io.NBTDeserializer;
 import com.volmit.iris.util.nbt.io.NBTSerializer;
 import com.volmit.iris.util.nbt.io.NamedTag;
@@ -605,7 +603,8 @@ public class Chunk {
         if (tileTicks != null) level.put("TileTicks", tileTicks);
         if (liquidTicks != null) level.put("LiquidTicks", liquidTicks);
         if (lights != null) level.put("Lights", lights);
-        if (liquidsToBeTicked != null) level.put("LiquidsToBeTicked", liquidsToBeTicked);
+        if (liquidsToBeTicked != null)
+            level.put("LiquidsToBeTicked", liquidsToBeTicked);
         if (toBeTicked != null) level.put("ToBeTicked", toBeTicked);
         if (postProcessing != null) level.put("PostProcessing", postProcessing);
         level.putString("Status", status);

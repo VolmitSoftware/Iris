@@ -47,7 +47,6 @@ import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterStructurePOI;
-import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
@@ -55,7 +54,6 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -66,7 +64,10 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -97,6 +98,7 @@ public class IrisEngine implements Engine {
     private final AtomicBoolean cleaning;
     private final ChronoLatch cleanLatch;
     private final SeedManager seedManager;
+    private final ReentrantLock dataLock;
     private EngineMode mode;
     private EngineExecutionEnvironment execution;
     private EngineWorldManager worldManager;
@@ -109,7 +111,6 @@ public class IrisEngine implements Engine {
     private double maxBiomeLayerDensity;
     private double maxBiomeDecoratorDensity;
     private IrisComplex complex;
-    private final ReentrantLock dataLock;
 
     public IrisEngine(EngineTarget target, boolean studio) {
         this.studio = studio;
@@ -143,6 +144,26 @@ public class IrisEngine implements Engine {
         art = J.ar(this::tickRandomPlayer, 0);
         setupEngine();
         Iris.debug("Engine Initialized " + getCacheID());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<Class<? extends IrisEngineService>, Constructor<? extends IrisEngineService>> scanServices() {
+        JarScanner js = new JarScanner(Iris.instance.getJarFile(), "com.volmit.iris.engine.service");
+        J.attempt(js::scan);
+        KMap<Class<? extends IrisEngineService>, Constructor<? extends IrisEngineService>> map = new KMap<>();
+        js.getClasses()
+                .stream()
+                .filter(IrisEngineService.class::isAssignableFrom)
+                .map(c -> (Class<? extends IrisEngineService>) c)
+                .forEach(c -> {
+                    try {
+                        map.put(c, c.getConstructor(Engine.class));
+                    } catch (NoSuchMethodException e) {
+                        Iris.warn("Failed to load service " + c.getName() + " due to missing constructor");
+                    }
+                });
+
+        return Collections.unmodifiableMap(map);
     }
 
     private void verifySeed() {
@@ -182,7 +203,8 @@ public class IrisEngine implements Engine {
                 SERVICES.forEach((s, c) -> {
                     try {
                         services.put(s, c.newInstance(this));
-                    } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                    } catch (InstantiationException | IllegalAccessException |
+                             InvocationTargetException e) {
                         Iris.error("Failed to create service " + s.getName());
                         e.printStackTrace();
                     }
@@ -286,7 +308,7 @@ public class IrisEngine implements Engine {
                     data.getStatistics().setIrisCreationVersion(Iris.instance.getIrisVersion());
                     data.getStatistics().setMCVersion(Iris.instance.getMCVersion());
                     data.getStatistics().setIrisToUpgradedVersion(Iris.instance.getIrisVersion());
-                    if (data.getStatistics().getIrisCreationVersion() == -1 || data.getStatistics().getMCVersion() == -1 ) {
+                    if (data.getStatistics().getIrisCreationVersion() == -1 || data.getStatistics().getMCVersion() == -1) {
                         Iris.error("Failed to setup Engine Data!");
                     }
                     IO.writeAll(f, new Gson().toJson(data));
@@ -532,7 +554,7 @@ public class IrisEngine implements Engine {
 
             getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.REAL, true);
             getMetrics().getTotal().put(p.getMilliseconds());
-            addGenerated(x,z);
+            addGenerated(x, z);
         } catch (Throwable e) {
             Iris.reportError(e);
             fail("Failed to generate " + x + ", " + z, e);
@@ -598,25 +620,5 @@ public class IrisEngine implements Engine {
             return false;
         }
         return true;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Map<Class<? extends IrisEngineService>, Constructor<? extends IrisEngineService>> scanServices() {
-        JarScanner js = new JarScanner(Iris.instance.getJarFile(), "com.volmit.iris.engine.service");
-        J.attempt(js::scan);
-        KMap<Class<? extends IrisEngineService>, Constructor<? extends IrisEngineService>> map = new KMap<>();
-        js.getClasses()
-                .stream()
-                .filter(IrisEngineService.class::isAssignableFrom)
-                .map(c -> (Class<? extends IrisEngineService>) c)
-                .forEach(c -> {
-                    try {
-                        map.put(c, c.getConstructor(Engine.class));
-                    } catch (NoSuchMethodException e) {
-                        Iris.warn("Failed to load service " + c.getName() + " due to missing constructor");
-                    }
-                });
-
-        return Collections.unmodifiableMap(map);
     }
 }

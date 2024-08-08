@@ -24,6 +24,7 @@ import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
+
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 import java.io.File;
@@ -38,8 +39,6 @@ import java.util.Map;
 import java.util.StringJoiner;
 
 import static com.volmit.iris.Iris.getJavaVersion;
-import static com.volmit.iris.Iris.instance;
-import static com.volmit.iris.core.safeguard.IrisSafeguard.*;
 
 public class ServerBootSFG {
     public static final Map<String, Boolean> incompatibilities = new HashMap<>();
@@ -48,13 +47,13 @@ public class ServerBootSFG {
     public static boolean isJRE = false;
     public static boolean hasPrivileges = true;
     public static boolean unsuportedversion = false;
-    protected static boolean safeguardPassed;
     public static boolean passedserversoftware = true;
+    public static String allIncompatibilities;
+    protected static boolean safeguardPassed;
     protected static int count;
     protected static byte severityLow;
     protected static byte severityMedium;
     protected static byte severityHigh;
-    public static String allIncompatibilities;
 
     public static void BootCheck() {
         Iris.info("Checking for possible conflicts..");
@@ -123,7 +122,7 @@ public class ServerBootSFG {
 //            severityMedium++;
 //        } Some servers dont like this
 
-        if (!enoughDiskSpace()){
+        if (!enoughDiskSpace()) {
             hasEnoughDiskSpace = false;
             joiner.add("Insufficient Disk Space");
             severityMedium++;
@@ -155,9 +154,11 @@ public class ServerBootSFG {
             JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
             // If the compiler is null, it means this is a JRE environment, not a JDK.
             return compiler != null;
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return false;
     }
+
     public static boolean hasPrivileges() {
         Path pv = Paths.get(Bukkit.getWorldContainer() + "iristest.json");
         try (FileChannel fc = FileChannel.open(pv, StandardOpenOption.CREATE, StandardOpenOption.DELETE_ON_CLOSE, StandardOpenOption.READ, StandardOpenOption.WRITE)) {
@@ -173,7 +174,7 @@ public class ServerBootSFG {
     public static boolean enoughDiskSpace() {
         File freeSpace = new File(Bukkit.getWorldContainer() + ".");
         double gigabytes = freeSpace.getFreeSpace() / (1024.0 * 1024.0 * 1024.0);
-        if (gigabytes > 3){
+        if (gigabytes > 3) {
             return true;
         } else {
             return false;

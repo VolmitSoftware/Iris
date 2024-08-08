@@ -141,7 +141,8 @@ public interface Locator<T> {
                                     (at.getZ() << 4) + 8, false),
                             (at.getZ() << 4) + 8));
                 }
-            } catch (WrongEngineBroException | InterruptedException | ExecutionException e) {
+            } catch (WrongEngineBroException | InterruptedException |
+                     ExecutionException e) {
                 e.printStackTrace();
             }
         }) {

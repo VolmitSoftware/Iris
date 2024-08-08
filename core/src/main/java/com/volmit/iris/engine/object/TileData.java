@@ -52,7 +52,8 @@ public interface TileData<T extends TileState> extends Cloneable {
             @SuppressWarnings("unchecked") TileData<? extends TileState> d = registry.get(id).getClass().getConstructor().newInstance();
             d.fromBinary(s);
             return d;
-        } catch (InvocationTargetException | InstantiationException | IllegalAccessException |
+        } catch (InvocationTargetException | InstantiationException |
+                 IllegalAccessException |
                  NoSuchMethodException e) {
             throw new IOException("Failed to create TileData instance due to missing type registrar!");
         }

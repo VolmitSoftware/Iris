@@ -195,7 +195,10 @@ public class PlannedPiece {
         }
     }
 
-    public record ParentConnection(PlannedPiece parent, IrisJigsawPieceConnector parentConnector, PlannedPiece self, IrisJigsawPieceConnector connector) {
+    public record ParentConnection(PlannedPiece parent,
+                                   IrisJigsawPieceConnector parentConnector,
+                                   PlannedPiece self,
+                                   IrisJigsawPieceConnector connector) {
         public IrisPosition getTargetPosition() {
             var pos = parent.realPositions.get(parentConnector);
             if (pos == null) return null;

@@ -33,12 +33,9 @@ import oshi.SystemInfo;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.file.Files;
-import java.util.List;
 
 public class Hastebin {
 
@@ -97,11 +94,11 @@ public class Hastebin {
         for (String disk : disks) {
             sb.append(" ").append(sb.append(disk)).append("\n");
         }
-        sb.append(" -- == Interface Information == -- "+ "\n" );
+        sb.append(" -- == Interface Information == -- " + "\n");
         for (String inter : interfaces) {
             sb.append(" ").append(inter).append("\n");
         }
-        sb.append(" -- == Display Information == -- "+ "\n" );
+        sb.append(" -- == Display Information == -- " + "\n");
         for (String display : displays) {
             sb.append(display).append("\n");
         }

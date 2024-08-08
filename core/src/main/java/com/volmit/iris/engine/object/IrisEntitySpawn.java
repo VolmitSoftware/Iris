@@ -28,7 +28,6 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.matter.MatterMarker;
 import com.volmit.iris.util.matter.slices.MarkerMatter;
-import io.lumine.mythic.bukkit.adapters.BukkitEntity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -38,9 +37,6 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.util.BoundingBox;
 
 @Snippet("entity-spawn")
 @Accessors(chain = true)

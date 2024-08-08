@@ -21,7 +21,6 @@ package com.volmit.iris.core.tools;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
@@ -72,7 +71,7 @@ public class IrisWorldDump {
         this.world = world;
         this.sender = sender;
         this.MCADirectory = new File(world.getWorldFolder(), "region");
-        this.dumps = new File("plugins"  + File.separator + "iris", "dumps");
+        this.dumps = new File("plugins" + File.separator + "iris", "dumps");
         this.worldDump = new File(dumps, world.getName());
         this.mcaCacheSize = IrisSettings.get().getWorldDump().mcaCacheSize;
         this.regionsProcessed = new AtomicInteger(0);
@@ -131,41 +130,26 @@ public class IrisWorldDump {
             Iris.info("Processed: " + Form.f(processed) + " of " + Form.f(totalMaxChunks.get()) + " (%.0f%%) " + Form.f(chunksPerSecond.getAverage()) + "/s, ETA: " + Form.duration(eta, 2), percentage);
 
         }, 1, 3, TimeUnit.SECONDS);
-        
+
     }
-
-    public class blockData {
-        @Getter
-        @Setter
-        private String block;
-        private int biome;
-        private int height;
-
-        public blockData(String b, int bm, int h) {
-            this.block = b;
-            this.height = h;
-            this.biome = bm;
-        }
-    }
-
 
     private void dump() {
         Iris.info("Starting the dump process.");
         int threads = Runtime.getRuntime().availableProcessors();
         AtomicInteger f = new AtomicInteger();
-            for (File mcaFile : MCADirectory.listFiles()) {
-                if (mcaFile.getName().endsWith(".mca")) {
-                    executor.submit(() -> {
+        for (File mcaFile : MCADirectory.listFiles()) {
+            if (mcaFile.getName().endsWith(".mca")) {
+                executor.submit(() -> {
                     try {
-                        processMCARegion( MCAUtil.read(mcaFile));
+                        processMCARegion(MCAUtil.read(mcaFile));
                     } catch (Exception e) {
                         f.getAndIncrement();
                         Iris.error("Failed to read mca file");
                         e.printStackTrace();
                     }
-                    });
-                }
+                });
             }
+        }
     }
 
     private void processMCARegion(MCAFile mca) {
@@ -254,6 +238,20 @@ public class IrisWorldDump {
                 // If no, use quick function (which is less accurate over time but responds better to the initial delay)
                 ((totalMaxChunks.get() - chunksProcessed.get()) / chunksPerSecond.getAverage()) * 1000
         );
+    }
+
+    public class blockData {
+        @Getter
+        @Setter
+        private String block;
+        private int biome;
+        private int height;
+
+        public blockData(String b, int bm, int h) {
+            this.block = b;
+            this.height = h;
+            this.biome = bm;
+        }
     }
 
 }

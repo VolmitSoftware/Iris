@@ -35,29 +35,6 @@ import static com.volmit.iris.engine.service.EngineStatusSVC.getEngineCount;
 
 public class MantleCleanerSVC extends IrisEngineService {
     private static final AtomicInteger tectonicLimit = new AtomicInteger(30);
-    private Ticker trimmer;
-    private Ticker unloader;
-
-    public MantleCleanerSVC(Engine engine) {
-        super(engine);
-    }
-
-    @Override
-    public void onEnable(boolean hotload) {
-        if (engine.isStudio() && !IrisSettings.get().getPerformance().trimMantleInStudio)
-            return;
-        if (trimmer == null || !trimmer.isAlive())
-            trimmer = createTrimmer(engine);
-        if (unloader == null || !unloader.isAlive())
-            unloader = createUnloader(engine);
-    }
-
-    @Override
-    public void onDisable(boolean hotload) {
-        if (hotload) return;
-        if (trimmer != null) trimmer.await();
-        if (unloader != null) unloader.await();
-    }
 
     static {
         tectonicLimit.set(2);
@@ -66,6 +43,13 @@ public class MantleCleanerSVC extends IrisEngineService {
             tectonicLimit.incrementAndGet();
             t = t - 200;
         }
+    }
+
+    private Ticker trimmer;
+    private Ticker unloader;
+
+    public MantleCleanerSVC(Engine engine) {
+        super(engine);
     }
 
     public static int getTectonicLimit() {
@@ -108,6 +92,23 @@ public class MantleCleanerSVC extends IrisEngineService {
         }, "Iris Mantle Unloader - " + engine.getWorld().name());
     }
 
+    @Override
+    public void onEnable(boolean hotload) {
+        if (engine.isStudio() && !IrisSettings.get().getPerformance().trimMantleInStudio)
+            return;
+        if (trimmer == null || !trimmer.isAlive())
+            trimmer = createTrimmer(engine);
+        if (unloader == null || !unloader.isAlive())
+            unloader = createUnloader(engine);
+    }
+
+    @Override
+    public void onDisable(boolean hotload) {
+        if (hotload) return;
+        if (trimmer != null) trimmer.await();
+        if (unloader != null) unloader.await();
+    }
+
     private static class Ticker extends Looper {
         private final LongSupplier supplier;
         private final CountDownLatch exit = new CountDownLatch(1);
@@ -124,7 +125,8 @@ public class MantleCleanerSVC extends IrisEngineService {
             long wait = -1;
             try {
                 wait = supplier.getAsLong();
-            } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {
+            }
             if (wait < 0) exit.countDown();
             return wait;
         }
@@ -132,7 +134,8 @@ public class MantleCleanerSVC extends IrisEngineService {
         public void await() {
             try {
                 exit.await();
-            } catch (InterruptedException ignored) {}
+            } catch (InterruptedException ignored) {
+            }
         }
     }
 }

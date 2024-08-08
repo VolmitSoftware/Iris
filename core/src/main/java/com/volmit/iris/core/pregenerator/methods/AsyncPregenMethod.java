@@ -19,8 +19,6 @@
 package com.volmit.iris.core.pregenerator.methods;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.nms.IHeadless;
-import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -32,13 +30,12 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.J;
 import io.papermc.lib.PaperLib;
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ForkJoinPool;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Future;
 
 public class AsyncPregenMethod implements PregeneratorMethod {

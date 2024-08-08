@@ -197,7 +197,8 @@ public class CommandStudio implements DecreeExecutor {
                                 while (futures.isNotEmpty()) {
                                     try {
                                         futures.remove(0).get();
-                                    } catch (InterruptedException | ExecutionException e) {
+                                    } catch (InterruptedException |
+                                             ExecutionException e) {
                                         e.printStackTrace();
                                     }
                                 }
@@ -335,7 +336,7 @@ public class CommandStudio implements DecreeExecutor {
             return;
         }
         var sender = sender();
-        int d = radius*2;
+        int d = radius * 2;
         KMap<String, KList<Position2>> data = new KMap<>();
         var multiBurst = new MultiBurst("Distance Sampler", Thread.MIN_PRIORITY);
         var executor = multiBurst.burst(radius * radius);

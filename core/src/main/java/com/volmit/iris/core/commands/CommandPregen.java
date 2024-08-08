@@ -19,9 +19,7 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.PregeneratorJob;
-import com.volmit.iris.core.pregenerator.LazyPregenerator;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.decree.DecreeExecutor;
@@ -29,12 +27,10 @@ import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.Position2;
-import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
 
 import java.awt.*;
-import java.io.File;
 
 @Decree(name = "pregen", aliases = "pregenerate", description = "Pregenerate your Iris worlds!")
 public class CommandPregen implements DecreeExecutor {
@@ -80,7 +76,7 @@ public class CommandPregen implements DecreeExecutor {
     @Decree(description = "Stop the active pregeneration task", aliases = "x")
     public void stop() {
         if (PregeneratorJob.shutdownInstance()) {
-            Iris.info( C.BLUE + "Finishing up mca region...");
+            Iris.info(C.BLUE + "Finishing up mca region...");
         } else {
             sender().sendMessage(C.YELLOW + "No active pregeneration tasks to stop");
         }

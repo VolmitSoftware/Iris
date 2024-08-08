@@ -36,7 +36,6 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.Position2;
-
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
@@ -58,14 +57,14 @@ import java.util.Collections;
 public class IrisPackBenchmarking {
     @Getter
     public static IrisPackBenchmarking instance;
-     public static boolean benchmarkInProgress = false;
-     private IrisDimension IrisDimension;
-     private int radius;
-     private final boolean headless;
-     private final boolean gui;
-     private boolean finished = false;
-     private Engine engine;
+    public static boolean benchmarkInProgress = false;
+    private final boolean headless;
+    private final boolean gui;
     PrecisionStopwatch stopwatch;
+    private IrisDimension IrisDimension;
+    private int radius;
+    private boolean finished = false;
+    private Engine engine;
 
     public IrisPackBenchmarking(IrisDimension dimension, int r, boolean headless, boolean gui) {
         instance = this;
@@ -114,14 +113,14 @@ public class IrisPackBenchmarking {
             File profilers = new File("plugins" + File.separator + "Iris" + File.separator + "packbenchmarks");
             profilers.mkdir();
 
-            File results = new File(profilers, IrisDimension.getName()  + " " + LocalDateTime.now(Clock.systemDefaultZone()).toString().replace(':', '-') + ".txt");
+            File results = new File(profilers, IrisDimension.getName() + " " + LocalDateTime.now(Clock.systemDefaultZone()).toString().replace(':', '-') + ".txt");
             results.getParentFile().mkdirs();
             KMap<String, Double> metrics = engine.getMetrics().pull();
             try (FileWriter writer = new FileWriter(results)) {
                 writer.write("-----------------\n");
                 writer.write("Results:\n");
                 writer.write("Dimension: " + IrisDimension.getName() + "\n");
-                writer.write("- Date of Benchmark: " +  LocalDateTime.now(Clock.systemDefaultZone()) + "\n");
+                writer.write("- Date of Benchmark: " + LocalDateTime.now(Clock.systemDefaultZone()) + "\n");
                 writer.write("\n");
                 writer.write("Metrics");
                 for (String m : metrics.k()) {
@@ -129,7 +128,7 @@ public class IrisPackBenchmarking {
                     writer.write("- " + m + ": " + i);
                 }
                 writer.write("- " + metrics);
-                writer.write("Benchmark: " +  LocalDateTime.now(Clock.systemDefaultZone()) + "\n");
+                writer.write("Benchmark: " + LocalDateTime.now(Clock.systemDefaultZone()) + "\n");
                 writer.write("- Total time: " + time + "\n");
                 writer.write("- Average CPS: " + calculateAverage(cps) + "\n");
                 writer.write("  - Median CPS: " + calculateMedian(cps) + "\n");
@@ -151,7 +150,8 @@ public class IrisPackBenchmarking {
             e.printStackTrace();
         }
     }
-     private Engine createBenchmark(){
+
+    private Engine createBenchmark() {
         try {
             if (headless) {
                 Iris.info("Using headless benchmark!");
@@ -184,17 +184,17 @@ public class IrisPackBenchmarking {
         }
     }
 
-     private void startBenchmark(){
+    private void startBenchmark() {
         int x = 0;
         int z = 0;
-            IrisToolbelt.pregenerate(PregenTask
-                    .builder()
-                    .gui(gui)
-                    .center(new Position2(x, z))
-                    .width(radius)
-                    .height(radius)
-                    .build(), headless ? new HeadlessPregenMethod(engine) : new HybridPregenMethod(engine.getWorld().realWorld(),
-                 IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())), engine);
+        IrisToolbelt.pregenerate(PregenTask
+                .builder()
+                .gui(gui)
+                .center(new Position2(x, z))
+                .width(radius)
+                .height(radius)
+                .build(), headless ? new HeadlessPregenMethod(engine) : new HybridPregenMethod(engine.getWorld().realWorld(),
+                IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())), engine);
     }
 
     private double calculateAverage(KList<Integer> list) {

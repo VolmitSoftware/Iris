@@ -34,7 +34,6 @@ import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.S;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
@@ -56,7 +55,7 @@ import java.util.Objects;
 
 public class WandSVC implements IrisService {
     private static final Particle CRIT_MAGIC = E.getOrDefault(Particle.class, "CRIT_MAGIC", "CRIT");
-    private static final Particle REDSTONE = E.getOrDefault(Particle.class,  "REDSTONE", "DUST");
+    private static final Particle REDSTONE = E.getOrDefault(Particle.class, "REDSTONE", "DUST");
 
     private static ItemStack dust;
     private static ItemStack wand;
@@ -197,7 +196,8 @@ public class WandSVC implements IrisService {
             meta.setLore(new ArrayList<>()); //Reset the lore on this too so we can compare them
             stack.setItemMeta(meta);         //We dont need to clone the item as items from .get are cloned
 
-            if (wand.isSimilar(stack)) return s; //If the name, material and NBT is the same
+            if (wand.isSimilar(stack))
+                return s; //If the name, material and NBT is the same
         }
         return -1;
     }

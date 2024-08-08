@@ -91,7 +91,7 @@ public class CommandDeveloper implements DecreeExecutor {
         for (File i : Objects.requireNonNull(tectonicplates.listFiles())) {
             TectonicPlate.read(maxHeight, i);
             c++;
-            sender().sendMessage("Loaded count: " + c );
+            sender().sendMessage("Loaded count: " + c);
 
         }
 
@@ -115,11 +115,11 @@ public class CommandDeveloper implements DecreeExecutor {
     }
 
     @Decree(description = "test")
-    public void mca (
+    public void mca(
             @Param(description = "String") World world) {
         try {
-                IrisWorldDump dump = new IrisWorldDump(world, sender());
-                dump.start();
+            IrisWorldDump dump = new IrisWorldDump(world, sender());
+            dump.start();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -128,7 +128,7 @@ public class CommandDeveloper implements DecreeExecutor {
     }
 
     @Decree(description = "test")
-    public void devtest () {
+    public void devtest() {
         try {
 
             for (File mcafile : new File("rrtrender1/region").listFiles()) {
@@ -200,7 +200,7 @@ public class CommandDeveloper implements DecreeExecutor {
         if (!file.exists()) return;
 
         Engine engine = IrisToolbelt.access(world).getEngine();
-        if(engine != null) {
+        if (engine != null) {
             int height = engine.getTarget().getHeight();
             VolmitSender sender = sender();
             new Thread(() -> {
@@ -232,13 +232,13 @@ public class CommandDeveloper implements DecreeExecutor {
                     }
                     IO.delete(folder);
                     sender.sendMessage(algorithm + " is " + Form.fileSize(size) + " big after compression");
-                    sender.sendMessage(algorithm + " Took " + d2/amount + "ms to read");
-                    sender.sendMessage(algorithm + " Took " + d1/amount + "ms to write");
+                    sender.sendMessage(algorithm + " Took " + d2 / amount + "ms to read");
+                    sender.sendMessage(algorithm + " Took " + d1 / amount + "ms to write");
                 } catch (Throwable e) {
                     e.printStackTrace();
                 }
             }, "Compression Test").start();
-		} else {
+        } else {
             Iris.info(C.RED + "Engine is null!");
         }
     }

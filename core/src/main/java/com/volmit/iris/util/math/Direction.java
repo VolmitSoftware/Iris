@@ -59,9 +59,11 @@ public enum Direction {
         return switch (f) {
             case DOWN -> D;
             case EAST, EAST_SOUTH_EAST, EAST_NORTH_EAST -> E;
-            case NORTH, NORTH_WEST, NORTH_NORTH_WEST, NORTH_NORTH_EAST, NORTH_EAST -> N;
+            case NORTH, NORTH_WEST, NORTH_NORTH_WEST, NORTH_NORTH_EAST,
+                 NORTH_EAST -> N;
             case SELF, UP -> U;
-            case SOUTH, SOUTH_WEST, SOUTH_SOUTH_WEST, SOUTH_SOUTH_EAST, SOUTH_EAST -> S;
+            case SOUTH, SOUTH_WEST, SOUTH_SOUTH_WEST, SOUTH_SOUTH_EAST,
+                 SOUTH_EAST -> S;
             case WEST, WEST_SOUTH_WEST, WEST_NORTH_WEST -> W;
         };
 

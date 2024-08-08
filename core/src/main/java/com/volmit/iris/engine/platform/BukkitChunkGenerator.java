@@ -21,7 +21,6 @@ package com.volmit.iris.engine.platform;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.core.safeguard.IrisSafeguard;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
@@ -33,7 +32,6 @@ import com.volmit.iris.engine.object.StudioMode;
 import com.volmit.iris.engine.platform.studio.StudioGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.IrisBiomeStorage;
-import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.hunk.view.BiomeGridHunkHolder;
 import com.volmit.iris.util.hunk.view.ChunkDataHunkHolder;
@@ -140,14 +138,14 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                         J.s(() -> {
                             Engine engine1 = getEngine(event.getWorld());
                             if (engine1 != null) {
-								try {
-									INMS.get().inject(event.getWorld().getSeed(), engine1, event.getWorld());
+                                try {
+                                    INMS.get().inject(event.getWorld().getSeed(), engine1, event.getWorld());
                                     Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
                                     initialized = true;
-								} catch (Throwable e) {
-									e.printStackTrace();
-								}
-							}
+                                } catch (Throwable e) {
+                                    e.printStackTrace();
+                                }
+                            }
                         }, 10);
                     } else {
                         INMS.get().inject(event.getWorld().getSeed(), engine, event.getWorld());

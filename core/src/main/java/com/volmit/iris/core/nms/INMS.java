@@ -27,9 +27,9 @@ import java.util.Map;
 
 public class INMS {
     private static final Map<String, String> REVISION = Map.of(
-        "1.20.5", "v1_20_R4",
-        "1.20.6", "v1_20_R4",
-        "1.21", "v1_21_R1"
+            "1.20.5", "v1_20_R4",
+            "1.20.6", "v1_20_R4",
+            "1.21", "v1_21_R1"
     );
     //@done
     private static final INMSBinding binding = bind();
@@ -64,7 +64,7 @@ public class INMS {
         Iris.info("Locating NMS Binding for " + code);
 
         try {
-            Class<?> clazz = Class.forName("com.volmit.iris.core.nms."+code+".NMSBinding");
+            Class<?> clazz = Class.forName("com.volmit.iris.core.nms." + code + ".NMSBinding");
             try {
                 Object b = clazz.getConstructor().newInstance();
                 if (b instanceof INMSBinding binding) {
@@ -75,7 +75,9 @@ public class INMS {
                 Iris.reportError(e);
                 e.printStackTrace();
             }
-        } catch (ClassNotFoundException|NoClassDefFoundError classNotFoundException) {}
+        } catch (ClassNotFoundException |
+                 NoClassDefFoundError classNotFoundException) {
+        }
 
         Iris.info("Craftbukkit " + code + " <-> " + NMSBinding1X.class.getSimpleName() + " Successfully Bound");
         Iris.warn("Note: Some features of Iris may not work the same since you are on an unsupported version of Minecraft.");

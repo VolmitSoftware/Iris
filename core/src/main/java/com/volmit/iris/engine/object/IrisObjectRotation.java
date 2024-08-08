@@ -105,7 +105,8 @@ public class IrisObjectRotation {
             var translate = piece.getPlacementOptions().getTranslate();
             var pos = rotate(new IrisPosition(translate.getX(), translate.getY(), translate.getZ()));
             translate.setX(pos.getX()).setY(pos.getY()).setZ(pos.getZ());
-        } catch (NullPointerException ignored) {}
+        } catch (NullPointerException ignored) {
+        }
 
         return piece;
     }

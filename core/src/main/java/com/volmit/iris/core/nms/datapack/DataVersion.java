@@ -44,15 +44,15 @@ public enum DataVersion {
         this.version = version;
     }
 
-    public IDataFixer get() {
-        return cache.computeIfAbsent(this, k -> constructor.get());
-    }
-
     public static IDataFixer getDefault() {
         return INMS.get().getDataVersion().get();
     }
 
     public static DataVersion getLatest() {
         return values()[values().length - 1];
+    }
+
+    public IDataFixer get() {
+        return cache.computeIfAbsent(this, k -> constructor.get());
     }
 }

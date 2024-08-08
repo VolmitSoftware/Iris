@@ -31,7 +31,8 @@ public class CommandSupport implements DecreeExecutor {
     @Decree(description = "report")
     public void report() {
         try {
-            if (sender().isPlayer()) sender().sendMessage(C.GOLD + "Creating report..");
+            if (sender().isPlayer())
+                sender().sendMessage(C.GOLD + "Creating report..");
             if (!sender().isPlayer()) Iris.info(C.GOLD + "Creating report..");
             Hastebin.enviornment(sender());
 

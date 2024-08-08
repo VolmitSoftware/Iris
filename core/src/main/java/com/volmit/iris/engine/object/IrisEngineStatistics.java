@@ -20,8 +20,6 @@ package com.volmit.iris.engine.object;
 
 import lombok.Data;
 
-import java.util.HashSet;
-
 @Data
 public class IrisEngineStatistics {
     private int unsafeShutdown = 0;

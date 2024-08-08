@@ -288,7 +288,6 @@ public class IrisComplex implements DataProvider {
         return biome;
     }
 
-    private record DPair(double x, double z) {}
     private double interpolateGenerators(Engine engine, IrisInterpolator interpolator, KSet<IrisGenerator> generators, double x, double z, long seed) {
         if (generators.isEmpty()) {
             return 0;
@@ -388,5 +387,8 @@ public class IrisComplex implements DataProvider {
 
     public void close() {
 
+    }
+
+    private record DPair(double x, double z) {
     }
 }

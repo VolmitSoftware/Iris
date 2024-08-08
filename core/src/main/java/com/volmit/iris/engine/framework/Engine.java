@@ -382,7 +382,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 try {
                     Bukkit.getPluginManager().callEvent(new IrisLootEvent(this, block, slot, tables));
 
-                    if (!tables.isEmpty()){
+                    if (!tables.isEmpty()) {
                         Iris.debug("IrisLootEvent has been accessed");
                     }
 
@@ -958,5 +958,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             J.a(() -> getMantle().cleanupChunk(x, z));
         }
     }
+
     <T extends IrisEngineService> T getService(Class<T> clazz);
 }

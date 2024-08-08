@@ -21,14 +21,11 @@ package com.volmit.iris.core.link;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.data.Cuboid;
-import com.volmit.iris.util.data.KCache;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.InvocationTargetException;
-import java.time.Duration;
-import java.util.UUID;
 
 public class WorldEditLink {
     private static final AtomicCache<Boolean> active = new AtomicCache<>();
@@ -49,7 +46,8 @@ public class WorldEditLink {
             Object region = null;
             try {
                 region = localSession.getClass().getDeclaredMethod("getSelection", Class.forName("com.sk89q.worldedit.world.World")).invoke(localSession, world);
-            } catch (InvocationTargetException ignored) {}
+            } catch (InvocationTargetException ignored) {
+            }
             if (region == null) return null;
 
             Object min = region.getClass().getDeclaredMethod("getMinimumPoint").invoke(region);

@@ -29,7 +29,7 @@ import java.io.IOException;
 @Sliced
 public class JigsawPieceMatter extends RawMatter<JigsawPieceContainer> {
     public JigsawPieceMatter() {
-        this(1,1,1);
+        this(1, 1, 1);
     }
 
     public JigsawPieceMatter(int width, int height, int depth) {

@@ -40,15 +40,17 @@ import com.volmit.iris.util.matter.MatterSlice;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.HyperLock;
 import com.volmit.iris.util.parallel.MultiBurst;
-import com.volmit.iris.util.scheduling.Looper;
 import lombok.Getter;
 import org.bukkit.Chunk;
 
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -73,6 +75,15 @@ public class Mantle {
     private final MultiBurst ioBurst;
     private final AtomicBoolean ioTrim;
     private final AtomicBoolean ioTectonicUnload;
+    @Getter
+    private final AtomicDouble adjustedIdleDuration = new AtomicDouble(0);
+    @Getter
+    private final AtomicInteger forceAggressiveThreshold = new AtomicInteger(30);
+    @Getter
+    private final AtomicLong oldestTectonicPlate = new AtomicLong(0);
+    private final ReentrantLock unloadLock = new ReentrantLock();
+    @Getter
+    private final KList<Long> toUnload = new KList<>();
 
     /**
      * Create a new mantle
@@ -392,16 +403,6 @@ public class Mantle {
         long bytesPerEntry = Long.BYTES * 2;
         return numberOfEntries * bytesPerEntry;
     }
-
-    @Getter
-    private final AtomicDouble adjustedIdleDuration = new AtomicDouble(0);
-    @Getter
-    private final AtomicInteger forceAggressiveThreshold = new AtomicInteger(30);
-    @Getter
-    private final AtomicLong oldestTectonicPlate = new AtomicLong(0);
-    private final ReentrantLock unloadLock = new ReentrantLock();
-    @Getter
-    private final KList<Long> toUnload = new KList<>();
 
     /**
      * Save & unload regions that have not been used for more than the

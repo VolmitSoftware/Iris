@@ -143,7 +143,8 @@ public class OraxenDataProvider extends ExternalDataProvider {
             BiomeColor type = null;
             try {
                 type = BiomeColor.valueOf(state.get("matchBiome").toUpperCase());
-            } catch (NullPointerException | IllegalArgumentException ignored) {}
+            } catch (NullPointerException | IllegalArgumentException ignored) {
+            }
 
             if (type != null) {
                 var biomeColor = INMS.get().getBiomeColor(block.getLocation(), type);

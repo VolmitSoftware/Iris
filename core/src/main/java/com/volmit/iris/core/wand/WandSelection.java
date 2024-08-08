@@ -30,7 +30,7 @@ import org.bukkit.util.Vector;
 import java.awt.*;
 
 public class WandSelection {
-    private static final Particle REDSTONE = E.getOrDefault(Particle.class,  "REDSTONE", "DUST");
+    private static final Particle REDSTONE = E.getOrDefault(Particle.class, "REDSTONE", "DUST");
     private final Cuboid c;
     private final Player p;
 

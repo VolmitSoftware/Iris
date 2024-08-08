@@ -19,6 +19,7 @@
 package com.volmit.iris.util.nbt.mca.palette;
 
 import org.apache.commons.lang3.Validate;
+
 // todo Cool idea but im way to dumb for this for now
 public class MCABitStorageByteArray {
     private final byte[] data;

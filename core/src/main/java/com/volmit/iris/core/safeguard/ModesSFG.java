@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.format.C;
 import org.bukkit.Bukkit;
-import org.bukkit.scheduler.BukkitScheduler;
 
 public class ModesSFG {
     public static void selectMode() {

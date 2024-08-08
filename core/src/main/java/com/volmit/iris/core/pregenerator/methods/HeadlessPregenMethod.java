@@ -48,13 +48,15 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public void init() {}
+    public void init() {
+    }
 
     @Override
     public void close() {
         try {
             semaphore.acquire(max);
-        } catch (InterruptedException ignored) {}
+        } catch (InterruptedException ignored) {
+        }
         try {
             headless.close();
         } catch (IOException e) {
@@ -64,7 +66,8 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public void save() {}
+    public void save() {
+    }
 
     @Override
     public boolean supportsRegions(int x, int z, PregenListener listener) {
@@ -77,7 +80,8 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
     }
 
     @Override
-    public void generateRegion(int x, int z, PregenListener listener) {}
+    public void generateRegion(int x, int z, PregenListener listener) {
+    }
 
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {

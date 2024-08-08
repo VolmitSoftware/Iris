@@ -25,7 +25,6 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.placer.WorldObjectPlacer;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
@@ -78,7 +77,7 @@ public class PlannedStructure {
 
     public boolean place(IObjectPlacer placer, Mantle e, Engine eng) {
         IrisObjectPlacement options = new IrisObjectPlacement();
-        options.setRotation(IrisObjectRotation.of(0,0,0));
+        options.setRotation(IrisObjectRotation.of(0, 0, 0));
         int startHeight = pieces.get(0).getPosition().getY();
 
         boolean placed = false;

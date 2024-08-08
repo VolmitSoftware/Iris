@@ -468,7 +468,6 @@ public class IrisEntity extends IrisRegistrant {
         }
 
 
-
         return INMS.get().spawnEntity(at, getType(), getReason());
     }
 

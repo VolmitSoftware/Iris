@@ -18,8 +18,6 @@
 
 package com.volmit.iris.core.commands;
 
-import org.bukkit.World;
-
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.pregenerator.ChunkUpdater;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -29,6 +27,7 @@ import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import org.bukkit.World;
 
 @Decree(name = "updater", origin = DecreeOrigin.BOTH, description = "Iris World Updater")
 public class CommandUpdater implements DecreeExecutor {
@@ -45,7 +44,7 @@ public class CommandUpdater implements DecreeExecutor {
         }
         chunkUpdater = new ChunkUpdater(world);
         if (sender().isPlayer()) {
-            sender().sendMessage(C.GREEN + "Updating " + world.getName()  + C.GRAY + " Total chunks: " + Form.f(chunkUpdater.getChunks()));
+            sender().sendMessage(C.GREEN + "Updating " + world.getName() + C.GRAY + " Total chunks: " + Form.f(chunkUpdater.getChunks()));
         } else {
             Iris.info(C.GREEN + "Updating " + world.getName() + C.GRAY + " Total chunks: " + Form.f(chunkUpdater.getChunks()));
         }

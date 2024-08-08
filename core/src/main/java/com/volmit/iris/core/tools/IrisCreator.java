@@ -21,7 +21,6 @@ package com.volmit.iris.core.tools;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -98,7 +97,8 @@ public class IrisCreator {
         yml.save(BUKKIT_YML);
         return true;
     }
-    public static boolean worldLoaded(){
+
+    public static boolean worldLoaded() {
         return true;
     }
 
@@ -154,7 +154,7 @@ public class IrisCreator {
                 }
                 return finalAccess1.getEngine().getGenerated();
             };
-            if(!benchmark) {
+            if (!benchmark) {
                 if (finalAccess1 == null) return;
                 int req = finalAccess1.getSpawnChunks().join();
 

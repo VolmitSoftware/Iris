@@ -37,7 +37,7 @@ public class onCommandWarning implements Listener {
                 VolmitSender sender = new VolmitSender(player);
                 boolean perm = sender.hasPermission("iris.all") || sender.isOp();
                 if (perm) {
-                    sender.sendMessage(C.DARK_GRAY + "[" + C.RED + "!" + C.DARK_GRAY+ "]" + C.DARK_RED + "Iris is running unstably! Please resolve this.");
+                    sender.sendMessage(C.DARK_GRAY + "[" + C.RED + "!" + C.DARK_GRAY + "]" + C.DARK_RED + "Iris is running unstably! Please resolve this.");
                 }
             }
         }

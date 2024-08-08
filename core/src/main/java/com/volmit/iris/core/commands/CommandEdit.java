@@ -27,10 +27,8 @@ import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.decree.specialhandlers.NullableBiomeHandler;
-import com.volmit.iris.util.decree.specialhandlers.NullablePlayerHandler;
 import com.volmit.iris.util.decree.specialhandlers.NullableRegionHandler;
 import com.volmit.iris.util.format.C;
-import org.bukkit.Location;
 import org.bukkit.block.Biome;
 
 import java.awt.*;
@@ -57,11 +55,11 @@ public class CommandEdit implements DecreeExecutor {
 
 
     @Decree(description = "Edit the biome you specified", aliases = {"b"}, origin = DecreeOrigin.PLAYER)
-    public void biome(@Param(contextual = false, description = "The biome to edit", defaultValue = "---", customHandler = NullableBiomeHandler.class) IrisBiome biome ) {
+    public void biome(@Param(contextual = false, description = "The biome to edit", defaultValue = "---", customHandler = NullableBiomeHandler.class) IrisBiome biome) {
         if (noStudio()) {
             return;
         }
-        if(biome == null) {
+        if (biome == null) {
             try {
                 IrisBiome b = engine().getBiome(player().getLocation().getBlockX(), player().getLocation().getBlockY() - player().getWorld().getMinHeight(), player().getLocation().getBlockZ());
                 Desktop.getDesktop().open(b.getLoadFile());
@@ -98,7 +96,7 @@ public class CommandEdit implements DecreeExecutor {
         if (noStudio()) {
             return;
         }
-        if(region == null) {
+        if (region == null) {
             try {
                 IrisRegion r = engine().getRegion(player().getLocation().getBlockX(), player().getLocation().getBlockZ());
                 Desktop.getDesktop().open(r.getLoadFile());

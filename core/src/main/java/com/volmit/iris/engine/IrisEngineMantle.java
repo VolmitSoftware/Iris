@@ -31,7 +31,6 @@ import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.parallel.BurstExecutor;

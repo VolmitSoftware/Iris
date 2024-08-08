@@ -18,7 +18,6 @@
 
 package com.volmit.iris.core.pregenerator;
 
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.mantle.Mantle;
 import org.bukkit.World;
 

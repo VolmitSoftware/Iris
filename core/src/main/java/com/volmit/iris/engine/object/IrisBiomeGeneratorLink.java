@@ -39,14 +39,14 @@ public class IrisBiomeGeneratorLink {
     @RegistryListResource(IrisGenerator.class)
     @Desc("The generator id")
     private String generator = "default";
-    @DependsOn({ "min", "max" })
+    @DependsOn({"min", "max"})
     @Required
     @MinNumber(-2032) // TODO: WARNING HEIGHT
     @MaxNumber(2032) // TODO: WARNING HEIGHT
     @Desc("The min block value (value + fluidHeight)")
     @Getter(AccessLevel.NONE)
     private int min = 0;
-    @DependsOn({ "min", "max" })
+    @DependsOn({"min", "max"})
     @Required
     @MinNumber(-2032) // TODO: WARNING HEIGHT
     @MaxNumber(2032) // TODO: WARNING HEIGHT
@@ -80,7 +80,7 @@ public class IrisBiomeGeneratorLink {
             }
         }
 
-        return new int[] { min, max };
+        return new int[]{min, max};
     }
 
     private int calculateHeight(Engine engine, int option) {

@@ -33,7 +33,6 @@ import org.bukkit.Chunk;
 import org.bukkit.World;
 
 import java.io.File;
-
 import java.util.ArrayList;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,9 +40,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ChunkUpdater {
-    private AtomicBoolean paused;
-    private AtomicBoolean cancelled;
-    private KMap<Chunk, Long> lastUse;
     private final RollingSequence chunksPerSecond;
     private final AtomicInteger worldheightsize;
     private final AtomicInteger worldwidthsize;
@@ -51,6 +47,12 @@ public class ChunkUpdater {
     private final AtomicInteger totalMaxChunks;
     private final AtomicInteger totalMcaregions;
     private final AtomicInteger position;
+    private final Object pauseLock;
+    private final Engine engine;
+    private final World world;
+    private AtomicBoolean paused;
+    private AtomicBoolean cancelled;
+    private KMap<Chunk, Long> lastUse;
     private AtomicInteger chunksProcessed;
     private AtomicInteger chunksUpdated;
     private AtomicLong startTime;
@@ -58,10 +60,7 @@ public class ChunkUpdater {
     private ExecutorService chunkExecutor;
     private ScheduledExecutorService scheduler;
     private CompletableFuture future;
-    private  CountDownLatch latch;
-    private final Object pauseLock;
-    private final Engine engine;
-    private final World world;
+    private CountDownLatch latch;
 
     public ChunkUpdater(World world) {
         this.engine = IrisToolbelt.access(world).getEngine();
@@ -154,7 +153,7 @@ public class ChunkUpdater {
                     }
                     executor.submit(() -> {
                         if (!cancelled.get()) {
-                            processNextChunk();   
+                            processNextChunk();
                         }
                         latch.countDown();
                     });
@@ -235,7 +234,8 @@ public class ChunkUpdater {
                         });
                         try {
                             latch.await();
-                        } catch (InterruptedException ignored) {}
+                        } catch (InterruptedException ignored) {
+                        }
                     }
                     if (!c.isGenerated()) {
                         generated.set(false);
@@ -248,7 +248,8 @@ public class ChunkUpdater {
             futures.removeIf(Future::isDone);
             try {
                 Thread.sleep(50);
-            } catch (InterruptedException ignored) {}
+            } catch (InterruptedException ignored) {
+            }
         }
         return generated.get();
     }

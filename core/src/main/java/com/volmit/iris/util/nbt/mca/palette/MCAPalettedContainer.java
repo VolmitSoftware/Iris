@@ -122,9 +122,11 @@ public class MCAPalettedContainer<T> implements MCAPaletteResize<T> {
         T var1 = this.palette.valueFor(this.storage.get(var0));
         return (var1 == null) ? this.defaultValue : var1;
     }
+
     /**
-     /**
+     * /**
      * Reads and processes block data from encoded byte arrays.
+     *
      * @param var0 BlockID Strings - List of block types identified by strings.
      * @param var1 Encoded Locations - Long array containing compactly encoded block IDs, representing sequential block positions within a chunk.
      */
@@ -152,9 +154,10 @@ public class MCAPalettedContainer<T> implements MCAPaletteResize<T> {
 
     /**
      * Reads and processes block data from encoded byte arrays.
+     *
      * @param var0 BlockID Strings - List of block types identified by strings.
      * @param var1 Encoded Locations - Byte array containing compactly encoded block IDs, representing sequential block positions within a chunk.
-     * Currently, Minecraft doesn't use ByteArray storage.
+     *             Currently, Minecraft doesn't use ByteArray storage.
      */
 
     public void read(ListTag var0, byte[] var1) {
@@ -184,8 +187,9 @@ public class MCAPalettedContainer<T> implements MCAPaletteResize<T> {
 
     /**
      * Reads and processes block data from encoded byte arrays.
+     *
      * @param var0 BlockID Strings - List of block types identified by strings.
-     * This method is primarily used to read air sections.
+     *             This method is primarily used to read air sections.
      */
 
     public void read(ListTag var0) {

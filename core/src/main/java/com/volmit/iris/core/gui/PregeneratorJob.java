@@ -24,7 +24,6 @@ import com.volmit.iris.core.pregenerator.IrisPregenerator;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
-import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
@@ -44,8 +43,6 @@ import java.awt.image.BufferedImage;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-
-import static com.volmit.iris.core.tools.IrisPackBenchmarking.benchmarkInProgress;
 
 public class PregeneratorJob implements PregenListener {
     private static final Color COLOR_EXISTS = parseColor("#4d7d5b");

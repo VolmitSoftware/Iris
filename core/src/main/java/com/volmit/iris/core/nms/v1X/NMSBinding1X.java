@@ -52,7 +52,6 @@ import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 
 import java.awt.*;
-
 import java.io.File;
 
 public class NMSBinding1X implements INMSBinding {
@@ -252,7 +251,7 @@ public class NMSBinding1X implements INMSBinding {
 
     @Override
     public Vector3d getBoundingbox(org.bukkit.entity.EntityType entity) {
-      return null;
+        return null;
     }
 
     @Override

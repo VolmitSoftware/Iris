@@ -55,6 +55,8 @@ import java.util.regex.Pattern;
 
 
 public class IrisPregenerator {
+    private static AtomicInteger generated;
+    private static AtomicInteger totalChunks;
     private final String saveFile = "regions.json";
     private final PregenTask task;
     private final PregeneratorMethod generator;
@@ -66,18 +68,16 @@ public class IrisPregenerator {
     private final RollingSequence chunksPerMinute;
     private final RollingSequence regionsPerMinute;
     private final KList<Integer> chunksPerSecondHistory;
-    private static AtomicInteger generated;
     private final AtomicInteger generatedLast;
     private final AtomicInteger generatedLastMinute;
-    private static AtomicInteger totalChunks;
     private final AtomicLong startTime;
     private final ChronoLatch minuteLatch;
     private final AtomicReference<String> currentGeneratorMethod;
-    private Set<Position2> generatedRegions;
     private final KSet<Position2> retry;
     private final KSet<Position2> net;
     private final ChronoLatch cl;
     private final ChronoLatch saveLatch = new ChronoLatch(30000);
+    private Set<Position2> generatedRegions;
 
     public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener) {
         generatedRegions = ConcurrentHashMap.newKeySet();
@@ -99,7 +99,7 @@ public class IrisPregenerator {
         generatedLast = new AtomicInteger(0);
         generatedLastMinute = new AtomicInteger(0);
         totalChunks = new AtomicInteger(0);
-        if(!IrisPackBenchmarking.benchmarkInProgress) {
+        if (!IrisPackBenchmarking.benchmarkInProgress) {
             loadCompletedRegions();
             IrisToolbelt.access(generator.getWorld()).getEngine().saveEngineData();
         }
@@ -216,7 +216,7 @@ public class IrisPregenerator {
                     if (!matcher.find()) continue;
                     int x = Integer.parseInt(matcher.group(1));
                     int z = Integer.parseInt(matcher.group(2));
-                    Position2 pos = new Position2(x,z);
+                    Position2 pos = new Position2(x, z);
                     generatedRegions.add(pos);
 
                     MCAFile mca = MCAUtil.read(file, 0);
@@ -252,7 +252,7 @@ public class IrisPregenerator {
         Position2 pos = new Position2(x, z);
 
         if (generatedRegions.contains(pos)) {
-            if(regions) {
+            if (regions) {
                 listener.onRegionGenerated(x, z);
                 generated.addAndGet(1024);
             }
@@ -299,7 +299,7 @@ public class IrisPregenerator {
     }
 
     public void saveCompletedRegions() {
-        if(IrisPackBenchmarking.benchmarkInProgress) return;
+        if (IrisPackBenchmarking.benchmarkInProgress) return;
         Gson gson = new Gson();
         try (Writer writer = new FileWriter(generator.getWorld().getWorldFolder().getPath() + "/" + saveFile)) {
             gson.toJson(new HashSet<>(generatedRegions), writer);
@@ -309,22 +309,23 @@ public class IrisPregenerator {
     }
 
     public void loadCompletedRegions() {
-        if(task.isResetCache()) {
+        if (task.isResetCache()) {
             File test = new File(generator.getWorld().getWorldFolder().getPath() + "/" + saveFile);
-            if(!test.delete()) {
+            if (!test.delete()) {
                 Iris.info(C.RED + "Failed to reset region cache ");
             }
         }
         Gson gson = new Gson();
         try (Reader reader = new FileReader(generator.getWorld().getWorldFolder().getPath() + "/" + saveFile)) {
-            Type setType = new TypeToken<HashSet<Position2>>(){}.getType();
+            Type setType = new TypeToken<HashSet<Position2>>() {
+            }.getType();
             Set<Position2> loadedSet = gson.fromJson(reader, setType);
             if (loadedSet != null) {
                 generatedRegions.clear();
                 generatedRegions.addAll(loadedSet);
             }
         } catch (FileNotFoundException e) {
-           // all fine
+            // all fine
         } catch (IOException e) {
             e.printStackTrace();
         }

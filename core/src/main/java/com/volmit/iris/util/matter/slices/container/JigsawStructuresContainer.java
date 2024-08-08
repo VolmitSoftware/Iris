@@ -36,7 +36,8 @@ import java.util.Set;
 public class JigsawStructuresContainer {
     private final Map<String, List<Position2>> map = new KMap<>();
 
-    public JigsawStructuresContainer() {}
+    public JigsawStructuresContainer() {
+    }
 
     public JigsawStructuresContainer(DataInputStream din) throws IOException {
         int s0 = din.readInt();

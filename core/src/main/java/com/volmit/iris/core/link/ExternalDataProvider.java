@@ -58,7 +58,8 @@ public abstract class ExternalDataProvider {
 
     public abstract ItemStack getItemStack(Identifier itemId, KMap<String, Object> customNbt) throws MissingResourceException;
 
-    public void processUpdate(Engine engine, Block block, Identifier blockId) {}
+    public void processUpdate(Engine engine, Block block, Identifier blockId) {
+    }
 
     public abstract Identifier[] getBlockTypes();
 

@@ -19,14 +19,9 @@
 package com.volmit.iris.util.math;
 
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
-
 import java.security.SecureRandom;
 import java.util.List;
 import java.util.UUID;
-import java.nio.charset.StandardCharsets;
 
 public class RNGV2 extends SecureRandom {
     private static final long serialVersionUID = 5222938581174415179L;

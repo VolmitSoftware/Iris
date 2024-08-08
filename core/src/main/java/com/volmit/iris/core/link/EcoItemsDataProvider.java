@@ -59,7 +59,8 @@ public class EcoItemsDataProvider extends ExternalDataProvider {
     @Override
     public ItemStack getItemStack(Identifier itemId, KMap<String, Object> customNbt) throws MissingResourceException {
         EcoItem item = EcoItems.INSTANCE.getByID(itemId.key());
-        if (item == null) throw new MissingResourceException("Failed to find Item!", itemId.namespace(), itemId.key());
+        if (item == null)
+            throw new MissingResourceException("Failed to find Item!", itemId.namespace(), itemId.key());
         return itemStack.get(item).clone();
     }
 

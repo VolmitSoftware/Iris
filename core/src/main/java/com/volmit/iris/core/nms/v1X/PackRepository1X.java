@@ -22,17 +22,19 @@ import com.volmit.iris.core.nms.container.IPackRepository;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 class PackRepository1X implements IPackRepository {
     @Override
-    public void reload() {}
+    public void reload() {
+    }
 
     @Override
-    public void reloadWorldData() {}
+    public void reloadWorldData() {
+    }
 
     @Override
-    public void setSelected(Collection<String> packs) {}
+    public void setSelected(Collection<String> packs) {
+    }
 
     @Override
     public boolean addPack(String packId) {

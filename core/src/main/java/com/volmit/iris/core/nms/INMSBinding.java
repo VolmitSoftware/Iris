@@ -116,7 +116,7 @@ public interface INMSBinding {
     void inject(long seed, Engine engine, World world) throws NoSuchFieldException, IllegalAccessException;
 
     Vector3d getBoundingbox(org.bukkit.entity.EntityType entity);
-    
+
     Entity spawnEntity(Location location, EntityType type, CreatureSpawnEvent.SpawnReason reason);
 
     Color getBiomeColor(Location location, BiomeColor type);

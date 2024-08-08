@@ -22,6 +22,7 @@ import com.volmit.iris.util.plugin.VolmitSender;
 
 public class VMJavaFX {
     private VolmitSender sender;
+
     public VMJavaFX(VolmitSender user) {
         this.sender = user;
 
@@ -44,7 +45,6 @@ public class VMJavaFX {
             e.printStackTrace();
         }
     }
-
 
 
 }

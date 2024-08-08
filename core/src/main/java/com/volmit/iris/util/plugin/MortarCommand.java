@@ -191,8 +191,10 @@ public abstract class MortarCommand implements ICommand {
                     }
 
                     p.add(pc);
-                } catch (IllegalArgumentException | IllegalAccessException | InstantiationException |
-                         InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                } catch (IllegalArgumentException | IllegalAccessException |
+                         InstantiationException |
+                         InvocationTargetException | NoSuchMethodException |
+                         SecurityException e) {
                     Iris.reportError(e);
                     e.printStackTrace();
                 }

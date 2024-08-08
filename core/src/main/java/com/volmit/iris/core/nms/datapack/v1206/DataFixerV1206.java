@@ -33,7 +33,7 @@ public class DataFixerV1206 implements IDataFixer {
     public JSONObject fixCustomBiome(IrisBiomeCustom biome, JSONObject json) {
         int spawnRarity = biome.getSpawnRarity();
         if (spawnRarity > 0) {
-            json.put("creature_spawn_probability", Math.min(spawnRarity/20d, 0.9999999));
+            json.put("creature_spawn_probability", Math.min(spawnRarity / 20d, 0.9999999));
         }
 
         var spawns = biome.getSpawns();
@@ -46,8 +46,8 @@ public class DataFixerV1206 implements IDataFixer {
                 JSONObject o = new JSONObject();
                 o.put("type", "minecraft:" + i.getType().name().toLowerCase());
                 o.put("weight", i.getWeight());
-                o.put("minCount", Math.min(i.getMinCount()/20d, 0));
-                o.put("maxCount", Math.min(i.getMaxCount()/20d, 0.9999999));
+                o.put("minCount", Math.min(i.getMinCount() / 20d, 0));
+                o.put("maxCount", Math.min(i.getMaxCount() / 20d, 0.9999999));
                 g.put(o);
             }
 

@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.nbt.mca.palette;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.util.nbt.tag.ByteArrayTag;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.LongArrayTag;

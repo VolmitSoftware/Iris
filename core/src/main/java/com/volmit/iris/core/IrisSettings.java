@@ -24,12 +24,10 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.VolmitSender;
-import com.volmit.iris.util.scheduling.ChronoLatch;
 import lombok.Data;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 @SuppressWarnings("SynchronizeOnNonFinalField")
 @Data
@@ -145,7 +143,7 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsPerformance {
-        public boolean trimMantleInStudio = false; 
+        public boolean trimMantleInStudio = false;
         public int mantleKeepAlive = 30;
         public int cacheSize = 4_096;
         public int resourceLoaderCacheSize = 1_024;
@@ -196,6 +194,7 @@ public class IrisSettings {
         public boolean disableTimeAndWeather = true;
         public boolean autoStartDefaultStudio = false;
     }
+
     @Data
     public static class IrisWorldDump {
         public int mcaCacheSize = 3;

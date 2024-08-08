@@ -387,7 +387,8 @@ public class Metrics {
                                 }
                             }
                         }
-                    } catch (NullPointerException | NoSuchMethodException | IllegalAccessException |
+                    } catch (NullPointerException | NoSuchMethodException |
+                             IllegalAccessException |
                              InvocationTargetException ignored) {
                         Iris.reportError(ignored);
                     }

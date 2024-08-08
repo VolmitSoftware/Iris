@@ -49,9 +49,11 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
         int id = -1;
         try {
             id = Integer.parseInt(blockId.key());
-        } catch (NumberFormatException ignored) {}
+        } catch (NumberFormatException ignored) {
+        }
         CustomBlock block = api().getCustomBlocks().getBlock(id);
-        if (block == null) throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
+        if (block == null)
+            throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
         return block.getState().getBlockData();
     }
 
@@ -88,7 +90,8 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
         ItemStack item = null;
         try {
             item = future.get();
-        } catch (InterruptedException | ExecutionException ignored) {}
+        } catch (InterruptedException | ExecutionException ignored) {
+        }
         if (item == null)
             throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());
         return item;

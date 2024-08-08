@@ -166,8 +166,10 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                     registerPermission(pc);
                     permissionCache.add(pc);
                     v("Registered Permissions " + pc.getFullNode() + " (" + i.getName() + ")");
-                } catch (IllegalArgumentException | IllegalAccessException | InstantiationException |
-                         InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                } catch (IllegalArgumentException | IllegalAccessException |
+                         InstantiationException |
+                         InvocationTargetException | NoSuchMethodException |
+                         SecurityException e) {
                     Iris.reportError(e);
                     w("Failed to register permission (field " + i.getName() + ")");
                     e.printStackTrace();
@@ -193,7 +195,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                     MortarPermission x = (MortarPermission) i.get(Modifier.isStatic(i.getModifiers()) ? null : this);
                     g.add(toPermission(x));
                     g.addAll(computePermissions(x));
-                } catch (IllegalArgumentException | IllegalAccessException | SecurityException e) {
+                } catch (IllegalArgumentException | IllegalAccessException |
+                         SecurityException e) {
                     Iris.reportError(e);
                     e.printStackTrace();
                 }
@@ -281,7 +284,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                     i.setAccessible(true);
                     i.set(Modifier.isStatic(i.getModifiers()) ? null : this, this);
                     v("Registered Instance " + i.getName());
-                } catch (IllegalArgumentException | IllegalAccessException | SecurityException e) {
+                } catch (IllegalArgumentException | IllegalAccessException |
+                         SecurityException e) {
                     w("Failed to register instance (field " + i.getName() + ")");
                     e.printStackTrace();
                     Iris.reportError(e);
@@ -300,7 +304,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                     i.setAccessible(true);
                     i.set(Modifier.isStatic(i.getModifiers()) ? null : this, null);
                     v("Unregistered Instance " + i.getName());
-                } catch (IllegalArgumentException | IllegalAccessException | SecurityException e) {
+                } catch (IllegalArgumentException | IllegalAccessException |
+                         SecurityException e) {
                     w("Failed to unregister instance (field " + i.getName() + ")");
                     e.printStackTrace();
                     Iris.reportError(e);
@@ -325,8 +330,10 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                     registerCommand(pc, c.value());
                     commandCache.add(pc);
                     v("Registered Commands /" + pc.getNode() + " (" + i.getName() + ")");
-                } catch (IllegalArgumentException | IllegalAccessException | InstantiationException |
-                         InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                } catch (IllegalArgumentException | IllegalAccessException |
+                         InstantiationException |
+                         InvocationTargetException | NoSuchMethodException |
+                         SecurityException e) {
                     w("Failed to register command (field " + i.getName() + ")");
                     e.printStackTrace();
                     Iris.reportError(e);

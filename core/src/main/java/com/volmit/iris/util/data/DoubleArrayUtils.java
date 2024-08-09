@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,8 @@ import java.util.Arrays;
 
 public class DoubleArrayUtils {
     public static void shiftRight(double[] values, double push) {
-        if (values.length - 2 + 1 >= 0) System.arraycopy(values, 0, values, 1, values.length - 2 + 1);
+        if (values.length - 2 + 1 >= 0)
+            System.arraycopy(values, 0, values, 1, values.length - 2 + 1);
 
         values[0] = push;
     }

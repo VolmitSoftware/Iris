@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,6 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+import java.util.function.Consumer
+
+
 
 buildscript() {
     repositories {
@@ -32,7 +36,7 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '3.4.1-1.19.2-1.21'
+version '4.0-1.19.2-1.21'
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================
@@ -43,10 +47,11 @@ registerCustomOutputTask('Coco', 'D://mcsm/plugins')
 registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins')
 registerCustomOutputTask('Vatuu', 'D://Minecraft/Servers/1.19.4/plugins')
 registerCustomOutputTask('CrazyDev22', 'C://Users/Julian/Desktop/server/plugins')
-registerCustomOutputTask('Pixel', 'C://Users/repix/Iris Dimension Engine/1.20.4 - Development/plugins')
+registerCustomOutputTask('Pixel', 'D://Iris Dimension Engine/1.20.4 - Development/plugins')
 // ========================== UNIX ==============================
 registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/development/server/plugins')
 registerCustomOutputTaskUnix('PsychoLT', '/Users/brianfopiano/Developer/RemoteGit/Server/plugins')
+registerCustomOutputTaskUnix('PixelMac', '/Users/test/Desktop/mcserver/plugins')
 registerCustomOutputTaskUnix('CrazyDev22LT', '/home/julian/Desktop/server/plugins')
 // ==============================================================
 
@@ -85,6 +90,8 @@ shadowJar {
         dependsOn(":nms:${it.key}:remap")
         from("${project(":nms:${it.key}").layout.buildDirectory.asFile.get()}/libs/${it.key}-mapped.jar")
     }
+    NMS_BINDINGS.each {dependsOn(":nms:${it.key}:build")}
+    //dependsOn(':com.volmit.gui:build')
 
     //minimize()
     append("plugin.yml")
@@ -148,6 +155,10 @@ allprojects {
         compileOnly 'rhino:js:1.7R2'
         compileOnly 'com.github.ben-manes.caffeine:caffeine:3.0.6'
         compileOnly 'org.apache.commons:commons-lang3:3.12.0'
+        compileOnly 'net.bytebuddy:byte-buddy:1.14.14'
+        compileOnly 'net.bytebuddy:byte-buddy-agent:1.12.8'
+        compileOnly 'org.bytedeco:javacpp:1.5.10'
+        compileOnly 'org.bytedeco:cuda-platform:12.3-8.9-1.5.10'
     }
 
     /**
@@ -170,7 +181,7 @@ if (JavaVersion.current().toString() != "17") {
     System.err.println()
     System.err.println("=== For Command Line (gradlew) ===")
     System.err.println("1. Install JDK 17 from https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html")
-    System.err.println("2. Set JAVA_HOME environment variable to the new jdk installation folder such as C:\\Program Files\\Java\\jdk-17.0.1")
+    System.err.println("2. Set JAVA_HOME environment variable to the new jdk installation folder such as C:/Program Files/Java/jdk-17.0.1")
     System.err.println("3. Open a new command prompt window to get the new environment variables if need be.")
     System.err.println("=========================================================================================================")
     System.err.println()

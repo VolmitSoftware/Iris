@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -85,7 +85,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
 
     @ChunkCoordinates
     private boolean placeStructures(MantleWriter writer, long seed, int x, int z, KList<IrisJigsawStructurePlacement> structures,
-            KSet<Position2> cachedRegions, KMap<String, KSet<Position2>> cache, KMap<Position2, Double> distanceCache) {
+                                    KSet<Position2> cachedRegions, KMap<String, KSet<Position2>> cache, KMap<Position2, Double> distanceCache) {
         IrisJigsawStructurePlacement i = pick(structures, seed, x, z);
         if (i == null || checkMinDistances(i.collectMinDistances(), x, z, cachedRegions, cache, distanceCache))
             return false;
@@ -119,7 +119,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
             double minDist = minDistances.get(structure);
             minDist = minDist * minDist;
             for (Position2 sPos : cache.get(structure)) {
-                double dist = distanceCache.computeIfAbsent(sPos,  position2 -> position2.distance(pos));
+                double dist = distanceCache.computeIfAbsent(sPos, position2 -> position2.distance(pos));
                 if (minDist > dist) return true;
             }
         }
@@ -148,7 +148,8 @@ public class MantleJigsawComponent extends IrisMantleComponent {
 
         IrisJigsawStructurePlacement i = pick(biome.getJigsawStructures(), seed, x, z);
         if (i == null) i = pick(region.getJigsawStructures(), seed, x, z);
-        if (i == null) i = pick(getDimension().getJigsawStructures(), seed, x, z);
+        if (i == null)
+            i = pick(getDimension().getJigsawStructures(), seed, x, z);
         return i != null ? getData().getJigsawStructureLoader().load(i.getStructure()) : null;
     }
 

@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -74,7 +74,8 @@ public class CommandObject implements DecreeExecutor {
                 Block block = world.getBlockAt(x, y, z);
 
                 //Prevent blocks being set in or bellow bedrock
-                if (y <= world.getMinHeight() || block.getType() == Material.BEDROCK) return;
+                if (y <= world.getMinHeight() || block.getType() == Material.BEDROCK)
+                    return;
 
                 futureBlockChanges.put(block, block.getBlockData());
 
@@ -428,7 +429,7 @@ public class CommandObject implements DecreeExecutor {
         ObjectSVC service = Iris.service(ObjectSVC.class);
         int actualReverts = Math.min(service.getUndos().size(), amount);
         service.revertChanges(actualReverts);
-        sender().sendMessage(C.BLUE + "Reverted " + actualReverts + C.BLUE +" pastes!");
+        sender().sendMessage(C.BLUE + "Reverted " + actualReverts + C.BLUE + " pastes!");
     }
 
     @Decree(description = "Gets an object wand and grabs the current WorldEdit selection.", aliases = "we", origin = DecreeOrigin.PLAYER, studio = true)

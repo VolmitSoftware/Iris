@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.service.ExternalDataSVC;
-import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.misc.E;
@@ -50,10 +49,10 @@ public class B {
     private static final Material SHORT_GRASS = E.getOrDefault(Material.class, "GRASS", "SHORT_GRASS");
     private static final BlockData AIR = AIR_MATERIAL.createBlockData();
     private static final IntSet foliageCache = buildFoliageCache();
+    private static final IntSet decorantCache = buildDecorantCache();
     private static final IntSet deepslateCache = buildDeepslateCache();
     private static final Int2IntMap normal2DeepslateCache = buildNormal2DeepslateCache();
     private static final Int2IntMap deepslate2NormalCache = buildDeepslate2NormalCache();
-    private static final IntSet decorantCache = buildDecorantCache();
     private static final IntSet storageCache = buildStorageCache();
     private static final IntSet storageChestCache = buildStorageChestCache();
     private static final IntSet litCache = buildLitCache();

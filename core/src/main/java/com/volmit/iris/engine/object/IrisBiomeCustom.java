@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.nms.datapack.IDataFixer;
+import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -92,7 +92,7 @@ public class IrisBiomeCustom {
     @Desc("The color of foliage (hex format). Leave blank / don't define to not change")
     private String foliageColor = "";
 
-    public String generateJson(IDataFixer fixer) {
+    public String generateJson() {
         JSONObject effects = new JSONObject();
         effects.put("sky_color", parseColor(getSkyColor()));
         effects.put("fog_color", parseColor(getFogColor()));
@@ -158,7 +158,7 @@ public class IrisBiomeCustom {
             j.put("spawners", spawners);
         }
 
-        return fixer.fixCustomBiome(this, j).toString(4);
+        return DataVersion.getDefault().fixCustomBiome(this, j).toString(4);
     }
 
     private int parseColor(String c) {

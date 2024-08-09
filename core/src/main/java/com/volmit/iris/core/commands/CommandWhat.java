@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.edit.BlockSignal;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.data.B;
@@ -39,7 +38,6 @@ import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Decree(name = "what", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris What?")
@@ -88,8 +86,7 @@ public class CommandWhat implements DecreeExecutor {
     @Decree(description = "What region am i in?", origin = DecreeOrigin.PLAYER)
     public void region() {
         try {
-            Chunk chunk = world().getChunkAt(player().getLocation().getBlockZ() / 16, player().getLocation().getBlockZ() /  16);
-            IrisRegion r = engine().getRegion(chunk);
+            IrisRegion r = engine().getRegion(player().getLocation());
             sender().sendMessage("IRegion: " + r.getLoadKey() + " (" + r.getName() + ")");
 
         } catch (Throwable e) {

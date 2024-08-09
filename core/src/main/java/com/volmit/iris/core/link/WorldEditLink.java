@@ -1,16 +1,31 @@
+/*
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.data.Cuboid;
-import com.volmit.iris.util.data.KCache;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.InvocationTargetException;
-import java.time.Duration;
-import java.util.UUID;
 
 public class WorldEditLink {
     private static final AtomicCache<Boolean> active = new AtomicCache<>();
@@ -31,7 +46,8 @@ public class WorldEditLink {
             Object region = null;
             try {
                 region = localSession.getClass().getDeclaredMethod("getSelection", Class.forName("com.sk89q.worldedit.world.World")).invoke(localSession, world);
-            } catch (InvocationTargetException ignored) {}
+            } catch (InvocationTargetException ignored) {
+            }
             if (region == null) return null;
 
             Object min = region.getClass().getDeclaredMethod("getMinimumPoint").invoke(region);

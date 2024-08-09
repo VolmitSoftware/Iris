@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,21 +18,31 @@
 
 package com.volmit.iris.core.nms.v1X;
 
+import com.google.common.base.Preconditions;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.container.BlockPos;
+import com.volmit.iris.core.nms.container.IPackRepository;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.IrisBiomeCustom;
+import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
 import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.asm.Advice;
+import net.bytebuddy.dynamic.loading.ClassReloadingStrategy;
+import net.bytebuddy.matcher.ElementMatchers;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
@@ -42,6 +52,7 @@ import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 
 import java.awt.*;
+import java.io.File;
 
 public class NMSBinding1X implements INMSBinding {
     private static final boolean supportsCustomHeight = testCustomHeight();
@@ -98,6 +109,21 @@ public class NMSBinding1X implements INMSBinding {
     @Override
     public Entity spawnEntity(Location location, EntityType type, CreatureSpawnEvent.SpawnReason reason) {
         return location.getWorld().spawnEntity(location, type);
+    }
+
+    @Override
+    public boolean registerDimension(String name, IrisDimension dimension) {
+        return false;
+    }
+
+    @Override
+    public boolean registerBiome(String dimensionId, IrisBiomeCustom biome, boolean replace) {
+        return false;
+    }
+
+    @Override
+    public boolean dumpRegistry(File... folders) {
+        return false;
     }
 
     @Override
@@ -225,12 +251,52 @@ public class NMSBinding1X implements INMSBinding {
 
     @Override
     public Vector3d getBoundingbox(org.bukkit.entity.EntityType entity) {
-      return null;
+        return null;
     }
 
     @Override
     public MCAPaletteAccess createPalette() {
         Iris.error("Cannot use the global data palette! Iris is incapable of using MCA generation on this version of minecraft!");
         return null;
+    }
+
+    public void injectBukkit() {
+        try {
+            Iris.info("Injecting Bukkit");
+            new ByteBuddy()
+                    .redefine(WorldCreator.class)
+                    .visit(Advice.to(WorldCreatorAdvice.class).on(ElementMatchers.isConstructor().and(ElementMatchers.takesArguments(String.class))))
+                    .make()
+                    .load(WorldCreator.class.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
+            Iris.info("Injected Bukkit Successfully!");
+        } catch (Exception e) {
+            Iris.info(C.RED + "Failed to Inject Bukkit!");
+            e.printStackTrace();
+            Iris.reportError(e);
+        }
+
+    }
+
+    @Override
+    public IPackRepository getPackRepository() {
+        return new PackRepository1X();
+    }
+
+    private static class WorldCreatorAdvice {
+        @Advice.OnMethodEnter
+        static void enter(@Advice.Argument(0) String name) {
+            File isIrisWorld = new File(name, "iris");
+            boolean isFromIris = false;
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            for (StackTraceElement stack : stackTrace) {
+                if (stack.getClassName().contains("Iris")) {
+                    isFromIris = true;
+                    break;
+                }
+            }
+            if (!isFromIris) {
+                Preconditions.checkArgument(!isIrisWorld.exists(), "Only Iris can load Iris Worlds!");
+            }
+        }
     }
 }

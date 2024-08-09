@@ -1,7 +1,27 @@
+/*
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.core.nms.v1_19_R1;
 
 import com.mojang.serialization.Codec;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.ServerConfigurator;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
@@ -11,6 +31,7 @@ import com.volmit.iris.util.math.RNG;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeSource;
@@ -25,6 +46,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class CustomBiomeSource extends BiomeSource {
     private final long seed;
@@ -118,11 +140,32 @@ public class CustomBiomeSource extends BiomeSource {
         for (IrisBiome i : engine.getAllBiomes()) {
             if (i.isCustom()) {
                 for (IrisBiomeCustom j : i.getCustomDerivitives()) {
-                    m.put(j.getId(), customRegistry.getHolder(customRegistry.getResourceKey(customRegistry
-                            .get(new ResourceLocation(engine.getDimension().getLoadKey() + ":" + j.getId()))).get()).get());
+                    ResourceLocation location = new ResourceLocation(engine.getDimension().getLoadKey() + ":" + j.getId());
+                    Biome biome = customRegistry.get(location);
+                    if (biome == null) {
+                        INMS.get().registerBiome(location.getNamespace(), j, false);
+                        biome = customRegistry.get(location);
+                        if (biome == null) {
+                            Iris.error("Cannot find biome for IrisBiomeCustom " + j.getId() + " from engine " + engine.getName());
+                            continue;
+                        }
+                    }
+                    Optional<ResourceKey<Biome>> optionalBiomeKey = customRegistry.getResourceKey(biome);
+                    if (optionalBiomeKey.isEmpty()) {
+                        Iris.error("Cannot find biome for IrisBiomeCustom " + j.getId() + " from engine " + engine.getName());
+                        continue;
+                    }
+                    ResourceKey<Biome> biomeKey = optionalBiomeKey.get();
+                    Optional<Holder<Biome>> optionalReferenceHolder = customRegistry.getHolder(biomeKey);
+                    if (optionalReferenceHolder.isEmpty()) {
+                        Iris.error("Cannot find reference to biome " + biomeKey + " for engine " + engine.getName());
+                        continue;
+                    }
+                    m.put(j.getId(), optionalReferenceHolder.get());
                 }
             }
         }
+        ServerConfigurator.dumpDataPack();
 
         return m;
     }

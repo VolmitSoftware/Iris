@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,13 +21,10 @@ package com.volmit.iris.core.tools;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.service.StudioSVC;
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
-import com.volmit.iris.core.safeguard.UtilsSFG;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -46,7 +43,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-import static com.volmit.iris.core.safeguard.IrisSafeguard.unstablemode;
 
 /**
  * Makes it a lot easier to setup an engine, world, studio or whatever
@@ -101,7 +97,8 @@ public class IrisCreator {
         yml.save(BUKKIT_YML);
         return true;
     }
-    public static boolean worldLoaded(){
+
+    public static boolean worldLoaded() {
         return true;
     }
 
@@ -145,7 +142,6 @@ public class IrisCreator {
                 .studio(studio)
                 .smartVanillaHeight(smartVanillaHeight)
                 .create();
-        ServerConfigurator.installDataPacks(false);
 
         access = (PlatformChunkGenerator) wc.generator();
         PlatformChunkGenerator finalAccess1 = access;
@@ -158,7 +154,7 @@ public class IrisCreator {
                 }
                 return finalAccess1.getEngine().getGenerated();
             };
-            if(!benchmark) {
+            if (!benchmark) {
                 if (finalAccess1 == null) return;
                 int req = finalAccess1.getSpawnChunks().join();
 
@@ -245,7 +241,7 @@ public class IrisCreator {
         String gen = "Iris:" + dimension;
         ConfigurationSection section = yml.contains("worlds") ? yml.getConfigurationSection("worlds") : yml.createSection("worlds");
         if (!section.contains(name)) {
-            section.createSection(name).set("generator", gen);
+            section.createSection(name).set("backup-generator", gen);
             try {
                 yml.save(BUKKIT_YML);
                 Iris.info("Registered \"" + name + "\" in bukkit.yml");

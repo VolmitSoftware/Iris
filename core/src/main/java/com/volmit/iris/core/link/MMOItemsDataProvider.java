@@ -1,3 +1,21 @@
+/*
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
@@ -31,9 +49,11 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
         int id = -1;
         try {
             id = Integer.parseInt(blockId.key());
-        } catch (NumberFormatException ignored) {}
+        } catch (NumberFormatException ignored) {
+        }
         CustomBlock block = api().getCustomBlocks().getBlock(id);
-        if (block == null) throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
+        if (block == null)
+            throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
         return block.getState().getBlockData();
     }
 
@@ -70,7 +90,8 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
         ItemStack item = null;
         try {
             item = future.get();
-        } catch (InterruptedException | ExecutionException ignored) {}
+        } catch (InterruptedException | ExecutionException ignored) {
+        }
         if (item == null)
             throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());
         return item;

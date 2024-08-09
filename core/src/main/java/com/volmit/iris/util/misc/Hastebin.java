@@ -1,3 +1,21 @@
+/*
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util.misc;
 
 import com.volmit.iris.Iris;
@@ -15,12 +33,9 @@ import oshi.SystemInfo;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.file.Files;
-import java.util.List;
 
 public class Hastebin {
 
@@ -79,11 +94,11 @@ public class Hastebin {
         for (String disk : disks) {
             sb.append(" ").append(sb.append(disk)).append("\n");
         }
-        sb.append(" -- == Interface Information == -- "+ "\n" );
+        sb.append(" -- == Interface Information == -- " + "\n");
         for (String inter : interfaces) {
             sb.append(" ").append(inter).append("\n");
         }
-        sb.append(" -- == Display Information == -- "+ "\n" );
+        sb.append(" -- == Display Information == -- " + "\n");
         for (String display : displays) {
             sb.append(display).append("\n");
         }

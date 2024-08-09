@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,7 +52,8 @@ public interface TileData<T extends TileState> extends Cloneable {
             @SuppressWarnings("unchecked") TileData<? extends TileState> d = registry.get(id).getClass().getConstructor().newInstance();
             d.fromBinary(s);
             return d;
-        } catch (InvocationTargetException | InstantiationException | IllegalAccessException |
+        } catch (InvocationTargetException | InstantiationException |
+                 IllegalAccessException |
                  NoSuchMethodException e) {
             throw new IOException("Failed to create TileData instance due to missing type registrar!");
         }

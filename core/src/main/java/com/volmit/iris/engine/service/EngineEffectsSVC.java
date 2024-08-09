@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,12 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine;
+package com.volmit.iris.engine.service;
 
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.EngineAssignedComponent;
-import com.volmit.iris.engine.framework.EngineEffects;
 import com.volmit.iris.engine.framework.EnginePlayer;
+import com.volmit.iris.engine.object.IrisEngineService;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -31,19 +30,28 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
 
-public class IrisEngineEffects extends EngineAssignedComponent implements EngineEffects {
-    private final KMap<UUID, EnginePlayer> players;
-    private final Semaphore limit;
+public class EngineEffectsSVC extends IrisEngineService {
+    private KMap<UUID, EnginePlayer> players;
+    private Semaphore limit;
 
-    public IrisEngineEffects(Engine engine) {
-        super(engine, "FX");
+    public EngineEffectsSVC(Engine engine) {
+        super(engine);
+    }
+
+    @Override
+    public void onEnable(boolean hotload) {
         players = new KMap<>();
         limit = new Semaphore(1);
     }
 
     @Override
+    public void onDisable(boolean hotload) {
+        players = null;
+        limit = null;
+    }
+
     public void updatePlayerMap() {
-        List<Player> pr = getEngine().getWorld().getPlayers();
+        List<Player> pr = engine.getWorld().getPlayers();
 
         if (pr == null) {
             return;
@@ -52,7 +60,7 @@ public class IrisEngineEffects extends EngineAssignedComponent implements Engine
         for (Player i : pr) {
             boolean pcc = players.containsKey(i.getUniqueId());
             if (!pcc) {
-                players.put(i.getUniqueId(), new EnginePlayer(getEngine(), i));
+                players.put(i.getUniqueId(), new EnginePlayer(engine, i));
             }
         }
 
@@ -63,7 +71,6 @@ public class IrisEngineEffects extends EngineAssignedComponent implements Engine
         }
     }
 
-    @Override
     public void tickRandomPlayer() {
         if (limit.tryAcquire()) {
             if (M.r(0.02)) {

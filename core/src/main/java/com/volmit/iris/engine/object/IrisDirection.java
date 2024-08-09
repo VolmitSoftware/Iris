@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,9 +70,11 @@ public enum IrisDirection {
         return switch (f) {
             case DOWN -> DOWN_NEGATIVE_Y;
             case EAST, EAST_NORTH_EAST, EAST_SOUTH_EAST -> EAST_POSITIVE_X;
-            case NORTH, NORTH_NORTH_WEST, NORTH_EAST, NORTH_NORTH_EAST, NORTH_WEST -> NORTH_NEGATIVE_Z;
+            case NORTH, NORTH_NORTH_WEST, NORTH_EAST, NORTH_NORTH_EAST,
+                 NORTH_WEST -> NORTH_NEGATIVE_Z;
             case SELF, UP -> UP_POSITIVE_Y;
-            case SOUTH, SOUTH_EAST, SOUTH_SOUTH_EAST, SOUTH_SOUTH_WEST, SOUTH_WEST -> SOUTH_POSITIVE_Z;
+            case SOUTH, SOUTH_EAST, SOUTH_SOUTH_EAST, SOUTH_SOUTH_WEST,
+                 SOUTH_WEST -> SOUTH_POSITIVE_Z;
             case WEST, WEST_NORTH_WEST, WEST_SOUTH_WEST -> WEST_NEGATIVE_X;
         };
 

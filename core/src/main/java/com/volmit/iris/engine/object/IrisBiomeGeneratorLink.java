@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,14 +39,14 @@ public class IrisBiomeGeneratorLink {
     @RegistryListResource(IrisGenerator.class)
     @Desc("The generator id")
     private String generator = "default";
-    @DependsOn({ "min", "max" })
+    @DependsOn({"min", "max"})
     @Required
     @MinNumber(-2032) // TODO: WARNING HEIGHT
     @MaxNumber(2032) // TODO: WARNING HEIGHT
     @Desc("The min block value (value + fluidHeight)")
     @Getter(AccessLevel.NONE)
     private int min = 0;
-    @DependsOn({ "min", "max" })
+    @DependsOn({"min", "max"})
     @Required
     @MinNumber(-2032) // TODO: WARNING HEIGHT
     @MaxNumber(2032) // TODO: WARNING HEIGHT
@@ -80,7 +80,7 @@ public class IrisBiomeGeneratorLink {
             }
         }
 
-        return new int[] { min, max };
+        return new int[]{min, max};
     }
 
     private int calculateHeight(Engine engine, int option) {

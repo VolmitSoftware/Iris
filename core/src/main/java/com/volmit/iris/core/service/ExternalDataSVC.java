@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,13 +33,38 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.MissingResourceException;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Data
 public class ExternalDataSVC implements IrisService {
 
     private KList<ExternalDataProvider> providers = new KList<>(), activeProviders = new KList<>();
+
+    public static Pair<Identifier, KMap<String, String>> parseState(Identifier key) {
+        if (!key.key().contains("[") || !key.key().contains("]")) {
+            return new Pair<>(key, new KMap<>());
+        }
+        String state = key.key().split("\\Q[\\E")[1].split("\\Q]\\E")[0];
+        KMap<String, String> stateMap = new KMap<>();
+        if (!state.isEmpty()) {
+            Arrays.stream(state.split(",")).forEach(s -> stateMap.put(s.split("=")[0], s.split("=")[1]));
+        }
+        return new Pair<>(new Identifier(key.namespace(), key.key().split("\\Q[\\E")[0]), stateMap);
+    }
+
+    public static Identifier buildState(Identifier key, KMap<String, String> state) {
+        if (state.isEmpty()) {
+            return key;
+        }
+        String path = state.entrySet()
+                .stream()
+                .map(e -> e.getKey() + "=" + e.getValue())
+                .collect(Collectors.joining(",", key.key() + "[", "]"));
+        return new Identifier(key.namespace(), path);
+    }
 
     @Override
     public void onEnable() {
@@ -143,28 +168,5 @@ public class ExternalDataSVC implements IrisService {
         KList<Identifier> names = new KList<>();
         activeProviders.forEach(p -> names.add(p.getItemTypes()));
         return names.toArray(new Identifier[0]);
-    }
-
-    public static Pair<Identifier, KMap<String, String>> parseState(Identifier key) {
-        if (!key.key().contains("[") || !key.key().contains("]")) {
-            return new Pair<>(key, new KMap<>());
-        }
-        String state = key.key().split("\\Q[\\E")[1].split("\\Q]\\E")[0];
-        KMap<String, String> stateMap = new KMap<>();
-        if (!state.isEmpty()) {
-            Arrays.stream(state.split(",")).forEach(s -> stateMap.put(s.split("=")[0], s.split("=")[1]));
-        }
-        return new Pair<>(new Identifier(key.namespace(), key.key().split("\\Q[\\E")[0]), stateMap);
-    }
-
-    public static Identifier buildState(Identifier key, KMap<String, String> state) {
-        if (state.isEmpty()) {
-            return key;
-        }
-        String path = state.entrySet()
-                .stream()
-                .map(e -> e.getKey() + "=" + e.getValue())
-                .collect(Collectors.joining(",", key.key() + "[", "]"));
-        return new Identifier(key.namespace(), path);
     }
 }

@@ -1,16 +1,31 @@
+/*
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.util.misc;
 
 
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
-import org.jetbrains.annotations.Nullable;
 import oshi.SystemInfo;
 import oshi.hardware.*;
-import oshi.software.os.FileSystem;
 import oshi.software.os.OSFileStore;
 import oshi.software.os.OperatingSystem;
-import oshi.util.EdidUtil;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -18,7 +33,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class getHardware {
     public static String getServerOS() {
@@ -26,10 +40,12 @@ public class getHardware {
         OperatingSystem os = systemInfo.getOperatingSystem();
         return os.toString();
     }
-    public static long getProcessMemory(){
+
+    public static long getProcessMemory() {
         long maxMemory = Runtime.getRuntime().maxMemory() / (1024 * 1024);
         return maxMemory;
     }
+
     public static long getProcessUsedMemory() {
         Runtime runtime = Runtime.getRuntime();
 
@@ -40,7 +56,7 @@ public class getHardware {
         return usedMemory / (1024 * 1024);
     }
 
-    public static long getAvailableProcessMemory(){
+    public static long getAvailableProcessMemory() {
         long availableMemory = getHardware.getProcessMemory() - getHardware.getProcessUsedMemory();
         return availableMemory;
     }
@@ -107,7 +123,7 @@ public class getHardware {
                     systemDisks.add(" - Mount: " + partition.getMount());
                     systemDisks.add(" - Label: " + partition.getLabel());
                 }
-                systemDisks.add(C.DARK_GRAY + "-=" + C.BLUE +" Since Boot " + C.DARK_GRAY + "=- ");
+                systemDisks.add(C.DARK_GRAY + "-=" + C.BLUE + " Since Boot " + C.DARK_GRAY + "=- ");
                 systemDisks.add("- Total Reads: " + Form.memSize(disk.getReadBytes()));
                 systemDisks.add("- Total Writes: " + Form.memSize(disk.getWriteBytes()));
             }

@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,9 +19,7 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.PregeneratorJob;
-import com.volmit.iris.core.pregenerator.LazyPregenerator;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.decree.DecreeExecutor;
@@ -29,11 +27,10 @@ import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.Position2;
-import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
 
-import java.io.File;
+import java.awt.*;
 
 @Decree(name = "pregen", aliases = "pregenerate", description = "Pregenerate your Iris worlds!")
 public class CommandPregen implements DecreeExecutor {
@@ -44,8 +41,13 @@ public class CommandPregen implements DecreeExecutor {
             @Param(description = "The world to pregen", contextual = true)
             World world,
             @Param(aliases = "middle", description = "The center location of the pregen. Use \"me\" for your current location", defaultValue = "0,0")
-            Vector center
-            ) {
+            Vector center,
+            @Param(aliases = "gui", description = "Enable or disable the Iris GUI.", defaultValue = "true")
+            boolean gui,
+            @Param(aliases = "resetCache", description = "If it should reset the generated region cache", defaultValue = "false")
+            boolean resetCache
+
+    ) {
         try {
             if (sender().isPlayer() && access() == null) {
                 sender().sendMessage(C.RED + "The engine access for this world is null!");
@@ -55,8 +57,9 @@ public class CommandPregen implements DecreeExecutor {
             int w = (radius >> 9 + 1) * 2;
             IrisToolbelt.pregenerate(PregenTask
                     .builder()
+                    .resetCache(resetCache)
                     .center(new Position2(center.getBlockX() >> 9, center.getBlockZ() >> 9))
-                    .gui(true)
+                    .gui(!GraphicsEnvironment.isHeadless() && gui)
                     .width(w)
                     .height(w)
                     .build(), world);
@@ -73,7 +76,7 @@ public class CommandPregen implements DecreeExecutor {
     @Decree(description = "Stop the active pregeneration task", aliases = "x")
     public void stop() {
         if (PregeneratorJob.shutdownInstance()) {
-            Iris.info( C.BLUE + "Finishing up mca region...");
+            Iris.info(C.BLUE + "Finishing up mca region...");
         } else {
             sender().sendMessage(C.YELLOW + "No active pregeneration tasks to stop");
         }

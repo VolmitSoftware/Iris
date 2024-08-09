@@ -1,3 +1,21 @@
+/*
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.engine.framework.placer;
 
 import com.volmit.iris.Iris;
@@ -34,7 +52,8 @@ public class WorldObjectPlacer implements IObjectPlacer {
 
     public WorldObjectPlacer(World world) {
         var a = IrisToolbelt.access(world);
-        if (a == null || a.getEngine() == null) throw new IllegalStateException(world.getName() + " is not an Iris World!");
+        if (a == null || a.getEngine() == null)
+            throw new IllegalStateException(world.getName() + " is not an Iris World!");
         this.world = world;
         this.engine = a.getEngine();
         this.mantle = engine.getMantle();
@@ -54,7 +73,8 @@ public class WorldObjectPlacer implements IObjectPlacer {
     public void set(int x, int y, int z, BlockData d) {
         Block block = world.getBlockAt(x, y + world.getMinHeight(), z);
 
-        if (y <= world.getMinHeight() || block.getType() == Material.BEDROCK) return;
+        if (y <= world.getMinHeight() || block.getType() == Material.BEDROCK)
+            return;
         InventorySlotType slot = null;
         if (B.isStorageChest(d)) {
             slot = InventorySlotType.STORAGE;
@@ -67,7 +87,7 @@ public class WorldObjectPlacer implements IObjectPlacer {
             try {
                 Bukkit.getPluginManager().callEvent(new IrisLootEvent(engine, block, slot, tables));
 
-                if (!tables.isEmpty()){
+                if (!tables.isEmpty()) {
                     Iris.debug("IrisLootEvent has been accessed");
                 }
 

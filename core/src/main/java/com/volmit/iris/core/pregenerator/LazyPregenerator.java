@@ -1,3 +1,21 @@
+/*
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.core.pregenerator;
 
 import com.google.gson.Gson;
@@ -24,32 +42,31 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class LazyPregenerator extends Thread implements Listener {
+    private static final Map<String, LazyPregenJob> jobs = new HashMap<>();
     @Getter
     private static LazyPregenerator instance;
+    private static AtomicInteger lazyGeneratedChunks;
     private final LazyPregenJob job;
     private final File destination;
     private final int maxPosition;
-    private World world;
     private final long rate;
     private final ChronoLatch latch;
-    private static AtomicInteger lazyGeneratedChunks;
     private final AtomicInteger generatedLast;
     private final AtomicInteger lazyTotalChunks;
     private final AtomicLong startTime;
     private final RollingSequence chunksPerSecond;
     private final RollingSequence chunksPerMinute;
-
-    private static final Map<String, LazyPregenJob> jobs = new HashMap<>();
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private World world;
 
     public LazyPregenerator(LazyPregenJob job, File destination) {
         this.job = job;
@@ -86,6 +103,26 @@ public class LazyPregenerator extends Thread implements Listener {
                 }
             }
         }
+    }
+
+    public static void setPausedLazy(World world) {
+        LazyPregenJob job = jobs.get(world.getName());
+        if (isPausedLazy(world)) {
+            job.paused = false;
+        } else {
+            job.paused = true;
+        }
+
+        if (job.paused) {
+            Iris.info(C.BLUE + "LazyGen: " + C.IRIS + world.getName() + C.BLUE + " Paused");
+        } else {
+            Iris.info(C.BLUE + "LazyGen: " + C.IRIS + world.getName() + C.BLUE + " Resumed");
+        }
+    }
+
+    public static boolean isPausedLazy(World world) {
+        LazyPregenJob job = jobs.get(world.getName());
+        return job != null && job.isPaused();
     }
 
     @EventHandler
@@ -146,8 +183,6 @@ public class LazyPregenerator extends Thread implements Listener {
         // todo broken
     }
 
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
-
     private void tickGenerate(Position2 chunk) {
         executorService.submit(() -> {
             CountDownLatch latch = new CountDownLatch(1);
@@ -166,7 +201,8 @@ public class LazyPregenerator extends Thread implements Listener {
             }
             try {
                 latch.await();
-            } catch (InterruptedException ignored) {}
+            } catch (InterruptedException ignored) {
+            }
             lazyGeneratedChunks.addAndGet(1);
         });
     }
@@ -202,26 +238,6 @@ public class LazyPregenerator extends Thread implements Listener {
         });
     }
 
-    public static void setPausedLazy(World world) {
-        LazyPregenJob job = jobs.get(world.getName());
-        if (isPausedLazy(world)){
-            job.paused = false;
-        } else {
-            job.paused = true;
-        }
-
-        if ( job.paused) {
-            Iris.info(C.BLUE + "LazyGen: " + C.IRIS + world.getName() + C.BLUE + " Paused");
-        } else {
-            Iris.info(C.BLUE + "LazyGen: " + C.IRIS + world.getName() + C.BLUE + " Resumed");
-        }
-    }
-
-    public static boolean isPausedLazy(World world) {
-        LazyPregenJob job = jobs.get(world.getName());
-        return job != null && job.isPaused();
-    }
-
     public void shutdownInstance(World world) throws IOException {
         Iris.info("LazyGen: " + C.IRIS + world.getName() + C.BLUE + " Shutting down..");
         LazyPregenJob job = jobs.get(world.getName());
@@ -242,7 +258,7 @@ public class LazyPregenerator extends Thread implements Listener {
             new BukkitRunnable() {
                 @Override
                 public void run() {
-                    while (lazyFile.exists()){
+                    while (lazyFile.exists()) {
                         lazyFile.delete();
                         J.sleep(1000);
                     }
@@ -266,6 +282,10 @@ public class LazyPregenerator extends Thread implements Listener {
     @Data
     @Builder
     public static class LazyPregenJob {
+        @Builder.Default
+        boolean silent = false;
+        @Builder.Default
+        boolean paused = false;
         private String world;
         @Builder.Default
         private int healingPosition = 0;
@@ -277,10 +297,6 @@ public class LazyPregenerator extends Thread implements Listener {
         private int radiusBlocks = 5000;
         @Builder.Default
         private int position = 0;
-        @Builder.Default
-        boolean silent = false;
-        @Builder.Default
-        boolean paused = false;
     }
 }
 

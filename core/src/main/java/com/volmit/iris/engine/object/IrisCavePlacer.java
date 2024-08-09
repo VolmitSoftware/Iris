@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -82,7 +82,7 @@ public class IrisCavePlacer implements IRare {
         }
 
         if (y == -1) {
-            if(!breakSurface) {
+            if (!breakSurface) {
                 int eH = engine.getHeight(x, z);
                 if (caveStartHeight.getMax() > eH) {
                     caveStartHeight.setMax(eH);
@@ -92,7 +92,7 @@ public class IrisCavePlacer implements IRare {
         }
 
         try {
-             cave.generate(mantle, rng, engine, x + rng.nextInt(15), y, z + rng.nextInt(15), waterHint);
+            cave.generate(mantle, rng, engine, x + rng.nextInt(15), y, z + rng.nextInt(15), waterHint);
         } catch (Throwable e) {
             e.printStackTrace();
             fail.set(true);

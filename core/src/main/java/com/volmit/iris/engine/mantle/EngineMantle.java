@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
-import com.volmit.iris.engine.framework.SeedManager;
 import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
 import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
 import com.volmit.iris.engine.object.IObjectPlacer;
@@ -179,7 +178,8 @@ public interface EngineMantle extends IObjectPlacer {
     default void trim(int limit) {
         getMantle().trim(TimeUnit.SECONDS.toMillis(IrisSettings.get().getPerformance().getMantleKeepAlive()), limit);
     }
-    default int unloadTectonicPlate(int tectonicLimit){
+
+    default int unloadTectonicPlate(int tectonicLimit) {
         return getMantle().unloadTectonicPlate(tectonicLimit);
     }
 
@@ -194,33 +194,33 @@ public interface EngineMantle extends IObjectPlacer {
 
     @ChunkCoordinates
     default void generateMatter(int x, int z, boolean multicore, ChunkContext context) {
-        synchronized (this) {
-            if (!getEngine().getDimension().isUseMantle()) {
-                return;
-            }
-
-            int s = getRealRadius();
-            BurstExecutor burst = burst().burst(multicore);
-            MantleWriter writer = getMantle().write(this, x, z, s * 2);
-            for (int i = -s; i <= s; i++) {
-                for (int j = -s; j <= s; j++) {
-                    int xx = i + x;
-                    int zz = j + z;
-                    burst.queue(() -> {
-                        IrisContext.touch(getEngine().getContext());
-                        getMantle().raiseFlag(xx, zz, MantleFlag.PLANNED, () -> {
-                            MantleChunk mc = getMantle().getChunk(xx, zz);
-
-                            for (MantleComponent k : getComponents()) {
-                                generateMantleComponent(writer, xx, zz, k, mc, context);
-                            }
-                        });
-                    });
-                }
-            }
-
-            burst.complete();
+        //synchronized (this) {
+        if (!getEngine().getDimension().isUseMantle()) {
+            return;
         }
+
+        int s = getRealRadius();
+        BurstExecutor burst = burst().burst(multicore);
+        MantleWriter writer = getMantle().write(this, x, z, s * 2);
+        for (int i = -s; i <= s; i++) {
+            for (int j = -s; j <= s; j++) {
+                int xx = i + x;
+                int zz = j + z;
+                burst.queue(() -> {
+                    IrisContext.touch(getEngine().getContext());
+                    getMantle().raiseFlag(xx, zz, MantleFlag.PLANNED, () -> {
+                        MantleChunk mc = getMantle().getChunk(xx, zz);
+
+                        for (MantleComponent k : getComponents()) {
+                            generateMantleComponent(writer, xx, zz, k, mc, context);
+                        }
+                    });
+                });
+            }
+        }
+
+        burst.complete();
+        // }
     }
 
     default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, MantleChunk mc, ChunkContext context) {
@@ -261,7 +261,8 @@ public interface EngineMantle extends IObjectPlacer {
     default int getLoadedRegionCount() {
         return getMantle().getLoadedRegionCount();
     }
-    default long getLastUseMapMemoryUsage(){
+
+    default long getLastUseMapMemoryUsage() {
         return getMantle().LastUseMapMemoryUsage();
     }
 
@@ -296,13 +297,15 @@ public interface EngineMantle extends IObjectPlacer {
         }
     }
 
-    default long getToUnload(){
+    default long getToUnload() {
         return getMantle().getToUnload().size();
     }
-    default long getNotQueuedLoadedRegions(){
+
+    default long getNotQueuedLoadedRegions() {
         return getMantle().getLoadedRegions().size() - getMantle().getToUnload().size();
     }
-    default double getTectonicDuration(){
+
+    default double getTectonicDuration() {
         return getMantle().getAdjustedIdleDuration().get();
     }
 }

@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,7 +60,7 @@ public class HeightmapObjectPlacer implements IObjectPlacer {
 
     @Override
     public boolean isCarved(int x, int y, int z) {
-        return oplacer.isCarved(x,y,z);
+        return oplacer.isCarved(x, y, z);
     }
 
     public boolean isSolid(int param1Int1, int param1Int2, int param1Int3) {

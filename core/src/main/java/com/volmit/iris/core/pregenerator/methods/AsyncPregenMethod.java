@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.mantle.Mantle;
@@ -29,20 +30,19 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.J;
 import io.papermc.lib.PaperLib;
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 
 public class AsyncPregenMethod implements PregeneratorMethod {
     private final World world;
+    private final Engine engine;
     private final MultiBurst burst;
+
     private final KList<Future<?>> future;
     private final Map<Chunk, Long> lastUse;
 
@@ -50,8 +50,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         if (!PaperLib.isPaper()) {
             throw new UnsupportedOperationException("Cannot use PaperAsync on non paper!");
         }
-
         this.world = world;
+        this.engine = IrisToolbelt.access(world).getEngine();
         burst = MultiBurst.burst;
         future = new KList<>(1024);
         this.lastUse = new KMap<>();
@@ -82,15 +82,13 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private void completeChunk(int x, int z, PregenListener listener) {
         try {
             future.add(PaperLib.getChunkAtAsync(world, x, z, true).thenApply((i) -> {
-                if (i == null) {
-
-                }
-                Chunk c = Bukkit.getWorld(world.getUID()).getChunkAt(x, z);
-                lastUse.put(c, M.ms());
+                if (i == null) return 0;
+                lastUse.put(i, M.ms());
                 listener.onChunkGenerated(x, z);
                 listener.onChunkCleaned(x, z);
                 return 0;
             }));
+
         } catch (Throwable e) {
             e.printStackTrace();
         }
@@ -179,5 +177,10 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
 
         return null;
+    }
+
+    @Override
+    public World getWorld() {
+        return world;
     }
 }

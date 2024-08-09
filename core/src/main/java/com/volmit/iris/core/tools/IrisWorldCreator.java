@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,9 @@
 package com.volmit.iris.core.tools;
 
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -84,6 +86,9 @@ public class IrisWorldCreator {
                 ? dim.getLoader().getDataFolder() :
                 new File(w.worldFolder(), "iris/pack"), dimensionName, smartVanillaHeight);
 
+        if (!INMS.get().registerDimension(name, dim)) {
+            throw new IllegalStateException("Unable to register dimension " + dim.getName());
+        }
 
         return new WorldCreator(name)
                 .environment(findEnvironment())

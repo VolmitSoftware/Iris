@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ import org.bukkit.util.Vector;
 import java.awt.*;
 
 public class WandSelection {
-    private static final Particle REDSTONE = E.getOrDefault(Particle.class,  "REDSTONE", "DUST");
+    private static final Particle REDSTONE = E.getOrDefault(Particle.class, "REDSTONE", "DUST");
     private final Cuboid c;
     private final Player p;
 

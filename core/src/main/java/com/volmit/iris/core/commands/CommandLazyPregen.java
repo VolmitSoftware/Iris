@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,16 +19,11 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
-import com.volmit.iris.core.pregenerator.PregenTask;
-import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.math.Position2;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
@@ -39,6 +34,7 @@ import java.io.IOException;
 @Decree(name = "lazypregen", aliases = "lazy", description = "Pregenerate your Iris worlds!")
 public class CommandLazyPregen implements DecreeExecutor {
     public String worldName;
+
     @Decree(description = "Pregenerate a world")
     public void start(
             @Param(description = "The radius of the pregen in blocks", aliases = "size")
@@ -51,7 +47,7 @@ public class CommandLazyPregen implements DecreeExecutor {
             int cpm,
             @Param(aliases = "silent", description = "Silent generation", defaultValue = "false")
             boolean silent
-            ) {
+    ) {
 
         worldName = world.getName();
         File worldDirectory = new File(Bukkit.getWorldContainer(), world.getName());

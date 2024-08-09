@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -240,7 +240,7 @@ public class TreeSVC implements IrisService {
         boolean isUseAll = worldAccess.getEngine().getDimension().getTreeSettings().getMode().equals(IrisTreeModes.ALL);
 
         // Retrieve objectPlacements of type `species` from biome
-        IrisBiome biome = worldAccess.getEngine().getBiome(location.getBlockX(), location.getBlockY()-worldAccess.getTarget().getWorld().minHeight(), location.getBlockZ());
+        IrisBiome biome = worldAccess.getEngine().getBiome(location.getBlockX(), location.getBlockY() - worldAccess.getTarget().getWorld().minHeight(), location.getBlockZ());
         placements.addAll(matchObjectPlacements(biome.getObjects(), size, type));
 
         // Add more or find any in the region

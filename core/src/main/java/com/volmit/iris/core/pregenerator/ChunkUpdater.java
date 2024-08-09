@@ -1,3 +1,21 @@
+/*
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.core.pregenerator;
 
 import com.volmit.iris.Iris;
@@ -15,7 +33,6 @@ import org.bukkit.Chunk;
 import org.bukkit.World;
 
 import java.io.File;
-
 import java.util.ArrayList;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -23,9 +40,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ChunkUpdater {
-    private AtomicBoolean paused;
-    private AtomicBoolean cancelled;
-    private KMap<Chunk, Long> lastUse;
     private final RollingSequence chunksPerSecond;
     private final AtomicInteger worldheightsize;
     private final AtomicInteger worldwidthsize;
@@ -33,6 +47,12 @@ public class ChunkUpdater {
     private final AtomicInteger totalMaxChunks;
     private final AtomicInteger totalMcaregions;
     private final AtomicInteger position;
+    private final Object pauseLock;
+    private final Engine engine;
+    private final World world;
+    private AtomicBoolean paused;
+    private AtomicBoolean cancelled;
+    private KMap<Chunk, Long> lastUse;
     private AtomicInteger chunksProcessed;
     private AtomicInteger chunksUpdated;
     private AtomicLong startTime;
@@ -40,10 +60,7 @@ public class ChunkUpdater {
     private ExecutorService chunkExecutor;
     private ScheduledExecutorService scheduler;
     private CompletableFuture future;
-    private  CountDownLatch latch;
-    private final Object pauseLock;
-    private final Engine engine;
-    private final World world;
+    private CountDownLatch latch;
 
     public ChunkUpdater(World world) {
         this.engine = IrisToolbelt.access(world).getEngine();
@@ -106,7 +123,7 @@ public class ChunkUpdater {
                 try {
                     if (!paused.get()) {
                         long eta = computeETA();
-                        long elapsedSeconds = (System.currentTimeMillis() - startTime.get()) / 1000;
+                        long elapsedSeconds = (System.currentTimeMillis() - startTime.get()) / 3000;
                         int processed = chunksProcessed.get();
                         double cps = elapsedSeconds > 0 ? processed / (double) elapsedSeconds : 0;
                         chunksPerSecond.put(cps);
@@ -136,7 +153,7 @@ public class ChunkUpdater {
                     }
                     executor.submit(() -> {
                         if (!cancelled.get()) {
-                            processNextChunk();   
+                            processNextChunk();
                         }
                         latch.countDown();
                     });
@@ -217,7 +234,8 @@ public class ChunkUpdater {
                         });
                         try {
                             latch.await();
-                        } catch (InterruptedException ignored) {}
+                        } catch (InterruptedException ignored) {
+                        }
                     }
                     if (!c.isGenerated()) {
                         generated.set(false);
@@ -230,7 +248,8 @@ public class ChunkUpdater {
             futures.removeIf(Future::isDone);
             try {
                 Thread.sleep(50);
-            } catch (InterruptedException ignored) {}
+            } catch (InterruptedException ignored) {
+            }
         }
         return generated.get();
     }
@@ -266,7 +285,7 @@ public class ChunkUpdater {
         );
     }
 
-    public int calculateWorldDimensions(File regionDir, Integer o) {
+    private int calculateWorldDimensions(File regionDir, Integer o) {
         File[] files = regionDir.listFiles((dir, name) -> name.endsWith(".mca"));
 
         int minX = Integer.MAX_VALUE;
@@ -297,7 +316,7 @@ public class ChunkUpdater {
         return 0;
     }
 
-    public int[] getChunk(int position) {
+    private int[] getChunk(int position) {
         int p = -1;
         AtomicInteger xx = new AtomicInteger();
         AtomicInteger zz = new AtomicInteger();

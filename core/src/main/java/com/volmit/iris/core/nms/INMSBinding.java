@@ -28,19 +28,18 @@ import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
 import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.WorldCreator;
+import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.generator.structure.Structure;
 import org.bukkit.inventory.ItemStack;
 
 import java.awt.*;
+import java.awt.Color;
 
 public interface INMSBinding {
     boolean hasTile(Location l);
@@ -107,8 +106,6 @@ public interface INMSBinding {
 
     ItemStack applyCustomNbt(ItemStack itemStack, KMap<String, Object> customNbt) throws IllegalArgumentException;
 
-    void setTreasurePos(Dolphin dolphin, com.volmit.iris.core.nms.container.BlockPos pos);
-
     void inject(long seed, Engine engine, World world) throws NoSuchFieldException, IllegalAccessException;
 
     Vector3d getBoundingbox(org.bukkit.entity.EntityType entity);
@@ -124,4 +121,6 @@ public interface INMSBinding {
     default int getSpawnChunkCount(World world) {
         return 441;
     }
+
+    KList<String> getStructureKeys();
 }

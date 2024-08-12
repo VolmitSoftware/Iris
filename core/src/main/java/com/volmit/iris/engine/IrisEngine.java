@@ -55,6 +55,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
@@ -277,6 +278,7 @@ public class IrisEngine implements Engine {
             for (Player player : target.getWorld().getPlayers()) {
                 VolmitSender sender = new VolmitSender(player);
                 sender.sendMessage(C.GREEN + "Hotloaded");
+                sender.playSound(Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
             }
 
         }

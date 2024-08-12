@@ -281,7 +281,6 @@ public class CommandStudio implements DecreeExecutor {
         }
         var provider = Iris.service(StudioSVC.class).getActiveProject().getActiveProvider();
         provider.getEngine().hotload();
-        sender().sendMessage(C.GREEN + "Hotloaded");
     }
 
     @Decree(description = "Show loot if a chest were right here", origin = DecreeOrigin.PLAYER, sync = true)

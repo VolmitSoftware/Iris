@@ -50,7 +50,7 @@ public class ModesSFG {
                 Iris.info(C.DARK_RED + "Go to plugins/iris/settings.json and set DoomsdayAnnihilationSelfDestructMode to true if you wish to proceed.");
                 while (true) {
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(Long.MAX_VALUE);
                     } catch (InterruptedException e) {
                         // no
                     }

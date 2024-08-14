@@ -19,6 +19,7 @@
 package com.volmit.iris.util.matter;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.data.Cuboid;
 import org.bukkit.Location;
 import org.bukkit.block.data.BlockData;
@@ -33,8 +34,8 @@ public class WorldMatter {
             matter.slice(MatterEntityGroup.class).writeInto(at);
         }
 
-        if (matter.hasSlice(TileWrapper.class)) {
-            matter.slice(TileWrapper.class).writeInto(at);
+        if (matter.hasSlice(TileData.class)) {
+            matter.slice(TileData.class).writeInto(at);
         }
     }
 
@@ -45,7 +46,7 @@ public class WorldMatter {
         s.getHeader().setAuthor(author);
         s.slice(BlockData.class).readFrom(c.getLowerNE());
         s.slice(MatterEntityGroup.class).readFrom(c.getLowerNE());
-        s.slice(TileWrapper.class).readFrom(c.getLowerNE());
+        s.slice(TileData.class).readFrom(c.getLowerNE());
         s.trimSlices();
 
         return s;

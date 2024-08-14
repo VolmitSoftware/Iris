@@ -118,10 +118,8 @@ public class CommandObject implements DecreeExecutor {
             }
 
             @Override
-            public void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile) {
-                BlockState state = world.getBlockAt(xx, yy, zz).getState();
-                tile.toBukkitTry(state);
-                state.update();
+            public void setTile(int xx, int yy, int zz, TileData tile) {
+                tile.toBukkitTry(world.getBlockAt(xx, yy, zz));
             }
 
             @Override

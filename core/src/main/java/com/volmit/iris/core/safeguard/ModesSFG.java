@@ -66,16 +66,17 @@ public class ModesSFG {
             if (IrisSettings.get().getSafeguard().ignoreBootMode) {
                 Iris.info(C.DARK_RED + "Boot Unstable is set to true, continuing with the startup process.");
             } else {
-                Iris.info(C.DARK_RED + "Go to plugins/iris/settings.json and set ignoreBootMode to true if you wish to proceed.");
-                Iris.info(C.DARK_RED + "Shutting down server in " + C.UNDERLINE + "" + C.DARK_RED + "50 Seconds");
-                try {
-                    Thread.sleep(50000);
-                    Bukkit.shutdown();
-                } catch (Exception ignored) {
+                Iris.info(C.DARK_RED + "Go to plugins/iris/settings.json and set DoomsdayAnnihilationSelfDestructMode to true if you wish to proceed.");
+                while (true) {
+                    try {
+                        Thread.sleep(Long.MAX_VALUE);
+                    } catch (InterruptedException e) {
+                        // no
+                    }
                 }
             }
+            Iris.info("");
         }
-        Iris.info("");
     }
 
     public static void warning() {

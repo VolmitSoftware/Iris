@@ -84,7 +84,7 @@ public class IrisObject extends IrisRegistrant {
     @Setter
     protected transient AtomicCache<AxisAlignedBB> aabb = new AtomicCache<>();
     private KMap<BlockVector, BlockData> blocks;
-    private KMap<BlockVector, TileData<? extends TileState>> states;
+    private KMap<BlockVector, TileData> states;
     @Getter
     @Setter
     private int w;
@@ -434,7 +434,7 @@ public class IrisObject extends IrisRegistrant {
             d.put(new BlockVector(i.getBlockX(), i.getBlockY(), i.getBlockZ()), Objects.requireNonNull(getBlocks().get(i)));
         }
 
-        KMap<BlockVector, TileData<? extends TileState>> dx = new KMap<>();
+        KMap<BlockVector, TileData> dx = new KMap<>();
 
         for (BlockVector i : getBlocks().keySet()) {
             d.put(new BlockVector(i.getBlockX(), i.getBlockY(), i.getBlockZ()), Objects.requireNonNull(getBlocks().get(i)));
@@ -476,7 +476,7 @@ public class IrisObject extends IrisRegistrant {
         } else {
             BlockData data = block.getBlockData();
             getBlocks().put(v, data);
-            TileData<? extends TileState> state = TileData.getTileState(block);
+            TileData state = TileData.getTileState(block);
             if (state != null) {
                 Iris.info("Saved State " + v);
                 getStates().put(v, state);
@@ -802,7 +802,7 @@ public class IrisObject extends IrisRegistrant {
 
             for (BlockVector g : getBlocks().keySet()) {
                 BlockData d;
-                TileData<? extends TileState> tile = null;
+                TileData tile = null;
 
                 try {
                     d = getBlocks().get(g);
@@ -842,11 +842,9 @@ public class IrisObject extends IrisRegistrant {
                                 else
                                     data = newData;
 
-                                if (newData.getMaterial() == Material.SPAWNER) {
-                                    Optional<TileData<?>> t = j.getReplace().getTile(rng, x, y, z, rdata);
-                                    if (t.isPresent()) {
-                                        tile = t.get();
-                                    }
+                                Optional<TileData> t = j.getReplace().getTile(rng, x, y, z, rdata);
+                                if (t.isPresent()) {
+                                    tile = t.get();
                                 }
                             }
                         }
@@ -1044,7 +1042,7 @@ public class IrisObject extends IrisRegistrant {
                     spinx, spiny, spinz));
         }
 
-        KMap<BlockVector, TileData<? extends TileState>> dx = new KMap<>();
+        KMap<BlockVector, TileData> dx = new KMap<>();
 
         for (BlockVector i : getStates().keySet()) {
             dx.put(r.rotate(i.clone(), spinx, spiny, spinz), getStates().get(i));
@@ -1062,9 +1060,7 @@ public class IrisObject extends IrisRegistrant {
 
             if (getStates().containsKey(i)) {
                 Iris.info(Objects.requireNonNull(states.get(i)).toString());
-                BlockState st = b.getState();
-                Objects.requireNonNull(getStates().get(i)).toBukkitTry(st);
-                st.update();
+                Objects.requireNonNull(getStates().get(i)).toBukkitTry(b);
             }
         }
     }
@@ -1075,7 +1071,7 @@ public class IrisObject extends IrisRegistrant {
             b.setBlockData(Objects.requireNonNull(getBlocks().get(i)), false);
 
             if (getStates().containsKey(i)) {
-                Objects.requireNonNull(getStates().get(i)).toBukkitTry(b.getState());
+                Objects.requireNonNull(getStates().get(i)).toBukkitTry(b);
             }
         }
     }
@@ -1084,7 +1080,7 @@ public class IrisObject extends IrisRegistrant {
         return blocks;
     }
 
-    public synchronized KMap<BlockVector, TileData<? extends TileState>> getStates() {
+    public synchronized KMap<BlockVector, TileData> getStates() {
         return states;
     }
 

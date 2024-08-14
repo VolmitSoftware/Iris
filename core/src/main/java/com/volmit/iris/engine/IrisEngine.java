@@ -299,7 +299,7 @@ public class IrisEngine implements Engine {
 
     @Override
     public IrisEngineData getEngineData() {
-        return engineData.aquire(() -> {
+        var ret = engineData.aquire(() -> {
             //TODO: Method this file
             File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + ".json");
 
@@ -327,6 +327,11 @@ public class IrisEngine implements Engine {
 
             return new IrisEngineData();
         });
+        if (ret == null) {
+            Iris.error("Failed to load Engine Data! (How did this happen?)");
+            return new IrisEngineData();
+        }
+        return ret;
     }
 
     @Override

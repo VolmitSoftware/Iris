@@ -129,9 +129,9 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @EventHandler
     public void onWorldInit(WorldInitEvent event) {
         try {
-            if (!initialized) {
-                world.setRawWorldSeed(event.getWorld().getSeed());
-                if (world.name().equals(event.getWorld().getName())) {
+            if (initialized || !world.name().equals(event.getWorld().getName()))
+                return;
+            world.setRawWorldSeed(event.getWorld().getSeed());
                     Engine engine = getEngine(event.getWorld());
                     if (engine == null) {
                         Iris.warn("Failed to get Engine!");
@@ -152,8 +152,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                         Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
                         spawnChunks.complete(INMS.get().getSpawnChunkCount(event.getWorld()));
                         initialized = true;
-                    }
-                }
+
             }
         } catch (Throwable e) {
             e.printStackTrace();

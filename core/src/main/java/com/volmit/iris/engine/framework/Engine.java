@@ -53,7 +53,6 @@ import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.matter.MatterUpdate;
-import com.volmit.iris.util.matter.TileWrapper;
 import com.volmit.iris.util.matter.slices.container.JigsawPieceContainer;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -282,10 +281,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
         var mc = getMantle().getMantle().getChunk(c.getX(), c.getZ());
         mc.raiseFlag(MantleFlag.TILE, () -> J.s(() -> {
-            mc.iterate(TileWrapper.class, (x, y, z, tile) -> {
+            mc.iterate(TileData.class, (x, y, z, tile) -> {
                 int betterY = y + getWorld().minHeight();
-                if (!TileData.setTileState(c.getBlock(x, betterY, z), tile.getData()))
-                    Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), tile.getData().getTileId());
+                if (!TileData.setTileState(c.getBlock(x, betterY, z), tile))
+                    Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), tile.getMaterial().name());
             });
         }));
         if (mc.isFlagged(MantleFlag.CUSTOM_ACTIVE)) {

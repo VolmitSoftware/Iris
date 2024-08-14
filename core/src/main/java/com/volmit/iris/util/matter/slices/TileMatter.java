@@ -18,13 +18,9 @@
 
 package com.volmit.iris.util.matter.slices;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.Sliced;
-import com.volmit.iris.util.matter.TileWrapper;
-import com.volmit.iris.util.nbt.tag.CompoundTag;
 import org.bukkit.Location;
 import org.bukkit.World;
 
@@ -34,47 +30,28 @@ import java.io.IOException;
 
 @SuppressWarnings("rawtypes")
 @Sliced
-public class TileMatter extends RawMatter<TileWrapper> {
+public class TileMatter extends RawMatter<TileData> {
 
     public TileMatter() {
         this(1, 1, 1);
     }
 
     public TileMatter(int width, int height, int depth) {
-        super(width, height, depth, TileWrapper.class);
-        registerWriter(World.class, (w, d, x, y, z) -> {
-            CompoundTag tag = commonNbt(x, y, z, d.getData().getTileId());
-            INMS.get().deserializeTile(d.getData().toNBT(d.getData().toNBT(tag)), new Location(w, x, y, z));
-            Iris.warn("S: " + tag);
-        });
-        registerReader(World.class, (w, x, y, z) -> {
-            TileData d = TileData.getTileState(w.getBlockAt(new Location(w, x, y, z)));
-            if (d == null)
-                return null;
-            return new TileWrapper(d);
-        });
+        super(width, height, depth, TileData.class);
+        registerWriter(World.class, (w, d, x, y, z) -> TileData.setTileState(w.getBlockAt(new Location(w, x, y, z)), d));
+        registerReader(World.class, (w, x, y, z) -> TileData.getTileState(w.getBlockAt(new Location(w, x, y, z))));
     }
 
     @Override
-    public Palette<TileWrapper> getGlobalPalette() {
+    public Palette<TileData> getGlobalPalette() {
         return null;
     }
 
-    public void writeNode(TileWrapper b, DataOutputStream dos) throws IOException {
-        b.getData().toBinary(dos);
+    public void writeNode(TileData b, DataOutputStream dos) throws IOException {
+        b.toBinary(dos);
     }
 
-    public TileWrapper readNode(DataInputStream din) throws IOException {
-        return new TileWrapper(TileData.read(din));
-    }
-
-    private CompoundTag commonNbt(int x, int y, int z, String mobId) {
-        CompoundTag tag = new CompoundTag();
-        tag.putInt("x", x);
-        tag.putInt("y", y);
-        tag.putInt("z", z);
-        tag.putBoolean("keepPacked", false);
-        tag.putString("id", mobId);
-        return tag;
+    public TileData readNode(DataInputStream din) throws IOException {
+        return TileData.read(din);
     }
 }

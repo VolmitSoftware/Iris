@@ -59,7 +59,7 @@ import java.util.concurrent.CountDownLatch;
 public class WandSVC implements IrisService {
     private static final Particle CRIT_MAGIC = E.getOrDefault(Particle.class, "CRIT_MAGIC", "CRIT");
     private static final Particle REDSTONE = E.getOrDefault(Particle.class,  "REDSTONE", "DUST");
-    private static final int BLOCKS_PER_TICK = Integer.parseInt(System.getProperty("iris.blocks_per_tick", "100"));
+    private static final int BLOCKS_PER_TICK = Integer.parseInt(System.getProperty("iris.blocks_per_tick", "1000"));
 
     private static ItemStack dust;
     private static ItemStack wand;
@@ -83,19 +83,6 @@ public class WandSVC implements IrisService {
             Location[] f = getCuboid(p);
             Cuboid c = new Cuboid(f[0], f[1]);
             IrisObject s = new IrisObject(c.getSizeX(), c.getSizeY(), c.getSizeZ());
-
-            if (Bukkit.isPrimaryThread()) {
-                for (Block b : c) {
-                    if (b.getType().equals(Material.AIR)) {
-                        continue;
-                        }
-
-                    BlockVector bv = b.getLocation().subtract(c.getLowerNE().toVector()).toVector().toBlockVector();
-                    s.setUnsigned(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(), b);
-                }
-
-                return s;
-            }
 
             var it = c.iterator();
             var latch = new CountDownLatch(1);

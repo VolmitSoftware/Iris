@@ -32,6 +32,7 @@ import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.Dolphin;
@@ -62,14 +63,25 @@ public class NMSBinding1X implements INMSBinding {
     }
 
     @Override
+    public boolean hasTile(Material material) {
+        return false;
+    }
+
+    @Override
     public boolean hasTile(Location l) {
         return false;
     }
 
     @Override
-    public CompoundTag serializeTile(Location location) {
+    public KMap<String, Object> serializeTile(Location location) {
         return null;
     }
+
+    @Override
+    public void deserializeTile(KMap<String, Object> s, Location newPosition) {
+
+    }
+
 
     @Override
     public void injectBiomesFromMantle(Chunk e, Mantle mantle) {
@@ -103,11 +115,6 @@ public class NMSBinding1X implements INMSBinding {
     @Override
     public Color getBiomeColor(Location location, BiomeColor type) {
         return Color.GREEN;
-    }
-
-    @Override
-    public void deserializeTile(CompoundTag s, Location newPosition) {
-
     }
 
     @Override

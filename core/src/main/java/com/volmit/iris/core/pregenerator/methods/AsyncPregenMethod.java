@@ -52,7 +52,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
         this.world = world;
         this.engine = IrisToolbelt.access(world).getEngine();
-        burst = MultiBurst.burst;
+        burst = new MultiBurst("AsyncPregen", Thread.NORM_PRIORITY);
         future = new KList<>(1024);
         this.lastUse = new KMap<>();
     }

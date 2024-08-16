@@ -299,39 +299,44 @@ public class IrisEngine implements Engine {
 
     @Override
     public IrisEngineData getEngineData() {
-        var ret = engineData.aquire(() -> {
+        return engineData.aquire(() -> {
             //TODO: Method this file
             File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + ".json");
+            IrisEngineData data = null;
 
-            if (!f.exists()) {
+            if (f.exists()) {
                 try {
-                    f.getParentFile().mkdirs();
-                    IrisEngineData data = new IrisEngineData();
-                    data.getStatistics().setIrisCreationVersion(Iris.instance.getIrisVersion());
-                    data.getStatistics().setMCVersion(Iris.instance.getMCVersion());
-                    data.getStatistics().setIrisToUpgradedVersion(Iris.instance.getIrisVersion());
-                    if (data.getStatistics().getIrisCreationVersion() == -1 || data.getStatistics().getMCVersion() == -1) {
-                        Iris.error("Failed to setup Engine Data!");
+                    data = new Gson().fromJson(IO.readAll(f), IrisEngineData.class);
+                    if (data == null) {
+                        Iris.error("Failed to read Engine Data! Corrupted File? recreating...");
                     }
-                    IO.writeAll(f, new Gson().toJson(data));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
 
-            try {
-                return new Gson().fromJson(IO.readAll(f), IrisEngineData.class);
-            } catch (Throwable e) {
-                e.printStackTrace();
+            if (data == null) {
+                data = new IrisEngineData();
+                data.getStatistics().setIrisCreationVersion(Iris.instance.getIrisVersion());
+                data.getStatistics().setMCVersion(Iris.instance.getMCVersion());
+                data.getStatistics().setIrisToUpgradedVersion(Iris.instance.getIrisVersion());
+                if (data.getStatistics().getIrisCreationVersion() == -1 || data.getStatistics().getMCVersion() == -1) {
+                    Iris.error("Failed to setup Engine Data!");
+                }
+
+                if (f.getParentFile().exists() || f.getParentFile().mkdirs()) {
+                    try {
+                        IO.writeAll(f, new Gson().toJson(data));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    Iris.error("Failed to setup Engine Data!");
+                }
             }
 
-            return new IrisEngineData();
+            return data;
         });
-        if (ret == null) {
-            Iris.error("Failed to load Engine Data! (How did this happen?)");
-            return new IrisEngineData();
-        }
-        return ret;
     }
 
     @Override

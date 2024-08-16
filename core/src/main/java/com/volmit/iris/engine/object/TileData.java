@@ -31,6 +31,7 @@ import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
+import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -57,10 +58,24 @@ public class TileData implements Cloneable {
     }
 
     public static TileData read(DataInputStream in) throws IOException {
-        TileData d = new TileData();
-        d.material = Material.matchMaterial(in.readUTF());
-        d.properties = gson.fromJson(in.readUTF(), KMap.class);
-        return d;
+        if (!in.markSupported())
+            throw new IOException("Mark not supported");
+        in.mark(Integer.MAX_VALUE);
+        try {
+            TileData d = new TileData();
+            var material = in.readUTF();
+            d.material = Material.matchMaterial(material);
+            if (d.material == null) throw new IOException("Unknown material: " + material);
+            var properties = in.readUTF();
+            d.properties = gson.fromJson(properties, KMap.class);
+            if (d.properties == null) throw new IOException("Invalid properties: " + properties);
+            return d;
+        } catch (Throwable e) {
+            in.reset();
+            return new LegacyTileData(in);
+        } finally {
+            in.mark(0);
+        }
     }
 
     public boolean isApplicable(BlockData data) {

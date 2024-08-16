@@ -47,6 +47,7 @@ import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.nbt.mca.MCAFile;
 import com.volmit.iris.util.nbt.mca.MCAUtil;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
 import io.lumine.mythic.bukkit.adapters.BukkitEntity;
 import net.jpountz.lz4.LZ4BlockInputStream;
@@ -204,6 +205,23 @@ public class CommandDeveloper implements DecreeExecutor {
         }
         Iris.info(C.IRIS + "Chunks Unloaded: " + chunksUnloaded);
 
+    }
+
+    @Decree
+    public void objects(@Param(defaultValue = "overworld") IrisDimension dimension) {
+        var loader = dimension.getLoader().getObjectLoader();
+        var sender = sender();
+        var keys = loader.getPossibleKeys();
+        var burst = MultiBurst.burst.burst(keys.length);
+        AtomicInteger failed = new AtomicInteger();
+        for (String key : keys) {
+            burst.queue(() -> {
+                if (loader.load(key) == null)
+                    failed.incrementAndGet();
+            });
+        }
+        burst.complete();
+        sender.sendMessage(C.RED + "Failed to load " + failed.get() + " of " + keys.length + " objects");
     }
 
     @Decree(description = "Test", aliases = {"ip"})

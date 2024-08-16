@@ -21,6 +21,7 @@ package com.volmit.iris.util.matter.slices;
 import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.Sliced;
+import com.volmit.iris.util.matter.TileWrapper;
 import org.bukkit.Location;
 import org.bukkit.World;
 
@@ -30,28 +31,28 @@ import java.io.IOException;
 
 @SuppressWarnings("rawtypes")
 @Sliced
-public class TileMatter extends RawMatter<TileData> {
+public class TileMatter extends RawMatter<TileWrapper> {
 
     public TileMatter() {
         this(1, 1, 1);
     }
 
     public TileMatter(int width, int height, int depth) {
-        super(width, height, depth, TileData.class);
-        registerWriter(World.class, (w, d, x, y, z) -> TileData.setTileState(w.getBlockAt(new Location(w, x, y, z)), d));
-        registerReader(World.class, (w, x, y, z) -> TileData.getTileState(w.getBlockAt(new Location(w, x, y, z))));
+        super(width, height, depth, TileWrapper.class);
+        registerWriter(World.class, (w, d, x, y, z) -> TileData.setTileState(w.getBlockAt(new Location(w, x, y, z)), d.getData()));
+        registerReader(World.class, (w, x, y, z) -> new TileWrapper(TileData.getTileState(w.getBlockAt(new Location(w, x, y, z)))));
     }
 
     @Override
-    public Palette<TileData> getGlobalPalette() {
+    public Palette<TileWrapper> getGlobalPalette() {
         return null;
     }
 
-    public void writeNode(TileData b, DataOutputStream dos) throws IOException {
-        b.toBinary(dos);
+    public void writeNode(TileWrapper b, DataOutputStream dos) throws IOException {
+        b.getData().toBinary(dos);
     }
 
-    public TileData readNode(DataInputStream din) throws IOException {
-        return TileData.read(din);
+    public TileWrapper readNode(DataInputStream din) throws IOException {
+        return new TileWrapper(TileData.read(din));
     }
 }

@@ -385,14 +385,14 @@ public class IrisObject extends IrisRegistrant {
     }
 
     public void read(File file) throws IOException {
-        FileInputStream fin = new FileInputStream(file);
+        var fin = new BufferedInputStream(new FileInputStream(file));
         try {
             read(fin);
             fin.close();
         } catch (Throwable e) {
             Iris.reportError(e);
             fin.close();
-            fin = new FileInputStream(file);
+            fin = new BufferedInputStream(new FileInputStream(file));
             readLegacy(fin);
             fin.close();
         }

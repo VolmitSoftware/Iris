@@ -23,27 +23,29 @@ import com.google.gson.GsonBuilder;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.util.collection.KMap;
-import lombok.Data;
-import lombok.experimental.Accessors;
+import lombok.*;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
-import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-@Data
 @SuppressWarnings("ALL")
-@Accessors(chain = true)
+@Getter
+@ToString
+@EqualsAndHashCode
+@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class TileData implements Cloneable {
     private static final Gson gson = new GsonBuilder().disableHtmlEscaping().setLenient().create();
 
-    private Material material = null;
-    private KMap<String, Object> properties = new KMap<>();
+    @NonNull
+    private Material material;
+    @NonNull
+    private KMap<String, Object> properties;
 
     public static boolean setTileState(Block block, TileData data) {
         if (block.getState() instanceof TileState && data.isApplicable(block.getBlockData()))
@@ -62,14 +64,9 @@ public class TileData implements Cloneable {
             throw new IOException("Mark not supported");
         in.mark(Integer.MAX_VALUE);
         try {
-            TileData d = new TileData();
-            var material = in.readUTF();
-            d.material = Material.matchMaterial(material);
-            if (d.material == null) throw new IOException("Unknown material: " + material);
-            var properties = in.readUTF();
-            d.properties = gson.fromJson(properties, KMap.class);
-            if (d.properties == null) throw new IOException("Invalid properties: " + properties);
-            return d;
+            return new TileData(
+                    Material.matchMaterial(in.readUTF()),
+                    gson.fromJson(in.readUTF(), KMap.class));
         } catch (Throwable e) {
             in.reset();
             return new LegacyTileData(in);

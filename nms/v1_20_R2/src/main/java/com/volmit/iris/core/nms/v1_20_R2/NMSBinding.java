@@ -20,6 +20,7 @@ import com.volmit.iris.util.scheduling.J;
 import net.minecraft.nbt.*;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.commands.data.BlockDataAccessor;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.EntityBlock;
 import org.bukkit.*;

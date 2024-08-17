@@ -40,6 +40,7 @@ import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import lombok.Getter;
 import net.minecraft.core.Holder;
 import net.minecraft.core.QuartPos;
 import net.minecraft.nbt.CompoundTag;
@@ -68,6 +69,8 @@ public class Headless implements IHeadless, LevelHeightAccessor {
     private final KMap<String, Holder<Biome>> customBiomes = new KMap<>();
     private final KMap<org.bukkit.block.Biome, Holder<Biome>> minecraftBiomes = new KMap<>();
     private final RNG BIOME_RNG;
+    private final @Getter int minBuildHeight;
+    private final @Getter int height;
     private boolean closed = false;
 
     public Headless(NMSBinding binding, Engine engine) {
@@ -75,6 +78,8 @@ public class Headless implements IHeadless, LevelHeightAccessor {
         this.engine = engine;
         this.storage = new RegionFileStorage(new File(engine.getWorld().worldFolder(), "region").toPath(), true);
         this.BIOME_RNG = new RNG(engine.getSeedManager().getBiome());
+        this.minBuildHeight = engine.getDimension().getMinHeight();
+        this.height = engine.getDimension().getMaxHeight() - minBuildHeight;
         engine.getWorld().headless(this);
 
         var dimKey = engine.getDimension().getLoadKey();
@@ -107,6 +112,8 @@ public class Headless implements IHeadless, LevelHeightAccessor {
     @Override
     public boolean exists(int x, int z) {
         if (closed) return false;
+        if (engine.getWorld().hasRealWorld() && engine.getWorld().realWorld().isChunkLoaded(x, z))
+            return true;
         try {
             CompoundTag tag = storage.read(new ChunkPos(x, z));
             return tag != null && !"empty".equals(tag.getString("Status"));
@@ -269,15 +276,5 @@ public class Headless implements IHeadless, LevelHeightAccessor {
             customBiomes.clear();
             minecraftBiomes.clear();
         }
-    }
-
-    @Override
-    public int getHeight() {
-        return engine.getHeight();
-    }
-
-    @Override
-    public int getMinBuildHeight() {
-        return engine.getMinHeight();
     }
 }

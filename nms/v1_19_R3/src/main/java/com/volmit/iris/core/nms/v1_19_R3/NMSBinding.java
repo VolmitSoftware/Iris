@@ -34,6 +34,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import com.google.gson.JsonNull;
+import com.mojang.datafixers.util.Pair;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.util.scheduling.J;
 import net.minecraft.nbt.*;
@@ -41,6 +42,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.server.commands.data.BlockDataAccessor;
 import com.volmit.iris.core.nms.container.IPackRepository;
 import com.volmit.iris.util.io.IO;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.EntityBlock;
 import com.google.common.base.Preconditions;
@@ -603,17 +605,9 @@ public class NMSBinding implements INMSBinding {
         cd.getHandle().setGotFish(true);
     }
 
-    public void inject(long seed, Engine engine, World world) throws NoSuchFieldException, IllegalAccessException {
-        ServerLevel serverLevel = ((CraftWorld)world).getHandle();
-        Class<?> clazz = serverLevel.getChunkSource().chunkMap.generator.getClass();
-        Field biomeSource = getField(clazz, BiomeSource.class);
-        biomeSource.setAccessible(true);
-        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
-        unsafeField.setAccessible(true);
-        Unsafe unsafe = (Unsafe)unsafeField.get(null);
-        CustomBiomeSource customBiomeSource = new CustomBiomeSource(seed, engine, world);
-        unsafe.putObject(biomeSource.get(serverLevel.getChunkSource().chunkMap.generator), unsafe.objectFieldOffset(biomeSource), customBiomeSource);
-        biomeSource.set(serverLevel.getChunkSource().chunkMap.generator, customBiomeSource);
+    public void inject(long seed, Engine engine, World world) {
+        var chunkMap = ((CraftWorld)world).getHandle().getChunkSource().chunkMap;
+        chunkMap.generator = new IrisChunkGenerator(chunkMap.generator, seed, engine, world);
     }
 
     public Vector3d getBoundingbox(org.bukkit.entity.EntityType entity) {
@@ -803,6 +797,23 @@ public class NMSBinding implements INMSBinding {
                 return null;
         }
         return new Color(rgba, true);
+    }
+
+    @Override
+    public KList<String> getStructureKeys() {
+        KList<String> keys = new KList<>();
+
+        var registry = registry().registry(Registries.STRUCTURE).orElse(null);
+        if (registry == null) return keys;
+        registry.keySet().stream().map(ResourceLocation::toString).forEach(keys::add);
+        registry.getTags()
+                .map(Pair::getFirst)
+                .map(TagKey::location)
+                .map(ResourceLocation::toString)
+                .map(s -> "#" + s)
+                .forEach(keys::add);
+
+        return keys;
     }
 
     private static Field getField(Class<?> clazz, Class<?> fieldType) throws NoSuchFieldException {

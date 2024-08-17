@@ -177,7 +177,7 @@ public class IrisPregenerator {
 //                updater.start();
 //            }
         } else {
-            IrisPackBenchmarking.instance.finishedBenchmark(chunksPerSecondHistory);
+            IrisPackBenchmarking.getInstance().finishedBenchmark(chunksPerSecondHistory);
         }
     }
 

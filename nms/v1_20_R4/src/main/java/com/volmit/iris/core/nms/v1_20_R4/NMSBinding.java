@@ -7,6 +7,7 @@ import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.mojang.datafixers.util.Pair;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
@@ -26,6 +27,8 @@ import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.commands.data.BlockDataAccessor;
 import net.minecraft.server.commands.data.DataCommands;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.EntityBlock;
@@ -42,6 +45,7 @@ import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlockStates;
 import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlockType;
 import org.bukkit.craftbukkit.v1_20_R4.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_20_R4.entity.CraftDolphin;
+import org.bukkit.craftbukkit.v1_20_R4.generator.CustomChunkGenerator;
 import org.bukkit.craftbukkit.v1_20_R4.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.v1_20_R4.util.CraftNamespacedKey;
 import org.bukkit.entity.Dolphin;
@@ -71,15 +75,12 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
-import sun.misc.Unsafe;
 
 public class NMSBinding implements INMSBinding {
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
@@ -541,23 +542,9 @@ public class NMSBinding implements INMSBinding {
         }
     }
 
-    public void setTreasurePos(Dolphin dolphin, com.volmit.iris.core.nms.container.BlockPos pos) {
-        CraftDolphin cd = (CraftDolphin)dolphin;
-        cd.getHandle().setTreasurePos(new BlockPos(pos.getX(), pos.getY(), pos.getZ()));
-        cd.getHandle().setGotFish(true);
-    }
-
-    public void inject(long seed, Engine engine, World world) throws NoSuchFieldException, IllegalAccessException {
-        ServerLevel serverLevel = ((CraftWorld)world).getHandle();
-        Class<?> clazz = serverLevel.getChunkSource().chunkMap.generator.getClass();
-        Field biomeSource = getField(clazz, BiomeSource.class);
-        biomeSource.setAccessible(true);
-        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
-        unsafeField.setAccessible(true);
-        Unsafe unsafe = (Unsafe)unsafeField.get(null);
-        CustomBiomeSource customBiomeSource = new CustomBiomeSource(seed, engine, world);
-        unsafe.putObject(biomeSource.get(serverLevel.getChunkSource().chunkMap.generator), unsafe.objectFieldOffset(biomeSource), customBiomeSource);
-        biomeSource.set(serverLevel.getChunkSource().chunkMap.generator, customBiomeSource);
+    public void inject(long seed, Engine engine, World world) {
+        var chunkMap = ((CraftWorld)world).getHandle().getChunkSource().chunkMap;
+        chunkMap.generator = new IrisChunkGenerator(chunkMap.generator, seed, engine, world);
     }
 
     public Vector3d getBoundingbox(org.bukkit.entity.EntityType entity) {
@@ -645,5 +632,22 @@ public class NMSBinding implements INMSBinding {
                 .orElseGet(() -> world.getGameRuleDefault(GameRule.SPAWN_CHUNK_RADIUS));
         if (radius == null) throw new IllegalStateException("GameRule.SPAWN_CHUNK_RADIUS is null!");
         return (int) Math.pow(2 * radius + 1, 2);
+    }
+
+    @Override
+    public KList<String> getStructureKeys() {
+        KList<String> keys = new KList<>();
+
+        var registry = registry().registry(Registries.STRUCTURE).orElse(null);
+        if (registry == null) return keys;
+        registry.keySet().stream().map(ResourceLocation::toString).forEach(keys::add);
+        registry.getTags()
+                .map(Pair::getFirst)
+                .map(TagKey::location)
+                .map(ResourceLocation::toString)
+                .map(s -> "#" + s)
+                .forEach(keys::add);
+
+        return keys;
     }
 }

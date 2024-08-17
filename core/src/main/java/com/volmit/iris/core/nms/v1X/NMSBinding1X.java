@@ -30,19 +30,18 @@ import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
 import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.generator.structure.Structure;
 import org.bukkit.inventory.ItemStack;
 
 import java.awt.*;
+import java.awt.Color;
 
 public class NMSBinding1X implements INMSBinding {
     private static final boolean supportsCustomHeight = testCustomHeight();
@@ -94,11 +93,6 @@ public class NMSBinding1X implements INMSBinding {
     }
 
     @Override
-    public void setTreasurePos(Dolphin dolphin, BlockPos pos) {
-
-    }
-
-    @Override
     public void inject(long seed, Engine engine, World world) throws NoSuchFieldException, IllegalAccessException {
 
     }
@@ -115,6 +109,15 @@ public class NMSBinding1X implements INMSBinding {
     @Override
     public Color getBiomeColor(Location location, BiomeColor type) {
         return Color.GREEN;
+    }
+
+    @Override
+    public KList<String> getStructureKeys() {
+        var list = Registry.STRUCTURE.stream()
+                .map(Structure::getKey)
+                .map(NamespacedKey::toString)
+                .toList();
+        return new KList<>(list);
     }
 
     @Override

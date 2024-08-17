@@ -839,7 +839,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     default void gotoJigsaw(IrisJigsawStructure s, Player player, boolean teleport) {
         if (s.getLoadKey().equals(getDimension().getStronghold())) {
-            KList<Position2> p = getDimension().getStrongholds(getSeedManager().getSpawn());
+            KList<Position2> p = getDimension().getStrongholds(getSeedManager().getMantle());
 
             if (p.isEmpty()) {
                 player.sendMessage(C.GOLD + "No strongholds in world.");

@@ -2,6 +2,8 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.scheduling.J;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.apache.commons.io.function.IOFunction;
 import org.bukkit.DyeColor;
 import org.bukkit.block.*;
@@ -14,6 +16,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Map;
 
+@ToString
+@EqualsAndHashCode(callSuper = false)
 public class LegacyTileData extends TileData {
     private static final Map<Integer, IOFunction<DataInputStream, Handler>> legacy = Map.of(
             0, SignHandler::new,
@@ -41,11 +45,18 @@ public class LegacyTileData extends TileData {
         handler.toBinary(out);
     }
 
+    @Override
+    public TileData clone() {
+        return this;
+    }
+
     private interface Handler {
         void toBinary(DataOutputStream out) throws IOException;
         void toBukkit(Block block);
     }
 
+    @ToString
+    @EqualsAndHashCode
     private static class SignHandler implements Handler {
         private final String line1;
         private final String line2;
@@ -81,7 +92,8 @@ public class LegacyTileData extends TileData {
             sign.update();
         }
     }
-
+    @ToString
+    @EqualsAndHashCode
     private static class SpawnerHandler implements Handler {
         private final EntityType type;
 
@@ -101,7 +113,8 @@ public class LegacyTileData extends TileData {
             spawner.update();
         }
     }
-
+    @ToString
+    @EqualsAndHashCode
     private static class BannerHandler implements Handler {
         private final KList<Pattern> patterns;
         private final DyeColor baseColor;

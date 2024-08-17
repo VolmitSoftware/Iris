@@ -202,9 +202,9 @@ public class IrisBlockData extends IrisRegistrant {
     public TileData tryGetTile(IrisData data) {
         //TODO Do like a registry thing with the tile data registry. Also update the parsing of data to include **block** entities.
         var type = getBlockData(data).getMaterial();
-        if (!INMS.get().hasTile(type))
+        if (!INMS.get().hasTile(type) || tileData == null || tileData.isEmpty())
             return null;
-        return new TileData().setMaterial(type).setProperties(this.tileData);
+        return new TileData(type, this.tileData);
     }
 
     private String keyify(String dat) {

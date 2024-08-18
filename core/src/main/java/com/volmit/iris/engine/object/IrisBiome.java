@@ -194,6 +194,12 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return getCustomDerivitives() != null && getCustomDerivitives().isNotEmpty();
     }
 
+    public KList<IrisBiomeCustom> getCustomDerivitives() {
+        if (customDerivitives == null || customDerivitives.isEmpty())
+            setCustomDerivitives(new KList<>(new IrisBiomeCustom().setId(getLoadKey().replaceAll("\\s", "").replaceAll("[^a-z0-9/._-]", ""))));
+        return customDerivitives;
+    }
+
     public double getGenLinkMax(String loadKey, Engine engine) {
         Integer v = genCacheMax.aquire(() ->
         {

@@ -13,6 +13,7 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.Position2;
+import com.volmit.iris.util.reflect.WrappedField;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
@@ -47,6 +48,7 @@ import org.bukkit.craftbukkit.v1_20_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_20_R1.generator.CustomChunkGenerator;
 
 import javax.annotation.Nullable;
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -54,16 +56,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 
 public class IrisChunkGenerator extends CustomChunkGenerator {
+    private static final WrappedField<ChunkGenerator, BiomeSource> BIOME_SOURCE;
     private final ChunkGenerator delegate;
     private final Engine engine;
-    private final BiomeSource biomeSource;
     private final KMap<ResourceKey<Structure>, KSet<String>> structures = new KMap<>();
 
     public IrisChunkGenerator(ChunkGenerator delegate, long seed, Engine engine, World world) {
-        super(((CraftWorld) world).getHandle(), delegate, null);
+        super(((CraftWorld) world).getHandle(), edit(delegate, new CustomBiomeSource(seed, engine, world)), null);
         this.delegate = delegate;
         this.engine = engine;
-        this.biomeSource = new CustomBiomeSource(seed, engine, world);
         var dimension = engine.getDimension();
 
         KSet<IrisJigsawStructure> placements = new KSet<>();
@@ -165,11 +166,6 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
     }
 
     @Override
-    public BiomeSource getBiomeSource() {
-        return biomeSource;
-    }
-
-    @Override
     public int getMinY() {
         return delegate.getMinY();
     }
@@ -237,5 +233,30 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
     @Override
     public NoiseColumn getBaseColumn(int i, int j, LevelHeightAccessor levelheightaccessor, RandomState randomstate) {
         return delegate.getBaseColumn(i, j, levelheightaccessor, randomstate);
+    }
+
+    static {
+        Field biomeSource = null;
+        for (Field field : ChunkGenerator.class.getDeclaredFields()) {
+            if (!field.getType().equals(BiomeSource.class))
+                continue;
+            biomeSource = field;
+            break;
+        }
+        if (biomeSource == null)
+            throw new RuntimeException("Could not find biomeSource field in ChunkGenerator!");
+        BIOME_SOURCE = new WrappedField<>(ChunkGenerator.class, biomeSource.getName());
+    }
+
+    private static ChunkGenerator edit(ChunkGenerator generator, BiomeSource source) {
+        try {
+            BIOME_SOURCE.set(generator, source);
+            if (generator instanceof CustomChunkGenerator custom)
+                BIOME_SOURCE.set(custom.getDelegate(), source);
+
+            return generator;
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

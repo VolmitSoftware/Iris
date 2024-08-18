@@ -64,7 +64,7 @@ public class IrisJigsawStructurePlacement implements IRare {
     private int separation = -1;
 
     @Desc("The method used to spread the structure")
-    private SpreadType spreadType = SpreadType.TRIANGULAR;
+    private SpreadType spreadType = SpreadType.LINEAR;
 
     @ArrayType(type = IrisJigsawMinDistance.class)
     @Desc("List of minimum distances to check for")

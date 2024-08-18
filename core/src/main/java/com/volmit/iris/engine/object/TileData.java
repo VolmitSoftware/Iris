@@ -23,11 +23,9 @@ import com.google.gson.GsonBuilder;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.util.collection.KMap;
-import lombok.Data;
-import lombok.experimental.Accessors;
+import lombok.*;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
@@ -35,14 +33,19 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-@Data
 @SuppressWarnings("ALL")
-@Accessors(chain = true)
+@Getter
+@ToString
+@EqualsAndHashCode
+@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class TileData implements Cloneable {
     private static final Gson gson = new GsonBuilder().disableHtmlEscaping().setLenient().create();
 
-    private Material material = null;
-    private KMap<String, Object> properties = new KMap<>();
+    @NonNull
+    private Material material;
+    @NonNull
+    private KMap<String, Object> properties;
 
     public static boolean setTileState(Block block, TileData data) {
         if (block.getState() instanceof TileState && data.isApplicable(block.getBlockData()))
@@ -57,10 +60,19 @@ public class TileData implements Cloneable {
     }
 
     public static TileData read(DataInputStream in) throws IOException {
-        TileData d = new TileData();
-        d.material = Material.matchMaterial(in.readUTF());
-        d.properties = gson.fromJson(in.readUTF(), KMap.class);
-        return d;
+        if (!in.markSupported())
+            throw new IOException("Mark not supported");
+        in.mark(Integer.MAX_VALUE);
+        try {
+            return new TileData(
+                    Material.matchMaterial(in.readUTF()),
+                    gson.fromJson(in.readUTF(), KMap.class));
+        } catch (Throwable e) {
+            in.reset();
+            return new LegacyTileData(in);
+        } finally {
+            in.mark(0);
+        }
     }
 
     public boolean isApplicable(BlockData data) {

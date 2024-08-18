@@ -36,6 +36,7 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.mantle.TectonicPlate;
 import com.volmit.iris.util.nbt.mca.MCAFile;
 import com.volmit.iris.util.nbt.mca.MCAUtil;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
 import net.jpountz.lz4.LZ4BlockInputStream;
 import net.jpountz.lz4.LZ4BlockOutputStream;
@@ -50,6 +51,7 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -167,6 +169,23 @@ public class CommandDeveloper implements DecreeExecutor {
         }
         Iris.info(C.IRIS + "Chunks Unloaded: " + chunksUnloaded);
 
+    }
+
+    @Decree
+    public void objects(@Param(defaultValue = "overworld") IrisDimension dimension) {
+        var loader = dimension.getLoader().getObjectLoader();
+        var sender = sender();
+        var keys = loader.getPossibleKeys();
+        var burst = MultiBurst.burst.burst(keys.length);
+        AtomicInteger failed = new AtomicInteger();
+        for (String key : keys) {
+            burst.queue(() -> {
+                if (loader.load(key) == null)
+                    failed.incrementAndGet();
+            });
+        }
+        burst.complete();
+        sender.sendMessage(C.RED + "Failed to load " + failed.get() + " of " + keys.length + " objects");
     }
 
     @Decree(description = "Test", aliases = {"ip"})

@@ -38,6 +38,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.generator.structure.Structure;
 import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
@@ -110,8 +111,6 @@ public interface INMSBinding {
 
     ItemStack applyCustomNbt(ItemStack itemStack, KMap<String, Object> customNbt) throws IllegalArgumentException;
 
-    void setTreasurePos(Dolphin dolphin, com.volmit.iris.core.nms.container.BlockPos pos);
-
     void inject(long seed, Engine engine, World world) throws NoSuchFieldException, IllegalAccessException;
 
     Vector3d getBoundingbox(org.bukkit.entity.EntityType entity);
@@ -141,4 +140,6 @@ public interface INMSBinding {
     }
 
     IPackRepository getPackRepository();
+
+    KList<String> getStructureKeys();
 }

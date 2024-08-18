@@ -62,6 +62,8 @@ public class IrisBlockData extends IrisRegistrant {
     private IrisBlockData backup = null;
     @Desc("Optional properties for this block data such as 'waterlogged': true")
     private KMap<String, Object> data = new KMap<>();
+    @Desc("Optional tile data for this block data")
+    private KMap<String, Object> tileData = new KMap<>();
 
     public IrisBlockData(String b) {
         this.block = b;
@@ -200,9 +202,9 @@ public class IrisBlockData extends IrisRegistrant {
     public TileData tryGetTile(IrisData data) {
         //TODO Do like a registry thing with the tile data registry. Also update the parsing of data to include **block** entities.
         var type = getBlockData(data).getMaterial();
-        if (!INMS.get().hasTile(type))
+        if (!INMS.get().hasTile(type) || tileData == null || tileData.isEmpty())
             return null;
-        return new TileData().setMaterial(type).setProperties(this.data);
+        return new TileData(type, this.tileData);
     }
 
     private String keyify(String dat) {

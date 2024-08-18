@@ -39,10 +39,7 @@ import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.dynamic.loading.ClassReloadingStrategy;
 import net.bytebuddy.matcher.ElementMatchers;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
 import org.bukkit.entity.Dolphin;
@@ -50,9 +47,10 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.generator.structure.Structure;
 import org.bukkit.inventory.ItemStack;
 
-import java.awt.*;
+import java.awt.Color;
 import java.io.File;
 
 public class NMSBinding1X implements INMSBinding {
@@ -105,11 +103,6 @@ public class NMSBinding1X implements INMSBinding {
     }
 
     @Override
-    public void setTreasurePos(Dolphin dolphin, BlockPos pos) {
-
-    }
-
-    @Override
     public void inject(long seed, Engine engine, World world) throws NoSuchFieldException, IllegalAccessException {
 
     }
@@ -141,6 +134,15 @@ public class NMSBinding1X implements INMSBinding {
     @Override
     public Color getBiomeColor(Location location, BiomeColor type) {
         return Color.GREEN;
+    }
+
+    @Override
+    public KList<String> getStructureKeys() {
+        var list = Registry.STRUCTURE.stream()
+                .map(Structure::getKey)
+                .map(NamespacedKey::toString)
+                .toList();
+        return new KList<>(list);
     }
 
     @Override

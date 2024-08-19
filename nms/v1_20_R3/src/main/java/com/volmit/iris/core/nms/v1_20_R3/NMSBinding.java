@@ -42,6 +42,7 @@ import com.volmit.iris.core.nms.IHeadless;
 import com.volmit.iris.core.nms.container.IPackRepository;
 import com.volmit.iris.core.nms.v1_20_R3.mca.ChunkSerializer;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
+import com.volmit.iris.engine.object.IrisBiomeReplacement;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.io.IO;
@@ -670,6 +671,8 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public boolean registerBiome(String dimensionId, IrisBiomeCustom biome, boolean replace) {
+        if (biome instanceof IrisBiomeReplacement replacement)
+            return registerReplacement(dimensionId, replacement.getId(), replacement.getBiome());
         var biomeBase = decode(net.minecraft.world.level.biome.Biome.CODEC, biome.generateJson()).map(Holder::value).orElse(null);
         if (biomeBase == null) return false;
         return register(Registries.BIOME, new ResourceLocation(dimensionId, biome.getId()), biomeBase, replace);

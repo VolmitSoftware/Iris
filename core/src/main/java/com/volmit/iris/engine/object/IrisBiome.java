@@ -197,12 +197,11 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     public KList<IrisBiomeCustom> getCustomDerivitives() {
         if (customDerivitives == null || customDerivitives.isEmpty()) {
-            String biomeID = getLoadKey().replaceAll("\\s", "").replaceAll("[^a-z0-9/._-]", "");
-            setCustomDerivitives(new KList<>(new IrisBiomeCustom().setId(biomeID)));
-            String dimID = getLoader().getEngine().getDimension().getLoadKey();
-            String x = getLoader().getEngine().getDimension().getLoadKey() + ":" + biomeID;
-            INMS.get().registerReplacement(dimID, x, this.getDerivative());
-            }
+            var key = getLoadKey();
+            if (key == null) key = getVanillaDerivative().getKey().getKey();
+            String biomeID = key.replaceAll("\\s", "").replaceAll("[^a-z0-9/._-]", "");
+            setCustomDerivitives(new KList<>(new IrisBiomeReplacement().setId(biomeID)));
+        }
         return customDerivitives;
     }
 

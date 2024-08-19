@@ -206,11 +206,7 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Overlay additional noise on top of the interoplated terrain.")
     private KList<IrisShapedGeneratorStyle> overlayNoise = new KList<>();
     @Desc("If true, the spawner system has infinite energy. This is NOT recommended because it would allow for mobs to keep spawning over and over without a rate limit")
-    private boolean infiniteEnergy = false;
-    @MinNumber(0)
-    @MaxNumber(10000)
-    @Desc("This is the maximum energy you can have in a dimension")
-    private double maximumEnergy = 1000;
+    private IrisEnergy energy = new IrisEnergy();
     @MinNumber(0.0001)
     @MaxNumber(512)
     @Desc("The rock zoom mostly for zooming in on a wispy palette")

@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
@@ -195,8 +196,13 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     }
 
     public KList<IrisBiomeCustom> getCustomDerivitives() {
-        if (customDerivitives == null || customDerivitives.isEmpty())
-            setCustomDerivitives(new KList<>(new IrisBiomeCustom().setId(getLoadKey().replaceAll("\\s", "").replaceAll("[^a-z0-9/._-]", ""))));
+        if (customDerivitives == null || customDerivitives.isEmpty()) {
+            String biomeID = getLoadKey().replaceAll("\\s", "").replaceAll("[^a-z0-9/._-]", "");
+            setCustomDerivitives(new KList<>(new IrisBiomeCustom().setId(biomeID)));
+            String dimID = getLoader().getEngine().getDimension().getLoadKey();
+            String x = getLoader().getEngine().getDimension().getLoadKey() + ":" + biomeID;
+            INMS.get().registerReplacement(dimID, x, this.getDerivative());
+            }
         return customDerivitives;
     }
 

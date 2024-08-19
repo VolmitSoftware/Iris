@@ -127,6 +127,10 @@ public interface INMSBinding {
 
     boolean registerBiome(String dimensionId, IrisBiomeCustom biome, boolean replace);
 
+    default boolean registerReplacement(String dimensionId, String key, Biome biome) {
+        throw new IllegalStateException("Unsupported registerReplacement");
+    }
+
     boolean dumpRegistry(File... folders);
 
     void injectBukkit();

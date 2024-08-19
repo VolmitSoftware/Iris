@@ -64,6 +64,7 @@ import net.minecraft.world.RandomSequences;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelHeightAccessor;
+import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.UpgradeData;
 import net.minecraft.world.level.dimension.DimensionType;
@@ -493,6 +494,7 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public int countCustomBiomes() {
+        // todo inaccurate shit
         AtomicInteger a = new AtomicInteger(0);
 
         getCustomBiomeRegistry().keySet().forEach((i) -> {
@@ -671,6 +673,27 @@ public class NMSBinding implements INMSBinding {
         var biomeBase = decode(net.minecraft.world.level.biome.Biome.CODEC, biome.generateJson()).map(Holder::value).orElse(null);
         if (biomeBase == null) return false;
         return register(Registries.BIOME, new ResourceLocation(dimensionId, biome.getId()), biomeBase, replace);
+    }
+
+    @Override
+    public boolean registerReplacement(String dimensionId, String key, Biome biome) {
+        var registry = getCustomBiomeRegistry();
+        var location = new ResourceLocation(dimensionId, key);
+        if (registry.containsKey(location)) return false;
+
+        var base = registry.get(new ResourceLocation(biome.getKey().toString()));
+        if (base == null) throw new IllegalArgumentException("Base biome not found: " + biome.getKey());
+        var clone = new net.minecraft.world.level.biome.Biome.BiomeBuilder()
+                .hasPrecipitation(base.climateSettings.hasPrecipitation())
+                .temperature(base.climateSettings.temperature())
+                .temperatureAdjustment(base.climateSettings.temperatureModifier())
+                .downfall(base.climateSettings.downfall())
+                .generationSettings(base.getGenerationSettings())
+                .specialEffects(base.getSpecialEffects())
+                .mobSpawnSettings(MobSpawnSettings.EMPTY)
+                .build();
+
+        return register(Registries.BIOME, location, clone, false);
     }
 
     private <T> Optional<T> decode(Codec<T> codec, String json) {

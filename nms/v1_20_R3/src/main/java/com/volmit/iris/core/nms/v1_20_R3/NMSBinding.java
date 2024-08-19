@@ -58,6 +58,7 @@ import net.bytebuddy.implementation.bytecode.member.MethodInvocation;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.minecraft.core.IdMapper;
 import net.minecraft.core.MappedRegistry;
+import net.minecraft.resources.RegistryOps;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.progress.ChunkProgressListener;
 import net.minecraft.util.GsonHelper;
@@ -65,6 +66,7 @@ import net.minecraft.world.RandomSequences;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelHeightAccessor;
+import net.minecraft.world.level.biome.BiomeGenerationSettings;
 import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.UpgradeData;
@@ -149,6 +151,7 @@ public class NMSBinding implements INMSBinding {
     private final AtomicCache<MCAIdMapper<BlockState>> registryCache = new AtomicCache<>();
     private final AtomicCache<MCAPalette<BlockState>> globalCache = new AtomicCache<>();
     private final AtomicCache<RegistryAccess> registryAccess = new AtomicCache<>();
+    private final AtomicCache<RegistryOps<JsonElement>> registryOps = new AtomicCache<>();
     private final AtomicCache<Method> byIdRef = new AtomicCache<>();
     private Field biomeStorageCache = null;
 
@@ -332,6 +335,10 @@ public class NMSBinding implements INMSBinding {
 
     private RegistryAccess registry() {
         return registryAccess.aquire(() -> (RegistryAccess) getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()));
+    }
+
+    private RegistryOps<JsonElement> registryOps() {
+        return registryOps.aquire(() -> RegistryOps.create(JsonOps.INSTANCE, registry()));
     }
 
     private Registry<net.minecraft.world.level.biome.Biome> getCustomBiomeRegistry() {
@@ -672,14 +679,13 @@ public class NMSBinding implements INMSBinding {
     @Override
     public boolean registerBiome(String dimensionId, IrisBiomeCustom biome, boolean replace) {
         if (biome instanceof IrisBiomeReplacement replacement)
-            return registerReplacement(dimensionId, replacement.getId(), replacement.getBiome());
+            return registerReplacement(dimensionId, replacement.getId(), replacement.getBiome(), replace);
         var biomeBase = decode(net.minecraft.world.level.biome.Biome.CODEC, biome.generateJson()).map(Holder::value).orElse(null);
         if (biomeBase == null) return false;
         return register(Registries.BIOME, new ResourceLocation(dimensionId, biome.getId()), biomeBase, replace);
     }
 
-    @Override
-    public boolean registerReplacement(String dimensionId, String key, Biome biome) {
+    private boolean registerReplacement(String dimensionId, String key, Biome biome, boolean replace) {
         var registry = getCustomBiomeRegistry();
         var location = new ResourceLocation(dimensionId, key);
         if (registry.containsKey(location)) return false;
@@ -691,20 +697,20 @@ public class NMSBinding implements INMSBinding {
                 .temperature(base.climateSettings.temperature())
                 .temperatureAdjustment(base.climateSettings.temperatureModifier())
                 .downfall(base.climateSettings.downfall())
-                .generationSettings(base.getGenerationSettings())
-                .specialEffects(base.getSpecialEffects())
+                .generationSettings(BiomeGenerationSettings.EMPTY)
                 .mobSpawnSettings(MobSpawnSettings.EMPTY)
+                .specialEffects(base.getSpecialEffects())
                 .build();
 
         return register(Registries.BIOME, location, clone, false);
     }
 
     private <T> Optional<T> decode(Codec<T> codec, String json) {
-        return codec.decode(JsonOps.INSTANCE, GsonHelper.parse(json)).get().left().map(Pair::getFirst);
+        return codec.decode(registryOps(), GsonHelper.parse(json)).result().map(Pair::getFirst);
     }
 
     private <T> Optional<JsonElement> encode(Codec<T> codec, T value) {
-        return codec.encode(value, JsonOps.INSTANCE, new JsonObject()).result();
+        return codec.encodeStart(registryOps(), value).result();
     }
 
     private <T> boolean register(ResourceKey<Registry<T>> registryKey, ResourceLocation location, T value, boolean replace) {

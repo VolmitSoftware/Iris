@@ -36,9 +36,11 @@ import java.util.stream.Collectors;
 import com.google.gson.JsonNull;
 import com.mojang.datafixers.util.Pair;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.engine.object.IrisBiomeReplacement;
 import com.volmit.iris.util.scheduling.J;
 import net.minecraft.nbt.*;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.RegistryOps;
 import net.minecraft.server.commands.data.BlockDataAccessor;
 import com.volmit.iris.core.nms.container.IPackRepository;
 import com.volmit.iris.util.io.IO;
@@ -133,6 +135,7 @@ public class NMSBinding implements INMSBinding {
     private final AtomicCache<MCAIdMapper<BlockState>> registryCache = new AtomicCache<>();
     private final AtomicCache<MCAPalette<BlockState>> globalCache = new AtomicCache<>();
     private final AtomicCache<RegistryAccess> registryAccess = new AtomicCache<>();
+    private final AtomicCache<RegistryOps<JsonElement>> registryOps = new AtomicCache<>();
     private final AtomicCache<Method> byIdRef = new AtomicCache<>();
     private Field biomeStorageCache = null;
 
@@ -316,6 +319,10 @@ public class NMSBinding implements INMSBinding {
 
     private RegistryAccess registry() {
         return registryAccess.aquire(() -> (RegistryAccess) getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()));
+    }
+
+    private RegistryOps<JsonElement> registryOps() {
+        return registryOps.aquire(() -> RegistryOps.create(JsonOps.INSTANCE, registry()));
     }
 
     private Registry<net.minecraft.world.level.biome.Biome> getCustomBiomeRegistry() {
@@ -654,17 +661,31 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public boolean registerBiome(String dimensionId, IrisBiomeCustom biome, boolean replace) {
+        if (biome instanceof IrisBiomeReplacement replacement)
+            return registerReplacement(dimensionId, replacement.getId(), replacement.getBiome(), replace);
         var biomeBase = decode(net.minecraft.world.level.biome.Biome.CODEC, biome.generateJson()).map(Holder::value).orElse(null);
         if (biomeBase == null) return false;
         return register(Registry.BIOME_REGISTRY, new ResourceLocation(dimensionId, biome.getId()), biomeBase, replace);
     }
 
+    private boolean registerReplacement(String dimensionId, String key, Biome biome, boolean replace) {
+        var registry = getCustomBiomeRegistry();
+        var location = new ResourceLocation(dimensionId, key);
+        if (registry.containsKey(location)) return false;
+
+        var base = registry.get(new ResourceLocation(biome.getKey().toString()));
+        if (base == null) throw new IllegalArgumentException("Base biome not found: " + biome.getKey());
+        var json = encode(net.minecraft.world.level.biome.Biome.NETWORK_CODEC, base);
+        var clone = decode(net.minecraft.world.level.biome.Biome.NETWORK_CODEC, json.toString()).orElse(null);
+        return register(Registry.BIOME_REGISTRY, location, clone, false);
+    }
+
     private <T> Optional<T> decode(Codec<T> codec, String json) {
-        return codec.decode(JsonOps.INSTANCE, GsonHelper.parse(json)).get().left().map(Pair::getFirst);
+        return codec.decode(registryOps(), GsonHelper.parse(json)).result().map(Pair::getFirst);
     }
 
     private <T> Optional<JsonElement> encode(Codec<T> codec, T value) {
-        return codec.encode(value, JsonOps.INSTANCE, new JsonObject()).result();
+        return codec.encodeStart(registryOps(), value).result();
     }
 
     private <T> boolean register(ResourceKey<Registry<T>> registryKey, ResourceLocation location, T value, boolean replace) {

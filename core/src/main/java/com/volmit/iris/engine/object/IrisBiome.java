@@ -200,7 +200,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
             var key = getLoadKey();
             if (key == null) key = getVanillaDerivative().getKey().getKey();
             String biomeID = key.replaceAll("\\s", "").replaceAll("[^a-z0-9/._-]", "");
-            setCustomDerivitives(new KList<>(new IrisBiomeReplacement().setId(biomeID)));
+            setCustomDerivitives(new KList<>(new IrisBiomeReplacement().setBiome(getVanillaDerivative()).setId(biomeID)));
         }
         return customDerivitives;
     }

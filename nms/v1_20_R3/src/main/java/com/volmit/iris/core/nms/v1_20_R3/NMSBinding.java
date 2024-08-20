@@ -503,8 +503,6 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public int countCustomBiomes() {
-        // todo inaccurate
-
         List<String> register = new ArrayList<>();
         File packFolder = Iris.service(StudioSVC.class).getWorkspaceFolder();
         File[] packs = packFolder.listFiles(File::isDirectory);

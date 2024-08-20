@@ -41,6 +41,7 @@ import com.mojang.serialization.Lifecycle;
 import com.volmit.iris.core.nms.IHeadless;
 import com.volmit.iris.core.nms.container.IPackRepository;
 import com.volmit.iris.core.nms.v1_20_R3.mca.ChunkSerializer;
+import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.engine.object.IrisBiomeReplacement;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -502,11 +503,34 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public int countCustomBiomes() {
-        // todo inaccurate shit
+        // todo inaccurate
+
+        List<String> register = new ArrayList<>();
+        File packFolder = Iris.service(StudioSVC.class).getWorkspaceFolder();
+        File[] packs = packFolder.listFiles(File::isDirectory);
+        if (packs == null || packs.length == 0)
+            return 0;
+
+        for (File pack : packs) {
+            File dimensionsDir = new File(pack, "dimensions");
+            if (dimensionsDir.isDirectory()) {
+                File[] jsonFiles = dimensionsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".json"));
+                if (jsonFiles != null) {
+                    for (File jsonFile : jsonFiles) {
+                        register.add(jsonFile.getName().replace(".json", ""));
+                    }
+                }
+            }
+        }
+
         AtomicInteger a = new AtomicInteger(0);
 
         getCustomBiomeRegistry().keySet().forEach((i) -> {
             if (i.getNamespace().equals("minecraft")) {
+                return;
+            }
+
+            if (!register.contains(i.getNamespace())) {
                 return;
             }
 

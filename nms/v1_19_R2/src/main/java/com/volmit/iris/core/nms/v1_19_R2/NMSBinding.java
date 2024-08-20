@@ -649,9 +649,9 @@ public class NMSBinding implements INMSBinding {
             case THE_END -> new ResourceLocation("minecraft", "the_end");
             case CUSTOM -> throw new IllegalArgumentException("Cannot register custom dimension");
         };
-        var base = registry.getHolder(ResourceKey.create(Registries.DIMENSION_TYPE, baseLocation)).orElse(null);
+        var base = registry.get(baseLocation);
         if (base == null) return false;
-        var json = encode(DimensionType.CODEC, base).orElse(null);
+        var json = encode(DimensionType.DIRECT_CODEC, base).orElse(null);
         if (json == null) return false;
         var object = json.getAsJsonObject();
         var height = dimension.getDimensionHeight();
@@ -681,7 +681,7 @@ public class NMSBinding implements INMSBinding {
         if (base == null) throw new IllegalArgumentException("Base biome not found: " + biome.getKey());
         var json = encode(net.minecraft.world.level.biome.Biome.NETWORK_CODEC, base);
         var clone = decode(net.minecraft.world.level.biome.Biome.NETWORK_CODEC, json.toString()).orElse(null);
-        return register(Registries.BIOME, location, clone, false);
+        return register(Registries.BIOME, location, clone, replace);
     }
 
     private <T> Optional<T> decode(Codec<T> codec, String json) {

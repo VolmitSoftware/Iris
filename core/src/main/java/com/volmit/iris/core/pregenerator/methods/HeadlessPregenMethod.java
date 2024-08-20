@@ -38,12 +38,14 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
     private final Semaphore semaphore;
     private final int max;
     private final World world;
+    private final MultiBurst burst;
 
     public HeadlessPregenMethod(Engine engine) {
         this.world = engine.getWorld().realWorld();
         this.max = IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism());
         this.engine = engine;
         this.headless = INMS.get().createHeadless(engine);
+        burst = new MultiBurst("HeadlessPregen", 8 );
         this.semaphore = new Semaphore(max);
     }
 
@@ -91,7 +93,7 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
             semaphore.release();
             return;
         }
-        MultiBurst.burst.complete(() -> {
+        burst.complete(() -> {
             try {
                 listener.onChunkGenerating(x, z);
                 headless.generateChunk(x, z);

@@ -58,7 +58,7 @@ public class ServerConfigurator {
     }
 
     private static void increaseKeepAliveSpigot() throws IOException, InvalidConfigurationException {
-        File spigotConfig = new File("config/spigot.yml");
+        File spigotConfig = new File("spigot.yml");
         FileConfiguration f = new YamlConfiguration();
         f.load(spigotConfig);
         long tt = f.getLong("settings.timeout-time");

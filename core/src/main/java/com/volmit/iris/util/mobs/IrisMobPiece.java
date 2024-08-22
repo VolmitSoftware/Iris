@@ -12,6 +12,8 @@ import jakarta.activation.DataHandler;
 import lombok.Getter;
 import org.bukkit.entity.Player;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 
@@ -29,6 +31,8 @@ public class IrisMobPiece {
 
     /**
      * Predict if it should tick the player or if it should skip it for this round.
+     * + This method should be very fast.
+     * Its supposed to be a faster alternative to the getTickCosts method.
      * @return true = should tick
      */
     public boolean shouldTick() {
@@ -38,11 +42,24 @@ public class IrisMobPiece {
     }
 
     /**
-     * Ticks the current player
+     * Returns the estimated Energy cost to run this tick.
+     * Handy for if you are on a resource limit and need to prioritize who gets ticked and who not and what to expect.
+     * @param predict > The Prediction size on how far it should predict
+     * @return The Predictions it made.
      */
-    public void tick() {
-        lastRanPlayer = M.ms();
+    public List<Integer> getTickCosts(int predict) {
 
+
+        return Collections.singletonList(0);
+
+    }
+
+    /**
+     * Ticks the current player
+     * @param energy the energy given for the tick
+     */
+    public void tick(int energy) {
+        lastRanPlayer = M.ms();
 
     }
 
@@ -54,40 +71,4 @@ public class IrisMobPiece {
     public void close() {
 
     }
-
-//    private void spawn(IrisPosition c, IrisEntitySpawn i) {
-//        boolean allow = true;
-//
-//        if (!i.getReferenceSpawner().getMaximumRatePerChunk().isInfinite()) {
-//            allow = false;
-//            IrisEngineChunkData cd = dataHandler.getEngine().getEngineData().getChunk(c.getX() >> 4, c.getZ() >> 4);
-//            IrisEngineSpawnerCooldown sc = null;
-//            for (IrisEngineSpawnerCooldown j : cd.getCooldowns()) {
-//                if (j.getSpawner().equals(i.getReferenceSpawner().getLoadKey())) {
-//                    sc = j;
-//                    break;
-//                }
-//            }
-//
-//            if (sc == null) {
-//                sc = new IrisEngineSpawnerCooldown();
-//                sc.setSpawner(i.getReferenceSpawner().getLoadKey());
-//                cd.getCooldowns().add(sc);
-//            }
-//
-//            if (sc.canSpawn(i.getReferenceSpawner().getMaximumRatePerChunk())) {
-//                sc.spawn(dataHandler.getEngine());
-//                allow = true;
-//            }
-//        }
-//
-//        if (allow) {
-//            int s = i.spawn(dataHandler.getEngine(), c, RNG.r);
-//            actuallySpawned += s;
-//            if (s > 0) {
-//                getCooldown(i.getReferenceSpawner()).spawn(dataHandler.getEngine());
-//                energy -= s * ((i.getEnergyMultiplier() * i.getReferenceSpawner().getEnergyMultiplier() * 1));
-//            }
-//        }
-//    }
 }

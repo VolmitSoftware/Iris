@@ -5,11 +5,12 @@ import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisEngineService;
 import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.mobs.IrisMobDataHandler;
 import com.volmit.iris.util.mobs.IrisMobPiece;
 import com.volmit.iris.util.scheduling.Looper;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import io.lumine.mythic.bukkit.utils.lib.jooq.impl.QOM;
+import org.bukkit.Chunk;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
@@ -17,17 +18,21 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 
-import java.util.HashMap;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDataHandler {
 
     private int id;
+    public double energyMax;
     public double energy;
+    private HashSet<Chunk> loadedChunks;
     private HashMap<Types, Integer> bukkitLimits;
     private Function<EntityType, Types> entityType;
     private ConcurrentLinkedQueue<IrisMobPiece> pieces;
@@ -42,6 +47,7 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
         this.id = engine.getCacheID();
         this.pieces = new ConcurrentLinkedQueue<>();
         this.entityType = (entityType) -> Types.valueOf(INMS.get().getMobCategory(entityType));
+        this.loadedChunks = new HashSet<>();
         this.bukkitLimits = getBukkitLimits();
 
         new Ticker();
@@ -72,9 +78,21 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
                 PrecisionStopwatch stopwatch = new PrecisionStopwatch();
                 stopwatch.begin();
 
+                loadedChunks = Arrays.stream(getEngine().getWorld().realWorld().getLoadedChunks())
+                        .collect(Collectors.toCollection(HashSet::new));
+
                 fixEnergy();
+
                 Predicate<IrisMobPiece> shouldTick = IrisMobPiece::shouldTick;
-                Consumer<IrisMobPiece> tick = IrisMobPiece::tick;
+                Function<IrisMobPiece, List<Integer>> tickCosts = piece -> piece.getTickCosts(1);
+
+                Map<IrisMobPiece, List<Integer>> pieceTickCostsMap = pieces.stream()
+                        .collect(Collectors.toMap(
+                                Function.identity(),
+                                tickCosts
+                        ));
+
+                Consumer<IrisMobPiece> tick = piece -> piece.tick(42);
 
                 pieces.stream()
                         .filter(shouldTick)
@@ -91,6 +109,36 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
             if (wait < 0) exit.countDown();
             return wait;
         }
+    }
+
+    private void assignEnergyToPieces(LinkedHashMap<IrisMobPiece, List<Integer>> map) {
+        Supplier<LinkedHashMap<IrisMobPiece, List<Integer>>> sortedMapSupplier = new Supplier<>() {
+            private LinkedHashMap<IrisMobPiece, List<Integer>> cachedMap;
+
+            @Override
+            public LinkedHashMap<IrisMobPiece, List<Integer>> get() {
+                if (cachedMap == null) {
+                    cachedMap = map.entrySet()
+                            .stream()
+                            .sorted(Map.Entry.<IrisMobPiece, List<Integer>>comparingByValue(
+                                    Comparator.comparingInt(list -> list.stream().mapToInt(Integer::intValue).sum())
+                            ).reversed())
+                            .collect(Collectors.toMap(
+                                    Map.Entry::getKey,
+                                    Map.Entry::getValue,
+                                    (e1, e2) -> e1, // Handle potential duplicates by keeping the first entry
+                                    LinkedHashMap::new
+                            ));
+                }
+                return cachedMap;
+            }
+        };
+
+        Function<Integer,Integer> viewHistory = (history) -> map.values().stream()
+                .mapToInt(list -> list.isEmpty() ? 0 : list.get(history)) // Extract the first element or use 0 if the list is empty
+                .sum();
+
+
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -120,17 +168,17 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
         }
     }
 
-
     private HashMap<Types, Integer> getBukkitLimits() {
         HashMap<Types, Integer> temp = new HashMap<>();
         FileConfiguration fc = new YamlConfiguration();
-        fc.getConfigurationSection("spawn-limits").getKeys(false).forEach(key -> temp.put(Types.valueOf(key), fc.getInt(key)));
+        var section = fc.getConfigurationSection("spawn-limits");
+        if (section != null)
+            section.getKeys(false).forEach(key -> temp.put(Types.valueOf(key), section.getInt(key)));
         return temp;
     }
 
-
     private void fixEnergy() {
-        energy = M.clip(energy, 1D, engine.getDimension().getEnergy().evaluate(null, engine.getData(), energy));
+        energyMax = engine.getDimension().getEnergy().evaluate(null, engine.getData(), energy);
     }
 
     @Override
@@ -141,6 +189,11 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
     @Override
     public Engine getEngine() {
         return engine;
+    }
+
+    @Override
+    public HashSet<Chunk> getChunks() {
+        return loadedChunks;
     }
 
     @Override

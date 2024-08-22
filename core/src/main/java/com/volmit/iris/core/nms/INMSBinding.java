@@ -115,6 +115,11 @@ public interface INMSBinding {
 
     Vector3d getBoundingbox(org.bukkit.entity.EntityType entity);
 
+    default String getMobCategory(EntityType entityType) {
+        // todo: Update to other versions!
+        return null;
+    }
+
     Entity spawnEntity(Location location, EntityType type, CreatureSpawnEvent.SpawnReason reason);
 
     Color getBiomeColor(Location location, BiomeColor type);

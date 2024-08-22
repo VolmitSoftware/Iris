@@ -59,11 +59,16 @@ import net.bytebuddy.implementation.bytecode.member.MethodInvocation;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.minecraft.core.IdMapper;
 import net.minecraft.core.MappedRegistry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.progress.ChunkProgressListener;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.RandomSequences;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.MobType;
+import net.minecraft.world.entity.ai.behavior.TryLaySpawnOnWaterNearLand;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelHeightAccessor;
@@ -98,6 +103,8 @@ import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.v1_20_R3.util.CraftNamespacedKey;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityCategory;
+import org.bukkit.entity.Mob;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
@@ -230,13 +237,13 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Contract(value = "null, _, _ -> null", pure = true)
-    private Object convertFromTag(net.minecraft.nbt.Tag tag, int depth, int maxDepth) {
+    private Object convertFromTag(Tag tag, int depth, int maxDepth) {
         if (tag == null || depth > maxDepth) return null;
         if (tag instanceof CollectionTag<?> collection) {
             KList<Object> list = new KList<>();
 
             for (Object i : collection) {
-                if (i instanceof net.minecraft.nbt.Tag t)
+                if (i instanceof Tag t)
                     list.add(convertFromTag(t, depth + 1, maxDepth));
                 else list.add(i);
             }
@@ -303,7 +310,7 @@ public class NMSBinding implements INMSBinding {
             return tag;
         }
         if (object instanceof List<?> list) {
-            var tag = new net.minecraft.nbt.ListTag();
+            var tag = new ListTag();
             for (var i : list) {
                 tag.add(convertToTag(i, depth + 1, maxDepth));
             }
@@ -856,6 +863,20 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
+    public String getMobCategory(org.bukkit.entity.EntityType bukkitEntity) {
+        var test = registry().registry(Registries.ENTITY_TYPE).orElse(null);
+        for (EntityType entity : test) {
+            MobCategory category = entity.getCategory();
+            var name = entity.getDescriptionId().replaceAll("entity.minecraft.", "");
+            var bukkit = bukkitEntity.name();
+            if(name.equalsIgnoreCase(bukkit)) {
+                return category.getName();
+            }
+        }
+        return null;
+    }
+
+    @Override
     public KList<String> getStructureKeys() {
         KList<String> keys = new KList<>();
 
@@ -965,12 +986,12 @@ public class NMSBinding implements INMSBinding {
 
             new ByteBuddy()
                     .redefine(CraftServer.class)
-                    .visit(Advice.to(CraftServerAdvice.class).on(ElementMatchers.isMethod().and(ElementMatchers.takesArguments(WorldCreator.class))))
+                    .visit(Advice.to(CraftServerAdvice.class).on(ElementMatchers.isMethod().and(takesArguments(WorldCreator.class))))
                     .make()
                     .load(CraftServer.class.getClassLoader(), ClassReloadingStrategy.fromInstalledAgent());
             new ByteBuddy()
                     .redefine(ServerLevel.class)
-                    .visit(Advice.to(ServerLevelAdvice.class).on(ElementMatchers.isConstructor().and(ElementMatchers.takesArguments(MinecraftServer.class, Executor.class, LevelStorageSource.LevelStorageAccess.class,
+                    .visit(Advice.to(ServerLevelAdvice.class).on(ElementMatchers.isConstructor().and(takesArguments(MinecraftServer.class, Executor.class, LevelStorageSource.LevelStorageAccess.class,
                             PrimaryLevelData.class, ResourceKey.class, LevelStem.class, ChunkProgressListener.class, boolean.class, long.class,
                             List.class, boolean.class, RandomSequences.class, World.Environment.class, ChunkGenerator.class, BiomeProvider.class))))
                     .make()

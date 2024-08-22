@@ -14,23 +14,39 @@ public class IrisMobPiece {
     @Getter
     private final Player player;
     private IrisMobDataHandler dataHandler;
-    public long lastRanPlayer;
+    private long lastRanPlayer;
 
     public IrisMobPiece(Player player, IrisMobDataHandler dh) {
         this.player = player;
         this.dataHandler = dh;
     }
 
+
+    /**
+     * Predict if it should tick the player or if it should skip it for this round.
+     * @return true = should tick
+     */
+    public boolean shouldTick() {
+
+        return true;
+
+    }
+
+    /**
+     * Ticks the current player
+     */
     public void tick() {
         lastRanPlayer = M.ms();
 
 
-
-        // Use the engine instance as needed, but without a direct reference
-        // For example: engine.getDimension().getEnergy().evaluate(...)
     }
+
 
     public UUID getOwner() {
         return player.getUniqueId();
+    }
+
+    public void close() {
+
     }
 }

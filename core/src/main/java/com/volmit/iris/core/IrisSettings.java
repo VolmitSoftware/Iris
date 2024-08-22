@@ -43,6 +43,7 @@ public class IrisSettings {
     private IrisSettingsStudio studio = new IrisSettingsStudio();
     private IrisSettingsPerformance performance = new IrisSettingsPerformance();
     private IrisWorldDump worldDump = new IrisWorldDump();
+    private IrisWorldSettings irisWorldSettings = new IrisWorldSettings();
 
     public static int getThreadCount(int c) {
         return switch (c) {
@@ -198,5 +199,13 @@ public class IrisSettings {
     @Data
     public static class IrisWorldDump {
         public int mcaCacheSize = 3;
+    }
+
+    // todo: Goal:Have these as the default world settings and when put in bukkit.yml it will again overwrite that world from these.
+    @Data
+    public static class IrisWorldSettings {
+        public boolean dynamicEntityAdjustments;
+
+
     }
 }

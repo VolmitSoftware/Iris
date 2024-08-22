@@ -19,6 +19,7 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -130,14 +131,8 @@ public class CommandDeveloper implements DecreeExecutor {
     }
 
     @Decree(description = "test")
-    public void devtest() {
+    public void test() {
         try {
-
-            for (File mcafile : new File("rrtrender1/region").listFiles()) {
-                MCAFile mca = MCAUtil.read(mcafile);
-                int c = 0;
-
-            }
 
         } catch (Exception e) {
             e.printStackTrace();

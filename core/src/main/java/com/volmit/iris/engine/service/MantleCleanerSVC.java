@@ -37,6 +37,7 @@ public class MantleCleanerSVC extends IrisEngineService {
     private static final AtomicInteger tectonicLimit = new AtomicInteger(30);
 
     static {
+        // todo: Redo this piece of garbage
         tectonicLimit.set(2);
         long t = getHardware.getProcessMemory();
         while (t > 200) {

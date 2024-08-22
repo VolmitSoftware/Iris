@@ -31,15 +31,6 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
     private HashMap<Types, Integer> bukkitLimits;
     private Function<EntityType, Types> entityType;
     private ConcurrentLinkedQueue<IrisMobPiece> pieces;
-    public enum Types {
-        monsters,
-        animals,
-        water_animals,
-        water_ambient,
-        water_underground_creature,
-        axolotls,
-        ambient
-    }
 
     public EngineMobHandlerSVC(Engine engine) {
         super(engine);
@@ -53,7 +44,7 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
         this.entityType = (entityType) -> Types.valueOf(INMS.get().getMobCategory(entityType));
         this.bukkitLimits = getBukkitLimits();
 
-        //new Ticker();
+        new Ticker();
     }
 
     @Override
@@ -150,6 +141,11 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
     @Override
     public Engine getEngine() {
         return engine;
+    }
+
+    @Override
+    public HashMap<Types, Integer> bukkitLimits() {
+        return bukkitLimits;
     }
 
     @Override

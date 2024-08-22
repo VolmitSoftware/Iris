@@ -10,9 +10,6 @@ import com.volmit.iris.util.mobs.IrisMobDataHandler;
 import com.volmit.iris.util.mobs.IrisMobPiece;
 import com.volmit.iris.util.scheduling.Looper;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import io.lumine.mythic.bukkit.adapters.BukkitEntity;
-import it.unimi.dsi.fastutil.Hash;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
@@ -20,9 +17,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 
-import java.io.File;
 import java.util.HashMap;
-import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
@@ -56,8 +51,7 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
         this.id = engine.getCacheID();
         this.pieces = new ConcurrentLinkedQueue<>();
         this.entityType = (entityType) -> Types.valueOf(INMS.get().getMobCategory(entityType));
-        this.bukkitLimits = new HashMap<>();
-
+        this.bukkitLimits = getBukkitLimits();
 
         //new Ticker();
     }
@@ -88,12 +82,12 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
                 stopwatch.begin();
 
                 fixEnergy();
-                Predicate<IrisMobPiece> shouldExecutePredicate = IrisMobPiece::shouldTick;
-                Consumer<IrisMobPiece> executeMethod = IrisMobPiece::tick;
+                Predicate<IrisMobPiece> shouldTick = IrisMobPiece::shouldTick;
+                Consumer<IrisMobPiece> tick = IrisMobPiece::tick;
 
                 pieces.stream()
-                        .filter(shouldExecutePredicate)
-                        .forEach(executeMethod);
+                        .filter(shouldTick)
+                        .forEach(tick);
 
                 stopwatch.end();
                 Iris.info("Took: " + Form.f(stopwatch.getMilliseconds()));
@@ -138,27 +132,9 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
 
     private HashMap<Types, Integer> getBukkitLimits() {
         HashMap<Types, Integer> temp = new HashMap<>();
-
-
         FileConfiguration fc = new YamlConfiguration();
-        try {
-            fc.load(new File("bukkit.yml"));
-            ConfigurationSection section = fc.getConfigurationSection("spawn-limits");
-            if (section == null) {
-                throw new NoSuchFieldException("spawn-limits not found!");
-            }
-
-            for (String s : section.getKeys(false)) {
-                try {
-                    ConfigurationSection entry = section.getConfigurationSection(s);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        } catch (Exception e) {
-            Iris.reportError(e);
-        }
-        return null;
+        fc.getConfigurationSection("spawn-limits").getKeys(false).forEach(key -> temp.put(Types.valueOf(key), fc.getInt(key)));
+        return temp;
     }
 
 

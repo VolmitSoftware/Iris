@@ -126,7 +126,7 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
                             .collect(Collectors.toMap(
                                     Map.Entry::getKey,
                                     Map.Entry::getValue,
-                                    (e1, e2) -> e1, // Handle potential duplicates by keeping the first entry
+                                    (e1, e2) -> e1,
                                     LinkedHashMap::new
                             ));
                 }
@@ -135,7 +135,7 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
         };
 
         Function<Integer,Integer> viewHistory = (history) -> map.values().stream()
-                .mapToInt(list -> list.isEmpty() ? 0 : list.get(history)) // Extract the first element or use 0 if the list is empty
+                .mapToInt(list -> list.isEmpty() ? 0 : list.get(history))
                 .sum();
 
 

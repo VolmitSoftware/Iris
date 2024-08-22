@@ -39,17 +39,16 @@ import com.volmit.iris.util.hunk.view.ChunkDataHunkHolder;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
 import net.minecraft.core.Holder;
-import net.minecraft.core.QuartPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
-import net.minecraft.world.level.chunk.PalettedContainer;
 import net.minecraft.world.level.chunk.ProtoChunk;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -264,9 +263,11 @@ public class Headless implements IHeadless, LevelHeightAccessor {
     public void close() throws IOException {
         if (closed) return;
         try {
+            while (loadedChunks.get() > 0)
+                J.sleep(50);
             executor.shutdown();
             try {
-                if (executor.awaitTermination(10, TimeUnit.SECONDS))
+                if (executor.awaitTermination(5, TimeUnit.SECONDS))
                     executor.shutdownNow();
             } catch (InterruptedException ignored) {}
             storage.close();

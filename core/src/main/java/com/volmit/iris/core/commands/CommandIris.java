@@ -103,6 +103,8 @@ public class CommandIris implements DecreeExecutor {
             IrisDimension type,
             @Param(description = "The seed to generate the world with", defaultValue = "1337")
             long seed,
+            @Param(description = "The radius of chunks to generate in headless mode (-1 to disable)", defaultValue = "10", aliases = "radius")
+            int headlessRadius,
             @Param(description = "If it should convert the dimension to match the vanilla height system.", defaultValue = "false")
             boolean vanillaheight
     ) {
@@ -132,6 +134,7 @@ public class CommandIris implements DecreeExecutor {
                     .sender(sender())
                     .studio(false)
                     .smartVanillaHeight(vanillaheight)
+                    .headlessRadius(headlessRadius)
                     .create();
         } catch (Throwable e) {
             sender().sendMessage(C.RED + "Exception raised during creation. See the console for more details.");

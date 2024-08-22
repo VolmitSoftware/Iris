@@ -21,6 +21,8 @@ package com.volmit.iris.engine.platform;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.pregenerator.EmptyListener;
+import com.volmit.iris.core.pregenerator.methods.HeadlessPregenMethod;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
@@ -132,27 +134,26 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             if (initialized || !world.name().equals(event.getWorld().getName()))
                 return;
             world.setRawWorldSeed(event.getWorld().getSeed());
-                    Engine engine = getEngine(event.getWorld());
-                    if (engine == null) {
-                        Iris.warn("Failed to get Engine!");
-                        J.s(() -> {
-                            Engine engine1 = getEngine(event.getWorld());
-                            if (engine1 != null) {
-                                try {
-                                    INMS.get().inject(event.getWorld().getSeed(), engine1, event.getWorld());
-                                    Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
-                                    initialized = true;
-                                } catch (Throwable e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }, 10);
-                    } else {
-                        INMS.get().inject(event.getWorld().getSeed(), engine, event.getWorld());
-                        Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
-                        spawnChunks.complete(INMS.get().getSpawnChunkCount(event.getWorld()));
-                        initialized = true;
-
+            Engine engine = getEngine(event.getWorld());
+            if (engine == null) {
+                Iris.warn("Failed to get Engine!");
+                J.s(() -> {
+                    Engine engine1 = getEngine(event.getWorld());
+                    if (engine1 != null) {
+                        try {
+                            INMS.get().inject(event.getWorld().getSeed(), engine1, event.getWorld());
+                            Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
+                            initialized = true;
+                        } catch (Throwable e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }, 10);
+            } else {
+                INMS.get().inject(event.getWorld().getSeed(), engine, event.getWorld());
+                Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
+                spawnChunks.complete(INMS.get().getSpawnChunkCount(event.getWorld()));
+                initialized = true;
             }
         } catch (Throwable e) {
             e.printStackTrace();
@@ -265,7 +266,10 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     private Engine getEngine(WorldInfo world) {
+        return getEngine(world.getSeed());
+    }
 
+    private Engine getEngine(long seed) {
         if (setup.get()) {
             return getEngine();
         }
@@ -278,7 +282,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             }
 
 
-            getWorld().setRawWorldSeed(world.getSeed());
+            getWorld().setRawWorldSeed(seed);
             setupEngine();
             setup.set(true);
             this.hotloader = studio ? new Looper() {
@@ -347,6 +351,23 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @Override
     public void touch(World world) {
         getEngine(world);
+    }
+
+    @Override
+    public void prepareSpawnChunks(long seed, int radius) {
+        if (radius < 0 || new File(world.worldFolder(), "level.dat").exists())
+            return;
+
+        var engine = getEngine(seed);
+        var headless = new HeadlessPregenMethod(engine);
+        Iris.info("Generating " + world.name() + " in headless mode");
+        for (int x = -radius; x <= radius; x++) {
+            for (int z = -radius; z <= radius; z++) {
+                headless.generateChunk(x, z, EmptyListener.INSTANCE);
+            }
+        }
+        headless.close();
+        Iris.info("Done generating " + world.name() + " in headless mode");
     }
 
     @Override

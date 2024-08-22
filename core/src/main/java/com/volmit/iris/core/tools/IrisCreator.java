@@ -83,6 +83,11 @@ public class IrisCreator {
      */
     private boolean benchmark = false;
     private boolean smartVanillaHeight = false;
+    /**
+     * Radius of chunks to pregenerate in the headless mode
+     * if set to -1, headless mode is disabled
+     */
+    private int headlessRadius = 10;
 
     public static boolean removeFromBukkitYml(String name) throws IOException {
         YamlConfiguration yml = YamlConfiguration.loadConfiguration(BUKKIT_YML);
@@ -130,7 +135,6 @@ public class IrisCreator {
             Iris.service(StudioSVC.class).installIntoWorld(sender, d.getLoadKey(), new File(Bukkit.getWorldContainer(), name()));
         }
 
-        PlatformChunkGenerator access = null;
         AtomicReference<World> world = new AtomicReference<>();
         AtomicDouble pp = new AtomicDouble(0);
         O<Boolean> done = new O<>();
@@ -142,21 +146,26 @@ public class IrisCreator {
                 .studio(studio)
                 .smartVanillaHeight(smartVanillaHeight)
                 .create();
+        PlatformChunkGenerator access = (PlatformChunkGenerator) wc.generator();
+        if (access == null) {
+            throw new IrisException("Access is null. Something bad happened.");
+        }
 
-        access = (PlatformChunkGenerator) wc.generator();
-        PlatformChunkGenerator finalAccess1 = access;
-
-        J.a(() ->
-        {
+        try {
+            access.prepareSpawnChunks(seed, headlessRadius);
+        } catch (Throwable e) {
+            Iris.error("Failed to prepare spawn chunks for " + name);
+            e.printStackTrace();
+        }
+        J.a(() -> {
             Supplier<Integer> g = () -> {
-                if (finalAccess1 == null || finalAccess1.getEngine() == null) {
+                if (access.getEngine() == null) {
                     return 0;
                 }
-                return finalAccess1.getEngine().getGenerated();
+                return access.getEngine().getGenerated();
             };
             if (!benchmark) {
-                if (finalAccess1 == null) return;
-                int req = finalAccess1.getSpawnChunks().join();
+                int req = access.getSpawnChunks().join();
 
                 while (g.get() < req) {
                     double v = (double) g.get() / (double) req;
@@ -178,10 +187,6 @@ public class IrisCreator {
             }).get();
         } catch (Throwable e) {
             e.printStackTrace();
-        }
-
-        if (access == null) {
-            throw new IrisException("Access is null. Something bad happened.");
         }
 
         done.set(true);

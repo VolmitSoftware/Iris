@@ -49,4 +49,6 @@ public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
     void touch(World world);
 
     CompletableFuture<Integer> getSpawnChunks();
+
+    void prepareSpawnChunks(long seed, int radius);
 }

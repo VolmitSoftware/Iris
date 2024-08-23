@@ -24,10 +24,12 @@ import com.volmit.iris.core.nms.IHeadless;
 import com.volmit.iris.core.nms.v1_20_R3.mca.MCATerrainChunk;
 import com.volmit.iris.core.nms.v1_20_R3.mca.RegionFileStorage;
 import com.volmit.iris.core.pregenerator.PregenListener;
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineStage;
 import com.volmit.iris.engine.framework.WrongEngineBroException;
 import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
@@ -36,26 +38,32 @@ import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.hunk.view.BiomeGridHunkHolder;
 import com.volmit.iris.util.hunk.view.ChunkDataHunkHolder;
+import com.volmit.iris.util.hunk.view.SyncChunkDataHunkHolder;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import net.minecraft.core.Holder;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtIo;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.ProtoChunk;
+import net.minecraft.world.level.chunk.storage.RegionFile;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -63,7 +71,8 @@ public class Headless implements IHeadless, LevelHeightAccessor {
     private final NMSBinding binding;
     private final Engine engine;
     private final RegionFileStorage storage;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final KMap<Long, Region> regions = new KMap<>();
     private final AtomicInteger loadedChunks = new AtomicInteger();
     private final KMap<String, Holder<Biome>> customBiomes = new KMap<>();
     private final KMap<org.bukkit.block.Biome, Holder<Biome>> minecraftBiomes = new KMap<>();
@@ -167,25 +176,15 @@ public class Headless implements IHeadless, LevelHeightAccessor {
 
             inject(engine, chunk, ctx);
             chunk.setStatus(ChunkStatus.FULL);
-            executor.submit(saveChunk(chunk));
+
+            long key = Cache.key(pos.getRegionX(), pos.getRegionZ());
+            regions.computeIfAbsent(key, Region::new)
+                    .add(chunk);
         } catch (Throwable e) {
             loadedChunks.decrementAndGet();
             Iris.error("Failed to generate " + x + ", " + z);
             e.printStackTrace();
         }
-    }
-
-    private Runnable saveChunk(ProtoChunk chunk) {
-        return () -> {
-            if (closed) return;
-            try {
-                storage.write(chunk.getPos(), binding.serializeChunk(chunk, this));
-                loadedChunks.decrementAndGet();
-            } catch (Throwable e) {
-                Iris.error("Failed to save chunk " + chunk.getPos().x + ", " + chunk.getPos().z);
-                e.printStackTrace();
-            }
-        };
     }
 
     @BlockCoordinates
@@ -263,19 +262,68 @@ public class Headless implements IHeadless, LevelHeightAccessor {
     public void close() throws IOException {
         if (closed) return;
         try {
-            while (loadedChunks.get() > 0)
-                J.sleep(50);
+            regions.values().forEach(Region::submit);
+            Iris.info("Waiting for " + loadedChunks.get() + " chunks to unload...");
+            while (loadedChunks.get() > 0 || !regions.isEmpty())
+                J.sleep(1);
+            Iris.info("All chunks unloaded");
             executor.shutdown();
-            try {
-                if (executor.awaitTermination(5, TimeUnit.SECONDS))
-                    executor.shutdownNow();
-            } catch (InterruptedException ignored) {}
             storage.close();
             engine.getWorld().headless(null);
         } finally {
             closed = true;
             customBiomes.clear();
             minecraftBiomes.clear();
+        }
+    }
+
+    @RequiredArgsConstructor
+    private class Region implements Runnable {
+        private final int x, z;
+        private final long key;
+        private final KList<ProtoChunk> chunks = new KList<>(1024);
+        private final AtomicBoolean full = new AtomicBoolean();
+
+        public Region(long key) {
+            this.x = Cache.keyX(key);
+            this.z = Cache.keyZ(key);
+            this.key = key;
+        }
+
+        @Override
+        public void run() {
+            RegionFile regionFile;
+            try {
+                regionFile = storage.getRegionFile(new ChunkPos(x, z), false);
+            } catch (IOException e) {
+                Iris.error("Failed to load region file " + x + ", " + z);
+                Iris.reportError(e);
+                return;
+            }
+            if (regionFile == null) return;
+
+            for (var chunk : chunks) {
+                try (DataOutputStream dos = regionFile.getChunkDataOutputStream(chunk.getPos())) {
+                    NbtIo.write(binding.serializeChunk(chunk, Headless.this), dos);
+                } catch (Throwable e) {
+                    Iris.error("Failed to save chunk " + chunk.getPos().x + ", " + chunk.getPos().z);
+                    e.printStackTrace();
+                }
+                loadedChunks.decrementAndGet();
+            }
+            regions.remove(key);
+        }
+
+        public synchronized void add(ProtoChunk chunk) {
+            chunks.add(chunk);
+            if (chunks.size() < 1024)
+                return;
+            submit();
+        }
+
+        public void submit() {
+            if (full.getAndSet(true)) return;
+            executor.submit(this);
         }
     }
 }

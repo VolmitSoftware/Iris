@@ -45,7 +45,7 @@ public final class RegionFileStorage implements AutoCloseable {
         this.sync = sync;
     }
 
-    public RegionFile getRegionFile(ChunkPos chunkPos, boolean existingOnly) throws IOException {
+    public synchronized RegionFile getRegionFile(ChunkPos chunkPos, boolean existingOnly) throws IOException {
         long id = ChunkPos.asLong(chunkPos.getRegionX(), chunkPos.getRegionZ());
         RegionFile regionFile = this.regionCache.getAndMoveToFirst(id);
         if (regionFile != null) {

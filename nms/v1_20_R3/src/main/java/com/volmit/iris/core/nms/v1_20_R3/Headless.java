@@ -37,7 +37,6 @@ import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.hunk.view.BiomeGridHunkHolder;
-import com.volmit.iris.util.hunk.view.ChunkDataHunkHolder;
 import com.volmit.iris.util.hunk.view.SyncChunkDataHunkHolder;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.RNG;
@@ -168,7 +167,7 @@ public class Headless implements IHeadless, LevelHeightAccessor {
             var tc = new MCATerrainChunk(chunk);
             loadedChunks.incrementAndGet();
 
-            ChunkDataHunkHolder blocks = new ChunkDataHunkHolder(tc);
+            SyncChunkDataHunkHolder blocks = new SyncChunkDataHunkHolder(tc);
             BiomeGridHunkHolder biomes = new BiomeGridHunkHolder(tc, tc.getMinHeight(), tc.getMaxHeight());
             ChunkContext ctx = generate(engine, pos.x << 4, pos.z << 4, blocks, biomes);
             blocks.apply();

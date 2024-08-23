@@ -33,7 +33,7 @@ public class SyncChunkDataHunkHolder extends ArrayHunk<BlockData> {
     }
 
     public void apply() {
-        for (int i = 0; i < getHeight(); i++) {
+        for (int i = getHeight()-1; i >= 0; i--) {
             for (int j = 0; j < getWidth(); j++) {
                 for (int k = 0; k < getDepth(); k++) {
                     BlockData b = super.getRaw(j, i, k);

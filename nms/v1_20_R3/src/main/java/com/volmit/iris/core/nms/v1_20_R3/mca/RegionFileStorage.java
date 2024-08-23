@@ -45,14 +45,19 @@ public final class RegionFileStorage implements AutoCloseable {
         this.sync = sync;
     }
 
-    public synchronized RegionFile getRegionFile(ChunkPos chunkPos, boolean existingOnly) throws IOException {
+    public RegionFile getRegionFile(ChunkPos chunkPos, boolean existingOnly) throws IOException {
         long id = ChunkPos.asLong(chunkPos.getRegionX(), chunkPos.getRegionZ());
-        RegionFile regionFile = this.regionCache.getAndMoveToFirst(id);
+        RegionFile regionFile;
+        synchronized (this.regionCache) {
+            regionFile = this.regionCache.getAndMoveToFirst(id);
+        }
         if (regionFile != null) {
             return regionFile;
         } else {
             if (this.regionCache.size() >= 256) {
-                this.regionCache.removeLast().close();
+                synchronized (this.regionCache) {
+                    this.regionCache.removeLast().close();
+                }
             }
 
             FileUtil.createDirectoriesSafe(this.folder);
@@ -61,7 +66,9 @@ public final class RegionFileStorage implements AutoCloseable {
                 return null;
             } else {
                 regionFile = new RegionFile(path, this.folder, this.sync);
-                this.regionCache.putAndMoveToFirst(id, regionFile);
+                synchronized (this.regionCache) {
+                    this.regionCache.putAndMoveToFirst(id, regionFile);
+                }
                 return regionFile;
             }
         }

@@ -35,6 +35,7 @@ import com.volmit.iris.core.safeguard.UtilsSFG;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.EnginePanic;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
@@ -69,10 +70,7 @@ import net.kyori.adventure.text.serializer.ComponentSerializer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.TrueFileFilter;
-import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.WorldCreator;
+import org.bukkit.*;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -612,6 +610,12 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public void onDisable() {
+        Bukkit.getWorlds().stream()
+                .filter(IrisToolbelt::isIrisWorld)
+                .forEach(w -> {
+                    Engine engine = IrisToolbelt.access(w).getEngine();
+                    engine.close();
+                });
         services.values().forEach(IrisService::onDisable);
         Bukkit.getScheduler().cancelTasks(this);
         HandlerList.unregisterAll((Plugin) this);

@@ -44,7 +44,7 @@ public class IrisMobPiece {
     /**
      * Returns the estimated Energy cost to run this tick.
      * Handy for if you are on a resource limit and need to prioritize who gets ticked and who not and what to expect.
-     * @param predict > The Prediction size on how far it should predict
+     * @param predict > The Prediction size on how far it should predict, return 0 if shouldTick return false on the Irritation.
      * @return The Predictions it made.
      */
     public List<Integer> getTickCosts(int predict) {

@@ -34,7 +34,6 @@ public class IrisWorldCreator {
     private String name;
     private boolean studio = false;
     private String dimensionName = null;
-    private boolean smartVanillaHeight = false;
     private long seed = 1337;
 
     public IrisWorldCreator() {
@@ -66,11 +65,6 @@ public class IrisWorldCreator {
         return this;
     }
 
-    public IrisWorldCreator smartVanillaHeight(boolean smartVanillaHeight) {
-        this.smartVanillaHeight = smartVanillaHeight;
-        return this;
-    }
-
     public WorldCreator create() {
         IrisDimension dim = IrisData.loadAnyDimension(dimensionName);
 
@@ -84,7 +78,7 @@ public class IrisWorldCreator {
                 .build();
         ChunkGenerator g = new BukkitChunkGenerator(w, studio, studio
                 ? dim.getLoader().getDataFolder() :
-                new File(w.worldFolder(), "iris/pack"), dimensionName, smartVanillaHeight);
+                new File(w.worldFolder(), "iris/pack"), dimensionName);
 
         if (!INMS.get().registerDimension(name, dim)) {
             throw new IllegalStateException("Unable to register dimension " + dim.getName());

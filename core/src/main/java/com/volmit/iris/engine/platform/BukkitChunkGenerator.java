@@ -88,7 +88,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final boolean studio;
     private final AtomicInteger a = new AtomicInteger(0);
     private final CompletableFuture<Integer> spawnChunks = new CompletableFuture<>();
-    private final boolean smartVanillaHeight;
     private Engine engine;
     private Looper hotloader;
     private StudioMode lastMode;
@@ -98,7 +97,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     private boolean initialized = false;
 
-    public BukkitChunkGenerator(IrisWorld world, boolean studio, File dataLocation, String dimensionKey, boolean smartVanillaHeight) {
+    public BukkitChunkGenerator(IrisWorld world, boolean studio, File dataLocation, String dimensionKey) {
         setup = new AtomicBoolean(false);
         studioGenerator = null;
         dummyBiomeProvider = new DummyBiomeProvider();
@@ -110,7 +109,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         this.dataLocation = dataLocation;
         this.dimensionKey = dimensionKey;
         this.folder = new ReactiveFolder(dataLocation, (_a, _b, _c) -> hotload());
-        this.smartVanillaHeight = smartVanillaHeight;
         Bukkit.getServer().getPluginManager().registerEvents(this, Iris.instance);
     }
 
@@ -186,14 +184,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             } else {
                 Iris.error("Nope, you don't have an installation containing " + dimensionKey + " try downloading it?");
                 throw new RuntimeException("Missing Dimension: " + dimensionKey);
-            }
-        }
-        if (smartVanillaHeight) {
-            dimension.setSmartVanillaHeight(true);
-            try (FileWriter writer = new FileWriter(data.getDimensionLoader().fileFor(dimension))) {
-                writer.write(data.getGson().toJson(dimension));
-            } catch (IOException e) {
-                e.printStackTrace();
             }
         }
 

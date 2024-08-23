@@ -833,7 +833,7 @@ public class Iris extends VolmitPlugin implements Listener {
             throw new IllegalStateException("Unable to register dimension " + dim.getName());
         }
 
-        return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey(), false);
+        return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey());
     }
 
     public void splash() {

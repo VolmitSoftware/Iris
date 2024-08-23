@@ -72,7 +72,6 @@ public class CommandIris implements DecreeExecutor {
     VolmitSender sender = Iris.getSender();
     private CommandStudio studio;
     private CommandPregen pregen;
-    private CommandLazyPregen lazyPregen;
     private CommandSettings settings;
     private CommandObject object;
     private CommandJigsaw jigsaw;
@@ -133,7 +132,6 @@ public class CommandIris implements DecreeExecutor {
                     .seed(seed)
                     .sender(sender())
                     .studio(false)
-                    .smartVanillaHeight(vanillaheight)
                     .headlessRadius(headlessRadius)
                     .create();
         } catch (Throwable e) {
@@ -647,6 +645,6 @@ public class CommandIris implements DecreeExecutor {
             ff.mkdirs();
             service(StudioSVC.class).installIntoWorld(sender, dim.getLoadKey(), ff.getParentFile());
         }
-        return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey(), false);
+        return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey());
     }
 }

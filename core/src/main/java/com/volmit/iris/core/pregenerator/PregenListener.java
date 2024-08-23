@@ -23,8 +23,6 @@ public interface PregenListener {
 
     void onChunkGenerating(int x, int z);
 
-    void onServerShutdown();
-
     void onChunkGenerated(int x, int z);
 
     void onRegionGenerated(int x, int z);

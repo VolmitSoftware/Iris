@@ -24,6 +24,14 @@ public interface IrisMobDataHandler {
         ambient
     }
 
+    enum DataType {
+        ENERGY_MAX,
+        ENERGY_CONSUMPTION
+
+    }
+
+    long getIrritation();
+
     Function<EntityType, Types> getMobType();
 
     Engine getEngine();

@@ -82,7 +82,6 @@ public class IrisCreator {
      * Benchmark mode
      */
     private boolean benchmark = false;
-    private boolean smartVanillaHeight = false;
     /**
      * Radius of chunks to pregenerate in the headless mode
      * if set to -1, headless mode is disabled
@@ -144,7 +143,6 @@ public class IrisCreator {
                 .name(name)
                 .seed(seed)
                 .studio(studio)
-                .smartVanillaHeight(smartVanillaHeight)
                 .create();
         PlatformChunkGenerator access = (PlatformChunkGenerator) wc.generator();
         if (access == null) {

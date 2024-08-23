@@ -40,6 +40,8 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
 import org.bukkit.World;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -349,11 +351,6 @@ public class IrisPregenerator {
             @Override
             public void onChunkGenerating(int x, int z) {
                 listener.onChunkGenerating(x, z);
-            }
-
-            @Override
-            public void onServerShutdown() {
-
             }
 
             @Override

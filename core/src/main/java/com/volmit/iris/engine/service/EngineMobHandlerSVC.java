@@ -4,12 +4,13 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisEngineService;
+import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.mobs.HistoryManager;
 import com.volmit.iris.util.mobs.IrisMobDataHandler;
 import com.volmit.iris.util.mobs.IrisMobPiece;
 import com.volmit.iris.util.scheduling.Looper;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import io.lumine.mythic.bukkit.utils.lib.jooq.impl.QOM;
 import org.bukkit.Chunk;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -18,6 +19,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 
+import javax.xml.crypto.Data;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
@@ -29,9 +31,12 @@ import java.util.stream.Collectors;
 
 public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDataHandler {
 
+    private HistoryManager<DataType, Integer, Long> history;
+
     private int id;
-    public double energyMax;
-    public double energy;
+    public int energyMax;
+    public int energy;
+    private long irritation = 0;
     private HashSet<Chunk> loadedChunks;
     private HashMap<Types, Integer> bukkitLimits;
     private Function<EntityType, Types> entityType;
@@ -45,6 +50,7 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
     public void onEnable(boolean hotload) {
 
         this.id = engine.getCacheID();
+        this.history = new HistoryManager<>(Long.MAX_VALUE);
         this.pieces = new ConcurrentLinkedQueue<>();
         this.entityType = (entityType) -> Types.valueOf(INMS.get().getMobCategory(entityType));
         this.loadedChunks = new HashSet<>();
@@ -71,6 +77,7 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
         protected long loop() {
             long wait = -1;
             try {
+                irritation++;
                 if (engine.isClosed() || engine.getCacheID() != id) {
                     interrupt();
                 }
@@ -81,7 +88,7 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
                 loadedChunks = Arrays.stream(getEngine().getWorld().realWorld().getLoadedChunks())
                         .collect(Collectors.toCollection(HashSet::new));
 
-                fixEnergy();
+                updateMaxEnergy();
 
                 Predicate<IrisMobPiece> shouldTick = IrisMobPiece::shouldTick;
                 Function<IrisMobPiece, List<Integer>> tickCosts = piece -> piece.getTickCosts(1);
@@ -92,11 +99,13 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
                                 tickCosts
                         ));
 
+
                 Consumer<IrisMobPiece> tick = piece -> piece.tick(42);
 
                 pieces.stream()
                         .filter(shouldTick)
                         .forEach(tick);
+
 
                 stopwatch.end();
                 Iris.info("Took: " + Form.f(stopwatch.getMilliseconds()));
@@ -111,7 +120,11 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
         }
     }
 
-    private void assignEnergyToPieces(LinkedHashMap<IrisMobPiece, List<Integer>> map) {
+    /**
+     * @param map Data to do calculations with
+     * @return returns the energy distribution for each piece
+     */
+    private LinkedHashMap<IrisMobPiece, Integer> assignEnergyToPieces(LinkedHashMap<IrisMobPiece, List<Integer>> map) {
         Supplier<LinkedHashMap<IrisMobPiece, List<Integer>>> sortedMapSupplier = new Supplier<>() {
             private LinkedHashMap<IrisMobPiece, List<Integer>> cachedMap;
 
@@ -134,12 +147,20 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
             }
         };
 
-        Function<Integer,Integer> viewHistory = (history) -> map.values().stream()
-                .mapToInt(list -> list.isEmpty() ? 0 : list.get(history))
-                .sum();
+        // Might need caching?
+        Function<Integer, Integer> viewHistory = (history) ->
+                map.values().stream()
+                        .mapToInt(list -> list.isEmpty() ? 0 : list.get(history))
+                        .sum();
 
+
+        int i = calculateNewEnergy();
+
+
+        return null;
 
     }
+
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void on(PlayerChangedWorldEvent event) {
@@ -177,8 +198,19 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
         return temp;
     }
 
-    private void fixEnergy() {
-        energyMax = engine.getDimension().getEnergy().evaluate(null, engine.getData(), energy);
+    private void updateMaxEnergy() {
+        var e = (int) engine.getDimension().getEnergy().evaluateMax("max", null, engine.getData(), (double) energy);
+        history.addEntry(DataType.ENERGY_MAX, e, irritation);
+        energyMax = e;
+    }
+
+    private int calculateNewEnergy() {
+        return (int) engine.getDimension().getEnergy().evaluateMax("cur",null, engine.getData(), (double) energy);
+    }
+
+    @Override
+    public long getIrritation() {
+        return irritation;
     }
 
     @Override
@@ -203,7 +235,7 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
 
     @Override
     public double getEnergy() {
-        fixEnergy();
+        updateMaxEnergy();
         return energy;
     }
 }

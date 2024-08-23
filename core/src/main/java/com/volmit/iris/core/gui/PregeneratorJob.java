@@ -34,6 +34,8 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 
 import javax.swing.*;
 import java.awt.*;
@@ -92,6 +94,7 @@ public class PregeneratorJob implements PregenListener {
 
         J.a(this.pregenerator::start, 20);
     }
+
 
     public static boolean shutdownInstance() {
         if (instance == null) {
@@ -232,11 +235,6 @@ public class PregeneratorJob implements PregenListener {
     @Override
     public void onChunkGenerating(int x, int z) {
         draw(x, z, COLOR_GENERATING);
-    }
-
-    @Override
-    public void onServerShutdown() {
-
     }
 
     @Override

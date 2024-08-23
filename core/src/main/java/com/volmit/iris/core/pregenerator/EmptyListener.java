@@ -16,11 +16,6 @@ public final class EmptyListener implements PregenListener {
     }
 
     @Override
-    public void onServerShutdown() {
-
-    }
-
-    @Override
     public void onChunkGenerated(int x, int z) {
 
     }

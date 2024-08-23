@@ -47,45 +47,59 @@ public class IrisEnergy {
     @MaxNumber(10000)
 //    @Desc("This is the maximum energy you can have in a dimension")
 //    private double maximumEnergy = 1000;
-    @Desc("The expression. For your energy scaling, Inherited variables are me ( maximum energy ), ce ( current energy ). Avoid using those variable names. ")
-    private String expression = null;
+    @Desc("The expression. For your energy scaling, Inherited variables are ce ( current energy ). Avoid using those variable names. ")
+    private String expressionMax = null;
+    @Desc("The expression. For your energy scaling, Inherited variables are ce ( current energy ). Avoid using those variable names. ")
+    private String expressionCur = null;
     @ArrayType(type = IrisEnergyExpressionLoad.class, min = 1)
     @Desc("Variables to use in this expression")
     private KList<IrisEnergyExpressionLoad> variables = new KList<>();
 
     private static final Parser parser = new Parser();
-    private transient AtomicCache<Expression> expressionCache = new AtomicCache<>();
+    private transient AtomicCache<Expression> expressionMaxCache = new AtomicCache<>();
+    private transient AtomicCache<Expression> expressionCurCache = new AtomicCache<>();
 
-    private Expression expression() {
-        return expressionCache.aquire(() -> {
-            Scope scope = new Scope(); // Create variable scope. This scope can hold both constants and invocation variables.
-
-            try {
-                for (IrisEnergyExpressionLoad i : variables) {
-                    scope.addInvocationVariable(i.getName());
-                }
-
-                scope.addInvocationVariable("ce");
-            } catch (Throwable e) {
-                e.printStackTrace();
-                Iris.error("Script Variable load error in Energy Expression");
-            }
-
-            try {
-                if (expression != null) {
-                    return parser.parse(getExpression(), scope);
-                }
-                return parser.parse("1000", scope);
-            } catch (Throwable e) {
-                e.printStackTrace();
-                Iris.error("Script load error in Energy Expression");
-            }
-
-            return null;
-        });
+    private Expression getExpression(String type) {
+        switch (type) {
+            case "max":
+                return expressionMaxCache.aquire(() -> parseExpression(expressionMax, "1000"));
+            case "cur":
+                return expressionCurCache.aquire(() -> parseExpression(expressionCur, "1000"));
+            default:
+                throw new IllegalArgumentException("Unknown expression type: " + type);
+        }
     }
 
-    public double evaluate(RNG rng, IrisData data, Double ce) {
+    private Expression parseExpression(String expression, String defaultValue) {
+        Scope scope = new Scope();
+
+        try {
+            for (IrisEnergyExpressionLoad i : variables) {
+                scope.addInvocationVariable(i.getName());
+            }
+
+            scope.addInvocationVariable("ce");
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Iris.error("Script Variable load error in Energy Expression");
+        }
+
+        try {
+            if (expression != null) {
+                return parser.parse(expression, scope);
+            }
+            return parser.parse(defaultValue, scope);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Iris.error("Script load error in Energy Expression");
+        }
+
+        return null;
+    }
+
+    public double evaluateMax(String type, RNG rng, IrisData data, Double ce) {
+        Expression expression = getExpression(type);
+
         double[] g = new double[3 + getVariables().size()];
         int m = 0;
         for (IrisEnergyExpressionLoad i : getVariables()) {
@@ -95,7 +109,7 @@ public class IrisEnergy {
         g[m++] = ce;
         g[m] = -1;
 
-        return expression().evaluate(g);
+        return expression.evaluate(g);
     }
 
 }

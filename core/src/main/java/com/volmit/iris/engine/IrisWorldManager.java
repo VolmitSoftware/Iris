@@ -287,7 +287,8 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     }
 
     private void fixEnergy() {
-        energy = M.clip(energy, 1D, getDimension().getEnergy().evaluate(null, getData(), energy));
+        //energy = M.clip(energy, 1D, getDimension().getEnergy().evaluateMax(null, getData(), energy));
+        energy = 1000; // Temp fix to prevent crash
     }
 
     private void spawnIn(Chunk c, boolean initial) {

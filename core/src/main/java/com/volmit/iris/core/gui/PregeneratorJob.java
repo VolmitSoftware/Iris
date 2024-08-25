@@ -93,7 +93,12 @@ public class PregeneratorJob implements PregenListener {
             open();
         }
 
-        J.a(this.pregenerator::start, 20);
+        var t = new Thread(() -> {
+            J.sleep(1000);
+            this.pregenerator.start();
+        }, "Iris Pregenerator");
+        t.setPriority(Thread.MIN_PRIORITY);
+        t.start();
     }
 
     public static boolean shutdownInstance() {

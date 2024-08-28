@@ -48,7 +48,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
 
         this.world = world;
-        burst = new MultiBurst("Iris Async Pregen", Thread.NORM_PRIORITY);
+        burst = new MultiBurst("Iris Async Pregen", Thread.MIN_PRIORITY);
         future = new KList<>(256);
         this.lastUse = new KMap<>();
     }
@@ -81,7 +81,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 lastUse.put(i, M.ms());
                 listener.onChunkGenerated(x, z);
                 listener.onChunkCleaned(x, z);
-            }).join();
+            }).get();
+        } catch (InterruptedException ignored) {
         } catch (Throwable e) {
             e.printStackTrace();
         }
@@ -157,7 +158,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         if (future.size() > 256) {
             waitForChunksPartial(256);
         }
-        burst.complete(() -> completeChunk(x, z, listener));
+        future.add(burst.complete(() -> completeChunk(x, z, listener)));
     }
 
     @Override

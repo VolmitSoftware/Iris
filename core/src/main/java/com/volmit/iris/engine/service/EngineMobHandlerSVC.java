@@ -171,15 +171,6 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
         }
     }
 
-
-    private LinkedHashMap<IrisMobPiece, Integer> test(LinkedHashMap<IrisMobPiece, List<Integer>> req) {
-        LinkedHashMap<IrisMobPiece, Integer> res = new LinkedHashMap<>();
-        for (IrisMobPiece piece : req.keySet()) {
-            res.put(piece, null);
-        }
-        return res;
-    }
-
     /**
      * @param req Data to do calculations with. List<Integer>> = Requested energy + future
      * @return returns the energy distribution for each piece

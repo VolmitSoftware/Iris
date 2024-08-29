@@ -146,6 +146,7 @@ public class IrisSettings {
     public static class IrisSettingsPerformance {
         public boolean trimMantleInStudio = false;
         public int mantleKeepAlive = 30;
+        public int headlessKeepAlive = 10;
         public int cacheSize = 4_096;
         public int resourceLoaderCacheSize = 1_024;
         public int objectLoaderCacheSize = 4_096;

@@ -19,6 +19,7 @@
 package com.volmit.iris.core.nms.v1_20_R3;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.nms.IHeadless;
 import com.volmit.iris.core.nms.v1_20_R3.mca.MCATerrainChunk;
@@ -39,9 +40,11 @@ import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.hunk.view.BiomeGridHunkHolder;
 import com.volmit.iris.util.hunk.view.SyncChunkDataHunkHolder;
 import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.Looper;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -67,6 +70,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 public class Headless implements IHeadless, LevelHeightAccessor {
+    private final long KEEP_ALIVE = TimeUnit.SECONDS.toMillis(IrisSettings.get().getPerformance().getHeadlessKeepAlive());
     private final NMSBinding binding;
     private final Engine engine;
     private final RegionFileStorage storage;
@@ -102,6 +106,25 @@ public class Headless implements IHeadless, LevelHeightAccessor {
             minecraftBiomes.put(biome, binding.getBiomeHolder(biome.getKey()));
         }
         ServerConfigurator.dumpDataPack();
+        startRegionCleaner();
+    }
+
+    private void startRegionCleaner() {
+        var cleaner = new Looper() {
+            @Override
+            protected long loop() {
+                if (closed) return -1;
+                long time = M.ms() - KEEP_ALIVE;
+                regions.values()
+                        .stream()
+                        .filter(r -> r.lastEntry < time)
+                        .forEach(Region::submit);
+                return closed ? -1 : 1000;
+            }
+        };
+        cleaner.setName("Iris Region Cleaner - " + engine.getWorld().name());
+        cleaner.setPriority(Thread.MIN_PRIORITY);
+        cleaner.start();
     }
 
     @Override
@@ -282,6 +305,7 @@ public class Headless implements IHeadless, LevelHeightAccessor {
         private final long key;
         private final KList<ProtoChunk> chunks = new KList<>(1024);
         private final AtomicBoolean full = new AtomicBoolean();
+        private long lastEntry = M.ms();
 
         public Region(long key) {
             this.x = Cache.keyX(key);
@@ -315,6 +339,7 @@ public class Headless implements IHeadless, LevelHeightAccessor {
 
         public synchronized void add(ProtoChunk chunk) {
             chunks.add(chunk);
+            lastEntry = M.ms();
             if (chunks.size() < 1024)
                 return;
             submit();

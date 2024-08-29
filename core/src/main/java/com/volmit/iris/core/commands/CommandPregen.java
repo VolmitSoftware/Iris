@@ -19,9 +19,16 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.pregenerator.PregenTask;
+import com.volmit.iris.core.pregenerator.methods.HeadlessPregenMethod;
+import com.volmit.iris.core.pregenerator.methods.HybridPregenMethod;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.IrisEngine;
+import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.framework.EngineTarget;
+import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
@@ -42,6 +49,8 @@ public class CommandPregen implements DecreeExecutor {
             World world,
             @Param(aliases = "middle", description = "The center location of the pregen. Use \"me\" for your current location", defaultValue = "0,0")
             Vector center,
+            @Param(aliases = "headless", description = "Toggle headless pregeneration", defaultValue = "true")
+            boolean headless,
             @Param(aliases = "gui", description = "Enable or disable the Iris GUI.", defaultValue = "true")
             boolean gui,
             @Param(aliases = "resetCache", description = "If it should reset the generated region cache", defaultValue = "false")
@@ -55,6 +64,13 @@ public class CommandPregen implements DecreeExecutor {
             }
             radius = Math.max(radius, 1024);
             int w = (radius >> 9 + 1) * 2;
+
+           Engine engine = IrisToolbelt.access(world).getEngine();
+           if(!engine.setEngineHeadless()) {
+               Iris.error("Failed to enable headless engine!");
+               return;
+           }
+
             IrisToolbelt.pregenerate(PregenTask
                     .builder()
                     .resetCache(resetCache)
@@ -62,7 +78,9 @@ public class CommandPregen implements DecreeExecutor {
                     .gui(!GraphicsEnvironment.isHeadless() && gui)
                     .width(w)
                     .height(w)
-                    .build(), world);
+                    .build(), headless ? new HeadlessPregenMethod(engine) : new HybridPregenMethod(engine.getWorld().realWorld(),
+                    IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())), engine);
+           if (headless) sender().sendMessage("Using the headless Pregenerator.");
             String msg = C.GREEN + "Pregen started in " + C.GOLD + world.getName() + C.GREEN + " of " + C.GOLD + (radius * 2) + C.GREEN + " by " + C.GOLD + (radius * 2) + C.GREEN + " blocks from " + C.GOLD + center.getX() + "," + center.getZ();
             sender().sendMessage(msg);
             Iris.info(msg);

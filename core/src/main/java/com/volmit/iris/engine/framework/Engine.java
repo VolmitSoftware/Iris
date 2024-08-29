@@ -160,6 +160,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         saveEngineData();
     }
 
+    boolean setEngineHeadless();
+
     SeedManager getSeedManager();
 
     void saveEngineData();

@@ -53,7 +53,9 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Synchronized;
 import lombok.ToString;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.block.Biome;
@@ -93,6 +95,7 @@ public class IrisEngine implements Engine {
     private final ChronoLatch perSecondBudLatch;
     private final EngineMetrics metrics;
     private final boolean studio;
+    private boolean headless;
     private final AtomicRollingSequence wallClock;
     private final int art;
     private final AtomicCache<IrisEngineData> engineData = new AtomicCache<>();
@@ -487,8 +490,19 @@ public class IrisEngine implements Engine {
         }
     }
 
+    @Synchronized
+    public boolean setEngineHeadless() {
+        if(null != this.getWorld().realWorld()) {
+            J.s(() -> Bukkit.unloadWorld(getWorld().realWorld().getName(), true));
+            headless = true;
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public void close() {
+        if (headless) return;
         PregeneratorJob.shutdownInstance();
         closed = true;
         J.car(art);

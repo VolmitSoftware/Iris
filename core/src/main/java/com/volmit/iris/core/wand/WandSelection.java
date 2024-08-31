@@ -33,8 +33,7 @@ public class WandSelection {
     private static final Particle REDSTONE = E.getOrDefault(Particle.class, "REDSTONE", "DUST");
     private final Cuboid c;
     private final Player p;
-    private static final double STEP = 0.25;
-    private static final int MAX_PARTICLES = 10000;
+    private static final double STEP = 0.10;
 
     public WandSelection(Cuboid c, Player p) {
         this.c = c;
@@ -72,10 +71,6 @@ public class WandSelection {
 
                 if (playerLoc.distanceSquared(particleLoc) > maxDistanceSquared) {
                     continue;
-                }
-
-                if (particleCount >= MAX_PARTICLES) {
-                    return;
                 }
 
                 spawnParticle(particleLoc, playerLoc);

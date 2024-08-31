@@ -381,7 +381,7 @@ public class CommandObject implements DecreeExecutor {
             return;
         }
         try {
-            o.write(file);
+            o.write(file, sender());
         } catch (IOException e) {
             sender().sendMessage(C.RED + "Failed to save object because of an IOException: " + e.getMessage());
             Iris.reportError(e);

@@ -573,7 +573,7 @@ public class IrisObject extends IrisRegistrant {
             getBlocks().put(v, data);
             TileData state = TileData.getTileState(block);
             if (state != null) {
-                Iris.info("Saved State " + v);
+                Iris.debug("Saved State " + v);
                 getStates().put(v, state);
             }
         }

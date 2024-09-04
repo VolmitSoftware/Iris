@@ -20,6 +20,7 @@ package com.volmit.iris.util.data;
 
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.Direction;
+import com.volmit.iris.util.math.Position2;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
@@ -651,6 +652,10 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
         return new CuboidIterator(getWorld(), x1, y1, z1, x2, y2, z2);
     }
 
+    public Iterator<Block> chunkedIterator() {
+        return new ChunkedCuboidIterator(getWorld(), x1, y1, z1, x2, y2, z2);
+    }
+
     /*
      * (non-Javadoc)
      *
@@ -746,4 +751,82 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
         }
     }
 
+    public static class ChunkedCuboidIterator implements Iterator<Block> {
+        private final World w;
+        private final int minRX, minY, minRZ, maxRX, maxY, maxRZ;
+        private final int minCX, minCZ, maxCX, maxCZ;
+        private int mX, mZ, bX, rX, rZ, y;
+
+        private Position2 chunk;
+        private int cX, cZ;
+
+        public ChunkedCuboidIterator(World w, int x1, int y1, int z1, int x2, int y2, int z2) {
+            this.w = w;
+            minY = Math.min(y1, y2);
+            maxY = Math.max(y1, y2);
+            int minX = Math.min(x1, x2);
+            int minZ = Math.min(z1, z2);
+            int maxX = Math.max(x1, x2);
+            int maxZ = Math.max(z1, z2);
+            minRX = minX & 15;
+            minRZ = minZ & 15;
+            maxRX = maxX & 15;
+            maxRZ = maxZ & 15;
+
+            minCX = minX >> 4;
+            minCZ = minZ >> 4;
+            maxCX = maxX >> 4;
+            maxCZ = maxZ >> 4;
+            cX = minCX;
+            cZ = minCZ;
+
+            rX = minX & 15;
+            rZ = minZ & 15;
+            y = minY;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return chunk != null || hasNextChunk();
+        }
+
+        public boolean hasNextChunk() {
+            return cX <= maxCX && cZ <= maxCZ;
+        }
+
+        @Override
+        public Block next() {
+            if (chunk == null) {
+                chunk = new Position2(cX, cZ);
+                if (++cX > maxCX) {
+                    cX = minCX;
+                    cZ++;
+                }
+
+                mX = chunk.getX() == maxCX ? maxRX : 15;
+                mZ = chunk.getZ() == maxCZ ? maxRZ : 15;
+                rX = bX = chunk.getX() == minCX ? minRX : 0;
+                rZ = chunk.getZ() == minCZ ? minRZ : 0;
+            }
+
+            var b = w.getBlockAt((chunk.getX() << 4) + rX, y, (chunk.getZ() << 4) + rZ);
+            if (++y >= maxY) {
+                y = minY;
+                if (++rX > mX) {
+                    if (++rZ > mZ) {
+                        chunk = null;
+                        return b;
+                    }
+                    rX = bX;
+                }
+            }
+
+            return b;
+        }
+
+        @Override
+        public void remove() {
+            // nop
+        }
+    }
 }

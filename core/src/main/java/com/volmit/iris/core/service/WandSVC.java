@@ -86,12 +86,14 @@ public class WandSVC implements IrisService {
             Cuboid c = new Cuboid(f[0], f[1]);
             IrisObject s = new IrisObject(c.getSizeX(), c.getSizeY(), c.getSizeZ());
 
-            var it = c.iterator();
+            var it = c.chunkedIterator();
 
             int total = c.getSizeX() * c.getSizeY() * c.getSizeZ();
-            AtomicInteger i = new AtomicInteger(0);
             var latch = new CountDownLatch(1);
             new Job() {
+                private int i;
+                private Chunk chunk;
+
                 @Override
                 public String getName() {
                     return "Scanning Selection";
@@ -105,6 +107,11 @@ public class WandSVC implements IrisService {
                             var time = M.ms() + MS_PER_TICK;
                             while (time > M.ms()) {
                                 if (!it.hasNext()) {
+                                    if (chunk != null) {
+                                        chunk.removePluginChunkTicket(Iris.instance);
+                                        chunk = null;
+                                    }
+
                                     cancel();
                                     latch.countDown();
                                     return;
@@ -112,13 +119,22 @@ public class WandSVC implements IrisService {
 
                                 try {
                                     var b = it.next();
+                                    var bChunk = b.getChunk();
+                                    if (chunk == null) {
+                                        chunk = bChunk;
+                                        chunk.addPluginChunkTicket(Iris.instance);
+                                    } else if (chunk != bChunk) {
+                                        chunk.removePluginChunkTicket(Iris.instance);
+                                        chunk = bChunk;
+                                    }
+
                                     if (b.getType().equals(Material.AIR))
                                         continue;
 
                                     BlockVector bv = b.getLocation().subtract(c.getLowerNE().toVector()).toVector().toBlockVector();
                                     s.setUnsigned(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(), b);
                                 } finally {
-                                    i.incrementAndGet();
+                                    i++;
                                 }
                             }
                         }
@@ -138,7 +154,7 @@ public class WandSVC implements IrisService {
 
                 @Override
                 public int getWorkCompleted() {
-                    return i.get();
+                    return i;
                 }
             }.execute(new VolmitSender(p), true, () -> {});
             try {

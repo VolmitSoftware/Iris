@@ -171,6 +171,7 @@ public class IrisSettings {
     public static class IrisSettingsGUI {
         public boolean useServerLaunchedGuis = true;
         public boolean maximumPregenGuiFPS = false;
+        public boolean colorMode = true;
     }
 
     @Data

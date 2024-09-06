@@ -26,16 +26,10 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDataHandler {
 
     private HashSet<HistoryData> history;
-
-    private Function<Map<IrisMobPiece, List<Integer>>, LinkedHashMap<IrisMobPiece, List<Integer>>> sortMapFunction;
-
-    private Function<Map<IrisMobPiece, Integer>, LinkedHashMap<IrisMobPiece, Integer>> sortMapSimpleFunction;
 
     private int id;
     public int energyMax;
@@ -58,60 +52,12 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
         this.entityType = (entityType) -> Types.valueOf(INMS.get().getMobCategory(entityType));
         this.loadedChunks = new HashSet<>();
         this.bukkitLimits = getBukkitLimits();
-        this.sortMapFunction =
-                new Function<>() {
-                    private Map<IrisMobPiece, List<Integer>> lastMap;
-                    private LinkedHashMap<IrisMobPiece, List<Integer>> cachedSortedMap;
-
-                    @Override
-                    public LinkedHashMap<IrisMobPiece, List<Integer>> apply(Map<IrisMobPiece, List<Integer>> inputMap) {
-                        if (cachedSortedMap == null || !inputMap.equals(lastMap)) {
-                            cachedSortedMap = inputMap.entrySet()
-                                    .stream()
-                                    .sorted(Map.Entry.<IrisMobPiece, List<Integer>>comparingByValue(
-                                            Comparator.comparingInt(list -> list.stream().mapToInt(Integer::intValue).sum())
-                                    ).reversed())
-                                    .collect(Collectors.toMap(
-                                            Map.Entry::getKey,
-                                            Map.Entry::getValue,
-                                            (e1, e2) -> e1,
-                                            LinkedHashMap::new
-                                    ));
-                            lastMap = new HashMap<>(inputMap);
-                        }
-                        return cachedSortedMap;
-                    }
-                };
-
-        this.sortMapSimpleFunction = new Function<>() {
-            private Map<IrisMobPiece, Integer> lastMap;
-            private LinkedHashMap<IrisMobPiece, Integer> cachedSortedMap;
-
-            @Override
-            public LinkedHashMap<IrisMobPiece, Integer> apply(Map<IrisMobPiece, Integer> inputMap) {
-                if (cachedSortedMap == null || !inputMap.equals(lastMap)) {
-                    cachedSortedMap = inputMap.entrySet()
-                            .stream()
-                            .sorted(Map.Entry.<IrisMobPiece, Integer>comparingByValue(Comparator.reverseOrder()))
-                            .collect(Collectors.toMap(
-                                    Map.Entry::getKey,
-                                    Map.Entry::getValue,
-                                    (e1, e2) -> e1,
-                                    LinkedHashMap::new
-                            ));
-                    lastMap = new HashMap<>(inputMap);
-                }
-                return cachedSortedMap;
-            }
-        };
 
         new Ticker();
     }
 
     @Override
     public void onDisable(boolean hotload) {
-
-
 
     }
 
@@ -132,7 +78,6 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
                 if (engine.isClosed() || engine.getCacheID() != id) {
                     interrupt();
                 }
-
                 PrecisionStopwatch stopwatch = new PrecisionStopwatch();
                 stopwatch.begin();
 
@@ -140,18 +85,13 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
                         .collect(Collectors.toCollection(HashSet::new));
 
                 updateMaxEnergy();
-
                 Predicate<IrisMobPiece> shouldTick = IrisMobPiece::shouldTick;
-                Function<IrisMobPiece, List<Integer>> tickCosts = piece -> piece.getTickCosts(1);
-
-                Map<IrisMobPiece, List<Integer>> pieceTickCostsMap = pieces.stream()
+                Map<IrisMobPiece, Integer> costs = assignEnergyToPieces(pieces.stream()
                         .collect(Collectors.toMap(
-                                Function.identity(),
-                                tickCosts
-                        ));
-
-
-                Consumer<IrisMobPiece> tick = piece -> piece.tick(42);
+                                piece -> piece,
+                                piece -> piece.getTickCosts(60)
+                        )));
+                Consumer<IrisMobPiece> tick = piece -> piece.tick(costs.get(piece));
 
                 pieces.stream()
                         .filter(shouldTick)
@@ -172,72 +112,65 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
     }
 
     /**
-     * @param req Data to do calculations with. List<Integer>> = Requested energy + future
-     * @return returns the energy distribution for each piece
+     * Assigns energy to pieces based on current and future energy requirements.
+     * @param req Data to do calculations with. Map of IrisMobPiece to List<Integer> representing requested energy + future
+     * @return Map of IrisMobPiece to Integer representing the energy distribution for each piece
      */
-    private LinkedHashMap<IrisMobPiece, Integer> assignEnergyToPieces(LinkedHashMap<IrisMobPiece, List<Integer>> req) {
+    private Map<IrisMobPiece, Integer> assignEnergyToPieces(Map<IrisMobPiece, List<Integer>> req) {
+        final int FUTURE_VIEW = 60;
+        int currentEnergy = calculateNewEnergy();
 
-        // Might need caching?
-        int futureView = 60;
-        int energy = calculateNewEnergy();
+        Map<IrisMobPiece, Integer> finalMap = new LinkedHashMap<>();
+        req.forEach((piece, value) -> finalMap.put(piece, null));
 
-        LinkedHashMap<IrisMobPiece, Integer> finalMap = req.keySet().stream()
-                .collect(Collectors.toMap(
-                        piece -> piece,
-                        piece -> null,
-                        (existing, replacement) -> existing,
-                        LinkedHashMap::new
-                ));
+        double currentEnergyRatio = (double) currentEnergy / sumCurrentRequests(req);
+        double futureEnergyRatio = (double) predictEnergy(FUTURE_VIEW) / calculateFutureMedian(req, FUTURE_VIEW);
 
-        Function<Integer, Stream<Integer>> viewSingleFuture = (future) ->
-                req.values().stream()
-                        .mapToInt(list -> list.isEmpty() ? 0 : list.get(future)).boxed();
+        if (futureEnergyRatio > 1.25 && currentEnergyRatio > 1) {
+            req.forEach((piece, energyList) -> finalMap.put(piece, energyList.isEmpty() ? 0 : energyList.get(0)));
+        } else if (currentEnergyRatio > 1) {
 
-        Function<Integer, Function<Integer, Stream<Integer>>> viewFuture = (rangeMin) -> (rangeMax) ->
-                IntStream.range(rangeMin, rangeMax)
-                        .boxed()
-                        .flatMap(viewSingleFuture);
+            // TODO: Implement hard part
 
-        Function<Integer, Double> viewFutureMedian = (value) -> viewFuture.apply(value).apply(futureView)
-                .sorted()
-                .collect(Collectors.collectingAndThen(Collectors.toList(),
-                        list -> {
-                            int size = list.size();
-                            if (size % 2 == 0) {
-                                return (list.get(size / 2 - 1) + list.get(size / 2)) / 2.0;
-                            } else {
-                                return list.get(size / 2).doubleValue();
-                            }
-                        }));
-
-        // Logic
-
-        if ((predictEnergy(futureView) / viewFutureMedian.apply(0)) > 1.25 && (energy / viewSingleFuture.apply(0).mapToInt(Integer::intValue).sum() > 1)) {
-
-            finalMap = req.entrySet().stream()
-                    .collect(Collectors.toMap(
-                            Map.Entry::getKey,
-                            e -> e.getValue().isEmpty() ? 0 : e.getValue().get(0),
-                            (v1, v2) -> v1,
-                            LinkedHashMap::new
-                    ));
-        } else if ((energy / viewSingleFuture.apply(0).mapToInt(Integer::intValue).sum() > 1)) {
-            // hard part
-
-
-        } else if ((energy / viewSingleFuture.apply(0).mapToInt(Integer::intValue).sum() < 1)) {
-            double scale = 1;
-            while ((double) energy / viewSingleFuture.apply(0).mapToInt(Integer::intValue).sum() >= scale) {
-                scale -= 0.1;
-            }
-            double finalScale = scale + 0.1;
-
-            LinkedHashMap<IrisMobPiece, Integer> finalMap1 = finalMap;
-            req.forEach((key, value) -> finalMap1.put(key, (int) (value.get(0) * finalScale)));
+        } else if (currentEnergyRatio < 1) {
+            double scale = calculateScale(currentEnergy, req);
+            req.forEach((piece, energyList) -> finalMap.put(piece, (int) (energyList.get(0) * scale)));
         }
 
         return finalMap;
+    }
 
+    private int sumCurrentRequests(Map<IrisMobPiece, List<Integer>> req) {
+        return req.values().stream()
+                .mapToInt(list -> list.isEmpty() ? 0 : list.get(0))
+                .sum();
+    }
+
+    private double calculateFutureMedian(Map<IrisMobPiece, List<Integer>> req, int futureView) {
+        List<Integer> allFutureValues = new ArrayList<>();
+        for (int i = 0; i < futureView; i++) {
+            for (List<Integer> energyList : req.values()) {
+                if (i < energyList.size()) {
+                    allFutureValues.add(energyList.get(i));
+                }
+            }
+        }
+        Collections.sort(allFutureValues);
+        int size = allFutureValues.size();
+        if (size % 2 == 0) {
+            return (allFutureValues.get(size / 2 - 1) + allFutureValues.get(size / 2)) / 2.0;
+        } else {
+            return allFutureValues.get(size / 2);
+        }
+    }
+
+    private double calculateScale(int currentEnergy, Map<IrisMobPiece, List<Integer>> req) {
+        double scale = 1.0;
+        double ratio = (double) currentEnergy / sumCurrentRequests(req);
+        while (ratio < scale) {
+            scale -= 0.1;
+        }
+        return Math.min(scale + 0.1, 1.0);
     }
 
 

@@ -855,6 +855,7 @@ public class Iris extends VolmitPlugin implements Listener {
         if (!INMS.get().registerDimension(worldName, dim)) {
             throw new IllegalStateException("Unable to register dimension " + dim.getName());
         }
+        INMS.get().reconnectAll();
 
         return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey());
     }

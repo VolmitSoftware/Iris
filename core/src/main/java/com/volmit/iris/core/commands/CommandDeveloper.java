@@ -102,8 +102,10 @@ public class CommandDeveloper implements DecreeExecutor {
 
     @Decree(description = "Test")
     public void packBenchmark(
-            @Param(description = "The pack to bench", aliases = {"pack"})
+            @Param(description = "The pack to bench", defaultValue = "overworld", aliases = {"pack"})
             IrisDimension dimension,
+            @Param(description = "The address to use", defaultValue = "-")
+            String address,
             @Param(description = "Headless", defaultValue = "true")
             boolean headless,
             @Param(description = "GUI", defaultValue = "false")
@@ -113,7 +115,7 @@ public class CommandDeveloper implements DecreeExecutor {
     ) {
         int rb = diameter << 9;
         Iris.info("Benchmarking pack " + dimension.getName() + " with diameter: " + rb + "(" + diameter + ")");
-        IrisPackBenchmarking benchmark = new IrisPackBenchmarking(dimension, diameter, headless, gui);
+        IrisPackBenchmarking benchmark = new IrisPackBenchmarking(dimension, address.replace("-", "").trim(), diameter, headless, gui);
         benchmark.runBenchmark();
     }
 

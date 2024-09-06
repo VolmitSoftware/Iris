@@ -65,6 +65,7 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
             Iris.error("Failed to close headless");
             e.printStackTrace();
         }
+        burst.close();
     }
 
     @Override

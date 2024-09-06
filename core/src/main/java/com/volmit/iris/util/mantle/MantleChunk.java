@@ -100,6 +100,10 @@ public class MantleChunk {
         return flags.get(flag.ordinal()) == 1;
     }
 
+    public int getSectionHeight() {
+        return sections.length();
+    }
+
     /**
      * Check if a section exists (same as get(section) != null)
      *

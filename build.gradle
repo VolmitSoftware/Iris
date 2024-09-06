@@ -65,6 +65,7 @@ def JVM_VERSION = Map.of(
         "v1_21_R1", 21,
         "v1_20_R4", 21,
 )
+def entryPoint = 'com.volmit.iris.server.EntryPoint'
 NMS_BINDINGS.each { nms ->
     project(":nms:${nms.key}") {
         apply plugin: 'java'
@@ -95,6 +96,10 @@ shadowJar {
     relocate 'io.papermc.lib', 'com.volmit.iris.util.paper'
     relocate 'net.kyori', 'com.volmit.iris.util.kyori'
     archiveFileName.set("Iris-${project.version}.jar")
+
+    manifest {
+        attributes 'Main-Class': entryPoint
+    }
 }
 
 dependencies {
@@ -156,6 +161,7 @@ allprojects {
         compileOnly 'net.bytebuddy:byte-buddy-agent:1.12.8'
         compileOnly 'org.bytedeco:javacpp:1.5.10'
         compileOnly 'org.bytedeco:cuda-platform:12.3-8.9-1.5.10'
+        compileOnly 'io.netty:netty-all:4.1.112.Final'
     }
 
     /**

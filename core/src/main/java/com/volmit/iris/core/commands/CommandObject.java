@@ -24,6 +24,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.service.ObjectSVC;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.service.WandSVC;
+import com.volmit.iris.core.tools.IrisConverter;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.data.Cuboid;
@@ -211,6 +212,16 @@ public class CommandObject implements DecreeExecutor {
         }
     }
 
+    @Decree(description = "Convert .schem files in the 'convert' folder to .iob files.")
+    public void convert () {
+        try {
+            IrisConverter.convertSchematics(sender());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
     @Decree(description = "Get a powder that reveals objects", studio = true, aliases = "d")
     public void dust() {
         player().getInventory().addItem(WandSVC.createDust());
@@ -382,7 +393,7 @@ public class CommandObject implements DecreeExecutor {
             return;
         }
         try {
-            o.write(file);
+            o.write(file, sender());
         } catch (IOException e) {
             sender().sendMessage(C.RED + "Failed to save object because of an IOException: " + e.getMessage());
             Iris.reportError(e);

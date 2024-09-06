@@ -19,7 +19,6 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -35,8 +34,6 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.mantle.TectonicPlate;
-import com.volmit.iris.util.nbt.mca.MCAFile;
-import com.volmit.iris.util.nbt.mca.MCAUtil;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
 import net.jpountz.lz4.LZ4BlockInputStream;

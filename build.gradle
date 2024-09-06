@@ -87,7 +87,6 @@ shadowJar {
         dependsOn(":nms:${it.key}:remap")
         from("${project(":nms:${it.key}").layout.buildDirectory.asFile.get()}/libs/${it.key}-mapped.jar")
     }
-    NMS_BINDINGS.each {dependsOn(":nms:${it.key}:build")}
     //dependsOn(':com.volmit.gui:build')
 
     //minimize()
@@ -137,9 +136,9 @@ allprojects {
         // Shaded
         implementation 'com.dfsek:Paralithic:0.4.0'
         implementation 'io.papermc:paperlib:1.0.5'
-        implementation "net.kyori:adventure-text-minimessage:4.13.1"
+        implementation "net.kyori:adventure-text-minimessage:4.17.0"
         implementation 'net.kyori:adventure-platform-bukkit:4.3.4'
-        implementation 'net.kyori:adventure-api:4.13.1'
+        implementation 'net.kyori:adventure-api:4.17.0'
         //implementation 'org.bytedeco:javacpp:1.5.10'
         //implementation 'org.bytedeco:cuda-platform:12.3-8.9-1.5.10'
         //implementation "org.deeplearning4j:deeplearning4j-core:1.0.0-M2.1"

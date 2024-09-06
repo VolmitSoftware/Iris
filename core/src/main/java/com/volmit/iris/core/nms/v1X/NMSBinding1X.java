@@ -45,6 +45,7 @@ import org.bukkit.block.Biome;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.generator.structure.Structure;
@@ -143,6 +144,11 @@ public class NMSBinding1X implements INMSBinding {
                 .map(NamespacedKey::toString)
                 .toList();
         return new KList<>(list);
+    }
+
+    @Override
+    public void reconnect(Player player) {
+
     }
 
     @Override

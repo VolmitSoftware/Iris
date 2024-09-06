@@ -83,6 +83,7 @@ public class IrisWorldCreator {
         if (!INMS.get().registerDimension(name, dim)) {
             throw new IllegalStateException("Unable to register dimension " + dim.getName());
         }
+        INMS.get().reconnectAll();
 
         return new WorldCreator(name)
                 .environment(findEnvironment())

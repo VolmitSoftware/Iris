@@ -23,11 +23,7 @@ import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
@@ -40,10 +36,18 @@ import com.volmit.iris.engine.object.IrisBiomeReplacement;
 import com.volmit.iris.util.scheduling.J;
 import net.minecraft.nbt.*;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
 import net.minecraft.resources.RegistryOps;
+import net.minecraft.server.PlayerAdvancements;
 import net.minecraft.server.commands.data.BlockDataAccessor;
 import com.volmit.iris.core.nms.container.IPackRepository;
 import com.volmit.iris.util.io.IO;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerLoginPacketListenerImpl;
+import net.minecraft.server.players.PlayerList;
+import net.minecraft.stats.ServerStatsCounter;
+import net.minecraft.stats.Stats;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.biome.BiomeGenerationSettings;
@@ -85,10 +89,14 @@ import org.bukkit.craftbukkit.v1_19_R3.block.CraftBlockState;
 import org.bukkit.craftbukkit.v1_19_R3.block.CraftBlockStates;
 import org.bukkit.craftbukkit.v1_19_R3.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_19_R3.entity.CraftDolphin;
+import org.bukkit.craftbukkit.v1_19_R3.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_19_R3.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_19_R3.scoreboard.CraftScoreboardManager;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
@@ -845,6 +853,99 @@ public class NMSBinding implements INMSBinding {
                 .forEach(keys::add);
 
         return keys;
+    }
+
+    @Override
+    public void reconnect(Player player) {
+        var serverPlayer = ((CraftPlayer) player).getHandle();
+        var listener = serverPlayer.connection;
+
+        try {
+            var field = getField(listener.getClass(), Connection.class);
+            field.setAccessible(true);
+            var connection = (Connection) field.get(listener);
+            var server = serverPlayer.getServer();
+            var playerList = server.getPlayerList();
+            J.s(() -> {
+                try {
+                    remove(serverPlayer);
+                } catch (Throwable e) {
+                    Iris.error("Failed to remove player " + player.getName());
+                    e.printStackTrace();
+                    return;
+                }
+                var result = playerList.canPlayerLogin(new ServerLoginPacketListenerImpl(server, connection), serverPlayer.getGameProfile());
+                if (result != null) {
+                    playerList.placeNewPlayer(connection, result);
+                }
+            });
+        } catch (Throwable e) {
+            Iris.error("Failed to reconnect player " + player.getName());
+            e.printStackTrace();
+        }
+    }
+
+    private void remove(ServerPlayer player) throws NoSuchFieldException, IllegalAccessException {
+        ServerLevel level = player.getLevel();
+        player.awardStat(Stats.LEAVE_GAME);
+        if (player.containerMenu != player.inventoryMenu) {
+            player.closeContainer();
+        }
+
+        PlayerQuitEvent playerQuitEvent = new PlayerQuitEvent(player.getBukkitEntity(), "§e" + player.getScoreboardName() + " left the game");
+        Bukkit.getPluginManager().callEvent(playerQuitEvent);
+        player.getBukkitEntity().disconnect(playerQuitEvent.getQuitMessage());
+        player.doTick();
+
+        level.getServer().getPlayerList().playerIo.save(player);
+        ServerStatsCounter stats = player.getStats();
+        if (stats != null) stats.save();
+        PlayerAdvancements advancements = player.getAdvancements();
+        if (advancements != null) advancements.save();
+
+        if (player.isPassenger()) {
+            var vehicle = player.getRootVehicle();
+            if (vehicle.hasExactlyOnePlayerPassenger()) {
+                Iris.debug("Removing player mount");
+                player.stopRiding();
+                vehicle.getPassengersAndSelf().forEach(passenger -> passenger.setRemoved(net.minecraft.world.entity.Entity.RemovalReason.UNLOADED_WITH_PLAYER));
+            }
+        }
+
+        player.unRide();
+        level.removePlayerImmediately(player, net.minecraft.world.entity.Entity.RemovalReason.UNLOADED_WITH_PLAYER);
+        player.getAdvancements().stopListening();
+
+        var playersField = getField(PlayerList.class, buildType(List.class, ServerPlayer.class.getName()));
+        playersField.setAccessible(true);
+        var playersByNameField = getField(PlayerList.class, buildType(Map.class, String.class.getName(), ServerPlayer.class.getName()));
+        playersByNameField.setAccessible(true);
+        var playersByUUIDField = getField(PlayerList.class, buildType(Map.class, UUID.class.getName(), ServerPlayer.class.getName()));
+        playersByUUIDField.setAccessible(true);
+
+        var players = (List<ServerPlayer>)playersField.get(player.getServer().getPlayerList());
+        var playersByName = (Map<String, ServerPlayer>)playersByNameField.get(player.getServer().getPlayerList());
+        var playersByUUID = (Map<UUID, ServerPlayer>)playersByUUIDField.get(player.getServer().getPlayerList());
+
+        players.remove(player);
+        playersByName.remove(player.getScoreboardName().toLowerCase(Locale.ROOT));
+        level.getServer().getCustomBossEvents().onPlayerDisconnect(player);
+        UUID uuid = player.getUUID();
+        ServerPlayer currentPlayer = playersByUUID.get(uuid);
+        if (currentPlayer == player) {
+            playersByUUID.remove(uuid);
+        }
+
+        ClientboundPlayerInfoRemovePacket packet = new ClientboundPlayerInfoRemovePacket(List.of(player.getUUID()));
+        for (ServerPlayer target : players) {
+            if (target.getBukkitEntity().canSee(player.getBukkitEntity())) {
+                target.connection.send(packet);
+            } else {
+                target.getBukkitEntity().onEntityRemove(player);
+            }
+        }
+
+        ((CraftScoreboardManager) Bukkit.getScoreboardManager()).removePlayer(player.getBukkitEntity());
     }
 
     private static Field getField(Class<?> clazz, Class<?> fieldType) throws NoSuchFieldException {

@@ -36,6 +36,7 @@ import org.bukkit.block.Biome;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.generator.structure.Structure;
@@ -43,6 +44,8 @@ import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
 import java.awt.Color;
+import java.util.ArrayList;
+import java.util.Collection;
 
 public interface INMSBinding {
     boolean hasTile(Material material);
@@ -147,4 +150,11 @@ public interface INMSBinding {
     IPackRepository getPackRepository();
 
     KList<String> getStructureKeys();
+
+    default void reconnectAll() {
+        new ArrayList<>(Bukkit.getOnlinePlayers())
+                .forEach(this::reconnect);
+    }
+
+    void reconnect(Player player);
 }

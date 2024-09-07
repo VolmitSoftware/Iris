@@ -24,7 +24,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
@@ -163,8 +162,7 @@ public class IrisConnection extends SimpleChannelInboundHandler<Packet> {
                 .addLast("packet_handler", holder.getConnection());
     }
 
-    public static <T extends ConnectionHolder> T connect(InetSocketAddress address, Supplier<T> factory) throws InterruptedException {
-        var holder = factory.get();
+    public static <T extends ConnectionHolder> T connect(InetSocketAddress address, T holder) throws InterruptedException {
         new Bootstrap()
                 .group(getWorker())
                 .handler(new ChannelInitializer<>() {

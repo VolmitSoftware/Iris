@@ -3,6 +3,7 @@ package com.volmit.iris.server.packet;
 import com.volmit.iris.server.packet.init.EnginePacket;
 import com.volmit.iris.server.packet.init.FilePacket;
 import com.volmit.iris.server.packet.init.InfoPacket;
+import com.volmit.iris.server.packet.init.PingPacket;
 import com.volmit.iris.server.packet.work.DonePacket;
 import com.volmit.iris.server.util.ErrorPacket;
 import com.volmit.iris.server.packet.work.ChunkPacket;
@@ -23,6 +24,7 @@ public class Packets<T extends Packet> {
 
     public static final Packets<ErrorPacket> ERROR;
     public static final Packets<InfoPacket> INFO;
+    public static final Packets<PingPacket> PING;
     public static final Packets<FilePacket> FILE;
     public static final Packets<EnginePacket> ENGINE;
 
@@ -69,6 +71,7 @@ public class Packets<T extends Packet> {
     static {
         ERROR = new Packets<>(ErrorPacket.class, ErrorPacket::new);
         INFO = new Packets<>(InfoPacket.class, InfoPacket::new);
+        PING = new Packets<>(PingPacket.class, PingPacket::new);
         FILE = new Packets<>(FilePacket.class, FilePacket::new);
         ENGINE = new Packets<>(EnginePacket.class, EnginePacket::new);
 
@@ -78,7 +81,7 @@ public class Packets<T extends Packet> {
         MANTLE_CHUNK = new Packets<>(MantleChunkPacket.class, MantleChunkPacket::new);
         MANTLE_CHUNK_REQUEST = new Packets<>(MantleChunkPacket.Request.class, MantleChunkPacket.Request::new);
 
-        REGISTRY = List.of(ERROR, INFO, FILE, ENGINE, DONE, PREGEN, CHUNK, MANTLE_CHUNK, MANTLE_CHUNK_REQUEST);
+        REGISTRY = List.of(ERROR, INFO, PING, FILE, ENGINE, DONE, PREGEN, CHUNK, MANTLE_CHUNK, MANTLE_CHUNK_REQUEST);
 
         var map = new HashMap<Class<? extends Packet>, Packets<? extends Packet>>();
         for (int i = 0; i < REGISTRY.size(); i++) {

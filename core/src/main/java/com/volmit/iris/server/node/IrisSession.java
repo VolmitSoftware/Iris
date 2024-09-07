@@ -10,6 +10,7 @@ import com.volmit.iris.server.packet.Packet;
 import com.volmit.iris.server.packet.Packets;
 import com.volmit.iris.server.packet.init.EnginePacket;
 import com.volmit.iris.server.packet.init.FilePacket;
+import com.volmit.iris.server.packet.init.PingPacket;
 import com.volmit.iris.server.util.CPSLooper;
 import com.volmit.iris.server.util.ConnectionHolder;
 import com.volmit.iris.server.util.PacketListener;
@@ -85,6 +86,8 @@ public class IrisSession implements ConnectionHolder, PacketListener {
 
             chunks.put(packet.getId(), holder);
             connection.send(request);
+        } else if (raw instanceof PingPacket packet) {
+            packet.setBukkit().send(connection);
         } else throw new RejectedException("Unhandled packet: " + raw.getClass().getSimpleName());
     }
 

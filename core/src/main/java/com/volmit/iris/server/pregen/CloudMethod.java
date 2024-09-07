@@ -13,6 +13,7 @@ import com.volmit.iris.server.execption.RejectedException;
 import com.volmit.iris.server.packet.Packet;
 import com.volmit.iris.server.packet.Packets;
 import com.volmit.iris.server.packet.init.InfoPacket;
+import com.volmit.iris.server.packet.init.PingPacket;
 import com.volmit.iris.server.packet.work.ChunkPacket;
 import com.volmit.iris.server.packet.work.DonePacket;
 import com.volmit.iris.server.packet.work.MantleChunkPacket;
@@ -32,7 +33,6 @@ import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -45,14 +45,14 @@ public class CloudMethod implements PregeneratorMethod, ConnectionHolder, Packet
     private final IHeadless headless;
     private final KMap<UUID, PregenHolder> holders = new KMap<>();
     private final CompletableFuture<LimitedSemaphore> future = new CompletableFuture<>();
-    private final KMap<UUID, CompletableFuture<?>> locks = new KMap<>();
+    private final KMap<UUID, CompletableFuture<Object>> locks = new KMap<>();
 
     public CloudMethod(String address, Engine engine) throws InterruptedException {
         var split = address.split(":");
         if (split.length != 2 || !split[1].matches("\\d+"))
             throw new IllegalArgumentException("Invalid remote server address: " + address);
 
-        IrisConnection.connect(new InetSocketAddress(split[0], Integer.parseInt(split[1])), () -> this);
+        IrisConnection.connect(new InetSocketAddress(split[0], Integer.parseInt(split[1])), this);
 
         this.engine = engine;
         this.headless = INMS.get().createHeadless(engine);
@@ -67,6 +67,24 @@ public class CloudMethod implements PregeneratorMethod, ConnectionHolder, Packet
         var name = engine.getWorld().name();
         var exit = new AtomicBoolean(false);
         var limited = new LimitedSemaphore(IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism()));
+
+        var remoteVersion = new CompletableFuture<>();
+        var ping = Packets.PING.newPacket()
+                .setBukkit();
+        locks.put(ping.getId(), remoteVersion);
+        ping.send(connection);
+
+        try {
+            var o = remoteVersion.get();
+            if (!(o instanceof PingPacket packet))
+                throw new IllegalStateException("Invalid response from remote server");
+            if (!packet.getVersion().contains(ping.getVersion().get(0)))
+                throw new IllegalStateException("Remote server version does not match");
+        } catch (Throwable e) {
+            connection.disconnect();
+            throw new IllegalStateException("Failed to connect to remote server", e);
+        }
+
 
         log.info(name + ": Uploading pack...");
         iterate(engine.getData().getDataFolder(), f -> {
@@ -94,7 +112,7 @@ public class CloudMethod implements PregeneratorMethod, ConnectionHolder, Packet
 
         log.info(name + ": Done uploading pack");
         log.info(name + ": Initializing Engine...");
-        CompletableFuture<?> future = new CompletableFuture<>();
+        var future = new CompletableFuture<>();
         var packet = Packets.ENGINE.newPacket()
                 .setDimension(engine.getDimension().getLoadKey())
                 .setSeed(engine.getWorld().getRawWorldSeed())
@@ -120,7 +138,7 @@ public class CloudMethod implements PregeneratorMethod, ConnectionHolder, Packet
             long offset = 0;
             byte[] data;
             while ((data = in.readNBytes(packetSize)).length > 0 && !exit.get()) {
-                CompletableFuture<?> future = new CompletableFuture<>();
+                var future = new CompletableFuture<>();
                 var packet = Packets.FILE.newPacket()
                         .setPath(path)
                         .setOffset(offset)
@@ -234,6 +252,8 @@ public class CloudMethod implements PregeneratorMethod, ConnectionHolder, Packet
             //    Iris.info("Cloud CPS: " + packet.getCps());
         } else if (raw instanceof DonePacket packet) {
             locks.remove(packet.getId()).complete(null);
+        } else if (raw instanceof PingPacket packet) {
+            locks.remove(packet.getId()).complete(packet);
         } else if (raw instanceof ErrorPacket packet) {
             packet.log(log, Level.SEVERE);
         } else throw new RejectedException("Unhandled packet: " + raw.getClass().getSimpleName());

@@ -3,21 +3,23 @@ package com.volmit.iris.server.master;
 import com.volmit.iris.server.IrisConnection;
 import com.volmit.iris.server.node.IrisServer;
 import com.volmit.iris.server.util.PregenHolder;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.collection.KSet;
 import lombok.extern.java.Log;
 
 import java.net.InetSocketAddress;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Log(topic = "Iris-MasterServer")
 public class IrisMasterServer extends IrisServer {
-    private static final Object VALUE = new Object();
     private static IrisMasterServer instance;
     private final KMap<UUID, KMap<IrisMasterClient, KMap<UUID, PregenHolder>>> sessions = new KMap<>();
-    private final KMap<InetSocketAddress, Object> nodes = new KMap<>();
+    private final KMap<String, KSet<InetSocketAddress>> nodes = new KMap<>();
 
     public IrisMasterServer(int port, String[] remote) throws InterruptedException {
         super("Iris-MasterServer", port, IrisMasterSession::new);
@@ -40,12 +42,24 @@ public class IrisMasterServer extends IrisServer {
         }
     }
 
-    public void addNode(InetSocketAddress address) {
-        nodes.put(address, VALUE);
+    private void addNode(InetSocketAddress address) throws InterruptedException {
+        var ping = new PingConnection(address);
+        try {
+            for (String version : ping.getVersion().get())
+                addNode(address, version);
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void addNode(InetSocketAddress address, String version) {
+        nodes.computeIfAbsent(version, v -> new KSet<>()).add(address);
     }
 
     public void removeNode(InetSocketAddress address) {
-        nodes.remove(address);
+        for (var set : nodes.values()) {
+            set.remove(address);
+        }
     }
 
     public static void close(UUID session) {
@@ -55,17 +69,21 @@ public class IrisMasterServer extends IrisServer {
         map.clear();
     }
 
-    public static KMap<IrisMasterClient, KMap<UUID, PregenHolder>> getNodes(IrisMasterSession session) {
+    public static KList<String> getVersions() {
+        return get().nodes.k();
+    }
+
+    public static KMap<IrisMasterClient, KMap<UUID, PregenHolder>> getNodes(String version, IrisMasterSession session) {
         var master = get();
         var uuid = session.getUuid();
         close(uuid);
 
         master.getLogger().info("Requesting nodes for session " + uuid);
         var map = new KMap<IrisMasterClient, KMap<UUID, PregenHolder>>();
-        for (var address : master.nodes.keySet()) {
+        for (var address : master.nodes.getOrDefault(version, new KSet<>())) {
             try {
-                map.put(IrisConnection.connect(address, () -> new IrisMasterClient(session)), new KMap<>());
-            } catch (Exception e) {
+                map.put(IrisConnection.connect(address, new IrisMasterClient(version, session)), new KMap<>());
+            } catch (Throwable e) {
                 master.getLogger().log(Level.WARNING, "Failed to connect to server " + address, e);
                 master.removeNode(address);
             }

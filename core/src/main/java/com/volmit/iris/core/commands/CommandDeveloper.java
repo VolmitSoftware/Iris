@@ -19,7 +19,6 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -35,8 +34,6 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.mantle.TectonicPlate;
-import com.volmit.iris.util.nbt.mca.MCAFile;
-import com.volmit.iris.util.nbt.mca.MCAUtil;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
 import net.jpountz.lz4.LZ4BlockInputStream;
@@ -102,8 +99,10 @@ public class CommandDeveloper implements DecreeExecutor {
 
     @Decree(description = "Test")
     public void packBenchmark(
-            @Param(description = "The pack to bench", aliases = {"pack"})
+            @Param(description = "The pack to bench", defaultValue = "overworld", aliases = {"pack"})
             IrisDimension dimension,
+            @Param(description = "The address to use", defaultValue = "-")
+            String address,
             @Param(description = "Headless", defaultValue = "true")
             boolean headless,
             @Param(description = "GUI", defaultValue = "false")
@@ -113,7 +112,7 @@ public class CommandDeveloper implements DecreeExecutor {
     ) {
         int rb = diameter << 9;
         Iris.info("Benchmarking pack " + dimension.getName() + " with diameter: " + rb + "(" + diameter + ")");
-        IrisPackBenchmarking benchmark = new IrisPackBenchmarking(dimension, diameter, headless, gui);
+        IrisPackBenchmarking benchmark = new IrisPackBenchmarking(dimension, address.replace("-", "").trim(), diameter, headless, gui);
         benchmark.runBenchmark();
     }
 

@@ -195,6 +195,11 @@ public class Mantle {
         return get(x >> 5, z >> 5).getOrCreate(x & 31, z & 31);
     }
 
+    @ChunkCoordinates
+    public void setChunk(int x, int z, MantleChunk chunk) {
+        get(x >> 5, z >> 5).set(x & 31, z & 31, chunk);
+    }
+
     /**
      * Flag or unflag a chunk
      *

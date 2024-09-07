@@ -158,6 +158,20 @@ public class TectonicPlate {
         return chunk;
     }
 
+    /**
+     * Set a tectonic plate
+     *
+     * @param x the chunk relative x (0-31)
+     * @param z the chunk relative z (0-31)
+     * @param chunk the chunk
+     */
+    @ChunkCoordinates
+    public void set(int x, int z, MantleChunk chunk) {
+        if (x != chunk.getX() || z != chunk.getZ())
+            throw new IllegalArgumentException("X/Z of chunk must match the plate");
+        chunks.set(index(x, z), chunk);
+    }
+
     @ChunkCoordinates
     private int index(int x, int z) {
         return Cache.to1D(x, z, 0, 32, 32);

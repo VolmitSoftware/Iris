@@ -23,6 +23,8 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.Spiraled;
 import com.volmit.iris.util.math.Spiraler;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
@@ -30,6 +32,7 @@ import java.util.Comparator;
 
 @Builder
 @Data
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 public class PregenTask {
     private static final Position2 ZERO = new Position2(0, 0);
     private static final KList<Position2> ORDER_CENTER = computeChunkOrder();

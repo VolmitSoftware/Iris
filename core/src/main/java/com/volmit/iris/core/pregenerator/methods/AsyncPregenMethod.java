@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.mantle.Mantle;
@@ -35,14 +34,11 @@ import org.bukkit.World;
 
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.Future;
 
 public class AsyncPregenMethod implements PregeneratorMethod {
     private final World world;
-    private final Engine engine;
     private final MultiBurst burst;
-
     private final KList<Future<?>> future;
     private final Map<Chunk, Long> lastUse;
 
@@ -51,9 +47,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             throw new UnsupportedOperationException("Cannot use PaperAsync on non paper!");
         }
         this.world = world;
-        this.engine = IrisToolbelt.access(world).getEngine();
-        burst = new MultiBurst("AsyncPregen", 8 );
-        future = new KList<>(1024);
+        burst = new MultiBurst("Iris Async Pregen", Thread.MIN_PRIORITY);
+        future = new KList<>(256);
         this.lastUse = new KMap<>();
     }
 
@@ -81,22 +76,18 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
     private void completeChunk(int x, int z, PregenListener listener) {
         try {
-            future.add(PaperLib.getChunkAtAsync(world, x, z, true).thenApply((i) -> {
-                if (i == null) return 0;
+            PaperLib.getChunkAtAsync(world, x, z, true).thenAccept((i) -> {
                 lastUse.put(i, M.ms());
                 listener.onChunkGenerated(x, z);
                 listener.onChunkCleaned(x, z);
-                return 0;
-            }));
-
+            }).get();
+        } catch (InterruptedException ignored) {
         } catch (Throwable e) {
             e.printStackTrace();
         }
     }
 
     private void waitForChunksPartial(int maxWaiting) {
-        future.removeWhere(Objects::isNull);
-
         while (future.size() > maxWaiting) {
             try {
                 Future<?> i = future.remove(0);
@@ -125,8 +116,6 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 e.printStackTrace();
             }
         }
-
-        future.removeWhere(Objects::isNull);
     }
 
     @Override
@@ -143,6 +132,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     public void close() {
         waitForChunks();
         unloadAndSaveAllChunks();
+        burst.close();
     }
 
     @Override

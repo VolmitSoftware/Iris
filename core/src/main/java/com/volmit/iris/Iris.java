@@ -41,6 +41,8 @@ import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.engine.platform.DummyChunkGenerator;
+import com.volmit.iris.server.master.IrisMasterServer;
+import com.volmit.iris.server.node.IrisServer;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.exceptions.IrisException;
@@ -91,10 +93,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.*;
 import java.lang.annotation.Annotation;
 import java.net.URL;
-import java.util.Collection;
-import java.util.Date;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -112,6 +111,7 @@ public class Iris extends VolmitPlugin implements Listener {
     public static MythicMobsLink linkMythicMobs;
     public static IrisCompat compat;
     public static FileWatcher configWatcher;
+    private static IrisServer server;
     private static VolmitSender sender;
 
     static {
@@ -475,6 +475,29 @@ public class Iris extends VolmitPlugin implements Listener {
         services.values().forEach(this::registerListener);
         ServerConfigurator.setupDataPack();
         installMainDimension();
+        try {
+            info("Starting server...");
+            try {
+                int port = Integer.parseInt(System.getProperty("com.volmit.iris.server.port"));
+                String[] remote = Optional.ofNullable(System.getProperty("com.volmit.iris.server.remote"))
+                        .map(String::trim)
+                        .map(s -> s.isBlank() ? null : s.split(","))
+                        .orElse(new String[0]);
+                server = remote.length > 0 ? new IrisMasterServer(port, remote) : new IrisServer(port);
+            } catch (NullPointerException | NumberFormatException ignored) {
+                var serverSettings = IrisSettings.get().getServer();
+                if (serverSettings.isActive()) {
+                    server = serverSettings.isRemote() ?
+                            new IrisMasterServer(serverSettings.getPort(), serverSettings.remote) :
+                            new IrisServer(serverSettings.getPort());
+                }
+            }
+        } catch (InterruptedException ignored) {
+        } catch (Throwable e) {
+            error("Failed to start server: " + e.getClass().getSimpleName());
+            e.printStackTrace();
+        }
+
         if (!IrisSafeguard.instance.acceptUnstable && IrisSafeguard.instance.unstablemode) {
             Iris.info(C.RED + "World loading has been disabled until the incompatibility is resolved.");
             Iris.info(C.DARK_RED + "Alternatively, go to plugins/iris/settings.json and set ignoreBootMode to true.");

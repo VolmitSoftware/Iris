@@ -30,6 +30,8 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineStage;
 import com.volmit.iris.engine.framework.WrongEngineBroException;
 import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.server.node.IrisSession;
+import com.volmit.iris.server.packet.work.ChunkPacket;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.ChunkContext;
@@ -61,6 +63,7 @@ import net.minecraft.world.level.chunk.storage.RegionFile;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
+import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -82,6 +85,8 @@ public class Headless implements IHeadless, LevelHeightAccessor {
     private final RNG BIOME_RNG;
     private final @Getter int minBuildHeight;
     private final @Getter int height;
+    private IrisSession session;
+    private CompletingThread regionThread;
     private boolean closed = false;
 
     public Headless(NMSBinding binding, Engine engine) {
@@ -127,6 +132,12 @@ public class Headless implements IHeadless, LevelHeightAccessor {
         cleaner.start();
     }
 
+    public void setSession(IrisSession session) {
+        if (this.session != null)
+            throw new IllegalStateException("Session already set");
+        this.session = session;
+    }
+
     @Override
     public int getLoadedChunks() {
         return loadedChunks.get();
@@ -153,21 +164,42 @@ public class Headless implements IHeadless, LevelHeightAccessor {
     }
 
     @Override
-    public void generateRegion(MultiBurst burst, int x, int z, PregenListener listener) {
-        if (closed) return;
-        boolean listening = listener != null;
-        if (listening) listener.onRegionGenerating(x, z);
-        CountDownLatch latch = new CountDownLatch(1024);
-        iterateRegion(x, z, pos -> burst.complete(() -> {
-            if (listening) listener.onChunkGenerating(pos.x, pos.z);
-            generateChunk(pos.x, pos.z);
-            if (listening) listener.onChunkGenerated(pos.x, pos.z);
-            latch.countDown();
-        }));
-        try {
-            latch.await();
-        } catch (InterruptedException ignored) {}
-        if (listening) listener.onRegionGenerated(x, z);
+    public synchronized CompletableFuture<Void> generateRegion(MultiBurst burst, int x, int z, int maxConcurrent, PregenListener listener) {
+        if (closed) return CompletableFuture.completedFuture(null);
+        if (regionThread != null && !regionThread.future.isDone())
+            throw new IllegalStateException("Region generation already in progress");
+
+        regionThread = new CompletingThread(() -> {
+            boolean listening = listener != null;
+            Semaphore semaphore = new Semaphore(maxConcurrent);
+            CountDownLatch latch = new CountDownLatch(1024);
+
+            iterateRegion(x, z, pos -> {
+                try {
+                    semaphore.acquire();
+                } catch (InterruptedException e) {
+                    semaphore.release();
+                    return;
+                }
+
+                burst.complete(() -> {
+                    try {
+                        if (listening) listener.onChunkGenerating(pos.x, pos.z);
+                        generateChunk(pos.x, pos.z);
+                        if (listening) listener.onChunkGenerated(pos.x, pos.z);
+                    } finally {
+                        semaphore.release();
+                        latch.countDown();
+                    }
+                });
+            });
+            try {
+                latch.await();
+            } catch (InterruptedException ignored) {}
+            if (listening) listener.onRegionGenerated(x, z);
+        }, "Region Generator - " + x + "," + z, Thread.MAX_PRIORITY);
+
+        return regionThread.future;
     }
 
     @RegionCoordinates
@@ -199,6 +231,12 @@ public class Headless implements IHeadless, LevelHeightAccessor {
             inject(engine, chunk, ctx);
             chunk.setStatus(ChunkStatus.FULL);
 
+            if (session != null) {
+                session.completeChunk(x, z, write(chunk));
+                loadedChunks.decrementAndGet();
+                return;
+            }
+
             long key = Cache.key(pos.getRegionX(), pos.getRegionZ());
             regions.computeIfAbsent(key, Region::new)
                     .add(chunk);
@@ -207,6 +245,16 @@ public class Headless implements IHeadless, LevelHeightAccessor {
             Iris.error("Failed to generate " + x + ", " + z);
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void addChunk(ChunkPacket packet) {
+        if (closed) return;
+        if (session != null) throw new IllegalStateException("Headless running as Server");
+        var pos = new ChunkPos(packet.getX(), packet.getZ());
+        regions.computeIfAbsent(Cache.key(pos.getRegionX(), pos.getRegionZ()), Region::new)
+                .add(packet);
+        loadedChunks.incrementAndGet();
     }
 
     @BlockCoordinates
@@ -284,6 +332,11 @@ public class Headless implements IHeadless, LevelHeightAccessor {
     public void close() throws IOException {
         if (closed) return;
         try {
+            if (regionThread != null) {
+                regionThread.future.join();
+                regionThread = null;
+            }
+
             regions.values().forEach(Region::submit);
             Iris.info("Waiting for " + loadedChunks.get() + " chunks to unload...");
             while (loadedChunks.get() > 0 || !regions.isEmpty())
@@ -304,6 +357,7 @@ public class Headless implements IHeadless, LevelHeightAccessor {
         private final int x, z;
         private final long key;
         private final KList<ProtoChunk> chunks = new KList<>(1024);
+        private final KList<ChunkPacket> remoteChunks = new KList<>(1024);
         private final AtomicBoolean full = new AtomicBoolean();
         private long lastEntry = M.ms();
 
@@ -334,13 +388,31 @@ public class Headless implements IHeadless, LevelHeightAccessor {
                 }
                 loadedChunks.decrementAndGet();
             }
+            for (var chunk : remoteChunks) {
+                var pos = new ChunkPos(chunk.getX(), chunk.getZ());
+                try (DataOutputStream dos = regionFile.getChunkDataOutputStream(pos)) {
+                    dos.write(chunk.getData());
+                } catch (Throwable e) {
+                    Iris.error("Failed to save remote chunk " + pos.x + ", " + pos.z);
+                    e.printStackTrace();
+                }
+                loadedChunks.decrementAndGet();
+            }
             regions.remove(key);
         }
 
         public synchronized void add(ProtoChunk chunk) {
             chunks.add(chunk);
             lastEntry = M.ms();
-            if (chunks.size() < 1024)
+            if (chunks.size() + remoteChunks.size() < 1024)
+                return;
+            submit();
+        }
+
+        public synchronized void add(ChunkPacket packet) {
+            remoteChunks.add(packet);
+            lastEntry = M.ms();
+            if (chunks.size() + remoteChunks.size() < 1024)
                 return;
             submit();
         }
@@ -348,6 +420,33 @@ public class Headless implements IHeadless, LevelHeightAccessor {
         public void submit() {
             if (full.getAndSet(true)) return;
             executor.submit(this);
+        }
+    }
+
+    private byte[] write(ProtoChunk chunk) throws IOException {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream();
+             DataOutputStream dos = new DataOutputStream(out)) {
+            NbtIo.write(binding.serializeChunk(chunk, Headless.this), dos);
+            return out.toByteArray();
+        }
+    }
+
+    private static class CompletingThread extends Thread {
+        private final CompletableFuture<Void> future = new CompletableFuture<>();
+
+        private CompletingThread(Runnable task, String name, int priority) {
+            super(task, name);
+            setPriority(priority);
+            start();
+        }
+
+        @Override
+        public void run() {
+            try {
+                super.run();
+            } finally {
+                future.complete(null);
+            }
         }
     }
 }

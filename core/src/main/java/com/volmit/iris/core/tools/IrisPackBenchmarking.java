@@ -31,6 +31,8 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
+import com.volmit.iris.server.pregen.CloudMethod;
+import com.volmit.iris.server.pregen.CloudTask;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.exceptions.IrisException;
@@ -65,10 +67,12 @@ public class IrisPackBenchmarking {
     private int radius;
     private boolean finished = false;
     private Engine engine;
+    private String address;
 
-    public IrisPackBenchmarking(IrisDimension dimension, int r, boolean headless, boolean gui) {
+    public IrisPackBenchmarking(IrisDimension dimension, String address, int r, boolean headless, boolean gui) {
         instance = this;
         this.IrisDimension = dimension;
+        this.address = address;
         this.radius = r;
         this.headless = headless;
         this.gui = gui;
@@ -90,7 +94,13 @@ public class IrisPackBenchmarking {
             }
             Iris.info("Starting Benchmark!");
             stopwatch.begin();
-            startBenchmark();
+            try {
+                if (address != null && !address.isBlank())
+                    startCloudBenchmark();
+                else startBenchmark();
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
         }, "PackBenchmarking").start();
     }
 
@@ -195,6 +205,19 @@ public class IrisPackBenchmarking {
                 .height(radius)
                 .build(), headless ? new HeadlessPregenMethod(engine) : new HybridPregenMethod(engine.getWorld().realWorld(),
                 IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())), engine);
+    }
+
+    private void startCloudBenchmark() throws InterruptedException {
+        int x = 0;
+        int z = 0;
+        IrisToolbelt.pregenerate(CloudTask
+                .couldBuilder()
+                .gui(gui)
+                .center(new Position2(x, z))
+                .width(radius)
+                .height(radius)
+                .distance(engine.getMantle().getRadius() * 2)
+                .build(), new CloudMethod(address, engine), engine);
     }
 
     private double calculateAverage(KList<Integer> list) {

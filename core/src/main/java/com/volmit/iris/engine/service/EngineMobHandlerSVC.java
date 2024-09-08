@@ -4,6 +4,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisEngineService;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.mobs.IrisMobDataHandler;
 import com.volmit.iris.util.mobs.IrisMobPiece;
@@ -34,7 +35,7 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
     private int id;
     public int energyMax;
     public int energy;
-    private long iteration = 0; // 1 every second
+    private long iteration = 0; // ~1 every second
     private HashSet<Chunk> loadedChunks;
     private HashMap<Types, Integer> bukkitLimits;
     private Function<EntityType, Types> entityType;
@@ -93,16 +94,26 @@ public class EngineMobHandlerSVC extends IrisEngineService implements IrisMobDat
                         )));
                 Consumer<IrisMobPiece> tick = piece -> piece.tick(costs.get(piece));
 
+                double oe = energy;
                 pieces.stream()
                         .filter(shouldTick)
                         .forEach(tick);
+                oe -= energy;
+                history.add(new HistoryData(DataType.ENERGY_CONSUMPTION, oe, iteration));
 
 
                 stopwatch.end();
                 Iris.info("Took: " + Form.f(stopwatch.getMilliseconds()));
-                double millis = stopwatch.getMilliseconds();
-                int size = pieces.size();
-                wait = size == 0 ? 50L : (long) Math.max(50d / size - millis, 0);
+                long millis = stopwatch.getMillis();
+
+                // todo finish this rubbish
+                wait = 1000 - millis;
+                if (wait < 0) {
+                    return wait;
+                } else {
+                    Iris.info(C.YELLOW + "Mob Engine lagging behind: " + Form.f(stopwatch.getMilliseconds()));
+                   return 0;
+                }
             } catch (Throwable notIgnored) {
                 notIgnored.printStackTrace();
             }

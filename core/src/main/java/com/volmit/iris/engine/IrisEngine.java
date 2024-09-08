@@ -32,7 +32,7 @@ import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
-import com.volmit.iris.engine.service.EngineEffectsSVC;
+import com.volmit.iris.engine.service.EnginePlayerHandlerSVC;
 import com.volmit.iris.util.atomics.AtomicRollingSequence;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -48,7 +48,6 @@ import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterStructurePOI;
-import com.volmit.iris.util.mobs.IrisMobPiece;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
@@ -64,9 +63,6 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.player.PlayerChangedWorldEvent;
 
 import java.io.File;
 import java.io.IOException;
@@ -187,7 +183,7 @@ public class IrisEngine implements Engine {
             bud.set(0);
         }
 
-        var effects = getService(EngineEffectsSVC.class);
+        var effects = getService(EnginePlayerHandlerSVC.class);
         if (effects != null) effects.tickRandomPlayer();
     }
 

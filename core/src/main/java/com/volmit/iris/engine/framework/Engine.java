@@ -287,7 +287,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             mc.iterate(TileWrapper.class, (x, y, z, tile) -> {
                 int betterY = y + getWorld().minHeight();
                 if (!TileData.setTileState(c.getBlock(x, betterY, z), tile.getData()))
-                    Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), tile.getMaterial().name());
+                    Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), tile.getData().getMaterial().name());
             });
         }));
         if (mc.isFlagged(MantleFlag.CUSTOM_ACTIVE)) {

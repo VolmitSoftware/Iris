@@ -116,7 +116,7 @@ public class IrisMasterSession implements ConnectionHolder, PacketListener {
     private IrisMasterClient pick() throws RejectedException {
         return clients.keySet()
                 .stream()
-                .min(Comparator.comparingInt(c -> clients.get(c).size()))
+                .min(Comparator.comparingDouble(c -> (double) clients.get(c).size() / c.getNodeCount()))
                 .orElseThrow(() -> new RejectedException("No clients available"));
     }
 

@@ -6,9 +6,11 @@ import com.volmit.iris.server.util.PregenHolder;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.parallel.MultiBurst;
 import lombok.extern.java.Log;
 
 import java.net.InetSocketAddress;
+import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -45,11 +47,14 @@ public class IrisMasterServer extends IrisServer {
     private void addNode(InetSocketAddress address) throws InterruptedException {
         var ping = new PingConnection(address);
         try {
-            for (String version : ping.getVersion().get())
-                addNode(address, version);
+            addNode(address, ping.getVersion().get());
         } catch (ExecutionException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void addNode(InetSocketAddress address, Collection<String> versions) {
+        versions.forEach(v -> addNode(address, v));
     }
 
     public void addNode(InetSocketAddress address, String version) {
@@ -80,14 +85,27 @@ public class IrisMasterServer extends IrisServer {
 
         master.getLogger().info("Requesting nodes for session " + uuid);
         var map = new KMap<IrisMasterClient, KMap<UUID, PregenHolder>>();
-        for (var address : master.nodes.getOrDefault(version, new KSet<>())) {
-            try {
-                map.put(IrisConnection.connect(address, new IrisMasterClient(version, session)), new KMap<>());
-            } catch (Throwable e) {
-                master.getLogger().log(Level.WARNING, "Failed to connect to server " + address, e);
-                master.removeNode(address);
-            }
+        if (!master.nodes.containsKey(version)) {
+            master.getLogger().warning("No nodes found for version " + version);
+            return map;
         }
+        var nodes = master.nodes.get(version);
+        var remove = new KList<InetSocketAddress>();
+        var burst = MultiBurst.burst.burst(nodes.size());
+        for (var address : nodes) {
+            burst.queue(() -> {
+                try {
+                    var client = new IrisMasterClient(version, session);
+                    master.addNode(address, client.getVersions());
+                    map.put(IrisConnection.connect(address, client), new KMap<>());
+                } catch (Throwable e) {
+                    master.getLogger().log(Level.WARNING, "Failed to connect to server " + address, e);
+                    remove.add(address);
+                }
+            });
+        }
+        burst.complete();
+        remove.forEach(nodes::remove);
 
         master.sessions.put(uuid, map);
         return map;

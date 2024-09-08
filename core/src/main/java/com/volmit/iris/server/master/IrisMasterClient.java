@@ -8,6 +8,7 @@ import com.volmit.iris.server.packet.init.PingPacket;
 import com.volmit.iris.server.util.ConnectionHolder;
 import com.volmit.iris.server.util.PacketListener;
 import com.volmit.iris.server.util.PacketSendListener;
+import com.volmit.iris.util.collection.KList;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
@@ -53,6 +54,14 @@ public class IrisMasterClient implements ConnectionHolder, PacketListener {
             return;
         }
         session.onClientPacket(this, raw);
+    }
+
+    public KList<String> getVersions() {
+        try {
+            return pingResponse.get().getVersion();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public int getNodeCount() {

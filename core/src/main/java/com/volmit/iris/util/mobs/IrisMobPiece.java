@@ -1,15 +1,9 @@
 package com.volmit.iris.util.mobs;
 
-import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.IrisEngineChunkData;
-import com.volmit.iris.engine.object.IrisEngineSpawnerCooldown;
-import com.volmit.iris.engine.object.IrisEntitySpawn;
-import com.volmit.iris.engine.object.IrisPosition;
-import com.volmit.iris.engine.service.EngineMobHandlerSVC;
+import com.volmit.iris.engine.framework.EnginePlayer;
 import com.volmit.iris.util.math.M;
-import com.volmit.iris.util.math.RNG;
-import jakarta.activation.DataHandler;
 import lombok.Getter;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import java.util.Collections;
@@ -20,11 +14,14 @@ import java.util.UUID;
 public class IrisMobPiece {
     @Getter
     private final Player player;
+    private double energyPiece;
+    private final World world;
     private IrisMobDataHandler dataHandler;
     private long lastRanPlayer;
 
     public IrisMobPiece(Player player, IrisMobDataHandler dh) {
         this.player = player;
+        this.world = player.getWorld();
         this.dataHandler = dh;
     }
 
@@ -58,11 +55,11 @@ public class IrisMobPiece {
      * Ticks the current player
      * @param energy the energy given for the tick
      */
-    public void tick(int energy) {
+    public void tick(double energy) {
         lastRanPlayer = M.ms();
+        this.energyPiece += energy;
 
     }
-
 
     public UUID getOwner() {
         return player.getUniqueId();

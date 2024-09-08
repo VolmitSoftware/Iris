@@ -29,6 +29,8 @@ import lombok.Data;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
+import java.util.UUID;
+
 @Data
 public class EnginePlayer {
     private final Engine engine;
@@ -98,5 +100,13 @@ public class EnginePlayer {
         Location l = player.getLocation();
         biome = engine.getBiome(l);
         region = engine.getRegion(l);
+    }
+
+    public UUID getOwner() {
+        return player.getUniqueId();
+    }
+
+    public void close() {
+        engine.getEnginePlayers().remove(this);
     }
 }

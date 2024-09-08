@@ -31,7 +31,6 @@ import java.util.UUID;
 import java.util.concurrent.Semaphore;
 
 public class EngineEffectsSVC extends IrisEngineService {
-    private KMap<UUID, EnginePlayer> players;
     private Semaphore limit;
 
     public EngineEffectsSVC(Engine engine) {
@@ -40,58 +39,34 @@ public class EngineEffectsSVC extends IrisEngineService {
 
     @Override
     public void onEnable(boolean hotload) {
-        players = new KMap<>();
         limit = new Semaphore(1);
     }
 
     @Override
     public void onDisable(boolean hotload) {
-        players = null;
         limit = null;
     }
 
-    public void updatePlayerMap() {
-        List<Player> pr = engine.getWorld().getPlayers();
-
-        if (pr == null) {
-            return;
-        }
-
-        for (Player i : pr) {
-            boolean pcc = players.containsKey(i.getUniqueId());
-            if (!pcc) {
-                players.put(i.getUniqueId(), new EnginePlayer(engine, i));
-            }
-        }
-
-        for (UUID i : players.k()) {
-            if (!pr.contains(players.get(i).getPlayer())) {
-                players.remove(i);
-            }
-        }
-    }
 
     public void tickRandomPlayer() {
         if (limit.tryAcquire()) {
             if (M.r(0.02)) {
-                updatePlayerMap();
                 limit.release();
                 return;
             }
 
-            if (players.isEmpty()) {
+            if (engine.getEnginePlayers().isEmpty()) {
                 limit.release();
                 return;
             }
 
             double limitms = 1.5;
-            int max = players.size();
+            int max = engine.getEnginePlayers().size();
             PrecisionStopwatch p = new PrecisionStopwatch();
 
             while (max-- > 0 && M.ms() - p.getMilliseconds() < limitms) {
-                players.v().getRandom().tick();
+                engine.getEnginePlayers().getRandom().tick();
             }
-
             limit.release();
         }
     }

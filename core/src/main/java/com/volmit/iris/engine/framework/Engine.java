@@ -94,6 +94,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     int getBlockUpdatesPerSecond();
 
+    boolean isHeadless();
+
     void printMetrics(CommandSender sender);
 
     EngineMantle getMantle();
@@ -818,6 +820,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     int getCacheID();
+
+    EnginePlayer getEnginePlayer(UUID uuid);
+
+    KList<EnginePlayer> getEnginePlayers();
 
     default IrisBiome getBiomeOrMantle(Location l) {
         return getBiomeOrMantle(l.getBlockX(), l.getBlockY(), l.getBlockZ());

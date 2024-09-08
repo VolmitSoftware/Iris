@@ -24,8 +24,11 @@ import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.core.tools.IrisWorldDump;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.framework.EnginePlayer;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.service.EngineStatusSVC;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
@@ -195,6 +198,34 @@ public class CommandDeveloper implements DecreeExecutor {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    @Decree(description = "All players in iris worlds")
+    public void getPlayers() {
+        KList<World> IrisWorlds = new KList<>();
+        for (World w : Bukkit.getServer().getWorlds()) {
+            if(IrisToolbelt.isIrisWorld(w)) {
+                IrisWorlds.add(w);
+            }
+        }
+
+        if (sender().isPlayer()) {
+            sender().sendMessage(C.BLUE + "Iris Worlds: ");
+            for (World IrisWorld : IrisWorlds.copy()) {
+                sender().sendMessage(C.IRIS + "- " + IrisWorld.getName() + C.GRAY + ", " + IrisToolbelt.access(IrisWorld).getEngine().getEnginePlayers().stream().count() + " players");
+                for (EnginePlayer player : IrisToolbelt.access(IrisWorld).getEngine().getEnginePlayers()) {
+                    sender().sendMessage(C.DARK_GRAY + "> " + player.getPlayer().getName());
+                }
+            }
+        } else {
+            Iris.info(C.BLUE + "Iris Worlds: ");
+            for (World IrisWorld : IrisWorlds.copy()) {
+                Iris.info(C.IRIS + "- " + IrisWorld.getName() + C.GRAY + ", " + IrisToolbelt.access(IrisWorld).getEngine().getEnginePlayers().stream().count() + " players");
+                for (EnginePlayer player : IrisToolbelt.access(IrisWorld).getEngine().getEnginePlayers()) {
+                    Iris.info(C.DARK_GRAY + "> " + player.getPlayer().getName());
+                }
+            }
         }
     }
 

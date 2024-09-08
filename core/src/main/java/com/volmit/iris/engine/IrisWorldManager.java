@@ -23,6 +23,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedWorldManager;
+import com.volmit.iris.engine.framework.EnginePlayer;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -50,14 +51,16 @@ import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerLevelChangeEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -179,6 +182,56 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         looper.setPriority(Thread.MIN_PRIORITY);
         looper.setName("Iris World Manager");
         looper.start();
+    }
+
+    @EventHandler
+    private void on(PlayerChangedWorldEvent event) {
+        updatePlayers();
+    }
+
+    @EventHandler
+    private void on(PlayerJoinEvent event) {
+        updatePlayers();
+    }
+
+    @EventHandler
+    private void on(PlayerLevelChangeEvent event) {
+        updatePlayers();
+    }
+
+    public synchronized void updatePlayers() {
+        // ^ perhaps synchronized isn't the best one to use here
+        if (!getEngine().getWorld().tryGetRealWorld() || getEngine().isHeadless()) {
+            return;
+        }
+
+        var world = getEngine().getWorld().realWorld();
+        if (world == null) return;
+
+        Set<Player> worldPlayers = new HashSet<>(world.getPlayers());
+
+        Map<UUID, EnginePlayer> enginePlayerMap = new HashMap<>();
+        for (EnginePlayer ep : getEngine().getEnginePlayers()) {
+            enginePlayerMap.put(ep.getOwner(), ep);
+        }
+
+        Iterator<Map.Entry<UUID, EnginePlayer>> iterator = enginePlayerMap.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, EnginePlayer> entry = iterator.next();
+            if (worldPlayers.stream().noneMatch(p -> p.getUniqueId().equals(entry.getKey()))) {
+                entry.getValue().close();
+                iterator.remove();
+                getEngine().getEnginePlayers().remove(entry.getValue());
+            }
+        }
+
+        for (Player player : worldPlayers) {
+            if (!enginePlayerMap.containsKey(player.getUniqueId())) {
+                EnginePlayer newEnginePlayer = new EnginePlayer(getEngine(), player);
+                enginePlayerMap.put(player.getUniqueId(), newEnginePlayer);
+                getEngine().getEnginePlayers().add(newEnginePlayer);
+            }
+        }
     }
 
     private void discoverChunks() {

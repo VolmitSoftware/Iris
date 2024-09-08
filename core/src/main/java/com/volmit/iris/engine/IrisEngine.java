@@ -34,6 +34,7 @@ import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.engine.service.EngineEffectsSVC;
 import com.volmit.iris.util.atomics.AtomicRollingSequence;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
@@ -47,6 +48,7 @@ import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterStructurePOI;
+import com.volmit.iris.util.mobs.IrisMobPiece;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
@@ -62,15 +64,15 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -106,6 +108,7 @@ public class IrisEngine implements Engine {
     private EngineMode mode;
     private EngineExecutionEnvironment execution;
     private EngineWorldManager worldManager;
+    private KList<EnginePlayer> players;
     private volatile int parallelism;
     private volatile int minHeight;
     private boolean failing;
@@ -119,6 +122,7 @@ public class IrisEngine implements Engine {
     public IrisEngine(EngineTarget target, boolean studio) {
         this.studio = studio;
         this.target = target;
+        this.players = new KList<>();
         getEngineData();
         verifySeed();
         this.seedManager = new SeedManager(target.getWorld().getRawWorldSeed());
@@ -185,6 +189,23 @@ public class IrisEngine implements Engine {
 
         var effects = getService(EngineEffectsSVC.class);
         if (effects != null) effects.tickRandomPlayer();
+    }
+
+    @Override
+    public EnginePlayer getEnginePlayer(UUID uuid) {
+        return getPlayer(uuid);
+    }
+
+    @Override
+    public KList<EnginePlayer> getEnginePlayers() {
+        return players;
+    }
+
+    private EnginePlayer getPlayer(UUID uuid) {
+        for (EnginePlayer player : players) {
+            if (player.getPlayer().getUniqueId().equals(uuid)) return player;
+        }
+        return null;
     }
 
     private void prehotload() {

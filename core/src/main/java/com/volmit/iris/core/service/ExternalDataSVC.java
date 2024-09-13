@@ -50,6 +50,10 @@ public class ExternalDataSVC implements IrisService {
         if (Bukkit.getPluginManager().getPlugin("Oraxen") != null) {
             Iris.info("Oraxen found, loading OraxenDataProvider...");
         }
+        providers.add(new CrucibleDataProvider());
+        if (Bukkit.getPluginManager().getPlugin("MythicCrucible") != null) {
+            Iris.info("MythicCrucible found, loading CrucibleDataProvider...");
+        }
         providers.add(new ItemAdderDataProvider());
         if (Bukkit.getPluginManager().getPlugin("ItemAdder") != null) {
             Iris.info("ItemAdder found, loading ItemAdderDataProvider...");

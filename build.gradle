@@ -136,6 +136,7 @@ allprojects {
         //implementation 'org.bytedeco:javacpp:1.5.10'
         //implementation 'org.bytedeco:cuda-platform:12.3-8.9-1.5.10'
         compileOnly 'io.lumine:Mythic-Dist:5.2.1'
+        compileOnly 'io.lumine:MythicCrucible-Dist:2.0.0'
 
         // Dynamically Loaded
         compileOnly 'io.timeandspace:smoothie-map:2.0.2'

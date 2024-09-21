@@ -158,6 +158,11 @@ allprojects {
         options.compilerArgs << '-parameters'
         options.encoding = "UTF-8"
     }
+
+    javadoc {
+        options.encoding = "UTF-8"
+        options.addStringOption('Xdoclint:none', '-quiet')
+    }
 }
 
 if (JavaVersion.current().toString() != "17") {

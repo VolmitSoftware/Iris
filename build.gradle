@@ -109,10 +109,10 @@ allprojects {
 
     repositories {
         mavenCentral()
-        maven { url "https://repo.papermc.io/repository/maven-public/"}
+        maven { url "https://repo.papermc.io/repository/maven-public/" }
         maven { url "https://repo.codemc.org/repository/maven-public" }
         maven { url "https://mvn.lumine.io/repository/maven-public/" }
-        maven { url "https://jitpack.io"}
+        maven { url "https://jitpack.io" }
 
         maven { url "https://s01.oss.sonatype.org/content/repositories/snapshots" }
         maven { url "https://mvn.lumine.io/repository/maven/" }
@@ -163,6 +163,16 @@ allprojects {
         options.encoding = "UTF-8"
         options.addStringOption('Xdoclint:none', '-quiet')
     }
+
+    task sourcesJar(type: Jar, dependsOn: classes) {
+        archiveClassifier.set('sources')
+        from sourceSets.main.allSource
+    }
+
+    task javadocJar(type: Jar, dependsOn: javadoc) {
+        archiveClassifier.set('javadoc')
+        from javadoc.destinationDir
+    }
 }
 
 if (JavaVersion.current().toString() != "17") {
@@ -190,16 +200,17 @@ task iris(type: Copy) {
     dependsOn(build)
 }
 
-task sourcesJar(type: Jar, dependsOn: classes) {
+//    with classifier: 'javadoc' and 'sources'
+task irisDev(type: Copy) {
+    group "iris"
+    from("core/build/libs/core-javadoc.jar", "core/build/libs/core-sources.jar")
+    rename { String fileName ->
+        fileName.replace("core", "Iris-${version}")
+    }
+    into layout.buildDirectory.asFile.get()
     dependsOn(iris)
-    archiveClassifier.set('sources')
-    from sourceSets.main.allSource
-}
-
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    dependsOn(iris)
-    archiveClassifier.set('javadoc')
-    from javadoc.destinationDir
+    dependsOn("core:sourcesJar")
+    dependsOn("core:javadocJar")
 }
 
 

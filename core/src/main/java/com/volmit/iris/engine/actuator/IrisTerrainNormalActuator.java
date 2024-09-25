@@ -35,6 +35,7 @@ import org.bukkit.block.data.BlockData;
 public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData> {
     private static final BlockData AIR = Material.AIR.createBlockData();
     private static final BlockData BEDROCK = Material.BEDROCK.createBlockData();
+    private static final BlockData DEEPSLATE = Material.DEEPSLATE.createBlockData();
     private static final BlockData LAVA = Material.LAVA.createBlockData();
     private static final BlockData GLASS = Material.GLASS.createBlockData();
     private static final BlockData CAVE_AIR = Material.CAVE_AIR.createBlockData();
@@ -145,7 +146,12 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                     if (ore != null) {
                         h.set(xf, i, zf, ore);
                     } else {
-                        h.set(xf, i, zf, context.getRock().get(xf, zf));
+                        // todo remove this ( TEMP )
+                        if (getDimension().isDeepslateLayer() && i < 64) {
+                            h.set(xf, i, zf, DEEPSLATE);
+                        } else {
+                            h.set(xf, i, zf, context.getRock().get(xf, zf));
+                        }
                     }
                 }
             }

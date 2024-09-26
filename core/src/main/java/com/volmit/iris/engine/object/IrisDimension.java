@@ -178,6 +178,10 @@ public class IrisDimension extends IrisRegistrant {
     private KList<IrisBlockDrops> blockDrops = new KList<>();
     @Desc("Should bedrock be generated or not.")
     private boolean bedrock = true;
+    @Desc("If under 0 deepslate will be placed instead of the rockPalette")
+    private boolean deepslateLayer = true;
+    @Desc("If true caves get made")
+    private boolean doCaves = true;
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The land chance. Up to 1.0 for total land or 0.0 for total sea")

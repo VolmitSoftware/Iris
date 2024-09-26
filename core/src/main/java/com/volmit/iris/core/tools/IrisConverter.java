@@ -4,6 +4,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.nbt.io.NamedTag;
 import com.volmit.iris.util.nbt.tag.*;
@@ -30,6 +31,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class IrisConverter {
+    /**
+     * Converts all schematics in the convert folder
+     * @param sender
+     */
     public static void convertSchematics(VolmitSender sender) {
         File folder = Iris.instance.getDataFolder("convert");
 
@@ -130,6 +135,34 @@ public class IrisConverter {
         }
         sender.sendMessage(C.GRAY + "converted: " + fileList.length);
         });
+    }
+
+    /**
+     *
+     * @param sender
+     */
+    public static void convertJigsaw(VolmitSender sender) {
+        File folder = Iris.instance.getDataFolder("convert");
+
+        FilenameFilter filter = (dir, name) -> name.endsWith(".nbt");
+        File[] fileList = folder.listFiles(filter);
+        if (fileList == null) {
+            sender.sendMessage("No schematic files to convert found in " + folder.getAbsolutePath());
+            return;
+        }
+
+        for (File nbt : fileList) {
+            try {
+                NamedTag tag = NBTUtil.read(nbt);
+                CompoundTag compound = (CompoundTag) tag.getTag();
+            } catch (Exception e) {
+                Iris.error(C.RED + "Failed to convert: " + nbt.getName());
+                e.printStackTrace();
+            }
+
+        }
+
+
     }
 
 }

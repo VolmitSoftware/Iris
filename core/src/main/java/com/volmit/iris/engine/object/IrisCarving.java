@@ -67,6 +67,10 @@ public class IrisCarving {
 
     @BlockCoordinates
     public void doCarving(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int waterHint) {
+        if (!engine.getDimension().isDoCaves()) {
+            return;
+        }
+
         if (caves.isNotEmpty()) {
             for (IrisCavePlacer i : caves) {
                 i.generateCave(writer, rng, engine, x, y, z, waterHint);

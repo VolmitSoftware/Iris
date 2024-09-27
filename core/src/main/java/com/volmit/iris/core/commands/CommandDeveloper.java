@@ -26,6 +26,7 @@ import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pregenerator.ChunkUpdater;
 import com.volmit.iris.core.service.IrisEngineSVC;
+import com.volmit.iris.core.tools.IrisBiomeFixer;
 import com.volmit.iris.core.tools.IrisConverter;
 import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -158,6 +159,16 @@ public class CommandDeveloper implements DecreeExecutor {
         Iris.info("test");
         IrisPackBenchmarking benchmark = new IrisPackBenchmarking(dimension, 1);
 
+    }
+
+    @Decree(description = "Fix biomes in a iris world")
+    public void fixBiomes(
+            @Param(description = "The IrisWorld to fix biomes at") World world) {
+
+        IrisBiomeFixer biomeFixer = new IrisBiomeFixer(world);
+        Iris.info("Fixing biomes.");
+        biomeFixer.fixBiomes();
+        Iris.info("Done fixing biomes!");
     }
 
     @Decree(description = "Upgrade to another Minecraft version")

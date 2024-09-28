@@ -1,6 +1,7 @@
 package com.volmit.iris.core.tools;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
@@ -125,7 +126,6 @@ public class IrisBiomeFixer {
                         for (int y = minY; y < maxY; y++) {
                             for (int z = 0; z < 16; z++) {
                                 Block block = chunk.getBlock(x, y, z);
-                                Biome bukkitBiome;
                                 IrisBiome irisBiome = engine.getBiome(x, y, z);
                                 IrisBiomeCustom custom;
                                 try {
@@ -135,27 +135,17 @@ public class IrisBiomeFixer {
                                 }
 
                                 if (custom != null) {
-                                    // Attempt to get the Biome enum constant
                                     try {
-                                        bukkitBiome = Biome.valueOf(custom.getId().toUpperCase());
-                                        world.setBiome(block.getX(), block.getY(), block.getZ(), bukkitBiome);
-                                    } catch (IllegalArgumentException ex) {
-                                        // Custom biome not found in Biome enum
-                                        // Attempt to set custom biome via NMS
-                                        try {
-                                            setCustomBiome(block, custom.getId());
-                                        } catch (Exception e) {
-                                            // Log unregistered or failed to set custom biome
-                                            logUnregisteredBiome(custom.getId());
-                                            // Fallback to derivative biome
-                                            bukkitBiome = irisBiome.getDerivative();
-                                            world.setBiome(block.getX(), block.getY(), block.getZ(), bukkitBiome);
-                                        }
+                                        int id = INMS.get().getBiomeBaseIdForKey(engine.getDimension().getLoadKey() + ":" + custom.getId());
+                                        Biome biome = (Biome) INMS.get().getBiomeBaseFromId(id);
+                                        world.setBiome(block.getX(), block.getY(), block.getZ(), biome);
+                                    } catch (Exception e) {
+                                        Iris.warn("Fallback! IrisBiome ID: " + custom.getId() + " is invalid!");
+                                        world.setBiome(block.getX(), block.getY(), block.getZ(), irisBiome.getDerivative());
                                     }
                                 } else {
                                     // Use derivative biome if custom biome is null
-                                    bukkitBiome = irisBiome.getDerivative();
-                                    world.setBiome(block.getX(), block.getY(), block.getZ(), bukkitBiome);
+                                    world.setBiome(block.getX(), block.getY(), block.getZ(), irisBiome.getDerivative());
                                 }
                             }
                         }
@@ -191,64 +181,6 @@ public class IrisBiomeFixer {
 
         // Final Progress Update
         Iris.info(String.format("Biome Fixing Completed: %d/%d chunks processed.", generated.get(), totalChunks.get()));
-    }
-
-    /**
-     * Sets a custom biome using NMS (Minecraft's internal classes).
-     *
-     * @param block      The block whose biome is to be set.
-     * @param biomeId    The NamespacedKey of the custom biome (e.g., "custom:my_biome").
-     * @throws Exception If reflection or NMS interaction fails.
-     */
-    private void setCustomBiome(Block block, String biomeId) throws Exception {
-        // Parse the NamespacedKey
-        NamespacedKey key = NamespacedKey.fromString(biomeId);
-        if (key == null) {
-            throw new IllegalArgumentException("Invalid biome ID: " + biomeId);
-        }
-
-        // Access NMS classes using reflection
-        // Adjust the version string as needed (e.g., "v1_20_R1")
-        String nmsVersion = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
-        Class<?> worldClass = Class.forName("org.bukkit.craftbukkit." + nmsVersion + ".CraftWorld");
-        Object nmsWorld = worldClass.cast(world).getClass().getMethod("getHandle").invoke(world);
-
-        Class<?> chunkClass = Class.forName("net.minecraft.world.level.chunk.Chunk");
-        Object nmsChunk = chunkClass.cast(nmsWorld.getClass().getMethod("getChunk", int.class, int.class, boolean.class)
-                .invoke(nmsWorld, block.getChunk().getX(), block.getChunk().getZ(), false));
-
-        // Get the biome registry
-        Class<?> registryKeyClass = Class.forName("net.minecraft.resources.ResourceKey");
-        Class<?> biomeClass = Class.forName("net.minecraft.world.level.biome.Biome");
-        Class<?> registryClass = Class.forName("net.minecraft.core.Registry");
-        Method biomeRegistryMethod = registryClass.getMethod("a", Class.class, Object.class);
-        Object biomeRegistry = biomeRegistryMethod.invoke(null, biomeClass, null); // Replace null with actual registry if needed
-
-        // Get the biome by key
-        Method getBiomeMethod = biomeClass.getMethod("a", registryKeyClass);
-        Object customBiome = getBiomeMethod.invoke(null, key.getNamespace() + ":" + key.getKey());
-
-        if (customBiome == null) {
-            throw new IllegalArgumentException("Custom biome not found: " + biomeId);
-        }
-
-        // Set the biome in the chunk
-        Method setBiomeMethod = chunkClass.getMethod("setBiome", int.class, int.class, biomeClass);
-        setBiomeMethod.invoke(nmsChunk, block.getX() & 15, block.getZ() & 15, customBiome);
-    }
-
-    /**
-     * Logs unregistered or failed to set custom biomes to a file.
-     *
-     * @param biomeId The ID of the biome that failed to register.
-     */
-    private void logUnregisteredBiome(String biomeId) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(unregisteredBiomesFile, true))) {
-            writer.write(biomeId);
-            writer.newLine();
-        } catch (IOException e) {
-            Iris.error("Failed to log unregistered biome: " + biomeId, e);
-        }
     }
 
     private long computeETA(int cps) {

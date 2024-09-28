@@ -7,6 +7,7 @@ import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.math.RollingSequence;
+import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.World;
@@ -109,16 +110,28 @@ public class IrisBiomeFixer {
                         for (int y = minY; y < maxY; y++) {
                             for (int z = 0; z < 16; z++) {
                                 Block block = chunk.getBlock(x, y, z);
-                                Biome bukkitBiome = null;
+                                Biome bukkitBiome;
                                 IrisBiome irisBiome = engine.getBiome(x, y, z);
-                                IrisBiomeCustom custom = irisBiome.getCustomBiome(rng, x, y, z);
-                                if (custom != null) {
-                                    bukkitBiome = Biome.valueOf(custom.getId().toUpperCase());
-                                } else {
 
-
+                                try {
+                                    // Try to get the custom biome
+                                    IrisBiomeCustom custom = irisBiome.getCustomBiome(rng, x, y, z);
+                                    if (custom != null) {
+                                        bukkitBiome = Biome.valueOf(custom.getId().toUpperCase());
+                                    } else {
+                                        // Fallback to derivative biome if custom biome is null
+                                        bukkitBiome = irisBiome.getDerivative();
+                                    }
+                                } catch (NullPointerException e) {
+                                    // So else will fail. But this works lol
+                                    bukkitBiome = irisBiome.getDerivative();
                                 }
 
+                                if (bukkitBiome == null) {
+                                    // This should be impossible
+                                    bukkitBiome = Biome.CUSTOM;
+                                    Iris.warn("Biome NULL! using plains as fallback!");
+                                }
                                 world.setBiome(block.getX(), block.getY(), block.getZ(), bukkitBiome);
                             }
                         }

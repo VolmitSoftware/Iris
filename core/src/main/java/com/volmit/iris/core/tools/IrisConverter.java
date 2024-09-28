@@ -2,8 +2,11 @@ package com.volmit.iris.core.tools;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.*;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.function.Consumer2;
 import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.nbt.io.NamedTag;
@@ -141,28 +144,61 @@ public class IrisConverter {
      *
      * @param sender
      */
-    public static void convertJigsaw(VolmitSender sender) {
-        File folder = Iris.instance.getDataFolder("convert");
+    public static void convertJigsawStructure(File in, File out, VolmitSender sender) {
+        File dataFolder = Iris.instance.getDataFolder("convert");
+        try {
+            KMap<String, IrisJigsawPool> pools = new KMap<>();
+            KList<File> roots = new KList<>();
+            AtomicInteger total = new AtomicInteger(0);
+            AtomicInteger at = new AtomicInteger(0);
+            File destPools = new File(out.getAbsolutePath() + "/jigsaw-pools");
+            destPools.mkdirs();
+            findAllNBT(in, (folder, file) -> {
+                total.getAndIncrement();
+                if (roots.addIfMissing(folder)) {
+                    String b = in.toURI().relativize(folder.toURI()).getPath();
+                    if (b.startsWith("/")) {
+                        b = b.substring(1);
+                    }
 
-        FilenameFilter filter = (dir, name) -> name.endsWith(".nbt");
-        File[] fileList = folder.listFiles(filter);
-        if (fileList == null) {
-            sender.sendMessage("No schematic files to convert found in " + folder.getAbsolutePath());
+                    if (b.endsWith("/")) {
+                        b = b.substring(0, b.length() - 1);
+                    }
+
+                    pools.put(b, new IrisJigsawPool());
+                }
+            });
+
+
+
+
+
+
+        } catch (Exception e) {
+            Iris.error(C.RED + "Failed to convert: " + in.getPath());
+            e.printStackTrace();
+        }
+
+
+
+    }
+
+    private static void findAllNBT(File path, Consumer2<File, File> inFile) {
+        if (path == null) {
             return;
         }
 
-        for (File nbt : fileList) {
-            try {
-                NamedTag tag = NBTUtil.read(nbt);
-                CompoundTag compound = (CompoundTag) tag.getTag();
-            } catch (Exception e) {
-                Iris.error(C.RED + "Failed to convert: " + nbt.getName());
-                e.printStackTrace();
-            }
-
+        if (path.isFile() && path.getName().endsWith(".nbt")) {
+            inFile.accept(path.getParentFile(), path);
+            return;
         }
-
-
+        for (File i : path.listFiles()) {
+            if (i.isDirectory()) {
+                findAllNBT(i, inFile);
+            } else if (i.isFile() && i.getName().endsWith(".nbt")) {
+                inFile.accept(path, i);
+            }
+        }
     }
 
 }

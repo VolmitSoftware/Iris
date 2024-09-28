@@ -73,7 +73,6 @@ import static org.bukkit.Bukkit.getServer;
 public class CommandIris implements DecreeExecutor {
     private CommandStudio studio;
     private CommandPregen pregen;
-    private CommandLazyPregen lazyPregen;
     private CommandSettings settings;
     private CommandObject object;
     private CommandJigsaw jigsaw;

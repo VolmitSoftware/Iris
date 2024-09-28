@@ -18,6 +18,7 @@
 
 package com.volmit.iris.core.nms;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.engine.framework.Engine;
@@ -30,6 +31,7 @@ import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -125,4 +127,9 @@ public interface INMSBinding {
     }
 
     KList<String> getStructureKeys();
+
+    default BlockData getBlockData(CompoundTag tag) {
+        Iris.error("Unsupported version!");
+        return null;
+    };
 }

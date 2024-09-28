@@ -23,6 +23,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 
 @Getter
@@ -63,6 +64,8 @@ public class WorldObjectPlacer implements IObjectPlacer {
         if (slot != null) {
             RNG rx = new RNG(Cache.key(x, z));
             KList<IrisLootTable> tables = engine.getLootTables(rx, block);
+
+            Inventory inventory = null;
 
             try {
                 Bukkit.getPluginManager().callEvent(new IrisLootEvent(engine, block, slot, tables));

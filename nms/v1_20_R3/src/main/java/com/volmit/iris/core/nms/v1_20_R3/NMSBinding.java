@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.mojang.datafixers.util.Pair;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.scheduling.J;
 import net.minecraft.nbt.*;
 import net.minecraft.nbt.Tag;
@@ -630,5 +631,33 @@ public class NMSBinding implements INMSBinding {
 
     public static Holder<net.minecraft.world.level.biome.Biome> biomeToBiomeBase(Registry<net.minecraft.world.level.biome.Biome> registry, Biome biome) {
         return registry.getHolderOrThrow(ResourceKey.create(Registries.BIOME, CraftNamespacedKey.toMinecraft(biome.getKey())));
+    }
+
+    @Override
+    public BlockData getBlockData(CompoundTag tag) {
+        if (tag == null) {
+            return B.getAir();
+        }
+
+        StringBuilder p = new StringBuilder(tag.getString("Name"));
+
+        if (tag.containsKey("Properties")) {
+            CompoundTag props = tag.getCompoundTag("Properties");
+            p.append('[');
+
+            for (String i : props.keySet()) {
+                p.append(i).append('=').append(props.getString(i)).append(',');
+            }
+
+            p.deleteCharAt(p.length() - 1).append(']');
+        }
+
+        BlockData b = B.get(String.valueOf(p));
+
+        if (b == null) {
+            return B.getAir();
+        }
+
+        return b;
     }
 }

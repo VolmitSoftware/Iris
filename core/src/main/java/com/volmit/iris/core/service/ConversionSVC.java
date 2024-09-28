@@ -20,9 +20,12 @@ package com.volmit.iris.core.service;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer2;
 import com.volmit.iris.util.io.Converter;
@@ -37,13 +40,16 @@ import com.volmit.iris.util.nbt.tag.ListTag;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
+import org.apache.commons.io.FileUtils;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Jigsaw;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class ConversionSVC implements IrisService {
     private KList<Converter> converters;
@@ -122,7 +128,7 @@ public class ConversionSVC implements IrisService {
                     @SuppressWarnings("unchecked") ListTag<CompoundTag> paletteList = (ListTag<CompoundTag>) compound.getListTag("palette");
                     for (int i = 0; i < paletteList.size(); i++) {
                         CompoundTag cp = paletteList.get(i);
-                        palette.add(NBTWorld.getBlockData(cp));
+                        palette.add(INMS.get().getBlockData(cp));
                     }
                     IrisJigsawPiece piece = new IrisJigsawPiece();
                     IrisObject object = new IrisObject(w, h, d);
@@ -135,20 +141,37 @@ public class ConversionSVC implements IrisService {
                         int z = pos.get(2).asInt();
                         BlockData bd = palette.get(cp.getInt("state")).clone();
 
+                        piece.setObject(in.toURI().relativize(folder.toURI()).getPath() + file.getName().split("\\Q.\\E")[0]);
                         if (bd.getMaterial().equals(Material.JIGSAW) && cp.containsKey("nbt")) {
-                            piece.setObject(in.toURI().relativize(folder.toURI()).getPath() + file.getName().split("\\Q.\\E")[0]);
+                            //.setObject(in.toURI().relativize(folder.toURI()).getPath() + file.getName().split("\\Q.\\E")[0]);
                             IrisPosition spos = new IrisPosition(object.getSigned(x, y, z));
                             CompoundTag nbt = cp.getCompoundTag("nbt");
                             CompoundTag finalState = new CompoundTag();
                             finalState.putString("Name", nbt.getString("final_state"));
                             BlockData jd = bd.clone();
-                            bd = NBTWorld.getBlockData(finalState);
+                            bd = INMS.get().getBlockData(finalState);
                             String joint = nbt.getString("joint");
                             String pool = nbt.getString("pool");
                             String poolId = toPoolName(pool);
                             String name = nbt.getString("name");
                             String target = nbt.getString("target");
-                            pools.computeIfAbsent(poolId, (k) -> new IrisJigsawPool());
+                            pools.computeIfAbsent(poolId, (k) -> {
+                                IrisJigsawPool irisPool = new IrisJigsawPool();
+
+                                String basePath = in.toURI().relativize(folder.toURI()).getPath();
+                                File baseFolder = new File(in.toURI().relativize(folder.toURI()).toString());
+                                String[] paths = FileUtils.listFiles(folder, null, true)
+                                        .stream()
+                                        .map(path -> path.getPath().replaceAll("\\.nbt$", "")).toArray(String[]::new);
+
+                                KList<String> poolList = new KList<>();
+                                for (int ii = 0; ii < Objects.requireNonNull(paths).length; ii++) {
+                                    String lastSegment = paths[ii].substring(paths[ii].lastIndexOf("\\") + 1);
+                                    poolList.add(basePath + lastSegment);
+                                }
+                                irisPool.setPieces(poolList);
+                                return irisPool;
+                            });
                             IrisJigsawPieceConnector connector = new IrisJigsawPieceConnector();
                             connector.setName(name);
                             connector.setTargetName(target);
@@ -169,10 +192,14 @@ public class ConversionSVC implements IrisService {
                         }
                     }
 
+                    if (piece.getObject().isBlank() || piece.getObject().isEmpty()) {
+                        Iris.info(C.RED + "Failed Setting object with path: " + in.toURI().relativize(folder.toURI()).getPath() + file.getName().split("\\Q.\\E")[0]);
+                    }
                     jpool.getPieces().addIfMissing(id);
                     object.write(new File(destObjects, file.getName().split("\\Q.\\E")[0] + ".iob"));
                     IO.writeAll(new File(destPieces, file.getName().split("\\Q.\\E")[0] + ".json"), new JSONObject(new Gson().toJson(piece)).toString(4));
-                    Iris.info("[Jigsaw]: (" + Form.pc((double) at.get() / (double) total.get(), 0) + ") Exported Piece: " + id);
+                    Iris.info("[Jigsaw]: (" + Form.pc((double) at.get() / (double) total.get(), 0).replace("%", "%%") + ") Exported Piece: " + id);
+
                 }
             } catch (Throwable e) {
                 e.printStackTrace();

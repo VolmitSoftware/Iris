@@ -161,8 +161,8 @@ public class CommandDeveloper implements DecreeExecutor {
 
     }
 
-    @Decree(description = "Fix biomes in a iris world")
-    public void fixBiomes(
+    @Decree(description = "Fix biomes in a iris world", aliases = {"fb"} )
+    public void fixbiomes(
             @Param(description = "The IrisWorld to fix biomes at") World world) {
 
         IrisBiomeFixer biomeFixer = new IrisBiomeFixer(world);

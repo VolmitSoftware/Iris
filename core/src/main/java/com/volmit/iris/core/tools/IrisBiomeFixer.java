@@ -4,54 +4,41 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBiomeCustom;
+import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.math.RollingSequence;
-import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.scheduling.ChronoLatch;
-import com.volmit.iris.util.scheduling.J;
-import org.bukkit.Bukkit;
-import org.bukkit.NamespacedKey;
 import org.bukkit.World;
-import org.bukkit.Chunk;
-import org.bukkit.block.Biome;
-import org.bukkit.block.Block;
 import org.bukkit.plugin.Plugin;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.lang.reflect.Method;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class IrisBiomeFixer {
-    /**
-     * Do a pregen style approach iterate across a certain region and set everything to the correct biome again.
-     * Have 2 modes ( all, surface-only ) surface-only gets the underground caves from a different world
-     */
-
     private World world;
     private Engine engine;
-    private int radius;
     private ChronoLatch latch;
 
     private RollingSequence chunksPerSecond;
+    private RollingSequence chunksPerMinute;
     private AtomicLong startTime;
     private AtomicLong lastLogTime;
 
     private AtomicInteger generated = new AtomicInteger(0);
-    private AtomicInteger lastGenerated = new AtomicInteger(0);
+    private AtomicInteger generatedLast = new AtomicInteger(0);
+    private AtomicInteger generatedLastMinute = new AtomicInteger(0);
     private AtomicInteger totalChunks = new AtomicInteger(0);
     private ChronoLatch progressLatch = new ChronoLatch(5000); // Update every 5 seconds
+    private ChronoLatch minuteLatch = new ChronoLatch(60000, false);
 
-    // File to store unregistered biome IDs
     private File unregisteredBiomesFile;
 
-    // Reference to your plugin instance (Assuming you have one)
     private Plugin plugin;
+
+    private ScheduledExecutorService progressUpdater;
 
     public IrisBiomeFixer(World world) {
         if (!IrisToolbelt.isIrisWorld(world)) {
@@ -59,7 +46,8 @@ public class IrisBiomeFixer {
             return;
         }
 
-        this.chunksPerSecond = new RollingSequence(32);
+        this.chunksPerSecond = new RollingSequence(10);
+        this.chunksPerMinute = new RollingSequence(10);
         this.startTime = new AtomicLong(M.ms());
         this.lastLogTime = new AtomicLong(M.ms());
         this.world = world;
@@ -69,6 +57,9 @@ public class IrisBiomeFixer {
 
         // Initialize the file for storing unregistered biome IDs
         this.unregisteredBiomesFile = new File(world.getWorldFolder(), "unregistered_biomes.txt");
+
+        // Initialize the progress updater executor
+        this.progressUpdater = Executors.newSingleThreadScheduledExecutor();
     }
 
     public void fixBiomes() {
@@ -94,6 +85,9 @@ public class IrisBiomeFixer {
             totalChunks.addAndGet(1024);
         }
 
+        // Start the progress updater
+        progressUpdater.scheduleAtFixedRate(this::updateProgress, 1, 1, TimeUnit.SECONDS);
+
         for (File regionFile : regionFiles) {
             String filename = regionFile.getName(); // e.g., "r.0.0.mca"
             String[] parts = filename.split("\\.");
@@ -114,81 +108,105 @@ public class IrisBiomeFixer {
                         continue;
                     }
 
-                    J.s(() -> {
-                        world.loadChunk(chunkX, chunkZ);
-                    });
-                    Chunk chunk = world.getChunkAt(chunkX, chunkZ);
-
                     int minY = world.getMinHeight();
                     int maxY = world.getMaxHeight();
+                    int height = maxY - minY; // Correct height calculation
 
-                    for (int x = 0; x < 16; x++) {
-                        for (int y = minY; y < maxY; y++) {
-                            for (int z = 0; z < 16; z++) {
-                                Block block = chunk.getBlock(x, y, z);
-                                IrisBiome irisBiome = engine.getBiome(x, y, z);
-                                IrisBiomeCustom custom;
-                                try {
-                                    custom = irisBiome.getCustomBiome(rng, x, y, z);
-                                } catch (Exception e) {
-                                    custom = null;
+                    Hunk<Object> biomes = Hunk.newHunk(16, height, 16);
+
+                    for (int x = 0; x < 16; x += 4) {
+                        for (int z = 0; z < 16; z += 4) {
+                            for (int y = minY; y < maxY; y += 4) {
+                                // Calculate the biome once per 4x4x4 block
+                                int realX = chunkX * 16 + x;
+                                int realZ = chunkZ * 16 + z;
+                                int realY = y;
+
+                                IrisBiome biome = engine.getBiome(realX, realY, realZ);
+                                Object biomeHolder = null;
+
+                                if (biome.isCustom()) {
+                                    biomeHolder = INMS.get().getCustomBiomeBaseHolderFor(
+                                            engine.getDimension().getLoadKey() + ":" + biome.getCustomBiome(rng, realX, realY, realZ).getId());
+                                } else {
+                                    // Handle non-custom biome if necessary
+                                    // biomeHolder = INMS.get().getCustomBiomeBaseHolderFor(biome.getDerivative().getKey().getKey());
                                 }
 
-                                if (custom != null) {
-                                    try {
-                                        int id = INMS.get().getBiomeBaseIdForKey(engine.getDimension().getLoadKey() + ":" + custom.getId());
-                                        Biome biome = (Biome) INMS.get().getBiomeBaseFromId(id);
-                                        world.setBiome(block.getX(), block.getY(), block.getZ(), biome);
-                                    } catch (Exception e) {
-                                        Iris.warn("Fallback! IrisBiome ID: " + custom.getId() + " is invalid!");
-                                        world.setBiome(block.getX(), block.getY(), block.getZ(), irisBiome.getDerivative());
+                                // Now fill the 4x4x4 block in the hunk
+                                for (int subX = x; subX < x + 4 && subX < 16; subX++) {
+                                    for (int subZ = z; subZ < z + 4 && subZ < 16; subZ++) {
+                                        for (int subY = y; subY < y + 4 && subY < maxY; subY++) {
+                                            int relativeY = subY - minY; // Offset Y-coordinate
+
+                                            biomes.set(subX, relativeY, subZ, biomeHolder);
+                                        }
                                     }
-                                } else {
-                                    // Use derivative biome if custom biome is null
-                                    world.setBiome(block.getX(), block.getY(), block.getZ(), irisBiome.getDerivative());
                                 }
                             }
                         }
                     }
 
+                    INMS.get().setBiomes(cx, cz, engine.getWorld().realWorld(), biomes);
+
                     generated.incrementAndGet();
-
-                    // Progress Logging
-                    if (progressLatch.flip()) {
-                        long currentTime = M.ms();
-                        long elapsedTime = currentTime - lastLogTime.get();
-                        int currentGenerated = generated.get();
-                        int last = lastGenerated.getAndSet(currentGenerated);
-                        int chunksProcessed = currentGenerated - last;
-
-                        double seconds = elapsedTime / 1000.0;
-                        int cps = seconds > 0 ? (int) (chunksProcessed / seconds) : 0;
-                        chunksPerSecond.put(cps);
-
-                        long eta = computeETA(cps);
-                        double percentage = ((double) currentGenerated / totalChunks.get()) * 100;
-
-                        Iris.info(String.format("Biome Fixer Progress: %d/%d chunks (%.2f%%) - %d chunks/s ETA: %s",
-                                currentGenerated, totalChunks.get(), percentage, cps, formatETA(eta)));
-
-                        lastLogTime.set(currentTime);
-                    }
-
-                    world.unloadChunk(chunkX, chunkZ);
                 }
             }
         }
 
+        // Shut down the progress updater
+        progressUpdater.shutdown();
+
+        try {
+            // Wait for the progress updater to finish
+            if (!progressUpdater.awaitTermination(1, TimeUnit.MINUTES)) {
+                Iris.warn("Progress updater did not terminate in time.");
+                progressUpdater.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            Iris.warn("Progress updater interrupted during shutdown.");
+            progressUpdater.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+
         // Final Progress Update
-        Iris.info(String.format("Biome Fixing Completed: %d/%d chunks processed.", generated.get(), totalChunks.get()));
+        Iris.info("Biome Fixing Completed: " + generated.get() + "/" + totalChunks.get() + " chunks processed.");
     }
 
-    private long computeETA(int cps) {
-        if (chunksPerSecond.size() < chunksPerSecond.getMax()) {
-            if (cps == 0) return Long.MAX_VALUE;
+    private void updateProgress() {
+        long currentTime = M.ms();
+        int currentGenerated = generated.get();
+        int last = generatedLast.getAndSet(currentGenerated);
+        int chunksProcessed = currentGenerated - last;
+
+        chunksPerSecond.put(chunksProcessed);
+
+        // Update chunks per minute
+        if (minuteLatch.flip()) {
+            int lastMinuteGenerated = generatedLastMinute.getAndSet(currentGenerated);
+            int minuteProcessed = currentGenerated - lastMinuteGenerated;
+            chunksPerMinute.put(minuteProcessed);
+        }
+
+        long eta = computeETA();
+        double percentage = ((double) currentGenerated / totalChunks.get()) * 100;
+
+        if (progressLatch.flip()) {
+            Iris.info("Biome Fixer Progress: " + currentGenerated + "/" + totalChunks.get() +
+                    " chunks (" + percentage + "%%) - " +
+                    chunksPerSecond.getAverage() + " chunks/s ETA: " + formatETA(eta));
+        }
+    }
+
+    private long computeETA() {
+        if (generated.get() > totalChunks.get() / 8) {
+            // Use smooth function
+            double elapsedTime = (double) (M.ms() - startTime.get());
+            double rate = generated.get() / elapsedTime; // chunks per millisecond
             int remaining = totalChunks.get() - generated.get();
-            return (long) ((double) remaining / cps) * 1000;
+            return (long) (remaining / rate);
         } else {
+            // Use quick function
             double averageCps = chunksPerSecond.getAverage();
             if (averageCps == 0) return Long.MAX_VALUE;
             int remaining = totalChunks.get() - generated.get();
@@ -205,6 +223,6 @@ public class IrisBiomeFixer {
         seconds %= 60;
         long hours = minutes / 60;
         minutes %= 60;
-        return String.format("%02dh:%02dm:%02ds", hours, minutes, seconds);
+        return hours + "h:" + minutes + "m:" + seconds + "s";
     }
 }

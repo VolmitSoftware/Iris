@@ -24,6 +24,7 @@ import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
@@ -97,6 +98,10 @@ public interface INMSBinding {
     }
 
     int countCustomBiomes();
+
+    default void setBiomes(int cx, int cz, World world, Hunk<Object> biomes) {
+        Iris.error("Unsupported version!");
+    }
 
     void forceBiomeInto(int x, int y, int z, Object somethingVeryDirty, ChunkGenerator.BiomeGrid chunk);
 

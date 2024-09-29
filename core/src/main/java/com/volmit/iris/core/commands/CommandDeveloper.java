@@ -171,6 +171,11 @@ public class CommandDeveloper implements DecreeExecutor {
         Iris.info("Done fixing biomes!");
     }
 
+    @Decree(description = "check", aliases = {"ck"} )
+    public void check() {
+        sender().sendMessage("Data Pack Biome: " + INMS.get().getTrueBiomeBaseKey(player().getLocation()) + " (ID: " + INMS.get().getTrueBiomeBaseId(INMS.get().getTrueBiomeBase(player().getLocation())) + ")");
+    }
+
     @Decree(description = "Upgrade to another Minecraft version")
     public void upgrade(
             @Param(description = "The version to upgrade to", defaultValue = "latest") DataVersion version) {

@@ -1,10 +1,6 @@
 package com.volmit.iris.core.nms.v1_20_R3;
 
 import java.awt.Color;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -33,10 +29,8 @@ import org.bukkit.craftbukkit.v1_20_R3.CraftWorld;
 import org.bukkit.craftbukkit.v1_20_R3.block.CraftBlockState;
 import org.bukkit.craftbukkit.v1_20_R3.block.CraftBlockStates;
 import org.bukkit.craftbukkit.v1_20_R3.block.data.CraftBlockData;
-import org.bukkit.craftbukkit.v1_20_R3.entity.CraftDolphin;
 import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.v1_20_R3.util.CraftNamespacedKey;
-import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
@@ -56,7 +50,6 @@ import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.matter.MatterBiomeInject;
-import com.volmit.iris.util.nbt.io.NBTUtil;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.mca.palette.*;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
@@ -71,14 +64,12 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
-import sun.misc.Unsafe;
 
 public class NMSBinding implements INMSBinding {
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
@@ -286,7 +277,11 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public int getTrueBiomeBaseId(Object biomeBase) {
-        return getCustomBiomeRegistry().getId(((Holder<net.minecraft.world.level.biome.Biome>) biomeBase).value());
+        if (biomeBase instanceof net.minecraft.world.level.biome.Biome) {
+            net.minecraft.world.level.biome.Biome biome = (net.minecraft.world.level.biome.Biome) biomeBase;
+            return getCustomBiomeRegistry().getId(biome);
+        }
+        throw new IllegalArgumentException("Invalid biomeBase type: " + biomeBase.getClass().getName());
     }
 
     @Override
@@ -315,7 +310,15 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public String getKeyForBiomeBase(Object biomeBase) {
-        return getCustomBiomeRegistry().getKey((net.minecraft.world.level.biome.Biome) biomeBase).getPath(); // something, not something:something
+        if (biomeBase instanceof net.minecraft.core.Holder<?>) {
+            net.minecraft.core.Holder<?> holder = (net.minecraft.core.Holder<?>) biomeBase;
+
+            if (holder.value() instanceof net.minecraft.world.level.biome.Biome) {
+                net.minecraft.world.level.biome.Biome biome = (net.minecraft.world.level.biome.Biome) holder.value();
+                return getCustomBiomeRegistry().getKey(biome).getPath();
+            }
+        }
+        throw new IllegalArgumentException("Invalid biomeBase type: " + biomeBase.getClass().getName());
     }
 
     @Override
@@ -438,6 +441,7 @@ public class NMSBinding implements INMSBinding {
         return true;
     }
 
+    @Override
     public void setBiomes(int cx, int cz, World world, Hunk<Object> biomes) {
         LevelChunk c = ((CraftWorld) world).getHandle().getChunk(cx, cz);
         biomes.iterateSync((x, y, z, b) -> c.setBiome(x, y, z, (Holder<net.minecraft.world.level.biome.Biome>) b));

@@ -62,10 +62,7 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.stream.ProceduralStream;
 import io.papermc.lib.PaperLib;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -77,6 +74,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
 import java.awt.*;
+import java.awt.Color;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
@@ -497,7 +495,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     @Override
-    default void addItems(boolean debug, Inventory inv, RNG rng, KList<IrisLootTable> tables, InventorySlotType slot, int x, int y, int z, int mgf) {
+    default void addItems(boolean debug, Inventory inv, RNG rng, KList<IrisLootTable> tables, InventorySlotType slot, World world, int x, int y, int z, int mgf) {
         KList<ItemStack> items = new KList<>();
 
         int b = 4;
@@ -505,7 +503,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             if (i == null)
                 continue;
             b++;
-            items.addAll(i.getLoot(debug, rng, slot, x, y, z));
+            items.addAll(i.getLoot(debug, rng, slot, world, x, y, z));
         }
 
         if (PaperLib.isPaper() && getWorld().hasRealWorld()) {

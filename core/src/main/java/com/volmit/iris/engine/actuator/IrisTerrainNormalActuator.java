@@ -31,8 +31,10 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.generator.ChunkGenerator;
 
 public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData> {
     private static final BlockData AIR = Material.AIR.createBlockData();
@@ -173,9 +175,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
         int zf, realX, realZ, hf, he;
 
         for (zf = 0; zf < h.getDepth(); zf++) {
-
-
-
 
         }
     }

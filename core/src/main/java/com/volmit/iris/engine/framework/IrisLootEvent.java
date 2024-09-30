@@ -68,8 +68,7 @@ public class IrisLootEvent extends Event {
      * allowing other plugins to modify or cancel the loot generation.
      */
     private Inventory triggerBukkitLootEvent() {
-        if (block.getState() instanceof InventoryHolder) {
-            InventoryHolder holder = (InventoryHolder) block.getState();
+        if (block.getState() instanceof InventoryHolder holder) {
             Inventory inventory = holder.getInventory();
             inventory.clear();
 
@@ -78,11 +77,11 @@ public class IrisLootEvent extends Event {
             int x = block.getX(), y = block.getY(), z = block.getZ();
 
             for (IrisLootTable table : tables)
-                loot.addAll(table.getLoot(false, rng, slot, x, y, z));
+                loot.addAll(table.getLoot(false, rng, slot, block.getWorld(), x, y, z));
 
             LootContext context = new LootContext.Builder(block.getLocation()).build();
 
-            LootTable lootTable = Bukkit.getLootTable(LootTables.EMPTY.getKey()); // todo: Correct structure
+            LootTable lootTable = LootTables.EMPTY.getLootTable(); // todo: Correct structure
 
             LootGenerateEvent bukkitEvent = new LootGenerateEvent(engine.getWorld().realWorld(), null, holder, lootTable, context, loot, true); // todo: Use the iris loottable
             Bukkit.getServer().getPluginManager().callEvent(bukkitEvent);

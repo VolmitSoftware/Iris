@@ -4,6 +4,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
@@ -11,6 +12,7 @@ import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.block.Biome;
 
 import java.io.File;
 import java.util.concurrent.*;
@@ -117,7 +119,6 @@ public class IrisBiomeFixer {
                     for (int x = 0; x < 16; x += 4) {
                         for (int z = 0; z < 16; z += 4) {
                             for (int y = minY; y < maxY; y += 4) {
-                                // Calculate the biome once per 4x4x4 block
                                 int realX = chunkX * 16 + x;
                                 int realZ = chunkZ * 16 + z;
                                 int realY = y;
@@ -129,8 +130,13 @@ public class IrisBiomeFixer {
                                     biomeHolder = INMS.get().getCustomBiomeBaseHolderFor(
                                             engine.getDimension().getLoadKey() + ":" + biome.getCustomBiome(rng, realX, realY, realZ).getId());
                                 } else {
-                                    // Handle non-custom biome if necessary
-                                    // biomeHolder = INMS.get().getCustomBiomeBaseHolderFor(biome.getDerivative().getKey().getKey());
+                                    Biome bukkitBiome = biome.getDerivative();
+                                    if (bukkitBiome != null) {
+                                        biomeHolder = INMS.get().getBiomeBase(world, bukkitBiome);
+                                    }
+                                }
+                                if (biomeHolder == null) {
+                                    Iris.warn("Biomeholder null! Unsure what to do.");
                                 }
 
                                 // Now fill the 4x4x4 block in the hunk
@@ -147,6 +153,7 @@ public class IrisBiomeFixer {
                         }
                     }
 
+                    // Set biomes to the chunk using NMS
                     INMS.get().setBiomes(cx, cz, engine.getWorld().realWorld(), biomes);
 
                     generated.incrementAndGet();
@@ -158,7 +165,6 @@ public class IrisBiomeFixer {
         progressUpdater.shutdown();
 
         try {
-            // Wait for the progress updater to finish
             if (!progressUpdater.awaitTermination(1, TimeUnit.MINUTES)) {
                 Iris.warn("Progress updater did not terminate in time.");
                 progressUpdater.shutdownNow();
@@ -169,7 +175,6 @@ public class IrisBiomeFixer {
             Thread.currentThread().interrupt();
         }
 
-        // Final Progress Update
         Iris.info("Biome Fixing Completed: " + generated.get() + "/" + totalChunks.get() + " chunks processed.");
     }
 
@@ -193,7 +198,7 @@ public class IrisBiomeFixer {
 
         if (progressLatch.flip()) {
             Iris.info("Biome Fixer Progress: " + currentGenerated + "/" + totalChunks.get() +
-                    " chunks (" + percentage + "%%) - " +
+                    " chunks (" + Form.f(percentage) + "%%) - " +
                     chunksPerSecond.getAverage() + " chunks/s ETA: " + formatETA(eta));
         }
     }

@@ -29,7 +29,9 @@ import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
+import org.bukkit.Chunk;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 
 public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData> {
@@ -155,6 +157,26 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                     }
                 }
             }
+        }
+    }
+    /**
+     * Merges caves from a selected chunk into the corresponding chunk in the outcome world.
+     * This is calling 1/16th of a chunk x/z slice. It is a plane from sky to bedrock 1 thick in the x direction.
+     *
+     * @param x  the chunk x in blocks
+     * @param z  the chunk z in blocks
+     * @param xf the current x slice
+     * @param h  the blockdata
+     */
+    @BlockCoordinates
+    private void terrainMergeSliver(int x, int z, int xf, Hunk<BlockData> h, ChunkContext context) {
+        int zf, realX, realZ, hf, he;
+
+        for (zf = 0; zf < h.getDepth(); zf++) {
+
+
+
+
         }
     }
 }

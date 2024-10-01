@@ -40,6 +40,7 @@ import org.bukkit.craftbukkit.v1_19_R1.generator.CraftWorldInfo;
 import org.bukkit.craftbukkit.v1_19_R1.util.CraftMagicNumbers;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.material.MaterialData;
@@ -165,6 +166,7 @@ public class MemoryWorld implements IMemoryWorld {
         var map = (Map<String, World>) WORLDS_FIELD.get(Bukkit.getServer());
         map.remove(level.dimension().location().getPath());
         getServer().removeLevel(level);
+        HandlerList.unregisterAll(this);
     }
 
     private static MinecraftServer getServer() {

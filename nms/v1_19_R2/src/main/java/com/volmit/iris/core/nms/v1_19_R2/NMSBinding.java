@@ -1,10 +1,7 @@
 package com.volmit.iris.core.nms.v1_19_R2;
 
 import java.awt.Color;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -15,6 +12,7 @@ import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.mojang.datafixers.util.Pair;
+import com.volmit.iris.core.nms.IMemoryWorld;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.util.scheduling.J;
 import net.minecraft.nbt.*;
@@ -607,6 +605,11 @@ public class NMSBinding implements INMSBinding {
                 .forEach(keys::add);
 
         return keys;
+    }
+
+    @Override
+    public IMemoryWorld createMemoryWorld(NamespacedKey levelType, WorldCreator creator) throws IOException {
+        return new MemoryWorld(levelType, creator);
     }
 
     private static Field getField(Class<?> clazz, Class<?> fieldType) throws NoSuchFieldException {

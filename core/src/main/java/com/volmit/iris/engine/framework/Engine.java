@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
-import com.volmit.iris.util.data.IrisBlockData;
+import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
@@ -93,6 +93,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     EngineMode getMode();
 
     int getBlockUpdatesPerSecond();
+
+    boolean isHeadless();
 
     void printMetrics(CommandSender sender);
 
@@ -160,6 +162,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         getMantle().saveAllNow();
         saveEngineData();
     }
+
+    boolean setEngineHeadless();
 
     SeedManager getSeedManager();
 
@@ -257,10 +261,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         if (B.isUpdatable(data)) {
             getMantle().updateBlock(x, y, z);
         }
-        if (data instanceof IrisBlockData d) {
-            getMantle().getMantle().set(x, y, z, d.getCustom());
-        } else {
-            getMantle().getMantle().remove(x, y, z, Identifier.class);
+        if (data instanceof IrisCustomData) {
+            getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.CUSTOM_ACTIVE, true);
         }
     }
 
@@ -282,18 +284,21 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             return;
         }
 
-        getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.TILE, () -> J.s(() -> {
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, tile) -> {
+        var mc = getMantle().getMantle().getChunk(c.getX(), c.getZ());
+        mc.raiseFlag(MantleFlag.TILE, () -> J.s(() -> {
+            mc.iterate(TileWrapper.class, (x, y, z, tile) -> {
                 int betterY = y + getWorld().minHeight();
                 if (!TileData.setTileState(c.getBlock(x, betterY, z), tile.getData()))
-                    Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), tile.getData().getTileId());
+                    Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), tile.getData().getMaterial().name());
             });
         }));
-        getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.CUSTOM, () -> J.s(() -> {
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), Identifier.class, (x, y, z, v) -> {
-                Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
-            });
-        }));
+        if (mc.isFlagged(MantleFlag.CUSTOM_ACTIVE)) {
+            mc.raiseFlag(MantleFlag.CUSTOM, () -> J.s(() -> {
+                getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), Identifier.class, (x, y, z, v) -> {
+                    Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
+                });
+            }));
+        }
 
         getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.UPDATE, () -> J.s(() -> {
             PrecisionStopwatch p = PrecisionStopwatch.start();
@@ -381,7 +386,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 try {
                     Bukkit.getPluginManager().callEvent(new IrisLootEvent(this, block, slot, tables));
 
-                    if (!tables.isEmpty()){
+                    if (!tables.isEmpty()) {
                         Iris.debug("IrisLootEvent has been accessed");
                     }
 
@@ -533,8 +538,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         }
     }
 
-    EngineEffects getEffects();
-
     default MultiBurst burst() {
         return getTarget().getBurster();
     }
@@ -579,6 +582,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     int getGenerated();
+
+    void addGenerated(int x, int z);
 
     default <T> IrisPosition lookForStreamResult(T find, ProceduralStream<T> stream, Function2<T, T, Boolean> matcher, long timeout) {
         AtomicInteger checked = new AtomicInteger();
@@ -816,6 +821,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     int getCacheID();
 
+    EnginePlayer getEnginePlayer(UUID uuid);
+
+    KList<EnginePlayer> getEnginePlayers();
+
     default IrisBiome getBiomeOrMantle(Location l) {
         return getBiomeOrMantle(l.getBlockX(), l.getBlockY(), l.getBlockZ());
     }
@@ -840,7 +849,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     default void gotoJigsaw(IrisJigsawStructure s, Player player, boolean teleport) {
         if (s.getLoadKey().equals(getDimension().getStronghold())) {
-            KList<Position2> p = getDimension().getStrongholds(getSeedManager().getSpawn());
+            KList<Position2> p = getDimension().getStrongholds(getSeedManager().getMantle());
 
             if (p.isEmpty()) {
                 player.sendMessage(C.GOLD + "No strongholds in world.");
@@ -957,4 +966,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             J.a(() -> getMantle().cleanupChunk(x, z));
         }
     }
+
+    <T extends IrisEngineService> T getService(Class<T> clazz);
 }

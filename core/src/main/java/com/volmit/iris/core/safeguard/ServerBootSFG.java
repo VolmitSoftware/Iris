@@ -1,3 +1,21 @@
+/*
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.core.safeguard;
 
 import com.volmit.iris.Iris;
@@ -6,6 +24,7 @@ import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
+
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 import java.io.File;
@@ -20,8 +39,6 @@ import java.util.Map;
 import java.util.StringJoiner;
 
 import static com.volmit.iris.Iris.getJavaVersion;
-import static com.volmit.iris.Iris.instance;
-import static com.volmit.iris.core.safeguard.IrisSafeguard.*;
 
 public class ServerBootSFG {
     public static final Map<String, Boolean> incompatibilities = new HashMap<>();
@@ -30,22 +47,24 @@ public class ServerBootSFG {
     public static boolean isJRE = false;
     public static boolean hasPrivileges = true;
     public static boolean unsuportedversion = false;
-    protected static boolean safeguardPassed;
     public static boolean passedserversoftware = true;
+    public static String allIncompatibilities;
+    protected static boolean safeguardPassed;
     protected static int count;
     protected static byte severityLow;
     protected static byte severityMedium;
     protected static byte severityHigh;
-    public static String allIncompatibilities;
 
     public static void BootCheck() {
+        //todo: Stop fucking locking the server, this bricks unix/linux instances, this could get us booted.
+
         Iris.info("Checking for possible conflicts..");
         PluginManager pluginManager = Bukkit.getPluginManager();
         Plugin[] plugins = pluginManager.getPlugins();
 
         incompatibilities.clear();
         incompatibilities.put("Multiverse-Core", false);
-        incompatibilities.put("dynmap", false);
+//        incompatibilities.put("dynmap", false);
         incompatibilities.put("TerraformGenerator", false);
         incompatibilities.put("Stratos", false);
 
@@ -105,7 +124,7 @@ public class ServerBootSFG {
 //            severityMedium++;
 //        } Some servers dont like this
 
-        if (!enoughDiskSpace()){
+        if (!enoughDiskSpace()) {
             hasEnoughDiskSpace = false;
             joiner.add("Insufficient Disk Space");
             severityMedium++;
@@ -116,16 +135,16 @@ public class ServerBootSFG {
         safeguardPassed = (severityHigh == 0 && severityMedium == 0 && severityLow == 0);
         count = severityHigh + severityMedium + severityLow;
         if (safeguardPassed) {
-            stablemode = true;
+            IrisSafeguard.instance.stablemode = true;
             Iris.safeguard("Stable mode has been activated.");
         }
         if (!safeguardPassed) {
             if (severityMedium >= 1 && severityHigh == 0) {
-                warningmode = true;
+                IrisSafeguard.instance.warningmode = true;
                 Iris.safeguard("Warning mode has been activated.");
             }
             if (severityHigh >= 1) {
-                unstablemode = true;
+                IrisSafeguard.instance.unstablemode = true;
                 Iris.safeguard("Unstable mode has been activated.");
             }
         }
@@ -137,9 +156,11 @@ public class ServerBootSFG {
             JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
             // If the compiler is null, it means this is a JRE environment, not a JDK.
             return compiler != null;
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return false;
     }
+
     public static boolean hasPrivileges() {
         Path pv = Paths.get(Bukkit.getWorldContainer() + "iristest.json");
         try (FileChannel fc = FileChannel.open(pv, StandardOpenOption.CREATE, StandardOpenOption.DELETE_ON_CLOSE, StandardOpenOption.READ, StandardOpenOption.WRITE)) {
@@ -155,7 +176,7 @@ public class ServerBootSFG {
     public static boolean enoughDiskSpace() {
         File freeSpace = new File(Bukkit.getWorldContainer() + ".");
         double gigabytes = freeSpace.getFreeSpace() / (1024.0 * 1024.0 * 1024.0);
-        if (gigabytes > 3){
+        if (gigabytes > 3) {
             return true;
         } else {
             return false;

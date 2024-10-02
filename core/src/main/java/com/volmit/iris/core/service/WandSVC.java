@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,9 +34,9 @@ import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.S;
+import com.volmit.iris.util.scheduling.SR;
+import com.volmit.iris.util.scheduling.jobs.Job;
 import org.bukkit.*;
-import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -53,10 +53,12 @@ import org.bukkit.util.Vector;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
 
 public class WandSVC implements IrisService {
     private static final Particle CRIT_MAGIC = E.getOrDefault(Particle.class, "CRIT_MAGIC", "CRIT");
     private static final Particle REDSTONE = E.getOrDefault(Particle.class,  "REDSTONE", "DUST");
+    private static final int MS_PER_TICK = Integer.parseInt(System.getProperty("iris.ms_per_tick", "30"));
 
     private static ItemStack dust;
     private static ItemStack wand;
@@ -80,14 +82,81 @@ public class WandSVC implements IrisService {
             Location[] f = getCuboid(p);
             Cuboid c = new Cuboid(f[0], f[1]);
             IrisObject s = new IrisObject(c.getSizeX(), c.getSizeY(), c.getSizeZ());
-            for (Block b : c) {
-                if (b.getType().equals(Material.AIR)) {
-                    continue;
+
+            var it = c.chunkedIterator();
+
+            int total = c.getSizeX() * c.getSizeY() * c.getSizeZ();
+            var latch = new CountDownLatch(1);
+            new Job() {
+                private int i;
+                private Chunk chunk;
+
+                @Override
+                public String getName() {
+                    return "Scanning Selection";
                 }
 
-                BlockVector bv = b.getLocation().subtract(c.getLowerNE().toVector()).toVector().toBlockVector();
-                s.setUnsigned(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(), b);
-            }
+                @Override
+                public void execute() {
+                    new SR() {
+                        @Override
+                        public void run() {
+                            var time = M.ms() + MS_PER_TICK;
+                            while (time > M.ms()) {
+                                if (!it.hasNext()) {
+                                    if (chunk != null) {
+                                        chunk.removePluginChunkTicket(Iris.instance);
+                                        chunk = null;
+                                    }
+
+                                    cancel();
+                                    latch.countDown();
+                                    return;
+                                }
+
+                                try {
+                                    var b = it.next();
+                                    var bChunk = b.getChunk();
+                                    if (chunk == null) {
+                                        chunk = bChunk;
+                                        chunk.addPluginChunkTicket(Iris.instance);
+                                    } else if (chunk != bChunk) {
+                                        chunk.removePluginChunkTicket(Iris.instance);
+                                        chunk = bChunk;
+                                    }
+
+                                    if (b.getType().equals(Material.AIR))
+                                        continue;
+
+                                    BlockVector bv = b.getLocation().subtract(c.getLowerNE().toVector()).toVector().toBlockVector();
+                                    s.setUnsigned(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(), b);
+                                } finally {
+                                    i++;
+                                }
+                            }
+                        }
+                    };
+                    try {
+                        latch.await();
+                    } catch (InterruptedException ignored) {}
+                }
+
+                @Override
+                public void completeWork() {}
+
+                @Override
+                public int getTotalWork() {
+                    return total;
+                }
+
+                @Override
+                public int getWorkCompleted() {
+                    return i;
+                }
+            }.execute(new VolmitSender(p), true, () -> {});
+            try {
+                latch.await();
+            } catch (InterruptedException ignored) {}
 
             return s;
         } catch (Throwable e) {
@@ -197,7 +266,8 @@ public class WandSVC implements IrisService {
             meta.setLore(new ArrayList<>()); //Reset the lore on this too so we can compare them
             stack.setItemMeta(meta);         //We dont need to clone the item as items from .get are cloned
 
-            if (wand.isSimilar(stack)) return s; //If the name, material and NBT is the same
+            if (wand.isSimilar(stack))
+                return s; //If the name, material and NBT is the same
         }
         return -1;
     }

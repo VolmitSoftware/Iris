@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,10 +50,10 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             IrisObject t = new IrisObject(0, 0, 0);
-            t.read(j);
             t.setLoadKey(name);
             t.setLoader(manager);
             t.setLoadFile(j);
+            t.read(j);
             logLoad(j, t);
             tlt.addAndGet(p.getMilliseconds());
             return t;

@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,8 +19,6 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.pregenerator.LazyPregenerator;
-import com.volmit.iris.core.pregenerator.TurboPregenerator;
 import com.volmit.iris.core.pregenerator.TurboPregenerator;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.annotations.Decree;
@@ -36,6 +34,7 @@ import java.io.IOException;
 @Decree(name = "turbopregen", aliases = "turbo", description = "Pregenerate your Iris worlds!")
 public class CommandTurboPregen implements DecreeExecutor {
     public String worldName;
+
     @Decree(description = "Pregenerate a world")
     public void start(
             @Param(description = "The radius of the pregen in blocks", aliases = "size")
@@ -44,7 +43,7 @@ public class CommandTurboPregen implements DecreeExecutor {
             World world,
             @Param(aliases = "middle", description = "The center location of the pregen. Use \"me\" for your current location", defaultValue = "0,0")
             Vector center
-            ) {
+    ) {
 
         worldName = world.getName();
         File worldDirectory = new File(Bukkit.getWorldContainer(), world.getName());
@@ -57,9 +56,9 @@ public class CommandTurboPregen implements DecreeExecutor {
             } else {
                 try {
                     TurboFile.delete();
-                } catch (Exception e){
-                   Iris.error("Failed to delete the old instance file of Turbo Pregen!");
-                   return;
+                } catch (Exception e) {
+                    Iris.error("Failed to delete the old instance file of Turbo Pregen!");
+                    return;
                 }
             }
         }
@@ -119,7 +118,7 @@ public class CommandTurboPregen implements DecreeExecutor {
         } else {
             File worldDirectory = new File(Bukkit.getWorldContainer(), world.getName());
             File TurboFile = new File(worldDirectory, "turbogen.json");
-            if (TurboFile.exists()){
+            if (TurboFile.exists()) {
                 TurboPregenerator.loadTurboGenerator(world.getName());
                 sender().sendMessage(C.YELLOW + "Started Turbo Pregen back up!");
             } else {

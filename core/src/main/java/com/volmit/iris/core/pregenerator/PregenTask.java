@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,8 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.Spiraled;
 import com.volmit.iris.util.math.Spiraler;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
@@ -30,11 +32,15 @@ import java.util.Comparator;
 
 @Builder
 @Data
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 public class PregenTask {
     private static final Position2 ZERO = new Position2(0, 0);
     private static final KList<Position2> ORDER_CENTER = computeChunkOrder();
     private static final KMap<Position2, KList<Position2>> ORDERS = new KMap<>();
 
+
+    @Builder.Default
+    private boolean resetCache = false;
     @Builder.Default
     private boolean gui = false;
     @Builder.Default

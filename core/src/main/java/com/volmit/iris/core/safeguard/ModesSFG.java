@@ -1,20 +1,39 @@
+/*
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.core.safeguard;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.format.C;
+import org.bukkit.Bukkit;
 
 public class ModesSFG {
     public static void selectMode() {
-        if (IrisSafeguard.unstablemode) {
+        if (IrisSafeguard.instance.unstablemode) {
             Iris.safeguard(C.DARK_RED + "Iris is running in Unstable Mode");
             unstable();
         }
-        if (IrisSafeguard.warningmode) {
+        if (IrisSafeguard.instance.warningmode) {
             Iris.safeguard(C.GOLD + "Iris is running in Warning Mode");
             warning();
         }
-        if (IrisSafeguard.stablemode) {
+        if (IrisSafeguard.instance.stablemode) {
             stable();
         }
     }
@@ -27,7 +46,7 @@ public class ModesSFG {
 
         UtilsSFG.printIncompatibleWarnings();
 
-        if (IrisSafeguard.unstablemode) {
+        if (IrisSafeguard.instance.unstablemode) {
             Iris.info("");
             Iris.info(C.DARK_GRAY + "--==<" + C.RED + " IMPORTANT " + C.DARK_GRAY + ">==--");
             Iris.info(C.RED + "Iris is running in unstable mode which may cause the following issues:");
@@ -44,7 +63,7 @@ public class ModesSFG {
             Iris.info(C.DARK_RED + "ATTENTION: " + C.RED + "While running Iris in unstable mode, you won't be eligible for support.");
             Iris.info(C.DARK_RED + "CAUSE: " + C.RED + UtilsSFG.MSGIncompatibleWarnings());
 
-            if (IrisSettings.get().getGeneral().DoomsdayAnnihilationSelfDestructMode) {
+            if (IrisSettings.get().getSafeguard().ignoreBootMode) {
                 Iris.info(C.DARK_RED + "Boot Unstable is set to true, continuing with the startup process.");
             } else {
                 Iris.info(C.DARK_RED + "Go to plugins/iris/settings.json and set DoomsdayAnnihilationSelfDestructMode to true if you wish to proceed.");
@@ -64,7 +83,7 @@ public class ModesSFG {
 
         UtilsSFG.printIncompatibleWarnings();
 
-        if (IrisSafeguard.warningmode) {
+        if (IrisSafeguard.instance.warningmode) {
             Iris.info("");
             Iris.info(C.DARK_GRAY + "--==<" + C.GOLD + " IMPORTANT " + C.DARK_GRAY + ">==--");
             Iris.info(C.GOLD + "Iris is running in warning mode which may cause the following issues:");

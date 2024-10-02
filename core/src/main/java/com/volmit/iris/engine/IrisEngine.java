@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,8 +21,6 @@ package com.volmit.iris.engine;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.nms.container.BlockPos;
@@ -34,7 +32,9 @@ import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
+import com.volmit.iris.engine.service.EnginePlayerHandlerSVC;
 import com.volmit.iris.util.atomics.AtomicRollingSequence;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
@@ -43,36 +43,43 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.io.JarScanner;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterStructurePOI;
+import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Synchronized;
 import lombok.ToString;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Data
 @EqualsAndHashCode(exclude = "context")
 @ToString(exclude = "context")
 public class IrisEngine implements Engine {
+    private static final Map<Class<? extends IrisEngineService>, Constructor<? extends IrisEngineService>> SERVICES = scanServices();
+    private final KMap<Class<? extends IrisEngineService>, IrisEngineService> services;
     private final AtomicInteger bud;
     private final AtomicInteger buds;
     private final AtomicInteger generated;
@@ -86,16 +93,18 @@ public class IrisEngine implements Engine {
     private final ChronoLatch perSecondBudLatch;
     private final EngineMetrics metrics;
     private final boolean studio;
+    private boolean headless;
     private final AtomicRollingSequence wallClock;
     private final int art;
     private final AtomicCache<IrisEngineData> engineData = new AtomicCache<>();
     private final AtomicBoolean cleaning;
     private final ChronoLatch cleanLatch;
     private final SeedManager seedManager;
+    private final ReentrantLock dataLock;
     private EngineMode mode;
-    private EngineEffects effects;
     private EngineExecutionEnvironment execution;
     private EngineWorldManager worldManager;
+    private KList<EnginePlayer> players;
     private volatile int parallelism;
     private volatile int minHeight;
     private boolean failing;
@@ -109,9 +118,12 @@ public class IrisEngine implements Engine {
     public IrisEngine(EngineTarget target, boolean studio) {
         this.studio = studio;
         this.target = target;
+        this.players = new KList<>();
         getEngineData();
         verifySeed();
         this.seedManager = new SeedManager(target.getWorld().getRawWorldSeed());
+        services = new KMap<>();
+        dataLock = new ReentrantLock();
         bud = new AtomicInteger(0);
         buds = new AtomicInteger(0);
         metrics = new EngineMetrics(32);
@@ -138,6 +150,26 @@ public class IrisEngine implements Engine {
         Iris.debug("Engine Initialized " + getCacheID());
     }
 
+    @SuppressWarnings("unchecked")
+    private static Map<Class<? extends IrisEngineService>, Constructor<? extends IrisEngineService>> scanServices() {
+        JarScanner js = new JarScanner(Iris.instance.getJarFile(), "com.volmit.iris.engine.service");
+        J.attempt(js::scan);
+        KMap<Class<? extends IrisEngineService>, Constructor<? extends IrisEngineService>> map = new KMap<>();
+        js.getClasses()
+                .stream()
+                .filter(IrisEngineService.class::isAssignableFrom)
+                .map(c -> (Class<? extends IrisEngineService>) c)
+                .forEach(c -> {
+                    try {
+                        map.put(c, c.getConstructor(Engine.class));
+                    } catch (NoSuchMethodException e) {
+                        Iris.warn("Failed to load service " + c.getName() + " due to missing constructor");
+                    }
+                });
+
+        return Collections.unmodifiableMap(map);
+    }
+
     private void verifySeed() {
         if (getEngineData().getSeed() != null && getEngineData().getSeed() != target.getWorld().getRawWorldSeed()) {
             target.getWorld().setRawWorldSeed(getEngineData().getSeed());
@@ -151,17 +183,34 @@ public class IrisEngine implements Engine {
             bud.set(0);
         }
 
-        if (effects != null) {
-            effects.tickRandomPlayer();
+        var effects = getService(EnginePlayerHandlerSVC.class);
+        if (effects != null) effects.tickRandomPlayer();
+    }
+
+    @Override
+    public EnginePlayer getEnginePlayer(UUID uuid) {
+        return getPlayer(uuid);
+    }
+
+    @Override
+    public KList<EnginePlayer> getEnginePlayers() {
+        return players;
+    }
+
+    private EnginePlayer getPlayer(UUID uuid) {
+        for (EnginePlayer player : players) {
+            if (player.getPlayer().getUniqueId().equals(uuid)) return player;
         }
+        return null;
     }
 
     private void prehotload() {
         worldManager.close();
         complex.close();
         execution.close();
-        effects.close();
         mode.close();
+        services.values().forEach(s -> s.onDisable(true));
+        services.values().forEach(Iris.instance::unregisterListener);
 
         J.a(() -> new IrisProject(getData().getDataFolder()).updateWorkspace());
     }
@@ -170,10 +219,26 @@ public class IrisEngine implements Engine {
         try {
             Iris.debug("Setup Engine " + getCacheID());
             cacheId = RNG.r.nextInt();
+            boolean hotload = true;
+            if (services.isEmpty()) {
+                SERVICES.forEach((s, c) -> {
+                    try {
+                        services.put(s, c.newInstance(this));
+                    } catch (InstantiationException | IllegalAccessException |
+                             InvocationTargetException e) {
+                        Iris.error("Failed to create service " + s.getName());
+                        e.printStackTrace();
+                    }
+                });
+                hotload = false;
+            }
+            for (var service : services.values()) {
+                service.onEnable(hotload);
+                Iris.instance.registerListener(service);
+            }
             worldManager = new IrisWorldManager(this);
             complex = new IrisComplex(this);
             execution = new IrisExecutionEnvironment(this);
-            effects = new IrisEngineEffects(this);
             setupMode();
             J.a(this::computeBiomeMaxes);
         } catch (Throwable e) {
@@ -229,6 +294,14 @@ public class IrisEngine implements Engine {
     public void hotload() {
         hotloadSilently();
         Iris.callEvent(new IrisEngineHotloadEvent(this));
+        if (isStudio()) {
+            for (Player player : target.getWorld().getPlayers()) {
+                VolmitSender sender = new VolmitSender(player);
+                sender.sendMessage(C.GREEN + "Hotloaded");
+                sender.playSound(Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.5f);
+            }
+
+        }
     }
 
     public void hotloadComplex() {
@@ -242,11 +315,6 @@ public class IrisEngine implements Engine {
         getTarget().setDimension(getData().getDimensionLoader().load(getDimension().getLoadKey()));
         prehotload();
         setupEngine();
-        J.a(() -> {
-            synchronized (ServerConfigurator.class) {
-                ServerConfigurator.installDataPacks(false);
-            }
-        });
     }
 
     @Override
@@ -269,10 +337,10 @@ public class IrisEngine implements Engine {
 
             if (data == null) {
                 data = new IrisEngineData();
-                data.getStatistics().setVersion(Iris.instance.getIrisVersion());
+                data.getStatistics().setIrisCreationVersion(Iris.instance.getIrisVersion());
                 data.getStatistics().setMCVersion(Iris.instance.getMCVersion());
-                data.getStatistics().setUpgradedVersion(Iris.instance.getIrisVersion());
-                if (data.getStatistics().getVersion() == -1 || data.getStatistics().getMCVersion() == -1 ) {
+                data.getStatistics().setIrisToUpgradedVersion(Iris.instance.getIrisVersion());
+                if (data.getStatistics().getIrisCreationVersion() == -1 || data.getStatistics().getMCVersion() == -1) {
                     Iris.error("Failed to setup Engine Data!");
                 }
 
@@ -292,8 +360,42 @@ public class IrisEngine implements Engine {
     }
 
     @Override
+    public void saveEngineData() {
+        //TODO: Method this file
+        if (dataLock.tryLock()) {
+            try {
+                File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + ".json");
+                f.getParentFile().mkdirs();
+                try {
+                    IO.writeAll(f, new Gson().toJson(getEngineData()));
+                    Iris.debug("Saved Engine Data");
+                } catch (IOException e) {
+                    Iris.error("Failed to save Engine Data");
+                    e.printStackTrace();
+                }
+            } finally {
+                dataLock.unlock();
+            }
+        }
+    }
+
+    @Override
     public int getGenerated() {
         return generated.get();
+    }
+
+    // todo: eghum no.
+    @Override
+    public void addGenerated(int x, int z) {
+        try {
+            File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + ".json");
+            if (generated.incrementAndGet() == 661) {
+                J.a(() -> getData().savePrefetch(this));
+            }
+        } catch (Exception e) {
+            Iris.error("Failed to add generated chunk!");
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -405,11 +507,28 @@ public class IrisEngine implements Engine {
         }
     }
 
+    @Synchronized
+    public boolean setEngineHeadless() {
+        if(null != this.getWorld().realWorld()) {
+            J.s(() -> Bukkit.unloadWorld(getWorld().realWorld().getName(), true));
+            headless = true;
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public void close() {
+        if (headless) return;
         PregeneratorJob.shutdownInstance();
         closed = true;
         J.car(art);
+        try {
+            if (getWorld().hasHeadless()) getWorld().headless().close();
+        } catch (IOException e) {
+            Iris.reportError(e);
+        }
+        services.values().forEach(s -> s.onDisable(false));
         getWorldManager().close();
         getTarget().close();
         saveEngineData();
@@ -478,28 +597,10 @@ public class IrisEngine implements Engine {
 
             getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.REAL, true);
             getMetrics().getTotal().put(p.getMilliseconds());
-            generated.incrementAndGet();
-
-            if (generated.get() == 661) {
-                J.a(() -> getData().savePrefetch(this));
-            }
+            addGenerated(x, z);
         } catch (Throwable e) {
             Iris.reportError(e);
             fail("Failed to generate " + x + ", " + z, e);
-        }
-    }
-
-    @Override
-    public void saveEngineData() {
-        //TODO: Method this file
-        File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + ".json");
-        f.getParentFile().mkdirs();
-        try {
-            IO.writeAll(f, new Gson().toJson(getEngineData()));
-            Iris.debug("Saved Engine Data");
-        } catch (IOException e) {
-            Iris.error("Failed to save Engine Data");
-            e.printStackTrace();
         }
     }
 
@@ -543,10 +644,16 @@ public class IrisEngine implements Engine {
         return cacheId;
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends IrisEngineService> T getService(Class<T> clazz) {
+        return (T) services.get(clazz);
+    }
+
     private boolean EngineSafe() {
         // Todo: this has potential if done right
         int EngineMCVersion = getEngineData().getStatistics().getMCVersion();
-        int EngineIrisVersion = getEngineData().getStatistics().getVersion();
+        int EngineIrisVersion = getEngineData().getStatistics().getIrisCreationVersion();
         int MinecraftVersion = Iris.instance.getMCVersion();
         int IrisVersion = Iris.instance.getIrisVersion();
         if (EngineIrisVersion != IrisVersion) {

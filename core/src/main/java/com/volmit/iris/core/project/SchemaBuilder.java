@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.loader.ResourceLoader;
+import com.volmit.iris.engine.framework.ListFunction;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -309,6 +310,24 @@ public class SchemaBuilder {
                     fancyType = "Enchantment Type";
                     prop.put("$ref", "#/definitions/" + key);
                     description.add(SYMBOL_TYPE__N + "  Must be a valid Enchantment Type (use ctrl+space for auto complete!)");
+                } else if (k.isAnnotationPresent(RegistryListFunction.class)) {
+                    var functionClass = k.getDeclaredAnnotation(RegistryListFunction.class).value();
+                    try {
+                        var instance = functionClass.getDeclaredConstructor().newInstance();
+                        String key = instance.key();
+                        fancyType = instance.fancyName();
+
+                        if (!definitions.containsKey(key)) {
+                            JSONObject j = new JSONObject();
+                            j.put("enum", instance.apply(data));
+                            definitions.put(key, j);
+                        }
+
+                        prop.put("$ref", "#/definitions/" + key);
+                        description.add(SYMBOL_TYPE__N + "  Must be a valid " + fancyType + " (use ctrl+space for auto complete!)");
+                    } catch (Throwable e) {
+                        Iris.error("Could not execute apply method in " + functionClass.getName());
+                    }
                 } else if (k.getType().equals(PotionEffectType.class)) {
                     String key = "enum-potion-effect-type";
 

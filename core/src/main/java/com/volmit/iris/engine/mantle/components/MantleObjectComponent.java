@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,11 +23,14 @@ import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.IrisMantleComponent;
 import com.volmit.iris.engine.mantle.MantleWriter;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisObject;
+import com.volmit.iris.engine.object.IrisObjectPlacement;
+import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.data.B;
-import com.volmit.iris.util.data.IrisBlockData;
+import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.MantleFlag;
@@ -104,7 +107,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
                 if (objectPlacement.isDolphinTarget() && objectPlacement.isUnderwater() && B.isStorageChest(data)) {
                     writer.setData(b.getX(), b.getY(), b.getZ(), MatterStructurePOI.BURIED_TREASURE);
                 }
-                if (data instanceof IrisBlockData d) {
+                if (data instanceof IrisCustomData d) {
                     writer.setData(b.getX(), b.getY(), b.getZ(), d.getCustom());
                 }
             }, null, getData());

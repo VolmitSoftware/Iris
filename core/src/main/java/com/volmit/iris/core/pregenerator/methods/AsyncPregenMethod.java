@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,15 +29,11 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.J;
 import io.papermc.lib.PaperLib;
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 
 public class AsyncPregenMethod implements PregeneratorMethod {
@@ -50,10 +46,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         if (!PaperLib.isPaper()) {
             throw new UnsupportedOperationException("Cannot use PaperAsync on non paper!");
         }
-
         this.world = world;
-        burst = MultiBurst.burst;
-        future = new KList<>(1024);
+        burst = new MultiBurst("Iris Async Pregen", Thread.MIN_PRIORITY);
+        future = new KList<>(256);
         this.lastUse = new KMap<>();
     }
 
@@ -81,24 +76,18 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
     private void completeChunk(int x, int z, PregenListener listener) {
         try {
-            future.add(PaperLib.getChunkAtAsync(world, x, z, true).thenApply((i) -> {
-                if (i == null) {
-
-                }
-                Chunk c = Bukkit.getWorld(world.getUID()).getChunkAt(x, z);
-                lastUse.put(c, M.ms());
+            PaperLib.getChunkAtAsync(world, x, z, true).thenAccept((i) -> {
+                lastUse.put(i, M.ms());
                 listener.onChunkGenerated(x, z);
                 listener.onChunkCleaned(x, z);
-                return 0;
-            }));
+            }).get();
+        } catch (InterruptedException ignored) {
         } catch (Throwable e) {
             e.printStackTrace();
         }
     }
 
     private void waitForChunksPartial(int maxWaiting) {
-        future.removeWhere(Objects::isNull);
-
         while (future.size() > maxWaiting) {
             try {
                 Future<?> i = future.remove(0);
@@ -127,8 +116,6 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 e.printStackTrace();
             }
         }
-
-        future.removeWhere(Objects::isNull);
     }
 
     @Override
@@ -145,6 +132,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     public void close() {
         waitForChunks();
         unloadAndSaveAllChunks();
+        burst.close();
     }
 
     @Override
@@ -179,5 +167,10 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
 
         return null;
+    }
+
+    @Override
+    public World getWorld() {
+        return world;
     }
 }

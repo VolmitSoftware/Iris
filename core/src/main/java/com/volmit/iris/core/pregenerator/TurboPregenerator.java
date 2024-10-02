@@ -1,8 +1,25 @@
+/*
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.core.pregenerator;
 
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -21,20 +38,21 @@ import io.papermc.lib.PaperLib;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
-import org.apache.logging.log4j.core.util.ExecutorServices;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.checkerframework.checker.units.qual.N;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Array;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -42,14 +60,14 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.IntStream;
 
 public class TurboPregenerator extends Thread implements Listener {
+    private static final Map<String, TurboPregenJob> jobs = new HashMap<>();
     @Getter
     private static TurboPregenerator instance;
+    private static AtomicInteger turboGeneratedChunks;
     private final TurboPregenJob job;
     private final File destination;
     private final int maxPosition;
-    private World world;
     private final ChronoLatch latch;
-    private static AtomicInteger turboGeneratedChunks;
     private final AtomicInteger generatedLast;
     private final AtomicLong cachedLast;
     private final RollingSequence cachePerSecond;
@@ -57,14 +75,15 @@ public class TurboPregenerator extends Thread implements Listener {
     private final AtomicLong startTime;
     private final RollingSequence chunksPerSecond;
     private final RollingSequence chunksPerMinute;
+    private final HyperLock hyperLock;
+    private final ExecutorService executorService = Executors.newFixedThreadPool(10);
+    private World world;
     private KList<Position2> queue;
     private ConcurrentHashMap<Integer, Position2> cache;
     private AtomicInteger maxWaiting;
     private ReentrantLock cachinglock;
     private AtomicBoolean caching;
-    private final HyperLock hyperLock;
     private MultiBurst burst;
-    private static final Map<String, TurboPregenJob> jobs = new HashMap<>();
 
     public TurboPregenerator(TurboPregenJob job, File destination) {
         this.job = job;
@@ -109,6 +128,26 @@ public class TurboPregenerator extends Thread implements Listener {
             }
         }
 
+    }
+
+    public static void setPausedTurbo(World world) {
+        TurboPregenJob job = jobs.get(world.getName());
+        if (isPausedTurbo(world)) {
+            job.paused = false;
+        } else {
+            job.paused = true;
+        }
+
+        if (job.paused) {
+            Iris.info(C.BLUE + "TurboGen: " + C.IRIS + world.getName() + C.BLUE + " Paused");
+        } else {
+            Iris.info(C.BLUE + "TurboGen: " + C.IRIS + world.getName() + C.BLUE + " Resumed");
+        }
+    }
+
+    public static boolean isPausedTurbo(World world) {
+        TurboPregenJob job = jobs.get(world.getName());
+        return job != null && job.isPaused();
     }
 
     @EventHandler
@@ -224,7 +263,6 @@ public class TurboPregenerator extends Thread implements Listener {
         // todo broken
     }
 
-    private final ExecutorService executorService = Executors.newFixedThreadPool(10);
     private void tickGenerate(Position2 chunk) {
         executorService.submit(() -> {
             CountDownLatch latch = new CountDownLatch(1);
@@ -264,26 +302,6 @@ public class TurboPregenerator extends Thread implements Listener {
                 e.printStackTrace();
             }
         });
-    }
-
-    public static void setPausedTurbo(World world) {
-        TurboPregenJob job = jobs.get(world.getName());
-        if (isPausedTurbo(world)) {
-            job.paused = false;
-        } else {
-            job.paused = true;
-        }
-
-        if (job.paused) {
-            Iris.info(C.BLUE + "TurboGen: " + C.IRIS + world.getName() + C.BLUE + " Paused");
-        } else {
-            Iris.info(C.BLUE + "TurboGen: " + C.IRIS + world.getName() + C.BLUE + " Resumed");
-        }
-    }
-
-    public static boolean isPausedTurbo(World world) {
-        TurboPregenJob job = jobs.get(world.getName());
-        return job != null && job.isPaused();
     }
 
     public void shutdownInstance(World world) throws IOException {
@@ -330,13 +348,13 @@ public class TurboPregenerator extends Thread implements Listener {
     @Data
     @Builder
     public static class TurboPregenJob {
+        @Builder.Default
+        boolean paused = false;
         private String world;
         @Builder.Default
         private int radiusBlocks = 5000;
         @Builder.Default
         private int position = 0;
-        @Builder.Default
-        boolean paused = false;
     }
 }
 

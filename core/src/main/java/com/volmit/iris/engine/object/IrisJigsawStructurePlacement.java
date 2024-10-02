@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,13 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.object.annotations.ArrayType;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListResource;
-import com.volmit.iris.engine.object.annotations.Required;
-import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
@@ -70,7 +64,7 @@ public class IrisJigsawStructurePlacement implements IRare {
     private int separation = -1;
 
     @Desc("The method used to spread the structure")
-    private SpreadType spreadType = SpreadType.TRIANGULAR;
+    private SpreadType spreadType = SpreadType.LINEAR;
 
     @ArrayType(type = IrisJigsawMinDistance.class)
     @Desc("List of minimum distances to check for")

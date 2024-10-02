@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,6 +41,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
+import java.util.HashMap;
 import java.util.UUID;
 
 @Data
@@ -291,10 +292,11 @@ public class IrisComplex implements DataProvider {
         if (generators.isEmpty()) {
             return 0;
         }
-
+        var cache = new HashMap<DPair, IrisBiome>();
         double hi = interpolator.interpolate(x, z, (xx, zz) -> {
             try {
                 IrisBiome bx = baseBiomeStream.get(xx, zz);
+                cache.put(new DPair(xx, zz), bx);
                 double b = 0;
 
                 for (IrisGenerator gen : generators) {
@@ -313,7 +315,7 @@ public class IrisComplex implements DataProvider {
 
         double lo = interpolator.interpolate(x, z, (xx, zz) -> {
             try {
-                IrisBiome bx = baseBiomeStream.get(xx, zz);
+                IrisBiome bx = cache.get(new DPair(xx, zz));
                 double b = 0;
 
                 for (IrisGenerator gen : generators) {
@@ -329,6 +331,7 @@ public class IrisComplex implements DataProvider {
 
             return 0;
         });
+        cache.clear();
 
         double d = 0;
 
@@ -384,5 +387,8 @@ public class IrisComplex implements DataProvider {
 
     public void close() {
 
+    }
+
+    private record DPair(double x, double z) {
     }
 }

@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,8 @@ package com.volmit.iris.engine.platform;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.pregenerator.EmptyListener;
+import com.volmit.iris.core.pregenerator.methods.HeadlessPregenMethod;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
@@ -86,7 +88,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final boolean studio;
     private final AtomicInteger a = new AtomicInteger(0);
     private final CompletableFuture<Integer> spawnChunks = new CompletableFuture<>();
-    private final boolean smartVanillaHeight;
     private Engine engine;
     private Looper hotloader;
     private StudioMode lastMode;
@@ -96,7 +97,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     private boolean initialized = false;
 
-    public BukkitChunkGenerator(IrisWorld world, boolean studio, File dataLocation, String dimensionKey, boolean smartVanillaHeight) {
+    public BukkitChunkGenerator(IrisWorld world, boolean studio, File dataLocation, String dimensionKey) {
         setup = new AtomicBoolean(false);
         studioGenerator = null;
         dummyBiomeProvider = new DummyBiomeProvider();
@@ -108,7 +109,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         this.dataLocation = dataLocation;
         this.dimensionKey = dimensionKey;
         this.folder = new ReactiveFolder(dataLocation, (_a, _b, _c) -> hotload());
-        this.smartVanillaHeight = smartVanillaHeight;
         Bukkit.getServer().getPluginManager().registerEvents(this, Iris.instance);
     }
 
@@ -129,31 +129,29 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @EventHandler
     public void onWorldInit(WorldInitEvent event) {
         try {
-            if (!initialized) {
-                world.setRawWorldSeed(event.getWorld().getSeed());
-                if (world.name().equals(event.getWorld().getName())) {
-                    Engine engine = getEngine(event.getWorld());
-                    if (engine == null) {
-                        Iris.warn("Failed to get Engine!");
-                        J.s(() -> {
-                            Engine engine1 = getEngine(event.getWorld());
-                            if (engine1 != null) {
-								try {
-									INMS.get().inject(event.getWorld().getSeed(), engine1, event.getWorld());
-                                    Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
-                                    initialized = true;
-								} catch (Throwable e) {
-									e.printStackTrace();
-								}
-							}
-                        }, 10);
-                    } else {
-                        INMS.get().inject(event.getWorld().getSeed(), engine, event.getWorld());
-                        Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
-                        spawnChunks.complete(INMS.get().getSpawnChunkCount(event.getWorld()));
-                        initialized = true;
+            if (initialized || !world.name().equals(event.getWorld().getName()))
+                return;
+            world.setRawWorldSeed(event.getWorld().getSeed());
+            Engine engine = getEngine(event.getWorld());
+            if (engine == null) {
+                Iris.warn("Failed to get Engine!");
+                J.s(() -> {
+                    Engine engine1 = getEngine(event.getWorld());
+                    if (engine1 != null) {
+                        try {
+                            INMS.get().inject(event.getWorld().getSeed(), engine1, event.getWorld());
+                            Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
+                            initialized = true;
+                        } catch (Throwable e) {
+                            e.printStackTrace();
+                        }
                     }
-                }
+                }, 10);
+            } else {
+                INMS.get().inject(event.getWorld().getSeed(), engine, event.getWorld());
+                Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
+                spawnChunks.complete(INMS.get().getSpawnChunkCount(event.getWorld()));
+                initialized = true;
             }
         } catch (Throwable e) {
             e.printStackTrace();
@@ -186,14 +184,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             } else {
                 Iris.error("Nope, you don't have an installation containing " + dimensionKey + " try downloading it?");
                 throw new RuntimeException("Missing Dimension: " + dimensionKey);
-            }
-        }
-        if (smartVanillaHeight) {
-            dimension.setSmartVanillaHeight(true);
-            try (FileWriter writer = new FileWriter(data.getDimensionLoader().fileFor(dimension))) {
-                writer.write(data.getGson().toJson(dimension));
-            } catch (IOException e) {
-                e.printStackTrace();
             }
         }
 
@@ -266,6 +256,10 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     private Engine getEngine(WorldInfo world) {
+        return getEngine(world.getSeed());
+    }
+
+    private Engine getEngine(long seed) {
         if (setup.get()) {
             return getEngine();
         }
@@ -278,7 +272,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             }
 
 
-            getWorld().setRawWorldSeed(world.getSeed());
+            getWorld().setRawWorldSeed(seed);
             setupEngine();
             setup.set(true);
             this.hotloader = studio ? new Looper() {
@@ -347,6 +341,23 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @Override
     public void touch(World world) {
         getEngine(world);
+    }
+
+    @Override
+    public void prepareSpawnChunks(long seed, int radius) {
+        if (radius < 0 || new File(world.worldFolder(), "level.dat").exists())
+            return;
+
+        var engine = getEngine(seed);
+        var headless = new HeadlessPregenMethod(engine);
+        Iris.info("Generating " + world.name() + " in headless mode");
+        for (int x = -radius; x <= radius; x++) {
+            for (int z = -radius; z <= radius; z++) {
+                headless.generateChunk(x, z, EmptyListener.INSTANCE);
+            }
+        }
+        headless.close();
+        Iris.info("Done generating " + world.name() + " in headless mode");
     }
 
     @Override

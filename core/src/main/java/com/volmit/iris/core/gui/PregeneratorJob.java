@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@ import com.volmit.iris.core.pregenerator.IrisPregenerator;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
-import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
@@ -35,6 +34,8 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 
 import javax.swing.*;
 import java.awt.*;
@@ -44,8 +45,6 @@ import java.awt.image.BufferedImage;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-
-import static com.volmit.iris.core.tools.IrisPackBenchmarking.benchmarkInProgress;
 
 public class PregeneratorJob implements PregenListener {
     private static final Color COLOR_EXISTS = parseColor("#4d7d5b");
@@ -93,8 +92,14 @@ public class PregeneratorJob implements PregenListener {
             open();
         }
 
-        J.a(this.pregenerator::start, 20);
+        var t = new Thread(() -> {
+            J.sleep(1000);
+            this.pregenerator.start();
+        }, "Iris Pregenerator");
+        t.setPriority(Thread.MIN_PRIORITY);
+        t.start();
     }
+
 
     public static boolean shutdownInstance() {
         if (instance == null) {
@@ -251,6 +256,27 @@ public class PregeneratorJob implements PregenListener {
     public void onRegionGenerated(int x, int z) {
         shouldGc();
         rgc++;
+
+        // Each region is 32x32 chunks
+        for (int chunkOffsetX = 0; chunkOffsetX < 32; chunkOffsetX++) {
+            for (int chunkOffsetZ = 0; chunkOffsetZ < 32; chunkOffsetZ++) {
+                // Calculate actual chunk coordinates
+                int chunkX = (x << 5) + chunkOffsetX;
+                int chunkZ = (z << 5) + chunkOffsetZ;
+
+                if (engine != null) {
+                    // Calculate the center block of the chunk
+                    int centerBlockX = (chunkX << 4) + 8;
+                    int centerBlockZ = (chunkZ << 4) + 8;
+
+                    // Draw the chunk
+                    draw(chunkX, chunkZ, engine.draw(centerBlockX, centerBlockZ));
+                } else {
+                    // If engine is null, use the default color
+                    draw(chunkX, chunkZ, COLOR_GENERATED);
+                }
+            }
+        }
     }
 
     private void shouldGc() {

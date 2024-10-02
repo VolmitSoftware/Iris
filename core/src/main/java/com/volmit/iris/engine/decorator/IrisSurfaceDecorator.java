@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -78,7 +78,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                     }
                 }
 
-                if (bd instanceof Bisected) {
+                if (bd instanceof Bisected && getDimension().getFluidHeight() - 1 != height) {
                     bd = bd.clone();
                     ((Bisected) bd).setHalf(Bisected.Half.TOP);
                     try {
@@ -88,6 +88,20 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                     }
                     bd = bd.clone();
                     ((Bisected) bd).setHalf(Bisected.Half.BOTTOM);
+                    try {
+                        data.set(x, height + 1, z, bd);
+                    } catch (Throwable e) {
+                        Iris.reportError(e);
+                    }
+                } else {
+                    if (decorator.isBlockDataForTop(getData())) {
+                        if (height != getDimension().getFluidHeight() - 1) {
+                            data.set(x, height + 1, z, decorator.getBlockData100(biome, getRng(), realX, height + 2, realZ, getData()));
+                            data.set(x, height + 2, z, decorator.getBlockDataForTop(biome, getRng(), realX, height + 1, realZ, getData()));
+                        }
+                    } else {
+                        data.set(x, height + 1, z, decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData()));
+                    }
                 }
 
                 if (B.isAir(data.get(x, height + 1, z))) {

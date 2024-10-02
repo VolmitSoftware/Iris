@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -191,8 +191,10 @@ public abstract class MortarCommand implements ICommand {
                     }
 
                     p.add(pc);
-                } catch (IllegalArgumentException | IllegalAccessException | InstantiationException |
-                         InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                } catch (IllegalArgumentException | IllegalAccessException |
+                         InstantiationException |
+                         InvocationTargetException | NoSuchMethodException |
+                         SecurityException e) {
                     Iris.reportError(e);
                     e.printStackTrace();
                 }

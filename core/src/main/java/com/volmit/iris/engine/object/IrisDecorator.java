@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -80,7 +80,7 @@ public class IrisDecorator {
     @DependsOn({"stackMin", "stackMax"})
     @Desc("""
             Changes stackMin and stackMin from being absolute block heights and instead uses them as a percentage to scale the stack based on the cave height
-
+            
             Within a cave, setting them stackMin/max to 50 would make the stack 50% of the cave height""")
     private boolean scaleStack = false;
     @Required
@@ -194,6 +194,13 @@ public class IrisDecorator {
         }
 
         return null;
+    }
+
+    public boolean isBlockDataForTop(IrisData data) {
+        if (getBlockDataTops(data).isEmpty()) {
+            return false;
+        }
+        return true;
     }
 
     public KList<BlockData> getBlockData(IrisData data) {

@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
@@ -192,6 +193,16 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     public boolean isCustom() {
         return getCustomDerivitives() != null && getCustomDerivitives().isNotEmpty();
+    }
+
+    public KList<IrisBiomeCustom> getCustomDerivitives() {
+        if (customDerivitives == null || customDerivitives.isEmpty()) {
+            var key = getLoadKey();
+            if (key == null) key = getVanillaDerivative().getKey().getKey();
+            String biomeID = key.replaceAll("\\s", "").replaceAll("[^a-z0-9/._-]", "");
+            setCustomDerivitives(new KList<>(new IrisBiomeReplacement().setBiome(getVanillaDerivative()).setId(biomeID)));
+        }
+        return customDerivitives;
     }
 
     public double getGenLinkMax(String loadKey, Engine engine) {

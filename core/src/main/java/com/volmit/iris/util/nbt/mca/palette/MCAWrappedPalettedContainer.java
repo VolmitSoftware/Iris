@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,9 @@
 
 package com.volmit.iris.util.nbt.mca.palette;
 
+import com.volmit.iris.util.nbt.tag.ByteArrayTag;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
+import com.volmit.iris.util.nbt.tag.LongArrayTag;
 import lombok.RequiredArgsConstructor;
 
 import java.util.function.Function;
@@ -42,6 +44,22 @@ public class MCAWrappedPalettedContainer<T> implements MCAPaletteAccess {
     }
 
     public void readFromSection(CompoundTag tag) {
-        container.read(tag.getListTag("Palette"), tag.getLongArrayTag("BlockStates").getValue());
+        //   container.read(tag.getCompoundTag("block_states").getListTag("palette"), tag.getCompoundTag("block_states").getLongArrayTag("data").getValue());
+        CompoundTag blockStates = tag.getCompoundTag("block_states");
+        if (blockStates == null) {
+            throw new IllegalArgumentException("block_states tag is missing");
+        }
+        LongArrayTag longData = blockStates.getLongArrayTag("data");
+        if (longData != null && longData.getValue() != null) {
+            container.read(tag.getCompoundTag("block_states").getListTag("palette"), tag.getCompoundTag("block_states").getLongArrayTag("data").getValue());
+        } else {
+            ByteArrayTag byteData = blockStates.getByteArrayTag("data");
+            if (byteData == null) {
+                container.read(tag.getCompoundTag("block_states").getListTag("palette"));
+            } else {
+                throw new IllegalArgumentException("No palette data tag found or data value is null");
+            }
+        }
     }
+
 }

@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,8 +28,6 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
 import net.jpountz.lz4.LZ4BlockInputStream;
 import net.jpountz.lz4.LZ4BlockOutputStream;
-import net.jpountz.lz4.LZ4FrameInputStream;
-import net.jpountz.lz4.LZ4FrameOutputStream;
 
 import java.io.*;
 import java.util.concurrent.atomic.AtomicReferenceArray;
@@ -86,10 +84,10 @@ public class TectonicPlate {
         DataInputStream din;
         if (file.getName().endsWith("ttp.lz4b")) {
             LZ4BlockInputStream lz4 = new LZ4BlockInputStream(fin);
-            din = new DataInputStream(lz4);
+            din = new DataInputStream(new BufferedInputStream(lz4));
         } else {
             GZIPInputStream gzi = new GZIPInputStream(fin);
-            din = new DataInputStream(gzi);
+            din = new DataInputStream(new BufferedInputStream(gzi));
         }
         TectonicPlate p = new TectonicPlate(worldHeight, din);
         din.close();
@@ -158,6 +156,20 @@ public class TectonicPlate {
         }
 
         return chunk;
+    }
+
+    /**
+     * Set a tectonic plate
+     *
+     * @param x the chunk relative x (0-31)
+     * @param z the chunk relative z (0-31)
+     * @param chunk the chunk
+     */
+    @ChunkCoordinates
+    public void set(int x, int z, MantleChunk chunk) {
+        if (x != chunk.getX() || z != chunk.getZ())
+            throw new IllegalArgumentException("X/Z of chunk must match the plate");
+        chunks.set(index(x, z), chunk);
     }
 
     @ChunkCoordinates

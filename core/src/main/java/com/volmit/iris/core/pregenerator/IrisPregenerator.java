@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,11 @@
 
 package com.volmit.iris.core.pregenerator;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.pack.IrisPack;
 import com.volmit.iris.core.tools.IrisPackBenchmarking;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.C;
@@ -29,17 +31,35 @@ import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
+import com.volmit.iris.util.nbt.mca.Chunk;
+import com.volmit.iris.util.nbt.mca.MCAFile;
+import com.volmit.iris.util.nbt.mca.MCAUtil;
+import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
+import org.bukkit.World;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 
+import java.io.*;
+import java.lang.reflect.Type;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class IrisPregenerator {
+    private static AtomicInteger generated;
+    private static AtomicInteger totalChunks;
+    private final String saveFile = "regions.json";
     private final PregenTask task;
     private final PregeneratorMethod generator;
     private final PregenListener listener;
@@ -50,23 +70,21 @@ public class IrisPregenerator {
     private final RollingSequence chunksPerMinute;
     private final RollingSequence regionsPerMinute;
     private final KList<Integer> chunksPerSecondHistory;
-    private static AtomicInteger generated;
     private final AtomicInteger generatedLast;
     private final AtomicInteger generatedLastMinute;
-    private static AtomicInteger totalChunks;
     private final AtomicLong startTime;
     private final ChronoLatch minuteLatch;
     private final AtomicReference<String> currentGeneratorMethod;
-    private final KSet<Position2> generatedRegions;
     private final KSet<Position2> retry;
     private final KSet<Position2> net;
     private final ChronoLatch cl;
     private final ChronoLatch saveLatch = new ChronoLatch(30000);
+    private Set<Position2> generatedRegions;
 
     public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener) {
+        generatedRegions = ConcurrentHashMap.newKeySet();
         this.listener = listenify(listener);
         cl = new ChronoLatch(5000);
-        generatedRegions = new KSet<>();
         this.shutdown = new AtomicBoolean(false);
         this.paused = new AtomicBoolean(false);
         this.task = task;
@@ -83,6 +101,10 @@ public class IrisPregenerator {
         generatedLast = new AtomicInteger(0);
         generatedLastMinute = new AtomicInteger(0);
         totalChunks = new AtomicInteger(0);
+        if (!IrisPackBenchmarking.benchmarkInProgress) {
+            loadCompletedRegions();
+            IrisToolbelt.access(generator.getWorld()).getEngine().saveEngineData();
+        }
         task.iterateRegions((_a, _b) -> totalChunks.addAndGet(1024));
         startTime = new AtomicLong(M.ms());
         ticker = new Looper() {
@@ -108,7 +130,7 @@ public class IrisPregenerator {
                         totalChunks.get() - generated.get(),
                         eta, M.ms() - startTime.get(), currentGeneratorMethod.get());
 
-                if (cl.flip()) {
+                if (cl.flip() && !paused.get()) {
                     double percentage = ((double) generated.get() / (double) totalChunks.get()) * 100;
                     if (!IrisPackBenchmarking.benchmarkInProgress) {
                         Iris.info("Pregen: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (%.0f%%) " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration(eta, 2), percentage);
@@ -122,12 +144,18 @@ public class IrisPregenerator {
     }
 
     private long computeETA() {
-        return (long) (totalChunks.get() > 1024 ? // Generated chunks exceed 1/8th of total?
-                // If yes, use smooth function (which gets more accurate over time since its less sensitive to outliers)
-                ((totalChunks.get() - generated.get()) * ((double) (M.ms() - startTime.get()) / (double) generated.get())) :
-                // If no, use quick function (which is less accurate over time but responds better to the initial delay)
-                ((totalChunks.get() - generated.get()) / chunksPerSecond.getAverage()) * 1000
-        );
+        long currentTime = M.ms();
+        long elapsedTime = currentTime - startTime.get();
+        int generatedChunks = generated.get();
+        int remainingChunks = totalChunks.get() - generatedChunks;
+
+        if (generatedChunks <= 12_000) {
+            // quick
+            return (long) (remainingChunks * ((double) elapsedTime / generatedChunks));
+        } else {
+            //smooth
+            return (long) (remainingChunks / chunksPerSecond.getAverage() * 1000);
+        }
     }
 
 
@@ -144,8 +172,14 @@ public class IrisPregenerator {
         shutdown();
         if (!IrisPackBenchmarking.benchmarkInProgress) {
             Iris.info(C.IRIS + "Pregen stopped.");
+            // todo: optimizer just takes too long.
+//            if (totalChunks.get() == generated.get() && task.isOptimizer()) {
+//                Iris.info("Starting World Optimizer..");
+//                ChunkUpdater updater = new ChunkUpdater(generator.getWorld());
+//                updater.start();
+//            }
         } else {
-            IrisPackBenchmarking.instance.finishedBenchmark(chunksPerSecondHistory);
+            IrisPackBenchmarking.getInstance().finishedBenchmark(chunksPerSecondHistory);
         }
     }
 
@@ -163,10 +197,48 @@ public class IrisPregenerator {
         generator.close();
         ticker.interrupt();
         listener.onClose();
+        saveCompletedRegions();
         Mantle mantle = getMantle();
         if (mantle != null) {
             mantle.trim(0, 0);
         }
+    }
+
+    private void getGeneratedRegions() {
+        World world = generator.getWorld();
+        File[] region = new File(world.getWorldFolder(), "region").listFiles();
+        BurstExecutor b = MultiBurst.burst.burst(region.length);
+        b.setMulticore(true);
+        b.queue(() -> {
+            for (File file : region) {
+                try {
+                    String regex = "r\\.(\\d+)\\.(-?\\d+)\\.mca";
+                    Pattern pattern = Pattern.compile(regex);
+                    Matcher matcher = pattern.matcher(file.getName());
+                    if (!matcher.find()) continue;
+                    int x = Integer.parseInt(matcher.group(1));
+                    int z = Integer.parseInt(matcher.group(2));
+                    Position2 pos = new Position2(x, z);
+                    generatedRegions.add(pos);
+
+                    MCAFile mca = MCAUtil.read(file, 0);
+
+                    boolean notFull = false;
+                    for (int i = 0; i < 1024; i++) {
+                        Chunk chunk = mca.getChunk(i);
+                        if (chunk == null) {
+                            generatedRegions.remove(pos);
+                            notFull = true;
+                            break;
+                        }
+                    }
+                    Iris.info("Completed MCA region: " + file.getName());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        b.complete();
     }
 
     private void visitRegion(int x, int z, boolean regions) {
@@ -182,6 +254,10 @@ public class IrisPregenerator {
         Position2 pos = new Position2(x, z);
 
         if (generatedRegions.contains(pos)) {
+            if (regions) {
+                listener.onRegionGenerated(x, z);
+                generated.addAndGet(1024);
+            }
             return;
         }
 
@@ -224,6 +300,39 @@ public class IrisPregenerator {
         generator.supportsRegions(x, z, listener);
     }
 
+    public void saveCompletedRegions() {
+        if (IrisPackBenchmarking.benchmarkInProgress) return;
+        Gson gson = new Gson();
+        try (Writer writer = new FileWriter(generator.getWorld().getWorldFolder().getPath() + "/" + saveFile)) {
+            gson.toJson(new HashSet<>(generatedRegions), writer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void loadCompletedRegions() {
+        if (task.isResetCache()) {
+            File test = new File(generator.getWorld().getWorldFolder().getPath() + "/" + saveFile);
+            if (!test.delete()) {
+                Iris.info(C.RED + "Failed to reset region cache ");
+            }
+        }
+        Gson gson = new Gson();
+        try (Reader reader = new FileReader(generator.getWorld().getWorldFolder().getPath() + "/" + saveFile)) {
+            Type setType = new TypeToken<HashSet<Position2>>() {
+            }.getType();
+            Set<Position2> loadedSet = gson.fromJson(reader, setType);
+            if (loadedSet != null) {
+                generatedRegions.clear();
+                generatedRegions.addAll(loadedSet);
+            }
+        } catch (FileNotFoundException e) {
+            // all fine
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void pause() {
         paused.set(true);
     }
@@ -252,6 +361,8 @@ public class IrisPregenerator {
 
             @Override
             public void onRegionGenerated(int x, int z) {
+                generatedRegions.add(new Position2(x, z));
+                saveCompletedRegions();
                 listener.onRegionGenerated(x, z);
             }
 

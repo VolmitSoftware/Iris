@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,6 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.scheduling.J;
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
@@ -119,8 +118,7 @@ public class MedievalPregenMethod implements PregeneratorMethod {
 
         listener.onChunkGenerating(x, z);
         futures.add(J.sfut(() -> {
-            world.getChunkAt(x, z);
-            Chunk c = Bukkit.getWorld(world.getUID()).getChunkAt(x, z);
+            Chunk c = world.getChunkAt(x, z);
             lastUse.put(c, M.ms());
             listener.onChunkGenerated(x, z);
             listener.onChunkCleaned(x, z);
@@ -134,5 +132,10 @@ public class MedievalPregenMethod implements PregeneratorMethod {
         }
 
         return null;
+    }
+
+    @Override
+    public World getWorld() {
+        return world;
     }
 }

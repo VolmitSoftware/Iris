@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.placer.WorldObjectPlacer;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.data.IrisBlockData;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
@@ -78,7 +77,7 @@ public class PlannedStructure {
 
     public boolean place(IObjectPlacer placer, Mantle e, Engine eng) {
         IrisObjectPlacement options = new IrisObjectPlacement();
-        options.setRotation(IrisObjectRotation.of(0,0,0));
+        options.setRotation(IrisObjectRotation.of(0, 0, 0));
         int startHeight = pieces.get(0).getPosition().getY();
 
         boolean placed = false;
@@ -150,9 +149,6 @@ public class PlannedStructure {
         return v.place(xx, height, zz, placer, options, rng, (b, data) -> {
             e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);
             e.set(b.getX(), b.getY(), b.getZ(), container);
-            if (data instanceof IrisBlockData d) {
-                e.set(b.getX(), b.getY(), b.getZ(), d.getCustom());
-            }
         }, null, getData().getEngine() != null ? getData() : eng.getData()) != -1;
     }
 

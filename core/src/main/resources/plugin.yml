@@ -6,6 +6,11 @@ authors: [ cyberpwn, NextdoorPsycho, Vatuu ]
 website: volmit.com
 description: More than a Dimension!
 libraries:
+  - org.mapdb:mapdb:3.1.0
+  - org.bytedeco:cuda-platform:12.3-8.9-1.5.10
+  - org.bytedeco:javacpp:1.5.10
+  - net.bytebuddy:byte-buddy:1.14.14
+  - net.bytebuddy:byte-buddy-agent:1.12.8
   - com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2
   - com.github.ben-manes.caffeine:caffeine:3.0.5
   - org.apache.commons:commons-lang3:3.12.0
@@ -19,6 +24,7 @@ libraries:
   - rhino:js:1.7R2
   - bsf:bsf:2.4.0
   - org.lz4:lz4-java:1.8.0
+  - io.netty:netty-all:4.1.112.Final
 commands:
   iris:
     aliases: [ ir, irs ]

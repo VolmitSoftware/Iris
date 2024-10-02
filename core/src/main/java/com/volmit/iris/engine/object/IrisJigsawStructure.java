@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -68,6 +68,10 @@ public class IrisJigsawStructure extends IrisRegistrant {
 
     @Desc("Set to true to prevent rotating the initial structure piece")
     private boolean disableInitialRotation = false;
+
+    @RegistryListFunction(StructureKeyFunction.class)
+    @Desc("The minecraft key to use when creating treasure maps")
+    private String structureKey = null;
 
     private transient AtomicCache<Integer> maxDimension = new AtomicCache<>();
 

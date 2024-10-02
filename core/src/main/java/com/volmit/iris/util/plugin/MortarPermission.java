@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,8 +36,10 @@ public abstract class MortarPermission {
                     MortarPermission px = (MortarPermission) i.getType().getConstructor().newInstance();
                     px.setParent(this);
                     i.set(Modifier.isStatic(i.getModifiers()) ? null : this, px);
-                } catch (IllegalArgumentException | IllegalAccessException | InstantiationException |
-                         InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                } catch (IllegalArgumentException | IllegalAccessException |
+                         InstantiationException |
+                         InvocationTargetException | NoSuchMethodException |
+                         SecurityException e) {
                     e.printStackTrace();
                     Iris.reportError(e);
                 }
@@ -52,7 +54,8 @@ public abstract class MortarPermission {
             if (i.isAnnotationPresent(Permission.class)) {
                 try {
                     p.add((MortarPermission) i.get(Modifier.isStatic(i.getModifiers()) ? null : this));
-                } catch (IllegalArgumentException | IllegalAccessException | SecurityException e) {
+                } catch (IllegalArgumentException | IllegalAccessException |
+                         SecurityException e) {
                     e.printStackTrace();
                     Iris.reportError(e);
                 }

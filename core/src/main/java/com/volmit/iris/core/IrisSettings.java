@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.VolmitSender;
-import com.volmit.iris.util.scheduling.ChronoLatch;
 import lombok.Data;
 
 import java.io.File;
@@ -34,6 +33,7 @@ import java.io.IOException;
 @Data
 public class IrisSettings {
     public static IrisSettings settings;
+    private IrisSafeGuard safeguard = new IrisSafeGuard();
     private IrisSettingsGeneral general = new IrisSettingsGeneral();
     private IrisSettingsWorld world = new IrisSettingsWorld();
     private IrisSettingsGUI gui = new IrisSettingsGUI();
@@ -42,6 +42,9 @@ public class IrisSettings {
     private IrisSettingsConcurrency concurrency = new IrisSettingsConcurrency();
     private IrisSettingsStudio studio = new IrisSettingsStudio();
     private IrisSettingsPerformance performance = new IrisSettingsPerformance();
+    private IrisWorldDump worldDump = new IrisWorldDump();
+    private IrisWorldSettings irisWorldSettings = new IrisWorldSettings();
+    private IrisServerSettings server = new IrisServerSettings();
 
     public static int getThreadCount(int c) {
         return switch (c) {
@@ -103,6 +106,12 @@ public class IrisSettings {
     }
 
     @Data
+    public static class IrisSafeGuard {
+        public boolean ignoreBootMode = false;
+        public boolean userUnstableWarning = true;
+    }
+
+    @Data
     public static class IrisSettingsAutoconfiguration {
         public boolean configureSpigotTimeoutTime = true;
         public boolean configurePaperWatchdogDelay = true;
@@ -136,8 +145,9 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsPerformance {
-        public boolean trimMantleInStudio = false; 
+        public boolean trimMantleInStudio = false;
         public int mantleKeepAlive = 30;
+        public int headlessKeepAlive = 10;
         public int cacheSize = 4_096;
         public int resourceLoaderCacheSize = 1_024;
         public int objectLoaderCacheSize = 4_096;
@@ -146,7 +156,6 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsGeneral {
-        public boolean DoomsdayAnnihilationSelfDestructMode = false;
         public boolean commandSounds = true;
         public boolean debug = false;
         public boolean disableNMS = false;
@@ -159,6 +168,7 @@ public class IrisSettings {
         public int spins = 7;
         public int spinb = 8;
         public String cartographerMessage = "Iris does not allow cartographers in its world due to crashes.";
+        public String[] dataPackPaths = new String[0];
 
 
         @SuppressWarnings("BooleanMethodIsAlwaysInverted")
@@ -171,6 +181,7 @@ public class IrisSettings {
     public static class IrisSettingsGUI {
         public boolean useServerLaunchedGuis = true;
         public boolean maximumPregenGuiFPS = false;
+        public boolean colorMode = true;
     }
 
     @Data
@@ -186,5 +197,29 @@ public class IrisSettings {
         public boolean openVSCode = true;
         public boolean disableTimeAndWeather = true;
         public boolean autoStartDefaultStudio = false;
+    }
+
+    @Data
+    public static class IrisWorldDump {
+        public int mcaCacheSize = 3;
+    }
+
+    @Data
+    public static class IrisServerSettings {
+        public boolean active = false;
+        public int port = 1337;
+        public String[] remote = new String[0];
+
+        public boolean isRemote() {
+            return remote.length != 0;
+        }
+    }
+
+    // todo: Goal:Have these as the default world settings and when put in bukkit.yml it will again overwrite that world from these.
+    @Data
+    public static class IrisWorldSettings {
+        public boolean dynamicEntityAdjustments;
+
+
     }
 }

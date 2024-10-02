@@ -1,11 +1,27 @@
+/*
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.volmit.iris.core.tools;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.format.C;
 import oshi.SystemInfo;
-import oshi.hardware.CentralProcessor;
 import oshi.hardware.GlobalMemory;
-import oshi.hardware.HWDiskStore;
 import oshi.software.os.OperatingSystem;
 
 import java.io.*;
@@ -17,18 +33,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 import java.util.zip.Deflater;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 
 import static com.google.common.math.LongMath.isPrime;
 import static com.volmit.iris.util.misc.getHardware.getCPUModel;
+
 public class IrisBenchmarking {
+    public static boolean inProgress = false;
     static String ServerOS;
     static String filePath = "benchmark.dat";
     static double avgWriteSpeedMBps;
@@ -54,7 +69,6 @@ public class IrisBenchmarking {
     static double elapsedTimeNs;
     static boolean Winsat = false;
     static boolean WindowsDiskSpeed = false;
-    public static boolean inProgress = false;
     static double startTime;
     // Good enough for now. . .
 
@@ -184,7 +198,7 @@ public class IrisBenchmarking {
             Iris.info("- Sequential 64.0 Write: " + C.BLUE + formatDouble(avgWriteSpeedMBps) + " Mbps");
             Iris.info("- Sequential 64.0 Read: " + C.BLUE + formatDouble(avgReadSpeedMBps) + " Mbps");
         } else {
-           // Iris.info("Disk Model: " + getDiskModel());
+            // Iris.info("Disk Model: " + getDiskModel());
             Iris.info(C.GREEN + "- Running in Native Mode");
             Iris.info("- Average Write Speed: " + C.GREEN + formatDouble(avgWriteSpeedMBps) + " Mbps");
             Iris.info("- Average Read Speed: " + C.GREEN + formatDouble(avgReadSpeedMBps) + " Mbps");

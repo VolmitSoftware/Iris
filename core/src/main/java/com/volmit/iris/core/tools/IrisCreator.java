@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,13 +21,10 @@ package com.volmit.iris.core.tools;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.service.StudioSVC;
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
-import com.volmit.iris.core.safeguard.UtilsSFG;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -46,7 +43,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-import static com.volmit.iris.core.safeguard.IrisSafeguard.unstablemode;
 
 /**
  * Makes it a lot easier to setup an engine, world, studio or whatever
@@ -86,7 +82,11 @@ public class IrisCreator {
      * Benchmark mode
      */
     private boolean benchmark = false;
-    private boolean smartVanillaHeight = false;
+    /**
+     * Radius of chunks to pregenerate in the headless mode
+     * if set to -1, headless mode is disabled
+     */
+    private int headlessRadius = 10;
 
     public static boolean removeFromBukkitYml(String name) throws IOException {
         YamlConfiguration yml = YamlConfiguration.loadConfiguration(BUKKIT_YML);
@@ -101,7 +101,8 @@ public class IrisCreator {
         yml.save(BUKKIT_YML);
         return true;
     }
-    public static boolean worldLoaded(){
+
+    public static boolean worldLoaded() {
         return true;
     }
 
@@ -133,7 +134,6 @@ public class IrisCreator {
             Iris.service(StudioSVC.class).installIntoWorld(sender, d.getLoadKey(), new File(Bukkit.getWorldContainer(), name()));
         }
 
-        PlatformChunkGenerator access = null;
         AtomicReference<World> world = new AtomicReference<>();
         AtomicDouble pp = new AtomicDouble(0);
         O<Boolean> done = new O<>();
@@ -143,24 +143,27 @@ public class IrisCreator {
                 .name(name)
                 .seed(seed)
                 .studio(studio)
-                .smartVanillaHeight(smartVanillaHeight)
                 .create();
-        ServerConfigurator.installDataPacks(false);
+        PlatformChunkGenerator access = (PlatformChunkGenerator) wc.generator();
+        if (access == null) {
+            throw new IrisException("Access is null. Something bad happened.");
+        }
 
-        access = (PlatformChunkGenerator) wc.generator();
-        PlatformChunkGenerator finalAccess1 = access;
-
-        J.a(() ->
-        {
+        try {
+            access.prepareSpawnChunks(seed, headlessRadius);
+        } catch (Throwable e) {
+            Iris.error("Failed to prepare spawn chunks for " + name);
+            e.printStackTrace();
+        }
+        J.a(() -> {
             Supplier<Integer> g = () -> {
-                if (finalAccess1 == null || finalAccess1.getEngine() == null) {
+                if (access.getEngine() == null) {
                     return 0;
                 }
-                return finalAccess1.getEngine().getGenerated();
+                return access.getEngine().getGenerated();
             };
-            if(!benchmark) {
-                if (finalAccess1 == null) return;
-                int req = finalAccess1.getSpawnChunks().join();
+            if (!benchmark) {
+                int req = access.getSpawnChunks().join();
 
                 while (g.get() < req) {
                     double v = (double) g.get() / (double) req;
@@ -182,10 +185,6 @@ public class IrisCreator {
             }).get();
         } catch (Throwable e) {
             e.printStackTrace();
-        }
-
-        if (access == null) {
-            throw new IrisException("Access is null. Something bad happened.");
         }
 
         done.set(true);
@@ -245,7 +244,7 @@ public class IrisCreator {
         String gen = "Iris:" + dimension;
         ConfigurationSection section = yml.contains("worlds") ? yml.getConfigurationSection("worlds") : yml.createSection("worlds");
         if (!section.contains(name)) {
-            section.createSection(name).set("generator", gen);
+            section.createSection(name).set("backup-generator", gen);
             try {
                 yml.save(BUKKIT_YML);
                 Iris.info("Registered \"" + name + "\" in bukkit.yml");

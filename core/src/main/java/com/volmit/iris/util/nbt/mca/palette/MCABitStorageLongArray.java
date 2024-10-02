@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@ import org.apache.commons.lang3.Validate;
 
 import java.util.function.IntConsumer;
 
-public class MCABitStorage {
+public class MCABitStorageLongArray {
     private static final int[] MAGIC = new int[]{
             -1, -1, 0, Integer.MIN_VALUE, 0, 0, 1431655765, 1431655765, 0, Integer.MIN_VALUE,
             0, 1, 858993459, 858993459, 0, 715827882, 715827882, 0, 613566756, 613566756,
@@ -61,11 +61,11 @@ public class MCABitStorage {
 
     private final int divideShift;
 
-    public MCABitStorage(int bits, int length) {
+    public MCABitStorageLongArray(int bits, int length) {
         this(bits, length, null);
     }
 
-    public MCABitStorage(int bits, int length, long[] data) {
+    public MCABitStorageLongArray(int bits, int length, long[] data) {
         Validate.inclusiveBetween(1L, 32L, bits);
         this.size = length;
         this.bits = bits;

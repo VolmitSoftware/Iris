@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -195,7 +195,10 @@ public class PlannedPiece {
         }
     }
 
-    public record ParentConnection(PlannedPiece parent, IrisJigsawPieceConnector parentConnector, PlannedPiece self, IrisJigsawPieceConnector connector) {
+    public record ParentConnection(PlannedPiece parent,
+                                   IrisJigsawPieceConnector parentConnector,
+                                   PlannedPiece self,
+                                   IrisJigsawPieceConnector connector) {
         public IrisPosition getTargetPosition() {
             var pos = parent.realPositions.get(parentConnector);
             if (pos == null) return null;

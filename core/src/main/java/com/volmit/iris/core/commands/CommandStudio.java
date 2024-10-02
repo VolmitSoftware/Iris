@@ -1,6 +1,6 @@
 /*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *  Iris is a World Generator for Minecraft Bukkit Servers
+ *  Copyright (c) 2024 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,11 +22,10 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.core.gui.VisionGUI;
-import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.service.ConversionSVC;
 import com.volmit.iris.core.service.StudioSVC;
-import com.volmit.iris.core.tools.IrisConverter;
+import com.volmit.iris.core.tools.IrisNoiseBenchmark;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.*;
@@ -42,27 +41,24 @@ import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Function2;
-import com.volmit.iris.util.function.NoiseProvider;
-import com.volmit.iris.util.interpolation.InterpolationMethod;
-import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.math.Spiraler;
-import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
-import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import io.papermc.lib.PaperLib;
 import org.bukkit.*;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
@@ -77,6 +73,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -86,7 +83,6 @@ import java.util.function.Supplier;
 public class CommandStudio implements DecreeExecutor {
     private CommandFind find;
     private CommandEdit edit;
-    //private CommandDeepSearch deepSearch;
 
     public static String hrf(Duration duration) {
         return duration.toString().substring(2).replaceAll("(\\d[HMS])(?!$)", "$1 ").toLowerCase();
@@ -205,7 +201,8 @@ public class CommandStudio implements DecreeExecutor {
                                 while (futures.isNotEmpty()) {
                                     try {
                                         futures.remove(0).get();
-                                    } catch (InterruptedException | ExecutionException e) {
+                                    } catch (InterruptedException |
+                                             ExecutionException e) {
                                         e.printStackTrace();
                                     }
                                 }
@@ -286,8 +283,8 @@ public class CommandStudio implements DecreeExecutor {
             sender().sendMessage(C.RED + "No studio world open!");
             return;
         }
-        Iris.service(StudioSVC.class).getActiveProject().getActiveProvider().getEngine().hotload();
-        sender().sendMessage(C.GREEN + "Hotloaded");
+        var provider = Iris.service(StudioSVC.class).getActiveProject().getActiveProvider();
+        provider.getEngine().hotload();
     }
 
     @Decree(description = "Show loot if a chest were right here", origin = DecreeOrigin.PLAYER, sync = true)
@@ -335,29 +332,38 @@ public class CommandStudio implements DecreeExecutor {
 
 
     @Decree(description = "Get all structures in a radius of chunks", aliases = "dist", origin = DecreeOrigin.PLAYER)
-    public void distances(@Param(description = "The radius") int radius) {
+    public void distances(@Param(description = "The radius in chunks") int radius) {
         var engine = engine();
         if (engine == null) {
             sender().sendMessage(C.RED + "Only works in an Iris world!");
             return;
         }
         var sender = sender();
-        int d = radius*2;
+        int d = radius * 2;
         KMap<String, KList<Position2>> data = new KMap<>();
         var multiBurst = new MultiBurst("Distance Sampler", Thread.MIN_PRIORITY);
         var executor = multiBurst.burst(radius * radius);
 
         sender.sendMessage(C.GRAY + "Generating data...");
         var loc = player().getLocation();
+        int totalTasks = d * d;
+        AtomicInteger completedTasks = new AtomicInteger(0);
+        int c = J.ar(() -> {
+            sender.sendProgress((double) completedTasks.get() / totalTasks, "Finding structures");
+        }, 0);
+
         new Spiraler(d, d, (x, z) -> executor.queue(() -> {
             var struct = engine.getStructureAt(x, z);
             if (struct != null) {
                 data.computeIfAbsent(struct.getLoadKey(), (k) -> new KList<>()).add(new Position2(x, z));
             }
+            completedTasks.incrementAndGet();
         })).setOffset(loc.getBlockX(), loc.getBlockZ()).drain();
 
         executor.complete();
         multiBurst.close();
+        J.car(c);
+
         for (var key : data.keySet()) {
             var list = data.get(key);
             KList<Long> distances = new KList<>(list.size() - 1);
@@ -390,19 +396,12 @@ public class CommandStudio implements DecreeExecutor {
         }
     }
 
+
     @Decree(description = "Render a world map (External GUI)", aliases = "render")
-    public void map(
-            @Param(name = "world", description = "The world to open the generator for", contextual = true)
-            World world
-    ) {
+    public void map() {
         if (noGUI()) return;
-
-        if (!IrisToolbelt.isIrisWorld(world)) {
-            sender().sendMessage(C.RED + "You need to be in or specify an Iris-generated world!");
-            return;
-        }
-
-        VisionGUI.launch(IrisToolbelt.access(world).getEngine(), 0);
+        if (noStudio()) return;
+        VisionGUI.launch(IrisToolbelt.access(player().getWorld()).getEngine(), 0);
         sender().sendMessage(C.GREEN + "Opening map!");
     }
 
@@ -423,188 +422,8 @@ public class CommandStudio implements DecreeExecutor {
             @Param(description = "The dimension to profile", contextual = true, defaultValue = "default")
             IrisDimension dimension
     ) {
-        // Todo: Make this more accurate
-        File pack = dimension.getLoadFile().getParentFile().getParentFile();
-        File report = Iris.instance.getDataFile("profile.txt");
-        IrisProject project = new IrisProject(pack);
-        IrisData data = IrisData.get(pack);
-
-        KList<String> fileText = new KList<>();
-
-        KMap<NoiseStyle, Double> styleTimings = new KMap<>();
-        KMap<InterpolationMethod, Double> interpolatorTimings = new KMap<>();
-        KMap<String, Double> generatorTimings = new KMap<>();
-        KMap<String, Double> biomeTimings = new KMap<>();
-        KMap<String, Double> regionTimings = new KMap<>();
-
-        sender().sendMessage("Calculating Performance Metrics for Noise generators");
-
-        for (NoiseStyle i : NoiseStyle.values()) {
-            CNG c = i.create(new RNG(i.hashCode()));
-
-            for (int j = 0; j < 3000; j++) {
-                c.noise(j, j + 1000, j * j);
-                c.noise(j, -j);
-            }
-
-            PrecisionStopwatch px = PrecisionStopwatch.start();
-
-            for (int j = 0; j < 100000; j++) {
-                c.noise(j, j + 1000, j * j);
-                c.noise(j, -j);
-            }
-
-            styleTimings.put(i, px.getMilliseconds());
-        }
-
-        fileText.add("Noise Style Performance Impacts: ");
-
-        for (NoiseStyle i : styleTimings.sortKNumber()) {
-            fileText.add(i.name() + ": " + styleTimings.get(i));
-        }
-
-        fileText.add("");
-
-        sender().sendMessage("Calculating Interpolator Timings...");
-
-        for (InterpolationMethod i : InterpolationMethod.values()) {
-            IrisInterpolator in = new IrisInterpolator();
-            in.setFunction(i);
-            in.setHorizontalScale(8);
-
-            NoiseProvider np = (x, z) -> Math.random();
-
-            for (int j = 0; j < 3000; j++) {
-                in.interpolate(j, -j, np);
-            }
-
-            PrecisionStopwatch px = PrecisionStopwatch.start();
-
-            for (int j = 0; j < 100000; j++) {
-                in.interpolate(j + 10000, -j - 100000, np);
-            }
-
-            interpolatorTimings.put(i, px.getMilliseconds());
-        }
-
-        fileText.add("Noise Interpolator Performance Impacts: ");
-
-        for (InterpolationMethod i : interpolatorTimings.sortKNumber()) {
-            fileText.add(i.name() + ": " + interpolatorTimings.get(i));
-        }
-
-        fileText.add("");
-
-        sender().sendMessage("Processing Generator Scores: ");
-
-        KMap<String, KList<String>> btx = new KMap<>();
-
-        for (String i : data.getGeneratorLoader().getPossibleKeys()) {
-            KList<String> vv = new KList<>();
-            IrisGenerator g = data.getGeneratorLoader().load(i);
-            KList<IrisNoiseGenerator> composites = g.getAllComposites();
-            double score = 0;
-            int m = 0;
-            for (IrisNoiseGenerator j : composites) {
-                m++;
-                score += styleTimings.get(j.getStyle().getStyle());
-                vv.add("Composite Noise Style " + m + " " + j.getStyle().getStyle().name() + ": " + styleTimings.get(j.getStyle().getStyle()));
-            }
-
-            score += interpolatorTimings.get(g.getInterpolator().getFunction());
-            vv.add("Interpolator " + g.getInterpolator().getFunction().name() + ": " + interpolatorTimings.get(g.getInterpolator().getFunction()));
-            generatorTimings.put(i, score);
-            btx.put(i, vv);
-        }
-
-        fileText.add("Project Generator Performance Impacts: ");
-
-        for (String i : generatorTimings.sortKNumber()) {
-            fileText.add(i + ": " + generatorTimings.get(i));
-
-            btx.get(i).forEach((ii) -> fileText.add("  " + ii));
-        }
-
-        fileText.add("");
-
-        KMap<String, KList<String>> bt = new KMap<>();
-
-        for (String i : data.getBiomeLoader().getPossibleKeys()) {
-            KList<String> vv = new KList<>();
-            IrisBiome b = data.getBiomeLoader().load(i);
-            double score = 0;
-
-            int m = 0;
-            for (IrisBiomePaletteLayer j : b.getLayers()) {
-                m++;
-                score += styleTimings.get(j.getStyle().getStyle());
-                vv.add("Palette Layer " + m + ": " + styleTimings.get(j.getStyle().getStyle()));
-            }
-
-            score += styleTimings.get(b.getBiomeStyle().getStyle());
-            vv.add("Biome Style: " + styleTimings.get(b.getBiomeStyle().getStyle()));
-            score += styleTimings.get(b.getChildStyle().getStyle());
-            vv.add("Child Style: " + styleTimings.get(b.getChildStyle().getStyle()));
-            biomeTimings.put(i, score);
-            bt.put(i, vv);
-        }
-
-        fileText.add("Project Biome Performance Impacts: ");
-
-        for (String i : biomeTimings.sortKNumber()) {
-            fileText.add(i + ": " + biomeTimings.get(i));
-
-            bt.get(i).forEach((ff) -> fileText.add("  " + ff));
-        }
-
-        fileText.add("");
-
-        for (String i : data.getRegionLoader().getPossibleKeys()) {
-            IrisRegion b = data.getRegionLoader().load(i);
-            double score = 0;
-
-            score += styleTimings.get(b.getLakeStyle().getStyle());
-            score += styleTimings.get(b.getRiverStyle().getStyle());
-            regionTimings.put(i, score);
-        }
-
-        fileText.add("Project Region Performance Impacts: ");
-
-        for (String i : regionTimings.sortKNumber()) {
-            fileText.add(i + ": " + regionTimings.get(i));
-        }
-
-        fileText.add("");
-
-        double m = 0;
-        for (double i : biomeTimings.v()) {
-            m += i;
-        }
-        m /= biomeTimings.size();
-        double mm = 0;
-        for (double i : generatorTimings.v()) {
-            mm += i;
-        }
-        mm /= generatorTimings.size();
-        m += mm;
-        double mmm = 0;
-        for (double i : regionTimings.v()) {
-            mmm += i;
-        }
-        mmm /= regionTimings.size();
-        m += mmm;
-
-        fileText.add("Average Score: " + m);
-        sender().sendMessage("Score: " + Form.duration(m, 0));
-
-        try {
-            IO.writeAll(report, fileText.toString("\n"));
-        } catch (IOException e) {
-            Iris.reportError(e);
-            e.printStackTrace();
-        }
-
-        sender().sendMessage(C.GREEN + "Done! " + report.getPath());
+        IrisNoiseBenchmark noiseBenchmark = new IrisNoiseBenchmark(dimension, sender());
+        noiseBenchmark.runAll();
     }
 
     @Decree(description = "Spawn an Iris entity", aliases = "summon", origin = DecreeOrigin.PLAYER)

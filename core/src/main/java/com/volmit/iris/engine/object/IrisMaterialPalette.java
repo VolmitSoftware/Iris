@@ -64,11 +64,11 @@ public class IrisMaterialPalette {
         return getLayerGenerator(rng, rdata).fit(getBlockData(rdata), x / zoom, y / zoom, z / zoom);
     }
 
-    public Optional<TileData<?>> getTile(RNG rng, double x, double y, double z, IrisData rdata) {
+    public Optional<TileData> getTile(RNG rng, double x, double y, double z, IrisData rdata) {
         if (getBlockData(rdata).isEmpty())
             return Optional.empty();
 
-        TileData<?> tile = getBlockData(rdata).size() == 1 ? palette.get(0).tryGetTile() : palette.getRandom(rng).tryGetTile();
+        TileData tile = getBlockData(rdata).size() == 1 ? palette.get(0).tryGetTile(rdata) : palette.getRandom(rng).tryGetTile(rdata);
         return tile != null ? Optional.of(tile) : Optional.empty();
     }
 

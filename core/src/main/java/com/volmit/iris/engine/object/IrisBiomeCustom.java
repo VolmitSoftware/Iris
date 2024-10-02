@@ -104,7 +104,7 @@ public class IrisBiomeCustom {
             JSONObject po = new JSONObject();
             po.put("type", ambientParticle.getParticle().name().toLowerCase());
             particle.put("options", po);
-            particle.put("probability", ambientParticle.getRarity());
+            particle.put("probability", 1f/ambientParticle.getRarity());
             effects.put("particle", particle);
         }
 

@@ -18,84 +18,98 @@
 
 package com.volmit.iris.engine.object;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.nbt.tag.CompoundTag;
+import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.util.collection.KMap;
+import lombok.*;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 
 @SuppressWarnings("ALL")
-public interface TileData<T extends TileState> extends Cloneable {
+@Getter
+@ToString
+@EqualsAndHashCode
+@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class TileData implements Cloneable {
+    private static final Gson gson = new GsonBuilder().disableHtmlEscaping().setLenient().create();
 
-    static final KList<TileData<? extends TileState>> registry = setup();
+    @NonNull
+    private Material material;
+    @NonNull
+    private KMap<String, Object> properties;
 
-    static KList<TileData<? extends TileState>> setup() {
-        KList<TileData<? extends TileState>> registry = new KList<>();
-
-        registry.add(new TileSign());
-        registry.add(new TileSpawner());
-        registry.add(new TileBanner());
-
-        return registry;
-    }
-
-    static TileData<? extends TileState> read(DataInputStream s) throws IOException {
-        try {
-            int id = s.readShort();
-            @SuppressWarnings("unchecked") TileData<? extends TileState> d = registry.get(id).getClass().getConstructor().newInstance();
-            d.fromBinary(s);
-            return d;
-        } catch (InvocationTargetException | InstantiationException | IllegalAccessException |
-                 NoSuchMethodException e) {
-            throw new IOException("Failed to create TileData instance due to missing type registrar!");
-        }
-    }
-
-    static boolean setTileState(Block block, TileData<? extends TileState> data) {
+    public static boolean setTileState(Block block, TileData data) {
         if (block.getState() instanceof TileState && data.isApplicable(block.getBlockData()))
-            return data.toBukkitTry(block.getState());
+            return data.toBukkitTry(block);
         return false;
     }
 
-    static TileData<? extends TileState> getTileState(Block block) {
-        for (TileData<? extends TileState> i : registry) {
-            BlockData data = block.getBlockData();
-
-            if (i.isApplicable(data)) {
-                try {
-                    @SuppressWarnings("unchecked") TileData<? extends TileState> s = i.getClass().getConstructor().newInstance();
-                    s.fromBukkitTry(block.getState());
-                    return s;
-                } catch (Throwable e) {
-                    Iris.reportError(e);
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        return null;
+    public static TileData getTileState(Block block) {
+        if (!INMS.get().hasTile(block.getType()))
+            return null;
+        return new TileData().fromBukkit(block);
     }
 
-    String getTileId();
+    public static TileData read(DataInputStream in) throws IOException {
+        if (!in.markSupported())
+            throw new IOException("Mark not supported");
+        in.mark(Integer.MAX_VALUE);
+        try {
+            return new TileData(
+                    Material.matchMaterial(in.readUTF()),
+                    gson.fromJson(in.readUTF(), KMap.class));
+        } catch (Throwable e) {
+            in.reset();
+            return new LegacyTileData(in);
+        } finally {
+            in.mark(0);
+        }
+    }
 
-    boolean isApplicable(BlockData data);
+    public boolean isApplicable(BlockData data) {
+        return material != null && data.getMaterial() == material;
+    }
 
-    void toBukkit(T t);
+    public void toBukkit(Block block) {
+        if (material == null) throw new IllegalStateException("Material not set");
+        if (block.getType() != material)
+            throw new IllegalStateException("Material mismatch: " + block.getType() + " vs " + material);
+        INMS.get().deserializeTile(properties, block.getLocation());
+    }
 
-    void fromBukkit(T t);
+    public TileData fromBukkit(Block block) {
+        if (material != null && block.getType() != material)
+            throw new IllegalStateException("Material mismatch: " + block.getType() + " vs " + material);
+        if (material == null) material = block.getType();
+        properties = INMS.get().serializeTile(block.getLocation());
+        return this;
+    }
 
-    default boolean toBukkitTry(BlockState t) {
+    public boolean toBukkitTry(Block block) {
         try {
             //noinspection unchecked
-            toBukkit((T) t);
-            t.update();
+            toBukkit(block);
+            return true;
+        } catch (Throwable e) {
+            Iris.reportError(e);
+        }
+
+        return false;
+    }
+
+    public boolean fromBukkitTry(Block block) {
+        try {
+            //noinspection unchecked
+            fromBukkit(block);
             return true;
         } catch (Throwable e) {
             Iris.reportError(e);
@@ -105,24 +119,16 @@ public interface TileData<T extends TileState> extends Cloneable {
         return false;
     }
 
-    default boolean fromBukkitTry(BlockState t) {
-        try {
-            //noinspection unchecked
-            fromBukkit((T) t);
-            return true;
-        } catch (Throwable e) {
-            Iris.reportError(e);
-
-        }
-
-        return false;
+    public void toBinary(DataOutputStream out) throws IOException {
+        out.writeUTF(material == null ? "" : material.getKey().toString());
+        out.writeUTF(gson.toJson(properties));
     }
 
-    CompoundTag toNBT(CompoundTag parent);
-
-    void toBinary(DataOutputStream out) throws IOException;
-
-    void fromBinary(DataInputStream in) throws IOException;
-
-    TileData<T> clone();
+    @Override
+    public TileData clone() {
+        var clone = new TileData();
+        clone.material = material;
+        clone.properties = properties.copy(); //TODO make a deep copy
+        return clone;
+    }
 }

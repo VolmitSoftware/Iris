@@ -283,10 +283,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         }
 
         getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.TILE, () -> J.s(() -> {
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, tile) -> {
+            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, v) -> {
                 int betterY = y + getWorld().minHeight();
-                if (!TileData.setTileState(c.getBlock(x, betterY, z), tile.getData()))
-                    Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), tile.getData().getTileId());
+                if (!TileData.setTileState(c.getBlock(x, betterY, z), v.getData()))
+                    Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), v.getData().getMaterial().name());
             });
         }));
         getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.CUSTOM, () -> J.s(() -> {
@@ -840,7 +840,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     default void gotoJigsaw(IrisJigsawStructure s, Player player, boolean teleport) {
         if (s.getLoadKey().equals(getDimension().getStronghold())) {
-            KList<Position2> p = getDimension().getStrongholds(getSeedManager().getSpawn());
+            KList<Position2> p = getDimension().getStrongholds(getSeedManager().getMantle());
 
             if (p.isEmpty()) {
                 player.sendMessage(C.GOLD + "No strongholds in world.");

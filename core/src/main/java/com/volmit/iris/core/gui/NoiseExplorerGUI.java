@@ -19,6 +19,7 @@
 package com.volmit.iris.core.gui;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.engine.object.NoiseStyle;
 import com.volmit.iris.util.collection.KList;
@@ -61,7 +62,7 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener, List
     @SuppressWarnings("CanBeFinal")
     RollingSequence r = new RollingSequence(20);
     @SuppressWarnings("CanBeFinal")
-    boolean colorMode = true;
+    boolean colorMode = IrisSettings.get().getGui().colorMode;
     double scale = 1;
     CNG cng = NoiseStyle.STATIC.create(new RNG(RNG.r.nextLong()));
     @SuppressWarnings("CanBeFinal")
@@ -274,7 +275,10 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener, List
                         n = n > 1 ? 1 : n < 0 ? 0 : n;
 
                         try {
-                            Color color = colorMode ? Color.getHSBColor((float) (n), 1f - (float) (n * n * n * n * n * n), 1f - (float) n) : Color.getHSBColor(0f, 0f, (float) n);
+                            //Color color = colorMode ? Color.getHSBColor((float) (n), 1f - (float) (n * n * n * n * n * n), 1f - (float) n) : Color.getHSBColor(0f, 0f, (float) n);
+                            //Color color = colorMode ? Color.getHSBColor((float) (n), (float) (n * n * n * n * n * n), (float) n) : Color.getHSBColor(0f, 0f, (float) n);
+                            Color color = colorMode ? Color.getHSBColor((float) n, (float) (n * n * n * n * n * n), (float) n) : Color.getHSBColor(0f, 0f, (float) n);
+
                             int rgb = color.getRGB();
                             img.setRGB(xx, z, rgb);
                         } catch (Throwable ignored) {

@@ -8,18 +8,22 @@ import java.io.DataOutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.mojang.datafixers.util.Pair;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.datapack.DataVersion;
+import com.volmit.iris.util.scheduling.J;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.*;
+import net.minecraft.nbt.Tag;
+import net.minecraft.server.commands.data.BlockDataAccessor;
 import net.minecraft.server.level.ChunkMap;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.chunk.status.WorldGenContext;
 import org.bukkit.*;
@@ -28,6 +32,8 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_21_R1.CraftChunk;
 import org.bukkit.craftbukkit.v1_21_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_21_R1.CraftWorld;
+import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlockState;
+import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlockStates;
 import org.bukkit.craftbukkit.v1_21_R1.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_21_R1.entity.CraftDolphin;
 import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
@@ -37,6 +43,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -62,8 +69,6 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.nbt.NbtIo;
-import net.minecraft.nbt.TagParser;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -137,54 +142,108 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
+    public boolean hasTile(Material material) {
+        return !CraftBlockState.class.equals(CraftBlockStates.getBlockStateType(material));
+    }
+
+    @Override
     public boolean hasTile(Location l) {
         return ((CraftWorld) l.getWorld()).getHandle().getBlockEntity(new BlockPos(l.getBlockX(), l.getBlockY(), l.getBlockZ()), false) != null;
     }
 
     @Override
-    public CompoundTag serializeTile(Location location) {
-        BlockEntity e = ((CraftWorld) location.getWorld()).getHandle().getBlockEntity(new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()), true);
+    @SuppressWarnings("unchecked")
+    public KMap<String, Object> serializeTile(Location location) {
+        BlockEntity e = ((CraftWorld) location.getWorld()).getHandle().getBlockEntity(new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()), false);
 
         if (e == null) {
             return null;
         }
 
-        net.minecraft.nbt.CompoundTag tag = e.saveWithFullMetadata(registry());
-        return convert(tag);
+        net.minecraft.nbt.CompoundTag tag = e.saveWithoutMetadata(registry());
+        return (KMap<String, Object>) convertFromTag(tag, 0, 64);
     }
 
-    private CompoundTag convert(net.minecraft.nbt.CompoundTag tag) {
-        try {
-            ByteArrayOutputStream boas = new ByteArrayOutputStream();
-            DataOutputStream dos = new DataOutputStream(boas);
-            tag.write(dos);
-            dos.close();
-            return (CompoundTag) NBTUtil.read(new ByteArrayInputStream(boas.toByteArray()), false).getTag();
-        } catch (Throwable ex) {
-            ex.printStackTrace();
-        }
+    @Contract(value = "null, _, _ -> null", pure = true)
+    private Object convertFromTag(net.minecraft.nbt.Tag tag, int depth, int maxDepth) {
+        if (tag == null || depth > maxDepth) return null;
+        return switch (tag) {
+            case CollectionTag<?> collection -> {
+                KList<Object> list = new KList<>();
 
-        return null;
-    }
+                for (Object i : collection) {
+                    if (i instanceof net.minecraft.nbt.Tag t)
+                        list.add(convertFromTag(t, depth + 1, maxDepth));
+                    else list.add(i);
+                }
+                yield  list;
+            }
+            case net.minecraft.nbt.CompoundTag compound -> {
+                KMap<String, Object> map = new KMap<>();
 
-    private net.minecraft.nbt.CompoundTag convert(CompoundTag tag) {
-        try {
-            ByteArrayOutputStream boas = new ByteArrayOutputStream();
-            NBTUtil.write(tag, boas, false);
-            DataInputStream din = new DataInputStream(new ByteArrayInputStream(boas.toByteArray()));
-            net.minecraft.nbt.CompoundTag c = NbtIo.read(din);
-            din.close();
-            return c;
-        } catch (Throwable e) {
-            e.printStackTrace();
-        }
-
-        return null;
+                for (String key : compound.getAllKeys()) {
+                    var child = compound.get(key);
+                    if (child == null) continue;
+                    var value = convertFromTag(child, depth + 1, maxDepth);
+                    if (value == null) continue;
+                    map.put(key, value);
+                }
+                yield map;
+            }
+            case NumericTag numeric -> numeric.getAsNumber();
+            default -> tag.getAsString();
+        };
     }
 
     @Override
-    public void deserializeTile(CompoundTag c, Location pos) {
-        ((CraftWorld) pos.getWorld()).getHandle().getChunkAt(new BlockPos(pos.getBlockX(), 0, pos.getBlockZ())).setBlockEntityNbt(convert(c));
+    public void deserializeTile(KMap<String, Object> map, Location pos) {
+        net.minecraft.nbt.CompoundTag tag = (net.minecraft.nbt.CompoundTag) convertToTag(map, 0, 64);
+        var level = ((CraftWorld) pos.getWorld()).getHandle();
+        var blockPos = new BlockPos(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ());
+        J.s(() -> merge(level, blockPos, tag));
+    }
+
+    private void merge(ServerLevel level, BlockPos blockPos, net.minecraft.nbt.CompoundTag tag) {
+        var blockEntity = level.getBlockEntity(blockPos);
+        if (blockEntity == null) {
+            Iris.warn("[NMS] BlockEntity not found at " + blockPos);
+            var state = level.getBlockState(blockPos);
+            if (!state.hasBlockEntity())
+                return;
+
+            blockEntity = ((EntityBlock) state.getBlock())
+                    .newBlockEntity(blockPos, state);
+        }
+        var accessor = new BlockDataAccessor(blockEntity, blockPos);
+        accessor.setData(tag.merge(accessor.getData()));
+    }
+
+    private Tag convertToTag(Object object, int depth, int maxDepth) {
+        if (object == null || depth > maxDepth) return EndTag.INSTANCE;
+        return switch (object) {
+            case Map<?, ?> map -> {
+                var tag = new net.minecraft.nbt.CompoundTag();
+                for (var i : map.entrySet()) {
+                    tag.put(i.getKey().toString(), convertToTag(i.getValue(), depth + 1, maxDepth));
+                }
+                yield tag;
+            }
+            case List<?> list -> {
+                var tag = new net.minecraft.nbt.ListTag();
+                for (var i : list) {
+                    tag.add(convertToTag(i, depth + 1, maxDepth));
+                }
+                yield tag;
+            }
+            case Byte number -> ByteTag.valueOf(number);
+            case Short number -> ShortTag.valueOf(number);
+            case Integer number -> IntTag.valueOf(number);
+            case Long number -> LongTag.valueOf(number);
+            case Float number -> FloatTag.valueOf(number);
+            case Double number -> DoubleTag.valueOf(number);
+            case String string -> StringTag.valueOf(string);
+            default -> EndTag.INSTANCE;
+        };
     }
 
     @Override
@@ -482,26 +541,17 @@ public class NMSBinding implements INMSBinding {
         }
     }
 
-    public void setTreasurePos(Dolphin dolphin, com.volmit.iris.core.nms.container.BlockPos pos) {
-        CraftDolphin cd = (CraftDolphin)dolphin;
-        cd.getHandle().setTreasurePos(new BlockPos(pos.getX(), pos.getY(), pos.getZ()));
-        cd.getHandle().setGotFish(true);
-    }
-
     public void inject(long seed, Engine engine, World world) throws NoSuchFieldException, IllegalAccessException {
         var chunkMap = ((CraftWorld)world).getHandle().getChunkSource().chunkMap;
         var worldGenContextField = getField(chunkMap.getClass(), WorldGenContext.class);
         worldGenContextField.setAccessible(true);
         var worldGenContext = (WorldGenContext) worldGenContextField.get(chunkMap);
-        Class<?> clazz = worldGenContext.generator().getClass();
-        Field biomeSource = getField(clazz, BiomeSource.class);
-        biomeSource.setAccessible(true);
-        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
-        unsafeField.setAccessible(true);
-        Unsafe unsafe = (Unsafe)unsafeField.get(null);
-        CustomBiomeSource customBiomeSource = new CustomBiomeSource(seed, engine, world);
-        unsafe.putObject(biomeSource.get(worldGenContext.generator()), unsafe.objectFieldOffset(biomeSource), customBiomeSource);
-        biomeSource.set(worldGenContext.generator(), customBiomeSource);
+
+        var newContext = new WorldGenContext(
+                worldGenContext.level(), new IrisChunkGenerator(worldGenContext.generator(), seed, engine, world),
+                worldGenContext.structureManager(), worldGenContext.lightEngine(), worldGenContext.mainThreadMailBox());
+
+        worldGenContextField.set(chunkMap, newContext);
     }
 
     public Vector3d getBoundingbox(org.bukkit.entity.EntityType entity) {
@@ -589,5 +639,22 @@ public class NMSBinding implements INMSBinding {
                 .orElseGet(() -> world.getGameRuleDefault(GameRule.SPAWN_CHUNK_RADIUS));
         if (radius == null) throw new IllegalStateException("GameRule.SPAWN_CHUNK_RADIUS is null!");
         return (int) Math.pow(2 * radius + 1, 2);
+    }
+
+    @Override
+    public KList<String> getStructureKeys() {
+        KList<String> keys = new KList<>();
+
+        var registry = registry().registry(Registries.STRUCTURE).orElse(null);
+        if (registry == null) return keys;
+        registry.keySet().stream().map(ResourceLocation::toString).forEach(keys::add);
+        registry.getTags()
+                .map(Pair::getFirst)
+                .map(TagKey::location)
+                .map(ResourceLocation::toString)
+                .map(s -> "#" + s)
+                .forEach(keys::add);
+
+        return keys;
     }
 }

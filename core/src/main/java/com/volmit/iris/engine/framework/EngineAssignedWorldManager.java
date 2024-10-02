@@ -110,7 +110,7 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
                 return;
             }
 
-            KList<Position2> positions = getEngine().getDimension().getStrongholds(getEngine().getSeedManager().getSpawn());
+            KList<Position2> positions = getEngine().getDimension().getStrongholds(getEngine().getSeedManager().getMantle());
             if (positions.isEmpty()) {
                 return;
             }

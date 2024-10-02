@@ -44,7 +44,7 @@ public interface IObjectPlacer {
 
     boolean isDebugSmartBore();
 
-    void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile);
+    void setTile(int xx, int yy, int zz, TileData tile);
 
     Engine getEngine();
 }

@@ -206,7 +206,7 @@ public class MantleWriter implements IObjectPlacer {
     }
 
     @Override
-    public void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile) {
+    public void setTile(int xx, int yy, int zz, TileData tile) {
         getEngineMantle().setTile(xx, yy, zz, tile);
     }
 

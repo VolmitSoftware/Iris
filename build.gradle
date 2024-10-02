@@ -32,7 +32,7 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '3.4.1-1.19.2-1.21.1'
+version '3.4.3-1.19.2-1.21.1'
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================
@@ -130,9 +130,9 @@ allprojects {
         // Shaded
         implementation 'com.dfsek:Paralithic:0.4.0'
         implementation 'io.papermc:paperlib:1.0.5'
-        implementation "net.kyori:adventure-text-minimessage:4.13.1"
-        implementation 'net.kyori:adventure-platform-bukkit:4.3.2'
-        implementation 'net.kyori:adventure-api:4.13.1'
+        implementation "net.kyori:adventure-text-minimessage:4.17.0"
+        implementation 'net.kyori:adventure-platform-bukkit:4.3.4'
+        implementation 'net.kyori:adventure-api:4.17.0'
         //implementation 'org.bytedeco:javacpp:1.5.10'
         //implementation 'org.bytedeco:cuda-platform:12.3-8.9-1.5.10'
         compileOnly 'io.lumine:Mythic-Dist:5.2.1'

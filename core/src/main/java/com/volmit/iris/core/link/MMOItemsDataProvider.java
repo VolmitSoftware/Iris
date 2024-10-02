@@ -5,6 +5,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.scheduling.J;
 import net.Indyuce.mmoitems.MMOItems;
+import net.Indyuce.mmoitems.api.ItemTier;
 import net.Indyuce.mmoitems.api.Type;
 import net.Indyuce.mmoitems.api.block.CustomBlock;
 import org.bukkit.Bukkit;
@@ -46,8 +47,13 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
         Runnable run = () -> {
             try {
                 var type = api().getTypes().get(parts[1]);
-                int level = customNbt.containsKey("level") ? (int) customNbt.get("level") : -1;
-                var tier = api().getTiers().get(String.valueOf(customNbt.get("tier")));
+                int level = -1;
+                ItemTier tier = null;
+
+                if (customNbt != null) {
+                    level = (int) customNbt.getOrDefault("level", -1);
+                    tier = api().getTiers().get(String.valueOf(customNbt.get("tier")));
+                }
 
                 ItemStack itemStack;
                 if (type == null) {

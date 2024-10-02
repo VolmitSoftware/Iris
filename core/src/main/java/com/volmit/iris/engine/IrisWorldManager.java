@@ -76,6 +76,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     private final ChronoLatch ecl;
     private final ChronoLatch cln;
     private final ChronoLatch chunkUpdater;
+    private final ChronoLatch chunkDiscovery;
     private double energy = 25;
     private int entityCount = 0;
     private long charge = 0;
@@ -92,12 +93,14 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         clw = null;
         looper = null;
         chunkUpdater = null;
+        chunkDiscovery = null;
         id = -1;
     }
 
     public IrisWorldManager(Engine engine) {
         super(engine);
         chunkUpdater = new ChronoLatch(3000);
+        chunkDiscovery = new ChronoLatch(5000);
         cln = new ChronoLatch(60000);
         cl = new ChronoLatch(3000);
         ecl = new ChronoLatch(250);
@@ -126,6 +129,10 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
                     if (chunkUpdater.flip()) {
                         updateChunks();
+                    }
+
+                    if (chunkDiscovery.flip()) {
+                        discoverChunks();
                     }
 
 
@@ -172,6 +179,19 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         looper.setPriority(Thread.MIN_PRIORITY);
         looper.setName("Iris World Manager");
         looper.start();
+    }
+
+    private void discoverChunks() {
+        var mantle = getEngine().getMantle().getMantle();
+        for (Player i : getEngine().getWorld().realWorld().getPlayers()) {
+            int r = 1;
+
+            for (int x = -r; x <= r; x++) {
+                for (int z = -r; z <= r; z++) {
+                    mantle.getChunk(i.getLocation().getChunk()).flag(MantleFlag.DISCOVERED, true);
+                }
+            }
+        }
     }
 
     private void updateChunks() {

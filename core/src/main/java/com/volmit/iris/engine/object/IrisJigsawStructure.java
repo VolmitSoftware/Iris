@@ -69,6 +69,10 @@ public class IrisJigsawStructure extends IrisRegistrant {
     @Desc("Set to true to prevent rotating the initial structure piece")
     private boolean disableInitialRotation = false;
 
+    @RegistryListFunction(StructureKeyFunction.class)
+    @Desc("The minecraft key to use when creating treasure maps")
+    private String structureKey = null;
+
     private transient AtomicCache<Integer> maxDimension = new AtomicCache<>();
 
     private void loadPool(String p, KList<String> pools, KList<String> pieces) {

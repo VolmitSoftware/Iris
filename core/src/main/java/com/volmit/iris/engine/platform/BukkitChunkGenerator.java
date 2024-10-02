@@ -129,31 +129,29 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @EventHandler
     public void onWorldInit(WorldInitEvent event) {
         try {
-            if (!initialized) {
-                world.setRawWorldSeed(event.getWorld().getSeed());
-                if (world.name().equals(event.getWorld().getName())) {
-                    Engine engine = getEngine(event.getWorld());
-                    if (engine == null) {
-                        Iris.warn("Failed to get Engine!");
-                        J.s(() -> {
-                            Engine engine1 = getEngine(event.getWorld());
-                            if (engine1 != null) {
-								try {
-									INMS.get().inject(event.getWorld().getSeed(), engine1, event.getWorld());
-                                    Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
-                                    initialized = true;
-								} catch (Throwable e) {
-									e.printStackTrace();
-								}
-							}
-                        }, 10);
-                    } else {
-                        INMS.get().inject(event.getWorld().getSeed(), engine, event.getWorld());
-                        Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
-                        spawnChunks.complete(INMS.get().getSpawnChunkCount(event.getWorld()));
-                        initialized = true;
+            if (initialized || !world.name().equals(event.getWorld().getName()))
+                return;
+            world.setRawWorldSeed(event.getWorld().getSeed());
+            Engine engine = getEngine(event.getWorld());
+            if (engine == null) {
+                Iris.warn("Failed to get Engine!");
+                J.s(() -> {
+                    Engine engine1 = getEngine(event.getWorld());
+                    if (engine1 != null) {
+                        try {
+                            INMS.get().inject(event.getWorld().getSeed(), engine1, event.getWorld());
+                            Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
+                            initialized = true;
+                        } catch (Throwable e) {
+                            e.printStackTrace();
+                        }
                     }
-                }
+                }, 10);
+            } else {
+                INMS.get().inject(event.getWorld().getSeed(), engine, event.getWorld());
+                Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
+                spawnChunks.complete(INMS.get().getSpawnChunkCount(event.getWorld()));
+                initialized = true;
             }
         } catch (Throwable e) {
             e.printStackTrace();

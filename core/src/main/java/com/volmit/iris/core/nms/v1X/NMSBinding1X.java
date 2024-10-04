@@ -19,6 +19,7 @@
 package com.volmit.iris.core.nms.v1X;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.nms.IMemoryWorld;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.container.BlockPos;
@@ -42,6 +43,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.awt.*;
 import java.awt.Color;
+import java.io.IOException;
 
 public class NMSBinding1X implements INMSBinding {
     private static final boolean supportsCustomHeight = testCustomHeight();
@@ -118,6 +120,11 @@ public class NMSBinding1X implements INMSBinding {
                 .map(NamespacedKey::toString)
                 .toList();
         return new KList<>(list);
+    }
+
+    @Override
+    public IMemoryWorld createMemoryWorld(NamespacedKey levelType, WorldCreator creator) throws IOException {
+        throw new IOException("Unsupported version!");
     }
 
     @Override

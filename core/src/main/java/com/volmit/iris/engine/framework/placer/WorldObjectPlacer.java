@@ -77,7 +77,7 @@ public class WorldObjectPlacer implements IObjectPlacer {
                 if (tables.isEmpty())
                     return;
                 InventoryHolder m = (InventoryHolder) block.getState();
-                engine.addItems(false, m.getInventory(), rx, tables, slot, x, y, z, 15);
+                engine.addItems(false, m.getInventory(), rx, tables, slot, world, x, y, z, 15);
             } catch (Throwable e) {
                 Iris.reportError(e);
             }

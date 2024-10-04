@@ -386,7 +386,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     if (tables.isEmpty())
                         return;
                     InventoryHolder m = (InventoryHolder) block.getState();
-                    addItems(false, m.getInventory(), rx, tables, slot, x, y, z, 15);
+                    addItems(false, m.getInventory(), rx, tables, slot, c.getWorld(), x, y, z, 15);
 
                 } catch (Throwable e) {
                     Iris.reportError(e);

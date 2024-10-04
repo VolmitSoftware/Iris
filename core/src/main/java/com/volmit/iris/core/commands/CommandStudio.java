@@ -306,7 +306,7 @@ public class CommandStudio implements DecreeExecutor {
         Inventory inv = Bukkit.createInventory(null, 27 * 2);
 
         try {
-            engine().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
+            engine().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, player().getWorld(), player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
         } catch (Throwable e) {
             Iris.reportError(e);
             sender().sendMessage(C.RED + "Cannot add items to virtual inventory because of: " + e.getMessage());
@@ -329,7 +329,7 @@ public class CommandStudio implements DecreeExecutor {
                 inv.clear();
             }
 
-            engine().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
+            engine().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, player().getWorld(), player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
         }, 0, fast ? 5 : 35));
 
         sender().sendMessage(C.GREEN + "Opening inventory now!");

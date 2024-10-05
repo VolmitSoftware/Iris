@@ -154,7 +154,7 @@ public class IrisBiomeFixer {
                     }
 
                     // Set biomes to the chunk using NMS
-                    INMS.get().setBiomes(cx, cz, engine.getWorld().realWorld(), biomes);
+                    //INMS.get().setBiomes(cx, cz, engine.getWorld().realWorld(), biomes);
 
                     generated.incrementAndGet();
                 }

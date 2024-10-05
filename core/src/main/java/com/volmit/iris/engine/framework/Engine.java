@@ -506,7 +506,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             items.addAll(i.getLoot(debug, rng, slot, world, x, y, z));
         }
 
-        if (PaperLib.isPaper() && getWorld().hasRealWorld()) {
+        if (PaperLib.isPaper() && getWorld().hasRealWorld()) { 
             PaperLib.getChunkAtAsync(getWorld().realWorld(), x >> 4, z >> 4).thenAccept((c) -> {
                 Runnable r = () -> {
                     for (ItemStack i : items) {

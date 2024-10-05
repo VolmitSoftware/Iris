@@ -18,6 +18,8 @@
 
 package com.volmit.iris.engine.actuator;
 
+import com.volmit.iris.core.nms.IMemoryWorld;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.object.IrisBiome;
@@ -27,11 +29,13 @@ import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.WorldCreator;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator;
@@ -43,6 +47,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     private static final BlockData LAVA = Material.LAVA.createBlockData();
     private static final BlockData GLASS = Material.GLASS.createBlockData();
     private static final BlockData CAVE_AIR = Material.CAVE_AIR.createBlockData();
+    private IMemoryWorld memoryWorld;
     @Getter
     private final RNG rng;
     @Getter
@@ -51,12 +56,22 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     public IrisTerrainNormalActuator(Engine engine) {
         super(engine, "Terrain");
         rng = new RNG(engine.getSeedManager().getTerrain());
+        if (memoryWorld != null) {
+            try {
+                this.memoryWorld = INMS.get().createMemoryWorld(new WorldCreator("terrain").generator(getEngine().getDimension().getMerger().getGenerator()));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @BlockCoordinates
     @Override
     public void onActuate(int x, int z, Hunk<BlockData> h, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
+        if (memoryWorld != null) {
+            Hunk<BlockData> hm = toHunk(memoryWorld.getChunkData(x,z));
+        }
 
         for (int xf = 0; xf < h.getWidth(); xf++) {
             terrainSliver(x, z, xf, h, context);
@@ -176,6 +191,20 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
 
         for (zf = 0; zf < h.getDepth(); zf++) {
 
+
         }
+    }
+
+    private Hunk<BlockData> toHunk(ChunkGenerator.ChunkData data) {
+        Hunk<BlockData> h = Hunk.newArrayHunk(16, memoryWorld.getBukkit().getMaxHeight(), 16);
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
+                for (int y = 0; y < memoryWorld.getBukkit().getMaxHeight(); y++) {
+                    BlockData block = data.getBlockData(x, y, z);
+                    h.set(x, y, z, block);
+                }
+            }
+        }
+        return h;
     }
 }

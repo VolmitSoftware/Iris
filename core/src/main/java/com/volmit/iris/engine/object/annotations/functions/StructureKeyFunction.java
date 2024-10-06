@@ -1,4 +1,4 @@
-package com.volmit.iris.engine.object.annotations;
+package com.volmit.iris.engine.object.annotations.functions;
 
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;

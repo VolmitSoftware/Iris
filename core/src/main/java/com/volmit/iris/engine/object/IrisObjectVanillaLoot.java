@@ -3,6 +3,7 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.functions.LootTableKeyFunction;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -23,6 +24,7 @@ public class IrisObjectVanillaLoot {
     private KList<IrisBlockData> filter = new KList<>();
     @Desc("Exactly match the block data or not")
     private boolean exact = false;
+    @RegistryListFunction(LootTableKeyFunction.class)
     @Desc("The vanilla loot table key")
     @Required
     private String name;

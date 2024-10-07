@@ -20,6 +20,7 @@ import net.minecraft.nbt.*;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.commands.data.BlockDataAccessor;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.DataPackConfig;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.EntityBlock;
 import org.bukkit.*;
@@ -39,6 +40,8 @@ import org.bukkit.entity.Entity;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.packs.DataPack;
+import org.bukkit.packs.DataPackManager;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 

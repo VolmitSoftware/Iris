@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.actuator;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.IMemoryWorld;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.framework.Engine;
@@ -32,13 +33,15 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
-import org.bukkit.Chunk;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.WorldCreator;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.packs.DataPack;
+import org.bukkit.packs.DataPackManager;
+
+import javax.annotation.Nullable;
+import java.util.Collection;
 
 public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData> {
     private static final BlockData AIR = Material.AIR.createBlockData();
@@ -56,9 +59,15 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     public IrisTerrainNormalActuator(Engine engine) {
         super(engine, "Terrain");
         rng = new RNG(engine.getSeedManager().getTerrain());
-        if (memoryWorld != null) {
+        boolean debug = getDimension().getMerger().isDatapackMode();
+        if (!getDimension().getMerger().getGenerator().isBlank()) {
             try {
-                this.memoryWorld = INMS.get().createMemoryWorld(new WorldCreator("terrain").generator(getEngine().getDimension().getMerger().getGenerator()));
+                if (!getDimension().getMerger().isDatapackMode()) {
+                    this.memoryWorld = INMS.get().createMemoryWorld(new WorldCreator("terrain").generator(getEngine().getDimension().getMerger().getGenerator()));
+                } else {
+                    String test = getDimension().getMerger().getGenerator().toLowerCase();
+                    this.memoryWorld = INMS.get().createMemoryWorld(NamespacedKey.minecraft(test), new WorldCreator("terrain"));
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -69,16 +78,18 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     @Override
     public void onActuate(int x, int z, Hunk<BlockData> h, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
+        Hunk<BlockData> hm = null;
         if (memoryWorld != null) {
-            Hunk<BlockData> hm = toHunk(memoryWorld.getChunkData(x,z));
+            hm = toHunk(memoryWorld.getChunkData(x, z));
         }
 
         for (int xf = 0; xf < h.getWidth(); xf++) {
-            terrainSliver(x, z, xf, h, context);
+            terrainSliver(x, z, xf, h, hm, context);
         }
 
         getEngine().getMetrics().getTerrain().put(p.getMilliseconds());
     }
+
 
     private int fluidOrHeight(int height) {
         return Math.max(getDimension().getFluidHeight(), height);
@@ -93,7 +104,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
      * @param h  the blockdata
      */
     @BlockCoordinates
-    public void terrainSliver(int x, int z, int xf, Hunk<BlockData> h, ChunkContext context) {
+    public void terrainSliver(int x, int z, int xf, Hunk<BlockData> h, @Nullable Hunk<BlockData> hm, ChunkContext context) {
         int zf, realX, realZ, hf, he;
         IrisBiome biome;
         IrisRegion region;
@@ -158,13 +169,18 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                         continue;
                     }
 
+                    // Merger DEV CODE
+                    if (hm != null) {
+                        h.set(xf, i, zf, hm.get(xf, i, zf));
+                    }
+
                     BlockData ore = biome.generateOres(realX, i, realZ, rng, getData());
                     ore = ore == null ? region.generateOres(realX, i, realZ, rng, getData()) : ore;
                     ore = ore == null ? getDimension().generateOres(realX, i, realZ, rng, getData()) : ore;
 
                     if (ore != null) {
                         h.set(xf, i, zf, ore);
-                    } else {
+                    } else if (hm == null) {
                         // todo remove this ( TEMP )
                         if (getDimension().isDeepslateLayer() && i < 64) {
                             h.set(xf, i, zf, DEEPSLATE);
@@ -174,24 +190,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                     }
                 }
             }
-        }
-    }
-    /**
-     * Merges caves from a selected chunk into the corresponding chunk in the outcome world.
-     * This is calling 1/16th of a chunk x/z slice. It is a plane from sky to bedrock 1 thick in the x direction.
-     *
-     * @param x  the chunk x in blocks
-     * @param z  the chunk z in blocks
-     * @param xf the current x slice
-     * @param h  the blockdata
-     */
-    @BlockCoordinates
-    private void terrainMergeSliver(int x, int z, int xf, Hunk<BlockData> h, ChunkContext context) {
-        int zf, realX, realZ, hf, he;
-
-        for (zf = 0; zf < h.getDepth(); zf++) {
-
-
         }
     }
 

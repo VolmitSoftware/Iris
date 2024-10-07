@@ -4,8 +4,10 @@ import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Lifecycle;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.IMemoryWorld;
+import com.volmit.iris.util.scheduling.J;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -24,11 +26,13 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.PatrolSpawner;
 import net.minecraft.world.level.levelgen.PhantomSpawner;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.PrimaryLevelData;
+import net.minecraft.world.level.storage.ServerLevelData;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -49,10 +53,12 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -75,7 +81,7 @@ public class MemoryWorld implements IMemoryWorld {
 
         var tempDir = Files.createTempDirectory("MemoryGenerator");
         LevelStorageSource source = LevelStorageSource.createDefault(tempDir);
-        ResourceKey<LevelStem> stemKey = ResourceKey.create(Registry.LEVEL_STEM_REGISTRY, new ResourceLocation(levelType.getKey(), levelType.getNamespace()));
+        ResourceKey<LevelStem> stemKey = ResourceKey.create(Registry.LEVEL_STEM_REGISTRY, new ResourceLocation(levelType.getNamespace(), levelType.getKey()));
         var access = source.createAccess(name, stemKey);
 
         var registry = server.registryAccess().registryOrThrow(Registry.LEVEL_STEM_REGISTRY);
@@ -90,7 +96,25 @@ public class MemoryWorld implements IMemoryWorld {
         if (levelStem == null)
             throw new IllegalStateException("Unknown dimension type: " + stemKey);
 
-        var worldInfo = new CraftWorldInfo(worldData, access, creator.environment(), levelStem.typeHolder().value());
+        CraftWorldInfo worldInfo;
+        try {
+            worldInfo = new CraftWorldInfo(worldData, access, creator.environment(), levelStem.typeHolder().value());
+        } catch (Throwable e) {
+            try {
+                var c = CraftWorldInfo.class.getDeclaredConstructor(
+                        ServerLevelData.class,
+                        LevelStorageSource.LevelStorageAccess.class,
+                        World.Environment.class,
+                        DimensionType.class,
+                        net.minecraft.world.level.chunk.ChunkGenerator.class,
+                        RegistryAccess.Frozen.class);
+
+                worldInfo = c.newInstance(worldData, access, creator.environment(), levelStem.typeHolder().value(), levelStem.generator(), server.registryAccess());
+            } catch (NoSuchMethodException | InvocationTargetException | InstantiationException |
+                     IllegalAccessException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
         if (biomeProvider == null && generator != null) {
             biomeProvider = generator.getDefaultBiomeProvider(worldInfo);
         }
@@ -154,6 +178,20 @@ public class MemoryWorld implements IMemoryWorld {
 
     @Override
     public void close() throws Exception {
+        if (!Bukkit.isPrimaryThread()) {
+            var future = new CompletableFuture<Void>();
+            J.s(() -> {
+                try {
+                    close();
+                    future.complete(null);
+                } catch (Exception e) {
+                    future.completeExceptionally(e);
+                }
+            });
+            future.join();
+            return;
+        }
+
         var level = this.level.get();
         if (level == null || !this.level.compareAndSet(level, null))
             return;

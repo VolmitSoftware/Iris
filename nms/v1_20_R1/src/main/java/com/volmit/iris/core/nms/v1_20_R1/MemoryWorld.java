@@ -42,6 +42,7 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_20_R1.CraftChunk;
 import org.bukkit.craftbukkit.v1_20_R1.CraftServer;
+import org.bukkit.craftbukkit.v1_20_R1.attribute.CraftAttributeInstance;
 import org.bukkit.craftbukkit.v1_20_R1.block.CraftBlock;
 import org.bukkit.craftbukkit.v1_20_R1.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_20_R1.generator.CraftWorldInfo;
@@ -56,14 +57,17 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class MemoryWorld implements IMemoryWorld {
     private static final AtomicLong C = new AtomicLong();
@@ -120,7 +124,11 @@ public class MemoryWorld implements IMemoryWorld {
                 worldInfo = c.newInstance(worldData, access, creator.environment(), levelStem.type().value(), levelStem.generator(), server.registryAccess());
             } catch (NoSuchMethodException | InvocationTargetException | InstantiationException |
                      IllegalAccessException ex) {
-                throw new RuntimeException(ex);
+                var constructors = Arrays.stream(CraftWorldInfo.class.getDeclaredConstructors())
+                        .map(Constructor::toGenericString)
+                        .collect(Collectors.joining("\n"));
+                CraftAttributeInstance
+                throw new IOException("Failed to find CraftWorldInfo constructor found: " + constructors, ex);
             }
         }
         if (biomeProvider == null && generator != null) {

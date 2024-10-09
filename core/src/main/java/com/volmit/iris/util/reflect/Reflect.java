@@ -28,7 +28,7 @@ public class Reflect {
 
             c.setAccessible(true);
             try {
-                return (T) c.newInstance(initArgs);
+                return (T) c.newInstance(initArgs.stream().map(Pair::getB).toArray());
             } catch (InstantiationException | IllegalAccessException e) {
                 throw new InvocationTargetException(e);
             }

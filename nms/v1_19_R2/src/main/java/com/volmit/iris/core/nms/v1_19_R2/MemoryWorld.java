@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Lifecycle;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.IMemoryWorld;
+import com.volmit.iris.util.reflect.Reflect;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
@@ -110,21 +111,9 @@ public class MemoryWorld implements IMemoryWorld {
             worldInfo = new CraftWorldInfo(worldData, access, creator.environment(), levelStem.type().value());
         } catch (Throwable e) {
             try {
-                var c = CraftWorldInfo.class.getDeclaredConstructor(
-                        ServerLevelData.class,
-                        LevelStorageSource.LevelStorageAccess.class,
-                        World.Environment.class,
-                        DimensionType.class,
-                        net.minecraft.world.level.chunk.ChunkGenerator.class,
-                        RegistryAccess.Frozen.class);
-
-                worldInfo = c.newInstance(worldData, access, creator.environment(), levelStem.type().value(), levelStem.generator(), server.registryAccess());
-            } catch (NoSuchMethodException | InvocationTargetException | InstantiationException |
-                     IllegalAccessException ex) {
-                var constructors = Arrays.stream(CraftWorldInfo.class.getDeclaredConstructors())
-                        .map(Constructor::toGenericString)
-                        .collect(Collectors.joining("\n"));
-                throw new IOException("Failed to find CraftWorldInfo constructor found: " + constructors, ex);
+                worldInfo = Reflect.newInstance(CraftWorldInfo.class, worldData, access, creator.environment(), levelStem.type().value(), levelStem.generator(), server.registryAccess());
+            } catch (NoSuchMethodException | InvocationTargetException ex) {
+                throw new IOException("Failed to create CraftWorldInfo", ex);
             }
         }
         if (biomeProvider == null && generator != null) {

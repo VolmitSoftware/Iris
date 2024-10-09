@@ -32,16 +32,14 @@ import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import io.papermc.lib.PaperLib;
 import lombok.Getter;
 import org.bukkit.*;
-import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator;
-import org.bukkit.packs.DataPack;
-import org.bukkit.packs.DataPackManager;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData> {
     private static final BlockData AIR = Material.AIR.createBlockData();
@@ -77,17 +75,26 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     @BlockCoordinates
     @Override
     public void onActuate(int x, int z, Hunk<BlockData> h, boolean multicore, ChunkContext context) {
-        PrecisionStopwatch p = PrecisionStopwatch.start();
-        Hunk<BlockData> hm = null;
-        if (memoryWorld != null) {
-            hm = toHunk(memoryWorld.getChunkData(x, z));
-        }
+        try {
 
-        for (int xf = 0; xf < h.getWidth(); xf++) {
-            terrainSliver(x, z, xf, h, hm, context);
-        }
+            PrecisionStopwatch p = PrecisionStopwatch.start();
+            AtomicReference<Hunk<BlockData>> hm = new AtomicReference<>();
+            if (memoryWorld != null) {
 
-        getEngine().getMetrics().getTerrain().put(p.getMilliseconds());
+                PaperLib.getChunkAtAsync(memoryWorld.getBukkit(), x, z, true).thenAccept((i) -> {
+                    hm.set(toHunk(memoryWorld.getChunkData(x, z)));
+                }).get();
+
+            }
+
+            for (int xf = 0; xf < h.getWidth(); xf++) {
+                terrainSliver(x, z, xf, h, hm.get(), context);
+            }
+
+            getEngine().getMetrics().getTerrain().put(p.getMilliseconds());
+        } catch (Exception e) {
+            Iris.error("Fatal Error!", e);
+        }
     }
 
 

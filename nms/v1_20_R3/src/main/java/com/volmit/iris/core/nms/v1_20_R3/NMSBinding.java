@@ -20,9 +20,11 @@ import net.minecraft.nbt.*;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.commands.data.BlockDataAccessor;
 import net.minecraft.tags.TagKey;
+import net.minecraft.util.datafix.fixes.BlockStateData;
 import net.minecraft.world.level.DataPackConfig;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.chunk.LevelChunkSection;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -632,6 +634,13 @@ public class NMSBinding implements INMSBinding {
 
     public static Holder<net.minecraft.world.level.biome.Biome> biomeToBiomeBase(Registry<net.minecraft.world.level.biome.Biome> registry, Biome biome) {
         return registry.getHolderOrThrow(ResourceKey.create(Registries.BIOME, CraftNamespacedKey.toMinecraft(biome.getKey())));
+    }
+
+    @Override
+    public boolean setBlock(World world, int x, int y, int z, BlockData data, int flag, int updateDepth) {
+        var level = ((CraftWorld) world).getHandle();
+        var blockData = ((CraftBlockData) data).getState();
+        return level.setBlock(new BlockPos(x, y, z), blockData, flag, updateDepth);
     }
 
     @Override

@@ -91,6 +91,7 @@ import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
+import java.lang.management.ThreadMXBean;
 import java.net.URL;
 import java.util.Date;
 import java.util.Map;
@@ -811,6 +812,22 @@ public class Iris extends VolmitPlugin implements Listener {
             Iris.info("Server type & version: " + C.RED + Bukkit.getVersion());
         } else { Iris.info("Server type & version: " + Bukkit.getVersion()); }
         Iris.info("Java: " + getJava());
+        try {
+            if (getCPUModel().contains("Intel")) {
+                Iris.info("Server Cpu: " + C.BLUE + getCPUModel());
+            }
+            if (getCPUModel().contains("Ryzen")) {
+                Iris.info("Server Cpu: " + C.RED + getCPUModel());
+            }
+            if (!getCPUModel().contains("Ryzen") && !getCPUModel().contains("Intel")) {
+                Iris.info("Server Cpu: " + C.GRAY + getCPUModel());
+            }
+
+        } catch (Exception e){
+            Iris.info("Server Cpu: " + C.DARK_RED + "Failed");
+        }
+
+        Iris.info("Threads: " + C.GRAY + Runtime.getRuntime().availableProcessors());
         if (!instance.getServer().getVersion().contains("Purpur")) {
             if (instance.getServer().getVersion().contains("Spigot") && instance.getServer().getVersion().contains("Bukkit")) {
                  Iris.info(C.RED + " Iris requires paper or above to function properly..");

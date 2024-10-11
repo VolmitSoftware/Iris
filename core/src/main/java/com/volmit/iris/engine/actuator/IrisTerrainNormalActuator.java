@@ -57,30 +57,29 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     public IrisTerrainNormalActuator(Engine engine) {
         super(engine, "Terrain");
         rng = new RNG(engine.getSeedManager().getTerrain());
-        boolean debug = getDimension().getMerger().isDatapackMode();
-        if (!getDimension().getMerger().getGenerator().isBlank()) {
-            try {
-                if (!getDimension().getMerger().isDatapackMode()) {
-                    this.memoryWorld = INMS.get().createMemoryWorld(new WorldCreator("terrain").generator(getEngine().getDimension().getMerger().getGenerator()));
-                } else {
-                    String test = getDimension().getMerger().getGenerator().toLowerCase();
-                    this.memoryWorld = INMS.get().createMemoryWorld(NamespacedKey.minecraft(test), new WorldCreator("terrain"));
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+        // todo: for v4
+//        boolean debug = getDimension().getMerger().isDatapackMode();
+//        if (!getDimension().getMerger().getGenerator().isBlank()) {
+//            try {
+//                if (!getDimension().getMerger().isDatapackMode()) {
+//                    this.memoryWorld = INMS.get().createMemoryWorld(new WorldCreator("terrain").generator(getEngine().getDimension().getMerger().getGenerator()));
+//                } else {
+//                    String test = getDimension().getMerger().getGenerator().toLowerCase();
+//                    this.memoryWorld = INMS.get().createMemoryWorld(NamespacedKey.minecraft(test), new WorldCreator("terrain"));
+//                }
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        }
     }
 
     @BlockCoordinates
     @Override
     public void onActuate(int x, int z, Hunk<BlockData> h, boolean multicore, ChunkContext context) {
         try {
-
             PrecisionStopwatch p = PrecisionStopwatch.start();
             AtomicReference<Hunk<BlockData>> hm = new AtomicReference<>();
             if (memoryWorld != null) {
-
                 PaperLib.getChunkAtAsync(memoryWorld.getBukkit(), x, z, true).thenAccept((i) -> {
                     hm.set(toHunk(memoryWorld.getChunkData(x, z)));
                 }).get();
@@ -174,11 +173,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                     if (blocks.hasIndex(depth)) {
                         h.set(xf, i, zf, blocks.get(depth));
                         continue;
-                    }
-
-                    // Merger DEV CODE
-                    if (hm != null) {
-                        h.set(xf, i, zf, hm.get(xf, i, zf));
                     }
 
                     BlockData ore = biome.generateOres(realX, i, realZ, rng, getData());

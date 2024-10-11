@@ -99,6 +99,10 @@ public interface INMSBinding {
 
     int countCustomBiomes();
 
+    default boolean setBlock(World world, int x, int y, int z, BlockData data, int flag, int updateDepth) {
+        throw new UnsupportedOperationException();
+    }
+
     void forceBiomeInto(int x, int y, int z, Object somethingVeryDirty, ChunkGenerator.BiomeGrid chunk);
 
     default boolean supportsDataPacks() {

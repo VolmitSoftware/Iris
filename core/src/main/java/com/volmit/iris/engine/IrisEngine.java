@@ -61,6 +61,7 @@ import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
+import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import javax.annotation.Nullable;
@@ -199,15 +200,26 @@ public class IrisEngine implements Engine {
         mode = getDimension().getMode().getType().create(this);
     }
 
-    private void setupMemoryWorld(@Nullable NamespacedKey key, WorldCreator creator) {
+    private void setupMemoryWorld() {
         try {
+            if (!getDimension().isEnableExperimentalMerger()) return;
+            if (getMerger().getGenerator().isBlank()) return;
             NamespacedKey dk = NamespacedKey.minecraft("memory_current_creator");
-            var per = memoryWorld.getBukkit().getPersistentDataContainer();
-            if (Objects.equals(per.get(dk, PersistentDataType.STRING), creator.toString())) return;
-            if (memoryWorld != null)
-                memoryWorld.close();
-            memoryWorld = getDimension().isEnableExperimentalMerger() ? Failable.get(() -> key == null ? INMS.get().createMemoryWorld(creator) : INMS.get().createMemoryWorld(key, creator)) : null; // todo: experimental
-            per.set(dk, PersistentDataType.STRING, creator.toString());
+            PersistentDataContainer per = null;
+            if (memoryWorld != null) {
+                per = memoryWorld.getBukkit().getPersistentDataContainer();
+                if (Objects.equals(per.get(dk, PersistentDataType.STRING), memoryWorld.getBukkit().getGenerator().toString()))
+                    return;
+                if (memoryWorld != null)
+                    memoryWorld.close();
+            }
+            memoryWorld = getMerger().isDatapackMode() ? Failable.get(() ->
+                    getMerger().getGenerator() == null ?
+                            INMS.get().createMemoryWorld(new WorldCreator("memoryworld")) :
+                            INMS.get().createMemoryWorld(NamespacedKey.minecraft(getMerger().getGenerator()), new WorldCreator("memoryworld"))
+            ) : null; // todo: experimental
+            per = memoryWorld.getBukkit().getPersistentDataContainer();
+            per.set(dk, PersistentDataType.STRING, memoryWorld.getBukkit().getGenerator().toString());
         } catch (Exception e) {
             e.printStackTrace();
         }

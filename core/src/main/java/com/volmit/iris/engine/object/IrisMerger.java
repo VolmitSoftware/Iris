@@ -1,5 +1,7 @@
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
@@ -7,7 +9,10 @@ import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.math.RollingSequence;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -15,46 +20,71 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.generator.ChunkGenerator;
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Desc("Dimension Merging only supports 1 for now.")
 @Data
 public class IrisMerger {
+
+    private RollingSequence mergeDuration;
+    private Engine engine;
+
     @Desc("Selected Generator")
     private String generator;
-
+//
     @Desc("Uses the generator as a datapack key")
     private boolean datapackMode;
+//
+//    @Desc("Merging strategy")
+//    private IrisMergeStrategies mode;
 
-    @Desc("Merging strategy")
-    private IrisMergeStrategies mode;
+    @Desc("How deep till it should use vanilla terrain")
+    private int depth = 10;
 
     /**
-     * Merges caves from a selected chunk into the corresponding chunk in the outcome world.
-     * This is calling 1/16th of a chunk x/z slice. It is a plane from sky to bedrock 1 thick in the x direction.
-     *
-     * @param x  the chunk x in blocks
-     * @param z  the chunk z in blocks
-     * @param xf the current x slice
-     * @param h  the blockdata
+     * Merges underground from a selected chunk into the corresponding chunk in the outcome world.
      */
-    @BlockCoordinates
-    private void terrainMergeSliver(int x, int z, int xf, Hunk<BlockData> h, Engine engine) {
-        int zf, realX, realZ, hf, he;
+    @Deprecated
+    public void generateVanillaUnderground(int x, int z, Engine engine) {
+        if (engine.getMemoryWorld() == null || engine.getWorld() == null)
+            throw new NullPointerException();
+        PrecisionStopwatch p = PrecisionStopwatch.start();
+        Hunk<BlockData> vh = memoryWorldToHunk(engine.getMemoryWorld().getChunkData(x, z), engine);
+        int totalHeight = engine.getMemoryWorld().getBukkit().getMaxHeight() - engine.getMemoryWorld().getBukkit().getMinHeight();
+        int minHeight = Math.abs(engine.getMemoryWorld().getBukkit().getMinHeight());
 
-        for (zf = 0; zf < h.getDepth(); zf++) {
-            realX = xf + x;
-            realZ = zf + z;
+        ChunkContext context = new ChunkContext(x << 4, z << 4, engine.getComplex());
+        for (int xx = 0; xx < 16; xx++) {
+            for (int zz = 0; zz < 16; zz++) {
+                for (int y = 0; y < totalHeight; y++) {
+                    //int height = engine.getHeight(x * 16 + xx, z * 16 + zz, true) - 10;
+                    int height = (int) Math.ceil(context.getHeight().get(xx,zz));
+                    if (y < height) {
+                        BlockData blockData = vh.get(xx, y, zz);
+                        if (blockData != null) {
 
-            for (int i = h.getHeight(); i >= 0; i--) {
-
-
-
-
+                            INMS.get().setBlock(engine.getWorld().realWorld(), x * 16 + xx, y - minHeight , z * 16 + zz, blockData, 1042, 0);
+                        }
+                    }
+                }
             }
-
-
         }
+        mergeDuration.put(p.getMilliseconds());
+        Iris.info("Vanilla merge average in: " + Form.duration(mergeDuration.getAverage(), 8));
+    }
+
+    private Hunk<BlockData> memoryWorldToHunk(ChunkGenerator.ChunkData data, Engine engine) {
+        Hunk<BlockData> h = Hunk.newArrayHunk(16, engine.getMemoryWorld().getBukkit().getMaxHeight() - engine.getMemoryWorld().getBukkit().getMinHeight(), 16);
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
+                for (int y = 0; y < engine.getMemoryWorld().getBukkit().getMaxHeight() - engine.getMemoryWorld().getBukkit().getMinHeight(); y++) {
+                    BlockData block = data.getBlockData(x, y, z);
+                    h.set(x, y, z, block);
+                }
+            }
+        }
+        return h;
     }
 }

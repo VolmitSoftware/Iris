@@ -144,10 +144,11 @@ public class IrisDimension extends IrisRegistrant {
     @RegistryListResource(IrisJigsawStructure.class)
     @Desc("If defined, Iris will place the given jigsaw structure where minecraft should place the overworld stronghold.")
     private String stronghold;
-//    @Desc("Iris merger") V4 Feature
-//    private IrisMerger merger = new IrisMerger();
-    @Desc("Cheap temp solution till v4 arrives")
-    private boolean vanillaUnderground = true;
+    @ArrayType(max = 1, type = IrisMerger.class)
+    @Desc("Iris merger [Experimental] ( Deprecated for v3 )")
+    private IrisMerger merger;
+    @Desc("Cheap temp solution till v4 arrives [ Enables the experimental merger ] Requires studio restart to take effect!")
+    private boolean EnableExperimentalMerger = true;
     @Desc("If set to true, Iris will remove chunks to allow visualizing cross sections of chunks easily")
     private boolean debugChunkCrossSections = false;
     @Desc("Vertically split up the biome palettes with 3 air blocks in between to visualize them")

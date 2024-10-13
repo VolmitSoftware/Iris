@@ -397,6 +397,10 @@ public class SchemaBuilder {
                             description.add(SYMBOL_LIMIT__N + " Requires at least " + t.min() + " entries.");
                         }
                     }
+                    if (t.max() > 0) {
+                        prop.put("maxItems", t.max());
+                        description.add(SYMBOL_LIMIT__N + " Maximum allowed entries are " + t.max() + ".");
+                    }
 
                     String arrayType = getType(t.type());
 

@@ -21,10 +21,11 @@ package com.volmit.iris.engine;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.core.gui.PregeneratorJob;
+import com.volmit.iris.core.nms.IMemoryWorld;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.container.BlockPos;
 import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.core.project.IrisProject;
@@ -53,21 +54,24 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import org.bukkit.Bukkit;
+import org.apache.commons.lang3.function.Failable;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.WorldCreator;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
+import org.bukkit.persistence.PersistentDataType;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Data
 @EqualsAndHashCode(exclude = "context")
@@ -96,6 +100,8 @@ public class IrisEngine implements Engine {
     private EngineEffects effects;
     private EngineExecutionEnvironment execution;
     private EngineWorldManager worldManager;
+    private IMemoryWorld memoryWorld;
+    private IrisMerger merger;
     private volatile int parallelism;
     private volatile int minHeight;
     private boolean failing;
@@ -127,6 +133,7 @@ public class IrisEngine implements Engine {
         context = new IrisContext(this);
         cleaning = new AtomicBoolean(false);
         context.touch();
+        merger = new IrisMerger();
         getData().setEngine(this);
         getData().loadPrefetch(this);
         Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + target.getDimension().getDimensionHeight() + " height) Seed: " + getSeedManager().getSeed());
@@ -190,6 +197,20 @@ public class IrisEngine implements Engine {
         }
 
         mode = getDimension().getMode().getType().create(this);
+    }
+
+    private void setupMemoryWorld(@Nullable NamespacedKey key, WorldCreator creator) {
+        try {
+            NamespacedKey dk = NamespacedKey.minecraft("memory_current_creator");
+            var per = memoryWorld.getBukkit().getPersistentDataContainer();
+            if (Objects.equals(per.get(dk, PersistentDataType.STRING), creator.toString())) return;
+            if (memoryWorld != null)
+                memoryWorld.close();
+            memoryWorld = getDimension().isEnableExperimentalMerger() ? Failable.get(() -> key == null ? INMS.get().createMemoryWorld(creator) : INMS.get().createMemoryWorld(key, creator)) : null; // todo: experimental
+            per.set(dk, PersistentDataType.STRING, creator.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

@@ -20,7 +20,6 @@ package com.volmit.iris.engine.platform;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.core.nms.IMemoryWorld;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.IrisEngine;
@@ -33,29 +32,23 @@ import com.volmit.iris.engine.object.StudioMode;
 import com.volmit.iris.engine.platform.studio.StudioGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.IrisBiomeStorage;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.hunk.view.BiomeGridHunkHolder;
 import com.volmit.iris.util.hunk.view.ChunkDataHunkHolder;
 import com.volmit.iris.util.io.ReactiveFolder;
 import com.volmit.iris.util.math.RollingSequence;
-import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
-import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Setter;
-import org.apache.commons.lang3.Functions;
-import org.apache.commons.lang3.function.Failable;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.WorldInitEvent;
@@ -92,7 +85,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final KList<BlockPopulator> populators;
     private final ChronoLatch hotloadChecker;
     private final AtomicBoolean setup;
-    private IMemoryWorld memoryWorld;
     private final boolean studio;
     private final AtomicInteger a = new AtomicInteger(0);
     private final CompletableFuture<Integer> spawnChunks = new CompletableFuture<>();
@@ -115,13 +107,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         loadLock = new Semaphore(LOAD_LOCKS);
         this.world = world;
         this.mergeDuration = new RollingSequence(20);
-        try {
-            this.memoryWorld = INMS.get().createMemoryWorld(NamespacedKey.minecraft("overworld"), new WorldCreator("terrain"));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        //this.memoryWorld = engine.getDimension().isVanillaUnderground() ? Failable.get(() -> INMS.get().createMemoryWorld(NamespacedKey.minecraft("overworld"), new WorldCreator("terrain"))) : null;
         this.hotloadChecker = new ChronoLatch(1000, false);
         this.studio = studio;
         this.dataLocation = dataLocation;
@@ -404,46 +389,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @EventHandler
     private void onChunkGeneration(ChunkLoadEvent event) {
-        if(!event.isNewChunk() || !engine.getWorld().realWorld().equals(event.getWorld()) || !engine.getDimension().isVanillaUnderground()) return;
-        generateVanillaUnderground(event.getChunk().getX(), event.getChunk().getZ());
-    }
-
-    @Deprecated
-    private void generateVanillaUnderground(int x, int z) {
-        if (memoryWorld == null || engine.getWorld() == null)
-            throw new NullPointerException();
-        PrecisionStopwatch p = PrecisionStopwatch.start();
-        Hunk<BlockData> vh = toHunk(memoryWorld.getChunkData(x, z));
-        int totalHeight = memoryWorld.getBukkit().getMaxHeight() - memoryWorld.getBukkit().getMinHeight();
-        int minHeight = memoryWorld.getBukkit().getMinHeight();
-
-        for (int xx = 0; xx < 16; xx++) {
-            for (int zz = 0; zz < 16; zz++) {
-                for (int y = 0; y < totalHeight; y++) {
-                    if (y < engine.getHeight(x * 16 + xx, z * 16 + zz, false) - 10) {
-                        BlockData blockData = vh.get(xx, y, zz);
-                        if (blockData != null) {
-                            INMS.get().setBlock(world.realWorld(), x * 16 + xx, y - minHeight , z * 16 + zz, blockData, 1042, 0);
-                        }
-                    }
-                }
-            }
-        }
-        mergeDuration.put(p.getMilliseconds());
-        Iris.info("Vanilla merge average in: " + Form.duration(mergeDuration.getAverage(), 8));
-    }
-
-    private Hunk<BlockData> toHunk(ChunkGenerator.ChunkData data) {
-        Hunk<BlockData> h = Hunk.newArrayHunk(16, memoryWorld.getBukkit().getMaxHeight() - memoryWorld.getBukkit().getMinHeight(), 16);
-        for (int x = 0; x < 16; x++) {
-            for (int z = 0; z < 16; z++) {
-                for (int y = 0; y < memoryWorld.getBukkit().getMaxHeight() - memoryWorld.getBukkit().getMinHeight(); y++) {
-                    BlockData block = data.getBlockData(x, y, z);
-                    h.set(x, y, z, block);
-                }
-            }
-        }
-        return h;
+        if(!event.isNewChunk() || !engine.getWorld().realWorld().equals(event.getWorld()) || !engine.getDimension().isEnableExperimentalMerger() || engine.getMemoryWorld() != null) return;
+        engine.getMerger().generateVanillaUnderground(event.getChunk().getX(), event.getChunk().getZ(), engine);
     }
 
     @Override

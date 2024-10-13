@@ -25,6 +25,7 @@ import com.volmit.iris.core.gui.components.Renderer;
 import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.core.nms.IMemoryWorld;
 import com.volmit.iris.core.nms.container.BlockPos;
 import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.core.service.ExternalDataSVC;
@@ -107,6 +108,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     IrisContext getContext();
 
     EngineExecutionEnvironment getExecution();
+
+    IMemoryWorld getMemoryWorld();
+
+    IrisMerger getMerger();
 
     double getMaxBiomeObjectDensity();
 

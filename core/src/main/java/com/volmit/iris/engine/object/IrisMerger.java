@@ -28,8 +28,8 @@ import org.bukkit.generator.ChunkGenerator;
 @Data
 public class IrisMerger {
 
-    private RollingSequence mergeDuration;
-    private Engine engine;
+    private transient RollingSequence mergeDuration = new RollingSequence(20);
+    private transient Engine engine;
 
     @Desc("Selected Generator")
     private String generator;
@@ -48,8 +48,11 @@ public class IrisMerger {
      */
     @Deprecated
     public void generateVanillaUnderground(int x, int z, Engine engine) {
-        if (engine.getMemoryWorld() == null || engine.getWorld() == null)
-            throw new NullPointerException();
+        if (engine.getMemoryWorld() == null)
+            throw new IllegalStateException("MemoryWorld is null. Ensure that it has been initialized.");
+        if (engine.getWorld() == null)
+            throw new IllegalStateException("World is null. Ensure that the world has been properly loaded.");
+
         PrecisionStopwatch p = PrecisionStopwatch.start();
         Hunk<BlockData> vh = memoryWorldToHunk(engine.getMemoryWorld().getChunkData(x, z), engine);
         int totalHeight = engine.getMemoryWorld().getBukkit().getMaxHeight() - engine.getMemoryWorld().getBukkit().getMinHeight();
@@ -60,7 +63,7 @@ public class IrisMerger {
             for (int zz = 0; zz < 16; zz++) {
                 for (int y = 0; y < totalHeight; y++) {
                     //int height = engine.getHeight(x * 16 + xx, z * 16 + zz, true) - 10;
-                    int height = (int) Math.ceil(context.getHeight().get(xx,zz));
+                    int height = (int) Math.ceil(context.getHeight().get(xx,zz) - depth);
                     if (y < height) {
                         BlockData blockData = vh.get(xx, y, zz);
                         if (blockData != null) {

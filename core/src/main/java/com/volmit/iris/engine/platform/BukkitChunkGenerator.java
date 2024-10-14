@@ -366,12 +366,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 getEngine().generate(x << 4, z << 4, blocks, biomes, false);
                 blocks.apply();
                 biomes.apply();
-                J.s(() -> {
-                    //generateVanillaUnderground(x,z, blocks);
-                });
             }
 
-            Iris.info("dev");
             Iris.debug("Generated " + x + " " + z);
         } catch (Throwable e) {
             Iris.error("======================================");
@@ -389,7 +385,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @EventHandler
     private void onChunkGeneration(ChunkLoadEvent event) {
-        if(!event.isNewChunk() || !engine.getWorld().realWorld().equals(event.getWorld()) || !engine.getDimension().isEnableExperimentalMerger() || engine.getMemoryWorld() != null) return;
+        if(!event.isNewChunk() || !engine.getWorld().realWorld().equals(event.getWorld()) || !engine.getDimension().isEnableExperimentalMerger() || engine.getMemoryWorld() == null) return;
         engine.getMerger().generateVanillaUnderground(event.getChunk().getX(), event.getChunk().getZ(), engine);
     }
 

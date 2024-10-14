@@ -64,7 +64,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
@@ -134,7 +133,8 @@ public class IrisEngine implements Engine {
         context = new IrisContext(this);
         cleaning = new AtomicBoolean(false);
         context.touch();
-        merger = new IrisMerger();
+        merger = getDimension().getMerger();
+        updateMemoryWorld();
         getData().setEngine(this);
         getData().loadPrefetch(this);
         Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + target.getDimension().getDimensionHeight() + " height) Seed: " + getSeedManager().getSeed());
@@ -200,15 +200,16 @@ public class IrisEngine implements Engine {
         mode = getDimension().getMode().getType().create(this);
     }
 
-    private void setupMemoryWorld() {
+    private void updateMemoryWorld() {
         try {
+            merger = getDimension().getMerger();
             if (!getDimension().isEnableExperimentalMerger()) return;
             if (getMerger().getGenerator().isBlank()) return;
             NamespacedKey dk = NamespacedKey.minecraft("memory_current_creator");
-            PersistentDataContainer per = null;
+            PersistentDataContainer per;
             if (memoryWorld != null) {
                 per = memoryWorld.getBukkit().getPersistentDataContainer();
-                if (Objects.equals(per.get(dk, PersistentDataType.STRING), memoryWorld.getBukkit().getGenerator().toString()))
+                if (Objects.equals(per.get(dk, PersistentDataType.STRING), getMerger().getGenerator()))
                     return;
                 if (memoryWorld != null)
                     memoryWorld.close();
@@ -219,7 +220,7 @@ public class IrisEngine implements Engine {
                             INMS.get().createMemoryWorld(NamespacedKey.minecraft(getMerger().getGenerator()), new WorldCreator("memoryworld"))
             ) : null; // todo: experimental
             per = memoryWorld.getBukkit().getPersistentDataContainer();
-            per.set(dk, PersistentDataType.STRING, memoryWorld.getBukkit().getGenerator().toString());
+            per.set(dk, PersistentDataType.STRING, getMerger().getGenerator());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -274,6 +275,7 @@ public class IrisEngine implements Engine {
         getData().clearLists();
         getTarget().setDimension(getData().getDimensionLoader().load(getDimension().getLoadKey()));
         prehotload();
+        updateMemoryWorld();
         setupEngine();
         J.a(() -> {
             synchronized (ServerConfigurator.class) {

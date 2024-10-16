@@ -26,6 +26,7 @@ import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.data.IrisBlockData;
 import com.volmit.iris.util.math.RNG;
 import io.lumine.mythic.bukkit.BukkitAdapter;
 import io.lumine.mythic.bukkit.utils.serialize.Chroma;
@@ -53,24 +54,25 @@ public class CrucibleDataProvider extends ExternalDataProvider {
     @Override
     public void init() {
         Iris.info("Setting up MythicCrucible Link...");
-        try(MythicCrucible crucible = MythicCrucible.inst()) {
-            this.itemManager = crucible.getItemManager();
-        }
-        catch (Exception e) {
+        try {
+            this.itemManager = MythicCrucible.inst().getItemManager();
+        } catch (Exception e) {
             Iris.error("Failed to set up MythicCrucible Link: Unable to fetch MythicCrucible instance!");
         }
     }
 
     @Override
     public BlockData getBlockData(Identifier blockId, KMap<String, String> state) throws MissingResourceException {
-        this.getItemTypes();
-        this.getBlockTypes();
-        Optional<CrucibleItem> opt = this.itemManager.getItem(blockId.key());
-        CustomBlockItemContext blockItemContext = opt.orElseThrow(() ->
-                        new MissingResourceException("Failed to find ItemData for block!", blockId.namespace(), blockId.key()))
-                .getBlockData();
-        if (blockItemContext == null) throw new MissingResourceException("ItemData was not a block!", blockId.namespace(), blockId.key());
-        return blockItemContext.getBlockData();
+        CrucibleItem crucibleItem = this.itemManager.getItem(blockId.key())
+                .orElseThrow(() -> new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key()));
+        CustomBlockItemContext blockItemContext = crucibleItem.getBlockData();
+        FurnitureItemContext furnitureItemContext = crucibleItem.getFurnitureData();
+        if (furnitureItemContext != null) {
+            return new IrisBlockData(furnitureItemContext.getFurnitureMaterial().createBlockData(), ExternalDataSVC.buildState(blockId, state));
+        } else if (blockItemContext != null) {
+            return blockItemContext.getBlockData();
+        }
+        throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
     }
 
     @Override
@@ -89,8 +91,10 @@ public class CrucibleDataProvider extends ExternalDataProvider {
             if (item.getBlockData() == null) continue;
             try {
                 Identifier key = new Identifier("crucible", item.getInternalName());
-                Iris.info("getBlockTypes: Block loaded '" + item.getInternalName() + "'");
-                if (getBlockData(key) != null) names.add(key);
+                if (getBlockData(key) != null) {
+                    Iris.info("getBlockTypes: Block loaded '" + item.getInternalName() + "'");
+                    names.add(key);
+                }
             } catch (MissingResourceException ignored) {}
         }
         return names.toArray(new Identifier[0]);
@@ -102,8 +106,10 @@ public class CrucibleDataProvider extends ExternalDataProvider {
         for (CrucibleItem item : this.itemManager.getItems()) {
             try {
                 Identifier key = new Identifier("crucible", item.getInternalName());
-                Iris.info("getItemTypes: Item loaded '" + item.getInternalName() + "'");
-                if (getItemStack(key) != null) names.add(key);
+                if (getItemStack(key) != null) {
+                    Iris.info("getItemTypes: Item loaded '" + item.getInternalName() + "'");
+                    names.add(key);
+                }
             } catch (MissingResourceException ignored) {}
         }
         return names.toArray(new Identifier[0]);

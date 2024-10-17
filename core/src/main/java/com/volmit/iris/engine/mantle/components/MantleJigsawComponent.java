@@ -66,7 +66,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
                 for (Position2 pos : poss) {
                     if (x == pos.getX() >> 4 && z == pos.getZ() >> 4) {
                         IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(getDimension().getStronghold());
-                        place(writer, pos.toIris(), structure, new RNG(seed));
+                        place(writer, pos.toIris(), structure, new RNG(seed), true);
                         return;
                     }
                 }
@@ -92,7 +92,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
         RNG rng = new RNG(seed);
         IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
         IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
-        return place(writer, position, structure, rng);
+        return place(writer, position, structure, rng, false);
     }
 
     @ChunkCoordinates
@@ -161,8 +161,8 @@ public class MantleJigsawComponent extends IrisMantleComponent {
     }
 
     @BlockCoordinates
-    private boolean place(MantleWriter writer, IrisPosition position, IrisJigsawStructure structure, RNG rng) {
-        return new PlannedStructure(structure, position, rng).place(writer, getMantle(), writer.getEngine());
+    private boolean place(MantleWriter writer, IrisPosition position, IrisJigsawStructure structure, RNG rng, boolean forcePlace) {
+        return new PlannedStructure(structure, position, rng, forcePlace).place(writer, getMantle(), writer.getEngine());
     }
 
     private long jigsaw() {

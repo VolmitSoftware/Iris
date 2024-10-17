@@ -7,6 +7,7 @@ import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.context.ChunkedDataCache;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.view.ChunkDataHunkHolder;
+import com.volmit.iris.util.hunk.view.ChunkDataHunkView;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -55,7 +56,7 @@ public class IrisMerger {
             var bukkit = memoryWorld.getBukkit();
 
             var chunkData = memoryWorld.getChunkData(x, z);
-            var vh = new ChunkDataHunkHolder(chunkData);
+            var vh = new ChunkDataHunkView(chunkData);
 
             int totalHeight = bukkit.getMaxHeight() - bukkit.getMinHeight();
             int minHeight = Math.abs(bukkit.getMinHeight());

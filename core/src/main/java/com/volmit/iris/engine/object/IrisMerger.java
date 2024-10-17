@@ -78,12 +78,7 @@ public class IrisMerger {
             Hunk<BlockData> vh = Hunk.newArrayHunk(16, engine.getMemoryWorld().getBukkit().getMaxHeight() - engine.getMemoryWorld().getBukkit().getMinHeight(), 16);
             Hunk<Biome> vbh = Hunk.newArrayHunk(16, engine.getMemoryWorld().getBukkit().getMaxHeight() - engine.getMemoryWorld().getBukkit().getMinHeight(), 16);
 
-//            PaperLib.getChunkAtAsync(engine.getMemoryWorld().getBukkit(), x, z, true).thenAccept((i) -> {
-//                memoryWorldToHunk(engine.getMemoryWorld().getChunkData(x, z), vh, vbh, engine);
-//            }).get();
             memoryWorldToHunk(engine.getMemoryWorld().getChunkData(x, z), vh, vbh, engine);
-
-            //removeSurface(vh, x, z, engine);
 
             int totalHeight = engine.getMemoryWorld().getBukkit().getMaxHeight() - engine.getMemoryWorld().getBukkit().getMinHeight();
             int minHeight = Math.abs(engine.getMemoryWorld().getBukkit().getMinHeight());
@@ -103,7 +98,7 @@ public class IrisMerger {
                             BlockData blockData = vh.get(xx, y, zz);
                             Biome biome = vbh.get(xx, y, zz);
                             if (blockData != null) {
-                                INMS.get().setBlock(engine.getWorld().realWorld(), x * 16 + xx, y - minHeight, z * 16 + zz, blockData, 1042, 0);
+                                INMS.get().setBlock(engine.getWorld().realWorld(), x * 16 + xx, y - minHeight, z * 16 + zz, blockData, new Flags(false, false, true, false, false).value(), 0);
                                 if (biome != null && caveBiomes.contains(biome)) {
                                     engine.getWorld().realWorld().setBiome(x * 16 + xx, y - minHeight, z * 16 + zz, biome);
                                 }
@@ -136,6 +131,22 @@ public class IrisMerger {
                 }
             }
         });
+    }
+
+    public record Flags(boolean listener, boolean flag, boolean client, boolean update, boolean physics) {
+        public static Flags fromValue(int value) {
+            return new Flags((value & 1024) != 0, (value & 64) != 0, (value & 2) != 0, (value & 1) != 0, (value & 16) == 0);
+        }
+
+        public int value() {
+            int value = 0;
+            if (!listener) value |= 1024;
+            if (flag) value |= 64;
+            if (client) value |= 2;
+            if (update) value |= 1;
+            if (!physics) value |= 16;
+            return value;
+        }
     }
 
 }

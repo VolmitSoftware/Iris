@@ -57,10 +57,7 @@ import net.jpountz.lz4.LZ4BlockOutputStream;
 import net.jpountz.lz4.LZ4FrameInputStream;
 import net.jpountz.lz4.LZ4FrameOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.EntityType;
 
@@ -159,6 +156,12 @@ public class CommandDeveloper implements DecreeExecutor {
         Iris.info("test");
         IrisPackBenchmarking benchmark = new IrisPackBenchmarking(dimension, 1);
 
+    }
+
+    @Decree(description = "gets wg height")
+    public void whatHeight() {
+        Iris.info("test");
+        sender().sendMessage("Height: " + player().getWorld().getHighestBlockAt(player().getLocation(), HeightMap.MOTION_BLOCKING).getY());
     }
 
     @Decree(description = "Fix biomes in a iris world", aliases = {"fb"} )

@@ -4,23 +4,23 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.util.context.ChunkContext;
-import com.volmit.iris.util.data.palette.QuartPos;
+import com.volmit.iris.util.context.ChunkedDataCache;
 import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.hunk.view.ChunkDataHunkHolder;
 import com.volmit.iris.util.math.RollingSequence;
+import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.bukkit.Location;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.generator.ChunkGenerator;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.IntStream;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -51,23 +51,23 @@ public class IrisMerger {
 
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
-            Hunk<BlockData> vh = Hunk.newArrayHunk(
-                    16,
-                    engine.getMemoryWorld().getBukkit().getMaxHeight() - engine.getMemoryWorld().getBukkit().getMinHeight(),
-                    16
-            );
-            Hunk<Biome> vbh = Hunk.newArrayHunk(
-                    16,
-                    engine.getMemoryWorld().getBukkit().getMaxHeight() - engine.getMemoryWorld().getBukkit().getMinHeight(),
-                    16
-            );
+            var memoryWorld = engine.getMemoryWorld();
+            var bukkit = memoryWorld.getBukkit();
 
-            memoryWorldToHunk(engine.getMemoryWorld().getChunkData(x, z), vh, vbh, engine);
+            var chunkData = memoryWorld.getChunkData(x, z);
+            var vh = new ChunkDataHunkHolder(chunkData);
 
-            int totalHeight = engine.getMemoryWorld().getBukkit().getMaxHeight() - engine.getMemoryWorld().getBukkit().getMinHeight();
-            int minHeight = Math.abs(engine.getMemoryWorld().getBukkit().getMinHeight());
+            int totalHeight = bukkit.getMaxHeight() - bukkit.getMinHeight();
+            int minHeight = Math.abs(bukkit.getMinHeight());
 
-            ChunkContext context = new ChunkContext(x << 4, z << 4, engine.getComplex());
+            var world = engine.getWorld().realWorld();
+            int wX = x << 4;
+            int wZ = z << 4;
+
+            BurstExecutor b = MultiBurst.burst.burst();
+            var cache = new ChunkedDataCache<>(b, engine.getComplex().getHeightStream(), wX, wZ);
+            b.complete();
+
             boolean vanillaMode = false;
 
             Set<Biome> caveBiomes = new HashSet<>(Arrays.asList(
@@ -76,31 +76,35 @@ public class IrisMerger {
                     Biome.DEEP_DARK
             ));
 
+            var nms = INMS.get();
+            var flag = new Flags(false, false, true, false, false).value();
             for (int xx = 0; xx < 16; xx++) {
                 for (int zz = 0; zz < 16; zz++) {
                     for (int y = 0; y < totalHeight; y++) {
-                        int height = (int) Math.ceil(context.getHeight().get(xx, zz) - depth);
+                        int height = (int) Math.ceil(cache.get(xx, zz) - depth);
                         if (y < height || vanillaMode) {
                             BlockData blockData = vh.get(xx, y, zz);
-                            Biome biome = vbh.get(xx, y, zz);
-                            if (blockData != null) {
-                                INMS.get().setBlock(
-                                        engine.getWorld().realWorld(),
-                                        x * 16 + xx,
-                                        y - minHeight,
-                                        z * 16 + zz,
-                                        blockData,
-                                        new Flags(false, false, true, false, false).value(),
-                                        0
-                                );
+                            nms.setBlock(
+                                    world,
+                                    wX + xx,
+                                    y - minHeight,
+                                    wZ + zz,
+                                    blockData,
+                                    flag,
+                                    0
+                            );
+                            //TODO improve?
+                            if (nms.hasTile(blockData.getMaterial())) {
+                                var tile = nms.serializeTile(new Location(bukkit, wX + xx, y - minHeight, wZ + zz));
+                                if (tile != null) {
+                                    nms.deserializeTile(tile, new Location(world, wX + xx, y - minHeight, wZ + zz));
+                                }
+                            }
 
-                                if (biome != null && caveBiomes.contains(biome)) {
-                                    engine.getWorld().realWorld().setBiome(
-                                            x * 16 + xx,
-                                            y - minHeight,
-                                            z * 16 + zz,
-                                            biome
-                                    );
+                            if (x % 4 == 0 && z % 4 == 0 && y % 4 == 0) {
+                                var biome = chunkData.getBiome(xx, y, zz);
+                                if (caveBiomes.contains(biome)) {
+                                    world.setBiome(wX + xx, y - minHeight, wZ + zz, biome);
                                 }
                             }
                         }
@@ -112,35 +116,6 @@ public class IrisMerger {
             Iris.info("Vanilla merge average in: " + Form.duration(mergeDuration.getAverage(), 8));
         } catch (Exception e) {
             e.printStackTrace();
-        }
-    }
-
-    private void memoryWorldToHunk(ChunkGenerator.ChunkData data, Hunk<BlockData> h, Hunk<Biome> b, Engine engine) {
-        int minHeight = engine.getMemoryWorld().getBukkit().getMinHeight();
-        int maxHeight = engine.getMemoryWorld().getBukkit().getMaxHeight();
-        int minHeightAbs = Math.abs(minHeight);
-        int height = maxHeight - minHeight;
-        int minSection = minHeight >> 4;
-        int maxSection = (maxHeight - 1) >> 4;
-
-        for (int sectionY = minSection; sectionY <= maxSection; sectionY++) {
-            int qY = QuartPos.fromSection(sectionY);
-            for (int sX = 0; sX < 4; sX++) {
-                for (int sZ = 0; sZ < 4; sZ++) {
-                    for (int sY = 0; sY < 4; sY++) {
-                        int localX = sX << 2;
-                        int localY = (qY << 2) + (sY << 2) - minHeight;
-                        int adjustedY = localY + minHeightAbs;
-                        int localZ = sZ << 2;
-                        if (localY < 0 || adjustedY >= height) {
-                            continue;
-                        }
-
-                        h.set(localX, adjustedY, localZ, data.getBlockData(localX, localY, localZ));
-                        b.set(localX, adjustedY, localZ, data.getBiome(localX, localY, localZ));
-                    }
-                }
-            }
         }
     }
 

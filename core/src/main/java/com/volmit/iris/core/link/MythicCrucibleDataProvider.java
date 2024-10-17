@@ -36,7 +36,6 @@ import io.lumine.mythiccrucible.items.CrucibleItem;
 import io.lumine.mythiccrucible.items.ItemManager;
 import io.lumine.mythiccrucible.items.blocks.CustomBlockItemContext;
 import io.lumine.mythiccrucible.items.furniture.FurnitureItemContext;
-import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
@@ -45,12 +44,12 @@ import org.bukkit.inventory.ItemStack;
 import java.util.MissingResourceException;
 import java.util.Optional;
 
-public class CrucibleDataProvider extends ExternalDataProvider {
+public class MythicCrucibleDataProvider extends ExternalDataProvider {
 
     private ItemManager itemManager;
 
-    public CrucibleDataProvider() {
-        super("Crucible");
+    public MythicCrucibleDataProvider() {
+        super("MythicCrucible");
     }
 
     @Override

@@ -79,7 +79,7 @@ public class HeightmapObjectPlacer implements IObjectPlacer {
         return oplacer.isDebugSmartBore();
     }
 
-    public void setTile(int param1Int1, int param1Int2, int param1Int3, TileData<? extends TileState> param1TileData) {
+    public void setTile(int param1Int1, int param1Int2, int param1Int3, TileData param1TileData) {
         oplacer.setTile(param1Int1, param1Int2, param1Int3, param1TileData);
     }
 

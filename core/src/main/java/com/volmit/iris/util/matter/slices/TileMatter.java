@@ -18,13 +18,10 @@
 
 package com.volmit.iris.util.matter.slices;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.Sliced;
 import com.volmit.iris.util.matter.TileWrapper;
-import com.volmit.iris.util.nbt.tag.CompoundTag;
 import org.bukkit.Location;
 import org.bukkit.World;
 
@@ -42,17 +39,8 @@ public class TileMatter extends RawMatter<TileWrapper> {
 
     public TileMatter(int width, int height, int depth) {
         super(width, height, depth, TileWrapper.class);
-        registerWriter(World.class, (w, d, x, y, z) -> {
-            CompoundTag tag = commonNbt(x, y, z, d.getData().getTileId());
-            INMS.get().deserializeTile(d.getData().toNBT(d.getData().toNBT(tag)), new Location(w, x, y, z));
-            Iris.warn("S: " + tag);
-        });
-        registerReader(World.class, (w, x, y, z) -> {
-            TileData d = TileData.getTileState(w.getBlockAt(new Location(w, x, y, z)));
-            if (d == null)
-                return null;
-            return new TileWrapper(d);
-        });
+        registerWriter(World.class, (w, d, x, y, z) -> TileData.setTileState(w.getBlockAt(new Location(w, x, y, z)), d.getData()));
+        registerReader(World.class, (w, x, y, z) -> new TileWrapper(TileData.getTileState(w.getBlockAt(new Location(w, x, y, z)))));
     }
 
     @Override
@@ -66,15 +54,5 @@ public class TileMatter extends RawMatter<TileWrapper> {
 
     public TileWrapper readNode(DataInputStream din) throws IOException {
         return new TileWrapper(TileData.read(din));
-    }
-
-    private CompoundTag commonNbt(int x, int y, int z, String mobId) {
-        CompoundTag tag = new CompoundTag();
-        tag.putInt("x", x);
-        tag.putInt("y", y);
-        tag.putInt("z", z);
-        tag.putBoolean("keepPacked", false);
-        tag.putString("id", mobId);
-        return tag;
     }
 }

@@ -43,6 +43,7 @@ import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.IrisLock;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import com.volmit.iris.util.scheduling.jobs.Job;
 import com.volmit.iris.util.stream.ProceduralStream;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -63,7 +64,9 @@ import org.bukkit.util.Vector;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 
 @Accessors(chain = true)
@@ -84,7 +87,7 @@ public class IrisObject extends IrisRegistrant {
     @Setter
     protected transient AtomicCache<AxisAlignedBB> aabb = new AtomicCache<>();
     private KMap<BlockVector, BlockData> blocks;
-    private KMap<BlockVector, TileData<? extends TileState>> states;
+    private KMap<BlockVector, TileData> states;
     @Getter
     @Setter
     private int w;
@@ -384,15 +387,97 @@ public class IrisObject extends IrisRegistrant {
         }
     }
 
+    public void write(OutputStream o, VolmitSender sender) throws IOException {
+        AtomicReference<IOException> ref = new AtomicReference<>();
+        CountDownLatch latch = new CountDownLatch(1);
+        new Job() {
+            private int total = getBlocks().size() * 3 + getStates().size();
+            private int c = 0;
+
+            @Override
+            public String getName() {
+                return "Saving Object";
+            }
+
+            @Override
+            public void execute() {
+                try {
+                    DataOutputStream dos = new DataOutputStream(o);
+                    dos.writeInt(w);
+                    dos.writeInt(h);
+                    dos.writeInt(d);
+                    dos.writeUTF("Iris V2 IOB;");
+
+                    KList<String> palette = new KList<>();
+
+                    for (BlockData i : getBlocks().values()) {
+                        palette.addIfMissing(i.getAsString());
+                        ++c;
+                    }
+                    total -= getBlocks().size() - palette.size();
+
+                    dos.writeShort(palette.size());
+
+                    for (String i : palette) {
+                        dos.writeUTF(i);
+                        ++c;
+                    }
+
+                    dos.writeInt(getBlocks().size());
+
+                    for (BlockVector i : getBlocks().keySet()) {
+                        dos.writeShort(i.getBlockX());
+                        dos.writeShort(i.getBlockY());
+                        dos.writeShort(i.getBlockZ());
+                        dos.writeShort(palette.indexOf(getBlocks().get(i).getAsString()));
+                        ++c;
+                    }
+
+                    dos.writeInt(getStates().size());
+                    for (BlockVector i : getStates().keySet()) {
+                        dos.writeShort(i.getBlockX());
+                        dos.writeShort(i.getBlockY());
+                        dos.writeShort(i.getBlockZ());
+                        getStates().get(i).toBinary(dos);
+                        ++c;
+                    }
+                } catch (IOException e) {
+                    ref.set(e);
+                } finally {
+                    latch.countDown();
+                }
+            }
+
+            @Override
+            public void completeWork() {}
+
+            @Override
+            public int getTotalWork() {
+                return total;
+            }
+
+            @Override
+            public int getWorkCompleted() {
+                return c;
+            }
+        }.execute(sender, true, () -> {});
+
+        try {
+            latch.await();
+        } catch (InterruptedException ignored) {}
+        if (ref.get() != null)
+            throw ref.get();
+    }
+
     public void read(File file) throws IOException {
-        FileInputStream fin = new FileInputStream(file);
+        var fin = new BufferedInputStream(new FileInputStream(file));
         try {
             read(fin);
             fin.close();
         } catch (Throwable e) {
             Iris.reportError(e);
             fin.close();
-            fin = new FileInputStream(file);
+            fin = new BufferedInputStream(new FileInputStream(file));
             readLegacy(fin);
             fin.close();
         }
@@ -405,6 +490,16 @@ public class IrisObject extends IrisRegistrant {
 
         FileOutputStream out = new FileOutputStream(file);
         write(out);
+        out.close();
+    }
+
+    public void write(File file, VolmitSender sender) throws IOException {
+        if (file == null) {
+            return;
+        }
+
+        FileOutputStream out = new FileOutputStream(file);
+        write(out, sender);
         out.close();
     }
 
@@ -434,7 +529,7 @@ public class IrisObject extends IrisRegistrant {
             d.put(new BlockVector(i.getBlockX(), i.getBlockY(), i.getBlockZ()), Objects.requireNonNull(getBlocks().get(i)));
         }
 
-        KMap<BlockVector, TileData<? extends TileState>> dx = new KMap<>();
+        KMap<BlockVector, TileData> dx = new KMap<>();
 
         for (BlockVector i : getBlocks().keySet()) {
             d.put(new BlockVector(i.getBlockX(), i.getBlockY(), i.getBlockZ()), Objects.requireNonNull(getBlocks().get(i)));
@@ -476,9 +571,9 @@ public class IrisObject extends IrisRegistrant {
         } else {
             BlockData data = block.getBlockData();
             getBlocks().put(v, data);
-            TileData<? extends TileState> state = TileData.getTileState(block);
+            TileData state = TileData.getTileState(block);
             if (state != null) {
-                Iris.info("Saved State " + v);
+                Iris.debug("Saved State " + v);
                 getStates().put(v, state);
             }
         }
@@ -802,7 +897,7 @@ public class IrisObject extends IrisRegistrant {
 
             for (BlockVector g : getBlocks().keySet()) {
                 BlockData d;
-                TileData<? extends TileState> tile = null;
+                TileData tile = null;
 
                 try {
                     d = getBlocks().get(g);
@@ -842,11 +937,9 @@ public class IrisObject extends IrisRegistrant {
                                 else
                                     data = newData;
 
-                                if (newData.getMaterial() == Material.SPAWNER) {
-                                    Optional<TileData<?>> t = j.getReplace().getTile(rng, x, y, z, rdata);
-                                    if (t.isPresent()) {
-                                        tile = t.get();
-                                    }
+                                Optional<TileData> t = j.getReplace().getTile(rng, x, y, z, rdata);
+                                if (t.isPresent()) {
+                                    tile = t.get();
                                 }
                             }
                         }
@@ -1044,7 +1137,7 @@ public class IrisObject extends IrisRegistrant {
                     spinx, spiny, spinz));
         }
 
-        KMap<BlockVector, TileData<? extends TileState>> dx = new KMap<>();
+        KMap<BlockVector, TileData> dx = new KMap<>();
 
         for (BlockVector i : getStates().keySet()) {
             dx.put(r.rotate(i.clone(), spinx, spiny, spinz), getStates().get(i));
@@ -1062,9 +1155,7 @@ public class IrisObject extends IrisRegistrant {
 
             if (getStates().containsKey(i)) {
                 Iris.info(Objects.requireNonNull(states.get(i)).toString());
-                BlockState st = b.getState();
-                Objects.requireNonNull(getStates().get(i)).toBukkitTry(st);
-                st.update();
+                Objects.requireNonNull(getStates().get(i)).toBukkitTry(b);
             }
         }
     }
@@ -1075,7 +1166,7 @@ public class IrisObject extends IrisRegistrant {
             b.setBlockData(Objects.requireNonNull(getBlocks().get(i)), false);
 
             if (getStates().containsKey(i)) {
-                Objects.requireNonNull(getStates().get(i)).toBukkitTry(b.getState());
+                Objects.requireNonNull(getStates().get(i)).toBukkitTry(b);
             }
         }
     }
@@ -1084,7 +1175,7 @@ public class IrisObject extends IrisRegistrant {
         return blocks;
     }
 
-    public synchronized KMap<BlockVector, TileData<? extends TileState>> getStates() {
+    public synchronized KMap<BlockVector, TileData> getStates() {
         return states;
     }
 

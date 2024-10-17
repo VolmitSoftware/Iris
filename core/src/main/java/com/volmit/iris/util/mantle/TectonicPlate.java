@@ -86,10 +86,10 @@ public class TectonicPlate {
         DataInputStream din;
         if (file.getName().endsWith("ttp.lz4b")) {
             LZ4BlockInputStream lz4 = new LZ4BlockInputStream(fin);
-            din = new DataInputStream(lz4);
+            din = new DataInputStream(new BufferedInputStream(lz4));
         } else {
             GZIPInputStream gzi = new GZIPInputStream(fin);
-            din = new DataInputStream(gzi);
+            din = new DataInputStream(new BufferedInputStream(gzi));
         }
         TectonicPlate p = new TectonicPlate(worldHeight, din);
         din.close();

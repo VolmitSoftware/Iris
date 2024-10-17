@@ -55,6 +55,7 @@ import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -63,6 +64,7 @@ import io.papermc.lib.PaperLib;
 import org.bukkit.*;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
@@ -77,6 +79,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -335,29 +338,38 @@ public class CommandStudio implements DecreeExecutor {
 
 
     @Decree(description = "Get all structures in a radius of chunks", aliases = "dist", origin = DecreeOrigin.PLAYER)
-    public void distances(@Param(description = "The radius") int radius) {
+    public void distances(@Param(description = "The radius in chunks") int radius) {
         var engine = engine();
         if (engine == null) {
             sender().sendMessage(C.RED + "Only works in an Iris world!");
             return;
         }
         var sender = sender();
-        int d = radius*2;
+        int d = radius * 2;
         KMap<String, KList<Position2>> data = new KMap<>();
         var multiBurst = new MultiBurst("Distance Sampler", Thread.MIN_PRIORITY);
         var executor = multiBurst.burst(radius * radius);
 
         sender.sendMessage(C.GRAY + "Generating data...");
         var loc = player().getLocation();
+        int totalTasks = d * d;
+        AtomicInteger completedTasks = new AtomicInteger(0);
+        int c = J.ar(() -> {
+            sender.sendProgress((double) completedTasks.get() / totalTasks, "Finding structures");
+        }, 0);
+
         new Spiraler(d, d, (x, z) -> executor.queue(() -> {
             var struct = engine.getStructureAt(x, z);
             if (struct != null) {
                 data.computeIfAbsent(struct.getLoadKey(), (k) -> new KList<>()).add(new Position2(x, z));
             }
+            completedTasks.incrementAndGet();
         })).setOffset(loc.getBlockX(), loc.getBlockZ()).drain();
 
         executor.complete();
         multiBurst.close();
+        J.car(c);
+
         for (var key : data.keySet()) {
             var list = data.get(key);
             KList<Long> distances = new KList<>(list.size() - 1);
@@ -389,6 +401,7 @@ public class CommandStudio implements DecreeExecutor {
             sender.sendMessage(C.GREEN + "Done!");
         }
     }
+
 
     @Decree(description = "Render a world map (External GUI)", aliases = "render")
     public void map(

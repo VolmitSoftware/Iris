@@ -19,6 +19,7 @@
 package com.volmit.iris.util.matter;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.data.Cuboid;
 import org.bukkit.Location;
 import org.bukkit.block.data.BlockData;

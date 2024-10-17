@@ -50,10 +50,10 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             IrisObject t = new IrisObject(0, 0, 0);
-            t.read(j);
             t.setLoadKey(name);
             t.setLoader(manager);
             t.setLoadFile(j);
+            t.read(j);
             logLoad(j, t);
             tlt.addAndGet(p.getMilliseconds());
             return t;

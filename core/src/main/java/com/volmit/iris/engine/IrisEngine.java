@@ -216,8 +216,8 @@ public class IrisEngine implements Engine {
             }
             memoryWorld = getMerger().isDatapackMode() ? Failable.get(() ->
                     getMerger().getGenerator() == null ?
-                            INMS.get().createMemoryWorld(new WorldCreator("memoryworld")) :
-                            INMS.get().createMemoryWorld(NamespacedKey.minecraft(getMerger().getGenerator()), new WorldCreator("memoryworld"))
+                            INMS.get().createMemoryWorld(new WorldCreator("memoryworld").seed(getSeedManager().getSeed())) :
+                            INMS.get().createMemoryWorld(NamespacedKey.minecraft(getMerger().getGenerator()), new WorldCreator("memoryworld").seed(getSeedManager().getSeed()))
             ) : null; // todo: experimental
             per = memoryWorld.getBukkit().getPersistentDataContainer();
             per.set(dk, PersistentDataType.STRING, getMerger().getGenerator());

@@ -6,7 +6,6 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.context.ChunkedDataCache;
 import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.hunk.view.ChunkDataHunkHolder;
 import com.volmit.iris.util.hunk.view.ChunkDataHunkView;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.parallel.BurstExecutor;
@@ -40,6 +39,15 @@ public class IrisMerger {
     @Desc("How deep till it should use vanilla terrain")
     private int depth = 30;
 
+    @Desc("Gets the terrain x,z height as the limit")
+    private IrisMergeStrategies mode = null;
+
+    @Desc("If it should put the selected generator above or under the split")
+    private boolean splitUnder = true;
+
+    @Desc("Splits in the engine height")
+    private int split = 0;
+
     /**
      * Merges underground from a selected chunk into the corresponding chunk in the outcome world.
      */
@@ -69,8 +77,6 @@ public class IrisMerger {
             var cache = new ChunkedDataCache<>(b, engine.getComplex().getHeightStream(), wX, wZ);
             b.complete();
 
-            boolean vanillaMode = false;
-
             Set<Biome> caveBiomes = new HashSet<>(Arrays.asList(
                     Biome.DRIPSTONE_CAVES,
                     Biome.LUSH_CAVES,
@@ -79,34 +85,38 @@ public class IrisMerger {
 
             var nms = INMS.get();
             var flag = new Flags(false, false, true, false, false).value();
+
             for (int xx = 0; xx < 16; xx++) {
                 for (int zz = 0; zz < 16; zz++) {
-                    for (int y = 0; y < totalHeight; y++) {
-                        int height = (int) Math.ceil(cache.get(xx, zz) - depth);
-                        if (y < height || vanillaMode) {
-                            BlockData blockData = vh.get(xx, y, zz);
-                            nms.setBlock(
-                                    world,
-                                    wX + xx,
-                                    y - minHeight,
-                                    wZ + zz,
-                                    blockData,
-                                    flag,
-                                    0
-                            );
-                            //TODO improve?
-                            if (nms.hasTile(blockData.getMaterial())) {
-                                var tile = nms.serializeTile(new Location(bukkit, wX + xx, y - minHeight, wZ + zz));
-                                if (tile != null) {
-                                    nms.deserializeTile(tile, new Location(world, wX + xx, y - minHeight, wZ + zz));
-                                }
-                            }
+                    int height = (int) Math.ceil(cache.get(xx, zz) - depth);
 
-                            if (x % 4 == 0 && z % 4 == 0 && y % 4 == 0) {
-                                var biome = chunkData.getBiome(xx, y, zz);
-                                if (caveBiomes.contains(biome)) {
-                                    world.setBiome(wX + xx, y - minHeight, wZ + zz, biome);
-                                }
+                    for (int y = 0; y < totalHeight; y++) {
+                        if (shouldSkip(y, height)) {
+                            continue;
+                        }
+
+                        BlockData blockData = vh.get(xx, y, zz);
+                        nms.setBlock(
+                                world,
+                                wX + xx,
+                                y - minHeight,
+                                wZ + zz,
+                                blockData,
+                                flag,
+                                0
+                        );
+
+                        if (nms.hasTile(blockData.getMaterial())) {
+                            var tile = nms.serializeTile(new Location(bukkit, wX + xx, y - minHeight, wZ + zz));
+                            if (tile != null) {
+                                nms.deserializeTile(tile, new Location(world, wX + xx, y - minHeight, wZ + zz));
+                            }
+                        }
+
+                        if (x % 4 == 0 && z % 4 == 0 && y % 4 == 0) {
+                            var biome = chunkData.getBiome(xx, y, zz);
+                            if (caveBiomes.contains(biome)) {
+                                world.setBiome(wX + xx, y - minHeight, wZ + zz, biome);
                             }
                         }
                     }
@@ -118,6 +128,21 @@ public class IrisMerger {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private boolean shouldSkip(int y, int ht) {
+        int threshold;
+        switch (mode) {
+            case SPLIT_ENGINE_HEIGHT:
+                threshold = ht;
+                break;
+            case SPLIT:
+                threshold = split;
+                break;
+            default:
+                return false;
+        }
+        return splitUnder ? y > threshold : y < threshold;
     }
 
     public record Flags(boolean listener, boolean flag, boolean client, boolean update, boolean physics) {

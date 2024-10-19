@@ -79,7 +79,6 @@ public class CommandIris implements DecreeExecutor {
     private CommandWhat what;
     private CommandEdit edit;
     private CommandFind find;
-    private CommandSupport support;
     private CommandDeveloper developer;
     public static boolean worldCreation = false;
     String WorldEngine;

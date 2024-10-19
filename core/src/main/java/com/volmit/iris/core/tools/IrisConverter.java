@@ -140,48 +140,43 @@ public class IrisConverter {
         });
     }
 
-    /**
-     *
-     * @param sender
-     */
-    public static void convertJigsawStructure(File in, File out, VolmitSender sender) {
-        File dataFolder = Iris.instance.getDataFolder("convert");
-        try {
-            KMap<String, IrisJigsawPool> pools = new KMap<>();
-            KList<File> roots = new KList<>();
-            AtomicInteger total = new AtomicInteger(0);
-            AtomicInteger at = new AtomicInteger(0);
-            File destPools = new File(out.getAbsolutePath() + "/jigsaw-pools");
-            destPools.mkdirs();
-            findAllNBT(in, (folder, file) -> {
-                total.getAndIncrement();
-                if (roots.addIfMissing(folder)) {
-                    String b = in.toURI().relativize(folder.toURI()).getPath();
-                    if (b.startsWith("/")) {
-                        b = b.substring(1);
-                    }
-
-                    if (b.endsWith("/")) {
-                        b = b.substring(0, b.length() - 1);
-                    }
-
-                    pools.put(b, new IrisJigsawPool());
-                }
-            });
-
-
-
-
-
-
-        } catch (Exception e) {
-            Iris.error(C.RED + "Failed to convert: " + in.getPath());
-            e.printStackTrace();
-        }
-
-
-
-    }
+//    /**
+//     *
+//     * @param sender
+//     */
+//    public static void convertJigsawStructure(File in, File out, VolmitSender sender) {
+//        File dataFolder = Iris.instance.getDataFolder("convert");
+//        try {
+//            KMap<String, IrisJigsawPool> pools = new KMap<>();
+//            KList<File> roots = new KList<>();
+//            AtomicInteger total = new AtomicInteger(0);
+//            AtomicInteger at = new AtomicInteger(0);
+//            File destPools = new File(out.getAbsolutePath() + "/jigsaw-pools");
+//            destPools.mkdirs();
+//            findAllNBT(in, (folder, file) -> {
+//                total.getAndIncrement();
+//                if (roots.addIfMissing(folder)) {
+//                    String b = in.toURI().relativize(folder.toURI()).getPath();
+//                    if (b.startsWith("/")) {
+//                        b = b.substring(1);
+//                    }
+//
+//                    if (b.endsWith("/")) {
+//                        b = b.substring(0, b.length() - 1);
+//                    }
+//
+//                    pools.put(b, new IrisJigsawPool());
+//                }
+//            });
+//
+//        } catch (Exception e) {
+//            Iris.error(C.RED + "Failed to convert: " + in.getPath());
+//            e.printStackTrace();
+//        }
+//
+//
+//
+//    }
 
     private static void findAllNBT(File path, Consumer2<File, File> inFile) {
         if (path == null) {

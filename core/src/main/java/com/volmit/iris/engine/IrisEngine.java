@@ -134,6 +134,7 @@ public class IrisEngine implements Engine {
         cleaning = new AtomicBoolean(false);
         context.touch();
         merger = getDimension().getMerger();
+        merger.loadWorld(this);
         updateMemoryWorld();
         getData().setEngine(this);
         getData().loadPrefetch(this);

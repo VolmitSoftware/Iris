@@ -24,6 +24,7 @@ import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisMerger;
 import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.context.ChunkContext;
@@ -57,20 +58,6 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     public IrisTerrainNormalActuator(Engine engine) {
         super(engine, "Terrain");
         rng = new RNG(engine.getSeedManager().getTerrain());
-        // todo: for v4
-//        boolean debug = getDimension().getMerger().isDatapackMode();
-//        if (!getDimension().getMerger().getGenerator().isBlank()) {
-//            try {
-//                if (!getDimension().getMerger().isDatapackMode()) {
-//                    this.memoryWorld = INMS.get().createMemoryWorld(new WorldCreator("terrain").generator(getEngine().getDimension().getMerger().getGenerator()));
-//                } else {
-//                    String test = getDimension().getMerger().getGenerator().toLowerCase();
-//                    this.memoryWorld = INMS.get().createMemoryWorld(NamespacedKey.minecraft(test), new WorldCreator("terrain"));
-//                }
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//        }
     }
 
     @BlockCoordinates
@@ -78,21 +65,15 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     public void onActuate(int x, int z, Hunk<BlockData> h, boolean multicore, ChunkContext context) {
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
-            AtomicReference<Hunk<BlockData>> hm = new AtomicReference<>();
-            if (memoryWorld != null) {
-                PaperLib.getChunkAtAsync(memoryWorld.getBukkit(), x, z, true).thenAccept((i) -> {
-                    hm.set(toHunk(memoryWorld.getChunkData(x, z)));
-                }).get();
-
-            }
 
             for (int xf = 0; xf < h.getWidth(); xf++) {
-                terrainSliver(x, z, xf, h, hm.get(), context);
+                terrainSliver(x, z, xf, h, context);
             }
 
             getEngine().getMetrics().getTerrain().put(p.getMilliseconds());
         } catch (Exception e) {
-            Iris.error("Fatal Error!", e);
+            e.printStackTrace();
+            //Iris.error("Fatal Error!", e);
         }
     }
 
@@ -110,7 +91,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
      * @param h  the blockdata
      */
     @BlockCoordinates
-    public void terrainSliver(int x, int z, int xf, Hunk<BlockData> h, @Nullable Hunk<BlockData> hm, ChunkContext context) {
+    public void terrainSliver(int x, int z, int xf, Hunk<BlockData> h, ChunkContext context) {
         int zf, realX, realZ, hf, he;
         IrisBiome biome;
         IrisRegion region;
@@ -175,16 +156,15 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                         continue;
                     }
 
+                    getDimension().getMerger().generateVanillaUnderground(x, z, h, getEngine());
+
                     BlockData ore = biome.generateOres(realX, i, realZ, rng, getData());
                     ore = ore == null ? region.generateOres(realX, i, realZ, rng, getData()) : ore;
                     ore = ore == null ? getDimension().generateOres(realX, i, realZ, rng, getData()) : ore;
 
-                    if (ore != null) {
-                        h.set(xf, i, zf, ore);
-                    } else if (hm == null) {
-                        // todo remove this ( TEMP )
-                        if (getDimension().isDeepslateLayer() && i < 64) {
-                            h.set(xf, i, zf, DEEPSLATE);
+                    if (!h.get(xf, i, zf).getMaterial().isAir()) {
+                        if (ore != null) {
+                            h.set(xf, i, zf, ore);
                         } else {
                             h.set(xf, i, zf, context.getRock().get(xf, zf));
                         }
@@ -192,18 +172,5 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                 }
             }
         }
-    }
-
-    private Hunk<BlockData> toHunk(ChunkGenerator.ChunkData data) {
-        Hunk<BlockData> h = Hunk.newArrayHunk(16, memoryWorld.getBukkit().getMaxHeight(), 16);
-        for (int x = 0; x < 16; x++) {
-            for (int z = 0; z < 16; z++) {
-                for (int y = 0; y < memoryWorld.getBukkit().getMaxHeight(); y++) {
-                    BlockData block = data.getBlockData(x, y, z);
-                    h.set(x, y, z, block);
-                }
-            }
-        }
-        return h;
     }
 }

@@ -74,42 +74,6 @@ public class IrisMerger {
     private int split = 0;
 
 
-//    /**
-//     * @param position x,z of the chunk
-//     * @param h copies the exact current state of the hunk.
-//     */
-//    public void queueChunk(Position2 position, Hunk<BlockData> h) {
-//        chunks.put(new Pair<>(position, copyHunkParallel(Hunk.newHunk(h.getWidth(), h.getHeight(), h.getDepth()), Function.identity())), false);
-//    }
-//
-//    /**
-//     * Register the chunk as completed.
-//     * @param position x,z of the chunk
-//     */
-//    public void registerChunk(Position2 position, Engine engine) {
-//        for (Pair<Position2, Hunk<BlockData>> pair : chunks.keySet()) {
-//            if (!pair.getA().equals(position))
-//                return;
-//            if (chunks.get(pair))
-//                throw new IllegalStateException("Chunk " + pair.getA() + " is already registered");
-//            chunks.put(pair, true);
-//            queue.queue(pair);
-//            chunks.remove(pair);
-//        }
-//        executor(engine);
-//    }
-//
-//    private void executor(Engine engine) {
-//        if (!lock.isLocked()) {
-//            lock.lock();
-//            while (queue.hasNext()) {
-//                Pair<Position2, Hunk<BlockData>> chunk = queue.next();
-//                generateVanillaUnderground(chunk.getA().getX(), chunk.getA().getZ(), chunk.getB(), engine);
-//            }
-//            lock.unlock();
-//        }
-//    }
-
     /**
      * Merges underground from a selected chunk into the corresponding chunk in the outcome world.
      */

@@ -3,29 +3,39 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.IMemoryWorld;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.ChunkedDataCache;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.hunk.view.ChunkDataHunkView;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import com.volmit.iris.util.scheduling.Queue;
+import com.volmit.iris.util.scheduling.ShurikenQueue;
+import it.unimi.dsi.fastutil.Hash;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 
 import static org.bukkit.Bukkit.createChunkData;
 
@@ -36,6 +46,11 @@ import static org.bukkit.Bukkit.createChunkData;
 public class IrisMerger {
     private transient RollingSequence mergeDuration = new RollingSequence(20);
     private transient World worldsave;
+    private transient ReentrantLock lock = new ReentrantLock();
+    private transient ChunkGenerator chunkGenerator;
+    private static final BlockData FILLER = Material.STONE.createBlockData();
+    private transient KMap<Pair<Position2, Hunk<BlockData>>, Boolean> chunks = new KMap<>();
+    private transient Queue<Pair<Position2, Hunk<BlockData>>> queue = new ShurikenQueue<>();
 
     @Desc("Selected Generator")
     private String generator;
@@ -58,11 +73,48 @@ public class IrisMerger {
     @Desc("Splits in the engine height")
     private int split = 0;
 
+
+//    /**
+//     * @param position x,z of the chunk
+//     * @param h copies the exact current state of the hunk.
+//     */
+//    public void queueChunk(Position2 position, Hunk<BlockData> h) {
+//        chunks.put(new Pair<>(position, copyHunkParallel(Hunk.newHunk(h.getWidth(), h.getHeight(), h.getDepth()), Function.identity())), false);
+//    }
+//
+//    /**
+//     * Register the chunk as completed.
+//     * @param position x,z of the chunk
+//     */
+//    public void registerChunk(Position2 position, Engine engine) {
+//        for (Pair<Position2, Hunk<BlockData>> pair : chunks.keySet()) {
+//            if (!pair.getA().equals(position))
+//                return;
+//            if (chunks.get(pair))
+//                throw new IllegalStateException("Chunk " + pair.getA() + " is already registered");
+//            chunks.put(pair, true);
+//            queue.queue(pair);
+//            chunks.remove(pair);
+//        }
+//        executor(engine);
+//    }
+//
+//    private void executor(Engine engine) {
+//        if (!lock.isLocked()) {
+//            lock.lock();
+//            while (queue.hasNext()) {
+//                Pair<Position2, Hunk<BlockData>> chunk = queue.next();
+//                generateVanillaUnderground(chunk.getA().getX(), chunk.getA().getZ(), chunk.getB(), engine);
+//            }
+//            lock.unlock();
+//        }
+//    }
+
     /**
      * Merges underground from a selected chunk into the corresponding chunk in the outcome world.
      */
     @Deprecated
-    public void generateVanillaUnderground(int x, int z, Hunk<BlockData> h, Engine engine) {
+    public void generateVanillaUnderground(int x, int z, Engine engine) {
         if (engine.getMemoryWorld() == null)
             throw new IllegalStateException("MemoryWorld is null. Ensure that it has been initialized.");
         if (engine.getWorld().realWorld() == null)
@@ -75,6 +127,7 @@ public class IrisMerger {
             World bukkit;
 
             ChunkGenerator.ChunkData chunkData;
+            ChunkGenerator.ChunkData chunkDataIris = getChunkDataAt(engine.getWorld().realWorld(), x, z);
             if (world.isBlank()) {
                 throw new UnsupportedOperationException("No.");
 //                memoryWorld = engine.getMemoryWorld();
@@ -119,36 +172,40 @@ public class IrisMerger {
                         }
 
                         BlockData blockData = vh.get(xx, y, zz);
-                        h.set(xx, y, zz, blockData);
-//                        nms.setBlock(
-//                                world,
-//                                wX + xx,
-//                                y - minHeight,
-//                                wZ + zz,
-//                                blockData,
-//                                flag,
-//                                0
-//                        );
 
-//                        if (nms.hasTile(blockData.getMaterial())) {
-//                            var tile = nms.serializeTile(new Location(bukkit, wX + xx, y - minHeight, wZ + zz));
-//                            if (tile != null) {
-//                                nms.deserializeTile(tile, new Location(world, wX + xx, y - minHeight, wZ + zz));
-//                            }
-//                        }
+                        if (chunkDataIris.getBlockData(xx, y - minHeight, zz).getMaterial() != FILLER.getMaterial() && blockData.getMaterial().isOccluding()) {
+                            blockData = chunkDataIris.getBlockData(xx, y - minHeight, zz);
+                        }
 
-//                        if (x % 4 == 0 && z % 4 == 0 && y % 4 == 0) {
-//                            Biome biome;
-//                            try {
-//                                biome = chunkData.getBiome(xx, y, zz);
-//                            } catch (UnsupportedOperationException e) {
-//                                biome = bukkit.getBiome(wX + xx, y, wZ + zz);
-//                            }
-//
-//                            if (caveBiomes.contains(biome)) {
-//                                world.setBiome(wX + xx, y - minHeight, wZ + zz, biome);
-//                            }
-//                        }
+                        nms.setBlock(
+                                world,
+                                wX + xx,
+                                y - minHeight,
+                                wZ + zz,
+                                blockData,
+                                flag,
+                                0
+                        );
+
+                        if (nms.hasTile(blockData.getMaterial())) {
+                            var tile = nms.serializeTile(new Location(bukkit, wX + xx, y - minHeight, wZ + zz));
+                            if (tile != null) {
+                                nms.deserializeTile(tile, new Location(world, wX + xx, y - minHeight, wZ + zz));
+                            }
+                        }
+
+                        if (x % 4 == 0 && z % 4 == 0 && y % 4 == 0) {
+                            Biome biome;
+                            try {
+                                biome = chunkData.getBiome(xx, y, zz);
+                            } catch (UnsupportedOperationException e) {
+                                biome = bukkit.getBiome(wX + xx, y, wZ + zz);
+                            }
+
+                            if (caveBiomes.contains(biome)) {
+                                world.setBiome(wX + xx, y - minHeight, wZ + zz, biome);
+                            }
+                        }
                     }
                 }
             }
@@ -222,6 +279,20 @@ public class IrisMerger {
         return chunkData;
     }
 
+    public static <T> Hunk<T> copyHunkParallel(Hunk<T> original, Function<T, T> elementCopier) {
+        Hunk<T> copy = Hunk.newHunk(original.getWidth(), original.getHeight(), original.getDepth());
+        original.compute3D((ox, oy, oz, section) -> {
+            Hunk<T> copySection = copy.croppedView(ox, oy, oz, ox + section.getWidth(), oy + section.getHeight(), oz + section.getDepth());
+            section.iterate((x, y, z, value) -> {
+                T copiedValue = value != null ? elementCopier.apply(value) : null;
+                copySection.set(x, y, z, copiedValue);
+            });
+        });
+
+        return copy;
+    }
+
+
     public void loadWorld(Engine engine) {
         if (!engine.getDimension().isEnableExperimentalMerger())
             return;
@@ -232,17 +303,5 @@ public class IrisMerger {
                 worldsave = Bukkit.createWorld(worldCreator);
             }
         });
-//        new Thread(() -> {
-//            try {
-//                boolean wait = true;
-//                while (wait) {
-//                    Thread.sleep(100);
-//                    if (Bukkit.getWorld(world) != null)
-//                        wait = false;
-//                }
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//        });
     }
 }

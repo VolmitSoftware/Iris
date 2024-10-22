@@ -18,29 +18,20 @@
 
 package com.volmit.iris.engine.actuator;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.IMemoryWorld;
-import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisMerger;
 import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import io.papermc.lib.PaperLib;
 import lombok.Getter;
 import org.bukkit.*;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.generator.ChunkGenerator;
-
-import javax.annotation.Nullable;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData> {
     private static final BlockData AIR = Material.AIR.createBlockData();
@@ -49,6 +40,7 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
     private static final BlockData LAVA = Material.LAVA.createBlockData();
     private static final BlockData GLASS = Material.GLASS.createBlockData();
     private static final BlockData CAVE_AIR = Material.CAVE_AIR.createBlockData();
+    private static final BlockData FILLER = Material.STONE.createBlockData();
     private IMemoryWorld memoryWorld;
     @Getter
     private final RNG rng;
@@ -156,7 +148,10 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                         continue;
                     }
 
-                    getDimension().getMerger().generateVanillaUnderground(x, z, h, getEngine());
+                    if (getDimension().isEnableExperimentalMerger()) {
+                        h.set(xf, i, zf, FILLER);
+                        continue;
+                    }
 
                     BlockData ore = biome.generateOres(realX, i, realZ, rng, getData());
                     ore = ore == null ? region.generateOres(realX, i, realZ, rng, getData()) : ore;

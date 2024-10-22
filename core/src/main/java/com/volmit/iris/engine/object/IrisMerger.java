@@ -7,10 +7,13 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.context.ChunkedDataCache;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.hunk.view.ChunkDataHunkView;
 import com.volmit.iris.util.math.RollingSequence;
+import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -32,7 +35,7 @@ import static org.bukkit.Bukkit.createChunkData;
 @Data
 public class IrisMerger {
     private transient RollingSequence mergeDuration = new RollingSequence(20);
-    private transient Engine engine;
+    private transient World worldsave;
 
     @Desc("Selected Generator")
     private String generator;
@@ -59,11 +62,11 @@ public class IrisMerger {
      * Merges underground from a selected chunk into the corresponding chunk in the outcome world.
      */
     @Deprecated
-    public void generateVanillaUnderground(int x, int z, Engine engine) {
+    public void generateVanillaUnderground(int x, int z, Hunk<BlockData> h, Engine engine) {
         if (engine.getMemoryWorld() == null)
             throw new IllegalStateException("MemoryWorld is null. Ensure that it has been initialized.");
-        if (engine.getWorld() == null)
-            throw new IllegalStateException("World is null. Ensure that the world has been properly loaded.");
+        if (engine.getWorld().realWorld() == null)
+            return;
 
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
@@ -73,11 +76,14 @@ public class IrisMerger {
 
             ChunkGenerator.ChunkData chunkData;
             if (world.isBlank()) {
-                memoryWorld = engine.getMemoryWorld();
-                bukkit = memoryWorld.getBukkit();
-                chunkData = memoryWorld.getChunkData(x, z);
+                throw new UnsupportedOperationException("No.");
+//                memoryWorld = engine.getMemoryWorld();
+//                bukkit = memoryWorld.getBukkit();
+//                chunkData = memoryWorld.getChunkData(x, z);
             } else {
-                bukkit = loadWorld(world);
+                bukkit = Bukkit.getWorld(world);
+                if (bukkit == null)
+                    throw new IllegalStateException("Somehow world is null? Initialization Failed!");
                 chunkData = getChunkDataAt(bukkit, x, z);
             }
 
@@ -113,29 +119,36 @@ public class IrisMerger {
                         }
 
                         BlockData blockData = vh.get(xx, y, zz);
-                        nms.setBlock(
-                                world,
-                                wX + xx,
-                                y - minHeight,
-                                wZ + zz,
-                                blockData,
-                                flag,
-                                0
-                        );
+                        h.set(xx, y, zz, blockData);
+//                        nms.setBlock(
+//                                world,
+//                                wX + xx,
+//                                y - minHeight,
+//                                wZ + zz,
+//                                blockData,
+//                                flag,
+//                                0
+//                        );
 
-                        if (nms.hasTile(blockData.getMaterial())) {
-                            var tile = nms.serializeTile(new Location(bukkit, wX + xx, y - minHeight, wZ + zz));
-                            if (tile != null) {
-                                nms.deserializeTile(tile, new Location(world, wX + xx, y - minHeight, wZ + zz));
-                            }
-                        }
+//                        if (nms.hasTile(blockData.getMaterial())) {
+//                            var tile = nms.serializeTile(new Location(bukkit, wX + xx, y - minHeight, wZ + zz));
+//                            if (tile != null) {
+//                                nms.deserializeTile(tile, new Location(world, wX + xx, y - minHeight, wZ + zz));
+//                            }
+//                        }
 
-                        if (x % 4 == 0 && z % 4 == 0 && y % 4 == 0) {
-                            var biome = chunkData.getBiome(xx, y, zz);
-                            if (caveBiomes.contains(biome)) {
-                                world.setBiome(wX + xx, y - minHeight, wZ + zz, biome);
-                            }
-                        }
+//                        if (x % 4 == 0 && z % 4 == 0 && y % 4 == 0) {
+//                            Biome biome;
+//                            try {
+//                                biome = chunkData.getBiome(xx, y, zz);
+//                            } catch (UnsupportedOperationException e) {
+//                                biome = bukkit.getBiome(wX + xx, y, wZ + zz);
+//                            }
+//
+//                            if (caveBiomes.contains(biome)) {
+//                                world.setBiome(wX + xx, y - minHeight, wZ + zz, biome);
+//                            }
+//                        }
                     }
                 }
             }
@@ -209,12 +222,27 @@ public class IrisMerger {
         return chunkData;
     }
 
-    private World loadWorld(String worldName) {
-        World world = Bukkit.getWorld(worldName);
-        if (world != null)
-            return world;
-        WorldCreator worldCreator = new WorldCreator(worldName);
-        world = Bukkit.createWorld(worldCreator);
-        return world;
+    public void loadWorld(Engine engine) {
+        if (!engine.getDimension().isEnableExperimentalMerger())
+            return;
+        J.sfut(() -> {
+            worldsave = Bukkit.getWorld(world);
+            if (worldsave == null) {
+                WorldCreator worldCreator = new WorldCreator(world);
+                worldsave = Bukkit.createWorld(worldCreator);
+            }
+        });
+//        new Thread(() -> {
+//            try {
+//                boolean wait = true;
+//                while (wait) {
+//                    Thread.sleep(100);
+//                    if (Bukkit.getWorld(world) != null)
+//                        wait = false;
+//                }
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        });
     }
 }

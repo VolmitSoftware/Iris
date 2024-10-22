@@ -1,6 +1,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.nms.IMemoryWorld;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.Desc;
@@ -14,13 +15,16 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.bukkit.Location;
+import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.generator.ChunkGenerator;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+
+import static org.bukkit.Bukkit.createChunkData;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -32,6 +36,9 @@ public class IrisMerger {
 
     @Desc("Selected Generator")
     private String generator;
+
+    @Desc("Uses a world instead of a generator")
+    private String world;
 
     @Desc("Uses the generator as a datapack key")
     private boolean datapackMode;
@@ -60,10 +67,20 @@ public class IrisMerger {
 
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
-            var memoryWorld = engine.getMemoryWorld();
-            var bukkit = memoryWorld.getBukkit();
 
-            var chunkData = memoryWorld.getChunkData(x, z);
+            IMemoryWorld memoryWorld;
+            World bukkit;
+
+            ChunkGenerator.ChunkData chunkData;
+            if (world.isBlank()) {
+                memoryWorld = engine.getMemoryWorld();
+                bukkit = memoryWorld.getBukkit();
+                chunkData = memoryWorld.getChunkData(x, z);
+            } else {
+                bukkit = loadWorld(world);
+                chunkData = getChunkDataAt(bukkit, x, z);
+            }
+
             var vh = new ChunkDataHunkView(chunkData);
 
             int totalHeight = bukkit.getMaxHeight() - bukkit.getMinHeight();
@@ -165,5 +182,39 @@ public class IrisMerger {
             if (!physics) value |= 16;
             return value;
         }
+    }
+
+    public ChunkGenerator.ChunkData getChunkDataAt(World world, int chunkX, int chunkZ) {
+        ChunkGenerator.ChunkData chunkData = createChunkData(world);
+        Chunk chunk = world.getChunkAt(chunkX, chunkZ);
+
+        if (!chunk.isGenerated())
+            throw new IllegalStateException("Chunk is not generated!");
+
+        if (!chunk.isLoaded()) {
+            chunk.load();
+        }
+
+        int minY = world.getMinHeight();
+        int maxY = world.getMaxHeight();
+
+        for (int y = minY; y < maxY; y++) {
+            for (int x = 0; x < 16; x++) {
+                for (int z = 0; z < 16; z++) {
+                    BlockData blockData = chunk.getBlock(x, y, z).getBlockData();
+                    chunkData.setBlock(x, y, z, blockData);
+                }
+            }
+        }
+        return chunkData;
+    }
+
+    private World loadWorld(String worldName) {
+        World world = Bukkit.getWorld(worldName);
+        if (world != null)
+            return world;
+        WorldCreator worldCreator = new WorldCreator(worldName);
+        world = Bukkit.createWorld(worldCreator);
+        return world;
     }
 }

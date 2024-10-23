@@ -31,9 +31,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
@@ -72,6 +70,9 @@ public class IrisMerger {
 
     @Desc("Splits in the engine height")
     private int split = 0;
+
+    @Desc("If it should translate iris deposits/ores to their deepslate variant")
+    private boolean deepslateTranslator = true;
 
 
     /**
@@ -136,9 +137,21 @@ public class IrisMerger {
                         }
 
                         BlockData blockData = vh.get(xx, y, zz);
-
-                        if (chunkDataIris.getBlockData(xx, y - minHeight, zz).getMaterial() != FILLER.getMaterial() && blockData.getMaterial().isOccluding()) {
-                            blockData = chunkDataIris.getBlockData(xx, y - minHeight, zz);
+                        if (!blockData.getMaterial().isAir() && deepslateTranslator) {
+                            if (chunkDataIris.getBlockData(xx, y - minHeight, zz).getMaterial() != FILLER.getMaterial() && blockData.getMaterial().isOccluding()) {
+                                try {
+                                    BlockData newBlockData = chunkDataIris.getBlockData(xx, y - minHeight, zz);
+                                    if (hasAround(vh, xx, y, zz, Material.DEEPSLATE)) {
+                                        String id = newBlockData.getMaterial().getItemTranslationKey().replaceFirst("^block\\.[^.]+\\.", "").toUpperCase();
+                                        id = "DEEPSLATE_" + id;
+                                        Material dps = Material.getMaterial(id);
+                                        if (dps != null)
+                                            blockData = dps.createBlockData();
+                                    }
+                                } catch (Exception e) {
+                                    Iris.error(e.getMessage());
+                                }
+                            }
                         }
 
                         nms.setBlock(
@@ -241,6 +254,33 @@ public class IrisMerger {
             }
         }
         return chunkData;
+    }
+
+    private boolean hasAround(Hunk<BlockData> hunk, int x, int y, int z, Material material) {
+        int[] d = {-1, 0, 1};
+
+        for (int dx : d) {
+            for (int dy : d) {
+                for (int dz : d) {
+
+                    if (dx == 0 && dy == 0 && dz == 0) continue;
+
+                    int nx = x + dx;
+                    int ny = y + dy;
+                    int nz = z + dz;
+
+                    if (nx >= 0 && nx < hunk.getWidth() && nz >= 0 && nz < hunk.getDepth() && ny >= 0 && ny < hunk.getHeight()) {
+                        BlockData neighborBlock = hunk.get(nx, ny, nz);
+
+                        if (neighborBlock.getMaterial() == material) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     public static <T> Hunk<T> copyHunkParallel(Hunk<T> original, Function<T, T> elementCopier) {

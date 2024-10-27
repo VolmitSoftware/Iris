@@ -1,14 +1,19 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.scheduling.J;
 import lombok.EqualsAndHashCode;
+import lombok.NonNull;
 import lombok.ToString;
 import org.apache.commons.io.function.IOFunction;
 import org.bukkit.DyeColor;
+import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.block.*;
 import org.bukkit.block.banner.Pattern;
 import org.bukkit.block.banner.PatternType;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.EntityType;
 
 import java.io.DataInputStream;
@@ -35,6 +40,21 @@ public class LegacyTileData extends TileData {
     }
 
     @Override
+    public @NonNull KMap<String, Object> getProperties() {
+        return new KMap<>();
+    }
+
+    @Override
+    public @NonNull Material getMaterial() {
+        return handler.getMaterial();
+    }
+
+    @Override
+    public boolean isApplicable(BlockData data) {
+        return handler.isApplicable(data);
+    }
+
+    @Override
     public void toBukkit(Block block) {
         J.s(() -> handler.toBukkit(block));
     }
@@ -51,6 +71,8 @@ public class LegacyTileData extends TileData {
     }
 
     private interface Handler {
+        Material getMaterial();
+        boolean isApplicable(BlockData data);
         void toBinary(DataOutputStream out) throws IOException;
         void toBukkit(Block block);
     }
@@ -70,6 +92,16 @@ public class LegacyTileData extends TileData {
             line3 = in.readUTF();
             line4 = in.readUTF();
             dyeColor = DyeColor.values()[in.readByte()];
+        }
+
+        @Override
+        public Material getMaterial() {
+            return Material.OAK_SIGN;
+        }
+
+        @Override
+        public boolean isApplicable(BlockData data) {
+            return Tag.ALL_SIGNS.isTagged(data.getMaterial());
         }
 
         @Override
@@ -102,6 +134,16 @@ public class LegacyTileData extends TileData {
         }
 
         @Override
+        public Material getMaterial() {
+            return Material.SPAWNER;
+        }
+
+        @Override
+        public boolean isApplicable(BlockData data) {
+            return data.getMaterial() == Material.SPAWNER;
+        }
+
+        @Override
         public void toBinary(DataOutputStream out) throws IOException {
             out.writeShort(type.ordinal());
         }
@@ -128,6 +170,16 @@ public class LegacyTileData extends TileData {
                 PatternType pattern = PatternType.values()[in.readByte()];
                 patterns.add(new Pattern(color, pattern));
             }
+        }
+
+        @Override
+        public Material getMaterial() {
+            return Material.WHITE_BANNER;
+        }
+
+        @Override
+        public boolean isApplicable(BlockData data) {
+            return Tag.BANNERS.isTagged(data.getMaterial());
         }
 
         @Override

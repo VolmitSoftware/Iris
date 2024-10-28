@@ -47,6 +47,9 @@ public class IrisMerger {
     @Desc("Selected Generator")
     private String generator;
 
+    @Desc("Use Generator")
+    private boolean useGenerator = false;
+
     @Desc("Uses a world instead of a generator")
     private String world;
 
@@ -85,10 +88,9 @@ public class IrisMerger {
             World bukkit;
 
             if (world.isBlank()) {
-                throw new UnsupportedOperationException("No.");
-                // memoryWorld = engine.getMemoryWorld();
-                // bukkit = memoryWorld.getBukkit();
-                // chunkData = memoryWorld.getChunkData(x, z);
+                //throw new UnsupportedOperationException("No.");
+                memoryWorld = engine.getMemoryWorld();
+                bukkit = memoryWorld.getBukkit();
             } else {
                 bukkit = Bukkit.getWorld(world);
                 if (bukkit == null) {

@@ -162,7 +162,7 @@ public class IrisMerger {
                                                     blockData = dps.createBlockData();
                                             }
                                         } catch (Exception e) {
-                                            // Handle exception
+                                            // not* Handle exception
                                         }
                                     }
                                 }

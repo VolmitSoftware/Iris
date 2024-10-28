@@ -4,34 +4,24 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.IMemoryWorld;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.container.Pair;
-import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.ChunkedDataCache;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.hunk.view.ChunkDataHunkView;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
-import com.volmit.iris.util.misc.E;
-import com.volmit.iris.util.nbt.mca.MCAFile;
-import com.volmit.iris.util.nbt.mca.MCAUtil;
-import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
-import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
-import it.unimi.dsi.fastutil.Hash;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
-import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -43,8 +33,6 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
-import static org.bukkit.Bukkit.createChunkData;
-
 @AllArgsConstructor
 @NoArgsConstructor
 @Desc("Dimension Merging only supports 1 for now.")
@@ -55,8 +43,6 @@ public class IrisMerger {
     private transient ReentrantLock lock = new ReentrantLock();
     private transient ChunkGenerator chunkGenerator;
     private static final BlockData FILLER = Material.STONE.createBlockData();
-    private transient KMap<Pair<Position2, Hunk<BlockData>>, Boolean> chunks = new KMap<>();
-    private transient Queue<Pair<Position2, Hunk<BlockData>>> queue = new ShurikenQueue<>();
 
     @Desc("Selected Generator")
     private String generator;
@@ -82,12 +68,11 @@ public class IrisMerger {
     @Desc("If it should translate iris deposits/ores to their deepslate variant")
     private boolean deepslateTranslator = true;
 
-
     /**
      * Merges underground from a selected chunk into the corresponding chunk in the outcome world.
      */
     @Deprecated
-    public void generateVanillaUnderground(int x, int z, Engine engine) {
+    public void generateVanillaUnderground(int cx, int cz, Engine engine) {
         if (engine.getMemoryWorld() == null)
             throw new IllegalStateException("MemoryWorld is null. Ensure that it has been initialized.");
         if (engine.getWorld().realWorld() == null)
@@ -107,31 +92,25 @@ public class IrisMerger {
             } else {
                 bukkit = Bukkit.getWorld(world);
                 if (bukkit == null) {
-                    Iris.info("World " + world + " not loaded yet, cannot generate chunk at (" + x + ", " + z + ")");
+                    Iris.info("World " + world + " not loaded yet, cannot generate chunk at (" + cx + ", " + cz + ")");
                     return;
                 }
-                //chunkData = getChunkDataAt(bukkit, x, z);
             }
 
-            Hunk<BlockData> vh = Hunk.newHunk(16, Math.abs(bukkit.getMinHeight()) + bukkit.getMaxHeight(), 16);
-            getChunkDataHunkAt(bukkit, x, z, vh);
-            Hunk<BlockData> ih = null;
-            if (deepslateTranslator) {
-                ih = Hunk.newHunk(16, Math.abs(bukkit.getMinHeight()) + bukkit.getMaxHeight(), 16);
-                getChunkDataHunkAt(engine.getWorld().realWorld(), x, z, ih);
-            }
-
+            Chunk chunk = bukkit.getChunkAt(cx, cz);
+            Chunk ichunk = engine.getWorld().realWorld().getChunkAt(cx, cz);
 
             int totalHeight = bukkit.getMaxHeight() - bukkit.getMinHeight();
             int minHeight = Math.abs(bukkit.getMinHeight());
 
             var world = engine.getWorld().realWorld();
-            int wX = x << 4;
-            int wZ = z << 4;
+            int wX = cx << 4;
+            int wZ = cz << 4;
 
             BurstExecutor b = MultiBurst.burst.burst();
             var cache = new ChunkedDataCache<>(b, engine.getComplex().getHeightStream(), wX, wZ);
             b.complete();
+
 
             Set<Biome> caveBiomes = new HashSet<>(Arrays.asList(
                     Biome.DRIPSTONE_CAVES,
@@ -142,55 +121,76 @@ public class IrisMerger {
             var nms = INMS.get();
             var flag = new Flags(false, false, true, false, false).value();
 
-            for (int xx = 0; xx < 16; xx++) {
-                for (int zz = 0; zz < 16; zz++) {
-                    int height = (int) Math.ceil(cache.get(xx, zz) - depth);
+            for (int xx = 0; xx < 16; xx += 4) {
+                for (int zz = 0; zz < 16; zz += 4) {
+                    int maxHeightInSection = 0;
 
-                    for (int y = 0; y < totalHeight; y++) {
-                        if (shouldSkip(y, height)) {
-                            continue;
+                    for (int x = 0; x < 4; x++) {
+                        for (int z = 0; z < 4; z++) {
+                            int globalX = xx + x;
+                            int globalZ = zz + z;
+                            int height = (int) Math.ceil(cache.get(globalX, globalZ) - depth);
+                            if (height > maxHeightInSection) {
+                                maxHeightInSection = height;
+                            }
                         }
+                    }
 
-                        BlockData blockData = vh.get(xx, y, zz);
-                        if (!blockData.getMaterial().isAir() && deepslateTranslator) {
-                            if (ih.get(xx, y, zz).getMaterial() != FILLER.getMaterial() && blockData.getMaterial().isOccluding()) {
-                                try {
-                                    BlockData newBlockData = ih.get(xx, y, zz);
-                                    if (hasAround(vh, xx, y, zz, Material.DEEPSLATE)) {
-                                        String id = newBlockData.getMaterial().getItemTranslationKey().replaceFirst("^block\\.[^.]+\\.", "").toUpperCase();
-                                        id = "DEEPSLATE_" + id;
-                                        Material dps = Material.getMaterial(id);
-                                        if (dps != null)
-                                            blockData = dps.createBlockData();
+                    Hunk<BlockData> vh = getHunkSlice(chunk, xx, zz, maxHeightInSection);
+                    Hunk<BlockData> ih = getHunkSlice(ichunk, xx, zz, maxHeightInSection);
+
+                    for (int x = 0; x < 4; x++) {
+                        for (int z = 0; z < 4; z++) {
+                            int globalX = xx + x;
+                            int globalZ = zz + z;
+                            int height = (int) Math.ceil(cache.get(globalX, globalZ) - depth);
+
+                            for (int y = 0; y < totalHeight; y++) {
+                                if (shouldSkip(y, height))
+                                    continue;
+
+                                BlockData blockData = vh.get(x, y, z);
+                                if (!blockData.getMaterial().isAir() && deepslateTranslator) {
+                                    if (ih.get(x, y, z).getMaterial() != FILLER.getMaterial() && blockData.getMaterial().isOccluding()) {
+                                        try {
+                                            BlockData newBlockData = ih.get(x, y, z);
+                                            if (hasAround(vh, x, y, z, Material.DEEPSLATE)) {
+                                                String id = newBlockData.getMaterial().getItemTranslationKey().replaceFirst("^block\\.[^.]+\\.", "").toUpperCase();
+                                                id = "DEEPSLATE_" + id;
+                                                Material dps = Material.getMaterial(id);
+                                                if (dps != null)
+                                                    blockData = dps.createBlockData();
+                                            }
+                                        } catch (Exception e) {
+                                            // Handle exception
+                                        }
                                     }
-                                } catch (Exception e) {
-                                    //Iris.error(e.getMessage());
                                 }
-                            }
-                        }
 
-                        nms.setBlock(
-                                world,
-                                wX + xx,
-                                y - minHeight,
-                                wZ + zz,
-                                blockData,
-                                flag,
-                                0
-                        );
+                                nms.setBlock(
+                                        world,
+                                        wX + globalX,
+                                        y - minHeight,
+                                        wZ + globalZ,
+                                        blockData,
+                                        flag,
+                                        0
+                                );
 
-                        if (nms.hasTile(blockData.getMaterial())) {
-                            var tile = nms.serializeTile(new Location(bukkit, wX + xx, y - minHeight, wZ + zz));
-                            if (tile != null) {
-                                nms.deserializeTile(tile, new Location(world, wX + xx, y - minHeight, wZ + zz));
-                            }
-                        }
+                                if (nms.hasTile(blockData.getMaterial())) {
+                                    var tile = nms.serializeTile(new Location(bukkit, wX + globalX, y - minHeight, wZ + globalZ));
+                                    if (tile != null) {
+                                        nms.deserializeTile(tile, new Location(world, wX + globalX, y - minHeight, wZ + globalZ));
+                                    }
+                                }
 
-                        if (x % 4 == 0 && z % 4 == 0 && y % 4 == 0) {
-                            Biome biome;
-                            biome = bukkit.getBiome(wX + xx, y, wZ + zz);
-                            if (caveBiomes.contains(biome)) {
-                                world.setBiome(wX + xx, y - minHeight, wZ + zz, biome);
+                                if (globalX % 4 == 0 && globalZ % 4 == 0 && y % 4 == 0) {
+                                    Biome biome;
+                                    biome = bukkit.getBiome(wX + globalX, y, wZ + globalZ);
+                                    if (caveBiomes.contains(biome)) {
+                                        world.setBiome(wX + globalX, y - minHeight, wZ + globalZ, biome);
+                                    }
+                                }
                             }
                         }
                     }
@@ -241,9 +241,16 @@ public class IrisMerger {
         }
     }
 
-    private void getChunkDataHunkAt(World world, int chunkX, int chunkZ, Hunk<BlockData> h) {
-        Chunk chunk = world.getChunkAt(chunkX, chunkZ);
-
+    /**
+     * Retrieves a 4x4 hunk slice starting at (sx, sz) up to the specified height.
+     *
+     * @param chunk  The Bukkit chunk
+     * @param sx     Chunk Slice X (must be multiple of 4)
+     * @param sz     Chunk Slice Z (must be multiple of 4)
+     * @param height The maximum height to process
+     * @return A hunk of size 4x(totalHeight)x4
+     */
+    private Hunk<BlockData> getHunkSlice(Chunk chunk, int sx, int sz, int height) {
         if (!chunk.isGenerated())
             throw new IllegalStateException("Chunk is not generated!");
 
@@ -251,42 +258,24 @@ public class IrisMerger {
             chunk.load();
         }
 
-        int height = Math.abs(world.getMinHeight()) + world.getMaxHeight();
-        int minHeight = Math.abs(world.getMinHeight());
+        int minHeight = chunk.getWorld().getMinHeight();
+        int maxHeight = chunk.getWorld().getMaxHeight();
+        int totalHeight = Math.abs(minHeight) + maxHeight;
 
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < 16; x++) {
-                for (int z = 0; z < 16; z++) {
-                    h.set(x, y, z, chunk.getBlock(x, y - minHeight, z).getBlockData());
+        Hunk<BlockData> h = Hunk.newHunk(4, totalHeight, 4);
+
+        for (int x = 0; x < 4; x++) {
+            for (int z = 0; z < 4; z++) {
+                for (int y = 0; y < totalHeight; y++) {
+                    if (shouldSkip(y, height))
+                        continue;
+                    BlockData data = chunk.getBlock(sx + x, y + minHeight, sz + z).getBlockData();
+                    h.set(x, y, z, data);
                 }
             }
         }
-    }
 
-
-    private ChunkGenerator.ChunkData getChunkDataAt(World world, int chunkX, int chunkZ) {
-        ChunkGenerator.ChunkData chunkData = createChunkData(world);
-        Chunk chunk = world.getChunkAt(chunkX, chunkZ);
-
-        if (!chunk.isGenerated())
-            throw new IllegalStateException("Chunk is not generated!");
-
-        if (!chunk.isLoaded()) {
-            chunk.load();
-        }
-
-        int minY = world.getMinHeight();
-        int maxY = world.getMaxHeight();
-
-        for (int y = minY; y < maxY; y++) {
-            for (int x = 0; x < 16; x++) {
-                for (int z = 0; z < 16; z++) {
-                    BlockData blockData = chunk.getBlock(x, y, z).getBlockData();
-                    chunkData.setBlock(x, y, z, blockData);
-                }
-            }
-        }
-        return chunkData;
+        return h;
     }
 
     private boolean hasAround(Hunk<BlockData> hunk, int x, int y, int z, Material material) {
@@ -334,7 +323,7 @@ public class IrisMerger {
             return;
 
         World bukkitWorld = Bukkit.getWorld(world);
-        if(!new File(Bukkit.getWorldContainer(), world).exists())
+        if (!new File(Bukkit.getWorldContainer(), world).exists())
             throw new IllegalStateException("World does not exist!");
         if (bukkitWorld == null) {
             Iris.info("World " + world + " is not loaded yet, creating it.");

@@ -29,8 +29,12 @@ import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.generator.ChunkGenerator;
 
+import java.io.File;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -95,13 +99,15 @@ public class IrisMerger {
             ChunkGenerator.ChunkData chunkDataIris = getChunkDataAt(engine.getWorld().realWorld(), x, z);
             if (world.isBlank()) {
                 throw new UnsupportedOperationException("No.");
-//                memoryWorld = engine.getMemoryWorld();
-//                bukkit = memoryWorld.getBukkit();
-//                chunkData = memoryWorld.getChunkData(x, z);
+                // memoryWorld = engine.getMemoryWorld();
+                // bukkit = memoryWorld.getBukkit();
+                // chunkData = memoryWorld.getChunkData(x, z);
             } else {
                 bukkit = Bukkit.getWorld(world);
-                if (bukkit == null)
-                    throw new IllegalStateException("Somehow world is null? Initialization Failed!");
+                if (bukkit == null) {
+                    Iris.info("World " + world + " not loaded yet, cannot generate chunk at (" + x + ", " + z + ")");
+                    return;
+                }
                 chunkData = getChunkDataAt(bukkit, x, z);
             }
 
@@ -149,7 +155,7 @@ public class IrisMerger {
                                             blockData = dps.createBlockData();
                                     }
                                 } catch (Exception e) {
-                                    Iris.error(e.getMessage());
+                                    //Iris.error(e.getMessage());
                                 }
                             }
                         }
@@ -296,16 +302,30 @@ public class IrisMerger {
         return copy;
     }
 
-
     public void loadWorld(Engine engine) {
         if (!engine.getDimension().isEnableExperimentalMerger())
             return;
-        J.sfut(() -> {
-            worldsave = Bukkit.getWorld(world);
-            if (worldsave == null) {
-                WorldCreator worldCreator = new WorldCreator(world);
-                worldsave = Bukkit.createWorld(worldCreator);
-            }
-        });
+
+        World bukkitWorld = Bukkit.getWorld(world);
+        if(!new File(Bukkit.getWorldContainer(), world).exists())
+            throw new IllegalStateException("World does not exist!");
+        if (bukkitWorld == null) {
+            Iris.info("World " + world + " is not loaded yet, creating it.");
+
+            Bukkit.getPluginManager().registerEvents(new Listener() {
+                @EventHandler
+                public void onWorldLoad(WorldLoadEvent event) {
+                    if (event.getWorld().getName().equals(world)) {
+                        worldsave = event.getWorld();
+                        Iris.info("World " + world + " has been loaded.");
+                    }
+                }
+            }, Iris.instance);
+
+            WorldCreator worldCreator = new WorldCreator(world);
+            Bukkit.createWorld(worldCreator);
+        } else {
+            worldsave = bukkitWorld;
+        }
     }
 }

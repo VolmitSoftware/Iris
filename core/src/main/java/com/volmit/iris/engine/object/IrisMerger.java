@@ -4,6 +4,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.IMemoryWorld;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.container.Pair;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.collection.KList;
@@ -15,6 +16,9 @@ import com.volmit.iris.util.hunk.view.ChunkDataHunkView;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.misc.E;
+import com.volmit.iris.util.nbt.mca.MCAFile;
+import com.volmit.iris.util.nbt.mca.MCAUtil;
+import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.J;
@@ -95,8 +99,6 @@ public class IrisMerger {
             IMemoryWorld memoryWorld;
             World bukkit;
 
-            ChunkGenerator.ChunkData chunkData;
-            ChunkGenerator.ChunkData chunkDataIris = getChunkDataAt(engine.getWorld().realWorld(), x, z);
             if (world.isBlank()) {
                 throw new UnsupportedOperationException("No.");
                 // memoryWorld = engine.getMemoryWorld();
@@ -108,10 +110,17 @@ public class IrisMerger {
                     Iris.info("World " + world + " not loaded yet, cannot generate chunk at (" + x + ", " + z + ")");
                     return;
                 }
-                chunkData = getChunkDataAt(bukkit, x, z);
+                //chunkData = getChunkDataAt(bukkit, x, z);
             }
 
-            var vh = new ChunkDataHunkView(chunkData);
+            Hunk<BlockData> vh = Hunk.newHunk(16, Math.abs(bukkit.getMinHeight()) + bukkit.getMaxHeight(), 16);
+            getChunkDataHunkAt(bukkit, x, z, vh);
+            Hunk<BlockData> ih = null;
+            if (deepslateTranslator) {
+                ih = Hunk.newHunk(16, Math.abs(bukkit.getMinHeight()) + bukkit.getMaxHeight(), 16);
+                getChunkDataHunkAt(engine.getWorld().realWorld(), x, z, ih);
+            }
+
 
             int totalHeight = bukkit.getMaxHeight() - bukkit.getMinHeight();
             int minHeight = Math.abs(bukkit.getMinHeight());
@@ -144,9 +153,9 @@ public class IrisMerger {
 
                         BlockData blockData = vh.get(xx, y, zz);
                         if (!blockData.getMaterial().isAir() && deepslateTranslator) {
-                            if (chunkDataIris.getBlockData(xx, y - minHeight, zz).getMaterial() != FILLER.getMaterial() && blockData.getMaterial().isOccluding()) {
+                            if (ih.get(xx, y, zz).getMaterial() != FILLER.getMaterial() && blockData.getMaterial().isOccluding()) {
                                 try {
-                                    BlockData newBlockData = chunkDataIris.getBlockData(xx, y - minHeight, zz);
+                                    BlockData newBlockData = ih.get(xx, y, zz);
                                     if (hasAround(vh, xx, y, zz, Material.DEEPSLATE)) {
                                         String id = newBlockData.getMaterial().getItemTranslationKey().replaceFirst("^block\\.[^.]+\\.", "").toUpperCase();
                                         id = "DEEPSLATE_" + id;
@@ -179,12 +188,7 @@ public class IrisMerger {
 
                         if (x % 4 == 0 && z % 4 == 0 && y % 4 == 0) {
                             Biome biome;
-                            try {
-                                biome = chunkData.getBiome(xx, y, zz);
-                            } catch (UnsupportedOperationException e) {
-                                biome = bukkit.getBiome(wX + xx, y, wZ + zz);
-                            }
-
+                            biome = bukkit.getBiome(wX + xx, y, wZ + zz);
                             if (caveBiomes.contains(biome)) {
                                 world.setBiome(wX + xx, y - minHeight, wZ + zz, biome);
                             }
@@ -237,7 +241,30 @@ public class IrisMerger {
         }
     }
 
-    public ChunkGenerator.ChunkData getChunkDataAt(World world, int chunkX, int chunkZ) {
+    private void getChunkDataHunkAt(World world, int chunkX, int chunkZ, Hunk<BlockData> h) {
+        Chunk chunk = world.getChunkAt(chunkX, chunkZ);
+
+        if (!chunk.isGenerated())
+            throw new IllegalStateException("Chunk is not generated!");
+
+        if (!chunk.isLoaded()) {
+            chunk.load();
+        }
+
+        int height = Math.abs(world.getMinHeight()) + world.getMaxHeight();
+        int minHeight = Math.abs(world.getMinHeight());
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < 16; x++) {
+                for (int z = 0; z < 16; z++) {
+                    h.set(x, y, z, chunk.getBlock(x, y - minHeight, z).getBlockData());
+                }
+            }
+        }
+    }
+
+
+    private ChunkGenerator.ChunkData getChunkDataAt(World world, int chunkX, int chunkZ) {
         ChunkGenerator.ChunkData chunkData = createChunkData(world);
         Chunk chunk = world.getChunkAt(chunkX, chunkZ);
 

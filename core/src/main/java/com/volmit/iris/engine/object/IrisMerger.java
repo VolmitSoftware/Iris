@@ -14,6 +14,7 @@ import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
@@ -76,7 +77,7 @@ public class IrisMerger {
      */
     @Deprecated
     public void generateVanillaUnderground(int cx, int cz, Engine engine) {
-        if (engine.getMemoryWorld() == null)
+        if (engine.getMemoryWorld() == null && useGenerator)
             throw new IllegalStateException("MemoryWorld is null. Ensure that it has been initialized.");
         if (engine.getWorld().realWorld() == null)
             return;
@@ -101,6 +102,9 @@ public class IrisMerger {
 
             Chunk chunk = bukkit.getChunkAt(cx, cz);
             Chunk ichunk = engine.getWorld().realWorld().getChunkAt(cx, cz);
+
+            if (!chunk.isLoaded())
+                J.s(chunk::load);
 
             int totalHeight = bukkit.getMaxHeight() - bukkit.getMinHeight();
             int minHeight = Math.abs(bukkit.getMinHeight());
@@ -198,7 +202,7 @@ public class IrisMerger {
                     }
                 }
             }
-
+            J.s(chunk::unload);
             mergeDuration.put(p.getMilliseconds());
             Iris.info("Vanilla merge average in: " + Form.duration(mergeDuration.getAverage(), 8));
         } catch (Exception e) {
@@ -255,10 +259,6 @@ public class IrisMerger {
     private Hunk<BlockData> getHunkSlice(Chunk chunk, int sx, int sz, int height) {
         if (!chunk.isGenerated())
             throw new IllegalStateException("Chunk is not generated!");
-
-        if (!chunk.isLoaded()) {
-            chunk.load();
-        }
 
         int minHeight = chunk.getWorld().getMinHeight();
         int maxHeight = chunk.getWorld().getMaxHeight();

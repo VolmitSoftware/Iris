@@ -3,7 +3,6 @@ package com.volmit.iris.core.pregenerator;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
@@ -26,6 +25,7 @@ public class ChunkUpdater {
     private AtomicBoolean paused;
     private AtomicBoolean cancelled;
     private KMap<Chunk, Long> lastUse;
+    private KMap<Chunk, AtomicInteger> counters;
     private final RollingSequence chunksPerSecond;
     private final AtomicInteger worldheightsize;
     private final AtomicInteger worldwidthsize;
@@ -49,13 +49,14 @@ public class ChunkUpdater {
         this.engine = IrisToolbelt.access(world).getEngine();
         this.chunksPerSecond = new RollingSequence(5);
         this.world = world;
-        this.lastUse = new KMap();
+        this.lastUse = new KMap<>();
+        this.counters = new KMap<>();
         this.worldheightsize = new AtomicInteger(calculateWorldDimensions(new File(world.getWorldFolder(), "region"), 1));
         this.worldwidthsize = new AtomicInteger(calculateWorldDimensions(new File(world.getWorldFolder(), "region"), 0));
         int m = Math.max(worldheightsize.get(), worldwidthsize.get());
-        this.executor = Executors.newFixedThreadPool(Math.max(Runtime.getRuntime().availableProcessors() / 3, 1));
-        this.chunkExecutor = Executors.newFixedThreadPool(Math.max(Runtime.getRuntime().availableProcessors() / 3, 1));
-        this.scheduler = Executors.newScheduledThreadPool(1);
+        this.executor = Executors.newFixedThreadPool(Math.max(Runtime.getRuntime().availableProcessors() / (System.getProperty("iris.updater") != null ? 1 : 3), 1));
+        this.chunkExecutor = Executors.newFixedThreadPool(Math.max(Runtime.getRuntime().availableProcessors() / (System.getProperty("iris.updater") != null ? 1 : 3), 1));
+        this.scheduler = Executors.newScheduledThreadPool(2);
         this.future = new CompletableFuture<>();
         this.startTime = new AtomicLong();
         this.worldheightsize.set(m);
@@ -120,6 +121,7 @@ public class ChunkUpdater {
                     e.printStackTrace();
                 }
             }, 0, 3, TimeUnit.SECONDS);
+            scheduler.scheduleAtFixedRate(this::unloadChunks, 0, 1, TimeUnit.SECONDS);
 
             CompletableFuture.runAsync(() -> {
                 for (int i = 0; i < totalMaxChunks.get(); i++) {
@@ -157,12 +159,12 @@ public class ChunkUpdater {
 
     public void close() {
         try {
-            unloadAndSaveAllChunks();
             executor.shutdown();
             executor.awaitTermination(5, TimeUnit.SECONDS);
             chunkExecutor.shutdown();
             chunkExecutor.awaitTermination(5, TimeUnit.SECONDS);
             scheduler.shutdownNow();
+            unloadAndSaveAllChunks();
         } catch (Exception ignored) {
         }
         if (cancelled.get()) {
@@ -180,7 +182,16 @@ public class ChunkUpdater {
         int[] coords = getChunk(pos);
         if (loadChunksIfGenerated(coords[0], coords[1])) {
             Chunk c = world.getChunkAt(coords[0], coords[1]);
+            engine.getMantle().getMantle().getChunk(c);
             engine.updateChunk(c);
+
+            for (int x = -1; x <= 1; x++) {
+                for (int z = -1; z <= 1; z++) {
+                    var chunk = world.getChunkAt(coords[0] + x, coords[1] + z, false);
+                    var counter = counters.get(chunk);
+                    if (counter != null) counter.decrementAndGet();
+                }
+            }
             chunksUpdated.incrementAndGet();
         }
         chunksProcessed.getAndIncrement();
@@ -196,43 +207,64 @@ public class ChunkUpdater {
         }
 
         AtomicBoolean generated = new AtomicBoolean(true);
-        KList<Future<?>> futures = new KList<>(9);
+        CountDownLatch latch = new CountDownLatch(9);
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
                 int xx = x + dx;
                 int zz = z + dz;
-                futures.add(chunkExecutor.submit(() -> {
-                    Chunk c;
+                chunkExecutor.submit(() -> {
                     try {
-                        c = PaperLib.getChunkAtAsync(world, xx, zz, false).get();
-                    } catch (InterruptedException | ExecutionException e) {
-                        generated.set(false);
-                        return;
-                    }
-                    if (!c.isLoaded()) {
-                        CountDownLatch latch = new CountDownLatch(1);
-                        J.s(() -> {
-                            c.load(false);
-                            latch.countDown();
-                        });
+                        Chunk c;
                         try {
-                            latch.await();
-                        } catch (InterruptedException ignored) {}
+                            c = PaperLib.getChunkAtAsync(world, xx, zz, false)
+                                    .thenApply(chunk -> {
+                                        chunk.addPluginChunkTicket(Iris.instance);
+                                        return chunk;
+                                    }).get();
+                        } catch (InterruptedException | ExecutionException e) {
+                            generated.set(false);
+                            return;
+                        }
+
+                        if (!c.isLoaded()) {
+                            var future = J.sfut(() -> c.load(false));
+                            if (future != null) future.join();
+                        }
+
+                        if (!c.isGenerated())
+                            generated.set(false);
+
+                        counters.computeIfAbsent(c, k -> new AtomicInteger(-1))
+                                .updateAndGet(i -> i == -1 ? 1 : ++i);
+                        lastUse.put(c, M.ms());
+                    } finally {
+                        latch.countDown();
                     }
-                    if (!c.isGenerated()) {
-                        generated.set(false);
-                    }
-                    lastUse.put(c, M.ms());
-                }));
+                });
             }
         }
-        while (!futures.isEmpty()) {
-            futures.removeIf(Future::isDone);
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException ignored) {}
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Iris.info("Interrupted while waiting for chunks to load");
         }
         return generated.get();
+    }
+
+    private synchronized void unloadChunks() {
+        for (Chunk i : new ArrayList<>(lastUse.keySet())) {
+            Long lastUseTime = lastUse.get(i);
+            var counter = counters.get(i);
+            if (lastUseTime != null && M.ms() - lastUseTime >= 5000 && (counter == null || counter.get() == 0)) {
+                J.s(() -> {
+                    i.removePluginChunkTicket(Iris.instance);
+                    i.unload();
+                    lastUse.remove(i);
+                    counters.remove(i);
+                });
+            }
+        }
     }
 
     private void unloadAndSaveAllChunks() {
@@ -243,13 +275,7 @@ public class ChunkUpdater {
                     return;
                 }
 
-                for (Chunk i : new ArrayList<>(lastUse.keySet())) {
-                    Long lastUseTime = lastUse.get(i);
-                    if (lastUseTime != null && M.ms() - lastUseTime >= 5000) {
-                        i.unload();
-                        lastUse.remove(i);
-                    }
-                }
+                unloadChunks();
                 world.save();
             }).get();
         } catch (Throwable e) {

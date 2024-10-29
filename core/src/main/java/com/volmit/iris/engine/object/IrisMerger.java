@@ -3,21 +3,17 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.IMemoryWorld;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.ChunkedDataCache;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import com.volmit.iris.util.scheduling.Queue;
-import com.volmit.iris.util.scheduling.ShurikenQueue;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -31,6 +27,7 @@ import org.bukkit.generator.ChunkGenerator;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
@@ -72,11 +69,14 @@ public class IrisMerger {
     @Desc("If it should translate iris deposits/ores to their deepslate variant")
     private boolean deepslateTranslator = true;
 
+    // Map to keep track of last use time for chunks
+    private final Map<Chunk, Long> lastUse = new ConcurrentHashMap<>();
+
     /**
      * Merges underground from a selected chunk into the corresponding chunk in the outcome world.
      */
     @Deprecated
-    public void generateVanillaUnderground(int cx, int cz, Engine engine) {
+    public void generateVanillaUnderground(int cx, int cz, Chunk ichunk, Engine engine) {
         if (engine.getMemoryWorld() == null && useGenerator)
             throw new IllegalStateException("MemoryWorld is null. Ensure that it has been initialized.");
         if (engine.getWorld().realWorld() == null)
@@ -89,7 +89,6 @@ public class IrisMerger {
             World bukkit;
 
             if (world.isBlank()) {
-                //throw new UnsupportedOperationException("No.");
                 memoryWorld = engine.getMemoryWorld();
                 bukkit = memoryWorld.getBukkit();
             } else {
@@ -101,7 +100,9 @@ public class IrisMerger {
             }
 
             Chunk chunk = bukkit.getChunkAt(cx, cz);
-            Chunk ichunk = engine.getWorld().realWorld().getChunkAt(cx, cz);
+            lastUse.put(chunk, System.currentTimeMillis());
+
+//            Chunk ichunk = engine.getWorld().realWorld().getChunkAt(cx, cz);
 
             if (!chunk.isLoaded())
                 J.s(chunk::load);
@@ -116,7 +117,6 @@ public class IrisMerger {
             BurstExecutor b = MultiBurst.burst.burst();
             var cache = new ChunkedDataCache<>(b, engine.getComplex().getHeightStream(), wX, wZ);
             b.complete();
-
 
             Set<Biome> caveBiomes = new HashSet<>(Arrays.asList(
                     Biome.DRIPSTONE_CAVES,
@@ -168,7 +168,7 @@ public class IrisMerger {
                                                     blockData = dps.createBlockData();
                                             }
                                         } catch (Exception e) {
-                                            // not* Handle exception
+                                            // no Handle exception
                                         }
                                     }
                                 }
@@ -202,7 +202,6 @@ public class IrisMerger {
                     }
                 }
             }
-            J.s(chunk::unload);
             mergeDuration.put(p.getMilliseconds());
             Iris.info("Vanilla merge average in: " + Form.duration(mergeDuration.getAverage(), 8));
         } catch (Exception e) {
@@ -344,6 +343,34 @@ public class IrisMerger {
             Bukkit.createWorld(worldCreator);
         } else {
             worldsave = bukkitWorld;
+        }
+
+        init();
+    }
+
+    public void init() {
+        Bukkit.getScheduler().runTaskTimer(Iris.instance, this::unloadAndSaveAllChunks, 200L, 20L); // Runs every 10 seconds
+    }
+
+    private void unloadAndSaveAllChunks() {
+        try {
+            if (worldsave == null) {
+                Iris.warn("World was null somehow...");
+                return;
+            }
+
+            for (Chunk chunk : new ArrayList<>(lastUse.keySet())) {
+                Long lastUsed = lastUse.get(chunk);
+                if (lastUsed != null && System.currentTimeMillis() - lastUsed >= 10000) { // 10 seconds
+                    if (chunk.isLoaded()) {
+                        chunk.unload();
+                    }
+                    lastUse.remove(chunk);
+                }
+            }
+            worldsave.save();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

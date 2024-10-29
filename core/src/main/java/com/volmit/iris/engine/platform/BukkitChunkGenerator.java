@@ -387,7 +387,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private void onChunkGeneration(ChunkLoadEvent event) {
         if (engine == null ||!event.isNewChunk() || !engine.getWorld().realWorld().equals(event.getWorld()) || !engine.getDimension().isEnableExperimentalMerger())
             return;
-        engine.getMerger().generateVanillaUnderground(event.getChunk().getX(), event.getChunk().getZ(), engine);
+        engine.getMerger().generateVanillaUnderground(event.getChunk().getX(), event.getChunk().getZ(), event.getChunk(), engine);
     }
 
     @Override

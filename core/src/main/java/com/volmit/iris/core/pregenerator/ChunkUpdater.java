@@ -5,11 +5,14 @@ import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
-import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.scheduling.J;
 import io.papermc.lib.PaperLib;
+import lombok.Data;
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
@@ -22,55 +25,37 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ChunkUpdater {
-    private AtomicBoolean paused;
-    private AtomicBoolean cancelled;
-    private KMap<Chunk, Long> lastUse;
-    private KMap<Chunk, AtomicInteger> counters;
-    private final RollingSequence chunksPerSecond;
-    private final AtomicInteger worldheightsize;
-    private final AtomicInteger worldwidthsize;
-    private final AtomicInteger totalChunks;
-    private final AtomicInteger totalMaxChunks;
-    private final AtomicInteger totalMcaregions;
-    private final AtomicInteger position;
-    private AtomicInteger chunksProcessed;
-    private AtomicInteger chunksUpdated;
-    private AtomicLong startTime;
-    private ExecutorService executor;
-    private ExecutorService chunkExecutor;
-    private ScheduledExecutorService scheduler;
-    private CompletableFuture future;
-    private  CountDownLatch latch;
-    private final Object pauseLock;
+    private final AtomicBoolean paused = new AtomicBoolean();
+    private final AtomicBoolean cancelled = new AtomicBoolean();
+    private final KMap<Chunk, Long> lastUse = new KMap<>();
+    private final KMap<Chunk, AtomicInteger> counters = new KMap<>();
+    private final RollingSequence chunksPerSecond = new RollingSequence(5);
+    private final AtomicInteger totalMaxChunks = new AtomicInteger();
+    private final AtomicInteger chunksProcessed = new AtomicInteger();
+    private final AtomicInteger chunksProcessedLast = new AtomicInteger();
+    private final AtomicInteger chunksUpdated = new AtomicInteger();
+    private final AtomicLong lastCpsTime = new AtomicLong(M.ms());
+    private final int coreLimit = (int) Math.max(Runtime.getRuntime().availableProcessors() / getProperty(), 1);
+    private final Semaphore semaphore = new Semaphore(256);
+    private final PlayerCounter playerCounter = new PlayerCounter(semaphore, 256);
+    private final AtomicLong startTime = new AtomicLong();
+    private final Dimensions dimensions;
+    private final PregenTask task;
+    private final ExecutorService executor = Executors.newFixedThreadPool(coreLimit);
+    private final ExecutorService chunkExecutor = Executors.newFixedThreadPool(coreLimit);
+    private final ScheduledExecutorService scheduler;
+    private final CountDownLatch latch;
     private final Engine engine;
     private final World world;
 
     public ChunkUpdater(World world) {
         this.engine = IrisToolbelt.access(world).getEngine();
-        this.chunksPerSecond = new RollingSequence(5);
         this.world = world;
-        this.lastUse = new KMap<>();
-        this.counters = new KMap<>();
-        this.worldheightsize = new AtomicInteger(calculateWorldDimensions(new File(world.getWorldFolder(), "region"), 1));
-        this.worldwidthsize = new AtomicInteger(calculateWorldDimensions(new File(world.getWorldFolder(), "region"), 0));
-        int m = Math.max(worldheightsize.get(), worldwidthsize.get());
-        this.executor = Executors.newFixedThreadPool(Math.max(Runtime.getRuntime().availableProcessors() / (System.getProperty("iris.updater") != null ? 1 : 3), 1));
-        this.chunkExecutor = Executors.newFixedThreadPool(Math.max(Runtime.getRuntime().availableProcessors() / (System.getProperty("iris.updater") != null ? 1 : 3), 1));
-        this.scheduler = Executors.newScheduledThreadPool(2);
-        this.future = new CompletableFuture<>();
-        this.startTime = new AtomicLong();
-        this.worldheightsize.set(m);
-        this.worldwidthsize.set(m);
-        this.totalMaxChunks = new AtomicInteger((worldheightsize.get() / 16) * (worldwidthsize.get() / 16));
-        this.chunksProcessed = new AtomicInteger();
-        this.chunksUpdated = new AtomicInteger();
-        this.position = new AtomicInteger(0);
+        this.dimensions = calculateWorldDimensions(new File(world.getWorldFolder(), "region"));
+        this.task = dimensions.task();
+        this.totalMaxChunks.set(dimensions.count * 1024);
+        this.scheduler = Executors.newScheduledThreadPool(1);
         this.latch = new CountDownLatch(totalMaxChunks.get());
-        this.paused = new AtomicBoolean(false);
-        this.pauseLock = new Object();
-        this.cancelled = new AtomicBoolean(false);
-        this.totalChunks = new AtomicInteger(0);
-        this.totalMcaregions = new AtomicInteger(0);
     }
 
     public int getChunks() {
@@ -107,11 +92,11 @@ public class ChunkUpdater {
                 try {
                     if (!paused.get()) {
                         long eta = computeETA();
-                        long elapsedSeconds = (System.currentTimeMillis() - startTime.get()) / 1000;
                         int processed = chunksProcessed.get();
-                        double cps = elapsedSeconds > 0 ? processed / (double) elapsedSeconds : 0;
+                        double last = processed - chunksProcessedLast.getAndSet(processed);
+                        double cps = last / ((M.ms() - lastCpsTime.getAndSet(M.ms())) / 1000d);
                         chunksPerSecond.put(cps);
-                        double percentage = ((double) chunksProcessed.get() / (double) totalMaxChunks.get()) * 100;
+                        double percentage = ((double) processed / (double) totalMaxChunks.get()) * 100;
                         if (!cancelled.get()) {
                             Iris.info("Updated: " + Form.f(processed) + " of " + Form.f(totalMaxChunks.get()) + " (%.0f%%) " + Form.f(chunksPerSecond.getAverage()) + "/s, ETA: " + Form.duration(eta,
                                     2), percentage);
@@ -122,35 +107,14 @@ public class ChunkUpdater {
                 }
             }, 0, 3, TimeUnit.SECONDS);
             scheduler.scheduleAtFixedRate(this::unloadChunks, 0, 1, TimeUnit.SECONDS);
+            scheduler.scheduleAtFixedRate(playerCounter::update, 0, 5, TimeUnit.SECONDS);
 
-            CompletableFuture.runAsync(() -> {
-                for (int i = 0; i < totalMaxChunks.get(); i++) {
-                    if (paused.get()) {
-                        synchronized (pauseLock) {
-                            try {
-                                pauseLock.wait();
-                            } catch (InterruptedException e) {
-                                Iris.error("Interrupted while waiting for executor: ");
-                                e.printStackTrace();
-                                break;
-                            }
-                        }
-                    }
-                    executor.submit(() -> {
-                        if (!cancelled.get()) {
-                            processNextChunk();   
-                        }
-                        latch.countDown();
-                    });
-                }
-            }).thenRun(() -> {
-                try {
-                    latch.await();
-                    close();
-                } catch (Exception e) {
-                    Thread.currentThread().interrupt();
-                }
-            });
+            var t = new Thread(() -> {
+                run();
+                close();
+            }, "Iris Chunk Updater - " + world.getName());
+            t.setPriority(Thread.MAX_PRIORITY);
+            t.start();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -159,14 +123,16 @@ public class ChunkUpdater {
 
     public void close() {
         try {
+            playerCounter.close();
+            semaphore.acquire(256);
+
             executor.shutdown();
             executor.awaitTermination(5, TimeUnit.SECONDS);
             chunkExecutor.shutdown();
             chunkExecutor.awaitTermination(5, TimeUnit.SECONDS);
             scheduler.shutdownNow();
             unloadAndSaveAllChunks();
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
         if (cancelled.get()) {
             Iris.info("Updated: " + Form.f(chunksUpdated.get()) + " Chunks");
             Iris.info("Irritated: " + Form.f(chunksProcessed.get()) + " of " + Form.f(totalMaxChunks.get()));
@@ -177,27 +143,70 @@ public class ChunkUpdater {
         }
     }
 
-    private void processNextChunk() {
-        int pos = position.getAndIncrement();
-        int[] coords = getChunk(pos);
-        if (loadChunksIfGenerated(coords[0], coords[1])) {
-            Chunk c = world.getChunkAt(coords[0], coords[1]);
+    private void run() {
+        task.iterateRegions((rX, rZ) -> {
+            if (cancelled.get())
+                return;
+
+            while (paused.get()) {
+                J.sleep(50);
+            }
+
+            if (rX < dimensions.min.getX() || rX > dimensions.max.getX() || rZ < dimensions.min.getZ() || rZ > dimensions.max.getZ()) {
+                return;
+            }
+
+            PregenTask.iterateRegion(rX, rZ, (x, z) -> {
+                while (paused.get() && !cancelled.get()) {
+                    J.sleep(50);
+                }
+
+                try {
+                    semaphore.acquire();
+                } catch (InterruptedException ignored) {
+                    return;
+                }
+                chunkExecutor.submit(() -> {
+                    try {
+                        if (!cancelled.get())
+                            processChunk(x, z);
+                    } finally {
+                        latch.countDown();
+                        semaphore.release();
+                    }
+                });
+            });
+        });
+    }
+
+    private void processChunk(int x, int z) {
+        if (!loadChunksIfGenerated(x, z)) {
+            chunksProcessed.getAndIncrement();
+            return;
+        }
+
+        try {
+            Chunk c = world.getChunkAt(x, z);
             engine.getMantle().getMantle().getChunk(c);
             engine.updateChunk(c);
 
-            for (int x = -1; x <= 1; x++) {
-                for (int z = -1; z <= 1; z++) {
-                    var chunk = world.getChunkAt(coords[0] + x, coords[1] + z, false);
+            for (int xx = -1; xx <= 1; xx++) {
+                for (int zz = -1; zz <= 1; zz++) {
+                    var chunk = world.getChunkAt(x + xx, z + zz, false);
                     var counter = counters.get(chunk);
                     if (counter != null) counter.decrementAndGet();
                 }
             }
+        } finally {
             chunksUpdated.incrementAndGet();
+            chunksProcessed.getAndIncrement();
         }
-        chunksProcessed.getAndIncrement();
     }
 
     private boolean loadChunksIfGenerated(int x, int z) {
+        if (engine.getMantle().getMantle().hasFlag(x, z, MantleFlag.ETCHED))
+            return false;
+
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
                 if (!PaperLib.isChunkGenerated(world, x + dx, z + dz)) {
@@ -212,11 +221,11 @@ public class ChunkUpdater {
             for (int dz = -1; dz <= 1; dz++) {
                 int xx = x + dx;
                 int zz = z + dz;
-                chunkExecutor.submit(() -> {
+                executor.submit(() -> {
                     try {
                         Chunk c;
                         try {
-                            c = PaperLib.getChunkAtAsync(world, xx, zz, false)
+                            c = PaperLib.getChunkAtAsync(world, xx, zz, false, true)
                                     .thenApply(chunk -> {
                                         chunk.addPluginChunkTicket(Iris.instance);
                                         return chunk;
@@ -292,7 +301,7 @@ public class ChunkUpdater {
         );
     }
 
-    public int calculateWorldDimensions(File regionDir, Integer o) {
+    private Dimensions calculateWorldDimensions(File regionDir) {
         File[] files = regionDir.listFiles((dir, name) -> name.endsWith(".mca"));
 
         int minX = Integer.MAX_VALUE;
@@ -305,40 +314,59 @@ public class ChunkUpdater {
             int x = Integer.parseInt(parts[1]);
             int z = Integer.parseInt(parts[2]);
 
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-            if (z < minZ) minZ = z;
-            if (z > maxZ) maxZ = z;
+            minX = Math.min(minX, x);
+            maxX = Math.max(maxX, x);
+            minZ = Math.min(minZ, z);
+            maxZ = Math.max(maxZ, z);
         }
+        int oX = minX + ((maxX - minX) / 2);
+        int oZ = minZ + ((maxZ - minZ) / 2);
 
-        int height = (maxX - minX + 1) * 32 * 16;
-        int width = (maxZ - minZ + 1) * 32 * 16;
+        int height = maxX - minX + 1;
+        int width = maxZ - minZ + 1;
 
-        if (o == 1) {
-            return height;
-        }
-        if (o == 0) {
-            return width;
-        }
-        return 0;
+        return new Dimensions(new Position2(minX, minZ), new Position2(maxX, maxZ), height * width, PregenTask.builder()
+                .width((int) Math.ceil(width / 2d))
+                .height((int) Math.ceil(height / 2d))
+                .center(new Position2(oX, oZ))
+                .build());
     }
 
-    public int[] getChunk(int position) {
-        int p = -1;
-        AtomicInteger xx = new AtomicInteger();
-        AtomicInteger zz = new AtomicInteger();
-        Spiraler s = new Spiraler(worldheightsize.get() * 2, worldwidthsize.get() * 2, (x, z) -> {
-            xx.set(x);
-            zz.set(z);
-        });
+    private record Dimensions(Position2 min, Position2 max, int count, PregenTask task) { }
 
-        while (s.hasNext() && p++ < position) {
-            s.next();
+    @Data
+    private static class PlayerCounter {
+        private final Semaphore semaphore;
+        private final int maxPermits;
+        private int lastCount = 0;
+        private int permits = 0;
+
+        public void update() {
+            double count = Bukkit.getOnlinePlayers().size();
+            if (count == lastCount)
+                return;
+            double p = count == 0 ? 0 : count / (Bukkit.getMaxPlayers() / 2d);
+            int targetPermits = (int) (maxPermits * p);
+
+            int diff = targetPermits - permits;
+            permits = targetPermits;
+            lastCount = (int) count;
+            try {
+                if (diff > 0) semaphore.release(diff);
+                else semaphore.acquire(Math.abs(diff));
+            } catch (InterruptedException ignored) {}
         }
-        int[] coords = new int[2];
-        coords[0] = xx.get();
-        coords[1] = zz.get();
 
-        return coords;
+        public void close() {
+            semaphore.release(permits);
+        }
+    }
+
+    private static double getProperty() {
+        try {
+            return Double.parseDouble(System.getProperty("iris.updater"));
+        } catch (Throwable e) {
+            return 1;
+        }
     }
 }

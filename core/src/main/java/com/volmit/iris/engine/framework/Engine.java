@@ -281,31 +281,35 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 return;
             }
         }
-        if (!getMantle().getMantle().isLoaded(c)) {
+        var mantle = getMantle().getMantle();
+        if (!mantle.isLoaded(c)) {
             var msg = "Mantle Chunk " + c.getX() + c.getX() + " is not loaded";
             if (W.getStack().getCallerClass().equals(ChunkUpdater.class)) Iris.warn(msg);
             else Iris.debug(msg);
             return;
         }
 
-        getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.TILE, () -> J.sfut(() -> {
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, v) -> {
+        if (mantle.hasFlag(c.getX(), c.getZ(), MantleFlag.ETCHED)) return;
+        mantle.flag(c.getX(), c.getZ(), MantleFlag.ETCHED, true);
+
+        mantle.raiseFlag(c.getX(), c.getZ(), MantleFlag.TILE, () -> J.sfut(() -> {
+            mantle.iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, v) -> {
                 int betterY = y + getWorld().minHeight();
                 if (!TileData.setTileState(c.getBlock(x, betterY, z), v.getData()))
                     Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), v.getData().getMaterial().name());
             });
         }).join());
-        getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.CUSTOM, () -> J.sfut(() -> {
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), Identifier.class, (x, y, z, v) -> {
+        mantle.raiseFlag(c.getX(), c.getZ(), MantleFlag.CUSTOM, () -> J.sfut(() -> {
+            mantle.iterateChunk(c.getX(), c.getZ(), Identifier.class, (x, y, z, v) -> {
                 Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
             });
         }).join());
 
-        getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.UPDATE, () -> J.sfut(() -> {
+        mantle.raiseFlag(c.getX(), c.getZ(), MantleFlag.UPDATE, () -> J.sfut(() -> {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             KMap<Long, Integer> updates = new KMap<>();
             RNG r = new RNG(Cache.key(c.getX(), c.getZ()));
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, yf, z, v) -> {
+            mantle.iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, yf, z, v) -> {
                 int y = yf + getWorld().minHeight();
                 if (!B.isFluid(c.getBlock(x & 15, y, z & 15).getBlockData())) {
                     return;
@@ -335,7 +339,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             });
 
             updates.forEach((k, v) -> update(Cache.keyX(k), v, Cache.keyZ(k), c, r));
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterUpdate.class, (x, yf, z, v) -> {
+            mantle.iterateChunk(c.getX(), c.getZ(), MatterUpdate.class, (x, yf, z, v) -> {
                 int y = yf + getWorld().minHeight();
                 if (v != null && v.isUpdate()) {
                     int vx = x & 15;
@@ -346,7 +350,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     }
                 }
             });
-            getMantle().getMantle().deleteChunkSlice(c.getX(), c.getZ(), MatterUpdate.class);
+            mantle.deleteChunkSlice(c.getX(), c.getZ(), MatterUpdate.class);
             getMetrics().getUpdates().put(p.getMilliseconds());
         }, RNG.r.i(0, 20)).join());
     }

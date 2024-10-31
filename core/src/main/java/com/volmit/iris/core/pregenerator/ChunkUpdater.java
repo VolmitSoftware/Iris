@@ -1,6 +1,7 @@
 package com.volmit.iris.core.pregenerator;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KMap;
@@ -9,9 +10,9 @@ import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
+import com.volmit.iris.util.profile.LoadBalancer;
 import com.volmit.iris.util.scheduling.J;
 import io.papermc.lib.PaperLib;
-import lombok.Data;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -34,16 +35,17 @@ public class ChunkUpdater {
     private final AtomicInteger chunksProcessed = new AtomicInteger();
     private final AtomicInteger chunksProcessedLast = new AtomicInteger();
     private final AtomicInteger chunksUpdated = new AtomicInteger();
+    private final AtomicBoolean serverEmpty = new AtomicBoolean(true);
     private final AtomicLong lastCpsTime = new AtomicLong(M.ms());
-    private final int coreLimit = (int) Math.max(Runtime.getRuntime().availableProcessors() / getProperty(), 1);
+    private final int coreLimit = (int) Math.max(Runtime.getRuntime().availableProcessors() * getProperty(), 1);
     private final Semaphore semaphore = new Semaphore(256);
-    private final PlayerCounter playerCounter = new PlayerCounter(semaphore, 256);
+    private final LoadBalancer loadBalancer = new LoadBalancer(semaphore, 256, IrisSettings.get().getUpdater().emptyMsRange);
     private final AtomicLong startTime = new AtomicLong();
     private final Dimensions dimensions;
     private final PregenTask task;
     private final ExecutorService executor = Executors.newFixedThreadPool(coreLimit);
     private final ExecutorService chunkExecutor = Executors.newFixedThreadPool(coreLimit);
-    private final ScheduledExecutorService scheduler;
+    private final ScheduledExecutorService scheduler  = Executors.newScheduledThreadPool(1);
     private final CountDownLatch latch;
     private final Engine engine;
     private final World world;
@@ -54,7 +56,6 @@ public class ChunkUpdater {
         this.dimensions = calculateWorldDimensions(new File(world.getWorldFolder(), "region"));
         this.task = dimensions.task();
         this.totalMaxChunks.set(dimensions.count * 1024);
-        this.scheduler = Executors.newScheduledThreadPool(1);
         this.latch = new CountDownLatch(totalMaxChunks.get());
     }
 
@@ -107,7 +108,12 @@ public class ChunkUpdater {
                 }
             }, 0, 3, TimeUnit.SECONDS);
             scheduler.scheduleAtFixedRate(this::unloadChunks, 0, 1, TimeUnit.SECONDS);
-            scheduler.scheduleAtFixedRate(playerCounter::update, 0, 5, TimeUnit.SECONDS);
+            scheduler.scheduleAtFixedRate(() -> {
+                boolean empty = Bukkit.getOnlinePlayers().isEmpty();
+                if (serverEmpty.getAndSet(empty) == empty)
+                    return;
+                loadBalancer.setRange(empty ? IrisSettings.get().getUpdater().emptyMsRange : IrisSettings.get().getUpdater().defaultMsRange);
+            }, 0, 10, TimeUnit.SECONDS);
 
             var t = new Thread(() -> {
                 run();
@@ -123,7 +129,7 @@ public class ChunkUpdater {
 
     public void close() {
         try {
-            playerCounter.close();
+            loadBalancer.close();
             semaphore.acquire(256);
 
             executor.shutdown();
@@ -334,39 +340,7 @@ public class ChunkUpdater {
 
     private record Dimensions(Position2 min, Position2 max, int count, PregenTask task) { }
 
-    @Data
-    private static class PlayerCounter {
-        private final Semaphore semaphore;
-        private final int maxPermits;
-        private int lastCount = 0;
-        private int permits = 0;
-
-        public void update() {
-            double count = Bukkit.getOnlinePlayers().size();
-            if (count == lastCount)
-                return;
-            double p = count == 0 ? 0 : count / (Bukkit.getMaxPlayers() / 2d);
-            int targetPermits = (int) (maxPermits * p);
-
-            int diff = targetPermits - permits;
-            permits = targetPermits;
-            lastCount = (int) count;
-            try {
-                if (diff > 0) semaphore.release(diff);
-                else semaphore.acquire(Math.abs(diff));
-            } catch (InterruptedException ignored) {}
-        }
-
-        public void close() {
-            semaphore.release(permits);
-        }
-    }
-
     private static double getProperty() {
-        try {
-            return Double.parseDouble(System.getProperty("iris.updater"));
-        } catch (Throwable e) {
-            return 1;
-        }
+        return IrisSettings.get().getUpdater().getThreadMultiplier();
     }
 }

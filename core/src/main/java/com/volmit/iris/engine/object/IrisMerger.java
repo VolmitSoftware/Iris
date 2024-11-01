@@ -5,7 +5,6 @@ import com.volmit.iris.core.nms.IMemoryWorld;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.ChunkedDataCache;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
@@ -46,7 +45,10 @@ public class IrisMerger {
     private String generator;
 
     @Desc("Use Generator")
-    private boolean useGenerator = false;
+    private boolean useMemoryWorld = false;
+
+    @Desc("Allows to gen chunks on the mergers world")
+    private boolean allowGenChunks = false;
 
     @Desc("Uses a world instead of a generator")
     private String world;
@@ -69,7 +71,6 @@ public class IrisMerger {
     @Desc("If it should translate iris deposits/ores to their deepslate variant")
     private boolean deepslateTranslator = true;
 
-    // Map to keep track of last use time for chunks
     private final Map<Chunk, Long> lastUse = new ConcurrentHashMap<>();
 
     /**
@@ -77,10 +78,15 @@ public class IrisMerger {
      */
     @Deprecated
     public void generateVanillaUnderground(int cx, int cz, Chunk ichunk, Engine engine) {
-        if (engine.getMemoryWorld() == null && useGenerator)
+        if (engine.getMemoryWorld() == null && useMemoryWorld)
             throw new IllegalStateException("MemoryWorld is null. Ensure that it has been initialized.");
         if (engine.getWorld().realWorld() == null)
             return;
+
+        if (world == null) {
+            Iris.error("World merger is null! cant generate chunks FALLBACK!");
+            return;
+        }
 
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
@@ -99,10 +105,17 @@ public class IrisMerger {
                 }
             }
 
-            Chunk chunk = bukkit.getChunkAt(cx, cz);
-            lastUse.put(chunk, System.currentTimeMillis());
+            Chunk chunk;
+            if (allowGenChunks) {
+                chunk = bukkit.getChunkAt(cx, cz, true);
+            } else {
+                chunk = bukkit.getChunkAt(cx, cz, false);
+                if (!chunk.isGenerated()) {
+                    throw new IllegalStateException("Chunk " + cx + ", " + cz + " not found. OUT OF BOUNDS");
+                }
+            }
 
-//            Chunk ichunk = engine.getWorld().realWorld().getChunkAt(cx, cz);
+//           Chunk ichunk = engine.getWorld().realWorld().getChunkAt(cx, cz);
 
             if (!chunk.isLoaded())
                 J.s(chunk::load);
@@ -202,6 +215,7 @@ public class IrisMerger {
                     }
                 }
             }
+            lastUse.put(chunk, System.currentTimeMillis());
             mergeDuration.put(p.getMilliseconds());
             Iris.info("Vanilla merge average in: " + Form.duration(mergeDuration.getAverage(), 8));
         } catch (Exception e) {
@@ -325,7 +339,8 @@ public class IrisMerger {
 
         World bukkitWorld = Bukkit.getWorld(world);
         if (!new File(Bukkit.getWorldContainer(), world).exists())
-            throw new IllegalStateException("World does not exist!");
+            Iris.warn("World does not exist disabled merger generation for: " + engine.getWorld().name());
+            //throw new IllegalStateException("World does not exist!");
         if (bukkitWorld == null) {
             Iris.info("World " + world + " is not loaded yet, creating it.");
 

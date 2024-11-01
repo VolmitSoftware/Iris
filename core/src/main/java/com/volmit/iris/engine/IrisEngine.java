@@ -203,7 +203,7 @@ public class IrisEngine implements Engine {
 
     private void updateMemoryWorld() {
         try {
-            if(!merger.isUseGenerator() || merger.getGenerator().isEmpty())
+            if(!merger.isUseMemoryWorld() || merger.getGenerator().isEmpty())
                 return;
             merger = getDimension().getMerger();
             if (!getDimension().isEnableExperimentalMerger()) return;

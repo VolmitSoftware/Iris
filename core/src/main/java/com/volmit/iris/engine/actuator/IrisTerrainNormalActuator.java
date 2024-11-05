@@ -157,9 +157,11 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                     ore = ore == null ? region.generateOres(realX, i, realZ, rng, getData()) : ore;
                     ore = ore == null ? getDimension().generateOres(realX, i, realZ, rng, getData()) : ore;
 
-                    if (!h.get(xf, i, zf).getMaterial().isAir()) {
-                        if (ore != null) {
-                            h.set(xf, i, zf, ore);
+                    if (ore != null) {
+                        h.set(xf, i, zf, ore);
+                    } else {
+                        if (getDimension().isDeepslateLayer() && i < 64) {
+                            h.set(xf, i, zf, DEEPSLATE);
                         } else {
                             h.set(xf, i, zf, context.getRock().get(xf, zf));
                         }

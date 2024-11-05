@@ -41,7 +41,6 @@ public class Chunk {
     private int lastMCAUpdate;
     private CompoundTag data;
     private int dataVersion;
-    private int nativeIrisVersion;
     private long lastUpdate;
     private long inhabitedTime;
     private MCABiomeContainer biomes;
@@ -150,8 +149,8 @@ public class Chunk {
         if ((loadFlags & STRUCTURES) != 0) {
             structures = level.getCompoundTag("Structures");
         }
-        if ((loadFlags & (BLOCK_LIGHTS | BLOCK_STATES | SKY_LIGHT)) != 0 && level.containsKey("Sections")) {
-            for (CompoundTag section : level.getListTag("Sections").asCompoundTagList()) {
+        if ((loadFlags & (BLOCK_LIGHTS | BLOCK_STATES | SKY_LIGHT)) != 0 && level.containsKey("sections")) {
+            for (CompoundTag section : level.getListTag("sections").asCompoundTagList()) {
                 int sectionIndex = section.getByte("Y");
                 if (sectionIndex > 15 || sectionIndex < 0) {
                     continue;

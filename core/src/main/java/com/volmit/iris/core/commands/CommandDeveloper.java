@@ -26,6 +26,7 @@ import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.core.service.IrisEngineSVC;
 import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.core.tools.IrisWorldAnalytics;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.decree.DecreeExecutor;
@@ -169,12 +170,26 @@ public class CommandDeveloper implements DecreeExecutor {
             File[] McaFiles = new File(world, "region").listFiles((dir, name) -> name.endsWith(".mca"));
             for (File mca : McaFiles) {
                 MCAFile MCARegion = MCAUtil.read(mca);
+                int i = 0;
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
 
     }
+
+    @Decree(description = "test")
+    public void anl (
+            @Param(description = "String") String world) {
+        try {
+            IrisWorldAnalytics a = new IrisWorldAnalytics(world);
+            a.execute();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
 
     @Decree(description = "UnloadChunks for good reasons.")
     public void unloadchunks() {

@@ -44,6 +44,8 @@ public class IrisSettings {
     private IrisSettingsPerformance performance = new IrisSettingsPerformance();
 
     public static int getThreadCount(int c) {
+        if (System.getProperty("os.name").toLowerCase().contains("win"))
+            return Runtime.getRuntime().availableProcessors();
         return switch (c) {
             case -1, -2, -4 -> Runtime.getRuntime().availableProcessors() / -c;
             case 0, 1, 2 -> 1;
@@ -132,6 +134,7 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsConcurrency {
         public int parallelism = -1;
+        public boolean windowsFullPerformance = true;
     }
 
     @Data

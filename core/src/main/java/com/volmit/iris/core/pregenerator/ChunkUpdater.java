@@ -2,7 +2,9 @@ package com.volmit.iris.core.pregenerator;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.Form;
@@ -28,8 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ChunkUpdater {
     private final AtomicBoolean paused = new AtomicBoolean();
     private final AtomicBoolean cancelled = new AtomicBoolean();
-    private final KMap<Chunk, Long> lastUse = new KMap<>();
-    private final KMap<Chunk, AtomicInteger> counters = new KMap<>();
+    private final KMap<Long, Pair<Long, AtomicInteger>> lastUse = new KMap<>();
     private final RollingSequence chunksPerSecond = new RollingSequence(5);
     private final AtomicInteger totalMaxChunks = new AtomicInteger();
     private final AtomicInteger chunksProcessed = new AtomicInteger();
@@ -58,6 +59,10 @@ public class ChunkUpdater {
         this.latch = new CountDownLatch(totalMaxChunks.get());
     }
 
+    public String getName() {
+        return world.getName();
+    }
+
     public int getChunks() {
         return totalMaxChunks.get();
     }
@@ -82,7 +87,6 @@ public class ChunkUpdater {
         unloadAndSaveAllChunks();
         cancelled.set(true);
     }
-
 
     private void update() {
         Iris.info("Updating..");
@@ -192,9 +196,8 @@ public class ChunkUpdater {
 
             for (int xx = -1; xx <= 1; xx++) {
                 for (int zz = -1; zz <= 1; zz++) {
-                    var chunk = world.getChunkAt(x + xx, z + zz, false);
-                    var counter = counters.get(chunk);
-                    if (counter != null) counter.decrementAndGet();
+                    var counter = lastUse.get(Cache.key(x + xx, z + zz));
+                    if (counter != null) counter.getB().decrementAndGet();
                 }
             }
         } finally {
@@ -243,9 +246,9 @@ public class ChunkUpdater {
                         if (!c.isGenerated())
                             generated.set(false);
 
-                        counters.computeIfAbsent(c, k -> new AtomicInteger(-1))
-                                .updateAndGet(i -> i == -1 ? 1 : ++i);
-                        lastUse.put(c, M.ms());
+                        var pair = lastUse.computeIfAbsent(Cache.key(c), k -> new Pair<>(0L, new AtomicInteger(-1)));
+                        pair.setA(M.ms());
+                        pair.getB().updateAndGet(i -> i == -1 ? 1 : ++i);
                     } finally {
                         latch.countDown();
                     }
@@ -262,15 +265,22 @@ public class ChunkUpdater {
     }
 
     private synchronized void unloadChunks() {
-        for (Chunk i : new ArrayList<>(lastUse.keySet())) {
-            Long lastUseTime = lastUse.get(i);
-            var counter = counters.get(i);
-            if (lastUseTime != null && M.ms() - lastUseTime >= 5000 && (counter == null || counter.get() == 0)) {
+        for (var key : new ArrayList<>(lastUse.keySet())) {
+            if (key == null) continue;
+            var pair = lastUse.get(key);
+            if (pair == null) continue;
+            var lastUseTime = pair.getA();
+            var counter = pair.getB();
+            if (lastUseTime == null || counter == null)
+                continue;
+
+            if (M.ms() - lastUseTime >= 5000 && counter.get() == 0) {
+                int x = Cache.keyX(key);
+                int z = Cache.keyZ(key);
                 J.s(() -> {
-                    i.removePluginChunkTicket(Iris.instance);
-                    i.unload();
-                    lastUse.remove(i);
-                    counters.remove(i);
+                    world.removePluginChunkTicket(x, z, Iris.instance);
+                    world.unloadChunk(x, z);
+                    lastUse.remove(key);
                 });
             }
         }

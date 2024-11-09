@@ -25,7 +25,9 @@ import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.ChronoLatch;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,6 +44,7 @@ public class IrisSettings {
     private IrisSettingsConcurrency concurrency = new IrisSettingsConcurrency();
     private IrisSettingsStudio studio = new IrisSettingsStudio();
     private IrisSettingsPerformance performance = new IrisSettingsPerformance();
+    private IrisSettingsUpdater updater = new IrisSettingsUpdater();
 
     public static int getThreadCount(int c) {
         return switch (c) {
@@ -142,11 +145,30 @@ public class IrisSettings {
         public int resourceLoaderCacheSize = 1_024;
         public int objectLoaderCacheSize = 4_096;
         public int scriptLoaderCacheSize = 512;
-        public double updaterThreadMultiplier = 1.0;
+    }
 
-        public double getUpdaterThreadMultiplier() {
-            return Math.min(Math.abs(updaterThreadMultiplier), 0.1);
+    @Data
+    public static class IrisSettingsUpdater {
+        public double threadMultiplier = 2;
+        public double chunkLoadSensitivity = 0.7;
+        public MsRange emptyMsRange = new MsRange(80, 100);
+        public MsRange defaultMsRange = new MsRange(20, 40);
+
+        public double getThreadMultiplier() {
+            return Math.min(Math.abs(threadMultiplier), 0.1);
         }
+
+        public double getChunkLoadSensitivity() {
+            return Math.min(chunkLoadSensitivity, 0.9);
+        }
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MsRange {
+        public int min = 20;
+        public int max = 40;
     }
 
     @Data

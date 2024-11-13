@@ -575,6 +575,12 @@ public class NMSBinding implements INMSBinding {
         return null;
     }
 
+    @Override
+    public boolean setBlock(World world, int x, int y, int z, BlockData data, int flag, int updateDepth) {
+        var level = ((CraftWorld) world).getHandle();
+        var blockData = ((CraftBlockData) data).getState();
+        return level.setBlock(new BlockPos(x, y, z), blockData, flag, updateDepth);
+    }
 
     @Override
     public Entity spawnEntity(Location location,  org.bukkit.entity.EntityType type, CreatureSpawnEvent.SpawnReason reason) {

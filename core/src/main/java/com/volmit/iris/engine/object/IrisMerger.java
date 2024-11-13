@@ -48,7 +48,7 @@ public class IrisMerger {
     private boolean useMemoryWorld = false;
 
     @Desc("Allows to gen chunks on the mergers world")
-    private boolean allowGenChunks = false;
+    private boolean allowGenChunks = true;
 
     @Desc("Uses a world instead of a generator")
     private String world;

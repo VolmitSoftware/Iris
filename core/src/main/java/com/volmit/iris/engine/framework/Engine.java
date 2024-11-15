@@ -28,6 +28,7 @@ import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.nms.IMemoryWorld;
 import com.volmit.iris.core.nms.container.BlockPos;
 import com.volmit.iris.core.nms.container.Pair;
+import com.volmit.iris.core.pregenerator.ChunkUpdater;
 import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.Cache;
@@ -58,6 +59,7 @@ import com.volmit.iris.util.matter.TileWrapper;
 import com.volmit.iris.util.matter.slices.container.JigsawPieceContainer;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.reflect.W;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -79,6 +81,7 @@ import java.awt.Color;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -276,33 +279,43 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             for (int z = -1; z <= 1; z++) {
                 if (c.getWorld().isChunkLoaded(c.getX() + x, c.getZ() + z))
                     continue;
-                Iris.debug("Chunk %s, %s [%s, %s] is not loaded".formatted(c.getX() + x, c.getZ() + z, x, z));
+                var msg = "Chunk %s, %s [%s, %s] is not loaded".formatted(c.getX() + x, c.getZ() + z, x, z);
+                if (W.getStack().getCallerClass().equals(ChunkUpdater.class)) Iris.warn(msg);
+                else Iris.debug(msg);
                 return;
             }
         }
-        if (!getMantle().getMantle().isLoaded(c)) {
-            Iris.debug("Mantle Chunk " + c.getX() + c.getX() + " is not loaded");
+        var mantle = getMantle().getMantle();
+        if (!mantle.isLoaded(c)) {
+            var msg = "Mantle Chunk " + c.getX() + c.getX() + " is not loaded";
+            if (W.getStack().getCallerClass().equals(ChunkUpdater.class)) Iris.warn(msg);
+            else Iris.debug(msg);
             return;
         }
 
-        getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.TILE, () -> J.s(() -> {
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, v) -> {
+        var chunk = mantle.getChunk(c);
+        if (chunk.isFlagged(MantleFlag.ETCHED)) return;
+        chunk.flag(MantleFlag.ETCHED, true);
+
+        Semaphore semaphore = new Semaphore(3);
+        chunk.raiseFlag(MantleFlag.TILE, run(semaphore, () -> J.s(() -> {
+            mantle.iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, v) -> {
                 int betterY = y + getWorld().minHeight();
                 if (!TileData.setTileState(c.getBlock(x, betterY, z), v.getData()))
                     Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), v.getData().getMaterial().name());
             });
-        }));
-        getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.CUSTOM, () -> J.s(() -> {
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), Identifier.class, (x, y, z, v) -> {
+        })));
+        chunk.raiseFlag(MantleFlag.CUSTOM, run(semaphore, () -> J.s(() -> {
+            mantle.iterateChunk(c.getX(), c.getZ(), Identifier.class, (x, y, z, v) -> {
                 Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
             });
-        }));
+        })));
 
-        getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.UPDATE, () -> J.s(() -> {
+        chunk.raiseFlag(MantleFlag.UPDATE, run(semaphore, () -> J.s(() -> {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             KMap<Long, Integer> updates = new KMap<>();
             RNG r = new RNG(Cache.key(c.getX(), c.getZ()));
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, yf, z, v) -> {
+            mantle.iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, yf, z, v) -> {
                 int y = yf + getWorld().minHeight();
                 if (!B.isFluid(c.getBlock(x & 15, y, z & 15).getBlockData())) {
                     return;
@@ -332,7 +345,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             });
 
             updates.forEach((k, v) -> update(Cache.keyX(k), v, Cache.keyZ(k), c, r));
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterUpdate.class, (x, yf, z, v) -> {
+            mantle.iterateChunk(c.getX(), c.getZ(), MatterUpdate.class, (x, yf, z, v) -> {
                 int y = yf + getWorld().minHeight();
                 if (v != null && v.isUpdate()) {
                     int vx = x & 15;
@@ -343,9 +356,25 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     }
                 }
             });
-            getMantle().getMantle().deleteChunkSlice(c.getX(), c.getZ(), MatterUpdate.class);
+            mantle.deleteChunkSlice(c.getX(), c.getZ(), MatterUpdate.class);
             getMetrics().getUpdates().put(p.getMilliseconds());
-        }, RNG.r.i(0, 20)));
+        }, RNG.r.i(0, 20))));
+
+        try {
+            semaphore.acquire(3);
+        } catch (InterruptedException ignored) {}
+    }
+
+    private static Runnable run(Semaphore semaphore, Runnable runnable) {
+        return () -> {
+            if (!semaphore.tryAcquire())
+                return;
+            try {
+                runnable.run();
+            } finally {
+                semaphore.release();
+            }
+        };
     }
 
     @BlockCoordinates

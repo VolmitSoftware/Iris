@@ -43,6 +43,10 @@ public class CommandUpdater implements DecreeExecutor {
             sender().sendMessage(C.GOLD + "This is not an Iris world");
             return;
         }
+        if (chunkUpdater != null) {
+            chunkUpdater.stop();
+        }
+
         chunkUpdater = new ChunkUpdater(world);
         if (sender().isPlayer()) {
             sender().sendMessage(C.GREEN + "Updating " + world.getName()  + C.GRAY + " Total chunks: " + Form.f(chunkUpdater.getChunks()));
@@ -53,14 +57,7 @@ public class CommandUpdater implements DecreeExecutor {
     }
 
     @Decree(description = "Pause the updater")
-    public void pause(
-            @Param(description = "World to pause the Updater at")
-            World world
-    ) {
-        if (!IrisToolbelt.isIrisWorld(world)) {
-            sender().sendMessage(C.GOLD + "This is not an Iris world");
-            return;
-        }
+    public void pause( ) {
         if (chunkUpdater == null) {
             sender().sendMessage(C.GOLD + "You cant pause something that doesnt exist?");
             return;
@@ -68,40 +65,32 @@ public class CommandUpdater implements DecreeExecutor {
         boolean status = chunkUpdater.pause();
         if (sender().isPlayer()) {
             if (status) {
-                sender().sendMessage(C.IRIS + "Paused task for: " + C.GRAY + world.getName());
+                sender().sendMessage(C.IRIS + "Paused task for: " + C.GRAY + chunkUpdater.getName());
             } else {
-                sender().sendMessage(C.IRIS + "Unpause task for: " + C.GRAY + world.getName());
+                sender().sendMessage(C.IRIS + "Unpause task for: " + C.GRAY + chunkUpdater.getName());
             }
         } else {
             if (status) {
-                Iris.info(C.IRIS + "Paused task for: " + C.GRAY + world.getName());
+                Iris.info(C.IRIS + "Paused task for: " + C.GRAY + chunkUpdater.getName());
             } else {
-                Iris.info(C.IRIS + "Unpause task for: " + C.GRAY + world.getName());
+                Iris.info(C.IRIS + "Unpause task for: " + C.GRAY + chunkUpdater.getName());
             }
         }
     }
 
     @Decree(description = "Stops the updater")
-    public void stop(
-            @Param(description = "World to stop the Updater at")
-            World world
-    ) {
-        if (!IrisToolbelt.isIrisWorld(world)) {
-            sender().sendMessage(C.GOLD + "This is not an Iris world");
-            return;
-        }
+    public void stop() {
         if (chunkUpdater == null) {
             sender().sendMessage(C.GOLD + "You cant stop something that doesnt exist?");
             return;
         }
         if (sender().isPlayer()) {
-            sender().sendMessage("Stopping Updater for: " + C.GRAY + world.getName());
+            sender().sendMessage("Stopping Updater for: " + C.GRAY + chunkUpdater.getName());
         } else {
-            Iris.info("Stopping Updater for: " + C.GRAY + world.getName());
+            Iris.info("Stopping Updater for: " + C.GRAY + chunkUpdater.getName());
         }
         chunkUpdater.stop();
     }
-
 }
 
 

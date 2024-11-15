@@ -31,6 +31,8 @@ import java.awt.*;
 
 public class WandSelection {
     private static final Particle REDSTONE = E.getOrDefault(Particle.class,  "REDSTONE", "DUST");
+    private static final double DISTANCE = 256;
+    public static final double STEP = 0.25;
     private final Cuboid c;
     private final Player p;
 
@@ -40,77 +42,134 @@ public class WandSelection {
     }
 
     public void draw() {
-        double accuracy;
-        double dist;
+        int lx = c.getLowerX();
+        int ux = c.getUpperX();
+        int ly = c.getLowerY();
+        int uy = c.getUpperY();
+        int lz = c.getLowerZ();
+        int uz = c.getUpperZ();
+        Location loc = p.getLocation();
+        double px = loc.getX();
+        double py = loc.getY();
+        double pz = loc.getZ();
 
-        for (double i = c.getLowerX() - 1; i < c.getUpperX() + 1; i += 0.25) {
-            for (double j = c.getLowerY() - 1; j < c.getUpperY() + 1; j += 0.25) {
-                for (double k = c.getLowerZ() - 1; k < c.getUpperZ() + 1; k += 0.25) {
-                    boolean ii = i == c.getLowerX() || i == c.getUpperX();
-                    boolean jj = j == c.getLowerY() || j == c.getUpperY();
-                    boolean kk = k == c.getLowerZ() || k == c.getUpperZ();
-
-                    if ((ii && jj) || (ii && kk) || (kk && jj)) {
-                        Vector push = new Vector(0, 0, 0);
-
-                        if (i == c.getLowerX()) {
-                            push.add(new Vector(-0.55, 0, 0));
-                        }
-
-                        if (j == c.getLowerY()) {
-                            push.add(new Vector(0, -0.55, 0));
-                        }
-
-                        if (k == c.getLowerZ()) {
-                            push.add(new Vector(0, 0, -0.55));
-                        }
-
-                        if (i == c.getUpperX()) {
-                            push.add(new Vector(0.55, 0, 0));
-                        }
-
-                        if (j == c.getUpperY()) {
-                            push.add(new Vector(0, 0.55, 0));
-                        }
-
-                        if (k == c.getUpperZ()) {
-                            push.add(new Vector(0, 0, 0.55));
-                        }
-
-                        Location a = new Location(c.getWorld(), i, j, k).add(0.5, 0.5, 0.5).add(push);
-                        accuracy = M.lerpInverse(0, 64 * 64, p.getLocation().distanceSquared(a));
-                        dist = M.lerp(0.125, 3.5, accuracy);
-
-                        if (M.r(M.min(dist * 5, 0.9D) * 0.995)) {
-                            continue;
-                        }
-
-                        if (ii && jj) {
-                            a.add(0, 0, RNG.r.d(-0.3, 0.3));
-                        }
-
-                        if (kk && jj) {
-                            a.add(RNG.r.d(-0.3, 0.3), 0, 0);
-                        }
-
-                        if (ii && kk) {
-                            a.add(0, RNG.r.d(-0.3, 0.3), 0);
-                        }
-
-                        if (p.getLocation().distanceSquared(a) < 256 * 256) {
-                            Color color = Color.getHSBColor((float) (0.5f + (Math.sin((i + j + k + (p.getTicksLived() / 2f)) / (20f)) / 2)), 1, 1);
-                            int r = color.getRed();
-                            int g = color.getGreen();
-                            int b = color.getBlue();
-
-                            p.spawnParticle(REDSTONE, a.getX(), a.getY(), a.getZ(),
-                                    1, 0, 0, 0, 0,
-                                    new Particle.DustOptions(org.bukkit.Color.fromRGB(r, g, b),
-                                            (float) dist * 3f));
+        {
+            // edges sx -> ex
+            double sx = lx - 1d;
+            double ex = ux + 1d;
+            double cx = clamp(px, sx, ex);
+            for (int y : new int[]{ly, uy}) {
+                for (int z : new int[]{lz, uz}) {
+                    if (inDistance(px, py, pz, cx, y, z)) {
+                        for (double x = sx; x < ex; x += STEP) {
+                            renderParticleAt(x, y, z, x == lx || x == ux, true, true);
                         }
                     }
                 }
             }
         }
+        {
+            // edges sy -> ey
+            double sy = ly - 1d;
+            double ey = uy + 1d;
+            double cy = clamp(py, sy, ey);
+            for (int x : new int[]{lx, ux}) {
+                for (int z : new int[]{lz, uz}) {
+                    if (inDistance(px, py, pz, x, cy, z)) {
+                        for (double y = sy; y < ey; y += STEP) {
+                            renderParticleAt(x, y, z, true, y == ly || y == uy, true);
+                        }
+                    }
+                }
+            }
+        }
+        {
+            // edges sz -> ez
+            double sz = lz - 1d;
+            double ez = uz + 1d;
+            double cz = clamp(pz, sz, ez);
+            for (int x : new int[]{lx, ux}) {
+                for (int y : new int[]{ly, uy}) {
+                    if (inDistance(px, py, pz, x, y, cz)) {
+                        for (double z = sz; z < ez; z += STEP) {
+                            renderParticleAt(x, y, z, true, true, z == lz || z == uz);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void renderParticleAt(double x, double y, double z, boolean atX, boolean atY, boolean atZ) {
+        double accuracy;
+        double dist;
+        Vector push = new Vector(x, y, z);
+
+        if (x == c.getLowerX()) {
+            push.add(new Vector(-0.55, 0, 0));
+        }
+
+        if (y == c.getLowerY()) {
+            push.add(new Vector(0, -0.55, 0));
+        }
+
+        if (z == c.getLowerZ()) {
+            push.add(new Vector(0, 0, -0.55));
+        }
+
+        if (x == c.getUpperX()) {
+            push.add(new Vector(0.55, 0, 0));
+        }
+
+        if (y == c.getUpperY()) {
+            push.add(new Vector(0, 0.55, 0));
+        }
+
+        if (z == c.getUpperZ()) {
+            push.add(new Vector(0, 0, 0.55));
+        }
+
+        Location a = new Location(c.getWorld(), x, y, z).add(0.5, 0.5, 0.5).add(push);
+        accuracy = M.lerpInverse(0, 64 * 64, p.getLocation().distanceSquared(a));
+        dist = M.lerp(0.125, 3.5, accuracy);
+
+        if (M.r(M.min(dist * 5, 0.9D) * 0.995)) {
+            return;
+        }
+
+        if (atX && atY) {
+            a.add(0, 0, RNG.r.d(-0.3, 0.3));
+        }
+
+        if (atZ && atY) {
+            a.add(RNG.r.d(-0.3, 0.3), 0, 0);
+        }
+
+        if (atX && atZ) {
+            a.add(0, RNG.r.d(-0.3, 0.3), 0);
+        }
+
+        if (p.getLocation().distanceSquared(a) < 256 * 256) {
+            Color color = Color.getHSBColor((float) (0.5f + (Math.sin((x + y + z + (p.getTicksLived() / 2f)) / (20f)) / 2)), 1, 1);
+            int r = color.getRed();
+            int g = color.getGreen();
+            int b = color.getBlue();
+
+            p.spawnParticle(REDSTONE, a.getX(), a.getY(), a.getZ(),
+                    1, 0, 0, 0, 0,
+                    new Particle.DustOptions(org.bukkit.Color.fromRGB(r, g, b),
+                            (float) dist * 3f));
+        }
+    }
+
+    private static double clamp(double value, double min, double max) {
+        return Math.min(Math.max(value, min), max);
+    }
+
+    private static boolean inDistance(double ax, double ay, double az, double bx, double by, double bz) {
+        double dx = ax - bx;
+        double dy = ay - by;
+        double dz = az - bz;
+        return dx * dx + dy * dy + dz * dz < DISTANCE * DISTANCE;
     }
 }

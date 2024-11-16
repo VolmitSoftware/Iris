@@ -16,6 +16,8 @@ public class DataFixerV1206 implements IDataFixer {
         int spawnRarity = biome.getSpawnRarity();
         if (spawnRarity > 0) {
             json.put("creature_spawn_probability", Math.min(spawnRarity/20d, 0.9999999));
+        } else {
+            json.remove("creature_spawn_probability");
         }
 
         var spawns = biome.getSpawns();
@@ -26,10 +28,10 @@ public class DataFixerV1206 implements IDataFixer {
             for (IrisBiomeCustomSpawn i : spawns) {
                 JSONArray g = groups.computeIfAbsent(i.getGroup(), (k) -> new JSONArray());
                 JSONObject o = new JSONObject();
-                o.put("type", "minecraft:" + i.getType().name().toLowerCase());
+                o.put("type", i.getType().getKey());
                 o.put("weight", i.getWeight());
-                o.put("minCount", Math.min(i.getMinCount()/20d, 0));
-                o.put("maxCount", Math.min(i.getMaxCount()/20d, 0.9999999));
+                o.put("minCount", i.getMinCount());
+                o.put("maxCount", i.getMaxCount());
                 g.put(o);
             }
 

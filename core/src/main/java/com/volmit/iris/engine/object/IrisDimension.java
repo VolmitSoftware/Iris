@@ -21,6 +21,7 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.datapack.IDataFixer;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
@@ -487,10 +488,10 @@ public class IrisDimension extends IrisRegistrant {
                         {
                             "pack": {
                                 "description": "Iris Data Pack. This pack contains all installed Iris Packs' resources.",
-                                "pack_format": 10
+                                "pack_format": {}
                             }
                         }
-                        """);
+                        """.replace("{}", INMS.get().getDataVersion().getPackFormat() + ""));
             } catch (IOException e) {
                 Iris.reportError(e);
                 e.printStackTrace();

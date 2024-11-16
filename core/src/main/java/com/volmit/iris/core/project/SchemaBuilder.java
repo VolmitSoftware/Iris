@@ -22,21 +22,23 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.loader.ResourceLoader;
-import com.volmit.iris.engine.framework.ListFunction;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.reflect.OldEnum;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.potion.PotionEffectType;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class SchemaBuilder {
@@ -342,38 +344,9 @@ public class SchemaBuilder {
                     description.add(SYMBOL_TYPE__N + "  Must be a valid Potion Effect Type (use ctrl+space for auto complete!)");
 
                 } else if (k.getType().isEnum()) {
-                    fancyType = k.getType().getSimpleName().replaceAll("\\QIris\\E", "");
-                    JSONArray a = new JSONArray();
-                    boolean advanced = k.getType().isAnnotationPresent(Desc.class);
-                    for (Object gg : k.getType().getEnumConstants()) {
-                        if (advanced) {
-                            try {
-                                JSONObject j = new JSONObject();
-                                String name = ((Enum<?>) gg).name();
-                                j.put("const", name);
-                                Desc dd = k.getType().getField(name).getAnnotation(Desc.class);
-                                j.put("description", dd == null ? ("No Description for " + name) : dd.value());
-                                a.put(j);
-                            } catch (Throwable e) {
-                                Iris.reportError(e);
-                                e.printStackTrace();
-                            }
-                        } else {
-                            a.put(((Enum<?>) gg).name());
-                        }
-                    }
-
-                    String key = (advanced ? "oneof-" : "") + "enum-" + k.getType().getCanonicalName().replaceAll("\\Q.\\E", "-").toLowerCase();
-
-                    if (!definitions.containsKey(key)) {
-                        JSONObject j = new JSONObject();
-                        j.put(advanced ? "oneOf" : "enum", a);
-                        definitions.put(key, j);
-                    }
-
-                    prop.put("$ref", "#/definitions/" + key);
-                    description.add(SYMBOL_TYPE__N + "  Must be a valid " + k.getType().getSimpleName().replaceAll("\\QIris\\E", "") + " (use ctrl+space for auto complete!)");
-
+                    fancyType = addEnum(k.getType(), prop, description, k.getType().getEnumConstants(), o -> ((Enum<?>) o).name());
+                } else if (OldEnum.isOldEnum(k.getType())) {
+                    fancyType = addEnum(k.getType(), prop, description, OldEnum.values(k.getType()), OldEnum::name);
                 }
             }
             case "object" -> {
@@ -519,39 +492,9 @@ public class SchemaBuilder {
                                 prop.put("items", items);
                                 description.add(SYMBOL_TYPE__N + "  Must be a valid Potion Effect Type (use ctrl+space for auto complete!)");
                             } else if (t.type().isEnum()) {
-                                fancyType = "List of " + t.type().getSimpleName().replaceAll("\\QIris\\E", "") + "s";
-                                JSONArray a = new JSONArray();
-                                boolean advanced = t.type().isAnnotationPresent(Desc.class);
-                                for (Object gg : t.type().getEnumConstants()) {
-                                    if (advanced) {
-                                        try {
-                                            JSONObject j = new JSONObject();
-                                            String name = ((Enum<?>) gg).name();
-                                            j.put("const", name);
-                                            Desc dd = t.type().getField(name).getAnnotation(Desc.class);
-                                            j.put("description", dd == null ? ("No Description for " + name) : dd.value());
-                                            a.put(j);
-                                        } catch (Throwable e) {
-                                            Iris.reportError(e);
-                                            e.printStackTrace();
-                                        }
-                                    } else {
-                                        a.put(((Enum<?>) gg).name());
-                                    }
-                                }
-
-                                String key = (advanced ? "oneof-" : "") + "enum-" + t.type().getCanonicalName().replaceAll("\\Q.\\E", "-").toLowerCase();
-
-                                if (!definitions.containsKey(key)) {
-                                    JSONObject j = new JSONObject();
-                                    j.put(advanced ? "oneOf" : "enum", a);
-                                    definitions.put(key, j);
-                                }
-
-                                JSONObject items = new JSONObject();
-                                items.put("$ref", "#/definitions/" + key);
-                                prop.put("items", items);
-                                description.add(SYMBOL_TYPE__N + "  Must be a valid " + t.type().getSimpleName().replaceAll("\\QIris\\E", "") + " (use ctrl+space for auto complete!)");
+                                fancyType = addEnumList(prop, description, t, t.type().getEnumConstants(), o -> ((Enum<?>) o).name());
+                            } else if (OldEnum.isOldEnum(t.type())) {
+                                fancyType = addEnumList(prop, description, t, OldEnum.values(t.type()), OldEnum::name);
                             }
                         }
                     }
@@ -584,7 +527,7 @@ public class SchemaBuilder {
                 if (value instanceof List) {
                     d.add("    ");
                     d.add("* Default Value is an empty list");
-                } else if (!cl.isPrimitive() && !(value instanceof Number) && !(value instanceof String) && !(cl.isEnum())) {
+                } else if (!cl.isPrimitive() && !(value instanceof Number) && !(value instanceof String) && !(cl.isEnum()) && !OldEnum.isOldEnum(cl)) {
                     d.add("    ");
                     d.add("* Default Value is a default object (create this object to see default properties)");
                 } else {
@@ -630,6 +573,50 @@ public class SchemaBuilder {
         return prop;
     }
 
+    @NotNull
+    private String addEnumList(JSONObject prop, KList<String> description, ArrayType t, Object[] values, Function<Object, String> function) {
+        JSONObject items = new JSONObject();
+        var s = addEnum(t.type(), items, description, values, function);
+        prop.put("items", items);
+
+        return "List of " + s + "s";
+    }
+
+    @NotNull
+    private String addEnum(Class<?> type, JSONObject prop, KList<String> description, Object[] values, Function<Object, String> function) {
+        JSONArray a = new JSONArray();
+        boolean advanced = type.isAnnotationPresent(Desc.class);
+        for (Object gg : values) {
+            if (advanced) {
+                try {
+                    JSONObject j = new JSONObject();
+                    String name = function.apply(gg);
+                    j.put("const", name);
+                    Desc dd = type.getField(name).getAnnotation(Desc.class);
+                    j.put("description", dd == null ? ("No Description for " + name) : dd.value());
+                    a.put(j);
+                } catch (Throwable e) {
+                    Iris.reportError(e);
+                    e.printStackTrace();
+                }
+            } else {
+                a.put(function.apply(gg));
+            }
+        }
+
+        String key = (advanced ? "oneof-" : "") + "enum-" + type.getCanonicalName().replaceAll("\\Q.\\E", "-").toLowerCase();
+
+        if (!definitions.containsKey(key)) {
+            JSONObject j = new JSONObject();
+            j.put(advanced ? "oneOf" : "enum", a);
+            definitions.put(key, j);
+        }
+
+        prop.put("$ref", "#/definitions/" + key);
+        description.add(SYMBOL_TYPE__N + "  Must be a valid " + type.getSimpleName().replaceAll("\\QIris\\E", "") + " (use ctrl+space for auto complete!)");
+        return type.getSimpleName().replaceAll("\\QIris\\E", "");
+    }
+
     private String getType(Class<?> c) {
         if (c.equals(int.class) || c.equals(Integer.class) || c.equals(long.class) || c.equals(Long.class)) {
             return "integer";
@@ -643,7 +630,7 @@ public class SchemaBuilder {
             return "boolean";
         }
 
-        if (c.equals(String.class) || c.isEnum() || c.equals(Enchantment.class) || c.equals(PotionEffectType.class)) {
+        if (c.equals(String.class) || c.isEnum() || OldEnum.isOldEnum(c) || c.equals(Enchantment.class) || c.equals(PotionEffectType.class)) {
             return "string";
         }
 

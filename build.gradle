@@ -32,7 +32,7 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '3.4.3-1.19.2-1.21.1'
+version '3.5.0-1.19.2-1.21.3'
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================
@@ -52,6 +52,7 @@ registerCustomOutputTaskUnix('CrazyDev22LT', '/home/julian/Desktop/server/plugin
 // ==============================================================
 
 def NMS_BINDINGS = Map.of(
+        "v1_21_R2", "1.21.3-R0.1-SNAPSHOT",
         "v1_21_R1", "1.21.1-R0.1-SNAPSHOT",
         "v1_20_R4", "1.20.6-R0.1-SNAPSHOT",
         "v1_20_R3", "1.20.4-R0.1-SNAPSHOT",
@@ -62,6 +63,7 @@ def NMS_BINDINGS = Map.of(
         "v1_19_R1", "1.19.2-R0.1-SNAPSHOT"
 )
 def JVM_VERSION = Map.of(
+        "v1_21_R2", 21,
         "v1_21_R1", 21,
         "v1_20_R4", 21,
 )
@@ -120,6 +122,7 @@ allprojects {
         maven { url "https://repo.mineinabyss.com/releases" }
         maven { url 'https://hub.jeff-media.com/nexus/repository/jeff-media-public/' }
         maven { url "https://repo.oraxen.com/releases" }
+        maven { url "https://libraries.minecraft.net" }
     }
 
     dependencies {

@@ -30,7 +30,9 @@ public class INMS {
         "1.20.5", "v1_20_R4",
         "1.20.6", "v1_20_R4",
         "1.21", "v1_21_R1",
-        "1.21.1", "v1_21_R1"
+        "1.21.1", "v1_21_R1",
+        "1.21.2", "v1_21_R2",
+        "1.21.3", "v1_21_R2"
     );
     //@done
     private static final INMSBinding binding = bind();

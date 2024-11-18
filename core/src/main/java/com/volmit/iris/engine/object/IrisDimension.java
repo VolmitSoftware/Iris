@@ -147,7 +147,7 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("Iris merger [Experimental] ( Deprecated for v3 )")
     private IrisMerger merger = new IrisMerger();
     @Desc("Cheap temp solution till v4 arrives [ Enables the experimental merger ] Requires studio restart to take effect!")
-    private boolean EnableExperimentalMerger = true;
+    private boolean EnableExperimentalMerger = false;
     @Desc("If set to true, Iris will remove chunks to allow visualizing cross sections of chunks easily")
     private boolean debugChunkCrossSections = false;
     @Desc("Vertically split up the biome palettes with 3 air blocks in between to visualize them")

@@ -60,7 +60,7 @@ public class NexoDataProvider extends ExternalDataProvider {
             placeFurniture = new WrappedReturningMethod<>(nexoFurniture, "place", String.class, Location.class, float.class, BlockFace.class);
 
             itemFromId = new WrappedReturningMethod<>(nexoItems, "itemFromId", String.class);
-            buildItem = new WrappedReturningMethod<>(itemBuilder, "buildItem");
+            buildItem = new WrappedReturningMethod<>(itemBuilder, "build");
         } catch (Throwable e) {
             failed.set(true);
             Iris.error("Failed to initialize NexoDataProvider");

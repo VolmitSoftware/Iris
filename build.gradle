@@ -121,7 +121,7 @@ allprojects {
         maven { url "https://repo.triumphteam.dev/snapshots" }
         maven { url "https://repo.mineinabyss.com/releases" }
         maven { url 'https://hub.jeff-media.com/nexus/repository/jeff-media-public/' }
-        maven { url "https://repo.oraxen.com/releases" }
+        maven { url "https://repo.nexomc.com/snapshots/" }
         maven { url "https://libraries.minecraft.net" }
     }
 

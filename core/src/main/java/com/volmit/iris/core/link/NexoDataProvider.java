@@ -20,6 +20,8 @@ import org.bukkit.entity.ItemDisplay;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.PotionMeta;
 
+import javax.annotation.Nullable;
+import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.MissingResourceException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -27,6 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class NexoDataProvider extends ExternalDataProvider {
     private final AtomicBoolean failed = new AtomicBoolean(false);
     private WrappedReturningMethod<?, String[]> itemNames;
+    private WrappedReturningMethod<?, Object> itemFromId;
     private WrappedReturningMethod<?, Boolean> exists;
 
     private WrappedReturningMethod<?, Boolean> isCustomBlock;
@@ -34,9 +37,7 @@ public class NexoDataProvider extends ExternalDataProvider {
 
     private WrappedReturningMethod<?, BlockData> getBlockData;
     private WrappedReturningMethod<?, ItemDisplay> placeFurniture;
-
-    private WrappedReturningMethod<?, Object> itemFromId;
-    private WrappedReturningMethod<?, ItemStack> buildItem;
+    private WrappedReturningMethod<?, ?> placeBlock;
 
     public NexoDataProvider() {
         super("Nexo");
@@ -48,19 +49,17 @@ public class NexoDataProvider extends ExternalDataProvider {
             Class<?> nexoItems = Class.forName("com.nexomc.nexo.api.NexoItems");
             Class<?> nexoBlocks = Class.forName("com.nexomc.nexo.api.NexoBlocks");
             Class<?> nexoFurniture = Class.forName("com.nexomc.nexo.api.NexoFurniture");
-            Class<?> itemBuilder = Class.forName("com.nexomc.nexo.items.ItemBuilder");
 
             itemNames = new WrappedReturningMethod<>(nexoItems, "itemNames");
             exists = new WrappedReturningMethod<>(nexoItems, "exists", String.class);
+            itemFromId = new WrappedReturningMethod<>(nexoItems, "itemFromId", String.class);
 
             isCustomBlock = new WrappedReturningMethod<>(nexoBlocks, "isCustomBlock", String.class);
             isFurniture = new WrappedReturningMethod<>(nexoFurniture, "isFurniture", String.class);
 
             getBlockData = new WrappedReturningMethod<>(nexoBlocks, "blockData", String.class);
             placeFurniture = new WrappedReturningMethod<>(nexoFurniture, "place", String.class, Location.class, float.class, BlockFace.class);
-
-            itemFromId = new WrappedReturningMethod<>(nexoItems, "itemFromId", String.class);
-            buildItem = new WrappedReturningMethod<>(itemBuilder, "build");
+            placeBlock = new WrappedReturningMethod<>(nexoBlocks, "place", String.class, Location.class);
         } catch (Throwable e) {
             failed.set(true);
             Iris.error("Failed to initialize NexoDataProvider");
@@ -74,10 +73,11 @@ public class NexoDataProvider extends ExternalDataProvider {
             throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
         }
 
+        Identifier blockState = ExternalDataSVC.buildState(blockId, state);
         if (isCustomBlock.invoke(blockId.key())) {
-            return getBlockData.invoke(blockId.key());
+            return new IrisBlockData(getBlockData.invoke(blockId.key()), blockState);
         } else if (isFurniture.invoke(blockId.key())) {
-            return new IrisBlockData(B.getAir(), ExternalDataSVC.buildState(blockId, state));
+            return new IrisBlockData(B.getAir(), blockState);
         }
 
         throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
@@ -89,7 +89,8 @@ public class NexoDataProvider extends ExternalDataProvider {
         if (o == null) {
             throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());
         }
-        ItemStack itemStack = buildItem.invoke(o, new Object[0]);
+        ItemBuilder builder = newProxy(o);
+        ItemStack itemStack = builder.build();
         if (itemStack == null) {
             throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());
         }
@@ -101,6 +102,11 @@ public class NexoDataProvider extends ExternalDataProvider {
         var pair = ExternalDataSVC.parseState(blockId);
         var state = pair.getB();
         blockId = pair.getA();
+
+        if (isCustomBlock.invoke(blockId.key())) {
+            placeBlock.invoke(blockId.key(), block.getLocation());
+            return;
+        }
 
         if (!isFurniture.invoke(blockId.key()))
             return;
@@ -183,5 +189,16 @@ public class NexoDataProvider extends ExternalDataProvider {
     @Override
     public boolean isReady() {
         return super.isReady() && !failed.get();
+    }
+
+    private static ItemBuilder newProxy(Object instance) {
+        return (ItemBuilder) Proxy.newProxyInstance(
+                NexoDataProvider.class.getClassLoader(),
+                new Class[]{ItemBuilder.class},
+                (proxy, method, args) -> method.invoke(instance, args));
+    }
+
+    private interface ItemBuilder {
+        @Nullable ItemStack build();
     }
 }

@@ -76,7 +76,7 @@ public class WandSVC implements IrisService {
      * @param p The wand player
      * @return The new object
      */
-    public static IrisObject createSchematic(Player p) {
+    public static IrisObject createSchematic(Player p, boolean legacy) {
         if (!isHoldingWand(p)) {
             return null;
         }
@@ -132,7 +132,7 @@ public class WandSVC implements IrisService {
                                         continue;
 
                                     BlockVector bv = b.getLocation().subtract(c.getLowerNE().toVector()).toVector().toBlockVector();
-                                    s.setUnsigned(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(), b);
+                                    s.setUnsigned(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(), b, legacy);
                                 } finally {
                                     i++;
                                 }

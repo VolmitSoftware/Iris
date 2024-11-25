@@ -1,8 +1,10 @@
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.scheduling.J;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.ToString;
@@ -15,6 +17,7 @@ import org.bukkit.block.banner.Pattern;
 import org.bukkit.block.banner.PatternType;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.EntityType;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -24,10 +27,10 @@ import java.util.Map;
 @ToString
 @EqualsAndHashCode(callSuper = false)
 public class LegacyTileData extends TileData {
-    private static final Map<Integer, IOFunction<DataInputStream, Handler>> legacy = Map.of(
-            0, SignHandler::new,
-            1, SpawnerHandler::new,
-            2, BannerHandler::new);
+    private static final Map<Integer, Pair<Builder, IOFunction<DataInputStream, Handler>>> legacy = Map.of(
+            0, new Pair<>(SignHandler::fromBukkit, SignHandler::new),
+            1, new Pair<>(SpawnerHandler::fromBukkit, SpawnerHandler::new),
+            2, new Pair<>(BannerHandler::fromBukkit, BannerHandler::new));
     private final int id;
     private final Handler handler;
 
@@ -36,7 +39,24 @@ public class LegacyTileData extends TileData {
         var factory = legacy.get(id);
         if (factory == null)
             throw new IOException("Unknown tile type: " + id);
-        handler = factory.apply(in);
+        handler = factory.getB().apply(in);
+    }
+
+    private LegacyTileData(int id, Handler handler) {
+        this.id = id;
+        this.handler = handler;
+    }
+
+    @Nullable
+    public static LegacyTileData fromBukkit(@NonNull BlockState tileState) {
+        var type = tileState.getType();
+        for (var id : legacy.keySet()) {
+            var factory = legacy.get(id);
+            var handler = factory.getA().apply(tileState, type);
+            if (handler != null)
+                return new LegacyTileData(id, handler);
+        }
+        return null;
     }
 
     @Override
@@ -77,8 +97,14 @@ public class LegacyTileData extends TileData {
         void toBukkit(Block block);
     }
 
+    @FunctionalInterface
+    private interface Builder {
+        @Nullable Handler apply(@NonNull BlockState blockState, @NonNull Material type);
+    }
+
     @ToString
     @EqualsAndHashCode
+    @AllArgsConstructor
     private static class SignHandler implements Handler {
         private final String line1;
         private final String line2;
@@ -92,6 +118,13 @@ public class LegacyTileData extends TileData {
             line3 = in.readUTF();
             line4 = in.readUTF();
             dyeColor = DyeColor.values()[in.readByte()];
+        }
+
+        @SuppressWarnings("deprecation")
+        private static SignHandler fromBukkit(BlockState blockState, Material type) {
+            if (!Tag.ALL_SIGNS.isTagged(type) || !(blockState instanceof Sign sign))
+                return null;
+            return new SignHandler(sign.getLine(0), sign.getLine(1), sign.getLine(2), sign.getLine(3), sign.getColor());
         }
 
         @Override
@@ -126,11 +159,18 @@ public class LegacyTileData extends TileData {
     }
     @ToString
     @EqualsAndHashCode
+    @AllArgsConstructor
     private static class SpawnerHandler implements Handler {
         private final EntityType type;
 
         private SpawnerHandler(DataInputStream in) throws IOException {
             type = EntityType.values()[in.readShort()];
+        }
+
+        private static SpawnerHandler fromBukkit(BlockState blockState, Material material) {
+            if (material != Material.SPAWNER || !(blockState instanceof CreatureSpawner spawner))
+                return null;
+            return new SpawnerHandler(spawner.getSpawnedType());
         }
 
         @Override
@@ -157,6 +197,7 @@ public class LegacyTileData extends TileData {
     }
     @ToString
     @EqualsAndHashCode
+    @AllArgsConstructor
     private static class BannerHandler implements Handler {
         private final KList<Pattern> patterns;
         private final DyeColor baseColor;
@@ -170,6 +211,12 @@ public class LegacyTileData extends TileData {
                 PatternType pattern = PatternType.values()[in.readByte()];
                 patterns.add(new Pattern(color, pattern));
             }
+        }
+
+        private static BannerHandler fromBukkit(BlockState blockState, Material type) {
+            if (!Tag.BANNERS.isTagged(type) || !(blockState instanceof Banner banner))
+                return null;
+            return new BannerHandler(new KList<>(banner.getPatterns()), banner.getBaseColor());
         }
 
         @Override

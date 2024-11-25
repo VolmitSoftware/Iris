@@ -40,7 +40,7 @@ public class TileMatter extends RawMatter<TileWrapper> {
     public TileMatter(int width, int height, int depth) {
         super(width, height, depth, TileWrapper.class);
         registerWriter(World.class, (w, d, x, y, z) -> TileData.setTileState(w.getBlockAt(new Location(w, x, y, z)), d.getData()));
-        registerReader(World.class, (w, x, y, z) -> new TileWrapper(TileData.getTileState(w.getBlockAt(new Location(w, x, y, z)))));
+        registerReader(World.class, (w, x, y, z) -> new TileWrapper(TileData.getTileState(w.getBlockAt(new Location(w, x, y, z)), false)));
     }
 
     @Override

@@ -562,7 +562,7 @@ public class IrisObject extends IrisRegistrant {
         }
     }
 
-    public void setUnsigned(int x, int y, int z, Block block) {
+    public void setUnsigned(int x, int y, int z, Block block, boolean legacy) {
         BlockVector v = getSigned(x, y, z);
 
         if (block == null) {
@@ -571,7 +571,7 @@ public class IrisObject extends IrisRegistrant {
         } else {
             BlockData data = block.getBlockData();
             getBlocks().put(v, data);
-            TileData state = TileData.getTileState(block);
+            TileData state = TileData.getTileState(block, legacy);
             if (state != null) {
                 Iris.debug("Saved State " + v);
                 getStates().put(v, state);

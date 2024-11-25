@@ -53,9 +53,15 @@ public class TileData implements Cloneable {
         return false;
     }
 
-    public static TileData getTileState(Block block) {
+    public static TileData getTileState(Block block, boolean useLegacy) {
         if (!INMS.get().hasTile(block.getType()))
             return null;
+        if (useLegacy) {
+            var legacy = LegacyTileData.fromBukkit(block.getState());
+            if (legacy != null)
+                return legacy;
+        }
+
         return new TileData().fromBukkit(block);
     }
 

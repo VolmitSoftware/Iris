@@ -376,9 +376,11 @@ public class CommandObject implements DecreeExecutor {
             @Param(description = "The file to store it in, can use / for subfolders")
             String name,
             @Param(description = "Overwrite existing object files", defaultValue = "false", aliases = "force")
-            boolean overwrite
+            boolean overwrite,
+            @Param(description = "Use legacy TileState serialization if possible", defaultValue = "true")
+            boolean legacy
     ) {
-        IrisObject o = WandSVC.createSchematic(player());
+        IrisObject o = WandSVC.createSchematic(player(), legacy);
 
         if (o == null) {
             sender().sendMessage(C.YELLOW + "You need to hold your wand!");

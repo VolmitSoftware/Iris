@@ -459,7 +459,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         IrisEngineData ed = getEngine().getEngineData();
         IrisEngineSpawnerCooldown cd = null;
 
-        for (IrisEngineSpawnerCooldown j : ed.getSpawnerCooldowns()) {
+        for (IrisEngineSpawnerCooldown j : ed.getSpawnerCooldowns().copy()) {
             if (j.getSpawner().equals(i.getLoadKey())) {
                 cd = j;
             }

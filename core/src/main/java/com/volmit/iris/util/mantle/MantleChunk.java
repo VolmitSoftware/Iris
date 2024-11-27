@@ -21,12 +21,13 @@ package com.volmit.iris.util.mantle;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.function.Consumer4;
+import com.volmit.iris.util.io.CountingDataInputStream;
 import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterSlice;
 import lombok.Getter;
 
-import java.io.DataInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicIntegerArray;
@@ -69,7 +70,7 @@ public class MantleChunk {
      * @throws IOException            shit happens
      * @throws ClassNotFoundException shit happens
      */
-    public MantleChunk(int sectionHeight, DataInputStream din) throws IOException, ClassNotFoundException {
+    public MantleChunk(int sectionHeight, CountingDataInputStream din) throws IOException {
         this(sectionHeight, din.readByte(), din.readByte());
         int s = din.readByte();
 
@@ -79,8 +80,23 @@ public class MantleChunk {
 
         for (int i = 0; i < s; i++) {
             Iris.addPanic("read.section", "Section[" + i + "]");
-            if (din.readBoolean()) {
+            long size = din.readInt();
+            if (size == 0) continue;
+            long start = din.count();
+
+            try {
                 sections.set(i, Matter.readDin(din));
+            } catch (IOException e) {
+                long end = start + size;
+                Iris.error("Failed to read chunk section, skipping it.");
+                Iris.addPanic("read.byte.range", start + " " + end);
+                Iris.addPanic("read.byte.current", din.count() + "");
+                Iris.reportError(e);
+                e.printStackTrace();
+                Iris.panic();
+
+                din.skipTo(end);
+                TectonicPlate.addError();
             }
         }
     }
@@ -174,15 +190,22 @@ public class MantleChunk {
             dos.writeBoolean(flags.get(i) == 1);
         }
 
+        var bytes = new ByteArrayOutputStream(8192);
+        var sub = new DataOutputStream(bytes);
         for (int i = 0; i < sections.length(); i++) {
             trimSlice(i);
 
             if (exists(i)) {
-                dos.writeBoolean(true);
-                Matter matter = get(i);
-                matter.writeDos(dos);
+                try {
+                    Matter matter = get(i);
+                    matter.writeDos(sub);
+                    dos.writeInt(bytes.size());
+                    bytes.writeTo(dos);
+                } finally {
+                    bytes.reset();
+                }
             } else {
-                dos.writeBoolean(false);
+                dos.writeInt(0);
             }
         }
     }

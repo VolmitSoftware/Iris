@@ -21,26 +21,31 @@ package com.volmit.iris.util.mantle;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.io.CountingDataInputStream;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
 import net.jpountz.lz4.LZ4BlockInputStream;
 import net.jpountz.lz4.LZ4BlockOutputStream;
-import net.jpountz.lz4.LZ4FrameInputStream;
-import net.jpountz.lz4.LZ4FrameOutputStream;
 
 import java.io.*;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.concurrent.atomic.AtomicReferenceArray;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 /**
  * Tectonic Plates are essentially representations of regions in minecraft.
  * Tectonic Plates are fully atomic & thread safe
  */
 public class TectonicPlate {
+    private static final KSet<Thread> errors = new KSet<>();
+
     private final int sectionHeight;
     private final AtomicReferenceArray<MantleChunk> chunks;
 
@@ -68,33 +73,58 @@ public class TectonicPlate {
      * @param worldHeight the height of the world
      * @param din         the data input
      * @throws IOException            shit happens yo
-     * @throws ClassNotFoundException real shit bro
      */
-    public TectonicPlate(int worldHeight, DataInputStream din) throws IOException, ClassNotFoundException {
+    public TectonicPlate(int worldHeight, CountingDataInputStream din) throws IOException {
         this(worldHeight, din.readInt(), din.readInt());
+        if (!din.markSupported())
+            throw new IOException("Mark not supported!");
+
         for (int i = 0; i < chunks.length(); i++) {
-            if (din.readBoolean()) {
+            long size = din.readInt();
+            if (size == 0) continue;
+            long start = din.count();
+
+            try {
                 Iris.addPanic("read-chunk", "Chunk[" + i + "]");
                 chunks.set(i, new MantleChunk(sectionHeight, din));
                 EnginePanic.saveLast();
+            } catch (Throwable e) {
+                long end = start + size;
+                Iris.error("Failed to read chunk, creating a new chunk instead.");
+                Iris.addPanic("read.byte.range", start + " " + end);
+                Iris.addPanic("read.byte.current", din.count() + "");
+                Iris.reportError(e);
+                e.printStackTrace();
+                Iris.panic();
+
+                din.skipTo(end);
+                TectonicPlate.addError();
             }
         }
     }
 
-    public static TectonicPlate read(int worldHeight, File file) throws IOException, ClassNotFoundException {
-        FileInputStream fin = new FileInputStream(file);
-        DataInputStream din;
-        if (file.getName().endsWith("ttp.lz4b")) {
-            LZ4BlockInputStream lz4 = new LZ4BlockInputStream(fin);
-            din = new DataInputStream(new BufferedInputStream(lz4));
-        } else {
-            GZIPInputStream gzi = new GZIPInputStream(fin);
-            din = new DataInputStream(new BufferedInputStream(gzi));
-        }
-        TectonicPlate p = new TectonicPlate(worldHeight, din);
-        din.close();
+    public static TectonicPlate read(int worldHeight, File file) throws IOException {
+        try (FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.SYNC)) {
+            fc.lock();
 
-        return p;
+            InputStream fin = Channels.newInputStream(fc);
+            LZ4BlockInputStream lz4 = new LZ4BlockInputStream(fin);
+            BufferedInputStream bis = new BufferedInputStream(lz4);
+            try (CountingDataInputStream din = CountingDataInputStream.wrap(bis)) {
+                return new TectonicPlate(worldHeight, din);
+            }
+        } finally {
+            if (errors.remove(Thread.currentThread())) {
+                File dump = Iris.instance.getDataFolder("dump", file.getName() + ".bin");
+                try (FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.SYNC)) {
+                    fc.lock();
+
+                    InputStream fin = Channels.newInputStream(fc);
+                    LZ4BlockInputStream lz4 = new LZ4BlockInputStream(fin);
+                    Files.copy(lz4, dump.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
+        }
     }
 
     /**
@@ -173,18 +203,15 @@ public class TectonicPlate {
      */
     public void write(File file) throws IOException {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        FileOutputStream fos = new FileOutputStream(file);
-        DataOutputStream dos;
-        if (file.getName().endsWith("ttp.lz4b")) {
-            LZ4BlockOutputStream lz4 = new LZ4BlockOutputStream(fos);
-            dos = new DataOutputStream(lz4);
-        } else {
-            GZIPOutputStream gzo = new GZIPOutputStream(fos);
-            dos = new DataOutputStream(gzo);
+        try (FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.SYNC)) {
+            fc.lock();
+
+            OutputStream fos = Channels.newOutputStream(fc);
+            try (DataOutputStream dos = new DataOutputStream(new LZ4BlockOutputStream(fos))) {
+                write(dos);
+                Iris.debug("Saved Tectonic Plate " + C.DARK_GREEN + file.getName().split("\\Q.\\E")[0] + C.RED + " in " + Form.duration(p.getMilliseconds(), 2));
+            }
         }
-        write(dos);
-        dos.close();
-        Iris.debug("Saved Tectonic Plate " + C.DARK_GREEN + file.getName().split("\\Q.\\E")[0] + C.RED + " in " + Form.duration(p.getMilliseconds(), 2));
     }
 
     /**
@@ -197,15 +224,26 @@ public class TectonicPlate {
         dos.writeInt(x);
         dos.writeInt(z);
 
+        var bytes = new ByteArrayOutputStream(8192);
+        var sub = new DataOutputStream(bytes);
         for (int i = 0; i < chunks.length(); i++) {
             MantleChunk chunk = chunks.get(i);
 
             if (chunk != null) {
-                dos.writeBoolean(true);
-                chunk.write(dos);
+                try {
+                    chunk.write(sub);
+                    dos.writeInt(bytes.size());
+                    bytes.writeTo(dos);
+                } finally {
+                    bytes.reset();
+                }
             } else {
-                dos.writeBoolean(false);
+                dos.writeInt(0);
             }
         }
+    }
+
+    public static void addError() {
+        errors.add(Thread.currentThread());
     }
 }

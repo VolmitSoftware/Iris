@@ -567,9 +567,6 @@ public class Mantle {
             }
 
             File file = fileForRegion(dataFolder, x, z);
-            if (!file.exists())
-                file = new File(dataFolder, file.getName().substring(".lz4b".length()));
-
             if (file.exists()) {
                 try {
                     Iris.addPanic("reading.tectonic-plate", file.getAbsolutePath());

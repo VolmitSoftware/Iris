@@ -42,6 +42,7 @@ import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.io.CountingDataInputStream;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.mantle.TectonicPlate;
 import com.volmit.iris.util.math.Spiraler;
@@ -262,7 +263,7 @@ public class CommandDeveloper implements DecreeExecutor {
             VolmitSender sender = sender();
             service.submit(() -> {
                 try {
-                    DataInputStream raw = new DataInputStream(new FileInputStream(file));
+                    CountingDataInputStream raw = CountingDataInputStream.wrap(new FileInputStream(file));
                     TectonicPlate plate = new TectonicPlate(height, raw);
                     raw.close();
 
@@ -281,7 +282,7 @@ public class CommandDeveloper implements DecreeExecutor {
                         if (size == 0)
                             size = tmp.length();
                         start = System.currentTimeMillis();
-                        DataInputStream din = createInput(tmp, algorithm);
+                        CountingDataInputStream din = createInput(tmp, algorithm);
                         new TectonicPlate(height, din);
                         din.close();
                         d2 += System.currentTimeMillis() - start;
@@ -301,10 +302,10 @@ public class CommandDeveloper implements DecreeExecutor {
         }
     }
 
-    private DataInputStream createInput(File file, String algorithm) throws Throwable {
+    private CountingDataInputStream createInput(File file, String algorithm) throws Throwable {
         FileInputStream in = new FileInputStream(file);
 
-        return new DataInputStream(switch (algorithm) {
+        return CountingDataInputStream.wrap(switch (algorithm) {
             case "gzip" -> new GZIPInputStream(in);
             case "lz4f" -> new LZ4FrameInputStream(in);
             case "lz4b" -> new LZ4BlockInputStream(in);

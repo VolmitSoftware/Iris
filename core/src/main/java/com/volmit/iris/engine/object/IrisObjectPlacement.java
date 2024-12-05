@@ -103,6 +103,8 @@ public class IrisObjectPlacement {
     private boolean onwater = false;
     @Desc("If set to true, this object will only place parts of itself where blocks already exist. Warning: Melding is very performance intensive!")
     private boolean meld = false;
+    @Desc("If set to true, this object will get placed from the bottom of the world up")
+    private boolean fromBottom;
     @Desc("If set to true, this object will place from the ground up instead of height checks when not y locked to the surface. This is not compatable with X and Z axis rotations (it may look off)")
     private boolean bottom = false;
     @Desc("If set to true, air will be placed before the schematic places.")

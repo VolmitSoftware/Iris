@@ -663,7 +663,18 @@ public class IrisObject extends IrisRegistrant {
         yrand = yrand > 0 ? rng.i(0, yrand) : yrand < 0 ? rng.i(yrand, 0) : yrand;
         boolean bail = false;
 
-        if (yv < 0) {
+        if (config.isFromBottom()) {
+            // todo Convert this to a mode and make it compatible with jigsaw
+            y = (getH() + 1) + rty;
+            if (!config.isForcePlace()) {
+                if (placer.isCarved(x, y, z) ||
+                        placer.isCarved(x, y - 1, z) ||
+                        placer.isCarved(x, y - 2, z) ||
+                        placer.isCarved(x, y - 3, z)) {
+                    bail = true;
+                }
+            }
+        } else  if (yv < 0) {
             if (config.getMode().equals(ObjectPlaceMode.CENTER_HEIGHT) || config.getMode() == ObjectPlaceMode.CENTER_STILT) {
                 y = (c != null ? c.getSurface() : placer.getHighest(x, z, getLoader(), config.isUnderwater())) + rty;
                 if (!config.isForcePlace()) {

@@ -85,9 +85,9 @@ public abstract class ExternalDataProvider {
      */
     public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {}
 
-    public abstract @NotNull Identifier @NotNull [] getBlockTypes();
+    public abstract @NotNull Identifier[] getBlockTypes();
 
-    public abstract @NotNull Identifier @NotNull [] getItemTypes();
+    public abstract @NotNull Identifier[] getItemTypes();
 
     public abstract boolean isValidProvider(@NotNull Identifier id, boolean isItem);
 }

@@ -15,7 +15,6 @@ import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
-import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 import org.bukkit.Bukkit;
@@ -261,14 +260,14 @@ public class DeepSearchPregenerator extends Thread implements Listener {
     }
 
     @Data
-    @Builder
+    @lombok.Builder
     public static class DeepSearchJob {
         private World world;
-        @Builder.Default
+        @lombok.Builder.Default
         private int radiusBlocks = 5000;
-        @Builder.Default
+        @lombok.Builder.Default
         private int position = 0;
-        @Builder.Default
+        @lombok.Builder.Default
         boolean paused = false;
     }
 }

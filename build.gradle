@@ -62,18 +62,14 @@ def NMS_BINDINGS = Map.of(
         "v1_19_R2", "1.19.3-R0.1-SNAPSHOT",
         "v1_19_R1", "1.19.2-R0.1-SNAPSHOT"
 )
-def JVM_VERSION = Map.of(
-        "v1_21_R2", 21,
-        "v1_21_R1", 21,
-        "v1_20_R4", 21,
-)
+def JVM_VERSION = Map.of()
 NMS_BINDINGS.each { nms ->
     project(":nms:${nms.key}") {
         apply plugin: 'java'
         apply plugin: 'com.volmit.nmstools'
 
         nmsTools {
-            it.jvm = JVM_VERSION.getOrDefault(nms.key, 17)
+            it.jvm = JVM_VERSION.getOrDefault(nms.key, 21)
             it.version = nms.value
         }
 
@@ -164,18 +160,18 @@ allprojects {
     }
 }
 
-if (JavaVersion.current().toString() != "17") {
+if (JavaVersion.current().toString() != "21") {
     System.err.println()
     System.err.println("=========================================================================================================")
-    System.err.println("You must run gradle on Java 17. You are using " + JavaVersion.current())
+    System.err.println("You must run gradle on Java 21. You are using " + JavaVersion.current())
     System.err.println()
     System.err.println("=== For IDEs ===")
-    System.err.println("1. Configure the project for Java 17")
-    System.err.println("2. Configure the bundled gradle to use Java 17 in settings")
+    System.err.println("1. Configure the project for Java 21")
+    System.err.println("2. Configure the bundled gradle to use Java 21 in settings")
     System.err.println()
     System.err.println("=== For Command Line (gradlew) ===")
-    System.err.println("1. Install JDK 17 from https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html")
-    System.err.println("2. Set JAVA_HOME environment variable to the new jdk installation folder such as C:\\Program Files\\Java\\jdk-17.0.1")
+    System.err.println("1. Install JDK 21 from https://www.oracle.com/java/technologies/javase/jdk21-archive-downloads.html")
+    System.err.println("2. Set JAVA_HOME environment variable to the new jdk installation folder such as C:\\Program Files\\Java\\jdk-21.0.4")
     System.err.println("3. Open a new command prompt window to get the new environment variables if need be.")
     System.err.println("=========================================================================================================")
     System.err.println()

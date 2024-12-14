@@ -1,8 +1,13 @@
 package com.volmit.iris.core.link;
 
+import com.nexomc.nexo.api.NexoBlocks;
+import com.nexomc.nexo.api.NexoFurniture;
+import com.nexomc.nexo.api.NexoItems;
+import com.nexomc.nexo.items.ItemBuilder;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
@@ -25,19 +30,12 @@ import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.MissingResourceException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 public class NexoDataProvider extends ExternalDataProvider {
     private final AtomicBoolean failed = new AtomicBoolean(false);
-    private WrappedReturningMethod<?, String[]> itemNames;
-    private WrappedReturningMethod<?, Object> itemFromId;
-    private WrappedReturningMethod<?, Boolean> exists;
-
-    private WrappedReturningMethod<?, Boolean> isCustomBlock;
-    private WrappedReturningMethod<?, Boolean> isFurniture;
-
-    private WrappedReturningMethod<?, BlockData> getBlockData;
-    private WrappedReturningMethod<?, ItemDisplay> placeFurniture;
-    private WrappedReturningMethod<?, ?> placeBlock;
 
     public NexoDataProvider() {
         super("Nexo");
@@ -45,38 +43,21 @@ public class NexoDataProvider extends ExternalDataProvider {
 
     @Override
     public void init() {
-        try {
-            Class<?> nexoItems = Class.forName("com.nexomc.nexo.api.NexoItems");
-            Class<?> nexoBlocks = Class.forName("com.nexomc.nexo.api.NexoBlocks");
-            Class<?> nexoFurniture = Class.forName("com.nexomc.nexo.api.NexoFurniture");
-
-            itemNames = new WrappedReturningMethod<>(nexoItems, "itemNames");
-            exists = new WrappedReturningMethod<>(nexoItems, "exists", String.class);
-            itemFromId = new WrappedReturningMethod<>(nexoItems, "itemFromId", String.class);
-
-            isCustomBlock = new WrappedReturningMethod<>(nexoBlocks, "isCustomBlock", String.class);
-            isFurniture = new WrappedReturningMethod<>(nexoFurniture, "isFurniture", String.class);
-
-            getBlockData = new WrappedReturningMethod<>(nexoBlocks, "blockData", String.class);
-            placeFurniture = new WrappedReturningMethod<>(nexoFurniture, "place", String.class, Location.class, float.class, BlockFace.class);
-            placeBlock = new WrappedReturningMethod<>(nexoBlocks, "place", String.class, Location.class);
-        } catch (Throwable e) {
-            failed.set(true);
-            Iris.error("Failed to initialize NexoDataProvider");
-            e.printStackTrace();
-        }
     }
 
     @Override
     public BlockData getBlockData(Identifier blockId, KMap<String, String> state) throws MissingResourceException {
-        if (!exists.invoke(blockId.key())) {
+        if (!NexoItems.exists(blockId.key())) {
             throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
         }
 
         Identifier blockState = ExternalDataSVC.buildState(blockId, state);
-        if (isCustomBlock.invoke(blockId.key())) {
-            return new IrisBlockData(getBlockData.invoke(blockId.key()), blockState);
-        } else if (isFurniture.invoke(blockId.key())) {
+        if (NexoBlocks.isCustomBlock(blockId.key())) {
+            BlockData data = NexoBlocks.blockData(blockId.key());
+            if (data == null)
+                throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
+            return new IrisBlockData(data, blockState);
+        } else if (NexoFurniture.isFurniture(blockId.key())) {
             return new IrisBlockData(B.getAir(), blockState);
         }
 
@@ -85,16 +66,11 @@ public class NexoDataProvider extends ExternalDataProvider {
 
     @Override
     public ItemStack getItemStack(Identifier itemId, KMap<String, Object> customNbt) throws MissingResourceException {
-        Object o = itemFromId.invoke(itemId.key());
-        if (o == null) {
+        ItemBuilder builder = NexoItems.itemFromId(itemId.key());
+        if (builder == null) {
             throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());
         }
-        ItemBuilder builder = newProxy(o);
-        ItemStack itemStack = builder.build();
-        if (itemStack == null) {
-            throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());
-        }
-        return itemStack;
+        return builder.build();
     }
 
     @Override
@@ -103,12 +79,12 @@ public class NexoDataProvider extends ExternalDataProvider {
         var state = pair.getB();
         blockId = pair.getA();
 
-        if (isCustomBlock.invoke(blockId.key())) {
-            placeBlock.invoke(blockId.key(), block.getLocation());
+        if (NexoBlocks.isCustomBlock(blockId.key())) {
+            NexoBlocks.place(blockId.key(), block.getLocation());
             return;
         }
 
-        if (!isFurniture.invoke(blockId.key()))
+        if (!NexoFurniture.isFurniture(blockId.key()))
             return;
 
         float yaw = 0;
@@ -130,7 +106,7 @@ public class NexoDataProvider extends ExternalDataProvider {
         if (face == BlockFace.SELF) {
             face = BlockFace.NORTH;
         }
-        ItemDisplay display = placeFurniture.invoke(blockId.key(), block.getLocation(), yaw, face);
+        ItemDisplay display = NexoFurniture.place(blockId.key(), block.getLocation(), yaw, face);
         if (display == null) return;
         ItemStack itemStack = display.getItemStack();
         if (itemStack == null) return;
@@ -154,8 +130,7 @@ public class NexoDataProvider extends ExternalDataProvider {
 
     @Override
     public Identifier[] getBlockTypes() {
-        return Arrays.stream(itemNames.invoke())
-                .filter(i -> isCustomBlock.invoke(i) || isFurniture.invoke(i))
+        return Arrays.stream(NexoItems.itemNames())
                 .map(i -> new Identifier("nexo", i))
                 .filter(i -> {
                     try {
@@ -169,7 +144,7 @@ public class NexoDataProvider extends ExternalDataProvider {
 
     @Override
     public Identifier[] getItemTypes() {
-        return Arrays.stream(itemNames.invoke())
+        return Arrays.stream(NexoItems.itemNames())
                 .map(i -> new Identifier("nexo", i))
                 .filter(i -> {
                     try {
@@ -189,16 +164,5 @@ public class NexoDataProvider extends ExternalDataProvider {
     @Override
     public boolean isReady() {
         return super.isReady() && !failed.get();
-    }
-
-    private static ItemBuilder newProxy(Object instance) {
-        return (ItemBuilder) Proxy.newProxyInstance(
-                NexoDataProvider.class.getClassLoader(),
-                new Class[]{ItemBuilder.class},
-                (proxy, method, args) -> method.invoke(instance, args));
-    }
-
-    private interface ItemBuilder {
-        @Nullable ItemStack build();
     }
 }

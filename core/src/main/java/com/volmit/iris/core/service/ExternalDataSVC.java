@@ -26,6 +26,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.plugin.IrisService;
 import lombok.Data;
+import lombok.NonNull;
 import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
@@ -96,6 +97,18 @@ public class ExternalDataSVC implements IrisService {
                 edp.init();
                 Iris.info("Enabled ExternalDataProvider for %s.", edp.getPluginId());
             });
+        }
+    }
+
+    public void registerProvider(@NonNull ExternalDataProvider provider) {
+        String plugin = provider.getPluginId();
+        if (providers.stream().map(ExternalDataProvider::getPluginId).anyMatch(plugin::equals))
+            throw new IllegalArgumentException("A provider with the same plugin id already exists.");
+
+        providers.add(provider);
+        if (provider.isReady()) {
+            activeProviders.add(provider);
+            provider.init();
         }
     }
 

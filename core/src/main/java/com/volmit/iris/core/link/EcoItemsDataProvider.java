@@ -9,6 +9,7 @@ import com.willfp.ecoitems.items.EcoItems;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.MissingResourceException;
 
@@ -33,23 +34,27 @@ public class EcoItemsDataProvider extends ExternalDataProvider {
         }
     }
 
+    @NotNull
     @Override
-    public BlockData getBlockData(Identifier blockId, KMap<String, String> state) throws MissingResourceException {
+    public BlockData getBlockData(@NotNull Identifier blockId, @NotNull KMap<String, String> state) throws MissingResourceException {
         throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
     }
 
+    @NotNull
     @Override
-    public ItemStack getItemStack(Identifier itemId, KMap<String, Object> customNbt) throws MissingResourceException {
+    public ItemStack getItemStack(@NotNull Identifier itemId, @NotNull KMap<String, Object> customNbt) throws MissingResourceException {
         EcoItem item = EcoItems.INSTANCE.getByID(itemId.key());
         if (item == null) throw new MissingResourceException("Failed to find Item!", itemId.namespace(), itemId.key());
         return itemStack.get(item).clone();
     }
 
+    @NotNull
     @Override
     public Identifier[] getBlockTypes() {
         return new Identifier[0];
     }
 
+    @NotNull
     @Override
     public Identifier[] getItemTypes() {
         KList<Identifier> names = new KList<>();
@@ -66,7 +71,7 @@ public class EcoItemsDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public boolean isValidProvider(Identifier id, boolean isItem) {
+    public boolean isValidProvider(@NotNull Identifier id, boolean isItem) {
         return id.namespace().equalsIgnoreCase("ecoitems") && isItem;
     }
 }

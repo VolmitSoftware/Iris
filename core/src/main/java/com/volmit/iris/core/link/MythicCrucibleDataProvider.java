@@ -40,6 +40,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.MissingResourceException;
 import java.util.Optional;
@@ -62,8 +63,9 @@ public class MythicCrucibleDataProvider extends ExternalDataProvider {
         }
     }
 
+    @NotNull
     @Override
-    public BlockData getBlockData(Identifier blockId, KMap<String, String> state) throws MissingResourceException {
+    public BlockData getBlockData(@NotNull Identifier blockId, @NotNull KMap<String, String> state) throws MissingResourceException {
         CrucibleItem crucibleItem = this.itemManager.getItem(blockId.key())
                 .orElseThrow(() -> new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key()));
         CustomBlockItemContext blockItemContext = crucibleItem.getBlockData();
@@ -76,8 +78,9 @@ public class MythicCrucibleDataProvider extends ExternalDataProvider {
         throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
     }
 
+    @NotNull
     @Override
-    public ItemStack getItemStack(Identifier itemId, KMap<String, Object> customNbt) throws MissingResourceException {
+    public ItemStack getItemStack(@NotNull Identifier itemId, @NotNull KMap<String, Object> customNbt) throws MissingResourceException {
         Optional<CrucibleItem> opt = this.itemManager.getItem(itemId.key());
         return BukkitAdapter.adapt(opt.orElseThrow(() ->
                 new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key()))
@@ -85,6 +88,7 @@ public class MythicCrucibleDataProvider extends ExternalDataProvider {
                 .generateItemStack(1));
     }
 
+    @NotNull
     @Override
     public Identifier[] getBlockTypes() {
         KList<Identifier> names = new KList<>();
@@ -101,6 +105,7 @@ public class MythicCrucibleDataProvider extends ExternalDataProvider {
         return names.toArray(new Identifier[0]);
     }
 
+    @NotNull
     @Override
     public Identifier[] getItemTypes() {
         KList<Identifier> names = new KList<>();
@@ -117,7 +122,7 @@ public class MythicCrucibleDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public void processUpdate(Engine engine, Block block, Identifier blockId) {
+    public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
         var pair = ExternalDataSVC.parseState(blockId);
         var state = pair.getB();
         blockId = pair.getA();
@@ -160,7 +165,7 @@ public class MythicCrucibleDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public boolean isValidProvider(Identifier key, boolean isItem) {
+    public boolean isValidProvider(@NotNull Identifier key, boolean isItem) {
         return key.namespace().equalsIgnoreCase("crucible");
     }
 }

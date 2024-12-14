@@ -4,10 +4,8 @@ import com.nexomc.nexo.api.NexoBlocks;
 import com.nexomc.nexo.api.NexoFurniture;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.container.BiomeColor;
-import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
@@ -15,24 +13,18 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.IrisBlockData;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.reflect.WrappedReturningMethod;
 import org.bukkit.Color;
-import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.PotionMeta;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nullable;
-import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.MissingResourceException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
 
 public class NexoDataProvider extends ExternalDataProvider {
     private final AtomicBoolean failed = new AtomicBoolean(false);
@@ -45,8 +37,9 @@ public class NexoDataProvider extends ExternalDataProvider {
     public void init() {
     }
 
+    @NotNull
     @Override
-    public BlockData getBlockData(Identifier blockId, KMap<String, String> state) throws MissingResourceException {
+    public BlockData getBlockData(@NotNull Identifier blockId, @NotNull KMap<String, String> state) throws MissingResourceException {
         if (!NexoItems.exists(blockId.key())) {
             throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
         }
@@ -64,8 +57,9 @@ public class NexoDataProvider extends ExternalDataProvider {
         throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
     }
 
+    @NotNull
     @Override
-    public ItemStack getItemStack(Identifier itemId, KMap<String, Object> customNbt) throws MissingResourceException {
+    public ItemStack getItemStack(@NotNull Identifier itemId, @NotNull KMap<String, Object> customNbt) throws MissingResourceException {
         ItemBuilder builder = NexoItems.itemFromId(itemId.key());
         if (builder == null) {
             throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());
@@ -74,7 +68,7 @@ public class NexoDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public void processUpdate(Engine engine, Block block, Identifier blockId) {
+    public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
         var pair = ExternalDataSVC.parseState(blockId);
         var state = pair.getB();
         blockId = pair.getA();
@@ -128,6 +122,7 @@ public class NexoDataProvider extends ExternalDataProvider {
         display.setItemStack(itemStack);
     }
 
+    @NotNull
     @Override
     public Identifier[] getBlockTypes() {
         return Arrays.stream(NexoItems.itemNames())
@@ -142,6 +137,7 @@ public class NexoDataProvider extends ExternalDataProvider {
                 .toArray(Identifier[]::new);
     }
 
+    @NotNull
     @Override
     public Identifier[] getItemTypes() {
         return Arrays.stream(NexoItems.itemNames())
@@ -157,7 +153,7 @@ public class NexoDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public boolean isValidProvider(Identifier id, boolean isItem) {
+    public boolean isValidProvider(@NotNull Identifier id, boolean isItem) {
         return "nexo".equalsIgnoreCase(id.namespace());
     }
 

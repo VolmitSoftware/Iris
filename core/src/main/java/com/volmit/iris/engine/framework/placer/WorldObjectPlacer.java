@@ -20,8 +20,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.InventoryHolder;
 
@@ -74,7 +72,7 @@ public class WorldObjectPlacer implements IObjectPlacer {
                 if (tables.isEmpty())
                     return;
                 InventoryHolder m = (InventoryHolder) block.getState();
-                engine.addItems(false, m.getInventory(), rx, tables, slot, x, y, z, 15);
+                engine.addItems(false, m.getInventory(), rx, tables, slot, world, x, y, z, 15);
             } catch (Throwable e) {
                 Iris.reportError(e);
             }

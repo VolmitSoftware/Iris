@@ -21,7 +21,6 @@ package com.volmit.iris.core.nms.v1X;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.core.nms.container.BiomeColor;
-import com.volmit.iris.core.nms.container.BlockPos;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -32,7 +31,6 @@ import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
-import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -40,8 +38,8 @@ import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.generator.structure.Structure;
 import org.bukkit.inventory.ItemStack;
 
-import java.awt.*;
 import java.awt.Color;
+import java.util.stream.StreamSupport;
 
 public class NMSBinding1X implements INMSBinding {
     private static final boolean supportsCustomHeight = testCustomHeight();
@@ -113,7 +111,7 @@ public class NMSBinding1X implements INMSBinding {
 
     @Override
     public KList<String> getStructureKeys() {
-        var list = Registry.STRUCTURE.stream()
+        var list = StreamSupport.stream(Registry.STRUCTURE.spliterator(), false)
                 .map(Structure::getKey)
                 .map(NamespacedKey::toString)
                 .toList();

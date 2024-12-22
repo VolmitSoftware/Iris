@@ -26,7 +26,6 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.service.ConversionSVC;
 import com.volmit.iris.core.service.StudioSVC;
-import com.volmit.iris.core.tools.IrisConverter;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.*;
@@ -55,7 +54,6 @@ import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
-import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -64,7 +62,6 @@ import io.papermc.lib.PaperLib;
 import org.bukkit.*;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
@@ -79,7 +76,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -306,7 +302,7 @@ public class CommandStudio implements DecreeExecutor {
         Inventory inv = Bukkit.createInventory(null, 27 * 2);
 
         try {
-            engine().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
+            engine().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, player().getWorld(), player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
         } catch (Throwable e) {
             Iris.reportError(e);
             sender().sendMessage(C.RED + "Cannot add items to virtual inventory because of: " + e.getMessage());
@@ -329,7 +325,7 @@ public class CommandStudio implements DecreeExecutor {
                 inv.clear();
             }
 
-            engine().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
+            engine().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, player().getWorld(), player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
         }, 0, fast ? 5 : 35));
 
         sender().sendMessage(C.GREEN + "Opening inventory now!");

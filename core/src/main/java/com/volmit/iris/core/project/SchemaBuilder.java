@@ -46,7 +46,6 @@ public class SchemaBuilder {
     private static final String SYMBOL_TYPE__N = "";
     private static final JSONArray POTION_TYPES = getPotionTypes();
     private static final JSONArray ENCHANT_TYPES = getEnchantTypes();
-    private static final JSONArray ITEM_TYPES = new JSONArray(B.getItemTypes());
     private static final JSONArray FONT_TYPES = new JSONArray(GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames());
     private final KMap<String, JSONObject> definitions;
     private final Class<?> root;
@@ -264,7 +263,7 @@ public class SchemaBuilder {
 
                     if (!definitions.containsKey(key)) {
                         JSONObject j = new JSONObject();
-                        j.put("enum", ITEM_TYPES);
+                        j.put("enum", B.getItemTypes());
                         definitions.put(key, j);
                     }
 
@@ -441,7 +440,7 @@ public class SchemaBuilder {
 
                                 if (!definitions.containsKey(key)) {
                                     JSONObject j = new JSONObject();
-                                    j.put("enum", ITEM_TYPES);
+                                    j.put("enum", B.getItemTypes());
                                     definitions.put(key, j);
                                 }
 

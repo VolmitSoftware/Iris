@@ -21,21 +21,12 @@ package com.volmit.iris.core.commands;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.datapack.DataVersion;
-import com.volmit.iris.core.nms.v1X.NMSBinding1X;
-import com.volmit.iris.core.pregenerator.ChunkUpdater;
 import com.volmit.iris.core.service.IrisEngineSVC;
-import com.volmit.iris.core.tools.IrisConverter;
 import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisCave;
 import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisEntity;
-import com.volmit.iris.util.data.Dimension;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
@@ -45,13 +36,10 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.CountingDataInputStream;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.mantle.TectonicPlate;
-import com.volmit.iris.util.math.Spiraler;
-import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.nbt.mca.MCAFile;
 import com.volmit.iris.util.nbt.mca.MCAUtil;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
-import io.lumine.mythic.bukkit.adapters.BukkitEntity;
 import net.jpountz.lz4.LZ4BlockInputStream;
 import net.jpountz.lz4.LZ4BlockOutputStream;
 import net.jpountz.lz4.LZ4FrameInputStream;
@@ -59,10 +47,7 @@ import net.jpountz.lz4.LZ4FrameOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
-import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.entity.Creeper;
-import org.bukkit.entity.EntityType;
 
 import java.io.*;
 import java.net.InetAddress;
@@ -153,12 +138,14 @@ public class CommandDeveloper implements DecreeExecutor {
 
     @Decree(description = "Test")
     public void packBenchmark(
-            @Param(description = "The pack to bench", aliases = {"pack"})
-            IrisDimension dimension
+            @Param(description = "The pack to bench", aliases = {"pack"}, defaultValue = "overworld")
+            IrisDimension dimension,
+            @Param(description = "Radius in regions", defaultValue = "5")
+            int radius,
+            @Param(description = "Open GUI while benchmarking", defaultValue = "false")
+            boolean gui
     ) {
-        Iris.info("test");
-        IrisPackBenchmarking benchmark = new IrisPackBenchmarking(dimension, 1);
-
+        new IrisPackBenchmarking(dimension, radius, gui);
     }
 
     @Decree(description = "Upgrade to another Minecraft version")

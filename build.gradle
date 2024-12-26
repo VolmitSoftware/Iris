@@ -151,6 +151,7 @@ allprojects {
         compileOnly 'rhino:js:1.7R2'
         compileOnly 'com.github.ben-manes.caffeine:caffeine:3.0.6'
         compileOnly 'org.apache.commons:commons-lang3:3.12.0'
+        compileOnly 'com.github.oshi:oshi-core:6.6.5'
     }
 
     /**

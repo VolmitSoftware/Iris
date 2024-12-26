@@ -28,9 +28,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
+import java.util.zip.*;
 
 @SuppressWarnings("ALL")
 public class IO {
@@ -111,6 +109,45 @@ public class IO {
         }
 
         return "¯\\_(ツ)_/¯";
+    }
+
+    public static String hashRecursive(File base) {
+        LinkedList<File> files = new LinkedList<>();
+        Set<File> processed = new HashSet<>();
+        files.add(base);
+        try {
+            CRC32 crc = new CRC32();
+            while (!files.isEmpty()) {
+                File file = files.removeFirst();
+                if (!processed.add(file))
+                    continue;
+
+                if (file.isDirectory()) {
+                    File[] arr = file.listFiles();
+                    if (arr == null)
+                        continue;
+
+                    Arrays.parallelSort(arr, Comparator.comparing(File::getName));
+                    files.addAll(Arrays.asList(arr));
+                    continue;
+                }
+
+                try (var fin = new FileInputStream(file)) {
+                    var din = new CheckedInputStream(fin, crc);
+                    fullTransfer(din, new VoidOutputStream(), 8192);
+                } catch (IOException e) {
+                    Iris.reportError(e);
+                    e.printStackTrace();
+                }
+            }
+
+            return Long.toHexString(crc.getValue());
+        } catch (Throwable e) {
+            Iris.reportError(e);
+            e.printStackTrace();
+        }
+
+        return "";
     }
 
     public static String hash(File b) {

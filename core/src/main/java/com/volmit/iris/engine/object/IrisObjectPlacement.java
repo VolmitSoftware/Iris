@@ -41,6 +41,7 @@ import org.bukkit.TreeType;
 import org.bukkit.block.data.BlockData;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Optional;
 import java.util.function.Function;
 
 @Snippet("object-placer")
@@ -130,6 +131,7 @@ public class IrisObjectPlacement {
     @ArrayType(min = 1, type = IrisObjectLoot.class)
     @Desc("The loot tables to apply to these objects")
     private KList<IrisObjectLoot> loot = new KList<>();
+    @ArrayType(min = 1, type = IrisObjectVanillaLoot.class)
     @Desc("The vanilla loot tables to apply to these objects")
     private KList<IrisObjectVanillaLoot> vanillaLoot = new KList<>();
     @Desc("Whether the given loot tables override any and all other loot tables available in the dimension, region or biome.")
@@ -147,8 +149,7 @@ public class IrisObjectPlacement {
     private KList<String> forbiddenCollisions = new KList<>();
     @Desc("Ignore any placement restrictions for this object")
     private boolean forcePlace = false;
-    private transient AtomicCache<TableCache<IrisLootTable>> cache = new AtomicCache<>();
-    private transient AtomicCache<TableCache<IrisVanillaLootTable>> vanillaCache = new AtomicCache<>();
+    private transient AtomicCache<TableCache> cache = new AtomicCache<>();
 
     public IrisObjectPlacement toPlacement(String... place) {
         IrisObjectPlacement p = new IrisObjectPlacement();
@@ -219,21 +220,24 @@ public class IrisObjectPlacement {
         return (int) Math.round(densityStyle.get(rng, x, z, data));
     }
 
-    private TableCache<IrisLootTable> getCache(IrisData manager) {
-        return cache.aquire(() -> getCache(manager, manager.getLootLoader()::load));
+    private TableCache getCache(IrisData manager) {
+        return cache.aquire(() -> {
+            TableCache cache = new TableCache();
+
+            cache.merge(getCache(manager, getVanillaLoot(), IrisObjectPlacement::getVanillaTable));
+            cache.merge(getCache(manager, getLoot(), manager.getLootLoader()::load));
+
+            return cache;
+        });
     }
 
-    private TableCache<IrisVanillaLootTable> getVanillaCache(IrisData manager) {
-        return vanillaCache.aquire(() -> getCache(manager, IrisObjectPlacement::getVanillaTable));
-    }
+    private TableCache getCache(IrisData manager, KList<? extends IObjectLoot> list, Function<String, IrisLootTable> loader) {
+        TableCache tc = new TableCache();
 
-    private <T> TableCache<T> getCache(IrisData manager, Function<String, T> loader) {
-        TableCache<T> tc = new TableCache<>();
-
-        for (IrisObjectLoot loot : getLoot()) {
+        for (IObjectLoot loot : list) {
             if (loot == null)
                 continue;
-            T table = loader.apply(loot.getName());
+            IrisLootTable table = loader.apply(loot.getName());
             if (table == null) {
                 Iris.warn("Couldn't find loot table " + loot.getName());
                 continue;
@@ -271,10 +275,10 @@ public class IrisObjectPlacement {
 
     @Nullable
     private static IrisVanillaLootTable getVanillaTable(String name) {
-        NamespacedKey key = NamespacedKey.fromString(name);
-        if (key == null)
-            return null;
-        return new IrisVanillaLootTable(Bukkit.getLootTable(key));
+        return Optional.ofNullable(NamespacedKey.fromString(name))
+                .map(Bukkit::getLootTable)
+                .map(IrisVanillaLootTable::new)
+                .orElse(null);
     }
 
     /**
@@ -285,16 +289,9 @@ public class IrisObjectPlacement {
      * @return The loot table it should use.
      */
     public IrisLootTable getTable(BlockData data, IrisData dataManager) {
-        IrisLootTable table = pickTable(data, getVanillaCache(dataManager));
-        if (table == null) {
-            table = pickTable(data, getCache(dataManager));
-        }
-        return table;
-    }
-
-    private <T> T pickTable(BlockData data, TableCache<T> cache) {
+        TableCache cache = getCache(dataManager);
         if (B.isStorageChest(data)) {
-            T picked = null;
+            IrisLootTable picked = null;
             if (cache.exact.containsKey(data.getMaterial()) && cache.exact.get(data.getMaterial()).containsKey(data)) {
                 picked = cache.exact.get(data.getMaterial()).get(data).pullRandom();
             } else if (cache.basic.containsKey(data.getMaterial())) {
@@ -309,9 +306,15 @@ public class IrisObjectPlacement {
         return null;
     }
 
-    private static class TableCache<T> {
-        final transient WeightedRandom<T> global = new WeightedRandom<>();
-        final transient KMap<Material, WeightedRandom<T>> basic = new KMap<>();
-        final transient KMap<Material, KMap<BlockData, WeightedRandom<T>>> exact = new KMap<>();
+    private static class TableCache {
+        final transient WeightedRandom<IrisLootTable> global = new WeightedRandom<>();
+        final transient KMap<Material, WeightedRandom<IrisLootTable>> basic = new KMap<>();
+        final transient KMap<Material, KMap<BlockData, WeightedRandom<IrisLootTable>>> exact = new KMap<>();
+
+        private void merge(TableCache other) {
+            global.merge(other.global);
+            basic.merge(other.basic, WeightedRandom::merge);
+            exact.merge(other.exact, (a, b) -> a.merge(b, WeightedRandom::merge));
+        }
     }
 }

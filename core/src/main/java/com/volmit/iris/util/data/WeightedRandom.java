@@ -42,11 +42,18 @@ public class WeightedRandom<T> {
         totalWeight += weight;
     }
 
+    public WeightedRandom<T> merge(WeightedRandom<T> other) {
+        weightedObjects.addAll(other.weightedObjects);
+        totalWeight += other.totalWeight;
+        return this;
+    }
+
     public T pullRandom() {
         int pull = random.nextInt(totalWeight);
         int index = 0;
         while (pull > 0) {
             pull -= weightedObjects.get(index).getV();
+            if (pull <= 0) break;
             index++;
         }
         return weightedObjects.get(index).getK();

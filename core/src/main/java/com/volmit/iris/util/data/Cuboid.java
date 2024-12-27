@@ -810,7 +810,7 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
             }
 
             var b = w.getBlockAt((chunk.getX() << 4) + rX, y, (chunk.getZ() << 4) + rZ);
-            if (++y >= maxY) {
+            if (++y > maxY) {
                 y = minY;
                 if (++rX > mX) {
                     if (++rZ > mZ) {

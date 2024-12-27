@@ -28,6 +28,7 @@ import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 
 @SuppressWarnings("ALL")
 public class KMap<K, V> extends ConcurrentHashMap<K, V> {
@@ -148,6 +149,17 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
      */
     public KMap<K, V> put(Map<K, V> m) {
         putAll(m);
+        return this;
+    }
+
+    /**
+     * Merge with another map
+     *
+     * @param m the map to merge
+     * @return this map (builder)
+     */
+    public KMap<K, V> merge(KMap<K, V> m, BiFunction<V, V, V> merger) {
+        m.forEach((k, v) -> merge(k, v, merger));
         return this;
     }
 

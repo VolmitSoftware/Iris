@@ -20,32 +20,32 @@ public class IrisVanillaLootTable extends IrisLootTable {
 
     @Override
     public String getName() {
-        throw new IllegalStateException("Vanilla loot tables should not be used in Iris");
+        return "Vanilla " + lootTable.getKey();
     }
 
     @Override
     public int getRarity() {
-        throw new IllegalStateException("Vanilla loot tables should not be used in Iris");
+        return 0;
     }
 
     @Override
     public int getMaxPicked() {
-        throw new IllegalStateException("Vanilla loot tables should not be used in Iris");
+        return 0;
     }
 
     @Override
     public int getMinPicked() {
-        throw new IllegalStateException("Vanilla loot tables should not be used in Iris");
+        return 0;
     }
 
     @Override
     public int getMaxTries() {
-        throw new IllegalStateException("Vanilla loot tables should not be used in Iris");
+        return 0;
     }
 
     @Override
     public KList<IrisLoot> getLoot() {
-        throw new IllegalStateException("Vanilla loot tables should not be used in Iris");
+        return new KList<>();
     }
 
     @Override
@@ -55,26 +55,26 @@ public class IrisVanillaLootTable extends IrisLootTable {
 
     @Override
     public String getFolderName() {
-        throw new IllegalStateException("Vanilla loot tables should not be used in Iris");
+        throw new UnsupportedOperationException("VanillaLootTables do not have a folder name");
     }
 
     @Override
     public String getTypeName() {
-        throw new IllegalStateException("Vanilla loot tables should not be used in Iris");
+        throw new UnsupportedOperationException("VanillaLootTables do not have a type name");
     }
 
     @Override
     public File getLoadFile() {
-        throw new IllegalStateException("Vanilla loot tables should not be used in Iris");
+        throw new UnsupportedOperationException("VanillaLootTables do not have a load file");
     }
 
     @Override
     public IrisData getLoader() {
-        throw new IllegalStateException("Vanilla loot tables should not be used in Iris");
+        throw new UnsupportedOperationException("VanillaLootTables do not have a loader");
     }
 
     @Override
     public KList<String> getPreprocessors() {
-        throw new IllegalStateException("Vanilla loot tables should not be used in Iris");
+        return new KList<>();
     }
 }

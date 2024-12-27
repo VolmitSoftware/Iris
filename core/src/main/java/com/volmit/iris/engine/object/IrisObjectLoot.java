@@ -34,7 +34,7 @@ import org.bukkit.block.data.BlockData;
 @AllArgsConstructor
 @Desc("Represents loot within this object or jigsaw piece")
 @Data
-public class IrisObjectLoot {
+public class IrisObjectLoot implements IObjectLoot {
     private final transient AtomicCache<KList<BlockData>> filterCache = new AtomicCache<>();
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The list of blocks this loot table should apply to")

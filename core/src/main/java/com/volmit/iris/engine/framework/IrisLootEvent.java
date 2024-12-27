@@ -104,6 +104,6 @@ public class IrisLootEvent extends Event {
         if (!Bukkit.isPrimaryThread())
             J.sfut(() -> Bukkit.getPluginManager().callEvent(event)).join();
         else Bukkit.getPluginManager().callEvent(event);
-        return !event.isCancelled();
+        return event.isCancelled();
     }
 }

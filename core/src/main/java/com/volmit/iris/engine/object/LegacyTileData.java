@@ -1,6 +1,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.core.nms.container.Pair;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.scheduling.J;
@@ -9,20 +10,22 @@ import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.ToString;
 import org.apache.commons.io.function.IOFunction;
-import org.bukkit.DyeColor;
-import org.bukkit.Material;
-import org.bukkit.Tag;
+import org.bukkit.*;
 import org.bukkit.block.*;
 import org.bukkit.block.banner.Pattern;
 import org.bukkit.block.banner.PatternType;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.EntityType;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @ToString
 @EqualsAndHashCode(callSuper = false)
@@ -31,6 +34,7 @@ public class LegacyTileData extends TileData {
             0, new Pair<>(SignHandler::fromBukkit, SignHandler::new),
             1, new Pair<>(SpawnerHandler::fromBukkit, SpawnerHandler::new),
             2, new Pair<>(BannerHandler::fromBukkit, BannerHandler::new));
+    private static final AtomicCache<Tag<Material>> SIGNS = new AtomicCache<>();
     private final int id;
     private final Handler handler;
 
@@ -122,7 +126,7 @@ public class LegacyTileData extends TileData {
 
         @SuppressWarnings("deprecation")
         private static SignHandler fromBukkit(BlockState blockState, Material type) {
-            if (!Tag.ALL_SIGNS.isTagged(type) || !(blockState instanceof Sign sign))
+            if (!signsTag().isTagged(type) || !(blockState instanceof Sign sign))
                 return null;
             return new SignHandler(sign.getLine(0), sign.getLine(1), sign.getLine(2), sign.getLine(3), sign.getColor());
         }
@@ -134,7 +138,7 @@ public class LegacyTileData extends TileData {
 
         @Override
         public boolean isApplicable(BlockData data) {
-            return Tag.ALL_SIGNS.isTagged(data.getMaterial());
+            return signsTag().isTagged(data.getMaterial());
         }
 
         @Override
@@ -246,5 +250,33 @@ public class LegacyTileData extends TileData {
             banner.setPatterns(patterns);
             banner.update();
         }
+    }
+
+    private static Tag<Material> signsTag() {
+        return SIGNS.aquire(() -> {
+            var signs = Bukkit.getTag("blocks", NamespacedKey.minecraft("all_signs"), Material.class);
+            if (signs != null)
+                return signs;
+            return new Tag<>() {
+                @Override
+                public boolean isTagged(@NotNull Material item) {
+                    return item.getKey().getKey().endsWith("_sign");
+                }
+
+                @NotNull
+                @Override
+                public Set<Material> getValues() {
+                    return StreamSupport.stream(Registry.MATERIAL.spliterator(), false)
+                            .filter(this::isTagged)
+                            .collect(Collectors.toUnmodifiableSet());
+                }
+
+                @NotNull
+                @Override
+                public NamespacedKey getKey() {
+                    return NamespacedKey.minecraft("all_signs");
+                }
+            };
+        });
     }
 }

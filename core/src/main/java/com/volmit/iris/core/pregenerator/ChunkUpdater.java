@@ -236,10 +236,16 @@ public class ChunkUpdater {
                         try {
                             c = PaperLib.getChunkAtAsync(world, xx, zz, false, true)
                                     .thenApply(chunk -> {
-                                        chunk.addPluginChunkTicket(Iris.instance);
+                                        if (chunk != null)
+                                            chunk.addPluginChunkTicket(Iris.instance);
                                         return chunk;
                                     }).get();
                         } catch (InterruptedException | ExecutionException e) {
+                            generated.set(false);
+                            return;
+                        }
+
+                        if (c == null) {
                             generated.set(false);
                             return;
                         }
@@ -249,7 +255,7 @@ public class ChunkUpdater {
                             if (future != null) future.join();
                         }
 
-                        if (!c.isGenerated())
+                        if (!PaperLib.isChunkGenerated(c.getWorld(), xx, zz))
                             generated.set(false);
 
                         var pair = lastUse.computeIfAbsent(Cache.key(c), k -> new Pair<>(0L, new AtomicInteger(-1)));

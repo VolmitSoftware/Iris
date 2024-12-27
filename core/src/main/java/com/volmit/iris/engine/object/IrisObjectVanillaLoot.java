@@ -3,6 +3,7 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.functions.LootTableKeyFunction;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,6 +26,7 @@ public class IrisObjectVanillaLoot {
     private boolean exact = false;
     @Desc("The vanilla loot table key")
     @Required
+    @RegistryListFunction(LootTableKeyFunction.class)
     private String name;
     @Desc("The weight of this loot table being chosen")
     private int weight = 1;

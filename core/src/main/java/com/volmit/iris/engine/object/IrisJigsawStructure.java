@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.functions.StructureKeyFunction;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -141,7 +142,7 @@ public class IrisJigsawStructure extends IrisRegistrant {
                     avg += getLoader().getJigsawPieceLoader().load(i).getMax2dDimension();
                 }
 
-                return (avg / (pieces.size() > 0 ? pieces.size() : 1)) * (((getMaxDepth() + 1) * 2) + 1);
+                return (avg / (!pieces.isEmpty() ? pieces.size() : 1)) * (((getMaxDepth() + 1) * 2) + 1);
             }
         });
     }

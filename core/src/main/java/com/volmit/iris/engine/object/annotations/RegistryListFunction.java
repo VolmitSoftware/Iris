@@ -1,6 +1,5 @@
 package com.volmit.iris.engine.object.annotations;
 
-import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.framework.ListFunction;
 import com.volmit.iris.util.collection.KList;
 
@@ -13,5 +12,5 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Retention(RUNTIME)
 @Target({PARAMETER, TYPE, FIELD})
 public @interface RegistryListFunction {
-    Class<? extends ListFunction<IrisData, KList<String>>> value();
+    Class<? extends ListFunction<KList<String>>> value();
 }

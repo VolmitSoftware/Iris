@@ -1,6 +1,7 @@
-package com.volmit.iris.engine.framework;
+package com.volmit.iris.core.events;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.InventorySlotType;
 import com.volmit.iris.engine.object.IrisLootTable;
 import com.volmit.iris.util.collection.KList;
@@ -101,9 +102,12 @@ public class IrisLootEvent extends Event {
 
         LootContext context = new LootContext.Builder(loc).build();
         LootGenerateEvent event = new LootGenerateEvent(world, null, holder, EMPTY, context, loot, true);
-        if (!Bukkit.isPrimaryThread())
+        if (!Bukkit.isPrimaryThread()) {
+            Iris.warn("LootGenerateEvent was not called on the main thread, please report this issue.");
+            Thread.dumpStack();
             J.sfut(() -> Bukkit.getPluginManager().callEvent(event)).join();
-        else Bukkit.getPluginManager().callEvent(event);
+        } else Bukkit.getPluginManager().callEvent(event);
+
         return event.isCancelled();
     }
 }

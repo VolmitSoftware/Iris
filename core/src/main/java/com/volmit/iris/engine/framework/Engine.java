@@ -20,6 +20,7 @@ package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.events.IrisLootEvent;
 import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.core.gui.components.Renderer;
 import com.volmit.iris.core.link.Identifier;

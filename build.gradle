@@ -125,8 +125,8 @@ allprojects {
 
     dependencies {
         // Provided or Classpath
-        compileOnly 'org.projectlombok:lombok:1.18.24'
-        annotationProcessor 'org.projectlombok:lombok:1.18.24'
+        compileOnly 'org.projectlombok:lombok:1.18.36'
+        annotationProcessor 'org.projectlombok:lombok:1.18.36'
 
         // Shaded
         implementation 'com.dfsek:Paralithic:0.4.0'

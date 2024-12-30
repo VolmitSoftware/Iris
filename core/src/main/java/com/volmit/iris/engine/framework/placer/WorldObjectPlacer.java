@@ -5,7 +5,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.IrisLootEvent;
+import com.volmit.iris.core.events.IrisLootEvent;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.object.IObjectPlacer;
 import com.volmit.iris.engine.object.InventorySlotType;

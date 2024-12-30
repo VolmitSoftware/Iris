@@ -74,6 +74,9 @@ public class IrisJigsawStructure extends IrisRegistrant {
     @Desc("The minecraft key to use when creating treasure maps")
     private String structureKey = null;
 
+    @Desc("Force Place the whole structure")
+    private boolean forcePlace = false;
+
     private transient AtomicCache<Integer> maxDimension = new AtomicCache<>();
 
     private void loadPool(String p, KList<String> pools, KList<String> pieces) {

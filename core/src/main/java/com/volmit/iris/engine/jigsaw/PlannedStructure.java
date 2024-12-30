@@ -61,7 +61,7 @@ public class PlannedStructure {
         this.structure = structure;
         this.position = position;
         this.rng = rng;
-        this.forcePlace = forcePlace;
+        this.forcePlace = forcePlace || structure.isForcePlace();
         this.data = structure.getLoader();
         generateStartPiece();
 

@@ -997,7 +997,10 @@ public class IrisInterpolation {
         return getNoise3D(method, x, y, z, rad, rad, rad, n);
     }
 
-    public static double getNoise(InterpolationMethod method, int x, int z, double h, NoiseProvider n) {
+    public static double getNoise(InterpolationMethod method, int x, int z, double h, NoiseProvider noise) {
+        HashMap<NoiseKey, Double> cache = new HashMap<>(64);
+        NoiseProvider n = (x1, z1) -> cache.computeIfAbsent(new NoiseKey(x1, z1), k -> noise.noise(k.x, k.z));
+
         if (method.equals(InterpolationMethod.BILINEAR)) {
             return getBilinearNoise(x, z, h, n);
         } else if (method.equals(InterpolationMethod.STARCAST_3)) {
@@ -1057,5 +1060,8 @@ public class IrisInterpolation {
 
     public static double rangeScale(double amin, double amax, double bmin, double bmax, double b) {
         return amin + ((amax - amin) * ((b - bmin) / (bmax - bmin)));
+    }
+
+    public record NoiseKey(double x, double z) {
     }
 }

@@ -34,9 +34,15 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.TreeType;
 import org.bukkit.block.data.BlockData;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Optional;
+import java.util.function.Function;
 
 @Snippet("object-placer")
 @EqualsAndHashCode()
@@ -103,6 +109,8 @@ public class IrisObjectPlacement {
     private boolean onwater = false;
     @Desc("If set to true, this object will only place parts of itself where blocks already exist. Warning: Melding is very performance intensive!")
     private boolean meld = false;
+    @Desc("If set to true, this object will get placed from the bottom of the world up")
+    private boolean fromBottom;
     @Desc("If set to true, this object will place from the ground up instead of height checks when not y locked to the surface. This is not compatable with X and Z axis rotations (it may look off)")
     private boolean bottom = false;
     @Desc("If set to true, air will be placed before the schematic places.")
@@ -123,6 +131,9 @@ public class IrisObjectPlacement {
     @ArrayType(min = 1, type = IrisObjectLoot.class)
     @Desc("The loot tables to apply to these objects")
     private KList<IrisObjectLoot> loot = new KList<>();
+    @ArrayType(min = 1, type = IrisObjectVanillaLoot.class)
+    @Desc("The vanilla loot tables to apply to these objects")
+    private KList<IrisObjectVanillaLoot> vanillaLoot = new KList<>();
     @Desc("Whether the given loot tables override any and all other loot tables available in the dimension, region or biome.")
     private boolean overrideGlobalLoot = false;
     @Desc("This object / these objects override the following trees when they grow...")
@@ -211,46 +222,63 @@ public class IrisObjectPlacement {
 
     private TableCache getCache(IrisData manager) {
         return cache.aquire(() -> {
-            TableCache tc = new TableCache();
+            TableCache cache = new TableCache();
 
-            for (IrisObjectLoot loot : getLoot()) {
-                if (loot == null)
-                    continue;
-                IrisLootTable table = manager.getLootLoader().load(loot.getName());
-                if (table == null) {
-                    Iris.warn("Couldn't find loot table " + loot.getName());
-                    continue;
+            cache.merge(getCache(manager, getVanillaLoot(), IrisObjectPlacement::getVanillaTable));
+            cache.merge(getCache(manager, getLoot(), manager.getLootLoader()::load));
+
+            return cache;
+        });
+    }
+
+    private TableCache getCache(IrisData manager, KList<? extends IObjectLoot> list, Function<String, IrisLootTable> loader) {
+        TableCache tc = new TableCache();
+
+        for (IObjectLoot loot : list) {
+            if (loot == null)
+                continue;
+            IrisLootTable table = loader.apply(loot.getName());
+            if (table == null) {
+                Iris.warn("Couldn't find loot table " + loot.getName());
+                continue;
+            }
+
+            if (loot.getFilter().isEmpty()) //Table applies to all containers
+            {
+                tc.global.put(table, loot.getWeight());
+            } else if (!loot.isExact()) //Table is meant to be by type
+            {
+                for (BlockData filterData : loot.getFilter(manager)) {
+                    if (!tc.basic.containsKey(filterData.getMaterial())) {
+                        tc.basic.put(filterData.getMaterial(), new WeightedRandom<>());
+                    }
+
+                    tc.basic.get(filterData.getMaterial()).put(table, loot.getWeight());
                 }
-
-                if (loot.getFilter().isEmpty()) //Table applies to all containers
-                {
-                    tc.global.put(table, loot.getWeight());
-                } else if (!loot.isExact()) //Table is meant to be by type
-                {
-                    for (BlockData filterData : loot.getFilter(manager)) {
-                        if (!tc.basic.containsKey(filterData.getMaterial())) {
-                            tc.basic.put(filterData.getMaterial(), new WeightedRandom<>());
-                        }
-
-                        tc.basic.get(filterData.getMaterial()).put(table, loot.getWeight());
+            } else //Filter is exact
+            {
+                for (BlockData filterData : loot.getFilter(manager)) {
+                    if (!tc.exact.containsKey(filterData.getMaterial())) {
+                        tc.exact.put(filterData.getMaterial(), new KMap<>());
                     }
-                } else //Filter is exact
-                {
-                    for (BlockData filterData : loot.getFilter(manager)) {
-                        if (!tc.exact.containsKey(filterData.getMaterial())) {
-                            tc.exact.put(filterData.getMaterial(), new KMap<>());
-                        }
 
-                        if (!tc.exact.get(filterData.getMaterial()).containsKey(filterData)) {
-                            tc.exact.get(filterData.getMaterial()).put(filterData, new WeightedRandom<>());
-                        }
-
-                        tc.exact.get(filterData.getMaterial()).get(filterData).put(table, loot.getWeight());
+                    if (!tc.exact.get(filterData.getMaterial()).containsKey(filterData)) {
+                        tc.exact.get(filterData.getMaterial()).put(filterData, new WeightedRandom<>());
                     }
+
+                    tc.exact.get(filterData.getMaterial()).get(filterData).put(table, loot.getWeight());
                 }
             }
-            return tc;
-        });
+        }
+        return tc;
+    }
+
+    @Nullable
+    private static IrisVanillaLootTable getVanillaTable(String name) {
+        return Optional.ofNullable(NamespacedKey.fromString(name))
+                .map(Bukkit::getLootTable)
+                .map(IrisVanillaLootTable::new)
+                .orElse(null);
     }
 
     /**
@@ -262,7 +290,6 @@ public class IrisObjectPlacement {
      */
     public IrisLootTable getTable(BlockData data, IrisData dataManager) {
         TableCache cache = getCache(dataManager);
-
         if (B.isStorageChest(data)) {
             IrisLootTable picked = null;
             if (cache.exact.containsKey(data.getMaterial()) && cache.exact.get(data.getMaterial()).containsKey(data)) {
@@ -283,5 +310,11 @@ public class IrisObjectPlacement {
         final transient WeightedRandom<IrisLootTable> global = new WeightedRandom<>();
         final transient KMap<Material, WeightedRandom<IrisLootTable>> basic = new KMap<>();
         final transient KMap<Material, KMap<BlockData, WeightedRandom<IrisLootTable>>> exact = new KMap<>();
+
+        private void merge(TableCache other) {
+            global.merge(other.global);
+            basic.merge(other.basic, WeightedRandom::merge);
+            exact.merge(other.exact, (a, b) -> a.merge(b, WeightedRandom::merge));
+        }
     }
 }

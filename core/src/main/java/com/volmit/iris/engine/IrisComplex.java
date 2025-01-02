@@ -29,6 +29,7 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.DataProvider;
+import com.volmit.iris.util.interpolation.IrisInterpolation.NoiseKey;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
@@ -292,9 +293,11 @@ public class IrisComplex implements DataProvider {
             return 0;
         }
 
+        KMap<NoiseKey, IrisBiome> cache = new KMap<>();
         double hi = interpolator.interpolate(x, z, (xx, zz) -> {
             try {
                 IrisBiome bx = baseBiomeStream.get(xx, zz);
+                cache.put(new NoiseKey(xx, zz), bx);
                 double b = 0;
 
                 for (IrisGenerator gen : generators) {
@@ -313,7 +316,11 @@ public class IrisComplex implements DataProvider {
 
         double lo = interpolator.interpolate(x, z, (xx, zz) -> {
             try {
-                IrisBiome bx = baseBiomeStream.get(xx, zz);
+                IrisBiome bx = cache.get(new NoiseKey(xx, zz));
+                if (bx == null) {
+                    bx = baseBiomeStream.get(xx, zz);
+                    cache.put(new NoiseKey(xx, zz), bx);
+                }
                 double b = 0;
 
                 for (IrisGenerator gen : generators) {

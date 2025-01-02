@@ -23,6 +23,8 @@ import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.io.CountingDataInputStream;
+import com.volmit.iris.util.mantle.TectonicPlate;
 import com.volmit.iris.util.math.BlockPosition;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
@@ -96,18 +98,18 @@ public interface Matter {
         return m;
     }
 
-    static Matter read(File f) throws IOException, ClassNotFoundException {
+    static Matter read(File f) throws IOException {
         FileInputStream in = new FileInputStream(f);
         Matter m = read(in);
         in.close();
         return m;
     }
 
-    static Matter read(InputStream in) throws IOException, ClassNotFoundException {
+    static Matter read(InputStream in) throws IOException {
         return read(in, (b) -> new IrisMatter(b.getX(), b.getY(), b.getZ()));
     }
 
-    static Matter readDin(DataInputStream in) throws IOException, ClassNotFoundException {
+    static Matter readDin(CountingDataInputStream in) throws IOException {
         return readDin(in, (b) -> new IrisMatter(b.getX(), b.getY(), b.getZ()));
     }
 
@@ -120,11 +122,11 @@ public interface Matter {
      * @return the matter object
      * @throws IOException shit happens yo
      */
-    static Matter read(InputStream in, Function<BlockPosition, Matter> matterFactory) throws IOException, ClassNotFoundException {
-        return readDin(new DataInputStream(in), matterFactory);
+    static Matter read(InputStream in, Function<BlockPosition, Matter> matterFactory) throws IOException {
+        return readDin(CountingDataInputStream.wrap(in), matterFactory);
     }
 
-    static Matter readDin(DataInputStream din, Function<BlockPosition, Matter> matterFactory) throws IOException, ClassNotFoundException {
+    static Matter readDin(CountingDataInputStream din, Function<BlockPosition, Matter> matterFactory) throws IOException {
         Matter matter = matterFactory.apply(new BlockPosition(
                 din.readInt(),
                 din.readInt(),
@@ -137,17 +139,30 @@ public interface Matter {
         Iris.addPanic("read.matter.header", matter.getHeader().toString());
 
         for (int i = 0; i < sliceCount; i++) {
+            long size = din.readInt();
+            if (size == 0) continue;
+            long start = din.count();
+
             Iris.addPanic("read.matter.slice", i + "");
-            String cn = din.readUTF();
-            Iris.addPanic("read.matter.slice.class", cn);
             try {
+                String cn = din.readUTF();
+                Iris.addPanic("read.matter.slice.class", cn);
+
                 Class<?> type = Class.forName(cn);
                 MatterSlice<?> slice = matter.createSlice(type, matter);
                 slice.read(din);
                 matter.putSlice(type, slice);
             } catch (Throwable e) {
+                long end = start + size;
+                Iris.error("Failed to read matter slice, skipping it.");
+                Iris.addPanic("read.byte.range", start + " " + end);
+                Iris.addPanic("read.byte.current", din.count() + "");
+                Iris.reportError(e);
                 e.printStackTrace();
-                throw new IOException("Can't read class '" + cn + "' (slice count reverse at " + sliceCount + ")");
+                Iris.panic();
+
+                din.skipTo(end);
+                TectonicPlate.addError();
             }
         }
 
@@ -414,8 +429,16 @@ public interface Matter {
         dos.writeByte(getSliceTypes().size());
         getHeader().write(dos);
 
+        var bytes = new ByteArrayOutputStream(1024);
+        var sub = new DataOutputStream(bytes);
         for (Class<?> i : getSliceTypes()) {
-            getSlice(i).write(dos);
+            try {
+                getSlice(i).write(sub);
+                dos.writeInt(bytes.size());
+                bytes.writeTo(dos);
+            } finally {
+                bytes.reset();
+            }
         }
     }
 

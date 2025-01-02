@@ -63,7 +63,12 @@ public class StudioSVC implements IrisService {
 
             if (!f.exists()) {
                 Iris.info("Downloading Default Pack " + pack);
-                downloadSearch(Iris.getSender(), pack, false);
+                if (pack.equals("overworld")) {
+                    String url = "https://github.com/IrisDimensions/overworld/releases/download/" + Iris.OVERWORLD_TAG + "/overworld.zip";
+                    Iris.service(StudioSVC.class).downloadRelease(Iris.getSender(), url, false, false);
+                } else {
+                    downloadSearch(Iris.getSender(), pack, false);
+                }
             }
         });
     }

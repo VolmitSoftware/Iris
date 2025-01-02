@@ -26,7 +26,6 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.service.ConversionSVC;
 import com.volmit.iris.core.service.StudioSVC;
-import com.volmit.iris.core.tools.IrisConverter;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.*;
@@ -303,7 +302,7 @@ public class CommandStudio implements DecreeExecutor {
         Inventory inv = Bukkit.createInventory(null, 27 * 2);
 
         try {
-            engine().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
+            engine().addItems(true, inv, RNG.r, tables, InventorySlotType.STORAGE, player().getWorld(), player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
         } catch (Throwable e) {
             Iris.reportError(e);
             sender().sendMessage(C.RED + "Cannot add items to virtual inventory because of: " + e.getMessage());
@@ -326,7 +325,7 @@ public class CommandStudio implements DecreeExecutor {
                 inv.clear();
             }
 
-            engine().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
+            engine().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, player().getWorld(), player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
         }, 0, fast ? 5 : 35));
 
         sender().sendMessage(C.GREEN + "Opening inventory now!");
@@ -335,29 +334,38 @@ public class CommandStudio implements DecreeExecutor {
 
 
     @Decree(description = "Get all structures in a radius of chunks", aliases = "dist", origin = DecreeOrigin.PLAYER)
-    public void distances(@Param(description = "The radius") int radius) {
+    public void distances(@Param(description = "The radius in chunks") int radius) {
         var engine = engine();
         if (engine == null) {
             sender().sendMessage(C.RED + "Only works in an Iris world!");
             return;
         }
         var sender = sender();
-        int d = radius*2;
+        int d = radius * 2;
         KMap<String, KList<Position2>> data = new KMap<>();
         var multiBurst = new MultiBurst("Distance Sampler", Thread.MIN_PRIORITY);
         var executor = multiBurst.burst(radius * radius);
 
         sender.sendMessage(C.GRAY + "Generating data...");
         var loc = player().getLocation();
+        int totalTasks = d * d;
+        AtomicInteger completedTasks = new AtomicInteger(0);
+        int c = J.ar(() -> {
+            sender.sendProgress((double) completedTasks.get() / totalTasks, "Finding structures");
+        }, 0);
+
         new Spiraler(d, d, (x, z) -> executor.queue(() -> {
             var struct = engine.getStructureAt(x, z);
             if (struct != null) {
                 data.computeIfAbsent(struct.getLoadKey(), (k) -> new KList<>()).add(new Position2(x, z));
             }
+            completedTasks.incrementAndGet();
         })).setOffset(loc.getBlockX(), loc.getBlockZ()).drain();
 
         executor.complete();
         multiBurst.close();
+        J.car(c);
+
         for (var key : data.keySet()) {
             var list = data.get(key);
             KList<Long> distances = new KList<>(list.size() - 1);
@@ -389,6 +397,7 @@ public class CommandStudio implements DecreeExecutor {
             sender.sendMessage(C.GREEN + "Done!");
         }
     }
+
 
     @Decree(description = "Render a world map (External GUI)", aliases = "render")
     public void map(

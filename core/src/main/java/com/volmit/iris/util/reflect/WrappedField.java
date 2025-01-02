@@ -36,6 +36,18 @@ public class WrappedField<C, T> {
         }
     }
 
+    public void set(T value) throws IllegalAccessException {
+        set(null, value);
+    }
+
+    public void set(C instance, T value) throws IllegalAccessException {
+        if (field == null) {
+            return;
+        }
+
+        field.set(instance, value);
+    }
+
     public boolean hasFailed() {
         return field == null;
     }

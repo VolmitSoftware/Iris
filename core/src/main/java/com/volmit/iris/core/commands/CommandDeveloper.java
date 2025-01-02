@@ -21,34 +21,25 @@ package com.volmit.iris.core.commands;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.datapack.DataVersion;
-import com.volmit.iris.core.nms.v1X.NMSBinding1X;
-import com.volmit.iris.core.pregenerator.ChunkUpdater;
 import com.volmit.iris.core.service.IrisEngineSVC;
 import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisCave;
 import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisEntity;
-import com.volmit.iris.util.data.Dimension;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.io.CountingDataInputStream;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.mantle.TectonicPlate;
-import com.volmit.iris.util.math.Spiraler;
-import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.nbt.mca.MCAFile;
 import com.volmit.iris.util.nbt.mca.MCAUtil;
+import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
-import io.lumine.mythic.bukkit.adapters.BukkitEntity;
 import net.jpountz.lz4.LZ4BlockInputStream;
 import net.jpountz.lz4.LZ4BlockOutputStream;
 import net.jpountz.lz4.LZ4FrameInputStream;
@@ -56,10 +47,7 @@ import net.jpountz.lz4.LZ4FrameOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
-import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.entity.Creeper;
-import org.bukkit.entity.EntityType;
 
 import java.io.*;
 import java.net.InetAddress;
@@ -150,12 +138,14 @@ public class CommandDeveloper implements DecreeExecutor {
 
     @Decree(description = "Test")
     public void packBenchmark(
-            @Param(description = "The pack to bench", aliases = {"pack"})
-            IrisDimension dimension
+            @Param(description = "The pack to bench", aliases = {"pack"}, defaultValue = "overworld")
+            IrisDimension dimension,
+            @Param(description = "Radius in regions", defaultValue = "5")
+            int radius,
+            @Param(description = "Open GUI while benchmarking", defaultValue = "false")
+            boolean gui
     ) {
-        Iris.info("test");
-        IrisPackBenchmarking benchmark = new IrisPackBenchmarking(dimension, 1);
-
+        new IrisPackBenchmarking(dimension, radius, gui);
     }
 
     @Decree(description = "Upgrade to another Minecraft version")
@@ -206,6 +196,23 @@ public class CommandDeveloper implements DecreeExecutor {
 
     }
 
+    @Decree
+    public void objects(@Param(defaultValue = "overworld") IrisDimension dimension) {
+        var loader = dimension.getLoader().getObjectLoader();
+        var sender = sender();
+        var keys = loader.getPossibleKeys();
+        var burst = MultiBurst.burst.burst(keys.length);
+        AtomicInteger failed = new AtomicInteger();
+        for (String key : keys) {
+            burst.queue(() -> {
+                if (loader.load(key) == null)
+                    failed.incrementAndGet();
+            });
+        }
+        burst.complete();
+        sender.sendMessage(C.RED + "Failed to load " + failed.get() + " of " + keys.length + " objects");
+    }
+
     @Decree(description = "Test", aliases = {"ip"})
     public void network() {
         try {
@@ -243,7 +250,7 @@ public class CommandDeveloper implements DecreeExecutor {
             VolmitSender sender = sender();
             service.submit(() -> {
                 try {
-                    DataInputStream raw = new DataInputStream(new FileInputStream(file));
+                    CountingDataInputStream raw = CountingDataInputStream.wrap(new FileInputStream(file));
                     TectonicPlate plate = new TectonicPlate(height, raw);
                     raw.close();
 
@@ -262,7 +269,7 @@ public class CommandDeveloper implements DecreeExecutor {
                         if (size == 0)
                             size = tmp.length();
                         start = System.currentTimeMillis();
-                        DataInputStream din = createInput(tmp, algorithm);
+                        CountingDataInputStream din = createInput(tmp, algorithm);
                         new TectonicPlate(height, din);
                         din.close();
                         d2 += System.currentTimeMillis() - start;
@@ -282,10 +289,10 @@ public class CommandDeveloper implements DecreeExecutor {
         }
     }
 
-    private DataInputStream createInput(File file, String algorithm) throws Throwable {
+    private CountingDataInputStream createInput(File file, String algorithm) throws Throwable {
         FileInputStream in = new FileInputStream(file);
 
-        return new DataInputStream(switch (algorithm) {
+        return CountingDataInputStream.wrap(switch (algorithm) {
             case "gzip" -> new GZIPInputStream(in);
             case "lz4f" -> new LZ4FrameInputStream(in);
             case "lz4b" -> new LZ4BlockInputStream(in);

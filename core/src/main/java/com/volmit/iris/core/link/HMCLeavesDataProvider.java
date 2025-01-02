@@ -16,6 +16,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 import java.util.MissingResourceException;
@@ -51,8 +52,9 @@ public class HMCLeavesDataProvider extends ExternalDataProvider {
 		}
 	}
 
+	@NotNull
 	@Override
-	public BlockData getBlockData(Identifier blockId, KMap<String, String> state) throws MissingResourceException {
+	public BlockData getBlockData(@NotNull Identifier blockId, @NotNull KMap<String, String> state) throws MissingResourceException {
 		Object o = blockDataMap.get(blockId.key());
 		if (o == null)
 			throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
@@ -65,15 +67,16 @@ public class HMCLeavesDataProvider extends ExternalDataProvider {
 		return new IrisBlockData(blockData, ExternalDataSVC.buildState(blockId, state));
 	}
 
+	@NotNull
 	@Override
-	public ItemStack getItemStack(Identifier itemId, KMap<String, Object> customNbt) throws MissingResourceException {
+	public ItemStack getItemStack(@NotNull Identifier itemId, @NotNull KMap<String, Object> customNbt) throws MissingResourceException {
 		if (!itemDataField.containsKey(itemId.key()))
 			throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());
 		return itemDataField.get(itemId.key()).get();
 	}
 
 	@Override
-	public void processUpdate(Engine engine, Block block, Identifier blockId) {
+	public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
 		var pair = ExternalDataSVC.parseState(blockId);
 		blockId = pair.getA();
 		Boolean result = setCustomBlock.invoke(apiInstance, new Object[]{block.getLocation(), blockId.key(), false});
@@ -86,6 +89,7 @@ public class HMCLeavesDataProvider extends ExternalDataProvider {
 		}
 	}
 
+	@NotNull
 	@Override
 	public Identifier[] getBlockTypes() {
 		KList<Identifier> names = new KList<>();
@@ -101,6 +105,7 @@ public class HMCLeavesDataProvider extends ExternalDataProvider {
 		return names.toArray(new Identifier[0]);
 	}
 
+	@NotNull
 	@Override
 	public Identifier[] getItemTypes() {
 		KList<Identifier> names = new KList<>();
@@ -117,7 +122,7 @@ public class HMCLeavesDataProvider extends ExternalDataProvider {
 	}
 
 	@Override
-	public boolean isValidProvider(Identifier id, boolean isItem) {
+	public boolean isValidProvider(@NotNull Identifier id, boolean isItem) {
 		return (isItem ? itemDataField.keySet() : blockDataMap.keySet()).contains(id.key());
 	}
 

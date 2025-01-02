@@ -24,10 +24,8 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.service.StudioSVC;
-import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
-import com.volmit.iris.core.safeguard.UtilsSFG;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -46,7 +44,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-import static com.volmit.iris.core.safeguard.IrisSafeguard.unstablemode;
 
 /**
  * Makes it a lot easier to setup an engine, world, studio or whatever
@@ -126,14 +123,11 @@ public class IrisCreator {
         if (sender == null)
             sender = Iris.getSender();
 
-        if (!studio()) {
-            Iris.service(StudioSVC.class).installIntoWorld(sender, d.getLoadKey(), new File(Bukkit.getWorldContainer(), name()));
-        }
-        if (benchmark) {
+        if (!studio() || benchmark) {
             Iris.service(StudioSVC.class).installIntoWorld(sender, d.getLoadKey(), new File(Bukkit.getWorldContainer(), name()));
         }
 
-        PlatformChunkGenerator access = null;
+        PlatformChunkGenerator access;
         AtomicReference<World> world = new AtomicReference<>();
         AtomicDouble pp = new AtomicDouble(0);
         O<Boolean> done = new O<>();

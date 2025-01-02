@@ -5,11 +5,13 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.scheduling.J;
 import net.Indyuce.mmoitems.MMOItems;
+import net.Indyuce.mmoitems.api.ItemTier;
 import net.Indyuce.mmoitems.api.Type;
 import net.Indyuce.mmoitems.api.block.CustomBlock;
 import org.bukkit.Bukkit;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.MissingResourceException;
 import java.util.concurrent.CompletableFuture;
@@ -26,8 +28,9 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
         Iris.info("Setting up MMOItems Link...");
     }
 
+    @NotNull
     @Override
-    public BlockData getBlockData(Identifier blockId, KMap<String, String> state) throws MissingResourceException {
+    public BlockData getBlockData(@NotNull Identifier blockId, @NotNull KMap<String, String> state) throws MissingResourceException {
         int id = -1;
         try {
             id = Integer.parseInt(blockId.key());
@@ -37,8 +40,9 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
         return block.getState().getBlockData();
     }
 
+    @NotNull
     @Override
-    public ItemStack getItemStack(Identifier itemId, KMap<String, Object> customNbt) throws MissingResourceException {
+    public ItemStack getItemStack(@NotNull Identifier itemId, @NotNull KMap<String, Object> customNbt) throws MissingResourceException {
         String[] parts = itemId.namespace().split("_", 2);
         if (parts.length != 2)
             throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());
@@ -46,8 +50,13 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
         Runnable run = () -> {
             try {
                 var type = api().getTypes().get(parts[1]);
-                int level = customNbt.containsKey("level") ? (int) customNbt.get("level") : -1;
-                var tier = api().getTiers().get(String.valueOf(customNbt.get("tier")));
+                int level = -1;
+                ItemTier tier = null;
+
+                if (customNbt != null) {
+                    level = (int) customNbt.getOrDefault("level", -1);
+                    tier = api().getTiers().get(String.valueOf(customNbt.get("tier")));
+                }
 
                 ItemStack itemStack;
                 if (type == null) {
@@ -76,6 +85,7 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
         return item;
     }
 
+    @NotNull
     @Override
     public Identifier[] getBlockTypes() {
         KList<Identifier> names = new KList<>();
@@ -90,6 +100,7 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
         return names.toArray(new Identifier[0]);
     }
 
+    @NotNull
     @Override
     public Identifier[] getItemTypes() {
         KList<Identifier> names = new KList<>();
@@ -118,7 +129,7 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public boolean isValidProvider(Identifier id, boolean isItem) {
+    public boolean isValidProvider(@NotNull Identifier id, boolean isItem) {
         return isItem ? id.namespace().split("_", 2).length == 2 : id.namespace().equals("mmoitems");
     }
 

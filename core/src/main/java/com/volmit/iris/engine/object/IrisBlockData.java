@@ -21,6 +21,7 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
@@ -61,6 +62,8 @@ public class IrisBlockData extends IrisRegistrant {
     private IrisBlockData backup = null;
     @Desc("Optional properties for this block data such as 'waterlogged': true")
     private KMap<String, Object> data = new KMap<>();
+    @Desc("Optional tile data for this block data")
+    private KMap<String, Object> tileData = new KMap<>();
 
     public IrisBlockData(String b) {
         this.block = b;
@@ -196,17 +199,12 @@ public class IrisBlockData extends IrisRegistrant {
         });
     }
 
-    public TileData<?> tryGetTile() {
+    public TileData tryGetTile(IrisData data) {
         //TODO Do like a registry thing with the tile data registry. Also update the parsing of data to include **block** entities.
-        if (data.containsKey("entitySpawn")) {
-            TileSpawner spawner = new TileSpawner();
-            String name = (String) data.get("entitySpawn");
-            if (name.contains(":"))
-                name = name.split(":")[1];
-            spawner.setEntityType(EntityType.fromName(name));
-            return spawner;
-        }
-        return null;
+        var type = getBlockData(data).getMaterial();
+        if (!INMS.get().hasTile(type) || tileData == null || tileData.isEmpty())
+            return null;
+        return new TileData(type, this.tileData);
     }
 
     private String keyify(String dat) {

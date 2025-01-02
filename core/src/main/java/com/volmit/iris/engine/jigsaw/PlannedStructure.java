@@ -50,16 +50,18 @@ public class PlannedStructure {
     private IrisPosition position;
     private IrisData data;
     private RNG rng;
+    private boolean forcePlace;
     private boolean verbose;
     private boolean terminating;
 
-    public PlannedStructure(IrisJigsawStructure structure, IrisPosition position, RNG rng) {
+    public PlannedStructure(IrisJigsawStructure structure, IrisPosition position, RNG rng, boolean forcePlace) {
         terminating = false;
         verbose = true;
         this.pieces = new KList<>();
         this.structure = structure;
         this.position = position;
         this.rng = rng;
+        this.forcePlace = forcePlace || structure.isForcePlace();
         this.data = structure.getLoader();
         generateStartPiece();
 
@@ -107,6 +109,9 @@ public class PlannedStructure {
             options.setWarp(new IrisGeneratorStyle(NoiseStyle.FLAT));
         } else {
             options.setMode(i.getPiece().getPlaceMode());
+        }
+        if (forcePlace) {
+            options.setForcePlace(true);
         }
 
         IrisObject v = i.getObject();

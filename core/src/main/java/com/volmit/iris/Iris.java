@@ -40,6 +40,7 @@ import com.volmit.iris.engine.platform.BukkitChunkGenerator;
 import com.volmit.iris.engine.platform.DummyChunkGenerator;
 import com.volmit.iris.core.safeguard.IrisSafeguard;
 import com.volmit.iris.core.safeguard.UtilsSFG;
+import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.exceptions.IrisException;
@@ -55,7 +56,6 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.misc.getHardware;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.IrisService;
-import com.volmit.iris.util.plugin.Metrics;
 import com.volmit.iris.util.plugin.VolmitPlugin;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.reflect.ShadeFix;
@@ -63,13 +63,13 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
 import io.papermc.lib.PaperLib;
-import lombok.Getter;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
-import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.WorldCreator;
+import org.bstats.bukkit.Metrics;
+import org.bstats.charts.DrilldownPie;
+import org.bstats.charts.SimplePie;
+import org.bstats.charts.SingleLineChart;
+import org.bukkit.*;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -77,33 +77,31 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
-import org.bukkit.event.HandlerList;
-import org.bukkit.event.Listener;
+import org.bukkit.event.*;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.IllegalPluginAccessException;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import oshi.SystemInfo;
 
 import java.io.*;
 import java.lang.annotation.Annotation;
-import java.lang.management.ManagementFactory;
-import java.lang.management.OperatingSystemMXBean;
+import java.math.RoundingMode;
 import java.net.URL;
-import java.util.Date;
-import java.util.Map;
+import java.text.NumberFormat;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static com.volmit.iris.core.safeguard.IrisSafeguard.*;
 import static com.volmit.iris.core.safeguard.ServerBootSFG.passedserversoftware;
-import static com.volmit.iris.util.misc.getHardware.getCPUModel;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
-    public static final String OVERWORLD_TAG = "3800";
+    public static final String OVERWORLD_TAG = "31000";
 
     private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
 
@@ -512,11 +510,10 @@ public class Iris extends VolmitPlugin implements Listener {
                     continue;
                 }
 
-                Iris.info("2 World: %s | Generator: %s", s, generator);
-
-                if (Bukkit.getWorlds().stream().anyMatch(w -> w.getName().equals(s))) {
+                if (Bukkit.getWorld(s) != null)
                     continue;
-                }
+
+                Iris.info("Loading World: %s | Generator: %s", s, generator);
 
                 Iris.info(C.LIGHT_PURPLE + "Preparing Spawn for " + s + "' using Iris:" + generator + "...");
                 new WorldCreator(s)
@@ -664,7 +661,48 @@ public class Iris extends VolmitPlugin implements Listener {
 
     private void bstats() {
         if (IrisSettings.get().getGeneral().isPluginMetrics()) {
-            J.s(() -> new Metrics(Iris.instance, 8757));
+            J.s(() -> {
+                var metrics = new Metrics(Iris.instance, 24220);
+                metrics.addCustomChart(new SingleLineChart("custom_dimensions", () -> Bukkit.getWorlds()
+                        .stream()
+                        .filter(IrisToolbelt::isIrisWorld)
+                        .mapToInt(w -> 1)
+                        .sum()));
+
+                metrics.addCustomChart(new DrilldownPie("used_packs", () -> Bukkit.getWorlds().stream()
+                        .map(IrisToolbelt::access)
+                        .filter(Objects::nonNull)
+                        .map(PlatformChunkGenerator::getTarget)
+                        .collect(Collectors.toMap(target -> target.getDimension().getLoadKey(), target -> {
+                            int version = target.getDimension().getVersion();
+                            String checksum = IO.hashRecursive(target.getData().getDataFolder());
+
+                            return Map.of("v" + version + " (" + checksum + ")", 1);
+                        }, (a, b) -> {
+                            Map<String, Integer> merged = new HashMap<>(a);
+                            b.forEach((k, v) -> merged.merge(k, v, Integer::sum));
+                            return merged;
+                        }))));
+
+
+                var info = new SystemInfo().getHardware();
+                var cpu = info.getProcessor().getProcessorIdentifier();
+                var mem = info.getMemory();
+                metrics.addCustomChart(new SimplePie("cpu_model", cpu::getName));
+
+                var nf = NumberFormat.getInstance(Locale.ENGLISH);
+                nf.setMinimumFractionDigits(0);
+                nf.setMaximumFractionDigits(2);
+                nf.setRoundingMode(RoundingMode.HALF_UP);
+
+                metrics.addCustomChart(new DrilldownPie("memory", () -> {
+                    double total = mem.getTotal() * 1E-9;
+                    double alloc = Math.min(total, Runtime.getRuntime().maxMemory() * 1E-9);
+                    return Map.of(nf.format(alloc), Map.of(nf.format(total), 1));
+                }));
+
+                postShutdown.add(metrics::shutdown);
+            });
         }
     }
 

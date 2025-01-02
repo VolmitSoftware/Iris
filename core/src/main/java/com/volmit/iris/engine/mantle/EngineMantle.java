@@ -107,7 +107,7 @@ public interface EngineMantle extends IObjectPlacer {
     }
 
     @Override
-    default void setTile(int x, int y, int z, TileData<? extends TileState> d) {
+    default void setTile(int x, int y, int z, TileData d) {
         getMantle().set(x, y, z, new TileWrapper(d));
     }
 

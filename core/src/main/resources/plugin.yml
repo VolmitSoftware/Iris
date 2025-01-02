@@ -19,6 +19,7 @@ libraries:
   - rhino:js:1.7R2
   - bsf:bsf:2.4.0
   - org.lz4:lz4-java:1.8.0
+  - com.github.oshi:oshi-core:6.6.5
 commands:
   iris:
     aliases: [ ir, irs ]

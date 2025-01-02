@@ -80,15 +80,6 @@ public class KList<T> extends ArrayList<T> implements List<T> {
         return indexOf(v);
     }
 
-    /**
-     * Remove the last element
-     */
-    public KList<T> removeLast() {
-        remove(last());
-
-        return this;
-    }
-
     public void addMultiple(T t, int c) {
         for (int i = 0; i < c; i++) {
             add(t);

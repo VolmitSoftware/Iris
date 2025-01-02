@@ -30,9 +30,10 @@ import org.bukkit.util.Vector;
 import java.awt.*;
 
 public class WandSelection {
-    private static final Particle REDSTONE = E.getOrDefault(Particle.class,  "REDSTONE", "DUST");
+    private static final Particle REDSTONE = E.getOrDefault(Particle.class, "REDSTONE", "DUST");
     private final Cuboid c;
     private final Player p;
+    private static final double STEP = 0.10;
 
     public WandSelection(Cuboid c, Player p) {
         this.c = c;
@@ -40,77 +41,58 @@ public class WandSelection {
     }
 
     public void draw() {
-        double accuracy;
-        double dist;
+        Location playerLoc = p.getLocation();
+        double maxDistanceSquared = 256 * 256;
+        int particleCount = 0;
 
-        for (double i = c.getLowerX() - 1; i < c.getUpperX() + 1; i += 0.25) {
-            for (double j = c.getLowerY() - 1; j < c.getUpperY() + 1; j += 0.25) {
-                for (double k = c.getLowerZ() - 1; k < c.getUpperZ() + 1; k += 0.25) {
-                    boolean ii = i == c.getLowerX() || i == c.getUpperX();
-                    boolean jj = j == c.getLowerY() || j == c.getUpperY();
-                    boolean kk = k == c.getLowerZ() || k == c.getUpperZ();
+        // cube!
+        Location[][] edges = {
+                {c.getLowerNE(), new Location(c.getWorld(), c.getUpperX() + 1, c.getLowerY(), c.getLowerZ())},
+                {c.getLowerNE(), new Location(c.getWorld(), c.getLowerX(), c.getUpperY() + 1, c.getLowerZ())},
+                {c.getLowerNE(), new Location(c.getWorld(), c.getLowerX(), c.getLowerY(), c.getUpperZ() + 1)},
+                {new Location(c.getWorld(), c.getUpperX() + 1, c.getLowerY(), c.getLowerZ()), new Location(c.getWorld(), c.getUpperX() + 1, c.getUpperY() + 1, c.getLowerZ())},
+                {new Location(c.getWorld(), c.getUpperX() + 1, c.getLowerY(), c.getLowerZ()), new Location(c.getWorld(), c.getUpperX() + 1, c.getLowerY(), c.getUpperZ() + 1)},
+                {new Location(c.getWorld(), c.getLowerX(), c.getUpperY() + 1, c.getLowerZ()), new Location(c.getWorld(), c.getUpperX() + 1, c.getUpperY() + 1, c.getLowerZ())},
+                {new Location(c.getWorld(), c.getLowerX(), c.getUpperY() + 1, c.getLowerZ()), new Location(c.getWorld(), c.getLowerX(), c.getUpperY() + 1, c.getUpperZ() + 1)},
+                {new Location(c.getWorld(), c.getLowerX(), c.getLowerY(), c.getUpperZ() + 1), new Location(c.getWorld(), c.getUpperX() + 1, c.getLowerY(), c.getUpperZ() + 1)},
+                {new Location(c.getWorld(), c.getLowerX(), c.getLowerY(), c.getUpperZ() + 1), new Location(c.getWorld(), c.getLowerX(), c.getUpperY() + 1, c.getUpperZ() + 1)},
+                {new Location(c.getWorld(), c.getUpperX() + 1, c.getUpperY() + 1, c.getLowerZ()), new Location(c.getWorld(), c.getUpperX() + 1, c.getUpperY() + 1, c.getUpperZ() + 1)},
+                {new Location(c.getWorld(), c.getLowerX(), c.getUpperY() + 1, c.getUpperZ() + 1), new Location(c.getWorld(), c.getUpperX() + 1, c.getUpperY() + 1, c.getUpperZ() + 1)},
+                {new Location(c.getWorld(), c.getUpperX() + 1, c.getLowerY(), c.getUpperZ() + 1), new Location(c.getWorld(), c.getUpperX() + 1, c.getUpperY() + 1, c.getUpperZ() + 1)}
+        };
 
-                    if ((ii && jj) || (ii && kk) || (kk && jj)) {
-                        Vector push = new Vector(0, 0, 0);
+        for (Location[] edge : edges) {
+            Vector direction = edge[1].toVector().subtract(edge[0].toVector());
+            double length = direction.length();
+            direction.normalize();
 
-                        if (i == c.getLowerX()) {
-                            push.add(new Vector(-0.55, 0, 0));
-                        }
+            for (double d = 0; d <= length; d += STEP) {
+                Location particleLoc = edge[0].clone().add(direction.clone().multiply(d));
 
-                        if (j == c.getLowerY()) {
-                            push.add(new Vector(0, -0.55, 0));
-                        }
-
-                        if (k == c.getLowerZ()) {
-                            push.add(new Vector(0, 0, -0.55));
-                        }
-
-                        if (i == c.getUpperX()) {
-                            push.add(new Vector(0.55, 0, 0));
-                        }
-
-                        if (j == c.getUpperY()) {
-                            push.add(new Vector(0, 0.55, 0));
-                        }
-
-                        if (k == c.getUpperZ()) {
-                            push.add(new Vector(0, 0, 0.55));
-                        }
-
-                        Location a = new Location(c.getWorld(), i, j, k).add(0.5, 0.5, 0.5).add(push);
-                        accuracy = M.lerpInverse(0, 64 * 64, p.getLocation().distanceSquared(a));
-                        dist = M.lerp(0.125, 3.5, accuracy);
-
-                        if (M.r(M.min(dist * 5, 0.9D) * 0.995)) {
-                            continue;
-                        }
-
-                        if (ii && jj) {
-                            a.add(0, 0, RNG.r.d(-0.3, 0.3));
-                        }
-
-                        if (kk && jj) {
-                            a.add(RNG.r.d(-0.3, 0.3), 0, 0);
-                        }
-
-                        if (ii && kk) {
-                            a.add(0, RNG.r.d(-0.3, 0.3), 0);
-                        }
-
-                        if (p.getLocation().distanceSquared(a) < 256 * 256) {
-                            Color color = Color.getHSBColor((float) (0.5f + (Math.sin((i + j + k + (p.getTicksLived() / 2f)) / (20f)) / 2)), 1, 1);
-                            int r = color.getRed();
-                            int g = color.getGreen();
-                            int b = color.getBlue();
-
-                            p.spawnParticle(REDSTONE, a.getX(), a.getY(), a.getZ(),
-                                    1, 0, 0, 0, 0,
-                                    new Particle.DustOptions(org.bukkit.Color.fromRGB(r, g, b),
-                                            (float) dist * 3f));
-                        }
-                    }
+                if (playerLoc.distanceSquared(particleLoc) > maxDistanceSquared) {
+                    continue;
                 }
+
+                spawnParticle(particleLoc, playerLoc);
+                particleCount++;
             }
         }
+    }
+
+    private void spawnParticle(Location particleLoc, Location playerLoc) {
+        double accuracy = M.lerpInverse(0, 64 * 64, playerLoc.distanceSquared(particleLoc));
+        double dist = M.lerp(0.125, 3.5, accuracy);
+
+        if (M.r(Math.min(dist * 5, 0.9D) * 0.995)) {
+            return;
+        }
+
+        float hue = (float) (0.5f + (Math.sin((particleLoc.getX() + particleLoc.getY() + particleLoc.getZ() + (p.getTicksLived() / 2f)) / 20f) / 2));
+        Color color = Color.getHSBColor(hue, 1, 1);
+
+        p.spawnParticle(REDSTONE, particleLoc,
+                0, 0, 0, 0, 1,
+                new Particle.DustOptions(org.bukkit.Color.fromRGB(color.getRed(), color.getGreen(), color.getBlue()),
+                        (float) dist * 3f));
     }
 }

@@ -60,7 +60,7 @@ public class CommandJigsaw implements DecreeExecutor {
         try {
             var world = world();
             WorldObjectPlacer placer = new WorldObjectPlacer(world);
-            PlannedStructure ps = new PlannedStructure(structure, new IrisPosition(player().getLocation().add(0, world.getMinHeight(), 0)), new RNG());
+            PlannedStructure ps = new PlannedStructure(structure, new IrisPosition(player().getLocation().add(0, world.getMinHeight(), 0)), new RNG(), true);
             VolmitSender sender = sender();
             sender.sendMessage(C.GREEN + "Generated " + ps.getPieces().size() + " pieces in " + Form.duration(p.getMilliseconds(), 2));
             ps.place(placer, failed -> sender.sendMessage(failed ? C.GREEN + "Placed the structure!" : C.RED + "Failed to place the structure!"));

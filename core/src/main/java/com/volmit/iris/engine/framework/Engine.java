@@ -20,6 +20,7 @@ package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.events.IrisLootEvent;
 import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.core.gui.components.Renderer;
 import com.volmit.iris.core.link.Identifier;
@@ -27,6 +28,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.nms.container.BlockPos;
 import com.volmit.iris.core.nms.container.Pair;
+import com.volmit.iris.core.pregenerator.ChunkUpdater;
 import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.Cache;
@@ -57,15 +59,13 @@ import com.volmit.iris.util.matter.TileWrapper;
 import com.volmit.iris.util.matter.slices.container.JigsawPieceContainer;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.reflect.W;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.stream.ProceduralStream;
 import io.papermc.lib.PaperLib;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -76,10 +76,11 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
-import java.awt.*;
+import java.awt.Color;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -273,33 +274,43 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             for (int z = -1; z <= 1; z++) {
                 if (c.getWorld().isChunkLoaded(c.getX() + x, c.getZ() + z))
                     continue;
-                Iris.debug("Chunk %s, %s [%s, %s] is not loaded".formatted(c.getX() + x, c.getZ() + z, x, z));
+                var msg = "Chunk %s, %s [%s, %s] is not loaded".formatted(c.getX() + x, c.getZ() + z, x, z);
+                if (W.getStack().getCallerClass().equals(ChunkUpdater.class)) Iris.warn(msg);
+                else Iris.debug(msg);
                 return;
             }
         }
-        if (!getMantle().getMantle().isLoaded(c)) {
-            Iris.debug("Mantle Chunk " + c.getX() + c.getX() + " is not loaded");
+        var mantle = getMantle().getMantle();
+        if (!mantle.isLoaded(c)) {
+            var msg = "Mantle Chunk " + c.getX() + c.getX() + " is not loaded";
+            if (W.getStack().getCallerClass().equals(ChunkUpdater.class)) Iris.warn(msg);
+            else Iris.debug(msg);
             return;
         }
 
-        getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.TILE, () -> J.s(() -> {
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, tile) -> {
+        var chunk = mantle.getChunk(c);
+        if (chunk.isFlagged(MantleFlag.ETCHED)) return;
+        chunk.flag(MantleFlag.ETCHED, true);
+
+        Semaphore semaphore = new Semaphore(3);
+        chunk.raiseFlag(MantleFlag.TILE, run(semaphore, () -> J.s(() -> {
+            mantle.iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, v) -> {
                 int betterY = y + getWorld().minHeight();
-                if (!TileData.setTileState(c.getBlock(x, betterY, z), tile.getData()))
-                    Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), tile.getData().getTileId());
+                if (!TileData.setTileState(c.getBlock(x, betterY, z), v.getData()))
+                    Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), v.getData().getMaterial().name());
             });
-        }));
-        getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.CUSTOM, () -> J.s(() -> {
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), Identifier.class, (x, y, z, v) -> {
+        })));
+        chunk.raiseFlag(MantleFlag.CUSTOM, run(semaphore, () -> J.s(() -> {
+            mantle.iterateChunk(c.getX(), c.getZ(), Identifier.class, (x, y, z, v) -> {
                 Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
             });
-        }));
+        })));
 
-        getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.UPDATE, () -> J.s(() -> {
+        chunk.raiseFlag(MantleFlag.UPDATE, run(semaphore, () -> J.s(() -> {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             KMap<Long, Integer> updates = new KMap<>();
             RNG r = new RNG(Cache.key(c.getX(), c.getZ()));
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, yf, z, v) -> {
+            mantle.iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, yf, z, v) -> {
                 int y = yf + getWorld().minHeight();
                 if (!B.isFluid(c.getBlock(x & 15, y, z & 15).getBlockData())) {
                     return;
@@ -329,7 +340,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             });
 
             updates.forEach((k, v) -> update(Cache.keyX(k), v, Cache.keyZ(k), c, r));
-            getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterUpdate.class, (x, yf, z, v) -> {
+            mantle.iterateChunk(c.getX(), c.getZ(), MatterUpdate.class, (x, yf, z, v) -> {
                 int y = yf + getWorld().minHeight();
                 if (v != null && v.isUpdate()) {
                     int vx = x & 15;
@@ -340,9 +351,25 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     }
                 }
             });
-            getMantle().getMantle().deleteChunkSlice(c.getX(), c.getZ(), MatterUpdate.class);
+            mantle.deleteChunkSlice(c.getX(), c.getZ(), MatterUpdate.class);
             getMetrics().getUpdates().put(p.getMilliseconds());
-        }, RNG.r.i(0, 20)));
+        }, RNG.r.i(0, 20))));
+
+        try {
+            semaphore.acquire(3);
+        } catch (InterruptedException ignored) {}
+    }
+
+    private static Runnable run(Semaphore semaphore, Runnable runnable) {
+        return () -> {
+            if (!semaphore.tryAcquire())
+                return;
+            try {
+                runnable.run();
+            } finally {
+                semaphore.release();
+            }
+        };
     }
 
     @BlockCoordinates
@@ -388,7 +415,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     if (tables.isEmpty())
                         return;
                     InventoryHolder m = (InventoryHolder) block.getState();
-                    addItems(false, m.getInventory(), rx, tables, slot, x, y, z, 15);
+                    addItems(false, m.getInventory(), rx, tables, slot, c.getWorld(), x, y, z, 15);
 
                 } catch (Throwable e) {
                     Iris.reportError(e);
@@ -441,7 +468,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     @Override
-    default void injectTables(KList<IrisLootTable> list, IrisLootReference r) {
+    default void injectTables(KList<IrisLootTable> list, IrisLootReference r, boolean fallback) {
+        if (r.getMode().equals(IrisLootMode.FALLBACK) && !fallback)
+            return;
+
         if (r.getMode().equals(IrisLootMode.CLEAR) || r.getMode().equals(IrisLootMode.REPLACE)) {
             list.clear();
         }
@@ -476,10 +506,11 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         IrisBiome biomeUnder = ry < he ? getComplex().getCaveBiomeStream().get(rx, rz) : biomeSurface;
 
         double multiplier = 1D * getDimension().getLoot().getMultiplier() * region.getLoot().getMultiplier() * biomeSurface.getLoot().getMultiplier() * biomeUnder.getLoot().getMultiplier();
-        injectTables(tables, getDimension().getLoot());
-        injectTables(tables, region.getLoot());
-        injectTables(tables, biomeSurface.getLoot());
-        injectTables(tables, biomeUnder.getLoot());
+        boolean fallback = tables.isEmpty();
+        injectTables(tables, getDimension().getLoot(), fallback);
+        injectTables(tables, region.getLoot(), fallback);
+        injectTables(tables, biomeSurface.getLoot(), fallback);
+        injectTables(tables, biomeUnder.getLoot(), fallback);
 
         if (tables.isNotEmpty()) {
             int target = (int) Math.round(tables.size() * multiplier);
@@ -497,16 +528,16 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     @Override
-    default void addItems(boolean debug, Inventory inv, RNG rng, KList<IrisLootTable> tables, InventorySlotType slot, int x, int y, int z, int mgf) {
+    default void addItems(boolean debug, Inventory inv, RNG rng, KList<IrisLootTable> tables, InventorySlotType slot, World world, int x, int y, int z, int mgf) {
         KList<ItemStack> items = new KList<>();
 
-        int b = 4;
         for (IrisLootTable i : tables) {
             if (i == null)
                 continue;
-            b++;
-            items.addAll(i.getLoot(debug, rng, slot, x, y, z));
+            items.addAll(i.getLoot(debug, rng, slot, world, x, y, z));
         }
+        if (IrisLootEvent.callLootEvent(items, inv, world, x, y, z))
+            return;
 
         if (PaperLib.isPaper() && getWorld().hasRealWorld()) {
             PaperLib.getChunkAtAsync(getWorld().realWorld(), x >> 4, z >> 4).thenAccept((c) -> {
@@ -840,7 +871,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     default void gotoJigsaw(IrisJigsawStructure s, Player player, boolean teleport) {
         if (s.getLoadKey().equals(getDimension().getStronghold())) {
-            KList<Position2> p = getDimension().getStrongholds(getSeedManager().getSpawn());
+            KList<Position2> p = getDimension().getStrongholds(getSeedManager().getMantle());
 
             if (p.isEmpty()) {
                 player.sendMessage(C.GOLD + "No strongholds in world.");

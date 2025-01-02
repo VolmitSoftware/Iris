@@ -32,7 +32,7 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '3.4.1-1.19.2-1.21.1'
+version '3.5.0-1.19.2-1.21.3'
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================
@@ -43,7 +43,8 @@ registerCustomOutputTask('Coco', 'D://mcsm/plugins')
 registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins')
 registerCustomOutputTask('Vatuu', 'D://Minecraft/Servers/1.19.4/plugins')
 registerCustomOutputTask('CrazyDev22', 'C://Users/Julian/Desktop/server/plugins')
-registerCustomOutputTask('Pixel', 'C://Users/repix/Iris Dimension Engine/1.20.4 - Development/plugins')
+registerCustomOutputTask('PixelFury', 'C://Users/repix/workplace/Iris/1.21.3 - Development-Public-v3/plugins')
+registerCustomOutputTask('PixelFuryDev', 'C://Users/repix/workplace/Iris/1.21 - Development-v3/plugins')
 // ========================== UNIX ==============================
 registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/development/server/plugins')
 registerCustomOutputTaskUnix('PsychoLT', '/Users/brianfopiano/Developer/RemoteGit/Server/plugins')
@@ -52,7 +53,8 @@ registerCustomOutputTaskUnix('CrazyDev22LT', '/home/julian/Desktop/server/plugin
 // ==============================================================
 
 def NMS_BINDINGS = Map.of(
-        "v1_21_R1", "1.21-R0.1-SNAPSHOT",
+        "v1_21_R2", "1.21.3-R0.1-SNAPSHOT",
+        "v1_21_R1", "1.21.1-R0.1-SNAPSHOT",
         "v1_20_R4", "1.20.6-R0.1-SNAPSHOT",
         "v1_20_R3", "1.20.4-R0.1-SNAPSHOT",
         "v1_20_R2", "1.20.2-R0.1-SNAPSHOT",
@@ -61,17 +63,14 @@ def NMS_BINDINGS = Map.of(
         "v1_19_R2", "1.19.3-R0.1-SNAPSHOT",
         "v1_19_R1", "1.19.2-R0.1-SNAPSHOT"
 )
-def JVM_VERSION = Map.of(
-        "v1_21_R1", 21,
-        "v1_20_R4", 21,
-)
+def JVM_VERSION = Map.of()
 NMS_BINDINGS.each { nms ->
     project(":nms:${nms.key}") {
         apply plugin: 'java'
         apply plugin: 'com.volmit.nmstools'
 
         nmsTools {
-            it.jvm = JVM_VERSION.getOrDefault(nms.key, 17)
+            it.jvm = JVM_VERSION.getOrDefault(nms.key, 21)
             it.version = nms.value
         }
 
@@ -92,6 +91,7 @@ shadowJar {
     relocate 'com.dfsek.paralithic', 'com.volmit.iris.util.paralithic'
     relocate 'io.papermc.lib', 'com.volmit.iris.util.paper'
     relocate 'net.kyori', 'com.volmit.iris.util.kyori'
+    relocate 'org.bstats', 'com.volmit.util.metrics'
     archiveFileName.set("Iris-${project.version}.jar")
 }
 
@@ -119,23 +119,26 @@ allprojects {
         maven { url "https://repo.triumphteam.dev/snapshots" }
         maven { url "https://repo.mineinabyss.com/releases" }
         maven { url 'https://hub.jeff-media.com/nexus/repository/jeff-media-public/' }
-        maven { url "https://repo.oraxen.com/releases" }
+        maven { url "https://repo.nexomc.com/snapshots/" }
+        maven { url "https://libraries.minecraft.net" }
     }
 
     dependencies {
         // Provided or Classpath
-        compileOnly 'org.projectlombok:lombok:1.18.24'
-        annotationProcessor 'org.projectlombok:lombok:1.18.24'
+        compileOnly 'org.projectlombok:lombok:1.18.36'
+        annotationProcessor 'org.projectlombok:lombok:1.18.36'
 
         // Shaded
         implementation 'com.dfsek:Paralithic:0.4.0'
         implementation 'io.papermc:paperlib:1.0.5'
-        implementation "net.kyori:adventure-text-minimessage:4.13.1"
-        implementation 'net.kyori:adventure-platform-bukkit:4.3.2'
-        implementation 'net.kyori:adventure-api:4.13.1'
+        implementation "net.kyori:adventure-text-minimessage:4.17.0"
+        implementation 'net.kyori:adventure-platform-bukkit:4.3.4'
+        implementation 'net.kyori:adventure-api:4.17.0'
+        implementation 'org.bstats:bstats-bukkit:3.1.0'
         //implementation 'org.bytedeco:javacpp:1.5.10'
         //implementation 'org.bytedeco:cuda-platform:12.3-8.9-1.5.10'
         compileOnly 'io.lumine:Mythic-Dist:5.2.1'
+        compileOnly 'io.lumine:MythicCrucible-Dist:2.0.0'
 
         // Dynamically Loaded
         compileOnly 'io.timeandspace:smoothie-map:2.0.2'
@@ -149,6 +152,7 @@ allprojects {
         compileOnly 'rhino:js:1.7R2'
         compileOnly 'com.github.ben-manes.caffeine:caffeine:3.0.6'
         compileOnly 'org.apache.commons:commons-lang3:3.12.0'
+        compileOnly 'com.github.oshi:oshi-core:6.6.5'
     }
 
     /**
@@ -175,18 +179,18 @@ allprojects {
     }
 }
 
-if (JavaVersion.current().toString() != "17") {
+if (JavaVersion.current().toString() != "21") {
     System.err.println()
     System.err.println("=========================================================================================================")
-    System.err.println("You must run gradle on Java 17. You are using " + JavaVersion.current())
+    System.err.println("You must run gradle on Java 21. You are using " + JavaVersion.current())
     System.err.println()
     System.err.println("=== For IDEs ===")
-    System.err.println("1. Configure the project for Java 17")
-    System.err.println("2. Configure the bundled gradle to use Java 17 in settings")
+    System.err.println("1. Configure the project for Java 21")
+    System.err.println("2. Configure the bundled gradle to use Java 21 in settings")
     System.err.println()
     System.err.println("=== For Command Line (gradlew) ===")
-    System.err.println("1. Install JDK 17 from https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html")
-    System.err.println("2. Set JAVA_HOME environment variable to the new jdk installation folder such as C:\\Program Files\\Java\\jdk-17.0.1")
+    System.err.println("1. Install JDK 21 from https://www.oracle.com/java/technologies/javase/jdk21-archive-downloads.html")
+    System.err.println("2. Set JAVA_HOME environment variable to the new jdk installation folder such as C:\\Program Files\\Java\\jdk-21.0.4")
     System.err.println("3. Open a new command prompt window to get the new environment variables if need be.")
     System.err.println("=========================================================================================================")
     System.err.println()

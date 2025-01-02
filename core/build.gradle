@@ -62,7 +62,7 @@ dependencies {
 
     // Third Party Integrations
     compileOnly 'com.ticxo.playeranimator:PlayerAnimator:R1.2.7'
-    compileOnly 'io.th0rgal:oraxen:1.173.0'
+    compileOnly 'com.nexomc:nexo:0.6.0-dev.0'
     compileOnly 'com.github.LoneDev6:api-itemsadder:3.4.1-r4'
     compileOnly 'com.github.PlaceholderAPI:placeholderapi:2.11.3'
     compileOnly 'com.github.Ssomar-Developement:SCore:4.23.10.8'
@@ -71,6 +71,9 @@ dependencies {
     //implementation files('libs/CustomItems.jar')
 }
 
+java {
+    disableAutoTargetJvm()
+}
 
 /**
  * Gradle is weird sometimes, we need to delete the plugin yml from the build folder to actually filter properly.

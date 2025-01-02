@@ -20,12 +20,11 @@ import java.util.Map;
 import java.util.StringJoiner;
 
 import static com.volmit.iris.Iris.getJavaVersion;
-import static com.volmit.iris.Iris.instance;
 import static com.volmit.iris.core.safeguard.IrisSafeguard.*;
 
 public class ServerBootSFG {
     public static final Map<String, Boolean> incompatibilities = new HashMap<>();
-    public static boolean isJDK17 = true;
+    public static boolean isCorrectJDK = true;
     public static boolean hasEnoughDiskSpace = true;
     public static boolean isJRE = false;
     public static boolean hasPrivileges = true;
@@ -87,8 +86,8 @@ public class ServerBootSFG {
             severityHigh++;
         }
 
-        if (!List.of(17, 21).contains(getJavaVersion())) {
-            isJDK17 = false;
+        if (!List.of(21).contains(getJavaVersion())) {
+            isCorrectJDK = false;
             joiner.add("Unsupported Java version");
             severityMedium++;
         }

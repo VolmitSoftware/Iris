@@ -468,7 +468,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     @Override
-    default void injectTables(KList<IrisLootTable> list, IrisLootReference r) {
+    default void injectTables(KList<IrisLootTable> list, IrisLootReference r, boolean fallback) {
+        if (r.getMode().equals(IrisLootMode.FALLBACK) && !fallback)
+            return;
+
         if (r.getMode().equals(IrisLootMode.CLEAR) || r.getMode().equals(IrisLootMode.REPLACE)) {
             list.clear();
         }
@@ -503,10 +506,11 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         IrisBiome biomeUnder = ry < he ? getComplex().getCaveBiomeStream().get(rx, rz) : biomeSurface;
 
         double multiplier = 1D * getDimension().getLoot().getMultiplier() * region.getLoot().getMultiplier() * biomeSurface.getLoot().getMultiplier() * biomeUnder.getLoot().getMultiplier();
-        injectTables(tables, getDimension().getLoot());
-        injectTables(tables, region.getLoot());
-        injectTables(tables, biomeSurface.getLoot());
-        injectTables(tables, biomeUnder.getLoot());
+        boolean fallback = tables.isEmpty();
+        injectTables(tables, getDimension().getLoot(), fallback);
+        injectTables(tables, region.getLoot(), fallback);
+        injectTables(tables, biomeSurface.getLoot(), fallback);
+        injectTables(tables, biomeUnder.getLoot(), fallback);
 
         if (tables.isNotEmpty()) {
             int target = (int) Math.round(tables.size() * multiplier);

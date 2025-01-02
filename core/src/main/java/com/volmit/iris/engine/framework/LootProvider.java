@@ -30,7 +30,7 @@ import org.bukkit.inventory.Inventory;
 public interface LootProvider {
     void scramble(Inventory inventory, RNG rng);
 
-    void injectTables(KList<IrisLootTable> list, IrisLootReference r);
+    void injectTables(KList<IrisLootTable> list, IrisLootReference r, boolean fallback);
 
     KList<IrisLootTable> getLootTables(RNG rng, Block b);
 

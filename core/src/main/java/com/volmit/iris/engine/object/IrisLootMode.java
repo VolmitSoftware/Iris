@@ -27,5 +27,7 @@ public enum IrisLootMode {
     @Desc("Clear all loot tables then add this table")
     CLEAR,
     @Desc("Replace all loot tables with this table (same as clear)")
-    REPLACE
+    REPLACE,
+    @Desc("Only use when there was no loot table defined by an object")
+    FALLBACK
 }

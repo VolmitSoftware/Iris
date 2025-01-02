@@ -99,19 +99,46 @@ public class IrisDepositGenerator {
 
     private IrisObject generateClumpObject(RNG rngv, IrisData rdata) {
         int s = rngv.i(minSize, maxSize);
-        int dim = Math.min(11, (int) Math.round(Math.pow(maxSize, 1D / 3D)));
-        int w = dim / 2;
+        if (s == 1) {
+            IrisObject o = new IrisObject(1, 1, 1);
+            o.getBlocks().put(o.getCenter(), nextBlock(rngv, rdata));
+            return o;
+        }
+
+        int dim = Math.min(11, (int) Math.ceil(Math.cbrt(s)));
         IrisObject o = new IrisObject(dim, dim, dim);
 
-        if (s == 1) {
-            o.getBlocks().put(o.getCenter(), nextBlock(rngv, rdata));
-        } else {
-            while (s > 0) {
-                s--;
-                BlockVector ang = new BlockVector(rngv.i(-w, w), rngv.i(-w, w), rngv.i(-w, w));
-                BlockVector pos = o.getCenter().clone().add(ang).toBlockVector();
-                o.getBlocks().put(pos, nextBlock(rngv, rdata));
+        int volume = dim * dim * dim;
+        if (s >= volume) {
+            int x = 0, y = 0, z = 0;
+
+            while (z < dim) {
+                o.setUnsigned(x++, y, z, nextBlock(rngv, rdata));
+
+                if (x == dim) {
+                    x = 0;
+                    y++;
+                }
+
+                if (y == dim) {
+                    y = 0;
+                    z++;
+                }
             }
+            return o;
+        }
+
+        KSet<BlockPosition> set = new KSet<>();
+        while (s > 0) {
+            BlockPosition ang = new BlockPosition(
+                    rngv.i(0, dim),
+                    rngv.i(0, dim),
+                    rngv.i(0, dim)
+            );
+            if (!set.add(ang)) continue;
+
+            s--;
+            o.setUnsigned(ang.getX(), ang.getY(), ang.getZ(), nextBlock(rngv, rdata));
         }
 
         return o;

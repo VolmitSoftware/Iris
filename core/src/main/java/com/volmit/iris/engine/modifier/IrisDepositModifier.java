@@ -71,7 +71,13 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
     }
 
     public void generate(IrisDepositGenerator k, Hunk<BlockData> data, RNG rng, int cx, int cz, boolean safe, HeightMap he, ChunkContext context) {
+        if (k.getSpawnChance() < rng.d())
+            return;
+
         for (int l = 0; l < rng.i(k.getMinPerChunk(), k.getMaxPerChunk() + 1); l++) {
+            if (k.getPerClumpSpawnChance() < rng.d())
+                continue;
+
             IrisObject clump = k.getClump(rng, getData());
 
             int dim = clump.getW();

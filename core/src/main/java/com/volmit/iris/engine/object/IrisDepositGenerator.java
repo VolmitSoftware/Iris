@@ -70,6 +70,14 @@ public class IrisDepositGenerator {
     @MaxNumber(2048)
     @Desc("The minimum amount of clumps per chunk")
     private int minPerChunk = 0;
+    @MinNumber(0)
+    @MaxNumber(1)
+    @Desc("The change of the deposit spawning in a chunk")
+    private double spawnChance = 1;
+    @MinNumber(0)
+    @MaxNumber(1)
+    @Desc("The change of the a clump spawning in a chunk")
+    private double perClumpSpawnChance = 1;
     @Required
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The palette of blocks to be used in this deposit generator")

@@ -60,15 +60,11 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
         }
 
         for (IrisDepositGenerator k : region.getDeposits()) {
-            for (int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++) {
-                burst.queue(() -> generate(k, terrain, ro, x, z, false, context));
-            }
+            burst.queue(() -> generate(k, terrain, ro, x, z, false, context));
         }
 
         for (IrisDepositGenerator k : biome.getDeposits()) {
-            for (int l = 0; l < ro.i(k.getMinPerChunk(), k.getMaxPerChunk()); l++) {
-                burst.queue(() -> generate(k, terrain, ro, x, z, false, context));
-            }
+            burst.queue(() -> generate(k, terrain, ro, x, z, false, context));
         }
         burst.complete();
     }

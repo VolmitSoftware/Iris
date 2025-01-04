@@ -18,6 +18,9 @@
 
 package com.volmit.iris.util.math;
 
+import com.volmit.iris.util.documentation.Exclusive;
+import com.volmit.iris.util.documentation.Inclusive;
+
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Random;
@@ -89,11 +92,11 @@ public class RNG extends Random {
         return d() > percent;
     }
 
-    public short si(int lowerBound, int upperBound) {
+    public short si(@Inclusive int lowerBound, @Inclusive int upperBound) {
         return (short) (lowerBound + (nextFloat() * ((upperBound - lowerBound) + 1)));
     }
 
-    public short si(int upperBound) {
+    public short si(@Inclusive int upperBound) {
         return si(0, upperBound);
     }
 
@@ -101,11 +104,11 @@ public class RNG extends Random {
         return si(1);
     }
 
-    public float f(float lowerBound, float upperBound) {
+    public float f(@Inclusive float lowerBound, @Exclusive float upperBound) {
         return lowerBound + (nextFloat() * ((upperBound - lowerBound)));
     }
 
-    public float f(float upperBound) {
+    public float f(@Exclusive float upperBound) {
         return f(0, upperBound);
     }
 
@@ -113,7 +116,7 @@ public class RNG extends Random {
         return f(1);
     }
 
-    public double d(double lowerBound, double upperBound) {
+    public double d(@Inclusive double lowerBound, @Exclusive double upperBound) {
         if (lowerBound > upperBound) {
             return M.lerp(upperBound, lowerBound, nextDouble());
         }
@@ -121,7 +124,7 @@ public class RNG extends Random {
         return M.lerp(lowerBound, upperBound, nextDouble());
     }
 
-    public double d(double upperBound) {
+    public double d(@Exclusive double upperBound) {
         return d(0, upperBound);
     }
 
@@ -129,19 +132,19 @@ public class RNG extends Random {
         return d(1);
     }
 
-    public int i(int lowerBound, int upperBound) {
+    public int i(@Inclusive int lowerBound, @Exclusive int upperBound) {
         return (int) Math.floor(d(lowerBound, upperBound));
     }
 
-    public int i(int upperBound) {
+    public int i(@Exclusive int upperBound) {
         return i(Math.min(upperBound, 0), Math.max(0, upperBound));
     }
 
-    public long l(long lowerBound, long upperBound) {
+    public long l(@Inclusive long lowerBound, @Exclusive long upperBound) {
         return Math.round(d(lowerBound, upperBound));
     }
 
-    public long l(long upperBound) {
+    public long l(@Exclusive long upperBound) {
         return l(0, upperBound);
     }
 

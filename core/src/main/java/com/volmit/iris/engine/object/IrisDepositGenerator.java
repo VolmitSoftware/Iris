@@ -22,13 +22,14 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.util.BlockVector;
 
 @Snippet("deposit")
 @Accessors(chain = true)
@@ -90,15 +91,15 @@ public class IrisDepositGenerator {
 
             return objectsf;
         });
-        return objects.get(rng.i(0, objects.size() - 1));
+        return objects.get(rng.i(0, objects.size()));
     }
 
     public int getMaxDimension() {
-        return Math.min(11, (int) Math.round(Math.pow(maxSize, 1D / 3D)));
+        return Math.min(11, (int) Math.ceil(Math.cbrt(maxSize)));
     }
 
     private IrisObject generateClumpObject(RNG rngv, IrisData rdata) {
-        int s = rngv.i(minSize, maxSize);
+        int s = rngv.i(minSize, maxSize + 1);
         if (s == 1) {
             IrisObject o = new IrisObject(1, 1, 1);
             o.getBlocks().put(o.getCenter(), nextBlock(rngv, rdata));
@@ -145,7 +146,7 @@ public class IrisDepositGenerator {
     }
 
     private BlockData nextBlock(RNG rngv, IrisData rdata) {
-        return getBlockData(rdata).get(rngv.i(0, getBlockData(rdata).size() - 1));
+        return getBlockData(rdata).get(rngv.i(0, getBlockData(rdata).size()));
     }
 
     public KList<BlockData> getBlockData(IrisData rdata) {

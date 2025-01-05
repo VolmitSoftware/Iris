@@ -636,7 +636,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
 
                 k.add("Pos: " + h.getLocation().getBlockX() + ", " + h.getLocation().getBlockY() + ", " + h.getLocation().getBlockZ());
                 k.add("UUID: " + h.getUniqueId());
-                k.add("HP: " + h.getHealth() + " / " + h.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
+                k.add("HP: " + h.getHealth() + " / " + h.getAttribute(Attribute.MAX_HEALTH).getValue());
 
                 drawCardTR(g, k);
             }

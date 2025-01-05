@@ -22,7 +22,7 @@ plugins {
     id "io.freefair.lombok" version "8.6"
 }
 
-def apiVersion = '1.19'
+def apiVersion = '1.21'
 def main = 'com.volmit.iris.Iris'
 
 /**
@@ -52,10 +52,10 @@ repositories {
  */
 dependencies {
     // Provided or Classpath
-    compileOnly 'org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT'
+    compileOnly 'org.spigotmc:spigot-api:1.21.3-R0.1-SNAPSHOT'
     compileOnly 'org.apache.logging.log4j:log4j-api:2.19.0'
     compileOnly 'org.apache.logging.log4j:log4j-core:2.19.0'
-    compileOnly 'commons-io:commons-io:2.13.0'
+    compileOnly 'commons-io:commons-io:2.14.0'
     compileOnly 'commons-lang:commons-lang:2.6'
     compileOnly 'com.github.oshi:oshi-core:5.8.5'
     compileOnly 'org.lz4:lz4-java:1.8.0'

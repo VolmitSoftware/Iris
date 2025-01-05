@@ -3,6 +3,7 @@ package com.volmit.iris.util.data;
 import com.volmit.iris.core.link.Identifier;
 import lombok.Data;
 import lombok.NonNull;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.SoundGroup;
@@ -105,6 +106,12 @@ public class IrisBlockData implements BlockData {
 
 	@NotNull
 	@Override
+	public Color getMapColor() {
+		return base.getMapColor();
+	}
+
+	@NotNull
+	@Override
 	public Material getPlacementMaterial() {
 		return base.getPlacementMaterial();
 	}
@@ -117,6 +124,11 @@ public class IrisBlockData implements BlockData {
 	@Override
 	public void mirror(@NotNull Mirror mirror) {
 		base.mirror(mirror);
+	}
+
+	@Override
+	public void copyTo(@NotNull BlockData blockData) {
+		base.copyTo(blockData);
 	}
 
 	@NotNull

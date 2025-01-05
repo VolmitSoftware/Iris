@@ -20,15 +20,11 @@ package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.pregenerator.DeepSearchPregenerator;
-import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.TurboPregenerator;
-import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.util.data.Dimension;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.math.Position2;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.util.Vector;

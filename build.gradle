@@ -32,7 +32,7 @@ plugins {
     id "de.undercouch.download" version "5.0.1"
 }
 
-version '3.5.1-1.19.2-1.21.3'
+version '3.5.2-1.19.2-1.21.4'
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================
@@ -43,7 +43,7 @@ registerCustomOutputTask('Coco', 'D://mcsm/plugins')
 registerCustomOutputTask('Strange', 'D://Servers/1.17 Test Server/plugins')
 registerCustomOutputTask('Vatuu', 'D://Minecraft/Servers/1.19.4/plugins')
 registerCustomOutputTask('CrazyDev22', 'C://Users/Julian/Desktop/server/plugins')
-registerCustomOutputTask('PixelFury', 'C://Users/repix/workplace/Iris/1.21.3 - Development-Public-v3/plugins')
+registerCustomOutputTask('PixelFury', 'C://Users/repix/workplace/Iris/1.21.4 - Development-Public-v3/plugins')
 registerCustomOutputTask('PixelFuryDev', 'C://Users/repix/workplace/Iris/1.21 - Development-v3/plugins')
 // ========================== UNIX ==============================
 registerCustomOutputTaskUnix('CyberpwnLT', '/Users/danielmills/development/server/plugins')
@@ -53,6 +53,7 @@ registerCustomOutputTaskUnix('CrazyDev22LT', '/home/julian/Desktop/server/plugin
 // ==============================================================
 
 def NMS_BINDINGS = Map.of(
+        "v1_21_R3", "1.21.4-R0.1-SNAPSHOT",
         "v1_21_R2", "1.21.3-R0.1-SNAPSHOT",
         "v1_21_R1", "1.21.1-R0.1-SNAPSHOT",
         "v1_20_R4", "1.20.6-R0.1-SNAPSHOT",

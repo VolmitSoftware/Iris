@@ -310,6 +310,8 @@ public class IrisDimension extends IrisRegistrant {
     @MaxNumber(318)
     @Desc("The Subterrain Fluid Layer Height")
     private int caveLavaHeight = 8;
+    @Desc("Static Placements for objects and structures")
+    private IrisStaticPlacements staticPlacements = new IrisStaticPlacements();
 
     public int getMaxHeight() {
         return (int) getDimensionHeight().getMax();

@@ -826,6 +826,13 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 return new PlacedObject(piece.getPlacementOptions(), getData().getObjectLoader().load(object), id, x, z);
         }
 
+        for (var staticPlacement : getDimension().getStaticPlacements().getObjects()) {
+            IrisObjectPlacement i = staticPlacement.placement();
+            if (i.getPlace().contains(object)) {
+                return new PlacedObject(i, getData().getObjectLoader().load(object), id, x, z);
+            }
+        }
+
         IrisRegion region = getRegion(x, z);
 
         for (IrisObjectPlacement i : region.getObjects()) {

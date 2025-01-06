@@ -35,7 +35,8 @@ public enum MantleFlag {
     ETCHED,
     TILE,
     CUSTOM,
-    DISCOVERED;
+    DISCOVERED,
+    STATIC;
 
     static StateList getStateList() {
         return new StateList(MantleFlag.values());

@@ -23,15 +23,11 @@ import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.MantleComponent;
-import com.volmit.iris.engine.mantle.components.MantleCarvingComponent;
-import com.volmit.iris.engine.mantle.components.MantleFluidBodyComponent;
-import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
-import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
+import com.volmit.iris.engine.mantle.components.*;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.parallel.BurstExecutor;
@@ -68,6 +64,7 @@ public class IrisEngineMantle implements EngineMantle {
         registerComponent(jigsaw);
         object = new MantleObjectComponent(this);
         registerComponent(object);
+        registerComponent(new MantleStaticComponent(this));
     }
 
     @Override
@@ -164,6 +161,22 @@ public class IrisEngineMantle implements EngineMantle {
             for (IrisJigsawStructurePlacement j : getEngine().getDimension().getJigsawStructures()) {
                 jig = Math.max(jig, getData().getJigsawStructureLoader().load(j.getStructure()).getMaxDimension());
             }
+
+            jig = Math.max(getEngine().getDimension().getStaticPlacements().getStructures().stream()
+                    .mapToInt(p -> p.maxDimension(getData()))
+                    .max()
+                    .orElse(0), jig);
+
+            getEngine().getDimension().getStaticPlacements().getObjects()
+                    .stream()
+                    .map(IrisStaticObjectPlacement::placement)
+                    .forEach(j -> {
+                        if (j.getScale().canScaleBeyond()) {
+                            scalars.put(j.getScale(), j.getPlace());
+                        } else {
+                            objects.addAll(j.getPlace());
+                        }
+                    });
 
             if (getEngine().getDimension().getStronghold() != null) {
                 try {

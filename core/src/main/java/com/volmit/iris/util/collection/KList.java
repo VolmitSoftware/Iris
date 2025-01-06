@@ -487,7 +487,7 @@ public class KList<T> extends ArrayList<T> implements List<T> {
             return pop();
         }
 
-        return remove(rng.i(0, last()));
+        return remove(rng.i(0, size()));
     }
 
     public KList<T> sub(int f, int t) {

@@ -26,10 +26,12 @@ import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterSlice;
 import lombok.Getter;
+import lombok.Synchronized;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
@@ -44,6 +46,7 @@ public class MantleChunk {
     private final int z;
     private final AtomicIntegerArray flags;
     private final AtomicReferenceArray<Matter> sections;
+    private final AtomicInteger ref = new AtomicInteger();
 
     /**
      * Create a mantle chunk
@@ -101,10 +104,25 @@ public class MantleChunk {
         }
     }
 
+    public boolean inUse() {
+        return ref.get() > 0;
+    }
+
+    public MantleChunk use() {
+        ref.incrementAndGet();
+        return this;
+    }
+
+    public void release() {
+        ref.decrementAndGet();
+    }
+
+    @Synchronized
     public void flag(MantleFlag flag, boolean f) {
         flags.set(flag.ordinal(), f ? 1 : 0);
     }
 
+    @Synchronized
     public void raiseFlag(MantleFlag flag, Runnable r) {
         if (!isFlagged(flag)) {
             flag(flag, true);

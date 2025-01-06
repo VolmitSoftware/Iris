@@ -172,7 +172,7 @@ public class CommandStudio implements DecreeExecutor {
                     KList<Runnable> js = new KList<>();
                     BurstExecutor b = MultiBurst.burst.burst();
                     b.setMulticore(false);
-                    int rad = engine.getMantle().getRealRadius();
+                    int rad = engine.getMantle().getRadius();
                     for (int i = -(radius + rad); i <= radius + rad; i++) {
                         for (int j = -(radius + rad); j <= radius + rad; j++) {
                             engine.getMantle().getMantle().deleteChunk(i + cx.getX(), j + cx.getZ());

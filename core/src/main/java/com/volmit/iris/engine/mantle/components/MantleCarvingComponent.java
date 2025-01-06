@@ -29,10 +29,14 @@ import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.RNG;
+import lombok.Getter;
 
+@Getter
 public class MantleCarvingComponent extends IrisMantleComponent {
+    private final int radius = computeRadius();
+
     public MantleCarvingComponent(EngineMantle engineMantle) {
-        super(engineMantle, MantleFlag.CARVED);
+        super(engineMantle, MantleFlag.CARVED, 0);
     }
 
     @Override
@@ -55,5 +59,22 @@ public class MantleCarvingComponent extends IrisMantleComponent {
     @ChunkCoordinates
     private void carve(IrisCarving carving, MantleWriter writer, RNG rng, int cx, int cz) {
         carving.doCarving(writer, rng, getEngineMantle().getEngine(), cx << 4, -1, cz << 4);
+    }
+
+    private int computeRadius() {
+        var dimension = getDimension();
+        int max = 0;
+
+        max = Math.max(max, dimension.getCarving().getMaxRange(getData()));
+
+        for (var i : dimension.getAllRegions(this::getData)) {
+            max = Math.max(max, i.getCarving().getMaxRange(getData()));
+        }
+
+        for (var i : dimension.getAllBiomes(this::getData)) {
+            max = Math.max(max, i.getCarving().getMaxRange(getData()));
+        }
+
+        return max;
     }
 }

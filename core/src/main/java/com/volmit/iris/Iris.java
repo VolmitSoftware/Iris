@@ -777,7 +777,7 @@ public class Iris extends VolmitPlugin implements Listener {
             service(StudioSVC.class).installIntoWorld(getSender(), dim.getLoadKey(), w.worldFolder());
         }
 
-        return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey(), false);
+        return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey());
     }
 
     public void splash() {

@@ -20,9 +20,7 @@ package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.core.pregenerator.ChunkUpdater;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisBenchmarking;
@@ -43,9 +41,7 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
-import lombok.Getter;
 import org.bukkit.Bukkit;
-import org.bukkit.Difficulty;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.configuration.ConfigurationSection;
@@ -55,10 +51,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.io.Console;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -94,9 +88,7 @@ public class CommandIris implements DecreeExecutor {
             @Param(aliases = "dimension", description = "The dimension type to create the world with", defaultValue = "default")
             IrisDimension type,
             @Param(description = "The seed to generate the world with", defaultValue = "1337")
-            long seed,
-            @Param(description = "If it should convert the dimension to match the vanilla height system.", defaultValue = "false")
-            boolean vanillaheight
+            long seed
     ) {
         if(sender() instanceof Player) {
             if (incompatibilities.get("Multiverse-Core")) {
@@ -140,7 +132,6 @@ public class CommandIris implements DecreeExecutor {
                     .seed(seed)
                     .sender(sender())
                     .studio(false)
-                    .smartVanillaHeight(vanillaheight)
                     .create();
         } catch (Throwable e) {
             sender().sendMessage(C.RED + "Exception raised during creation. See the console for more details.");
@@ -649,6 +640,6 @@ public class CommandIris implements DecreeExecutor {
             ff.mkdirs();
             service(StudioSVC.class).installIntoWorld(sender, dim.getLoadKey(), ff.getParentFile());
         }
-        return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey(), false);
+        return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey());
     }
 }

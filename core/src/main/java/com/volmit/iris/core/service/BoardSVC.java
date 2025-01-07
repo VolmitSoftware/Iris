@@ -40,6 +40,7 @@ import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class BoardSVC implements IrisService, BoardProvider {
     private final KMap<Player, PlayerBoard> boards = new KMap<>();
@@ -104,11 +105,11 @@ public class BoardSVC implements IrisService, BoardProvider {
     @Data
     public static class PlayerBoard {
         private final Player player;
-        private final KList<String> lines;
+        private final CopyOnWriteArrayList<String> lines;
 
         public PlayerBoard(Player player) {
             this.player = player;
-            this.lines = new KList<>();
+            this.lines = new CopyOnWriteArrayList<>();
             update();
         }
 

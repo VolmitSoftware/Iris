@@ -105,6 +105,12 @@ public class IrisComplex implements DataProvider {
         if (focusBiome != null) {
             focusBiome.setInferredType(InferredType.LAND);
             focusRegion = findRegion(focusBiome, engine);
+            focusBiome.getGenerators().forEach((c) -> registerGenerator(c.getCachedGenerator(this)));
+        } else if (focusRegion != null) {
+            data.getRegionLoader().load(focusRegion.getLoadKey())
+                    .getAllBiomes(this).forEach((b) -> b
+                            .getGenerators()
+                            .forEach((c) -> registerGenerator(c.getCachedGenerator(this))));
         }
 
         //@builder

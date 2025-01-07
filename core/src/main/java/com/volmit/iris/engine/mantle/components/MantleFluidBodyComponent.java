@@ -29,10 +29,14 @@ import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.RNG;
+import lombok.Getter;
 
+@Getter
 public class MantleFluidBodyComponent extends IrisMantleComponent {
+    private final int radius = computeRadius();
+
     public MantleFluidBodyComponent(EngineMantle engineMantle) {
-        super(engineMantle, MantleFlag.FLUID_BODIES);
+        super(engineMantle, MantleFlag.FLUID_BODIES, 0);
     }
 
     @Override
@@ -55,5 +59,21 @@ public class MantleFluidBodyComponent extends IrisMantleComponent {
     @ChunkCoordinates
     private void generate(IrisFluidBodies bodies, MantleWriter writer, RNG rng, int cx, int cz) {
         bodies.generate(writer, rng, getEngineMantle().getEngine(), cx << 4, -1, cz << 4);
+    }
+
+    private int computeRadius() {
+        int max = 0;
+
+        max = Math.max(max, getDimension().getFluidBodies().getMaxRange(getData()));
+
+        for (IrisRegion i : getDimension().getAllRegions(this::getData)) {
+            max = Math.max(max, i.getFluidBodies().getMaxRange(getData()));
+        }
+
+        for (IrisBiome i : getDimension().getAllBiomes(this::getData)) {
+            max = Math.max(max, i.getFluidBodies().getMaxRange(getData()));
+        }
+
+        return max;
     }
 }

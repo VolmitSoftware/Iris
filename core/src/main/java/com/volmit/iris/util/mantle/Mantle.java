@@ -471,6 +471,12 @@ public class Mantle {
                             hyperLock.withLong(id, () -> {
                                 TectonicPlate m = loadedRegions.get(id);
                                 if (m != null) {
+                                    if (m.inUse()) {
+                                        Iris.debug("Tectonic Plate was added to unload while in use " + C.DARK_GREEN + m.getX() + " " + m.getZ());
+                                        if (disableClear) toUnload.remove(id);
+                                        lastUse.put(id, M.ms());
+                                        return;
+                                    }
                                     try {
                                         m.write(fileForRegion(dataFolder, id));
                                         loadedRegions.remove(id);

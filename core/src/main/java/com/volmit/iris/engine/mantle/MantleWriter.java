@@ -35,7 +35,6 @@ import com.volmit.iris.util.mantle.MantleChunk;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.Matter;
 import lombok.Data;
-import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.Vector;
 
@@ -44,7 +43,7 @@ import java.util.List;
 import java.util.Set;
 
 @Data
-public class MantleWriter implements IObjectPlacer {
+public class MantleWriter implements IObjectPlacer, AutoCloseable {
     private final EngineMantle engineMantle;
     private final Mantle mantle;
     private final KMap<Long, MantleChunk> cachedChunks;
@@ -62,7 +61,7 @@ public class MantleWriter implements IObjectPlacer {
 
         for (int i = -radius; i <= radius; i++) {
             for (int j = -radius; j <= radius; j++) {
-                cachedChunks.put(Cache.key(i + x, j + z), mantle.getChunk(i + x, j + z));
+                cachedChunks.put(Cache.key(i + x, j + z), mantle.getChunk(i + x, j + z).use());
             }
         }
     }
@@ -632,5 +631,13 @@ public class MantleWriter implements IObjectPlacer {
 
         return cx >= this.x - radius && cx <= this.x + radius
                 && cz >= this.z - radius && cz <= this.z + radius;
+    }
+
+    @Override
+    public void close() {
+        cachedChunks.values().removeIf(c -> {
+            c.release();
+            return true;
+        });
     }
 }

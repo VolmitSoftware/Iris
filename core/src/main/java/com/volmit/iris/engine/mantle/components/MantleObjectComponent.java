@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.mantle.components;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.IrisMantleComponent;
@@ -39,11 +40,13 @@ import com.volmit.iris.util.matter.MatterStructurePOI;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.noise.NoiseType;
 import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.MultiBurst;
 import lombok.Getter;
 import org.bukkit.util.BlockVector;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -162,99 +165,67 @@ public class MantleObjectComponent extends IrisMantleComponent {
     private int computeRadius() {
         var dimension = getDimension();
 
-        AtomicInteger xg = new AtomicInteger();
-        AtomicInteger zg = new AtomicInteger();
-
         KSet<String> objects = new KSet<>();
         KMap<IrisObjectScale, KList<String>> scalars = new KMap<>();
         for (var region : dimension.getAllRegions(this::getData)) {
-            for (var j : region.getObjects()) {
-                if (j.getScale().canScaleBeyond()) {
-                    scalars.put(j.getScale(), j.getPlace());
+            for (var placement : region.getObjects()) {
+                if (placement.getScale().canScaleBeyond()) {
+                    scalars.put(placement.getScale(), placement.getPlace());
                 } else {
-                    objects.addAll(j.getPlace());
+                    objects.addAll(placement.getPlace());
                 }
             }
-        }
-        for (var biome : dimension.getAllBiomes(this::getData)) {
-            for (var j : biome.getObjects()) {
-                if (j.getScale().canScaleBeyond()) {
-                    scalars.put(j.getScale(), j.getPlace());
-                } else {
-                    objects.addAll(j.getPlace());
+
+            for (var biome : region.getAllBiomes(this::getData)) {
+                for (var placement : biome.getObjects()) {
+                    if (placement.getScale().canScaleBeyond()) {
+                        scalars.put(placement.getScale(), placement.getPlace());
+                    } else {
+                        objects.addAll(placement.getPlace());
+                    }
                 }
             }
         }
 
-        BurstExecutor e = getEngineMantle().getTarget().getBurster().burst(objects.size());
+        return computeObjectRadius(objects, scalars, getEngineMantle().getTarget().getBurster(), getData());
+    }
+
+    static int computeObjectRadius(KSet<String> objects, KMap<IrisObjectScale, KList<String>> scalars, MultiBurst burst, IrisData data) {
+        AtomicInteger x = new AtomicInteger();
+        AtomicInteger z = new AtomicInteger();
+
+        BurstExecutor e = burst.burst(objects.size());
         KMap<String, BlockVector> sizeCache = new KMap<>();
-        for (String i : objects) {
+        for (String loadKey : objects) {
             e.queue(() -> {
                 try {
-                    BlockVector bv = sizeCache.computeIfAbsent(i, (k) -> {
-                        try {
-                            return IrisObject.sampleSize(getData().getObjectLoader().findFile(i));
-                        } catch (IOException ex) {
-                            Iris.reportError(ex);
-                            ex.printStackTrace();
-                        }
-
-                        return null;
-                    });
-
-                    if (bv == null) {
-                        throw new RuntimeException();
-                    }
+                    BlockVector bv = sampleSize(sizeCache, data, loadKey);
 
                     if (Math.max(bv.getBlockX(), bv.getBlockZ()) > 128) {
-                        Iris.warn("Object " + i + " has a large size (" + bv + ") and may increase memory usage!");
+                        Iris.warn("Object " + loadKey + " has a large size (" + bv + ") and may increase memory usage!");
                     }
 
-                    synchronized (xg) {
-                        xg.getAndSet(Math.max(bv.getBlockX(), xg.get()));
-                    }
-
-                    synchronized (zg) {
-                        zg.getAndSet(Math.max(bv.getBlockZ(), zg.get()));
-                    }
+                    x.getAndUpdate(i -> Math.max(bv.getBlockX(), i));
+                    z.getAndUpdate(i -> Math.max(bv.getBlockZ(), i));
                 } catch (Throwable ed) {
                     Iris.reportError(ed);
-
                 }
             });
         }
 
         for (Map.Entry<IrisObjectScale, KList<String>> entry : scalars.entrySet()) {
             double ms = entry.getKey().getMaximumScale();
-            for (String j : entry.getValue()) {
+            for (String loadKey : entry.getValue()) {
                 e.queue(() -> {
                     try {
-                        BlockVector bv = sizeCache.computeIfAbsent(j, (k) -> {
-                            try {
-                                return IrisObject.sampleSize(getData().getObjectLoader().findFile(j));
-                            } catch (IOException ioException) {
-                                Iris.reportError(ioException);
-                                ioException.printStackTrace();
-                            }
-
-                            return null;
-                        });
-
-                        if (bv == null) {
-                            throw new RuntimeException();
-                        }
+                        BlockVector bv = sampleSize(sizeCache, data, loadKey);
 
                         if (Math.max(bv.getBlockX(), bv.getBlockZ()) > 128) {
-                            Iris.warn("Object " + j + " has a large size (" + bv + ") and may increase memory usage! (Object scaled up to " + Form.pc(ms, 2) + ")");
+                            Iris.warn("Object " + loadKey + " has a large size (" + bv + ") and may increase memory usage! (Object scaled up to " + Form.pc(ms, 2) + ")");
                         }
 
-                        synchronized (xg) {
-                            xg.getAndSet((int) Math.max(Math.ceil(bv.getBlockX() * ms), xg.get()));
-                        }
-
-                        synchronized (zg) {
-                            zg.getAndSet((int) Math.max(Math.ceil(bv.getBlockZ() * ms), zg.get()));
-                        }
+                        x.getAndUpdate(i -> (int) Math.max(Math.ceil(bv.getBlockX() * ms), i));
+                        x.getAndUpdate(i -> (int) Math.max(Math.ceil(bv.getBlockZ() * ms), i));
                     } catch (Throwable ee) {
                         Iris.reportError(ee);
 
@@ -264,6 +235,20 @@ public class MantleObjectComponent extends IrisMantleComponent {
         }
 
         e.complete();
-        return Math.max(xg.get(), zg.get());
+        return Math.max(x.get(), z.get());
+    }
+
+    private static BlockVector sampleSize(KMap<String, BlockVector> sizeCache, IrisData data, String loadKey) {
+        BlockVector bv = sizeCache.computeIfAbsent(loadKey, (k) -> {
+            try {
+                return IrisObject.sampleSize(data.getObjectLoader().findFile(loadKey));
+            } catch (IOException ioException) {
+                Iris.reportError(ioException);
+                ioException.printStackTrace();
+            }
+
+            return null;
+        });
+        return Objects.requireNonNull(bv, "sampleSize returned a null block vector");
     }
 }

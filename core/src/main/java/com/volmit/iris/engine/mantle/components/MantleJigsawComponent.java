@@ -34,15 +34,18 @@ import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.slices.container.JigsawStructuresContainer;
 import com.volmit.iris.util.noise.CNG;
+import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 public class MantleJigsawComponent extends IrisMantleComponent {
+    @Getter
+    private final int radius = computeRadius();
     private final CNG cng;
 
     public MantleJigsawComponent(EngineMantle engineMantle) {
-        super(engineMantle, MantleFlag.JIGSAW);
+        super(engineMantle, MantleFlag.JIGSAW, 1);
         cng = NoiseStyle.STATIC.create(new RNG(jigsaw()));
     }
 
@@ -167,5 +170,30 @@ public class MantleJigsawComponent extends IrisMantleComponent {
 
     private long jigsaw() {
         return getEngineMantle().getEngine().getSeedManager().getJigsaw();
+    }
+
+    private int computeRadius() {
+        var dimension = getDimension();
+
+        KSet<String> structures = new KSet<>();
+        for (var placement : dimension.getJigsawStructures()) {
+            structures.add(placement.getStructure());
+        }
+        for (var region : dimension.getAllRegions(this::getData)) {
+            for (var placement : region.getJigsawStructures()) {
+                structures.add(placement.getStructure());
+            }
+        }
+        for (var biome : dimension.getAllBiomes(this::getData)) {
+            for (var placement : biome.getJigsawStructures()) {
+                structures.add(placement.getStructure());
+            }
+        }
+
+        int max = 0;
+        for (var structure : structures) {
+            max = Math.max(max, getData().getJigsawStructureLoader().load(structure).getMaxDimension());
+        }
+        return max;
     }
 }

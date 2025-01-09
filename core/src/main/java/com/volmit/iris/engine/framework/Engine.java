@@ -80,6 +80,7 @@ import java.awt.Color;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -610,6 +611,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     int getGenerated();
+
+    CompletableFuture<Long> getHash32();
 
     default <T> IrisPosition lookForStreamResult(T find, ProceduralStream<T> stream, Function2<T, T, Boolean> matcher, long timeout) {
         AtomicInteger checked = new AtomicInteger();

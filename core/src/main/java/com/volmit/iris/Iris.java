@@ -672,10 +672,12 @@ public class Iris extends VolmitPlugin implements Listener {
                 metrics.addCustomChart(new DrilldownPie("used_packs", () -> Bukkit.getWorlds().stream()
                         .map(IrisToolbelt::access)
                         .filter(Objects::nonNull)
-                        .map(PlatformChunkGenerator::getTarget)
-                        .collect(Collectors.toMap(target -> target.getDimension().getLoadKey(), target -> {
-                            int version = target.getDimension().getVersion();
-                            String checksum = IO.hashRecursive(target.getData().getDataFolder());
+                        .map(PlatformChunkGenerator::getEngine)
+                        .collect(Collectors.toMap(engine -> engine.getDimension().getLoadKey(), engine -> {
+                            var hash32 = engine.getHash32().getNow(null);
+                            if (hash32 == null) return Map.of();
+                            int version = engine.getDimension().getVersion();
+                            String checksum = Long.toHexString(hash32);
 
                             return Map.of("v" + version + " (" + checksum + ")", 1);
                         }, (a, b) -> {

@@ -129,7 +129,7 @@ allprojects {
         annotationProcessor 'org.projectlombok:lombok:1.18.36'
 
         // Shaded
-        implementation 'com.dfsek:Paralithic:0.4.0'
+        implementation 'com.dfsek:paralithic:0.8.1'
         implementation 'io.papermc:paperlib:1.0.5'
         implementation "net.kyori:adventure-text-minimessage:4.17.0"
         implementation 'net.kyori:adventure-platform-bukkit:4.3.4'

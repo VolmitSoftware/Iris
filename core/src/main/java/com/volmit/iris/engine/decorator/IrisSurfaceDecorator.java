@@ -19,7 +19,6 @@
 package com.volmit.iris.engine.decorator;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.InferredType;
 import com.volmit.iris.engine.object.IrisBiome;
@@ -28,6 +27,7 @@ import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.math.RNG;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.Bisected;
@@ -47,7 +47,8 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
         }
 
         BlockData bd, bdx;
-        IrisDecorator decorator = getDecorator(biome, realX, realZ);
+        RNG rng = getRNG(realX, realZ);
+        IrisDecorator decorator = getDecorator(rng, biome, realX, realZ);
         bdx = data.get(x, height, z);
         boolean underwater = height < getDimension().getFluidHeight();
 
@@ -58,7 +59,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
             }
 
             if (!decorator.isStacking()) {
-                bd = decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData());
+                bd = decorator.getBlockData100(biome, rng, realX, height, realZ, getData());
 
                 if (!underwater) {
                     if (!canGoOn(bd, bdx) && (!decorator.isForcePlace() && decorator.getForceBlock() == null)) {
@@ -72,7 +73,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                     if (decorator.getWhitelist() != null && decorator.getWhitelist().stream().noneMatch(d -> d.getBlockData(getData()).equals(bdx))) {
                         return;
                     }
-                    if (decorator.getBlacklist() != null && decorator.getWhitelist().stream().anyMatch(d -> d.getBlockData(getData()).equals(bdx))) {
+                    if (decorator.getBlacklist() != null && decorator.getBlacklist().stream().anyMatch(d -> d.getBlockData(getData()).equals(bdx))) {
                         return;
                     }
                 }
@@ -97,7 +98,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                     max = getDimension().getFluidHeight();
                 }
 
-                int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
+                int stack = decorator.getHeight(rng, realX, realZ, getData());
 
                 if (decorator.isScaleStack()) {
                     stack = Math.min((int) Math.ceil((double) max * ((double) stack / 100)), decorator.getAbsoluteMaxStack());
@@ -106,7 +107,7 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                 }
 
                 if (stack == 1) {
-                    data.set(x, height, z, decorator.getBlockDataForTop(biome, getRng(), realX, height, realZ, getData()));
+                    data.set(x, height, z, decorator.getBlockDataForTop(biome, rng, realX, height, realZ, getData()));
                     return;
                 }
 
@@ -114,8 +115,8 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                     int h = height + i;
                     double threshold = ((double) i) / (stack - 1);
                     bd = threshold >= decorator.getTopThreshold() ?
-                            decorator.getBlockDataForTop(biome, getRng(), realX, h, realZ, getData()) :
-                            decorator.getBlockData100(biome, getRng(), realX, h, realZ, getData());
+                            decorator.getBlockDataForTop(biome, rng, realX, h, realZ, getData()) :
+                            decorator.getBlockData100(biome, rng, realX, h, realZ, getData());
 
                     if (bd == null) {
                         break;

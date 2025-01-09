@@ -127,6 +127,15 @@ public class TectonicPlate {
         }
     }
 
+    public boolean inUse() {
+        for (int i = 0; i < chunks.length(); i++) {
+            MantleChunk chunk = chunks.get(i);
+            if (chunk != null && chunk.inUse())
+                return true;
+        }
+        return false;
+    }
+
     /**
      * Check if a chunk exists in this plate or not (same as get(x, z) != null)
      *
@@ -180,14 +189,10 @@ public class TectonicPlate {
      */
     @ChunkCoordinates
     public MantleChunk getOrCreate(int x, int z) {
-        MantleChunk chunk = get(x, z);
-
-        if (chunk == null) {
-            chunk = new MantleChunk(sectionHeight, x & 31, z & 31);
-            chunks.set(index(x, z), chunk);
-        }
-
-        return chunk;
+        return chunks.updateAndGet(index(x, z), chunk -> {
+            if (chunk != null) return chunk;
+            return new MantleChunk(sectionHeight, x & 31, z & 31);
+        });
     }
 
     @ChunkCoordinates

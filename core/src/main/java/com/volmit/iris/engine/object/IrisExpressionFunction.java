@@ -73,7 +73,7 @@ public class IrisExpressionFunction implements DynamicFunction {
             }
 
             if (styleValue != null) {
-                return styleValue.create(context.rng, data)::noise;
+                return styleValue.createNoCache(context.rng, data)::noise;
             }
 
             return d -> Double.NaN;

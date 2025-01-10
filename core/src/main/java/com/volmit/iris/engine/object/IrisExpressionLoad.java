@@ -23,12 +23,11 @@ import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.stream.ProceduralStream;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.Accessors;
 
 @Snippet("expression-load")
@@ -57,6 +56,9 @@ public class IrisExpressionLoad {
 
     private transient AtomicCache<ProceduralStream<Double>> streamCache = new AtomicCache<>();
     private transient AtomicCache<Double> valueCache = new AtomicCache<>();
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private transient final KMap<Long, CNG> styleCache = new KMap<>();
 
     public double getValue(RNG rng, IrisData data, double x, double z) {
         if (engineValue != null) {
@@ -68,7 +70,8 @@ public class IrisExpressionLoad {
         }
 
         if (styleValue != null) {
-            return styleValue.create(rng, data).noise(x, z);
+            return styleCache.computeIfAbsent(rng.getSeed(), k -> styleValue.createNoCache(new RNG(k), data))
+                    .noise(x, z);
         }
 
         return staticValue;
@@ -84,7 +87,8 @@ public class IrisExpressionLoad {
         }
 
         if (styleValue != null) {
-            return styleValue.create(rng, data).noise(x, y, z);
+            return styleCache.computeIfAbsent(rng.getSeed(), k -> styleValue.createNoCache(new RNG(k), data))
+                    .noise(x, y, z);
         }
 
         return staticValue;

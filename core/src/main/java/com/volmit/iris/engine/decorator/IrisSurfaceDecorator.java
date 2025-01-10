@@ -61,6 +61,12 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
             if (!decorator.isStacking()) {
                 bd = decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData());
 
+                if (((bd instanceof Bisected
+                        ? (data.get(x, height + 1, z).isOccluding() || data.get(x, height + 2, z).isOccluding())
+                        : data.get(x, height + 1, z).isOccluding()))
+                        && !decorator.isForcePlace() && decorator.getForceBlock() == null)
+                    return;
+
                 if (!underwater) {
                     if (!canGoOn(bd, bdx) && (!decorator.isForcePlace() && decorator.getForceBlock() == null)) {
                         return;
@@ -109,6 +115,12 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                 if (stack == 1) {
                     data.set(x, height, z, decorator.getBlockDataForTop(biome, getRng(), realX, height, realZ, getData()));
                     return;
+                }
+
+                for (int i = 1; i < stack; i++) {
+                    var block = data.get(x, height + i + 1, z);
+                     if ((block.isOccluding()) && (!decorator.isForcePlace() && decorator.getForceBlock() == null))
+                        return;
                 }
 
                 for (int i = 0; i < stack; i++) {

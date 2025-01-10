@@ -67,6 +67,7 @@ public class B {
                 CORNFLOWER,
                 SWEET_BERRY_BUSH,
                 CRIMSON_ROOTS,
+                SUNFLOWER,
                 WARPED_ROOTS,
                 NETHER_SPROUTS,
                 ALLIUM,

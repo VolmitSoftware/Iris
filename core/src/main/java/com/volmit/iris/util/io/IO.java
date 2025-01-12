@@ -111,10 +111,12 @@ public class IO {
         return "¯\\_(ツ)_/¯";
     }
 
-    public static String hashRecursive(File base) {
+    public static long hashRecursive(File... bases) {
         LinkedList<File> files = new LinkedList<>();
         Set<File> processed = new HashSet<>();
-        files.add(base);
+        Arrays.parallelSort(bases, Comparator.comparing(File::getName));
+        files.addAll(Arrays.asList(bases));
+
         try {
             CRC32 crc = new CRC32();
             while (!files.isEmpty()) {
@@ -141,13 +143,13 @@ public class IO {
                 }
             }
 
-            return Long.toHexString(crc.getValue());
+            return crc.getValue();
         } catch (Throwable e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
 
-        return "";
+        return 0;
     }
 
     public static String hash(File b) {

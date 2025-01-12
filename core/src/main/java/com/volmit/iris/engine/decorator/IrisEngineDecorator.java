@@ -27,8 +27,14 @@ import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDecorationPart;
 import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
 import lombok.Getter;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockSupport;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.MultipleFacing;
 
 public abstract class IrisEngineDecorator extends EngineAssignedComponent implements EngineDecorator {
 
@@ -64,5 +70,41 @@ public abstract class IrisEngineDecorator extends EngineAssignedComponent implem
         }
 
         return null;
+    }
+
+    protected BlockData fixFaces(BlockData b, Hunk<BlockData> hunk, int rX, int rZ, int x, int y, int z) {
+        if (B.isVineBlock(b)) {
+            MultipleFacing data = (MultipleFacing) b.clone();
+            data.getFaces().forEach(f -> data.setFace(f, false));
+
+            boolean found = false;
+            for (BlockFace f : BlockFace.values()) {
+                if (!f.isCartesian())
+                    continue;
+                int yy = y + f.getModY();
+
+                BlockData r = getEngine().getMantle().get(x + f.getModX(), yy, z + f.getModZ());
+                if (r.isFaceSturdy(f.getOppositeFace(), BlockSupport.FULL)) {
+                    found = true;
+                    data.setFace(f, true);
+                    continue;
+                }
+
+                int xx = rX + f.getModX();
+                int zz = rZ + f.getModZ();
+                if (xx < 0 || xx > 15 || zz < 0 || zz > 15 || yy < 0 || yy > hunk.getHeight())
+                    continue;
+
+                r = hunk.get(xx, yy, zz);
+                if (r.isFaceSturdy(f.getOppositeFace(), BlockSupport.FULL)) {
+                    found = true;
+                    data.setFace(f, true);
+                }
+            }
+            if (!found)
+                data.setFace(BlockFace.DOWN, true);
+            return data;
+        }
+        return b;
     }
 }

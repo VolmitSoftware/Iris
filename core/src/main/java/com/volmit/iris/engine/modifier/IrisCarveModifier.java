@@ -211,14 +211,6 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
 
         biome.setInferredType(InferredType.CAVE);
 
-        for (IrisDecorator i : biome.getDecorators()) {
-            if (i.getPartOf().equals(IrisDecorationPart.NONE) && B.isSolid(output.get(rx, zone.getFloor() - 1, rz))) {
-                decorant.getSurfaceDecorator().decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, biome, zone.getFloor() - 1, zone.airThickness());
-            } else if (i.getPartOf().equals(IrisDecorationPart.CEILING) && B.isSolid(output.get(rx, zone.getCeiling() + 1, rz))) {
-                decorant.getCeilingDecorator().decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, biome, zone.getCeiling(), zone.airThickness());
-            }
-        }
-
         KList<BlockData> blocks = biome.generateLayers(getDimension(), xx, zz, rng, 3, zone.floor, getData(), getComplex());
 
         for (int i = 0; i < zone.floor - 1; i++) {
@@ -258,6 +250,14 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 }
 
                 output.set(rx, zone.ceiling + i + 1, rz, b);
+            }
+        }
+
+        for (IrisDecorator i : biome.getDecorators()) {
+            if (i.getPartOf().equals(IrisDecorationPart.NONE) && B.isSolid(output.get(rx, zone.getFloor() - 1, rz))) {
+                decorant.getSurfaceDecorator().decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, biome, zone.getFloor() - 1, zone.airThickness());
+            } else if (i.getPartOf().equals(IrisDecorationPart.CEILING) && B.isSolid(output.get(rx, zone.getCeiling() + 1, rz))) {
+                decorant.getCeilingDecorator().decorate(rx, rz, xx, xx, xx, zz, zz, zz, output, biome, zone.getCeiling(), zone.airThickness());
             }
         }
     }

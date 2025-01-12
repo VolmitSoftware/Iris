@@ -23,13 +23,11 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDecorationPart;
 import com.volmit.iris.engine.object.IrisDecorator;
-import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.MultipleFacing;
 import org.bukkit.block.data.type.PointedDripstone;
 
 public class IrisCeilingDecorator extends IrisEngineDecorator {
@@ -43,7 +41,7 @@ public class IrisCeilingDecorator extends IrisEngineDecorator {
         IrisDecorator decorator = getDecorator(biome, realX, realZ);
         if (decorator != null) {
             if (!decorator.isStacking()) {
-                data.set(x, height, z, fixFaces(decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData()), realX, height, realZ));
+                data.set(x, height, z, fixFaces(decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData()), data, x, z, realX, height, realZ));
             } else {
                 int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
                 if (decorator.isScaleStack()) {
@@ -96,25 +94,5 @@ public class IrisCeilingDecorator extends IrisEngineDecorator {
                 }
             }
         }
-    }
-
-    private BlockData fixFaces(BlockData b, int x, int y, int z) {
-        if (B.isVineBlock(b)) {
-            MultipleFacing data = (MultipleFacing) b.clone();
-            boolean found = false;
-            for (BlockFace f : BlockFace.values()) {
-                if (!f.isCartesian())
-                    continue;
-                Material m = getEngine().getMantle().get(x + f.getModX(), y + f.getModY(), z + f.getModZ()).getMaterial();
-                if (m.isSolid()) {
-                    found = true;
-                    data.setFace(f, m.isSolid());
-                }
-            }
-            if (!found)
-                data.setFace(BlockFace.UP, true);
-            return data;
-        }
-        return b;
     }
 }

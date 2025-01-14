@@ -24,10 +24,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.util.random.WeightedRandomList;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.*;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.biome.BiomeManager;
-import net.minecraft.world.level.biome.BiomeSource;
-import net.minecraft.world.level.biome.MobSpawnSettings;
+import net.minecraft.world.level.biome.*;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
@@ -46,6 +43,7 @@ import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -262,6 +260,22 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
     @Override
     public NoiseColumn getBaseColumn(int i, int j, LevelHeightAccessor levelheightaccessor, RandomState randomstate) {
         return delegate.getBaseColumn(i, j, levelheightaccessor, randomstate);
+    }
+
+    @Override
+    public Optional<ResourceKey<MapCodec<? extends ChunkGenerator>>> getTypeNameForDataFixer() {
+        return delegate.getTypeNameForDataFixer();
+    }
+
+    @Override
+    public void validate() {
+        delegate.validate();
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public BiomeGenerationSettings getBiomeGenerationSettings(Holder<Biome> holder) {
+        return delegate.getBiomeGenerationSettings(holder);
     }
 
     static {

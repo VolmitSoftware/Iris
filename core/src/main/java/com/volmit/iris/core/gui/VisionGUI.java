@@ -30,6 +30,7 @@ import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.data.registry.Attributes;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.M;
@@ -55,6 +56,8 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
+
+import static com.volmit.iris.util.data.registry.Attributes.MAX_HEALTH;
 
 public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener, MouseMotionListener, MouseInputListener {
     private static final long serialVersionUID = 2094606939770332040L;
@@ -636,7 +639,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
 
                 k.add("Pos: " + h.getLocation().getBlockX() + ", " + h.getLocation().getBlockY() + ", " + h.getLocation().getBlockZ());
                 k.add("UUID: " + h.getUniqueId());
-                k.add("HP: " + h.getHealth() + " / " + h.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
+                k.add("HP: " + h.getHealth() + " / " + h.getAttribute(MAX_HEALTH).getValue());
 
                 drawCardTR(g, k);
             }

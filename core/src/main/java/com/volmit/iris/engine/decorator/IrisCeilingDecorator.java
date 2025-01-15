@@ -18,13 +18,13 @@
 
 package com.volmit.iris.engine.decorator;
 
-import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDecorationPart;
 import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.math.RNG;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
@@ -38,12 +38,14 @@ public class IrisCeilingDecorator extends IrisEngineDecorator {
     @BlockCoordinates
     @Override
     public void decorate(int x, int z, int realX, int realX1, int realX_1, int realZ, int realZ1, int realZ_1, Hunk<BlockData> data, IrisBiome biome, int height, int max) {
-        IrisDecorator decorator = getDecorator(biome, realX, realZ);
+        RNG rng = getRNG(realX, realZ);
+        IrisDecorator decorator = getDecorator(rng, biome, realX, realZ);
+
         if (decorator != null) {
             if (!decorator.isStacking()) {
-                data.set(x, height, z, fixFaces(decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData()), data, x, z, realX, height, realZ));
+                data.set(x, height, z, fixFaces(decorator.getBlockData100(biome, rng, realX, height, realZ, getData()), data, x, z, realX, height, realZ));
             } else {
-                int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
+                int stack = decorator.getHeight(rng, realX, realZ, getData());
                 if (decorator.isScaleStack()) {
                     stack = Math.min((int) Math.ceil((double) max * ((double) stack / 100)), decorator.getAbsoluteMaxStack());
                 } else {
@@ -51,7 +53,7 @@ public class IrisCeilingDecorator extends IrisEngineDecorator {
                 }
 
                 if (stack == 1) {
-                    data.set(x, height, z, decorator.getBlockDataForTop(biome, getRng(), realX, height, realZ, getData()));
+                    data.set(x, height, z, decorator.getBlockDataForTop(biome, rng, realX, height, realZ, getData()));
                     return;
                 }
 
@@ -64,8 +66,8 @@ public class IrisCeilingDecorator extends IrisEngineDecorator {
                     double threshold = (((double) i) / (double) (stack - 1));
 
                     BlockData bd = threshold >= decorator.getTopThreshold() ?
-                            decorator.getBlockDataForTop(biome, getRng(), realX, h, realZ, getData()) :
-                            decorator.getBlockData100(biome, getRng(), realX, h, realZ, getData());
+                            decorator.getBlockDataForTop(biome, rng, realX, h, realZ, getData()) :
+                            decorator.getBlockData100(biome, rng, realX, h, realZ, getData());
 
                     if (bd instanceof PointedDripstone) {
                         PointedDripstone.Thickness th = PointedDripstone.Thickness.BASE;

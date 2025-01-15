@@ -46,9 +46,8 @@ public abstract class IrisEngineDecorator extends EngineAssignedComponent implem
         super(engine, name + " Decorator");
         this.part = part;
         this.seed = getSeed() + 29356788 - (part.ordinal() * 10439677L);
-        RNG rng = new RNG(seed);
-        this.modX = rng.nextLong();
-        this.modZ = rng.nextLong();
+        this.modX = 29356788 ^ (part.ordinal() + 6);
+        this.modZ = 10439677 ^ (part.ordinal() + 1);
     }
 
     @BlockCoordinates

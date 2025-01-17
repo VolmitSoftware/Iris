@@ -26,6 +26,7 @@ import org.bukkit.plugin.Plugin;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.List;
 
 public class MythicMobsLink {
 
@@ -54,6 +55,6 @@ public class MythicMobsLink {
     }
 
     public Collection<String> getMythicMobTypes() {
-        return isEnabled() ? MythicBukkit.inst().getMobManager().getMobNames() : null;
+        return isEnabled() ? MythicBukkit.inst().getMobManager().getMobNames() : List.of();
     }
 }

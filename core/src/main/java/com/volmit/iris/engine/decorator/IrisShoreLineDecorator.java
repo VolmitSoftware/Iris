@@ -18,13 +18,13 @@
 
 package com.volmit.iris.engine.decorator;
 
-import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDecorationPart;
 import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.math.RNG;
 import org.bukkit.block.data.BlockData;
 
 public class IrisShoreLineDecorator extends IrisEngineDecorator {
@@ -42,7 +42,8 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
                     Math.round(getComplex().getHeightStream().get(realX, realZ1)) < getComplex().getFluidHeight() ||
                     Math.round(getComplex().getHeightStream().get(realX, realZ_1)) < getComplex().getFluidHeight()
             ) {
-                IrisDecorator decorator = getDecorator(biome, realX, realZ);
+                RNG rng = getRNG(realX, realZ);
+                IrisDecorator decorator = getDecorator(rng, biome, realX, realZ);
 
                 if (decorator != null) {
                     if (!decorator.isForcePlace() && !decorator.getSlopeCondition().isDefault()
@@ -51,16 +52,16 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
                     }
 
                     if (!decorator.isStacking()) {
-                        data.set(x, height + 1, z, decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData()));
+                        data.set(x, height + 1, z, decorator.getBlockData100(biome, rng, realX, height, realZ, getData()));
                     } else {
-                        int stack = decorator.getHeight(getRng().nextParallelRNG(Cache.key(realX, realZ)), realX, realZ, getData());
+                        int stack = decorator.getHeight(rng, realX, realZ, getData());
                         if (decorator.isScaleStack()) {
                             int maxStack = max - height;
                             stack = (int) Math.ceil((double) maxStack * ((double) stack / 100));
                         } else stack = Math.min(max - height, stack);
 
                         if (stack == 1) {
-                            data.set(x, height, z, decorator.getBlockDataForTop(biome, getRng(), realX, height, realZ, getData()));
+                            data.set(x, height, z, decorator.getBlockDataForTop(biome, rng, realX, height, realZ, getData()));
                             return;
                         }
 
@@ -68,8 +69,8 @@ public class IrisShoreLineDecorator extends IrisEngineDecorator {
                             int h = height + i;
                             double threshold = ((double) i) / (stack - 1);
                             data.set(x, h + 1, z, threshold >= decorator.getTopThreshold() ?
-                                    decorator.getBlockDataForTop(biome, getRng(), realX, h, realZ, getData()) :
-                                    decorator.getBlockData100(biome, getRng(), realX, h, realZ, getData()));
+                                    decorator.getBlockDataForTop(biome, rng, realX, h, realZ, getData()) :
+                                    decorator.getBlockData100(biome, rng, realX, h, realZ, getData()));
                         }
                     }
                 }

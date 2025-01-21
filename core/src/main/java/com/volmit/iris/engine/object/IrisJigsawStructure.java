@@ -113,6 +113,7 @@ public class IrisJigsawStructure extends IrisRegistrant {
                 }
             }
         }
+        pieces.addIfMissing(p);
     }
 
     public int getMaxDimension() {

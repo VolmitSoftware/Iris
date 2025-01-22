@@ -200,7 +200,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
             KMap<String, Integer> l = new KMap<>();
 
             for (IrisBiomeGeneratorLink i : getGenerators()) {
-                l.put(i.getGenerator(), i.getMax(engine));
+                l.put(i.getGenerator(), i.getMax());
 
             }
 
@@ -216,7 +216,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
             KMap<String, Integer> l = new KMap<>();
 
             for (IrisBiomeGeneratorLink i : getGenerators()) {
-                l.put(i.getGenerator(), i.getMin(engine));
+                l.put(i.getGenerator(), i.getMin());
             }
 
             return l;
@@ -457,7 +457,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
             int maxHeight = 0;
 
             for (IrisBiomeGeneratorLink i : getGenerators()) {
-                maxHeight += i.getMax(engine);
+                maxHeight += i.getMax();
             }
 
             return maxHeight;
@@ -470,7 +470,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
             int maxHeight = 0;
 
             for (IrisBiomeGeneratorLink i : getGenerators()) {
-                maxHeight += i.getMax(engine);
+                maxHeight += i.getMax();
             }
 
             int gg = 0;

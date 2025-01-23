@@ -83,7 +83,6 @@ public class IrisCreator {
      * Benchmark mode
      */
     private boolean benchmark = false;
-    private boolean smartVanillaHeight = false;
 
     public static boolean removeFromBukkitYml(String name) throws IOException {
         YamlConfiguration yml = YamlConfiguration.loadConfiguration(BUKKIT_YML);
@@ -137,7 +136,6 @@ public class IrisCreator {
                 .name(name)
                 .seed(seed)
                 .studio(studio)
-                .smartVanillaHeight(smartVanillaHeight)
                 .create();
         ServerConfigurator.installDataPacks(false);
 

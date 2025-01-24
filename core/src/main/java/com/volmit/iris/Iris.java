@@ -101,7 +101,7 @@ import static com.volmit.iris.core.safeguard.ServerBootSFG.passedserversoftware;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
-    public static final String OVERWORLD_TAG = "31000";
+    public static final String OVERWORLD_TAG = "31010";
 
     private static final Queue<Runnable> syncJobs = new ShurikenQueue<>();
 

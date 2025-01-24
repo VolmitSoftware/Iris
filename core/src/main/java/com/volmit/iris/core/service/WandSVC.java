@@ -30,15 +30,12 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.WorldMatter;
-import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.S;
 import com.volmit.iris.util.scheduling.SR;
 import com.volmit.iris.util.scheduling.jobs.Job;
 import org.bukkit.*;
-import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -56,11 +53,11 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.volmit.iris.util.data.registry.Particles.CRIT_MAGIC;
+import static com.volmit.iris.util.data.registry.Particles.REDSTONE;
 
 public class WandSVC implements IrisService {
-    private static final Particle CRIT_MAGIC = E.getOrDefault(Particle.class, "CRIT_MAGIC", "CRIT");
-    private static final Particle REDSTONE = E.getOrDefault(Particle.class,  "REDSTONE", "DUST");
     private static final int MS_PER_TICK = Integer.parseInt(System.getProperty("iris.ms_per_tick", "30"));
 
     private static ItemStack dust;

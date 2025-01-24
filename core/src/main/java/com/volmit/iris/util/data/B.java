@@ -22,10 +22,9 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.service.ExternalDataSVC;
-import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.misc.E;
+import com.volmit.iris.util.data.registry.Materials;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import it.unimi.dsi.fastutil.ints.*;
 import org.bukkit.Bukkit;
@@ -47,7 +46,7 @@ public class B {
     private static final KMap<String, BlockData> custom = new KMap<>();
 
     private static final Material AIR_MATERIAL = Material.AIR;
-    private static final Material SHORT_GRASS = E.getOrDefault(Material.class, "GRASS", "SHORT_GRASS");
+    private static final Material SHORT_GRASS = Materials.GRASS;
     private static final BlockData AIR = AIR_MATERIAL.createBlockData();
     private static final IntSet foliageCache = buildFoliageCache();
     private static final IntSet deepslateCache = buildDeepslateCache();

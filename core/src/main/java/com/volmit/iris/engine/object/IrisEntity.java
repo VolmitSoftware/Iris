@@ -29,7 +29,6 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.misc.E;
 import com.volmit.iris.util.plugin.Chunks;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
@@ -57,6 +56,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.volmit.iris.util.data.registry.Particles.ITEM;
+
 @SuppressWarnings("ALL")
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -66,7 +67,6 @@ import java.util.concurrent.atomic.AtomicReference;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisEntity extends IrisRegistrant {
-    private static final Particle ITEM = E.getOrDefault(Particle.class, "ITEM_CRACK", "ITEM");
     @Required
     @Desc("The type of entity to spawn. To spawn a mythic mob, set this type to unknown and define mythic type.")
     private EntityType type = EntityType.UNKNOWN;

@@ -20,8 +20,6 @@ package com.volmit.iris.core.wand;
 
 import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.math.M;
-import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.misc.E;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
@@ -29,8 +27,9 @@ import org.bukkit.util.Vector;
 
 import java.awt.*;
 
+import static com.volmit.iris.util.data.registry.Particles.REDSTONE;
+
 public class WandSelection {
-    private static final Particle REDSTONE = E.getOrDefault(Particle.class, "REDSTONE", "DUST");
     private final Cuboid c;
     private final Player p;
     private static final double STEP = 0.10;

@@ -26,7 +26,6 @@ import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterSlice;
 import lombok.Getter;
-import lombok.Synchronized;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -117,17 +116,16 @@ public class MantleChunk {
         ref.decrementAndGet();
     }
 
-    @Synchronized
     public void flag(MantleFlag flag, boolean f) {
         flags.set(flag.ordinal(), f ? 1 : 0);
     }
 
-    @Synchronized
     public void raiseFlag(MantleFlag flag, Runnable r) {
-        if (!isFlagged(flag)) {
-            flag(flag, true);
-            r.run();
+        synchronized (this) {
+            if (!isFlagged(flag)) flag(flag, true);
+            else return;
         }
+        r.run();
     }
 
     public boolean isFlagged(MantleFlag flag) {

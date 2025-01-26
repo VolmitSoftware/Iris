@@ -2,7 +2,7 @@ package com.volmit.iris.core.link;
 
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.data.IrisBlockData;
+import com.volmit.iris.util.data.IrisCustomData;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +49,7 @@ public abstract class ExternalDataProvider {
      * @param blockId The id of the block to get
      * @param state The state of the block to get
      * @return Corresponding {@link BlockData} to the blockId
-     *         may return {@link IrisBlockData} for blocks that need a world for placement
+     *         may return {@link IrisCustomData} for blocks that need a world for placement
      * @throws MissingResourceException when the blockId is invalid
      */
     @NotNull
@@ -77,7 +77,7 @@ public abstract class ExternalDataProvider {
 
     /**
      * This method is used for placing blocks that need to use the plugins api
-     * it will only be called when the {@link ExternalDataProvider#getBlockData(Identifier, KMap)} returned a {@link IrisBlockData}
+     * it will only be called when the {@link ExternalDataProvider#getBlockData(Identifier, KMap)} returned a {@link IrisCustomData}
      *
      * @param engine The engine of the world the block is being placed in
      * @param block The block where the block should be placed

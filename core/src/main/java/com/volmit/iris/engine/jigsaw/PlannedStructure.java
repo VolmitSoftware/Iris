@@ -25,7 +25,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.placer.WorldObjectPlacer;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.data.IrisBlockData;
+import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
@@ -155,7 +155,7 @@ public class PlannedStructure {
         return v.place(xx, height, zz, placer, options, rng, (b, data) -> {
             e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);
             e.set(b.getX(), b.getY(), b.getZ(), container);
-            if (data instanceof IrisBlockData d) {
+            if (data instanceof IrisCustomData d) {
                 e.set(b.getX(), b.getY(), b.getZ(), d.getCustom());
             }
         }, null, getData().getEngine() != null ? getData() : eng.getData()) != -1;

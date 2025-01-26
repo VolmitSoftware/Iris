@@ -42,7 +42,7 @@ import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
-import com.volmit.iris.util.data.IrisBlockData;
+import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
@@ -259,7 +259,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         if (B.isUpdatable(data)) {
             getMantle().updateBlock(x, y, z);
         }
-        if (data instanceof IrisBlockData d) {
+        if (data instanceof IrisCustomData d) {
             getMantle().getMantle().set(x, y, z, d.getCustom());
         } else {
             getMantle().getMantle().remove(x, y, z, Identifier.class);

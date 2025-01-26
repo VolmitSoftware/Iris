@@ -30,15 +30,12 @@ import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
-import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
-import org.bukkit.generator.structure.Structure;
 import org.bukkit.inventory.ItemStack;
 
-import java.awt.*;
 import java.awt.Color;
 
 public interface INMSBinding {
@@ -122,6 +119,10 @@ public interface INMSBinding {
 
     default int getSpawnChunkCount(World world) {
         return 441;
+    }
+
+    default IHeadless createHeadless(Engine engine) {
+        return null;
     }
 
     KList<String> getStructureKeys();

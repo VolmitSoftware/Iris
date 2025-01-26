@@ -305,6 +305,11 @@ public class IrisEngine implements Engine {
     }
 
     @Override
+    public void addGenerated(int x, int z) {
+        generated.incrementAndGet();
+    }
+
+    @Override
     public double getGeneratedPerSecond() {
         if (perSecondLatch.flip()) {
             double g = generated.get() - generatedLast.get();

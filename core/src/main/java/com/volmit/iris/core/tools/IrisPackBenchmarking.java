@@ -2,9 +2,17 @@ package com.volmit.iris.core.tools;
 
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.pregenerator.PregenTask;
+import com.volmit.iris.core.pregenerator.methods.HeadlessPregenMethod;
+import com.volmit.iris.core.pregenerator.methods.HybridPregenMethod;
+import com.volmit.iris.core.service.StudioSVC;
+import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.exceptions.IrisException;
@@ -33,13 +41,16 @@ public class IrisPackBenchmarking {
     public static boolean benchmarkInProgress = false;
     private final PrecisionStopwatch stopwatch = new PrecisionStopwatch();
     private final IrisDimension dimension;
-    private final int radius;
+    private final int diameter;
     private final boolean gui;
+    private final boolean headless;
+    private transient Engine engine;
 
-    public IrisPackBenchmarking(IrisDimension dimension, int radius, boolean gui) {
+    public IrisPackBenchmarking(IrisDimension dimension, int diameter, boolean headless, boolean gui) {
         instance = this;
         this.dimension = dimension;
-        this.radius = radius;
+        this.diameter = diameter;
+        this.headless = headless;
         this.gui = gui;
         runBenchmark();
     }
@@ -55,7 +66,7 @@ public class IrisPackBenchmarking {
                         deleteDirectory(file.toPath());
                     }
                     createBenchmark();
-                    while (!IrisToolbelt.isIrisWorld(Bukkit.getWorld("benchmark"))) {
+                    while (!headless && !IrisToolbelt.isIrisWorld(Bukkit.getWorld("benchmark"))) {
                         J.sleep(1000);
                         Iris.debug("Iris PackBenchmark: Waiting...");
                     }
@@ -73,7 +84,6 @@ public class IrisPackBenchmarking {
     public void finishedBenchmark(KList<Integer> cps) {
         try {
             String time = Form.duration(stopwatch.getMillis());
-            Engine engine = IrisToolbelt.access(Bukkit.getWorld("benchmark")).getEngine();
             Iris.info("-----------------");
             Iris.info("Results:");
             Iris.info("- Total time: " + time);
@@ -114,12 +124,16 @@ public class IrisPackBenchmarking {
                 e.printStackTrace();
             }
 
-            J.s(() -> {
-                var world = Bukkit.getWorld("benchmark");
-                if (world == null) return;
-                IrisToolbelt.evacuate(world);
-                Bukkit.unloadWorld(world, true);
-            });
+            if (headless) {
+                engine.close();
+            } else {
+                J.s(() -> {
+                    var world = Bukkit.getWorld("benchmark");
+                    if (world == null) return;
+                    IrisToolbelt.evacuate(world);
+                    Bukkit.unloadWorld(world, true);
+                });
+            }
 
             stopwatch.end();
         } catch (Exception e) {
@@ -130,13 +144,34 @@ public class IrisPackBenchmarking {
 
     private void createBenchmark() {
         try {
-            IrisToolbelt.createWorld()
+            if (headless) {
+                Iris.info("Using headless benchmark!");
+                IrisWorld world = IrisWorld.builder()
+                        .name("benchmark")
+                        .minHeight(dimension.getMinHeight())
+                        .maxHeight(dimension.getMaxHeight())
+                        .seed(1337)
+                        .worldFolder(new File(Bukkit.getWorldContainer(), "benchmark"))
+                        .environment(dimension.getEnvironment())
+                        .build();
+                Iris.service(StudioSVC.class).installIntoWorld(
+                        Iris.getSender(),
+                        dimension.getLoadKey(),
+                        world.worldFolder());
+                var data = IrisData.get(new File(world.worldFolder(), "iris/pack"));
+                var dim = data.getDimensionLoader().load(dimension.getLoadKey());
+                engine = new IrisEngine(new EngineTarget(world, dim, data), false);
+                return;
+            }
+
+            engine = IrisToolbelt.access(IrisToolbelt.createWorld()
                     .dimension(dimension.getLoadKey())
                     .name("benchmark")
                     .seed(1337)
                     .studio(false)
                     .benchmark(true)
-                    .create();
+                    .create())
+                    .getEngine();
         } catch (IrisException e) {
             throw new RuntimeException(e);
         }
@@ -146,9 +181,15 @@ public class IrisPackBenchmarking {
         IrisToolbelt.pregenerate(PregenTask
                 .builder()
                 .gui(gui)
-                .width(radius)
-                .height(radius)
-                .build(), Bukkit.getWorld("benchmark")
+                .width(diameter)
+                .height(diameter)
+                .build(), headless ?
+                new HeadlessPregenMethod(engine) :
+                new HybridPregenMethod(
+                        engine.getWorld().realWorld(),
+                        IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())
+                ),
+                engine
         );
     }
 

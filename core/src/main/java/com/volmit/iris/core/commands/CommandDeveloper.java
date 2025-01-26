@@ -140,12 +140,16 @@ public class CommandDeveloper implements DecreeExecutor {
     public void packBenchmark(
             @Param(description = "The pack to bench", aliases = {"pack"}, defaultValue = "overworld")
             IrisDimension dimension,
-            @Param(description = "Radius in regions", defaultValue = "5")
-            int radius,
+            @Param(description = "Diameter in regions", defaultValue = "5")
+            int diameter,
+            @Param(description = "Headless", defaultValue = "true")
+            boolean headless,
             @Param(description = "Open GUI while benchmarking", defaultValue = "false")
             boolean gui
     ) {
-        new IrisPackBenchmarking(dimension, radius, gui);
+        int rb = diameter << 9;
+        Iris.info("Benchmarking pack " + dimension.getName() + " with diameter: " + rb + "(" + diameter + ")");
+        new IrisPackBenchmarking(dimension, diameter, headless, gui);
     }
 
     @Decree(description = "Upgrade to another Minecraft version")

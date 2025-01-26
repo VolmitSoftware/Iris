@@ -612,6 +612,9 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     int getGenerated();
 
+    @ChunkCoordinates
+    void addGenerated(int x, int z);
+
     CompletableFuture<Long> getHash32();
 
     default <T> IrisPosition lookForStreamResult(T find, ProceduralStream<T> stream, Function2<T, T, Boolean> matcher, long timeout) {

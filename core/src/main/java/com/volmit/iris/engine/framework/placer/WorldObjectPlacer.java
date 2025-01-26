@@ -13,6 +13,7 @@ import com.volmit.iris.engine.object.IrisLootTable;
 import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.math.RNG;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -78,7 +79,11 @@ public class WorldObjectPlacer implements IObjectPlacer {
             }
         }
 
-        block.setBlockData(d);
+
+        if (d instanceof IrisCustomData data) {
+            block.setBlockData(data.getBase());
+            Iris.warn("Tried to place custom block at " + x + ", " + y + ", " + z + " which is not supported!");
+        } else block.setBlockData(d);
     }
 
     @Override

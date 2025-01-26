@@ -259,10 +259,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         if (B.isUpdatable(data)) {
             getMantle().updateBlock(x, y, z);
         }
-        if (data instanceof IrisCustomData d) {
-            getMantle().getMantle().set(x, y, z, d.getCustom());
-        } else {
-            getMantle().getMantle().remove(x, y, z, Identifier.class);
+        if (data instanceof IrisCustomData) {
+            getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.CUSTOM, true);
         }
     }
 

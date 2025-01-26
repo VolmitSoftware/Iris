@@ -57,7 +57,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         Mantle mantle = getEngine().getMantle().getMantle();
-        MantleChunk mc = getEngine().getMantle().getMantle().getChunk(x, z);
+        MantleChunk mc = getEngine().getMantle().getMantle().getChunk(x, z).use();
         KMap<Long, KList<Integer>> positions = new KMap<>();
         KMap<IrisPosition, MatterCavern> walls = new KMap<>();
         Consumer4<Integer, Integer, Integer, MatterCavern> iterator = (xx, yy, zz, c) -> {
@@ -166,6 +166,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
         });
 
         getEngine().getMetrics().getDeposit().put(p.getMilliseconds());
+        mc.release();
     }
 
     private void processZone(Hunk<BlockData> output, MantleChunk mc, Mantle mantle, CaveZone zone, int rx, int rz, int xx, int zz) {

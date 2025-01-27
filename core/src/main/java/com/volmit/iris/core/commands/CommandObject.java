@@ -28,6 +28,7 @@ import com.volmit.iris.core.tools.IrisConverter;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.data.Cuboid;
+import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.data.registry.Materials;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
@@ -77,7 +78,10 @@ public class CommandObject implements DecreeExecutor {
 
                 futureBlockChanges.put(block, block.getBlockData());
 
-                block.setBlockData(d);
+                if (d instanceof IrisCustomData data) {
+                    block.setBlockData(data.getBase());
+                    Iris.warn("Tried to place custom block at " + x + ", " + y + ", " + z + " which is not supported!");
+                } else block.setBlockData(d);
             }
 
             @Override

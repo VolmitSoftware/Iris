@@ -34,6 +34,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
@@ -104,7 +105,10 @@ public interface EngineMantle extends IObjectPlacer {
 
     @Override
     default void set(int x, int y, int z, BlockData d) {
-        getMantle().set(x, y, z, d == null ? AIR : d);
+        if (d instanceof IrisCustomData data) {
+            getMantle().set(x, y, z, data.getBase());
+            getMantle().set(x, y, z, data.getCustom());
+        } else getMantle().set(x, y, z, d == null ? AIR : d);
     }
 
     @Override

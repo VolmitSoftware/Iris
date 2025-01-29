@@ -21,6 +21,8 @@ package com.volmit.iris.engine.platform;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.pregenerator.EmptyListener;
+import com.volmit.iris.core.pregenerator.methods.HeadlessPregenMethod;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
@@ -32,10 +34,13 @@ import com.volmit.iris.engine.object.StudioMode;
 import com.volmit.iris.engine.platform.studio.StudioGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.IrisBiomeStorage;
+import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.hunk.view.BiomeGridHunkHolder;
 import com.volmit.iris.util.hunk.view.ChunkDataHunkHolder;
 import com.volmit.iris.util.io.ReactiveFolder;
+import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
@@ -252,6 +257,10 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     private Engine getEngine(WorldInfo world) {
+        return getEngine(world.getSeed());
+    }
+
+    private Engine getEngine(long seed) {
         if (setup.get()) {
             return getEngine();
         }
@@ -264,7 +273,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             }
 
 
-            getWorld().setRawWorldSeed(world.getSeed());
+            getWorld().setRawWorldSeed(seed);
             setupEngine();
             setup.set(true);
             this.hotloader = studio ? new Looper() {
@@ -333,6 +342,21 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @Override
     public void touch(World world) {
         getEngine(world);
+    }
+
+    @Override
+    public void prepareSpawnChunks(long seed, int radius) {
+        if (radius < 0 || new File(world.worldFolder(), "level.dat").exists())
+            return;
+        var engine = getEngine(seed);
+        var headless = new HeadlessPregenMethod(engine, 4);
+
+        for (int x = -radius; x <= radius; x++) {
+            for (int z = -radius; z <= radius; z++) {
+                headless.generateChunk(x, z, EmptyListener.INSTANCE);
+            }
+        }
+        headless.close();
     }
 
     @Override

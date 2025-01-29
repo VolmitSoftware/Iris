@@ -49,4 +49,12 @@ public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
     void touch(World world);
 
     CompletableFuture<Integer> getSpawnChunks();
+
+    void prepareSpawnChunks(long seed, int radius);
+
+    default int getGenerated() {
+        Engine engine = getEngine();
+        if (engine == null) return 0;
+        return engine.getGenerated();
+    }
 }

@@ -39,7 +39,11 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
     private final MultiBurst burst;
 
     public HeadlessPregenMethod(Engine engine) {
-        this.max = IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism());
+        this(engine, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism()));
+    }
+
+    public HeadlessPregenMethod(Engine engine, int threads) {
+        this.max = Math.max(threads, 4);
         this.engine = engine;
         this.headless = INMS.get().createHeadless(engine);
         burst = new MultiBurst("HeadlessPregen", 8);

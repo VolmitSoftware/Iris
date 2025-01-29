@@ -87,6 +87,8 @@ public class CommandIris implements DecreeExecutor {
             String name,
             @Param(aliases = "dimension", description = "The dimension type to create the world with", defaultValue = "default")
             IrisDimension type,
+            @Param(description = "The radius of chunks to generate in headless mode (-1 to disable)", defaultValue = "10", aliases = "radius")
+            int headlessRadius,
             @Param(description = "The seed to generate the world with", defaultValue = "1337")
             long seed
     ) {
@@ -132,6 +134,7 @@ public class CommandIris implements DecreeExecutor {
                     .seed(seed)
                     .sender(sender())
                     .studio(false)
+                    .headlessRadius(headlessRadius)
                     .create();
         } catch (Throwable e) {
             sender().sendMessage(C.RED + "Exception raised during creation. See the console for more details.");

@@ -83,6 +83,11 @@ public class IrisCreator {
      * Benchmark mode
      */
     private boolean benchmark = false;
+    /**
+     * Radius of chunks to pregenerate in the headless mode
+     * if set to -1, headless mode is disabled
+     */
+    private int headlessRadius = 10;
 
     public static boolean removeFromBukkitYml(String name) throws IOException {
         YamlConfiguration yml = YamlConfiguration.loadConfiguration(BUKKIT_YML);
@@ -126,7 +131,6 @@ public class IrisCreator {
             Iris.service(StudioSVC.class).installIntoWorld(sender, d.getLoadKey(), new File(Bukkit.getWorldContainer(), name()));
         }
 
-        PlatformChunkGenerator access;
         AtomicReference<World> world = new AtomicReference<>();
         AtomicDouble pp = new AtomicDouble(0);
         O<Boolean> done = new O<>();
@@ -139,30 +143,56 @@ public class IrisCreator {
                 .create();
         ServerConfigurator.installDataPacks(false);
 
-        access = (PlatformChunkGenerator) wc.generator();
-        PlatformChunkGenerator finalAccess1 = access;
+        PlatformChunkGenerator access = (PlatformChunkGenerator) wc.generator();
+        if (access == null) {
+            throw new IrisException("Access is null. Something bad happened.");
+        }
 
-        J.a(() ->
-        {
-            Supplier<Integer> g = () -> {
-                if (finalAccess1 == null || finalAccess1.getEngine() == null) {
-                    return 0;
+        if (headlessRadius > 0) {
+            AtomicBoolean failed = new AtomicBoolean(false);
+            J.a(() -> {
+                int generated = access.getGenerated();
+                double total = Math.pow(headlessRadius * 2 + 1, 2);
+
+                while (generated < total) {
+                    if (failed.get()) return;
+
+                    double v = (double) generated / total;
+                    if (sender.isPlayer()) {
+                        sender.sendProgress(v, "Generating headless chunks");
+                        J.sleep(16);
+                    } else {
+                        sender.sendMessage(C.WHITE + "Generating headless chunks " + Form.pc(v) + ((C.GRAY + " (" + ((int) total - generated) + " Left)")));
+                        J.sleep(1000);
+                    }
+                    generated = access.getGenerated();
                 }
-                return finalAccess1.getEngine().getGenerated();
-            };
-            if(!benchmark) {
-                if (finalAccess1 == null) return;
-                int req = finalAccess1.getSpawnChunks().join();
+            });
 
-                while (g.get() < req) {
-                    double v = (double) g.get() / (double) req;
+            try {
+                access.prepareSpawnChunks(seed, headlessRadius);
+            } catch (Throwable e) {
+                Iris.error("Failed to prepare spawn chunks for " + name);
+                e.printStackTrace();
+                failed.set(true);
+            }
+        }
+
+        J.a(() -> {
+            if(!benchmark) {
+                int req = access.getSpawnChunks().join();
+
+                int generated = access.getGenerated();
+                while (generated < req) {
+                    double v = (double) generated / (double) req;
                     if (sender.isPlayer()) {
                         sender.sendProgress(v, "Generating");
                         J.sleep(16);
                     } else {
-                        sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - g.get()) + " Left)")));
+                        sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - generated) + " Left)")));
                         J.sleep(1000);
                     }
+                    generated = access.getGenerated();
                 }
             }
         });

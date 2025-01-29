@@ -27,6 +27,7 @@ import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.Cuboid;
+import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.plugin.IrisService;
@@ -34,7 +35,6 @@ import com.volmit.iris.util.scheduling.J;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
-import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Sapling;
 import org.bukkit.event.EventHandler;
@@ -142,7 +142,9 @@ public class TreeSVC implements IrisService {
             public void set(int x, int y, int z, BlockData d) {
                 Block b = event.getWorld().getBlockAt(x, y, z);
                 BlockState state = b.getState();
-                state.setBlockData(d);
+                if (d instanceof IrisCustomData data)
+                    state.setBlockData(data.getBase());
+                else state.setBlockData(d);
                 blockStateList.add(b.getState());
                 dataCache.put(new Location(event.getWorld(), x, y, z), d);
             }
@@ -213,12 +215,17 @@ public class TreeSVC implements IrisService {
             block = false;
 
             if (!iGrow.isCancelled()) {
-                for (BlockState block : iGrow.getBlocks()) {
-                    Location l = block.getLocation();
+                for (BlockState state : iGrow.getBlocks()) {
+                    Location l = state.getLocation();
 
-                    if (dataCache.containsKey(l)) {
-                        l.getBlock().setBlockData(dataCache.get(l), false);
-                    }
+                    BlockData d = dataCache.get(l);
+                    if (d == null) continue;
+                    Block block = l.getBlock();
+
+                    if (d instanceof IrisCustomData data) {
+                        block.setBlockData(data.getBase(), false);
+                        Iris.service(ExternalDataSVC.class).processUpdate(engine, block, data.getCustom());
+                    } else block.setBlockData(d);
                 }
             }
         });

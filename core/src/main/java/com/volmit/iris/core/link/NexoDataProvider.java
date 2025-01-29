@@ -11,7 +11,7 @@ import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
-import com.volmit.iris.util.data.IrisBlockData;
+import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.math.RNG;
 import org.bukkit.Color;
 import org.bukkit.block.Block;
@@ -49,9 +49,9 @@ public class NexoDataProvider extends ExternalDataProvider {
             BlockData data = NexoBlocks.blockData(blockId.key());
             if (data == null)
                 throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
-            return new IrisBlockData(data, blockState);
+            return new IrisCustomData(data, blockState);
         } else if (NexoFurniture.isFurniture(blockId.key())) {
-            return new IrisBlockData(B.getAir(), blockState);
+            return new IrisCustomData(B.getAir(), blockState);
         }
 
         throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());

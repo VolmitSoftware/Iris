@@ -19,7 +19,7 @@
 package com.volmit.iris.util.hunk.view;
 
 import com.volmit.iris.util.data.B;
-import com.volmit.iris.util.data.IrisBlockData;
+import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.hunk.Hunk;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
@@ -73,7 +73,7 @@ public class ChunkDataHunkView implements Hunk<BlockData> {
         }
 
         try {
-            if (t instanceof IrisBlockData d)
+            if (t instanceof IrisCustomData d)
                 t = d.getBase();
             chunk.setBlock(x, y + chunk.getMinHeight(), z, t);
         } catch (Throwable ignored) {

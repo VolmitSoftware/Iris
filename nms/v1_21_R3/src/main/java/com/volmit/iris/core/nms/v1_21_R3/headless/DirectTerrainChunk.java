@@ -3,7 +3,7 @@ package com.volmit.iris.core.nms.v1_21_R3.headless;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.BiomeBaseInjector;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
-import com.volmit.iris.util.data.IrisBlockData;
+import com.volmit.iris.util.data.IrisCustomData;
 import lombok.Data;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
@@ -77,7 +77,7 @@ public final class DirectTerrainChunk implements TerrainChunk {
         if (blockData == null) {
             Iris.error("NULL BD");
         }
-        if (blockData instanceof IrisBlockData data)
+        if (blockData instanceof IrisCustomData data)
             blockData = data.getBase();
         if (!(blockData instanceof CraftBlockData craftBlockData))
             throw new IllegalArgumentException("Expected CraftBlockData, got " + blockData.getClass().getSimpleName() + " instead");

@@ -29,6 +29,7 @@ import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.function.Function3;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
@@ -166,7 +167,10 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
 
     @Override
     public void set(int x, int y, int z, BlockData d) {
-        setData(x, y, z, d);
+        if (d instanceof IrisCustomData data) {
+            setData(x, y, z, data.getBase());
+            setData(x, y, z, data.getCustom());
+        } else setData(x, y, z, d);
     }
 
     @Override

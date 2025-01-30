@@ -27,7 +27,7 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
-import com.volmit.iris.util.data.IrisBlockData;
+import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.math.RNG;
 import io.lumine.mythic.bukkit.BukkitAdapter;
 import io.lumine.mythic.bukkit.utils.serialize.Chroma;
@@ -71,7 +71,7 @@ public class MythicCrucibleDataProvider extends ExternalDataProvider {
         CustomBlockItemContext blockItemContext = crucibleItem.getBlockData();
         FurnitureItemContext furnitureItemContext = crucibleItem.getFurnitureData();
         if (furnitureItemContext != null) {
-            return new IrisBlockData(B.getAir(), ExternalDataSVC.buildState(blockId, state));
+            return new IrisCustomData(B.getAir(), ExternalDataSVC.buildState(blockId, state));
         } else if (blockItemContext != null) {
             return blockItemContext.getBlockData();
         }

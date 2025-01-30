@@ -15,7 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Data
-public class IrisBlockData implements BlockData {
+public class IrisCustomData implements BlockData {
 	private final @NonNull BlockData base;
 	private final @NotNull Identifier custom;
 
@@ -40,12 +40,12 @@ public class IrisBlockData implements BlockData {
 	@NotNull
 	@Override
 	public BlockData merge(@NotNull BlockData blockData) {
-		return new IrisBlockData(base.merge(blockData), custom);
+		return new IrisCustomData(base.merge(blockData), custom);
 	}
 
 	@Override
 	public boolean matches(@Nullable BlockData blockData) {
-		if (blockData instanceof IrisBlockData b)
+		if (blockData instanceof IrisCustomData b)
 			return custom.equals(b.custom) && base.matches(b.base);
 		return base.matches(blockData);
 	}
@@ -53,7 +53,7 @@ public class IrisBlockData implements BlockData {
 	@NotNull
 	@Override
 	public BlockData clone() {
-		return new IrisBlockData(base.clone(), custom);
+		return new IrisCustomData(base.clone(), custom);
 	}
 
 	@NotNull

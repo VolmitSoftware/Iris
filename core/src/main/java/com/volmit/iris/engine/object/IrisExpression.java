@@ -24,6 +24,7 @@ import com.dfsek.paralithic.eval.parser.Scope;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.object.IrisExpressionFunction.FunctionContext;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
@@ -46,11 +47,13 @@ import lombok.experimental.Accessors;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisExpression extends IrisRegistrant {
-    private static final Parser parser = new Parser();
-
     @ArrayType(type = IrisExpressionLoad.class, min = 1)
     @Desc("Variables to use in this expression")
     private KList<IrisExpressionLoad> variables = new KList<>();
+
+    @ArrayType(type = IrisExpressionFunction.class, min = 1)
+    @Desc("Functions to use in this expression")
+    private KList<IrisExpressionFunction> functions = new KList<>();
 
     @Required
     @Desc("The expression. Inherited variables are x, y and z. Avoid using those variable names.")
@@ -62,6 +65,7 @@ public class IrisExpression extends IrisRegistrant {
     private Expression expression() {
         return expressionCache.aquire(() -> {
             Scope scope = new Scope(); // Create variable scope. This scope can hold both constants and invocation variables.
+            Parser parser = new Parser();
 
             try {
                 for (IrisExpressionLoad i : variables) {
@@ -74,6 +78,12 @@ public class IrisExpression extends IrisRegistrant {
             } catch (Throwable e) {
                 e.printStackTrace();
                 Iris.error("Script Variable load error in " + getLoadFile().getPath());
+            }
+
+            for (IrisExpressionFunction f : functions) {
+                if (!f.isValid()) continue;
+                f.setData(getLoader());
+                parser.registerFunction(f.getName(), f);
             }
 
             try {
@@ -103,7 +113,7 @@ public class IrisExpression extends IrisRegistrant {
         g[m++] = z;
         g[m] = -1;
 
-        return expression().evaluate(g);
+        return expression().evaluate(new FunctionContext(rng), g);
     }
 
     public double evaluate(RNG rng, double x, double y, double z) {
@@ -117,7 +127,7 @@ public class IrisExpression extends IrisRegistrant {
         g[m++] = y;
         g[m] = z;
 
-        return expression().evaluate(g);
+        return expression().evaluate(new FunctionContext(rng), g);
     }
 
     @Override

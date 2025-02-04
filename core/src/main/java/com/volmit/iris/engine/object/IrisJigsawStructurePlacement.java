@@ -19,13 +19,8 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.object.annotations.ArrayType;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListResource;
-import com.volmit.iris.engine.object.annotations.Required;
-import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
@@ -54,6 +49,7 @@ public class IrisJigsawStructurePlacement implements IRare {
     private int rarity = 100;
 
     @Required
+    @DependsOn({"spacing", "separation"})
     @Desc("The salt to use when generating the structure (to differentiate structures)")
     @MinNumber(Long.MIN_VALUE)
     @MaxNumber(Long.MAX_VALUE)
@@ -61,16 +57,26 @@ public class IrisJigsawStructurePlacement implements IRare {
 
     @Required
     @MinNumber(0)
+    @DependsOn({"salt", "separation"})
     @Desc("Average distance in chunks between two neighboring generation attempts")
     private int spacing = -1;
 
     @Required
     @MinNumber(0)
+    @DependsOn({"salt", "spacing"})
     @Desc("Minimum distance in chunks between two neighboring generation attempts\nThe maximum distance of two neighboring generation attempts is 2*spacing - separation")
     private int separation = -1;
 
     @Desc("The method used to spread the structure")
-    private SpreadType spreadType = SpreadType.TRIANGULAR;
+    private SpreadType spreadType = SpreadType.LINEAR;
+
+    @DependsOn({"spreadType"})
+    @Desc("The noise style to use when spreadType is set to 'NOISE'\nThis ignores the spacing and separation parameters")
+    private IrisGeneratorStyle style = new IrisGeneratorStyle();
+
+    @DependsOn({"spreadType", "style"})
+    @Desc("Threshold for noise style")
+    private double threshold = 0.5;
 
     @ArrayType(type = IrisJigsawMinDistance.class)
     @Desc("List of minimum distances to check for")
@@ -89,20 +95,29 @@ public class IrisJigsawStructurePlacement implements IRare {
     }
 
     private void calculateMissing(double divisor, long seed) {
-        seed = seed + hashCode();
+        if (salt != 0 && separation > 0 && spacing > 0)
+            return;
+        seed *= (long) structure.hashCode() * rarity;
         if (salt == 0) {
-            salt = new RNG(seed).nextLong(Integer.MIN_VALUE, Integer.MAX_VALUE);
+            salt = new RNG(seed).l(Integer.MIN_VALUE, Integer.MAX_VALUE);
         }
 
         if (separation == -1 || spacing == -1) {
             separation = (int) Math.round(rarity / divisor);
-            spacing = new RNG(seed).nextInt(separation, separation * 2);
+            spacing = new RNG(seed).i(separation, separation * 2);
         }
     }
 
     @ChunkCoordinates
-    public boolean shouldPlace(double divisor, long seed, int x, int z) {
+    public boolean shouldPlace(IrisData data, double divisor, long seed, int x, int z) {
         calculateMissing(divisor, seed);
+        if (spreadType != SpreadType.NOISE)
+            return shouldPlaceSpread(seed, x, z);
+
+        return style.create(new RNG(seed + salt), data).noise(x, z) > threshold;
+    }
+
+    private boolean shouldPlaceSpread(long seed, int x, int z) {
         if (separation > spacing) {
             separation = spacing;
             Iris.warn("JigsawStructurePlacement: separation must be less than or equal to spacing");
@@ -123,7 +138,9 @@ public class IrisJigsawStructurePlacement implements IRare {
         @Desc("Linear spread")
         LINEAR(RNG::i),
         @Desc("Triangular spread")
-        TRIANGULAR((rng, bound) -> (rng.i(bound) + rng.i(bound)) / 2);
+        TRIANGULAR((rng, bound) -> (rng.i(bound) + rng.i(bound)) / 2),
+        @Desc("Noise based spread\nThis ignores the spacing and separation parameters")
+        NOISE((rng, bound) -> 0);
         private final SpreadMethod method;
 
         SpreadType(SpreadMethod method) {

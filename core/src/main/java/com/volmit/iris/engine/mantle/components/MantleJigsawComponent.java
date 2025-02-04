@@ -90,8 +90,10 @@ public class MantleJigsawComponent extends IrisMantleComponent {
     private boolean placeStructures(MantleWriter writer, long seed, int x, int z, KList<IrisJigsawStructurePlacement> structures,
             KSet<Position2> cachedRegions, KMap<String, KSet<Position2>> cache, KMap<Position2, Double> distanceCache) {
         IrisJigsawStructurePlacement i = pick(structures, seed, x, z);
-        if (i == null || checkMinDistances(i.collectMinDistances(), x, z, cachedRegions, cache, distanceCache))
-            return false;
+        try {
+            if (i == null || checkMinDistances(i.collectMinDistances(), x, z, cachedRegions, cache, distanceCache))
+                return false;
+        } catch (Throwable ignored) {}
         RNG rng = new RNG(seed);
         IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
         IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
@@ -159,7 +161,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
     @ChunkCoordinates
     private IrisJigsawStructurePlacement pick(List<IrisJigsawStructurePlacement> structures, long seed, int x, int z) {
         return IRare.pick(structures.stream()
-                .filter(p -> p.shouldPlace(getDimension().getJigsawStructureDivisor(), jigsaw(), x, z))
+                .filter(p -> p.shouldPlace(getData(), getDimension().getJigsawStructureDivisor(), jigsaw(), x, z))
                 .toList(), new RNG(seed).nextDouble());
     }
 

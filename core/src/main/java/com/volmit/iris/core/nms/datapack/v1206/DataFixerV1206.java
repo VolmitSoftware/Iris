@@ -1,6 +1,6 @@
 package com.volmit.iris.core.nms.datapack.v1206;
 
-import com.volmit.iris.core.nms.datapack.IDataFixer;
+import com.volmit.iris.core.nms.datapack.v1192.DataFixerV1192;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.engine.object.IrisBiomeCustomSpawn;
 import com.volmit.iris.engine.object.IrisBiomeCustomSpawnType;
@@ -10,7 +10,7 @@ import com.volmit.iris.util.json.JSONObject;
 
 import java.util.Locale;
 
-public class DataFixerV1206 implements IDataFixer {
+public class DataFixerV1206 extends DataFixerV1192 {
     @Override
     public JSONObject fixCustomBiome(IrisBiomeCustom biome, JSONObject json) {
         int spawnRarity = biome.getSpawnRarity();
@@ -45,7 +45,8 @@ public class DataFixerV1206 implements IDataFixer {
     }
 
     @Override
-    public JSONObject fixDimension(JSONObject json) {
+    public JSONObject rawDimension(Dimension dimension) {
+        JSONObject json = super.rawDimension(dimension);
         if (!(json.get("monster_spawn_light_level") instanceof JSONObject lightLevel))
             return json;
         var value = (JSONObject) lightLevel.remove("value");

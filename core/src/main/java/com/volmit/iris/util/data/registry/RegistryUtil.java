@@ -1,15 +1,18 @@
 package com.volmit.iris.util.data.registry;
 
 import com.volmit.iris.core.nms.container.Pair;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import lombok.NonNull;
 import org.bukkit.Bukkit;
 import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,6 +23,7 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings("unchecked")
 public class RegistryUtil {
+    private static final AtomicCache<RegistryLookup> registryLookup = new AtomicCache<>();
     private static final Map<Class<?>, Map<NamespacedKey, Keyed>> KEYED_REGISTRY = new HashMap<>();
     private static final Map<Class<?>, Map<NamespacedKey, Object>> ENUM_REGISTRY = new HashMap<>();
     private static final Map<Class<?>, Registry<Keyed>> REGISTRY = new HashMap<>();
@@ -43,7 +47,7 @@ public class RegistryUtil {
         if (keys.length == 0) throw new IllegalArgumentException("Need at least one key");
         Registry<Keyed> registry = null;
         if (Keyed.class.isAssignableFrom(typeClass)) {
-            registry = Bukkit.getRegistry(typeClass.asSubclass(Keyed.class));
+            registry = getRegistry(typeClass.asSubclass(Keyed.class));
         }
         if (registry == null) {
             registry = REGISTRY.computeIfAbsent(typeClass, t -> Arrays.stream(Registry.class.getDeclaredFields())
@@ -148,6 +152,58 @@ public class RegistryUtil {
                 }
                 throw new IllegalArgumentException("No element found for keys: " + Arrays.toString(keys));
             };
+        }
+    }
+
+    @Nullable
+    private static <T extends Keyed> Registry<T> getRegistry(@NotNull Class<T> type) {
+        RegistryLookup lookup = registryLookup.aquire(() -> {
+            RegistryLookup bukkit;
+            try {
+                bukkit = Bukkit::getRegistry;
+            } catch (Throwable ignored) {
+                bukkit = null;
+            }
+            return new DefaultRegistryLookup(bukkit);
+        });
+        return lookup.find(type);
+    }
+
+    private interface RegistryLookup {
+        @Nullable
+        <T extends Keyed> Registry<T> find(@NonNull Class<T> type);
+    }
+
+    private static class DefaultRegistryLookup implements RegistryLookup {
+        private final RegistryLookup bukkit;
+        private final Map<Type, Object> registries;
+
+        private DefaultRegistryLookup(RegistryLookup bukkit) {
+            this.bukkit = bukkit;
+            registries = Arrays.stream(Registry.class.getDeclaredFields())
+                    .filter(field -> Modifier.isPublic(field.getModifiers()) && Modifier.isStatic(field.getModifiers()))
+                    .filter(field -> Registry.class.isAssignableFrom(field.getType()))
+                    .map(field -> {
+                        var type = ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+                        try {
+                            return new Pair<>(type, field.get(null));
+                        } catch (Throwable e) {
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toMap(Pair::getA, Pair::getB, (a, b) -> a));
+        }
+
+        @Nullable
+        @Override
+        public <T extends Keyed> Registry<T> find(@NonNull Class<T> type) {
+            if (bukkit == null) return (Registry<T>) registries.get(type);
+            try {
+                return bukkit.find(type);
+            } catch (Throwable e) {
+                return (Registry<T>) registries.get(type);
+            }
         }
     }
 }

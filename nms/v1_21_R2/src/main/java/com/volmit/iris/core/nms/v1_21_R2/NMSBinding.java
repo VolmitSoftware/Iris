@@ -202,7 +202,7 @@ public class NMSBinding implements INMSBinding {
                     .newBlockEntity(blockPos, state);
         }
         var accessor = new BlockDataAccessor(blockEntity, blockPos);
-        accessor.setData(tag.merge(accessor.getData()));
+        accessor.setData(accessor.getData().merge(tag));
     }
 
     private Tag convertToTag(Object object, int depth, int maxDepth) {

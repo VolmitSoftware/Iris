@@ -35,7 +35,6 @@ import java.io.IOException;
 
 @SuppressWarnings("ALL")
 @Getter
-@ToString
 @EqualsAndHashCode
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -136,5 +135,10 @@ public class TileData implements Cloneable {
         clone.material = material;
         clone.properties = properties.copy(); //TODO make a deep copy
         return clone;
+    }
+
+    @Override
+    public String toString() {
+        return material.getKey() + gson.toJson(properties);
     }
 }

@@ -1010,8 +1010,9 @@ public class IrisObject extends IrisRegistrant {
                 }
 
                 boolean wouldReplace = B.isSolid(placer.get(xx, yy, zz)) && B.isVineBlock(data);
+                boolean place = !data.getMaterial().equals(Material.AIR) && !data.getMaterial().equals(Material.CAVE_AIR) && !wouldReplace;
 
-                if (!data.getMaterial().equals(Material.AIR) && !data.getMaterial().equals(Material.CAVE_AIR) && !wouldReplace) {
+                if (data instanceof IrisCustomData || place) {
                     placer.set(xx, yy, zz, data);
                     if (tile != null) {
                         placer.setTile(xx, yy, zz, tile);

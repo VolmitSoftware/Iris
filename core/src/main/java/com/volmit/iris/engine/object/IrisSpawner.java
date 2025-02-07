@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.collection.KList;
@@ -93,6 +94,37 @@ public class IrisSpawner extends IrisRegistrant {
 
     public boolean isValid(World world) {
         return timeBlock.isWithin(world) && weather.is(world);
+    }
+
+    public boolean canSpawn(Engine engine) {
+        if (!isValid(engine.getWorld().realWorld()))
+            return false;
+
+        var rate = getMaximumRate();
+        return rate.isInfinite() || engine.getEngineData().getCooldown(this).canSpawn(rate);
+    }
+
+    public boolean canSpawn(Engine engine, int x, int z) {
+        if (!canSpawn(engine))
+            return false;
+
+        var rate = getMaximumRatePerChunk();
+        return rate.isInfinite() || engine.getEngineData().getChunk(x, z).getCooldown(this).canSpawn(rate);
+    }
+
+    public void spawn(Engine engine) {
+        if (getMaximumRate().isInfinite())
+            return;
+
+        engine.getEngineData().getCooldown(this).spawn(engine);
+    }
+
+    public void spawn(Engine engine, int x, int z) {
+        spawn(engine);
+        if (getMaximumRatePerChunk().isInfinite())
+            return;
+
+        engine.getEngineData().getChunk(x, z).getCooldown(this).spawn(engine);
     }
 
     @Override

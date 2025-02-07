@@ -62,6 +62,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -299,28 +300,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             energy += 1.2;
         }
 
-        //@builder
-        IrisBiome biome = IrisSettings.get().getWorld().isAnbientEntitySpawningSystem()
-                ? getEngine().getSurfaceBiome(c) : null;
-        IrisEntitySpawn v = IrisSettings.get().getWorld().isAnbientEntitySpawningSystem()
-                ? spawnRandomly(Stream.concat(getData().getSpawnerLoader()
-                                .loadAll(getDimension().getEntitySpawners())
-                                .shuffleCopy(RNG.r).stream()
-                                .filter(this::canSpawn)
-                                .filter((i) -> i.isValid(biome))
-                                .flatMap((i) -> stream(i, initial)),
-                        Stream.concat(getData().getSpawnerLoader()
-                                        .loadAll(getEngine().getRegion(c.getX() << 4, c.getZ() << 4).getEntitySpawners())
-                                        .shuffleCopy(RNG.r).stream().filter(this::canSpawn)
-                                        .flatMap((i) -> stream(i, initial)),
-                                getData().getSpawnerLoader()
-                                        .loadAll(getEngine().getSurfaceBiome(c.getX() << 4, c.getZ() << 4).getEntitySpawners())
-                                        .shuffleCopy(RNG.r).stream().filter(this::canSpawn)
-                                        .flatMap((i) -> stream(i, initial))))
-                .collect(Collectors.toList()))
-                .popRandom(RNG.r) : null;
-        //@done
-
         if (IrisSettings.get().getWorld().isMarkerEntitySpawningSystem()) {
             getSpawnersFromMarkers(c).forEach((blockf, spawners) -> {
                 if (spawners.isEmpty()) {
@@ -335,94 +314,64 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             });
         }
 
-        if (v != null && v.getReferenceSpawner() != null) {
-            int maxEntCount = v.getReferenceSpawner().getMaxEntitiesPerChunk();
+        if (!IrisSettings.get().getWorld().isAnbientEntitySpawningSystem()) {
+            return;
+        }
 
-            for (Entity i : c.getEntities()) {
-                if (i instanceof LivingEntity) {
-                    if (--maxEntCount <= 0) {
-                        return;
-                    }
-                }
-            }
+        //@builder
+        Predicate<IrisSpawner> filter = i -> i.canSpawn(getEngine(), c.getX(), c.getZ());
+        ChunkCounter counter = new ChunkCounter(c.getEntities());
 
-            try {
-                spawn(c, v);
-            } catch (Throwable e) {
-                J.s(() -> spawn(c, v));
-            }
+        IrisBiome biome = getEngine().getSurfaceBiome(c);
+        IrisEntitySpawn v = spawnRandomly(Stream.concat(getData().getSpawnerLoader()
+                                .loadAll(getDimension().getEntitySpawners())
+                                .shuffleCopy(RNG.r)
+                                .stream()
+                                .filter(filter)
+                                .filter((i) -> i.isValid(biome)),
+                        Stream.concat(getData()
+                                        .getSpawnerLoader()
+                                        .loadAll(getEngine().getRegion(c.getX() << 4, c.getZ() << 4).getEntitySpawners())
+                                        .shuffleCopy(RNG.r)
+                                        .stream()
+                                        .filter(filter),
+                                getData().getSpawnerLoader()
+                                        .loadAll(getEngine().getSurfaceBiome(c.getX() << 4, c.getZ() << 4).getEntitySpawners())
+                                        .shuffleCopy(RNG.r)
+                                        .stream()
+                                        .filter(filter)))
+                .filter(counter)
+                .flatMap((i) -> stream(i, initial))
+                .collect(Collectors.toList()))
+                .getRandom();
+        //@done
+        if (v == null || v.getReferenceSpawner() == null)
+            return;
+
+        try {
+            spawn(c, v);
+        } catch (Throwable e) {
+            J.s(() -> spawn(c, v));
         }
     }
 
     private void spawn(Chunk c, IrisEntitySpawn i) {
-        boolean allow = true;
-
-        if (!i.getReferenceSpawner().getMaximumRatePerChunk().isInfinite()) {
-            allow = false;
-            IrisEngineChunkData cd = getEngine().getEngineData().getChunk(c.getX(), c.getZ());
-            IrisEngineSpawnerCooldown sc = null;
-            for (IrisEngineSpawnerCooldown j : cd.getCooldowns()) {
-                if (j.getSpawner().equals(i.getReferenceSpawner().getLoadKey())) {
-                    sc = j;
-                    break;
-                }
-            }
-
-            if (sc == null) {
-                sc = new IrisEngineSpawnerCooldown();
-                sc.setSpawner(i.getReferenceSpawner().getLoadKey());
-                cd.getCooldowns().add(sc);
-            }
-
-            if (sc.canSpawn(i.getReferenceSpawner().getMaximumRatePerChunk())) {
-                sc.spawn(getEngine());
-                allow = true;
-            }
-        }
-
-        if (allow) {
-            int s = i.spawn(getEngine(), c, RNG.r);
-            actuallySpawned += s;
-            if (s > 0) {
-                getCooldown(i.getReferenceSpawner()).spawn(getEngine());
-                energy -= s * ((i.getEnergyMultiplier() * i.getReferenceSpawner().getEnergyMultiplier() * 1));
-            }
+        IrisSpawner ref = i.getReferenceSpawner();
+        int s = i.spawn(getEngine(), c, RNG.r);
+        actuallySpawned += s;
+        if (s > 0) {
+            ref.spawn(getEngine(), c.getX(), c.getZ());
+            energy -= s * ((i.getEnergyMultiplier() * ref.getEnergyMultiplier() * 1));
         }
     }
 
-    private void spawn(IrisPosition c, IrisEntitySpawn i) {
-        boolean allow = true;
-
-        if (!i.getReferenceSpawner().getMaximumRatePerChunk().isInfinite()) {
-            allow = false;
-            IrisEngineChunkData cd = getEngine().getEngineData().getChunk(c.getX() >> 4, c.getZ() >> 4);
-            IrisEngineSpawnerCooldown sc = null;
-            for (IrisEngineSpawnerCooldown j : cd.getCooldowns()) {
-                if (j.getSpawner().equals(i.getReferenceSpawner().getLoadKey())) {
-                    sc = j;
-                    break;
-                }
-            }
-
-            if (sc == null) {
-                sc = new IrisEngineSpawnerCooldown();
-                sc.setSpawner(i.getReferenceSpawner().getLoadKey());
-                cd.getCooldowns().add(sc);
-            }
-
-            if (sc.canSpawn(i.getReferenceSpawner().getMaximumRatePerChunk())) {
-                sc.spawn(getEngine());
-                allow = true;
-            }
-        }
-
-        if (allow) {
-            int s = i.spawn(getEngine(), c, RNG.r);
-            actuallySpawned += s;
-            if (s > 0) {
-                getCooldown(i.getReferenceSpawner()).spawn(getEngine());
-                energy -= s * ((i.getEnergyMultiplier() * i.getReferenceSpawner().getEnergyMultiplier() * 1));
-            }
+    private void spawn(IrisPosition pos, IrisEntitySpawn i) {
+        IrisSpawner ref = i.getReferenceSpawner();
+        int s = i.spawn(getEngine(), pos, RNG.r);
+        actuallySpawned += s;
+        if (s > 0) {
+            ref.spawn(getEngine(), pos.getX() >> 4, pos.getZ() >> 4);
+            energy -= s * ((i.getEnergyMultiplier() * ref.getEnergyMultiplier() * 1));
         }
     }
 
@@ -448,31 +397,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
 
         return rarityTypes;
-    }
-
-    public boolean canSpawn(IrisSpawner i) {
-        return i.isValid(getEngine().getWorld().realWorld())
-                && getCooldown(i).canSpawn(i.getMaximumRate());
-    }
-
-    private IrisEngineSpawnerCooldown getCooldown(IrisSpawner i) {
-        IrisEngineData ed = getEngine().getEngineData();
-        IrisEngineSpawnerCooldown cd = null;
-
-        for (IrisEngineSpawnerCooldown j : ed.getSpawnerCooldowns().copy()) {
-            if (j.getSpawner().equals(i.getLoadKey())) {
-                cd = j;
-            }
-        }
-
-        if (cd == null) {
-            cd = new IrisEngineSpawnerCooldown();
-            cd.setSpawner(i.getLoadKey());
-            cd.setLastSpawn(M.ms() - i.getMaximumRate().getInterval());
-            ed.getSpawnerCooldowns().add(cd);
-        }
-
-        return cd;
     }
 
     @Override
@@ -707,5 +631,28 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
 
         return (double) entityCount / (getEngine().getWorld().realWorld().getLoadedChunks().length + 1) * 1.28;
+    }
+
+    @Data
+    private static class ChunkCounter implements Predicate<IrisSpawner> {
+        private final Entity[] entities;
+        private transient int index = 0;
+        private transient int count = 0;
+
+        @Override
+        public boolean test(IrisSpawner spawner) {
+            int max = spawner.getMaxEntitiesPerChunk();
+            if (max <= count)
+                return false;
+
+            while (index < entities.length) {
+                if (entities[index++] instanceof LivingEntity) {
+                    if (++count >= max)
+                        return false;
+                }
+            }
+
+            return true;
+        }
     }
 }

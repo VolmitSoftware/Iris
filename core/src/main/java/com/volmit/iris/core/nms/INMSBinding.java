@@ -20,6 +20,7 @@ package com.volmit.iris.core.nms;
 
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.datapack.DataVersion;
+import com.volmit.iris.core.nms.headless.IRegionStorage;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -121,7 +122,7 @@ public interface INMSBinding {
         return 441;
     }
 
-    default IHeadless createHeadless(Engine engine) {
+    default IRegionStorage createRegionStorage(Engine engine) {
         return null;
     }
 

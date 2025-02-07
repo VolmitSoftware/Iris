@@ -2,8 +2,9 @@ package com.volmit.iris.core.nms.v1_21_R3.headless;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.BiomeBaseInjector;
-import com.volmit.iris.engine.data.chunk.TerrainChunk;
+import com.volmit.iris.core.nms.headless.SerializableChunk;
 import com.volmit.iris.util.data.IrisCustomData;
+import com.volmit.iris.util.math.Position2;
 import lombok.Data;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
@@ -23,7 +24,7 @@ import org.bukkit.material.MaterialData;
 import org.jetbrains.annotations.NotNull;
 
 @Data
-public final class DirectTerrainChunk implements TerrainChunk {
+public final class DirectTerrainChunk implements SerializableChunk {
     private final ChunkAccess access;
     private final int minHeight, maxHeight;
 
@@ -190,5 +191,15 @@ public final class DirectTerrainChunk implements TerrainChunk {
             access.removeBlockEntity(blockPosition);
         }
 
+    }
+
+    @Override
+    public Position2 getPos() {
+        return new Position2(access.getPos().x, access.getPos().z);
+    }
+
+    @Override
+    public Object serialize() {
+        return RegionStorage.serialize(access);
     }
 }

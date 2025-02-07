@@ -21,6 +21,8 @@ package com.volmit.iris.util.math;
 import com.volmit.iris.engine.object.IrisPosition;
 import org.bukkit.util.Vector;
 
+import java.util.function.BiFunction;
+
 public class Position2 {
     private int x;
     private int z;
@@ -93,5 +95,9 @@ public class Position2 {
 
     public IrisPosition toIris() {
         return new IrisPosition(x, 23, z);
+    }
+
+    public <T> T convert(BiFunction<Integer, Integer, T> constructor) {
+        return constructor.apply(x, z);
     }
 }

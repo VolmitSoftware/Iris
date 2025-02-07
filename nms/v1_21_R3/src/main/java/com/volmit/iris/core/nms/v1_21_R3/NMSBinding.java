@@ -2,11 +2,11 @@ package com.volmit.iris.core.nms.v1_21_R3;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.nms.IHeadless;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.datapack.DataVersion;
-import com.volmit.iris.core.nms.v1_21_R3.headless.Headless;
+import com.volmit.iris.core.nms.headless.IRegionStorage;
+import com.volmit.iris.core.nms.v1_21_R3.headless.RegionStorage;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
@@ -647,7 +647,7 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
-    public IHeadless createHeadless(Engine engine) {
-        return new Headless(engine);
+    public IRegionStorage createRegionStorage(Engine engine) {
+        return new RegionStorage(engine);
     }
 }

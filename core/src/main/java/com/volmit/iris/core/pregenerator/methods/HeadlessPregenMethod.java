@@ -20,11 +20,10 @@ package com.volmit.iris.core.pregenerator.methods;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.nms.IHeadless;
-import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.IrisHeadless;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.parallel.MultiBurst;
 
@@ -33,7 +32,7 @@ import java.util.concurrent.Semaphore;
 
 public class HeadlessPregenMethod implements PregeneratorMethod {
     private final Engine engine;
-    private final IHeadless headless;
+    private final IrisHeadless headless;
     private final Semaphore semaphore;
     private final int max;
     private final MultiBurst burst;
@@ -45,7 +44,7 @@ public class HeadlessPregenMethod implements PregeneratorMethod {
     public HeadlessPregenMethod(Engine engine, int threads) {
         this.max = Math.max(threads, 4);
         this.engine = engine;
-        this.headless = INMS.get().createHeadless(engine);
+        this.headless = new IrisHeadless(engine);
         burst = new MultiBurst("HeadlessPregen", 8);
         this.semaphore = new Semaphore(max);
     }

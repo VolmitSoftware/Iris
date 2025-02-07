@@ -340,7 +340,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
             for (Entity i : c.getEntities()) {
                 if (i instanceof LivingEntity) {
-                    if (-maxEntCount <= 0) {
+                    if (--maxEntCount <= 0) {
                         return;
                     }
                 }

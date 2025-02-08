@@ -89,6 +89,7 @@ public class RegionStorage implements IRegionStorage, LevelHeightAccessor {
         }
 
         minecraftBiomes = new KMap<>(org.bukkit.Registry.BIOME.stream()
+                .filter(biome -> biome != org.bukkit.block.Biome.CUSTOM)
                 .collect(Collectors.toMap(Function.identity(), CraftBiome::bukkitToMinecraftHolder)));
         minecraftBiomes.values().removeAll(customBiomes.values());
     }

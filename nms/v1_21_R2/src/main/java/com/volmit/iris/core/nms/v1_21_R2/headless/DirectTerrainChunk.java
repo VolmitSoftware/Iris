@@ -11,7 +11,8 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ProtoChunk;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -25,10 +26,10 @@ import org.jetbrains.annotations.NotNull;
 
 @Data
 public final class DirectTerrainChunk implements SerializableChunk {
-    private final ChunkAccess access;
+    private final ProtoChunk access;
     private final int minHeight, maxHeight;
 
-    public DirectTerrainChunk(ChunkAccess access) {
+    public DirectTerrainChunk(ProtoChunk access) {
         this.access = access;
         this.minHeight = access.getMinY();
         this.maxHeight = access.getMaxY();
@@ -201,5 +202,10 @@ public final class DirectTerrainChunk implements SerializableChunk {
     @Override
     public Object serialize() {
         return RegionStorage.serialize(access);
+    }
+
+    @Override
+    public void mark() {
+        access.setPersistedStatus(ChunkStatus.FULL);
     }
 }

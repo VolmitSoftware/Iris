@@ -7,4 +7,6 @@ public interface SerializableChunk extends TerrainChunk {
     Position2 getPos();
 
     Object serialize();
+
+    void mark();
 }

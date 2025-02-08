@@ -30,7 +30,6 @@ import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.chunk.*;
-import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.chunk.status.ChunkType;
 import net.minecraft.world.level.levelgen.BelowZeroRetrogen;
 import net.minecraft.world.level.levelgen.GenerationStep;
@@ -141,9 +140,7 @@ public class RegionStorage implements IRegionStorage, LevelHeightAccessor {
     @NotNull
     @Override
     public SerializableChunk createChunk(int x, int z) {
-        ProtoChunk chunk = new ProtoChunk(new ChunkPos(x, z), UpgradeData.EMPTY, this, registryAccess().registryOrThrow(Registries.BIOME), null);
-        chunk.setStatus(ChunkStatus.FULL);
-        return new DirectTerrainChunk(chunk);
+        return new DirectTerrainChunk(new ProtoChunk(new ChunkPos(x, z), UpgradeData.EMPTY, this, registryAccess().registryOrThrow(Registries.BIOME), null));
     }
 
     @Override

@@ -169,6 +169,7 @@ public class IrisHeadless {
             biomes.apply();
 
             storage.fillBiomes(chunk, ctx);
+            chunk.mark();
 
             long key = Cache.key(x >> 5, z >> 5);
             regions.computeIfAbsent(key, Region::new)
@@ -255,7 +256,7 @@ public class IrisHeadless {
 
         @Override
         public void run() {
-            try (IRegion region = storage.getRegion(x, z, false)){
+            try (IRegion region = storage.getRegion(x, z, false)) {
                 assert region != null;
 
                 for (var chunk : chunks) {
@@ -269,7 +270,8 @@ public class IrisHeadless {
                 }
             } catch (Throwable e) {
                 Iris.error("Failed to load region file " + x + ", " + z);
-                Iris.reportError(e);
+                e.printStackTrace();
+                loadedChunks.addAndGet(-chunks.size());
             }
 
             regions.remove(key);

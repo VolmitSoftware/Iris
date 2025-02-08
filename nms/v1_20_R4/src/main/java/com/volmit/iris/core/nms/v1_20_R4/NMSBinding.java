@@ -10,6 +10,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.mojang.datafixers.util.Pair;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.datapack.DataVersion;
+import com.volmit.iris.core.nms.headless.IRegionStorage;
+import com.volmit.iris.core.nms.v1_20_R4.headless.RegionStorage;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.scheduling.J;
 import net.minecraft.core.*;
@@ -649,5 +651,10 @@ public class NMSBinding implements INMSBinding {
                 .forEach(keys::add);
 
         return keys;
+    }
+
+    @Override
+    public IRegionStorage createRegionStorage(Engine engine) {
+        return new RegionStorage(engine);
     }
 }

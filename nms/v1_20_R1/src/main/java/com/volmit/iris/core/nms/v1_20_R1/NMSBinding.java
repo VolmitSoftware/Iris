@@ -5,6 +5,8 @@ import com.mojang.datafixers.util.Pair;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.headless.IRegionStorage;
+import com.volmit.iris.core.nms.v1_20_R1.headless.RegionStorage;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
@@ -627,5 +629,10 @@ public class NMSBinding implements INMSBinding {
                 return getField(superClass, fieldType);
             }
         }
+    }
+
+    @Override
+    public IRegionStorage createRegionStorage(Engine engine) {
+        return new RegionStorage(engine);
     }
 }

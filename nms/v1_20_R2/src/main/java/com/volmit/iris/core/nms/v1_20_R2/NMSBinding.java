@@ -16,6 +16,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.mojang.datafixers.util.Pair;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.headless.IRegionStorage;
+import com.volmit.iris.core.nms.v1_20_R2.headless.RegionStorage;
 import com.volmit.iris.util.scheduling.J;
 import net.minecraft.nbt.*;
 import net.minecraft.nbt.Tag;
@@ -629,5 +631,10 @@ public class NMSBinding implements INMSBinding {
 
     public static Holder<net.minecraft.world.level.biome.Biome> biomeToBiomeBase(Registry<net.minecraft.world.level.biome.Biome> registry, Biome biome) {
         return registry.getHolderOrThrow(ResourceKey.create(Registries.BIOME, CraftNamespacedKey.toMinecraft(biome.getKey())));
+    }
+
+    @Override
+    public IRegionStorage createRegionStorage(Engine engine) {
+        return new RegionStorage(engine);
     }
 }

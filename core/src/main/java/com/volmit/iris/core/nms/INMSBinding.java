@@ -122,9 +122,7 @@ public interface INMSBinding {
         return 441;
     }
 
-    default IRegionStorage createRegionStorage(Engine engine) {
-        return null;
-    }
+    IRegionStorage createRegionStorage(Engine engine);
 
     KList<String> getStructureKeys();
 }

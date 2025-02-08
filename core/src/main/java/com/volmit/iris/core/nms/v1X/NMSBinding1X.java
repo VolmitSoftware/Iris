@@ -21,6 +21,7 @@ package com.volmit.iris.core.nms.v1X;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.headless.IRegionStorage;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -107,6 +108,11 @@ public class NMSBinding1X implements INMSBinding {
     @Override
     public Color getBiomeColor(Location location, BiomeColor type) {
         return Color.GREEN;
+    }
+
+    @Override
+    public IRegionStorage createRegionStorage(Engine engine) {
+        return null;
     }
 
     @Override

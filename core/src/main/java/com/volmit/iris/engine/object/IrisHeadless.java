@@ -28,7 +28,6 @@ import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineStage;
 import com.volmit.iris.engine.framework.WrongEngineBroException;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
@@ -51,6 +50,7 @@ import java.io.IOException;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.function.Consumer;
 
 public class IrisHeadless {
@@ -228,9 +228,9 @@ public class IrisHeadless {
                 regionThread = null;
             }
 
-            regions.values().forEach(Region::submit);
+            regions.v().forEach(Region::submit);
             Iris.info("Waiting for " + loadedChunks.get() + " chunks to unload...");
-            while (loadedChunks.get() > 0 || !regions.isEmpty())
+            while (loadedChunks.get() > 0)
                 J.sleep(1);
             Iris.info("All chunks unloaded");
             executor.shutdown();
@@ -244,9 +244,10 @@ public class IrisHeadless {
     private class Region implements Runnable {
         private final int x, z;
         private final long key;
-        private final KList<SerializableChunk> chunks = new KList<>(1024);
+        private final AtomicReferenceArray<SerializableChunk> chunks = new AtomicReferenceArray<>(1024);
         private final AtomicReference<Future<?>> full = new AtomicReference<>();
-        private long lastEntry = M.ms();
+        private transient int size;
+        private transient long lastEntry = M.ms();
 
         public Region(long key) {
             this.x = Cache.keyX(key);
@@ -259,7 +260,11 @@ public class IrisHeadless {
             try (IRegion region = storage.getRegion(x, z, false)) {
                 assert region != null;
 
-                for (var chunk : chunks) {
+                for (int i = 0; i < 1024; i++) {
+                    SerializableChunk chunk = chunks.get(i);
+                    if (chunk == null)
+                        continue;
+
                     try {
                         region.write(chunk);
                     } catch (Throwable e) {
@@ -271,25 +276,31 @@ public class IrisHeadless {
             } catch (Throwable e) {
                 Iris.error("Failed to load region file " + x + ", " + z);
                 e.printStackTrace();
-                loadedChunks.addAndGet(-chunks.size());
+                loadedChunks.addAndGet(-size);
             }
-
-            regions.remove(key);
         }
 
         public synchronized void add(SerializableChunk chunk) {
-            chunks.add(chunk);
             lastEntry = M.ms();
-            if (chunks.size() < 1024)
+            if (chunks.getAndSet(index(chunk.getPos()), chunk) != null)
+                throw new IllegalStateException("Chunk " + chunk.getPos() + " already exists");
+            if (++size < 1024)
                 return;
             submit();
         }
 
         public void submit() {
+            regions.remove(key);
             full.getAndUpdate(future -> {
                 if (future != null) return future;
                 return executor.submit(this);
             });
+        }
+
+        private int index(Position2 chunk) {
+            int x = chunk.getX() & 31;
+            int z = chunk.getZ() & 31;
+            return z * 32 + x;
         }
     }
 

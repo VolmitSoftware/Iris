@@ -20,51 +20,31 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
-public class IrisEngineData {
+@EqualsAndHashCode(callSuper = true)
+public class IrisEngineData extends IrisSpawnerCooldowns {
     private IrisEngineStatistics statistics = new IrisEngineStatistics();
-    private KList<IrisEngineSpawnerCooldown> spawnerCooldowns = new KList<>();
-    private KList<IrisEngineChunkData> chunks = new KList<>();
+    private KMap<Long, IrisSpawnerCooldowns> chunks = new KMap<>();
     private Long seed = null;
 
     public void removeChunk(int x, int z) {
-        long k = Cache.key(x, z);
-        chunks.removeWhere((i) -> i.getChunk() == k);
+        chunks.remove(Cache.key(x, z));
     }
 
-    public IrisEngineChunkData getChunk(int x, int z) {
-        long k = Cache.key(x, z);
-
-        for (IrisEngineChunkData i : chunks) {
-            if (i.getChunk() == k) {
-                return i;
-            }
-        }
-
-        IrisEngineChunkData c = new IrisEngineChunkData();
-        c.setChunk(k);
-        chunks.add(c);
-        return c;
+    public IrisSpawnerCooldowns getChunk(int x, int z) {
+        return chunks.computeIfAbsent(Cache.key(x, z), k -> new IrisSpawnerCooldowns());
     }
 
     public void cleanup(Engine engine) {
-        for (IrisEngineSpawnerCooldown i : getSpawnerCooldowns().copy()) {
-            IrisSpawner sp = engine.getData().getSpawnerLoader().load(i.getSpawner());
+        super.cleanup(engine);
 
-            if (sp == null || i.canSpawn(sp.getMaximumRate())) {
-                getSpawnerCooldowns().remove(i);
-            }
-        }
-
-        for (IrisEngineChunkData i : chunks.copy()) {
-            i.cleanup(engine);
-
-            if (i.isEmpty()) {
-                getChunks().remove(i);
-            }
-        }
+        chunks.values().removeIf(chunk -> {
+            chunk.cleanup(engine);
+            return chunk.isEmpty();
+        });
     }
 }

@@ -3,6 +3,7 @@ package com.volmit.iris.core.nms.v1_20_R4.headless;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.headless.IRegion;
 import com.volmit.iris.core.nms.headless.SerializableChunk;
+import com.volmit.iris.util.math.M;
 import lombok.NonNull;
 import lombok.Synchronized;
 import net.minecraft.nbt.CompoundTag;
@@ -17,13 +18,14 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 
-class Region implements IRegion {
+class Region implements IRegion, Comparable<Region> {
     private static final RegionStorageInfo info = new RegionStorageInfo("headless", Level.OVERWORLD, "headless");
     private final RegionFile regionFile;
     transient long references;
+    transient long lastUsed;
 
     Region(Path path, Path folder) throws IOException {
-        this.regionFile = new RegionFile(info, path, folder, true);
+        this.regionFile = new RegionFile(info, path, folder, false);
     }
 
     @Override
@@ -48,10 +50,15 @@ class Region implements IRegion {
     @Override
     public void close() {
         --references;
+        lastUsed = M.ms();
+    }
+
+    public boolean unused() {
+        return references <= 0;
     }
 
     public boolean remove() {
-        if (references > 0) return false;
+        if (!unused()) return false;
         try {
             regionFile.close();
         } catch (IOException e) {
@@ -59,5 +66,10 @@ class Region implements IRegion {
             e.printStackTrace();
         }
         return true;
+    }
+
+    @Override
+    public int compareTo(Region o) {
+        return Long.compare(lastUsed, o.lastUsed);
     }
 }

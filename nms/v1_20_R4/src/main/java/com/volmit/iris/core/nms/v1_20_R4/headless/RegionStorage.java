@@ -14,6 +14,7 @@ import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.scheduling.J;
 import lombok.Getter;
 import lombok.NonNull;
 import net.minecraft.FileUtil;
@@ -100,7 +101,7 @@ public class RegionStorage implements IRegionStorage, LevelHeightAccessor {
 
     @Override
     public boolean exists(int x, int z) {
-        try (IRegion region = getRegion(x, z, true)) {
+        try (IRegion region = getRegion(x >> 5, z >> 5, true)) {
             return region != null && region.exists(x, z);
         } catch (Exception e) {
             return false;
@@ -111,9 +112,7 @@ public class RegionStorage implements IRegionStorage, LevelHeightAccessor {
     public IRegion getRegion(int x, int z, boolean existingOnly) throws IOException {
         AtomicReference<IOException> exception = new AtomicReference<>();
         Region region = regions.computeIfAbsent(Cache.key(x, z), k -> {
-            if (regions.size() >= 256) {
-                regions.values().removeIf(Region::remove);
-            }
+            trim();
 
             try {
                 FileUtil.createDirectoriesSafe(this.folder);
@@ -157,11 +156,31 @@ public class RegionStorage implements IRegionStorage, LevelHeightAccessor {
 
         while (!regions.isEmpty()) {
             regions.values().removeIf(Region::remove);
+            J.sleep(1);
         }
 
         closed = true;
         customBiomes.clear();
         minecraftBiomes.clear();
+    }
+
+    private void trim() {
+        int size = regions.size();
+        if (size < 256) return;
+        int remove = size - 255;
+
+        var list = regions.values()
+                .stream()
+                .filter(Region::unused)
+                .sorted()
+                .collect(Collectors.toList())
+                .reversed();
+
+        int skip = list.size() - remove;
+        if (skip > 0) list.subList(0, skip).clear();
+
+        if (list.isEmpty()) return;
+        regions.values().removeIf(r -> list.contains(r) && r.remove());
     }
 
     private Holder<Biome> getNoiseBiome(Engine engine, ChunkContext ctx, int x, int y, int z) {

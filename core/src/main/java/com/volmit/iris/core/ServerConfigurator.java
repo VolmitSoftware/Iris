@@ -32,6 +32,7 @@ import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
+import lombok.Data;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -40,8 +41,12 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
+
+import static com.volmit.iris.core.nms.datapack.IDataFixer.Dimension.*;
 
 public class ServerConfigurator {
     public static void configure() {
@@ -99,57 +104,15 @@ public class ServerConfigurator {
 
     public static void installDataPacks(IDataFixer fixer, boolean fullInstall) {
         Iris.info("Checking Data Packs...");
-        File packs = new File("plugins/Iris/packs");
-        double ultimateMaxHeight = 0;
-        double ultimateMinHeight = 0;
-        if (packs.exists() && packs.isDirectory()) {
-            for (File pack : packs.listFiles()) {
-                IrisData data = IrisData.get(pack);
-                if (pack.isDirectory()) {
-                    File dimensionsFolder = new File(pack, "dimensions");
-                    if (dimensionsFolder.exists() && dimensionsFolder.isDirectory()) {
-                        for (File file : dimensionsFolder.listFiles()) {
-                            if (file.isFile() && file.getName().endsWith(".json")) {
-                                IrisDimension dim = data.getDimensionLoader().load(file.getName().split("\\Q.\\E")[0]);
-                                if (ultimateMaxHeight < dim.getDimensionHeight().getMax()) {
-                                    ultimateMaxHeight = dim.getDimensionHeight().getMax();
-                                }
-                                if (ultimateMinHeight > dim.getDimensionHeight().getMin()) {
-                                    ultimateMinHeight = dim.getDimensionHeight().getMin();
-                                }
-                            }
-                        }
+        DimensionHeight height = new DimensionHeight(fixer);
+
+        allPacks().flatMap(height::merge)
+                .forEach(dim -> {
+                    for (File dpack : getDatapacksFolder()) {
+                        Iris.verbose("  Checking Dimension " + dim.getLoadFile().getPath());
+                        dim.installDataPack(fixer, dim::getLoader, dpack, height);
                     }
-                }
-            }
-        }
-
-        if (packs.exists()) {
-            for (File i : packs.listFiles()) {
-                if (i.isDirectory()) {
-                    Iris.verbose("Checking Pack: " + i.getPath());
-                    IrisData data = IrisData.get(i);
-                    File dims = new File(i, "dimensions");
-
-                    if (dims.exists()) {
-                        for (File j : dims.listFiles()) {
-                            if (j.getName().endsWith(".json")) {
-                                IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
-
-                                if (dim == null) {
-                                    continue;
-                                }
-
-                                Iris.verbose("  Checking Dimension " + dim.getLoadFile().getPath());
-                                for (File dpack : getDatapacksFolder()) {
-                                    dim.installDataPack(fixer, () -> data, dpack, ultimateMaxHeight, ultimateMinHeight);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+                });
 
         Iris.info("Data Packs Setup!");
 
@@ -158,57 +121,40 @@ public class ServerConfigurator {
     }
 
     private static void verifyDataPacksPost(boolean allowRestarting) {
-        File packs = new File("plugins/Iris/packs");
+        boolean bad = allPacks()
+                .map(data -> {
+                    Iris.verbose("Checking Pack: " + data.getDataFolder().getPath());
+                    var loader = data.getDimensionLoader();
+                    return loader.loadAll(loader.getPossibleKeys())
+                            .stream()
+                            .map(ServerConfigurator::verifyDataPackInstalled)
+                            .toList()
+                            .contains(false);
+                })
+                .toList()
+                .contains(true);
+        if (!bad) return;
 
-        boolean bad = false;
-        if (packs.exists()) {
-            for (File i : packs.listFiles()) {
-                if (i.isDirectory()) {
-                    Iris.verbose("Checking Pack: " + i.getPath());
-                    IrisData data = IrisData.get(i);
-                    File dims = new File(i, "dimensions");
 
-                    if (dims.exists()) {
-                        for (File j : dims.listFiles()) {
-                            if (j.getName().endsWith(".json")) {
-                                IrisDimension dim = data.getDimensionLoader().load(j.getName().split("\\Q.\\E")[0]);
+        if (allowRestarting) {
+            restart();
+        } else if (INMS.get().supportsDataPacks()) {
+            Iris.error("============================================================================");
+            Iris.error(C.ITALIC + "You need to restart your server to properly generate custom biomes.");
+            Iris.error(C.ITALIC + "By continuing, Iris will use backup biomes in place of the custom biomes.");
+            Iris.error("----------------------------------------------------------------------------");
+            Iris.error(C.UNDERLINE + "IT IS HIGHLY RECOMMENDED YOU RESTART THE SERVER BEFORE GENERATING!");
+            Iris.error("============================================================================");
 
-                                if (dim == null) {
-                                    Iris.error("Failed to load " + j.getPath() + " ");
-                                    continue;
-                                }
-
-                                if (!verifyDataPackInstalled(dim)) {
-                                    bad = true;
-                                }
-                            }
-                        }
-                    }
+            for (Player i : Bukkit.getOnlinePlayers()) {
+                if (i.isOp() || i.hasPermission("iris.all")) {
+                    VolmitSender sender = new VolmitSender(i, Iris.instance.getTag("WARNING"));
+                    sender.sendMessage("There are some Iris Packs that have custom biomes in them");
+                    sender.sendMessage("You need to restart your server to use these packs.");
                 }
             }
-        }
 
-        if (bad) {
-            if (allowRestarting) {
-                restart();
-            } else if (INMS.get().supportsDataPacks()) {
-                Iris.error("============================================================================");
-                Iris.error(C.ITALIC + "You need to restart your server to properly generate custom biomes.");
-                Iris.error(C.ITALIC + "By continuing, Iris will use backup biomes in place of the custom biomes.");
-                Iris.error("----------------------------------------------------------------------------");
-                Iris.error(C.UNDERLINE + "IT IS HIGHLY RECOMMENDED YOU RESTART THE SERVER BEFORE GENERATING!");
-                Iris.error("============================================================================");
-
-                for (Player i : Bukkit.getOnlinePlayers()) {
-                    if (i.isOp() || i.hasPermission("iris.all")) {
-                        VolmitSender sender = new VolmitSender(i, Iris.instance.getTag("WARNING"));
-                        sender.sendMessage("There are some Iris Packs that have custom biomes in them");
-                        sender.sendMessage("You need to restart your server to use these packs.");
-                    }
-                }
-
-                J.sleep(3000);
-            }
+            J.sleep(3000);
         }
     }
 
@@ -265,5 +211,58 @@ public class ServerConfigurator {
         }
 
         return !warn;
+    }
+
+    public static Stream<IrisData> allPacks() {
+        return Stream.concat(listFiles(new File("plugins/Iris/packs")),
+                        listFiles(Bukkit.getWorldContainer()).map(w -> new File(w, "iris/pack")))
+                .filter(File::isDirectory)
+                .map(IrisData::get);
+    }
+
+    private static Stream<File> listFiles(File parent) {
+        var files = parent.listFiles();
+        return files == null ? Stream.empty() : Arrays.stream(files);
+    }
+
+    @Data
+    public static class DimensionHeight {
+        private final IDataFixer fixer;
+        private IrisRange overworld = new IrisRange();
+        private IrisRange nether = new IrisRange();
+        private IrisRange end = new IrisRange();
+        private int logicalOverworld = 0;
+        private int logicalNether = 0;
+        private int logicalEnd = 0;
+
+        public Stream<IrisDimension> merge(IrisData data) {
+            Iris.verbose("Checking Pack: " + data.getDataFolder().getPath());
+            var loader = data.getDimensionLoader();
+            return loader.loadAll(loader.getPossibleKeys())
+                    .stream()
+                    .peek(this::merge);
+        }
+
+        public void merge(IrisDimension dimension) {
+            overworld.merge(dimension.getDimensionHeight());
+            nether.merge(dimension.getDimensionHeight());
+            end.merge(dimension.getDimensionHeight());
+
+            logicalOverworld = Math.max(logicalOverworld, dimension.getLogicalHeight());
+            logicalNether = Math.max(logicalNether, dimension.getLogicalHeightNether());
+            logicalEnd = Math.max(logicalEnd, dimension.getLogicalHeightEnd());
+        }
+
+        public String overworldType() {
+            return fixer.createDimension(OVERRWORLD, overworld, logicalOverworld).toString(4);
+        }
+
+        public String netherType() {
+            return fixer.createDimension(NETHER, nether, logicalNether).toString(4);
+        }
+
+        public String endType() {
+            return fixer.createDimension(THE_END, end, logicalEnd).toString(4);
+        }
     }
 }

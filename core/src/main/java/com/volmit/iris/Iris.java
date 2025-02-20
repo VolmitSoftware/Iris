@@ -32,6 +32,7 @@ import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -517,6 +518,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
                 Iris.info(C.LIGHT_PURPLE + "Preparing Spawn for " + s + "' using Iris:" + generator + "...");
                 new WorldCreator(s)
+                        .type(IrisWorldCreator.IRIS)
                         .generator(getDefaultWorldGenerator(s, generator))
                         .environment(IrisData.loadAnyDimension(generator).getEnvironment())
                         .createWorld();

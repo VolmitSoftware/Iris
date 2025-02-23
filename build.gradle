@@ -33,7 +33,7 @@ plugins {
 }
 
 
-version '3.6.1-1.20.1-1.21.4'
+version '3.6.2-1.20.1-1.21.4'
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================

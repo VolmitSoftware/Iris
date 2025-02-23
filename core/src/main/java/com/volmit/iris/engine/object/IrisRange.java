@@ -50,4 +50,10 @@ public class IrisRange {
     public boolean contains(int v) {
         return v >= min && v <= max;
     }
+
+    public IrisRange merge(IrisRange other) {
+        min = Math.min(min, other.min);
+        max = Math.max(max, other.max);
+        return this;
+    }
 }

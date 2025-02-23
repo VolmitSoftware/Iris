@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.ServerConfigurator.DimensionHeight;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.nms.INMS;
@@ -54,73 +55,6 @@ import java.io.IOException;
 public class IrisDimension extends IrisRegistrant {
     public static final BlockData STONE = Material.STONE.createBlockData();
     public static final BlockData WATER = Material.WATER.createBlockData();
-    private static final String DP_OVERWORLD_DEFAULT = """
-            {
-              "ambient_light": 0.0,
-              "bed_works": true,
-              "coordinate_scale": 1.0,
-              "effects": "minecraft:overworld",
-              "has_ceiling": false,
-              "has_raids": true,
-              "has_skylight": true,
-              "infiniburn": "#minecraft:infiniburn_overworld",
-              "monster_spawn_block_light_limit": 0,
-              "monster_spawn_light_level": {
-                "type": "minecraft:uniform",
-                "value": {
-                  "max_inclusive": 7,
-                  "min_inclusive": 0
-                }
-              },
-              "natural": true,
-              "piglin_safe": false,
-              "respawn_anchor_works": false,
-              "ultrawarm": false
-            }""";
-
-    private static final String DP_NETHER_DEFAULT = """
-            {
-              "ambient_light": 0.1,
-              "bed_works": false,
-              "coordinate_scale": 8.0,
-              "effects": "minecraft:the_nether",
-              "fixed_time": 18000,
-              "has_ceiling": true,
-              "has_raids": false,
-              "has_skylight": false,
-              "infiniburn": "#minecraft:infiniburn_nether",
-              "monster_spawn_block_light_limit": 15,
-              "monster_spawn_light_level": 7,
-              "natural": false,
-              "piglin_safe": true,
-              "respawn_anchor_works": true,
-              "ultrawarm": true
-            }""";
-
-    private static final String DP_END_DEFAULT = """
-            {
-              "ambient_light": 0.0,
-              "bed_works": false,
-              "coordinate_scale": 1.0,
-              "effects": "minecraft:the_end",
-              "fixed_time": 6000,
-              "has_ceiling": false,
-              "has_raids": true,
-              "has_skylight": false,
-              "infiniburn": "#minecraft:infiniburn_end",
-              "monster_spawn_block_light_limit": 0,
-              "monster_spawn_light_level": {
-                "type": "minecraft:uniform",
-                "value": {
-                  "max_inclusive": 7,
-                  "min_inclusive": 0
-                }
-              },
-              "natural": false,
-              "piglin_safe": false,
-              "respawn_anchor_works": false,
-              "ultrawarm": false
-            }""";
     private final transient AtomicCache<Position2> parallaxSize = new AtomicCache<>();
     private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();
     private final transient AtomicCache<CNG> fluidLayerGenerator = new AtomicCache<>();
@@ -443,7 +377,7 @@ public class IrisDimension extends IrisRegistrant {
         return landBiomeStyle;
     }
 
-    public boolean installDataPack(IDataFixer fixer, DataProvider data, File datapacks, double ultimateMaxHeight, double ultimateMinHeight) {
+    public boolean installDataPack(IDataFixer fixer, DataProvider data, File datapacks, DimensionHeight height) {
         boolean write = false;
         boolean changed = false;
 
@@ -472,12 +406,11 @@ public class IrisDimension extends IrisRegistrant {
             }
         }
 
-        if (!dimensionHeight.equals(new IrisRange(-64, 320)) && this.name.equalsIgnoreCase("overworld")) {
-            Iris.verbose("    Installing Data Pack Dimension Types: \"minecraft:overworld\", \"minecraft:the_nether\", \"minecraft:the_end\"");
-            dimensionHeight.setMax(ultimateMaxHeight);
-            dimensionHeight.setMin(ultimateMinHeight);
-            changed = writeDimensionType(fixer, changed, datapacks);
-        }
+        Iris.verbose("    Installing Data Pack Dimension Types: \"iris:overworld\", \"iris:the_nether\", \"iris:the_end\"");
+        changed = writeDimensionType(changed, datapacks, height);
+
+        Iris.verbose("    Installing Data Pack World Preset: \"minecraft:iris\"");
+        changed = writeWorldPreset(changed, datapacks, fixer);
 
         if (write) {
             File mcm = new File(datapacks, "iris/pack.mcmeta");
@@ -515,37 +448,37 @@ public class IrisDimension extends IrisRegistrant {
 
     }
 
-    public boolean writeDimensionType(IDataFixer fixer, boolean changed, File datapacks) {
-        File dimTypeOverworld = new File(datapacks, "iris/data/minecraft/dimension_type/overworld.json");
+    public boolean writeDimensionType(boolean changed, File datapacks, DimensionHeight height) {
+        File dimTypeOverworld = new File(datapacks, "iris/data/iris/dimension_type/overworld.json");
         if (!dimTypeOverworld.exists())
             changed = true;
         dimTypeOverworld.getParentFile().mkdirs();
         try {
-            IO.writeAll(dimTypeOverworld, generateDatapackJsonOverworld(fixer));
+            IO.writeAll(dimTypeOverworld, height.overworldType());
         } catch (IOException e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
 
 
-        File dimTypeNether = new File(datapacks, "iris/data/minecraft/dimension_type/the_nether.json");
+        File dimTypeNether = new File(datapacks, "iris/data/iris/dimension_type/the_nether.json");
         if (!dimTypeNether.exists())
             changed = true;
         dimTypeNether.getParentFile().mkdirs();
         try {
-            IO.writeAll(dimTypeNether, generateDatapackJsonNether(fixer));
+            IO.writeAll(dimTypeNether, height.netherType());
         } catch (IOException e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
 
 
-        File dimTypeEnd = new File(datapacks, "iris/data/minecraft/dimension_type/the_end.json");
+        File dimTypeEnd = new File(datapacks, "iris/data/iris/dimension_type/the_end.json");
         if (!dimTypeEnd.exists())
             changed = true;
         dimTypeEnd.getParentFile().mkdirs();
         try {
-            IO.writeAll(dimTypeEnd, generateDatapackJsonEnd(fixer));
+            IO.writeAll(dimTypeEnd, height.endType());
         } catch (IOException e) {
             Iris.reportError(e);
             e.printStackTrace();
@@ -554,27 +487,17 @@ public class IrisDimension extends IrisRegistrant {
         return changed;
     }
 
-    private String generateDatapackJsonOverworld(IDataFixer fixer) {
-        JSONObject obj = new JSONObject(DP_OVERWORLD_DEFAULT);
-        obj.put("min_y", dimensionHeight.getMin());
-        obj.put("height", dimensionHeight.getMax() - dimensionHeight.getMin());
-        obj.put("logical_height", logicalHeight);
-        return fixer.fixDimension(obj).toString(4);
-    }
+    public boolean writeWorldPreset(boolean changed, File datapacks, IDataFixer fixer) {
+        File worldPreset = new File(datapacks, "iris/data/minecraft/worldgen/world_preset/iris.json");
+        if (!worldPreset.exists())
+            changed = true;
+        try {
+            IO.writeAll(worldPreset, fixer.createPreset());
+        } catch (IOException e) {
+            Iris.reportError(e);
+            e.printStackTrace();
+        }
 
-    private String generateDatapackJsonNether(IDataFixer fixer) {
-        JSONObject obj = new JSONObject(DP_NETHER_DEFAULT);
-        obj.put("min_y", dimensionHeightNether.getMin());
-        obj.put("height", dimensionHeightNether.getMax() - dimensionHeightNether.getMin());
-        obj.put("logical_height", logicalHeightNether);
-        return fixer.fixDimension(obj).toString(4);
-    }
-
-    private String generateDatapackJsonEnd(IDataFixer fixer) {
-        JSONObject obj = new JSONObject(DP_END_DEFAULT);
-        obj.put("min_y", dimensionHeightEnd.getMin());
-        obj.put("height", dimensionHeightEnd.getMax() - dimensionHeightEnd.getMin());
-        obj.put("logical_height", logicalHeightEnd);
-        return fixer.fixDimension(obj).toString(4);
+        return changed;
     }
 }

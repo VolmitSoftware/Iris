@@ -15,10 +15,16 @@ import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.Lifecycle;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.util.scheduling.J;
+import lombok.SneakyThrows;
+import net.minecraft.core.*;
+import net.minecraft.core.Registry;
 import net.minecraft.nbt.*;
 import net.minecraft.nbt.Tag;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.WorldLoader;
 import net.minecraft.server.commands.data.BlockDataAccessor;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.LevelReader;
@@ -61,10 +67,6 @@ import com.volmit.iris.util.nbt.mca.palette.*;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
-import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -83,6 +85,7 @@ public class NMSBinding implements INMSBinding {
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
     private final BlockData AIR = Material.AIR.createBlockData();
     private final AtomicCache<MCAIdMap<net.minecraft.world.level.biome.Biome>> biomeMapCache = new AtomicCache<>();
+    private final AtomicCache<WorldLoader.DataLoadContext> dataLoadContext = new AtomicCache<>();
     private final AtomicCache<MCAIdMapper<BlockState>> registryCache = new AtomicCache<>();
     private final AtomicCache<MCAPalette<BlockState>> globalCache = new AtomicCache<>();
     private final AtomicCache<RegistryAccess> registryAccess = new AtomicCache<>();
@@ -630,5 +633,30 @@ public class NMSBinding implements INMSBinding {
 
     public static Holder<net.minecraft.world.level.biome.Biome> biomeToBiomeBase(Registry<net.minecraft.world.level.biome.Biome> registry, Biome biome) {
         return registry.getHolderOrThrow(ResourceKey.create(Registries.BIOME, CraftNamespacedKey.toMinecraft(biome.getKey())));
+    }
+
+    @Override
+    @SneakyThrows
+    public World createWorld(WorldCreator creator) {
+        var server = ((CraftServer) Bukkit.getServer());
+        var field = getField(MinecraftServer.class, WorldLoader.DataLoadContext.class);
+        var nmsServer = server.getServer();
+        var old = nmsServer.worldLoader;
+
+        field.setAccessible(true);
+        field.set(nmsServer, dataLoadContext.aquire(() -> new WorldLoader.DataLoadContext(
+                old.resources(),
+                old.dataConfiguration(),
+                old.datapackWorldgen(),
+                new RegistryAccess.Frozen.ImmutableRegistryAccess(List.of(
+                        new MappedRegistry<>(Registries.LEVEL_STEM, Lifecycle.experimental()).freeze()
+                )).freeze()
+        )));
+
+        try {
+            return server.createWorld(creator);
+        } finally {
+            field.set(nmsServer, old);
+        }
     }
 }

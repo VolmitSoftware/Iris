@@ -24,7 +24,6 @@ import com.volmit.iris.core.pregenerator.IrisPregenerator;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
-import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.Form;
@@ -44,8 +43,6 @@ import java.awt.image.BufferedImage;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-
-import static com.volmit.iris.core.tools.IrisPackBenchmarking.benchmarkInProgress;
 
 public class PregeneratorJob implements PregenListener {
     private static final Color COLOR_EXISTS = parseColor("#4d7d5b");
@@ -81,12 +78,12 @@ public class PregeneratorJob implements PregenListener {
         this.task = task;
         this.pregenerator = new IrisPregenerator(task, method, this);
         max = new Position2(0, 0);
-        min = new Position2(0, 0);
-        task.iterateRegions((xx, zz) -> {
-            min.setX(Math.min(xx << 5, min.getX()));
-            min.setZ(Math.min(zz << 5, min.getZ()));
-            max.setX(Math.max((xx << 5) + 31, max.getX()));
-            max.setZ(Math.max((zz << 5) + 31, max.getZ()));
+        min = new Position2(Integer.MAX_VALUE, Integer.MAX_VALUE);
+        task.iterateAllChunks((xx, zz) -> {
+            min.setX(Math.min(xx, min.getX()));
+            min.setZ(Math.min(zz, min.getZ()));
+            max.setX(Math.max(xx, max.getX()));
+            max.setZ(Math.max(zz, max.getZ()));
         });
 
         if (IrisSettings.get().getGui().isUseServerLaunchedGuis() && task.isGui()) {
@@ -162,7 +159,7 @@ public class PregeneratorJob implements PregenListener {
     }
 
     public void drawRegion(int x, int z, Color color) {
-        J.a(() -> PregenTask.iterateRegion(x, z, (xx, zz) -> {
+        J.a(() -> task.iterateChunks(x, z, (xx, zz) -> {
             draw(xx, zz, color);
             J.sleep(3);
         }));

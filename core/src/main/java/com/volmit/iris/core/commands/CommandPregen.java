@@ -19,9 +19,7 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.PregeneratorJob;
-import com.volmit.iris.core.pregenerator.LazyPregenerator;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.decree.DecreeExecutor;
@@ -29,11 +27,8 @@ import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.Position2;
-import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
-
-import java.io.File;
 
 @Decree(name = "pregen", aliases = "pregenerate", description = "Pregenerate your Iris worlds!")
 public class CommandPregen implements DecreeExecutor {
@@ -52,13 +47,12 @@ public class CommandPregen implements DecreeExecutor {
                 sender().sendMessage(C.RED + "Please make sure the world is loaded & the engine is initialized. Generate a new chunk, for example.");
             }
             radius = Math.max(radius, 1024);
-            int w = (radius >> 9 + 1) * 2;
             IrisToolbelt.pregenerate(PregenTask
                     .builder()
-                    .center(new Position2(center.getBlockX() >> 9, center.getBlockZ() >> 9))
+                    .center(new Position2(center.getBlockX(), center.getBlockZ()))
                     .gui(true)
-                    .width(w)
-                    .height(w)
+                    .radiusX(radius)
+                    .radiusZ(radius)
                     .build(), world);
             String msg = C.GREEN + "Pregen started in " + C.GOLD + world.getName() + C.GREEN + " of " + C.GOLD + (radius * 2) + C.GREEN + " by " + C.GOLD + (radius * 2) + C.GREEN + " blocks from " + C.GOLD + center.getX() + "," + center.getZ();
             sender().sendMessage(msg);

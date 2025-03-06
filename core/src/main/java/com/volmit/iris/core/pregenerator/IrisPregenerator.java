@@ -19,7 +19,6 @@
 package com.volmit.iris.core.pregenerator;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.pack.IrisPack;
 import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
@@ -83,7 +82,7 @@ public class IrisPregenerator {
         generatedLast = new AtomicInteger(0);
         generatedLastMinute = new AtomicInteger(0);
         totalChunks = new AtomicInteger(0);
-        task.iterateRegions((_a, _b) -> totalChunks.addAndGet(1024));
+        task.iterateAllChunks((_a, _b) -> totalChunks.incrementAndGet());
         startTime = new AtomicLong(M.ms());
         ticker = new Looper() {
             @Override
@@ -194,7 +193,7 @@ public class IrisPregenerator {
         } else if (!regions) {
             hit = true;
             listener.onRegionGenerating(x, z);
-            PregenTask.iterateRegion(x, z, (xx, zz) -> {
+            task.iterateChunks(x, z, (xx, zz) -> {
                 while (paused.get() && !shutdown.get()) {
                     J.sleep(50);
                 }

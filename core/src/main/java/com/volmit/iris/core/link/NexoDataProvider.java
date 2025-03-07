@@ -125,7 +125,7 @@ public class NexoDataProvider extends ExternalDataProvider {
     @NotNull
     @Override
     public Identifier[] getBlockTypes() {
-        return Arrays.stream(NexoItems.itemNames())
+        return NexoItems.itemNames().stream()
                 .map(i -> new Identifier("nexo", i))
                 .filter(i -> {
                     try {
@@ -140,7 +140,7 @@ public class NexoDataProvider extends ExternalDataProvider {
     @NotNull
     @Override
     public Identifier[] getItemTypes() {
-        return Arrays.stream(NexoItems.itemNames())
+        return NexoItems.itemNames().stream()
                 .map(i -> new Identifier("nexo", i))
                 .filter(i -> {
                     try {

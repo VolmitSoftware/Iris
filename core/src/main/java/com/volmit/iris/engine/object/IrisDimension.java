@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.ServerConfigurator.DimensionHeight;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
@@ -409,9 +410,6 @@ public class IrisDimension extends IrisRegistrant {
         Iris.verbose("    Installing Data Pack Dimension Types: \"iris:overworld\", \"iris:the_nether\", \"iris:the_end\"");
         changed = writeDimensionType(changed, datapacks, height);
 
-        Iris.verbose("    Installing Data Pack World Preset: \"minecraft:iris\"");
-        changed = writeWorldPreset(changed, datapacks, fixer);
-
         if (write) {
             File mcm = new File(datapacks, "iris/pack.mcmeta");
             try {
@@ -449,53 +447,36 @@ public class IrisDimension extends IrisRegistrant {
     }
 
     public boolean writeDimensionType(boolean changed, File datapacks, DimensionHeight height) {
-        File dimTypeOverworld = new File(datapacks, "iris/data/iris/dimension_type/overworld.json");
-        if (!dimTypeOverworld.exists())
-            changed = true;
-        dimTypeOverworld.getParentFile().mkdirs();
-        try {
-            IO.writeAll(dimTypeOverworld, height.overworldType());
-        } catch (IOException e) {
-            Iris.reportError(e);
-            e.printStackTrace();
-        }
-
-
-        File dimTypeNether = new File(datapacks, "iris/data/iris/dimension_type/the_nether.json");
-        if (!dimTypeNether.exists())
-            changed = true;
-        dimTypeNether.getParentFile().mkdirs();
-        try {
-            IO.writeAll(dimTypeNether, height.netherType());
-        } catch (IOException e) {
-            Iris.reportError(e);
-            e.printStackTrace();
-        }
-
-
-        File dimTypeEnd = new File(datapacks, "iris/data/iris/dimension_type/the_end.json");
-        if (!dimTypeEnd.exists())
-            changed = true;
-        dimTypeEnd.getParentFile().mkdirs();
-        try {
-            IO.writeAll(dimTypeEnd, height.endType());
-        } catch (IOException e) {
-            Iris.reportError(e);
-            e.printStackTrace();
-        }
+        changed = write(changed, datapacks, "overworld", height.overworldType());
+        changed = write(changed, datapacks, "the_nether", height.netherType());
+        changed = write(changed, datapacks, "the_end", height.endType());
 
         return changed;
     }
 
-    public boolean writeWorldPreset(boolean changed, File datapacks, IDataFixer fixer) {
-        File worldPreset = new File(datapacks, "iris/data/minecraft/worldgen/world_preset/iris.json");
-        if (!worldPreset.exists())
+    private static boolean write(boolean changed, File datapacks, String type, String json) {
+        File dimType = new File(datapacks, "iris/data/iris/dimension_type/" + type + ".json");
+        if (!dimType.exists())
             changed = true;
+        dimType.getParentFile().mkdirs();
         try {
-            IO.writeAll(worldPreset, fixer.createPreset());
+            IO.writeAll(dimType, json);
         } catch (IOException e) {
             Iris.reportError(e);
             e.printStackTrace();
+        }
+
+        if (IrisSettings.get().getGeneral().adjustVanillaHeight) {
+            File dimTypeVanilla = new File(datapacks, "iris/data/minecraft/dimension_type/" + type + ".json");
+            if (!dimTypeVanilla.exists())
+                changed = true;
+            dimTypeVanilla.getParentFile().mkdirs();
+            try {
+                IO.writeAll(dimTypeVanilla, json);
+            } catch (IOException e) {
+                Iris.reportError(e);
+                e.printStackTrace();
+            }
         }
 
         return changed;

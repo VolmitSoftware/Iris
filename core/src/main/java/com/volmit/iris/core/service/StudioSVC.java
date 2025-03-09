@@ -24,6 +24,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.pack.IrisPack;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -64,7 +65,7 @@ public class StudioSVC implements IrisService {
             if (!f.exists()) {
                 Iris.info("Downloading Default Pack " + pack);
                 if (pack.equals("overworld")) {
-                    String url = "https://github.com/IrisDimensions/overworld/releases/download/" + Iris.OVERWORLD_TAG + "/overworld.zip";
+                    String url = "https://github.com/IrisDimensions/overworld/releases/download/" + INMS.OVERWORLD_TAG + "/overworld.zip";
                     Iris.service(StudioSVC.class).downloadRelease(Iris.getSender(), url, false, false);
                 } else {
                     downloadSearch(Iris.getSender(), pack, false);

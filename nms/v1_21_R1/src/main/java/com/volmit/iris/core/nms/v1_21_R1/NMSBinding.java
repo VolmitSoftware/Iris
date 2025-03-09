@@ -32,6 +32,8 @@ import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.chunk.status.WorldGenContext;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.dimension.LevelStem;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -549,6 +551,8 @@ public class NMSBinding implements INMSBinding {
         var worldGenContextField = getField(chunkMap.getClass(), WorldGenContext.class);
         worldGenContextField.setAccessible(true);
         var worldGenContext = (WorldGenContext) worldGenContextField.get(chunkMap);
+        if (!chunkMap.level.dimension().location().getPath().startsWith("iris"))
+            Iris.error("Loaded world %s with invalid dimension type!", world.getName());
 
         var newContext = new WorldGenContext(
                 worldGenContext.level(), new IrisChunkGenerator(worldGenContext.generator(), seed, engine, world),
@@ -674,9 +678,7 @@ public class NMSBinding implements INMSBinding {
                 old.resources(),
                 old.dataConfiguration(),
                 old.datapackWorldgen(),
-                new RegistryAccess.Frozen.ImmutableRegistryAccess(List.of(
-                        new MappedRegistry<>(Registries.LEVEL_STEM, Lifecycle.experimental()).freeze()
-                )).freeze()
+                createRegistryAccess()
         )));
 
         try {
@@ -684,5 +686,25 @@ public class NMSBinding implements INMSBinding {
         } finally {
             field.set(nmsServer, old);
         }
+    }
+
+    private RegistryAccess.Frozen createRegistryAccess() {
+        var access = registry();
+        var dimensions = access.registryOrThrow(Registries.DIMENSION_TYPE);
+        var levelStems = access.registryOrThrow(Registries.LEVEL_STEM);
+
+        var fake = new MappedRegistry<>(Registries.LEVEL_STEM, Lifecycle.experimental());
+        register(fake, levelStems, dimensions, LevelStem.OVERWORLD);
+        register(fake, levelStems, dimensions, LevelStem.NETHER);
+        register(fake, levelStems, dimensions, LevelStem.END);
+
+        return new RegistryAccess.Frozen.ImmutableRegistryAccess(List.of(fake.freeze())).freeze();
+    }
+
+    private void register(MappedRegistry<LevelStem> target, Registry<LevelStem> levelStems, Registry<DimensionType> dimensions, ResourceKey<LevelStem> key) {
+        target.register(key, new LevelStem(
+                dimensions.getHolder(ResourceLocation.fromNamespaceAndPath("iris", key.location().getPath())).orElseThrow(),
+                levelStems.getOrThrow(key).generator()
+        ), RegistrationInfo.BUILT_IN);
     }
 }

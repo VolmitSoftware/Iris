@@ -27,6 +27,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.*;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.WorldLoader;
@@ -43,6 +44,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.dimension.LevelStem;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -571,6 +574,8 @@ public class NMSBinding implements INMSBinding {
 
     public void inject(long seed, Engine engine, World world) {
         var chunkMap = ((CraftWorld)world).getHandle().getChunkSource().chunkMap;
+        if (!chunkMap.level.dimension().location().getPath().startsWith("iris"))
+            Iris.error("Loaded world %s with invalid dimension type!", world.getName());
         chunkMap.generator = new IrisChunkGenerator(chunkMap.generator, seed, engine, world);
     }
 
@@ -645,9 +650,7 @@ public class NMSBinding implements INMSBinding {
                 old.resources(),
                 old.dataConfiguration(),
                 old.datapackWorldgen(),
-                new RegistryAccess.Frozen.ImmutableRegistryAccess(List.of(
-                        new MappedRegistry<>(Registries.LEVEL_STEM, Lifecycle.experimental()).freeze()
-                )).freeze()
+                createRegistryAccess()
         )));
 
         try {
@@ -655,5 +658,25 @@ public class NMSBinding implements INMSBinding {
         } finally {
             field.set(nmsServer, old);
         }
+    }
+
+    private RegistryAccess.Frozen createRegistryAccess() {
+        var access = registry();
+        var dimensions = access.registryOrThrow(Registries.DIMENSION_TYPE);
+        var levelStems = access.registryOrThrow(Registries.LEVEL_STEM);
+
+        var fake = new MappedRegistry<>(Registries.LEVEL_STEM, Lifecycle.experimental());
+        register(fake, levelStems, dimensions, LevelStem.OVERWORLD);
+        register(fake, levelStems, dimensions, LevelStem.NETHER);
+        register(fake, levelStems, dimensions, LevelStem.END);
+
+        return new RegistryAccess.Frozen.ImmutableRegistryAccess(List.of(fake.freeze())).freeze();
+    }
+
+    private void register(MappedRegistry<LevelStem> target, Registry<LevelStem> levelStems, Registry<DimensionType> dimensions, ResourceKey<LevelStem> key) {
+        target.register(key, new LevelStem(
+                dimensions.getHolderOrThrow(ResourceKey.create(Registries.DIMENSION_TYPE, new ResourceLocation("iris", key.location().getPath()))),
+                levelStems.getOrThrow(key).generator()
+        ), Lifecycle.stable());
     }
 }

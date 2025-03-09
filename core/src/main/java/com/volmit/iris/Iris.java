@@ -518,7 +518,6 @@ public class Iris extends VolmitPlugin implements Listener {
 
                 Iris.info(C.LIGHT_PURPLE + "Preparing Spawn for " + s + "' using Iris:" + generator + "...");
                 WorldCreator c = new WorldCreator(s)
-                        .type(IrisWorldCreator.IRIS)
                         .generator(getDefaultWorldGenerator(s, generator))
                         .environment(IrisData.loadAnyDimension(generator).getEnvironment());
                 INMS.get().createWorld(c);

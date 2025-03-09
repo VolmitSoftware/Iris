@@ -20,46 +20,6 @@ public interface IDataFixer {
         return obj;
     }
 
-    default JSONObject createPreset() {
-        return new JSONObject("""
-{
-  "dimensions": {
-    "minecraft:overworld": {
-      "type": "iris:overworld",
-      "generator": {
-        "type": "minecraft:noise",
-        "biome_source": {
-          "type": "minecraft:multi_noise",
-          "preset": "minecraft:overworld"
-        },
-        "settings": "minecraft:overworld"
-      }
-    },
-    "minecraft:the_end": {
-      "type": "iris:the_end",
-      "generator": {
-        "type": "minecraft:noise",
-        "biome_source": {
-          "type": "minecraft:the_end"
-        },
-        "settings": "minecraft:end"
-      }
-    },
-    "minecraft:the_nether": {
-      "type": "iris:the_nether",
-      "generator": {
-        "type": "minecraft:noise",
-        "biome_source": {
-          "type": "minecraft:multi_noise",
-          "preset": "minecraft:nether"
-        },
-        "settings": "minecraft:nether"
-      }
-    }
-  }
-}""");
-    }
-
     enum Dimension {
         OVERRWORLD,
         NETHER,

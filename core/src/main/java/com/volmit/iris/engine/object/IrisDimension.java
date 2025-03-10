@@ -456,6 +456,8 @@ public class IrisDimension extends IrisRegistrant {
 
     private static boolean write(boolean changed, File datapacks, String type, String json) {
         File dimType = new File(datapacks, "iris/data/iris/dimension_type/" + type + ".json");
+        File dimTypeVanilla = new File(datapacks, "iris/data/minecraft/dimension_type/" + type + ".json");
+
         if (!dimType.exists())
             changed = true;
         dimType.getParentFile().mkdirs();
@@ -466,8 +468,7 @@ public class IrisDimension extends IrisRegistrant {
             e.printStackTrace();
         }
 
-        if (IrisSettings.get().getGeneral().adjustVanillaHeight) {
-            File dimTypeVanilla = new File(datapacks, "iris/data/minecraft/dimension_type/" + type + ".json");
+        if (IrisSettings.get().getGeneral().adjustVanillaHeight || dimTypeVanilla.exists()) {
             if (!dimTypeVanilla.exists())
                 changed = true;
             dimTypeVanilla.getParentFile().mkdirs();

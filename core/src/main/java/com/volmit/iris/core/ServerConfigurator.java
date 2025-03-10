@@ -107,6 +107,7 @@ public class ServerConfigurator {
         DimensionHeight height = new DimensionHeight(fixer);
 
         allPacks().flatMap(height::merge)
+                .toList()
                 .forEach(dim -> {
                     for (File dpack : getDatapacksFolder()) {
                         Iris.verbose("  Checking Dimension " + dim.getLoadFile().getPath());

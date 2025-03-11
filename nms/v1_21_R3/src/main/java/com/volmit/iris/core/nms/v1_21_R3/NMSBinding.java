@@ -4,7 +4,9 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Lifecycle;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
+import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
@@ -72,6 +74,8 @@ import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 
 public class NMSBinding implements INMSBinding {
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
@@ -81,6 +85,7 @@ public class NMSBinding implements INMSBinding {
     private final AtomicCache<MCAIdMapper<BlockState>> registryCache = new AtomicCache<>();
     private final AtomicCache<MCAPalette<BlockState>> globalCache = new AtomicCache<>();
     private final AtomicCache<RegistryAccess> registryAccess = new AtomicCache<>();
+    private final ReentrantLock dataContextLock = new ReentrantLock(true);
     private final AtomicCache<Method> byIdRef = new AtomicCache<>();
     private Field biomeStorageCache = null;
 
@@ -539,8 +544,9 @@ public class NMSBinding implements INMSBinding {
         var worldGenContextField = getField(chunkMap.getClass(), WorldGenContext.class);
         worldGenContextField.setAccessible(true);
         var worldGenContext = (WorldGenContext) worldGenContextField.get(chunkMap);
-        if (!chunkMap.level.dimension().location().getPath().startsWith("iris"))
-            Iris.error("Loaded world %s with invalid dimension type!", world.getName());
+        var dimensionType = chunkMap.level.dimensionTypeRegistration().unwrapKey().orElse(null);
+        if (dimensionType != null && !dimensionType.location().getNamespace().equals("iris"))
+            Iris.error("Loaded world %s with invalid dimension type! (%s)", world.getName(), dimensionType.location().toString());
 
         var newContext = new WorldGenContext(
                 worldGenContext.level(), new IrisChunkGenerator(worldGenContext.generator(), seed, engine, world),
@@ -654,37 +660,78 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
+    public AutoClosing injectLevelStems() {
+        return inject(this::supplier);
+    }
+
+    @Override
     @SneakyThrows
-    public World createWorld(WorldCreator creator) {
+    public Pair<Integer, AutoClosing> injectUncached(boolean overworld, boolean nether, boolean end) {
+        var reg = registry();
+        var field = getField(RegistryAccess.ImmutableRegistryAccess.class, Map.class);
+        field.setAccessible(true);
+
+        AutoClosing closing = inject(old -> new WorldLoader.DataLoadContext(
+                    old.resources(),
+                    old.dataConfiguration(),
+                    old.datapackWorldgen(),
+                    createRegistryAccess(old.datapackDimensions(), true, overworld, nether, end)
+                )
+        );
+
+        var injected = ((CraftServer) Bukkit.getServer()).getServer().worldLoader.datapackDimensions().lookupOrThrow(Registries.LEVEL_STEM);
+        var old = (Map<ResourceKey<? extends Registry<?>>, Registry<?>>) field.get(reg);
+        var fake = new HashMap<>(old);
+        fake.put(Registries.LEVEL_STEM, injected);
+        field.set(reg, fake);
+
+        return new Pair<>(
+                injected.size(),
+                new AutoClosing(() -> {
+                    closing.close();
+                    field.set(reg, old);
+                }));
+    }
+
+    private WorldLoader.DataLoadContext supplier(WorldLoader.DataLoadContext old) {
+        return dataLoadContext.aquire(() -> new WorldLoader.DataLoadContext(
+                old.resources(),
+                old.dataConfiguration(),
+                old.datapackWorldgen(),
+                createRegistryAccess(old.datapackDimensions(), false, true, true, true)
+        ));
+    }
+
+    @SneakyThrows
+    private AutoClosing inject(Function<WorldLoader.DataLoadContext, WorldLoader.DataLoadContext> transformer) {
+        if (!dataContextLock.tryLock()) throw new IllegalStateException("Failed to inject data context!");
+
         var server = ((CraftServer) Bukkit.getServer());
         var field = getField(MinecraftServer.class, WorldLoader.DataLoadContext.class);
         var nmsServer = server.getServer();
         var old = nmsServer.worldLoader;
 
         field.setAccessible(true);
-        field.set(nmsServer, dataLoadContext.aquire(() -> new WorldLoader.DataLoadContext(
-                old.resources(),
-                old.dataConfiguration(),
-                old.datapackWorldgen(),
-                createRegistryAccess()
-        )));
+        field.set(nmsServer, transformer.apply(old));
 
-        try {
-            return server.createWorld(creator);
-        } finally {
+        return new AutoClosing(() -> {
             field.set(nmsServer, old);
-        }
+            dataContextLock.unlock();
+        });
     }
 
-    private RegistryAccess.Frozen createRegistryAccess() {
+    private RegistryAccess.Frozen createRegistryAccess(RegistryAccess.Frozen datapack, boolean copy, boolean overworld, boolean nether, boolean end) {
         var access = registry();
         var dimensions = access.lookupOrThrow(Registries.DIMENSION_TYPE);
         var levelStems = access.lookupOrThrow(Registries.LEVEL_STEM);
 
         var fake = new MappedRegistry<>(Registries.LEVEL_STEM, Lifecycle.experimental());
-        register(fake, levelStems, dimensions, LevelStem.OVERWORLD);
-        register(fake, levelStems, dimensions, LevelStem.NETHER);
-        register(fake, levelStems, dimensions, LevelStem.END);
+        if (overworld) register(fake, levelStems, dimensions, LevelStem.OVERWORLD);
+        if (nether) register(fake, levelStems, dimensions, LevelStem.NETHER);
+        if (end) register(fake, levelStems, dimensions, LevelStem.END);
+        copy(fake, datapack.lookup(Registries.LEVEL_STEM).orElse(null));
+
+        if (copy) copy(fake, levelStems);
 
         return new RegistryAccess.Frozen.ImmutableRegistryAccess(List.of(fake.freeze())).freeze();
     }
@@ -694,5 +741,15 @@ public class NMSBinding implements INMSBinding {
                 dimensions.get(ResourceLocation.fromNamespaceAndPath("iris", key.location().getPath())).orElseThrow(),
                 levelStems.getValueOrThrow(key).generator()
         ), RegistrationInfo.BUILT_IN);
+    }
+
+    private void copy(MappedRegistry<LevelStem> target, Registry<LevelStem> source) {
+        if (source == null) return;
+        source.listElementIds().forEach(key -> {
+            var value = source.getValue(key);
+            var info = source.registrationInfo(key).orElse(null);
+            if (value != null && info != null && !target.containsKey(key))
+                target.register(key, value, info);
+        });
     }
 }

@@ -35,6 +35,7 @@ import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.engine.object.IrisCompat;
+import com.volmit.iris.engine.object.IrisContextInjector;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
@@ -466,6 +467,7 @@ public class Iris extends VolmitPlugin implements Listener {
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
+        registerListener(new IrisContextInjector());
         J.s(() -> {
             J.a(() -> PaperLib.suggestPaper(this));
             J.a(() -> IO.delete(getTemp()));

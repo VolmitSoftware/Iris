@@ -18,7 +18,9 @@
 
 package com.volmit.iris.core.nms;
 
+import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
@@ -91,7 +93,9 @@ public interface INMSBinding {
     MCABiomeContainer newBiomeContainer(int min, int max);
 
     default World createWorld(WorldCreator c) {
-        return c.createWorld();
+        try (var ignored = injectLevelStems()) {
+            return c.createWorld();
+        }
     }
 
     int countCustomBiomes();
@@ -125,4 +129,12 @@ public interface INMSBinding {
     }
 
     KList<String> getStructureKeys();
+
+    default AutoClosing injectLevelStems() {
+        return new AutoClosing(() -> {});
+    }
+
+    default Pair<Integer, AutoClosing> injectUncached(boolean overworld, boolean nether, boolean end) {
+        return new Pair<>(0, injectLevelStems());
+    }
 }

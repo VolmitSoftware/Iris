@@ -22,11 +22,11 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.datapack.DataVersion;
-import com.volmit.iris.core.service.IrisEngineSVC;
 import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.service.EngineStatusSVC;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
@@ -66,53 +66,20 @@ public class CommandDeveloper implements DecreeExecutor {
 
     @Decree(description = "Get Loaded TectonicPlates Count", origin = DecreeOrigin.BOTH, sync = true)
     public void EngineStatus() {
-        List<World> IrisWorlds = new ArrayList<>();
-        int TotalLoadedChunks = 0;
-        int TotalQueuedTectonicPlates = 0;
-        int TotalNotQueuedTectonicPlates = 0;
-        int TotalTectonicPlates = 0;
+        var status = EngineStatusSVC.getStatus();
 
-        long lowestUnloadDuration = 0;
-        long highestUnloadDuration = 0;
-
-        for (World world : Bukkit.getWorlds()) {
-            try {
-                if (IrisToolbelt.access(world).getEngine() != null) {
-                    IrisWorlds.add(world);
-                }
-            } catch (Exception e) {
-                // no
-            }
-        }
-
-        for (World world : IrisWorlds) {
-            Engine engine = IrisToolbelt.access(world).getEngine();
-            TotalQueuedTectonicPlates += (int) engine.getMantle().getToUnload();
-            TotalNotQueuedTectonicPlates += (int) engine.getMantle().getNotQueuedLoadedRegions();
-            TotalTectonicPlates += engine.getMantle().getLoadedRegionCount();
-            if (highestUnloadDuration <= (long) engine.getMantle().getTectonicDuration()) {
-                highestUnloadDuration = (long) engine.getMantle().getTectonicDuration();
-            }
-            if (lowestUnloadDuration >= (long) engine.getMantle().getTectonicDuration()) {
-                lowestUnloadDuration = (long) engine.getMantle().getTectonicDuration();
-            }
-            for (Chunk chunk : world.getLoadedChunks()) {
-                if (chunk.isLoaded()) {
-                    TotalLoadedChunks++;
-                }
-            }
-        }
-        Iris.info("-------------------------");
-        Iris.info(C.DARK_PURPLE + "Engine Status");
-        Iris.info(C.DARK_PURPLE + "Total Loaded Chunks: " + C.LIGHT_PURPLE + TotalLoadedChunks);
-        Iris.info(C.DARK_PURPLE + "Tectonic Limit: " + C.LIGHT_PURPLE + IrisEngineSVC.getTectonicLimit());
-        Iris.info(C.DARK_PURPLE + "Tectonic Total Plates: " + C.LIGHT_PURPLE + TotalTectonicPlates);
-        Iris.info(C.DARK_PURPLE + "Tectonic Active Plates: " + C.LIGHT_PURPLE + TotalNotQueuedTectonicPlates);
-        Iris.info(C.DARK_PURPLE + "Tectonic ToUnload: " + C.LIGHT_PURPLE + TotalQueuedTectonicPlates);
-        Iris.info(C.DARK_PURPLE + "Lowest Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration(lowestUnloadDuration));
-        Iris.info(C.DARK_PURPLE + "Highest Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration(highestUnloadDuration));
-        Iris.info(C.DARK_PURPLE + "Cache Size: " + C.LIGHT_PURPLE + Form.f(IrisData.cacheSize()));
-        Iris.info("-------------------------");
+        sender().sendMessage("-------------------------");
+        sender().sendMessage(C.DARK_PURPLE + "Engine Status");
+        sender().sendMessage(C.DARK_PURPLE + "Total Engines: " + C.LIGHT_PURPLE + status.engineCount());
+        sender().sendMessage(C.DARK_PURPLE + "Total Loaded Chunks: " + C.LIGHT_PURPLE + status.loadedChunks());
+        sender().sendMessage(C.DARK_PURPLE + "Tectonic Limit: " + C.LIGHT_PURPLE + status.tectonicLimit());
+        sender().sendMessage(C.DARK_PURPLE + "Tectonic Total Plates: " + C.LIGHT_PURPLE + status.tectonicPlates());
+        sender().sendMessage(C.DARK_PURPLE + "Tectonic Active Plates: " + C.LIGHT_PURPLE + status.activeTectonicPlates());
+        sender().sendMessage(C.DARK_PURPLE + "Tectonic ToUnload: " + C.LIGHT_PURPLE + status.queuedTectonicPlates());
+        sender().sendMessage(C.DARK_PURPLE + "Lowest Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration(status.minTectonicUnloadDuration()));
+        sender().sendMessage(C.DARK_PURPLE + "Highest Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration(status.maxTectonicUnloadDuration()));
+        sender().sendMessage(C.DARK_PURPLE + "Cache Size: " + C.LIGHT_PURPLE + Form.f(IrisData.cacheSize()));
+        sender().sendMessage("-------------------------");
     }
 
     @Decree(description = "Test")

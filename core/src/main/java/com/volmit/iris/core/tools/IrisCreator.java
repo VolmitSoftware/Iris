@@ -148,7 +148,7 @@ public class IrisCreator {
             throw new IrisException("Access is null. Something bad happened.");
         }
 
-        if (headlessRadius > 0) {
+        if (headlessRadius > 0 && !benchmark) {
             AtomicBoolean failed = new AtomicBoolean(false);
             J.a(() -> {
                 int generated = access.getGenerated();

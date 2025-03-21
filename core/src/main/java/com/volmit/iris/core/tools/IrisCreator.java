@@ -22,6 +22,7 @@ import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.ServerConfigurator;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -200,7 +201,7 @@ public class IrisCreator {
 
         try {
             J.sfut(() -> {
-                world.set(wc.createWorld());
+                world.set(INMS.get().createWorld(wc));
             }).get();
         } catch (Throwable e) {
             e.printStackTrace();

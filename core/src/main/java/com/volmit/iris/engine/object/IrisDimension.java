@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.ServerConfigurator.DimensionHeight;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
@@ -27,6 +28,7 @@ import com.volmit.iris.core.nms.datapack.IDataFixer;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONObject;
@@ -377,60 +379,35 @@ public class IrisDimension extends IrisRegistrant {
         return landBiomeStyle;
     }
 
-    public boolean installDataPack(IDataFixer fixer, DataProvider data, File datapacks, DimensionHeight height) {
-        boolean write = false;
-        boolean changed = false;
-
-        IO.delete(new File(datapacks, "iris/data/" + getLoadKey().toLowerCase()));
-
-        for (IrisBiome i : getAllBiomes(data)) {
-            if (i.isCustom()) {
-                write = true;
-
-                for (IrisBiomeCustom j : i.getCustomDerivitives()) {
-                    File output = new File(datapacks, "iris/data/" + getLoadKey().toLowerCase() + "/worldgen/biome/" + j.getId() + ".json");
-
-                    if (!output.exists()) {
-                        changed = true;
-                    }
-
-                    Iris.verbose("    Installing Data Pack Biome: " + output.getPath());
-                    output.getParentFile().mkdirs();
-                    try {
-                        IO.writeAll(output, j.generateJson(fixer));
-                    } catch (IOException e) {
-                        Iris.reportError(e);
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
-
-        Iris.verbose("    Installing Data Pack Dimension Types: \"iris:overworld\", \"iris:the_nether\", \"iris:the_end\"");
-        changed = writeDimensionType(changed, datapacks, height);
-
-        Iris.verbose("    Installing Data Pack World Preset: \"minecraft:iris\"");
-        changed = writeWorldPreset(changed, datapacks, fixer);
-
-        if (write) {
-            File mcm = new File(datapacks, "iris/pack.mcmeta");
-            try {
-                IO.writeAll(mcm, """
-                        {
-                            "pack": {
-                                "description": "Iris Data Pack. This pack contains all installed Iris Packs' resources.",
-                                "pack_format": {}
-                            }
+    public void installBiomes(IDataFixer fixer, DataProvider data, KList<File> folders, KSet<String> biomes) {
+        getAllBiomes(data)
+                .stream()
+                .filter(IrisBiome::isCustom)
+                .map(IrisBiome::getCustomDerivitives)
+                .flatMap(KList::stream)
+                .parallel()
+                .forEach(j -> {
+                    String json = j.generateJson(fixer);
+                    synchronized (biomes) {
+                        if (!biomes.add(j.getId())) {
+                            Iris.verbose("Duplicate Data Pack Biome: " + getLoadKey() + "/" + j.getId());
+                            return;
                         }
-                        """.replace("{}", INMS.get().getDataVersion().getPackFormat() + ""));
-            } catch (IOException e) {
-                Iris.reportError(e);
-                e.printStackTrace();
-            }
-            Iris.verbose("    Installing Data Pack MCMeta: " + mcm.getPath());
-        }
+                    }
 
-        return changed;
+                    for (File datapacks : folders) {
+                        File output = new File(datapacks, "iris/data/" + getLoadKey().toLowerCase() + "/worldgen/biome/" + j.getId() + ".json");
+
+                        Iris.verbose("    Installing Data Pack Biome: " + output.getPath());
+                        output.getParentFile().mkdirs();
+                        try {
+                            IO.writeAll(output, json);
+                        } catch (IOException e) {
+                            Iris.reportError(e);
+                            e.printStackTrace();
+                        }
+                    }
+                });
     }
 
     @Override
@@ -448,56 +425,55 @@ public class IrisDimension extends IrisRegistrant {
 
     }
 
-    public boolean writeDimensionType(boolean changed, File datapacks, DimensionHeight height) {
-        File dimTypeOverworld = new File(datapacks, "iris/data/iris/dimension_type/overworld.json");
-        if (!dimTypeOverworld.exists())
-            changed = true;
-        dimTypeOverworld.getParentFile().mkdirs();
-        try {
-            IO.writeAll(dimTypeOverworld, height.overworldType());
-        } catch (IOException e) {
-            Iris.reportError(e);
-            e.printStackTrace();
+    public static void writeShared(KList<File> folders, DimensionHeight height) {
+        Iris.verbose("    Installing Data Pack Dimension Types: \"iris:overworld\", \"iris:the_nether\", \"iris:the_end\"");
+        for (File datapacks : folders) {
+            write(datapacks, "overworld", height.overworldType());
+            write(datapacks, "the_nether", height.netherType());
+            write(datapacks, "the_end", height.endType());
         }
 
+        String raw = """
+                        {
+                            "pack": {
+                                "description": "Iris Data Pack. This pack contains all installed Iris Packs' resources.",
+                                "pack_format": {}
+                            }
+                        }
+                        """.replace("{}", INMS.get().getDataVersion().getPackFormat() + "");
 
-        File dimTypeNether = new File(datapacks, "iris/data/iris/dimension_type/the_nether.json");
-        if (!dimTypeNether.exists())
-            changed = true;
-        dimTypeNether.getParentFile().mkdirs();
-        try {
-            IO.writeAll(dimTypeNether, height.netherType());
-        } catch (IOException e) {
-            Iris.reportError(e);
-            e.printStackTrace();
+        for (File datapacks : folders) {
+            File mcm = new File(datapacks, "iris/pack.mcmeta");
+            try {
+                IO.writeAll(mcm, raw);
+            } catch (IOException e) {
+                Iris.reportError(e);
+                e.printStackTrace();
+            }
+            Iris.verbose("    Installing Data Pack MCMeta: " + mcm.getPath());
         }
-
-
-        File dimTypeEnd = new File(datapacks, "iris/data/iris/dimension_type/the_end.json");
-        if (!dimTypeEnd.exists())
-            changed = true;
-        dimTypeEnd.getParentFile().mkdirs();
-        try {
-            IO.writeAll(dimTypeEnd, height.endType());
-        } catch (IOException e) {
-            Iris.reportError(e);
-            e.printStackTrace();
-        }
-
-        return changed;
     }
 
-    public boolean writeWorldPreset(boolean changed, File datapacks, IDataFixer fixer) {
-        File worldPreset = new File(datapacks, "iris/data/minecraft/worldgen/world_preset/iris.json");
-        if (!worldPreset.exists())
-            changed = true;
+    private static void write(File datapacks, String type, String json) {
+        File dimType = new File(datapacks, "iris/data/iris/dimension_type/" + type + ".json");
+        File dimTypeVanilla = new File(datapacks, "iris/data/minecraft/dimension_type/" + type + ".json");
+
+        dimType.getParentFile().mkdirs();
         try {
-            IO.writeAll(worldPreset, fixer.createPreset());
+            IO.writeAll(dimType, json);
         } catch (IOException e) {
             Iris.reportError(e);
             e.printStackTrace();
         }
 
-        return changed;
+        if (IrisSettings.get().getGeneral().adjustVanillaHeight || dimTypeVanilla.exists()) {
+            dimTypeVanilla.getParentFile().mkdirs();
+            try {
+                IO.writeAll(dimTypeVanilla, json);
+            } catch (IOException e) {
+                Iris.reportError(e);
+                e.printStackTrace();
+            }
+        }
     }
 }

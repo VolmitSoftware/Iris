@@ -135,7 +135,6 @@ public class CommandIris implements DecreeExecutor {
                     .seed(seed)
                     .sender(sender())
                     .studio(false)
-                    .headlessRadius(headlessRadius)
                     .create();
         } catch (Throwable e) {
             sender().sendMessage(C.RED + "Exception raised during creation. See the console for more details.");
@@ -602,10 +601,10 @@ public class CommandIris implements DecreeExecutor {
                     continue;
                 }
                 Iris.info(C.LIGHT_PURPLE + "Preparing Spawn for " + s + "' using Iris:" + generator + "...");
-                new WorldCreator(s)
+                WorldCreator c = new WorldCreator(s)
                         .generator(getDefaultWorldGenerator(s, generator))
-                        .environment(IrisData.loadAnyDimension(generator).getEnvironment())
-                        .createWorld();
+                        .environment(IrisData.loadAnyDimension(generator).getEnvironment());
+                INMS.get().createWorld(c);
                 Iris.info(C.LIGHT_PURPLE + "Loaded " + s + "!");
             }
         } catch (Throwable e) {

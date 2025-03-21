@@ -28,21 +28,23 @@ import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisRange;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
+import lombok.NonNull;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -89,7 +91,7 @@ public class ServerConfigurator {
         }
     }
 
-    private static List<File> getDatapacksFolder() {
+    private static KList<File> getDatapacksFolder() {
         if (!IrisSettings.get().getGeneral().forceMainWorld.isEmpty()) {
             return new KList<File>().qadd(new File(Bukkit.getWorldContainer(), IrisSettings.get().getGeneral().forceMainWorld + "/datapacks"));
         }
@@ -105,14 +107,16 @@ public class ServerConfigurator {
     public static void installDataPacks(IDataFixer fixer, boolean fullInstall) {
         Iris.info("Checking Data Packs...");
         DimensionHeight height = new DimensionHeight(fixer);
+        KList<File> folders = getDatapacksFolder();
+        KMap<String, KSet<String>> biomes = new KMap<>();
 
         allPacks().flatMap(height::merge)
+                .parallel()
                 .forEach(dim -> {
-                    for (File dpack : getDatapacksFolder()) {
-                        Iris.verbose("  Checking Dimension " + dim.getLoadFile().getPath());
-                        dim.installDataPack(fixer, dim::getLoader, dpack, height);
-                    }
+                    Iris.verbose("  Checking Dimension " + dim.getLoadFile().getPath());
+                    dim.installBiomes(fixer, dim::getLoader, folders, biomes.computeIfAbsent(dim.getLoadKey(), k -> new KSet<>()));
                 });
+        IrisDimension.writeShared(folders, height);
 
         Iris.info("Data Packs Setup!");
 
@@ -164,7 +168,7 @@ public class ServerConfigurator {
             Iris.warn("This will only happen when your pack changes (updates/first time setup)");
             Iris.warn("(You can disable this auto restart in iris settings)");
             J.s(() -> {
-                Iris.warn("Looks like the restart command diddn't work. Stopping the server instead!");
+                Iris.warn("Looks like the restart command didn't work. Stopping the server instead!");
                 Bukkit.shutdown();
             }, 100);
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "restart");
@@ -172,22 +176,24 @@ public class ServerConfigurator {
     }
 
     public static boolean verifyDataPackInstalled(IrisDimension dimension) {
-        IrisData idm = IrisData.get(Iris.instance.getDataFolder("packs", dimension.getLoadKey()));
         KSet<String> keys = new KSet<>();
         boolean warn = false;
 
-        for (IrisBiome i : dimension.getAllBiomes(() -> idm)) {
+        for (IrisBiome i : dimension.getAllBiomes(dimension::getLoader)) {
             if (i.isCustom()) {
                 for (IrisBiomeCustom j : i.getCustomDerivitives()) {
                     keys.add(dimension.getLoadKey() + ":" + j.getId());
                 }
             }
         }
+        String key = getWorld(dimension.getLoader());
+        if (key == null) key = dimension.getLoadKey();
+        else key += "/" + dimension.getLoadKey();
 
         if (!INMS.get().supportsDataPacks()) {
             if (!keys.isEmpty()) {
                 Iris.warn("===================================================================================");
-                Iris.warn("Pack " + dimension.getLoadKey() + " has " + keys.size() + " custom biome(s). ");
+                Iris.warn("Pack " + key + " has " + keys.size() + " custom biome(s). ");
                 Iris.warn("Your server version does not yet support datapacks for iris.");
                 Iris.warn("The world will generate these biomes as backup biomes.");
                 Iris.warn("====================================================================================");
@@ -206,7 +212,7 @@ public class ServerConfigurator {
         }
 
         if (warn) {
-            Iris.error("The Pack " + dimension.getLoadKey() + " is INCAPABLE of generating custom biomes");
+            Iris.error("The Pack " + key + " is INCAPABLE of generating custom biomes");
             Iris.error("If not done automatically, restart your server before generating with this pack!");
         }
 
@@ -218,6 +224,17 @@ public class ServerConfigurator {
                         listFiles(Bukkit.getWorldContainer()).map(w -> new File(w, "iris/pack")))
                 .filter(File::isDirectory)
                 .map(IrisData::get);
+    }
+
+    @Nullable
+    public static String getWorld(@NonNull IrisData data) {
+        String worldContainer = Bukkit.getWorldContainer().getAbsolutePath();
+        if (!worldContainer.endsWith(File.separator)) worldContainer += File.separator;
+        
+        String path = data.getDataFolder().getAbsolutePath();
+        if (!path.startsWith(worldContainer)) return null;
+        int l = path.endsWith(File.separator) ? 11 : 10;
+        return path.substring(worldContainer.length(), path.length() - l);
     }
 
     private static Stream<File> listFiles(File parent) {

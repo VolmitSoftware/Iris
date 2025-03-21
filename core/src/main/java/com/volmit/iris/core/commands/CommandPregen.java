@@ -23,6 +23,8 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
 import com.volmit.iris.core.pregenerator.PregenTask;
+import com.volmit.iris.core.pregenerator.methods.HeadlessPregenMethod;
+import com.volmit.iris.core.pregenerator.methods.HybridPregenMethod;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.annotations.Decree;
@@ -43,6 +45,8 @@ public class CommandPregen implements DecreeExecutor {
             int radius,
             @Param(description = "The world to pregen", contextual = true)
             World world,
+            @Param(description = "Headless", defaultValue = "true")
+            boolean headless,
             @Param(aliases = "middle", description = "The center location of the pregen. Use \"me\" for your current location", defaultValue = "0,0")
             Vector center
             ) {
@@ -53,13 +57,19 @@ public class CommandPregen implements DecreeExecutor {
             }
             radius = Math.max(radius, 1024);
             int w = (radius >> 9 + 1) * 2;
+            var engine = IrisToolbelt.access(world).getEngine();
             IrisToolbelt.pregenerate(PregenTask
                     .builder()
                     .center(new Position2(center.getBlockX() >> 9, center.getBlockZ() >> 9))
                     .gui(true)
                     .width(w)
                     .height(w)
-                    .build(), world);
+                    .build(), headless ?
+                    new HeadlessPregenMethod(engine) :
+                    new HybridPregenMethod(
+                            engine.getWorld().realWorld(),
+                            IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())
+                    ), engine);
             String msg = C.GREEN + "Pregen started in " + C.GOLD + world.getName() + C.GREEN + " of " + C.GOLD + (radius * 2) + C.GREEN + " by " + C.GOLD + (radius * 2) + C.GREEN + " blocks from " + C.GOLD + center.getX() + "," + center.getZ();
             sender().sendMessage(msg);
             Iris.info(msg);

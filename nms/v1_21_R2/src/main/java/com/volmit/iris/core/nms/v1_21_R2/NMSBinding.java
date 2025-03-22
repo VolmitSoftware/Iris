@@ -27,11 +27,16 @@ import net.minecraft.server.commands.data.BlockDataAccessor;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.chunk.status.WorldGenContext;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.dimension.LevelStem;
+import net.minecraft.world.level.levelgen.FlatLevelSource;
+import net.minecraft.world.level.levelgen.flat.FlatLayerInfo;
+import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -724,23 +729,32 @@ public class NMSBinding implements INMSBinding {
     private RegistryAccess.Frozen createRegistryAccess(RegistryAccess.Frozen datapack, boolean copy, boolean overworld, boolean nether, boolean end) {
         var access = registry();
         var dimensions = access.lookupOrThrow(Registries.DIMENSION_TYPE);
-        var levelStems = access.lookupOrThrow(Registries.LEVEL_STEM);
 
+        var settings = new FlatLevelGeneratorSettings(
+                Optional.empty(),
+                access.lookupOrThrow(Registries.BIOME).getOrThrow(Biomes.THE_VOID),
+                List.of()
+        );
+        settings.getLayersInfo().add(new FlatLayerInfo(1, Blocks.AIR));
+        settings.updateLayers();
+
+        var source = new FlatLevelSource(settings);
         var fake = new MappedRegistry<>(Registries.LEVEL_STEM, Lifecycle.experimental());
-        if (overworld) register(fake, levelStems, dimensions, LevelStem.OVERWORLD);
-        if (nether) register(fake, levelStems, dimensions, LevelStem.NETHER);
-        if (end) register(fake, levelStems, dimensions, LevelStem.END);
+        if (overworld) register(fake, dimensions, source, LevelStem.OVERWORLD);
+        if (nether) register(fake, dimensions, source, LevelStem.NETHER);
+        if (end) register(fake, dimensions, source, LevelStem.END);
         copy(fake, datapack.lookup(Registries.LEVEL_STEM).orElse(null));
 
-        if (copy) copy(fake, levelStems);
+        if (copy) copy(fake, access.lookupOrThrow(Registries.LEVEL_STEM));
 
         return new RegistryAccess.Frozen.ImmutableRegistryAccess(List.of(fake.freeze())).freeze();
     }
 
-    private void register(MappedRegistry<LevelStem> target, Registry<LevelStem> levelStems, Registry<DimensionType> dimensions, ResourceKey<LevelStem> key) {
+    private void register(MappedRegistry<LevelStem> target, Registry<DimensionType> dimensions, FlatLevelSource source, ResourceKey<LevelStem> key) {
+        var loc = ResourceLocation.fromNamespaceAndPath("iris", key.location().getPath());
         target.register(key, new LevelStem(
-                dimensions.get(ResourceLocation.fromNamespaceAndPath("iris", key.location().getPath())).orElseThrow(),
-                levelStems.getValueOrThrow(key).generator()
+                dimensions.get(loc).orElseThrow(() -> new IllegalStateException("Missing dimension type " + loc + " in " + dimensions.keySet())),
+                source
         ), RegistrationInfo.BUILT_IN);
     }
 

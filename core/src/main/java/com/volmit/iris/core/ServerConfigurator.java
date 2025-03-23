@@ -31,6 +31,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.misc.ServerProperties;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
@@ -97,6 +98,7 @@ public class ServerConfigurator {
         }
         KList<File> worlds = new KList<>();
         Bukkit.getServer().getWorlds().forEach(w -> worlds.add(new File(w.getWorldFolder(), "datapacks")));
+        if (worlds.isEmpty()) worlds.add(new File(Bukkit.getWorldContainer(), ServerProperties.LEVEL_NAME + "/datapacks"));
         return worlds;
     }
 

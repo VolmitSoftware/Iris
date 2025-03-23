@@ -3,6 +3,7 @@ package com.volmit.iris.core.safeguard;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
+import com.volmit.iris.engine.object.IrisContextInjector;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
@@ -29,6 +30,7 @@ public class ServerBootSFG {
     public static boolean isJRE = false;
     public static boolean hasPrivileges = true;
     public static boolean unsuportedversion = false;
+    public static boolean missingDimensionTypes = false;
     protected static boolean safeguardPassed;
     public static boolean passedserversoftware = true;
     protected static int count;
@@ -108,6 +110,12 @@ public class ServerBootSFG {
             hasEnoughDiskSpace = false;
             joiner.add("Insufficient Disk Space");
             severityMedium++;
+        }
+
+        if (IrisContextInjector.isMissingDimensionTypes()) {
+            missingDimensionTypes = true;
+            joiner.add("Missing Dimension Types");
+            severityHigh++;
         }
 
         allIncompatibilities = joiner.toString();

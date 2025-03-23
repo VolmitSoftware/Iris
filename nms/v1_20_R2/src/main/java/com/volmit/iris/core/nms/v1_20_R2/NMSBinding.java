@@ -679,6 +679,15 @@ public class NMSBinding implements INMSBinding {
                 }));
     }
 
+    @Override
+    public boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end) {
+        var registry = registry().registryOrThrow(Registries.DIMENSION_TYPE);
+        if (overworld) overworld = !registry.containsKey(createIrisKey(LevelStem.OVERWORLD));
+        if (nether) nether = !registry.containsKey(createIrisKey(LevelStem.NETHER));
+        if (end) end = !registry.containsKey(createIrisKey(LevelStem.END));
+        return overworld || nether || end;
+    }
+
     private WorldLoader.DataLoadContext supplier(WorldLoader.DataLoadContext old) {
         return dataLoadContext.aquire(() -> new WorldLoader.DataLoadContext(
                 old.resources(),
@@ -731,7 +740,7 @@ public class NMSBinding implements INMSBinding {
     }
 
     private void register(MappedRegistry<LevelStem> target, Registry<DimensionType> dimensions, FlatLevelSource source, ResourceKey<LevelStem> key) {
-        var loc = new ResourceLocation("iris", key.location().getPath());
+        var loc = createIrisKey(key);
         target.register(key, new LevelStem(
                 dimensions.getHolder(ResourceKey.create(Registries.DIMENSION_TYPE, loc)).orElseThrow(() -> new IllegalStateException("Missing dimension type " + loc + " in " + dimensions.keySet())),
                 source
@@ -746,5 +755,9 @@ public class NMSBinding implements INMSBinding {
             if (value != null && info != null && !target.containsKey(key))
                 target.register(key, value, info);
         });
+    }
+
+    private ResourceLocation createIrisKey(ResourceKey<LevelStem> key) {
+        return new ResourceLocation("iris", key.location().getPath());
     }
 }

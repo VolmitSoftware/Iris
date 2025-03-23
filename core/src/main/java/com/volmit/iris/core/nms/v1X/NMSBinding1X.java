@@ -20,7 +20,9 @@ package com.volmit.iris.core.nms.v1X;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
+import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -116,6 +118,21 @@ public class NMSBinding1X implements INMSBinding {
                 .map(NamespacedKey::toString)
                 .toList();
         return new KList<>(list);
+    }
+
+    @Override
+    public AutoClosing injectLevelStems() {
+        return new AutoClosing(() -> {});
+    }
+
+    @Override
+    public Pair<Integer, AutoClosing> injectUncached(boolean overworld, boolean nether, boolean end) {
+        return new Pair<>(0, new AutoClosing(() -> {}));
+    }
+
+    @Override
+    public boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end) {
+        return false;
     }
 
     @Override

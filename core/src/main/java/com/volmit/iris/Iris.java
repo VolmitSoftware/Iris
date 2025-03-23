@@ -459,15 +459,17 @@ public class Iris extends VolmitPlugin implements Listener {
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
         INMS.get();
         IO.delete(new File("iris"));
+        compat = IrisCompat.configured(getDataFile("compat.json"));
+        ServerConfigurator.configure();
+        new IrisContextInjector();
         IrisSafeguard.IrisSafeguardSystem();
         getSender().setTag(getTag());
-        compat = IrisCompat.configured(getDataFile("compat.json"));
+        IrisSafeguard.earlySplash();
         linkMultiverseCore = new MultiverseCoreLink();
         linkMythicMobs = new MythicMobsLink();
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
-        registerListener(new IrisContextInjector());
         J.s(() -> {
             J.a(() -> PaperLib.suggestPaper(this));
             J.a(() -> IO.delete(getTemp()));

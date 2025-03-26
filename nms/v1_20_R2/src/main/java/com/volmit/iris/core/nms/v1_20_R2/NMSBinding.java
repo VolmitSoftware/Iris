@@ -28,9 +28,14 @@ import net.minecraft.server.WorldLoader;
 import net.minecraft.server.commands.data.BlockDataAccessor;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.dimension.LevelStem;
+import net.minecraft.world.level.levelgen.FlatLevelSource;
+import net.minecraft.world.level.levelgen.flat.FlatLayerInfo;
+import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -674,6 +679,15 @@ public class NMSBinding implements INMSBinding {
                 }));
     }
 
+    @Override
+    public boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end) {
+        var registry = registry().registryOrThrow(Registries.DIMENSION_TYPE);
+        if (overworld) overworld = !registry.containsKey(createIrisKey(LevelStem.OVERWORLD));
+        if (nether) nether = !registry.containsKey(createIrisKey(LevelStem.NETHER));
+        if (end) end = !registry.containsKey(createIrisKey(LevelStem.END));
+        return overworld || nether || end;
+    }
+
     private WorldLoader.DataLoadContext supplier(WorldLoader.DataLoadContext old) {
         return dataLoadContext.aquire(() -> new WorldLoader.DataLoadContext(
                 old.resources(),
@@ -704,23 +718,32 @@ public class NMSBinding implements INMSBinding {
     private RegistryAccess.Frozen createRegistryAccess(RegistryAccess.Frozen datapack, boolean copy, boolean overworld, boolean nether, boolean end) {
         var access = registry();
         var dimensions = access.registryOrThrow(Registries.DIMENSION_TYPE);
-        var levelStems = access.registryOrThrow(Registries.LEVEL_STEM);
 
+        var settings = new FlatLevelGeneratorSettings(
+                Optional.empty(),
+                access.lookupOrThrow(Registries.BIOME).getOrThrow(Biomes.THE_VOID),
+                List.of()
+        );
+        settings.getLayersInfo().add(new FlatLayerInfo(1, Blocks.AIR));
+        settings.updateLayers();
+
+        var source = new FlatLevelSource(settings);
         var fake = new MappedRegistry<>(Registries.LEVEL_STEM, Lifecycle.experimental());
-        if (overworld) register(fake, levelStems, dimensions, LevelStem.OVERWORLD);
-        if (nether) register(fake, levelStems, dimensions, LevelStem.NETHER);
-        if (end) register(fake, levelStems, dimensions, LevelStem.END);
+        if (overworld) register(fake, dimensions, source, LevelStem.OVERWORLD);
+        if (nether) register(fake, dimensions, source, LevelStem.NETHER);
+        if (end) register(fake, dimensions, source, LevelStem.END);
         copy(fake, datapack.registry(Registries.LEVEL_STEM).orElse(null));
 
-        if (copy) copy(fake, levelStems);
+        if (copy) copy(fake, access.registryOrThrow(Registries.LEVEL_STEM));
 
         return new RegistryAccess.Frozen.ImmutableRegistryAccess(List.of(fake.freeze())).freeze();
     }
 
-    private void register(MappedRegistry<LevelStem> target, Registry<LevelStem> levelStems, Registry<DimensionType> dimensions, ResourceKey<LevelStem> key) {
+    private void register(MappedRegistry<LevelStem> target, Registry<DimensionType> dimensions, FlatLevelSource source, ResourceKey<LevelStem> key) {
+        var loc = createIrisKey(key);
         target.register(key, new LevelStem(
-                dimensions.getHolderOrThrow(ResourceKey.create(Registries.DIMENSION_TYPE, new ResourceLocation("iris", key.location().getPath()))),
-                levelStems.getOrThrow(key).generator()
+                dimensions.getHolder(ResourceKey.create(Registries.DIMENSION_TYPE, loc)).orElseThrow(() -> new IllegalStateException("Missing dimension type " + loc + " in " + dimensions.keySet())),
+                source
         ), Lifecycle.stable());
     }
 
@@ -732,5 +755,9 @@ public class NMSBinding implements INMSBinding {
             if (value != null && info != null && !target.containsKey(key))
                 target.register(key, value, info);
         });
+    }
+
+    private ResourceLocation createIrisKey(ResourceKey<LevelStem> key) {
+        return new ResourceLocation("iris", key.location().getPath());
     }
 }

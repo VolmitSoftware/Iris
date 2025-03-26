@@ -39,6 +39,11 @@ public class UtilsSFG {
                 Iris.safeguard(C.RED + "Server Version");
                 Iris.safeguard(C.RED + "- Iris only supports 1.20.1 > 1.21.4");
             }
+            if (ServerBootSFG.missingDimensionTypes) {
+                Iris.safeguard(C.RED + "Dimension Types");
+                Iris.safeguard(C.RED + "- Required Iris dimension types were not loaded.");
+                Iris.safeguard(C.RED + "- If this still happens after a restart please contact support.");
+            }
             if (!ServerBootSFG.passedserversoftware) {
                 Iris.safeguard(C.YELLOW + "Unsupported Server Software");
                 Iris.safeguard(C.YELLOW + "- Please consider using Paper or Purpur instead.");

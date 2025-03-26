@@ -3,6 +3,7 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.util.misc.ServerProperties;
+import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -15,6 +16,8 @@ import java.util.List;
 import static com.volmit.iris.Iris.instance;
 
 public class IrisContextInjector implements Listener {
+    @Getter
+    private static boolean missingDimensionTypes = false;
     private AutoClosing autoClosing = null;
     private final int totalWorlds;
     private int worldCounter = 0;
@@ -35,6 +38,12 @@ public class IrisContextInjector implements Listener {
         if (Bukkit.getAllowNether()) i++;
         if (Bukkit.getAllowEnd()) i++;
 
+        if (INMS.get().missingDimensionTypes(overworld, nether, end)) {
+            missingDimensionTypes = true;
+            totalWorlds = 0;
+            return;
+        }
+
         if (overworld || nether || end) {
             var pair = INMS.get().injectUncached(overworld, nether, end);
             i += pair.getA() - 3;
@@ -42,6 +51,7 @@ public class IrisContextInjector implements Listener {
         }
 
         totalWorlds = i;
+        instance.registerListener(this);
     }
 
     @EventHandler

@@ -10,7 +10,7 @@ public class ServerProperties {
     public static final File SERVER_PROPERTIES;
     public static final File BUKKIT_YML;
 
-    public static final String LEVEL_NAME = DATA.getProperty("level-name", "world");
+    public static final String LEVEL_NAME;
 
     static {
         String[] args = ProcessHandle.current()
@@ -20,11 +20,13 @@ public class ServerProperties {
 
         String propertiesPath = "server.properties";
         String bukkitYml = "bukkit.yml";
+        String levelName = null;
 
         for (int i = 0; i < args.length - 1; i++) {
             switch (args[i]) {
                 case "-c", "--config" -> propertiesPath = args[i + 1];
                 case "-b", "--bukkit-settings" -> bukkitYml = args[i + 1];
+                case "-w", "--level-name", "--world" -> levelName = args[i + 1];
             }
         }
 
@@ -35,5 +37,8 @@ public class ServerProperties {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
+        if (levelName != null) LEVEL_NAME = levelName;
+        else LEVEL_NAME = DATA.getProperty("level-name", "world");
     }
 }

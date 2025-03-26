@@ -37,7 +37,7 @@ public class INMS {
             "1.21.4", "v1_21_R3"
     );
     private static final List<Version> PACKS = List.of(
-            new Version(21, 4, "31010"),
+            new Version(21, 4, "31020"),
             new Version(21, 2, "31000"),
             new Version(20, 1, "3910")
     );

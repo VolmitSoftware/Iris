@@ -32,15 +32,12 @@ import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
-import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
-import org.bukkit.generator.structure.Structure;
 import org.bukkit.inventory.ItemStack;
 
-import java.awt.*;
 import java.awt.Color;
 
 public interface INMSBinding {
@@ -93,6 +90,9 @@ public interface INMSBinding {
     MCABiomeContainer newBiomeContainer(int min, int max);
 
     default World createWorld(WorldCreator c) {
+        if (missingDimensionTypes(true, true, true))
+            throw new IllegalStateException("Missing dimenstion types to create world");
+
         try (var ignored = injectLevelStems()) {
             return c.createWorld();
         }
@@ -130,11 +130,9 @@ public interface INMSBinding {
 
     KList<String> getStructureKeys();
 
-    default AutoClosing injectLevelStems() {
-        return new AutoClosing(() -> {});
-    }
+    AutoClosing injectLevelStems();
 
-    default Pair<Integer, AutoClosing> injectUncached(boolean overworld, boolean nether, boolean end) {
-        return new Pair<>(0, injectLevelStems());
-    }
+    Pair<Integer, AutoClosing> injectUncached(boolean overworld, boolean nether, boolean end);
+
+    boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end);
 }

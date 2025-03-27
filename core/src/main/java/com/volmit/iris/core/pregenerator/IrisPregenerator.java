@@ -31,6 +31,7 @@ import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -168,8 +169,10 @@ public class IrisPregenerator {
         init();
         ticker.start();
         checkRegions();
+        var p = PrecisionStopwatch.start();
         task.iterateRegions((x, z) -> visitRegion(x, z, true));
         task.iterateRegions((x, z) -> visitRegion(x, z, false));
+        Iris.info("Pregen took " + Form.duration((long) p.getMilliseconds()));
         shutdown();
         if (!IrisPackBenchmarking.benchmarkInProgress) {
             Iris.info(C.IRIS + "Pregen stopped.");

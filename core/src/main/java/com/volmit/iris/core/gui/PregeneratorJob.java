@@ -40,6 +40,8 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -64,6 +66,7 @@ public class PregeneratorJob implements PregenListener {
     private final Position2 max;
     private final ChronoLatch cl = new ChronoLatch(TimeUnit.MINUTES.toMillis(1));
     private final Engine engine;
+    private final ExecutorService service;
     private JFrame frame;
     private PregenRenderer renderer;
     private int rgc = 0;
@@ -96,6 +99,7 @@ public class PregeneratorJob implements PregenListener {
         }, "Iris Pregenerator");
         t.setPriority(Thread.MIN_PRIORITY);
         t.start();
+        service = Executors.newVirtualThreadPerTaskExecutor();
     }
 
     public static boolean shutdownInstance() {
@@ -241,12 +245,15 @@ public class PregeneratorJob implements PregenListener {
 
     @Override
     public void onChunkGenerated(int x, int z, boolean cached) {
-        if (engine != null) {
-            draw(x, z, engine.draw((x << 4) + 8, (z << 4) + 8));
-            return;
-        }
+        if (renderer == null || frame == null || !frame.isVisible()) return;
+        service.submit(() -> {
+            if (engine != null) {
+                draw(x, z, engine.draw((x << 4) + 8, (z << 4) + 8));
+                return;
+            }
 
-        draw(x, z, COLOR_GENERATED);
+            draw(x, z, COLOR_GENERATED);
+        });
     }
 
     @Override
@@ -306,6 +313,7 @@ public class PregeneratorJob implements PregenListener {
         close();
         instance = null;
         whenDone.forEach(Runnable::run);
+        service.shutdownNow();
     }
 
     @Override

@@ -7,6 +7,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.documentation.RegionCoordinates;
+import com.volmit.iris.util.parallel.HyperLock;
 import lombok.RequiredArgsConstructor;
 import net.jpountz.lz4.LZ4BlockInputStream;
 import net.jpountz.lz4.LZ4BlockOutputStream;
@@ -20,24 +21,26 @@ import java.util.function.Predicate;
 @NotThreadSafe
 @RequiredArgsConstructor
 class PregenCacheImpl implements PregenCache {
+    private static final int SIZE = 32;
     private final File directory;
+    private final HyperLock hyperLock = new HyperLock(SIZE * 2, true);
     private final LoadingCache<Pos, Plate> cache = Caffeine.newBuilder()
             .expireAfterAccess(10, TimeUnit.SECONDS)
-            .maximumSize(32)
+            .maximumSize(SIZE)
             .removalListener(this::onRemoval)
             .evictionListener(this::onRemoval)
             .build(this::load);
 
     @ChunkCoordinates
     public boolean isChunkCached(int x, int z) {
-        var plate = cache.getIfPresent(new Pos(x >> 10, z >> 10));
+        var plate = cache.get(new Pos(x >> 10, z >> 10));
         if (plate == null) return false;
         return plate.isCached((x >> 5) & 31, (z >> 5) & 31, r -> r.isCached(x & 31, z & 31));
     }
 
     @RegionCoordinates
     public boolean isRegionCached(int x, int z) {
-        var plate = cache.getIfPresent(new Pos(x >>= 5, z >>= 5));
+        var plate = cache.get(new Pos(x >>= 5, z >>= 5));
         if (plate == null) return false;
         return plate.isCached(x & 31, z & 31, Region::isCached);
     }
@@ -59,24 +62,34 @@ class PregenCacheImpl implements PregenCache {
     }
 
     private Plate load(Pos key) {
-        File file = fileForPlate(key);
-        if (!file.exists()) return new Plate(key);
-        try (var in = new DataInputStream(new LZ4BlockInputStream(new FileInputStream(file)))) {
-            return new Plate(key, in);
-        } catch (IOException e){
-            Iris.error("Failed to read pregen cache " + file);
-            e.printStackTrace();
-            return new Plate(key);
+        hyperLock.lock(key.x, key.z);
+        try {
+            File file = fileForPlate(key);
+            if (!file.exists()) return new Plate(key);
+            try (var in = new DataInputStream(new LZ4BlockInputStream(new FileInputStream(file)))) {
+                return new Plate(key, in);
+            } catch (IOException e){
+                Iris.error("Failed to read pregen cache " + file);
+                e.printStackTrace();
+                return new Plate(key);
+            }
+        } finally {
+            hyperLock.unlock(key.x, key.z);
         }
     }
 
     private void write(Plate plate) {
-        File file = fileForPlate(plate.pos);
-        try (var out = new DataOutputStream(new LZ4BlockOutputStream(new FileOutputStream(file)))) {
-            plate.write(out);
-        } catch (IOException e) {
-            Iris.error("Failed to write pregen cache " + file);
-            e.printStackTrace();
+        hyperLock.lock(plate.pos.x, plate.pos.z);
+        try {
+            File file = fileForPlate(plate.pos);
+            try (var out = new DataOutputStream(new LZ4BlockOutputStream(new FileOutputStream(file)))) {
+                plate.write(out);
+            } catch (IOException e) {
+                Iris.error("Failed to write pregen cache " + file);
+                e.printStackTrace();
+            }
+        } finally {
+            hyperLock.unlock(plate.pos.x, plate.pos.z);
         }
     }
 

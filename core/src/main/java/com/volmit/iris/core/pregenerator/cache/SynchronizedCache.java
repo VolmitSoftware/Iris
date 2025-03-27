@@ -33,7 +33,6 @@ class SynchronizedCache implements PregenCache {
     }
 
     @Override
-    @lombok.Synchronized
     public void cacheRegion(int x, int z) {
         synchronized (cache) {
             cache.cacheRegion(x, z);
@@ -41,7 +40,6 @@ class SynchronizedCache implements PregenCache {
     }
 
     @Override
-    @lombok.Synchronized
     public void write() {
         synchronized (cache) {
             cache.write();

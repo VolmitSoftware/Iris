@@ -4,16 +4,12 @@ import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.pregenerator.cache.PregenCache;
 import com.volmit.iris.util.mantle.Mantle;
-import com.volmit.iris.util.parallel.MultiBurst;
 import lombok.AllArgsConstructor;
 
 import java.io.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @AllArgsConstructor
 public class CachedPregenMethod implements PregeneratorMethod {
-    private ExecutorService service;
     private final PregeneratorMethod method;
     private final PregenCache cache;
 
@@ -25,14 +21,11 @@ public class CachedPregenMethod implements PregeneratorMethod {
     @Override
     public void init() {
         method.init();
-        service = Executors.newVirtualThreadPerTaskExecutor();
     }
 
     @Override
     public void close() {
         method.close();
-        if (service != null)
-            MultiBurst.close(service);
         cache.write();
     }
 
@@ -57,15 +50,13 @@ public class CachedPregenMethod implements PregeneratorMethod {
         if (cache.isRegionCached(x, z)) {
             listener.onRegionGenerated(x, z);
 
-            service.submit(() -> {
-                int rX = x << 5, rZ = z << 5;
-                for (int cX = 0; cX < 32; cX++) {
-                    for (int cZ = 0; cZ < 32; cZ++) {
-                        listener.onChunkGenerated(rX + cX, rZ + cZ, true);
-                        listener.onChunkCleaned(rX + cX, rZ + cZ);
-                    }
+            int rX = x << 5, rZ = z << 5;
+            for (int cX = 0; cX < 32; cX++) {
+                for (int cZ = 0; cZ < 32; cZ++) {
+                    listener.onChunkGenerated(rX + cX, rZ + cZ, true);
+                    listener.onChunkCleaned(rX + cX, rZ + cZ);
                 }
-            });
+            }
             return;
         }
         method.generateRegion(x, z, listener);
@@ -75,10 +66,8 @@ public class CachedPregenMethod implements PregeneratorMethod {
     @Override
     public void generateChunk(int x, int z, PregenListener listener) {
         if (cache.isChunkCached(x, z)) {
-            service.submit(() -> {
-                listener.onChunkGenerated(x, z, true);
-                listener.onChunkCleaned(x, z);
-            });
+            listener.onChunkGenerated(x, z, true);
+            listener.onChunkCleaned(x, z);
             return;
         }
         method.generateChunk(x, z, listener);

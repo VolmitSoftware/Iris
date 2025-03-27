@@ -33,26 +33,30 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 
 public class IrisPregenerator {
+    private static final double INVALID = 9223372036854775807d;
     private final PregenTask task;
     private final PregeneratorMethod generator;
     private final PregenListener listener;
     private final Looper ticker;
     private final AtomicBoolean paused;
     private final AtomicBoolean shutdown;
+    private final RollingSequence cachedPerSecond;
     private final RollingSequence chunksPerSecond;
     private final RollingSequence chunksPerMinute;
     private final RollingSequence regionsPerMinute;
     private final KList<Integer> chunksPerSecondHistory;
-    private static AtomicInteger generated;
-    private final AtomicInteger generatedLast;
-    private final AtomicInteger generatedLastMinute;
-    private static AtomicInteger totalChunks;
+    private final AtomicLong generated;
+    private final AtomicLong generatedLast;
+    private final AtomicLong generatedLastMinute;
+    private final AtomicLong cached;
+    private final AtomicLong cachedLast;
+    private final AtomicLong cachedLastMinute;
+    private final AtomicLong totalChunks;
     private final AtomicLong startTime;
     private final ChronoLatch minuteLatch;
     private final AtomicReference<String> currentGeneratorMethod;
@@ -74,46 +78,71 @@ public class IrisPregenerator {
         net = new KSet<>();
         currentGeneratorMethod = new AtomicReference<>("Void");
         minuteLatch = new ChronoLatch(60000, false);
+        cachedPerSecond = new RollingSequence(5);
         chunksPerSecond = new RollingSequence(10);
         chunksPerMinute = new RollingSequence(10);
         regionsPerMinute = new RollingSequence(10);
         chunksPerSecondHistory = new KList<>();
-        generated = new AtomicInteger(0);
-        generatedLast = new AtomicInteger(0);
-        generatedLastMinute = new AtomicInteger(0);
-        totalChunks = new AtomicInteger(0);
+        generated = new AtomicLong(0);
+        generatedLast = new AtomicLong(0);
+        generatedLastMinute = new AtomicLong(0);
+        cached = new AtomicLong();
+        cachedLast = new AtomicLong(0);
+        cachedLastMinute = new AtomicLong(0);
+        totalChunks = new AtomicLong(0);
         task.iterateAllChunks((_a, _b) -> totalChunks.incrementAndGet());
         startTime = new AtomicLong(M.ms());
         ticker = new Looper() {
             @Override
             protected long loop() {
                 long eta = computeETA();
-                int secondGenerated = generated.get() - generatedLast.get();
-                generatedLast.set(generated.get());
-                chunksPerSecond.put(secondGenerated);
-                chunksPerSecondHistory.add(secondGenerated);
 
-                if (minuteLatch.flip()) {
-                    int minuteGenerated = generated.get() - generatedLastMinute.get();
-                    generatedLastMinute.set(generated.get());
-                    chunksPerMinute.put(minuteGenerated);
-                    regionsPerMinute.put((double) minuteGenerated / 1024D);
+                long secondCached = cached.get() - cachedLast.get();
+                cachedLast.set(cached.get());
+                cachedPerSecond.put(secondCached);
+
+                long secondGenerated = generated.get() - generatedLast.get() - secondCached;
+                generatedLast.set(generated.get());
+                if (secondCached == 0 || secondGenerated != 0) {
+                    chunksPerSecond.put(secondGenerated);
+                    chunksPerSecondHistory.add((int) secondGenerated);
                 }
 
-                listener.onTick(chunksPerSecond.getAverage(), chunksPerMinute.getAverage(),
+                if (minuteLatch.flip()) {
+                    long minuteCached = cached.get() - cachedLastMinute.get();
+                    cachedLastMinute.set(cached.get());
+
+                    long minuteGenerated = generated.get() - generatedLastMinute.get() - minuteCached;
+                    generatedLastMinute.set(generated.get());
+                    if (minuteCached == 0 || minuteGenerated != 0) {
+                        chunksPerMinute.put(minuteGenerated);
+                        regionsPerMinute.put((double) minuteGenerated / 1024D);
+                    }
+                }
+                boolean cached = cachedPerSecond.getAverage() != 0;
+
+                listener.onTick(
+                        cached ? cachedPerSecond.getAverage() : chunksPerSecond.getAverage(),
+                        chunksPerMinute.getAverage(),
                         regionsPerMinute.getAverage(),
-                        (double) generated.get() / (double) totalChunks.get(),
-                        generated.get(), totalChunks.get(),
-                        totalChunks.get() - generated.get(),
-                        eta, M.ms() - startTime.get(), currentGeneratorMethod.get());
+                        (double) generated.get() / (double) totalChunks.get(), generated.get(),
+                        totalChunks.get(),
+                        totalChunks.get() - generated.get(), eta, M.ms() - startTime.get(), currentGeneratorMethod.get(),
+                        cached);
 
                 if (cl.flip()) {
                     double percentage = ((double) generated.get() / (double) totalChunks.get()) * 100;
-                    if (!IrisPackBenchmarking.benchmarkInProgress) {
-                        Iris.info("Pregen: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (%.0f%%) " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration(eta, 2), percentage);
-                    } else {
-                        Iris.info("Benchmarking: " + Form.f(generated.get()) + " of " + Form.f(totalChunks.get()) + " (%.0f%%) " + Form.f((int) chunksPerSecond.getAverage()) + "/s ETA: " + Form.duration(eta, 2), percentage);
-                    }
+
+                    Iris.info("%s: %s of %s (%.0f%%), %s/s ETA: %s",
+                            IrisPackBenchmarking.benchmarkInProgress ? "Benchmarking" : "Pregen",
+                            Form.f(generated.get()),
+                            Form.f(totalChunks.get()),
+                            percentage,
+                            cached ?
+                                    "Cached " + Form.f((int) cachedPerSecond.getAverage()) :
+                                    Form.f((int) chunksPerSecond.getAverage()),
+                            Form.duration(eta, 2)
+                    );
                 }
                 return 1000;
             }
@@ -121,12 +150,13 @@ public class IrisPregenerator {
     }
 
     private long computeETA() {
-        return (long) (totalChunks.get() > 1024 ? // Generated chunks exceed 1/8th of total?
+        double d = (long) (totalChunks.get() > 1024 ? // Generated chunks exceed 1/8th of total?
                 // If yes, use smooth function (which gets more accurate over time since its less sensitive to outliers)
-                ((totalChunks.get() - generated.get()) * ((double) (M.ms() - startTime.get()) / (double) generated.get())) :
+                ((totalChunks.get() - generated.get() - cached.get()) * ((double) (M.ms() - startTime.get()) / ((double) generated.get() - cached.get()))) :
                 // If no, use quick function (which is less accurate over time but responds better to the initial delay)
-                ((totalChunks.get() - generated.get()) / chunksPerSecond.getAverage()) * 1000
+                ((totalChunks.get() - generated.get() - cached.get()) / chunksPerSecond.getAverage()) * 1000
         );
+        return Double.isFinite(d) && d != INVALID ? (long) d : 0;
     }
 
 
@@ -234,8 +264,8 @@ public class IrisPregenerator {
     private PregenListener listenify(PregenListener listener) {
         return new PregenListener() {
             @Override
-            public void onTick(double chunksPerSecond, double chunksPerMinute, double regionsPerMinute, double percent, int generated, int totalChunks, int chunksRemaining, long eta, long elapsed, String method) {
-                listener.onTick(chunksPerSecond, chunksPerMinute, regionsPerMinute, percent, generated, totalChunks, chunksRemaining, eta, elapsed, method);
+            public void onTick(double chunksPerSecond, double chunksPerMinute, double regionsPerMinute, double percent, long generated, long totalChunks, long chunksRemaining, long eta, long elapsed, String method, boolean cached) {
+                listener.onTick(chunksPerSecond, chunksPerMinute, regionsPerMinute, percent, generated, totalChunks, chunksRemaining, eta, elapsed, method, cached);
             }
 
             @Override
@@ -244,9 +274,10 @@ public class IrisPregenerator {
             }
 
             @Override
-            public void onChunkGenerated(int x, int z) {
-                listener.onChunkGenerated(x, z);
+            public void onChunkGenerated(int x, int z, boolean c) {
+                listener.onChunkGenerated(x, z, c);
                 generated.addAndGet(1);
+                if (c) cached.addAndGet(1);
             }
 
             @Override

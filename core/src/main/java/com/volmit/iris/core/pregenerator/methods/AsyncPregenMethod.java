@@ -19,6 +19,7 @@
 package com.volmit.iris.core.pregenerator.methods;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -34,8 +35,10 @@ import org.bukkit.World;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class AsyncPregenMethod implements PregeneratorMethod {
+    private static final AtomicInteger THREAD_COUNT = new AtomicInteger();
     private final World world;
     private final MultiBurst burst;
     private final Semaphore semaphore;
@@ -92,6 +95,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     @Override
     public void init() {
         unloadAndSaveAllChunks();
+        increaseWorkerThreads();
     }
 
     @Override
@@ -104,6 +108,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         semaphore.acquireUninterruptibly(256);
         unloadAndSaveAllChunks();
         burst.close();
+        resetWorkerThreads();
     }
 
     @Override
@@ -139,5 +144,45 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
 
         return null;
+    }
+
+
+    public static void increaseWorkerThreads() {
+        THREAD_COUNT.updateAndGet(i -> {
+            if (i > 0) return 1;
+            try {
+                var field = Class.forName("ca.spottedleaf.moonrise.common.util.MoonriseCommon").getDeclaredField("WORKER_POOL");
+                var pool = field.get(null);
+                var threads = ((Thread[]) pool.getClass().getDeclaredMethod("getCoreThreads").invoke(pool)).length;
+                var adjusted = IrisSettings.get().getConcurrency().getWorldGenThreads();
+                if (threads >= adjusted) return 0;
+
+                pool.getClass().getDeclaredMethod("adjustThreadCount", int.class).invoke(pool, adjusted);
+                return threads;
+            } catch (ClassNotFoundException ignored) {
+            } catch (Throwable e) {
+                Iris.error("Failed to increase worker threads");
+                e.printStackTrace();
+            }
+            return 0;
+        });
+    }
+
+    public static void resetWorkerThreads() {
+        THREAD_COUNT.updateAndGet(i -> {
+            if (i == 0) return 0;
+            try {
+                var field = Class.forName("ca.spottedleaf.moonrise.common.util.MoonriseCommon").getDeclaredField("WORKER_POOL");
+                var pool = field.get(null);
+                var method = pool.getClass().getDeclaredMethod("adjustThreadCount", int.class);
+                method.invoke(pool, i);
+                return 0;
+            } catch (ClassNotFoundException ignored) {
+            } catch (Throwable e) {
+                Iris.error("Failed to reset worker threads");
+                e.printStackTrace();
+            }
+            return i;
+        });
     }
 }

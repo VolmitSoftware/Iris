@@ -24,7 +24,6 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.VolmitSender;
-import com.volmit.iris.util.scheduling.ChronoLatch;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -135,6 +134,11 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsConcurrency {
         public int parallelism = -1;
+        public int worldGenParallelism = -1;
+
+        public int getWorldGenThreads() {
+            return getThreadCount(worldGenParallelism);
+        }
     }
 
     @Data

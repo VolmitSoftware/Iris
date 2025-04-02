@@ -241,13 +241,12 @@ public class CommandDeveloper implements DecreeExecutor {
                 sender().sendMessage(C.RED + "Please make sure the world is loaded & the engine is initialized. Generate a new chunk, for example.");
             }
             radius = Math.max(radius, 1024);
-            int w = (radius >> 9 + 1) * 2;
             IrisToolbelt.pregenerate(PregenTask
                     .builder()
-                    .center(new Position2(center.getBlockX() >> 9, center.getBlockZ() >> 9))
+                    .center(new Position2(center.getBlockX(), center.getBlockZ()))
                     .gui(true)
-                    .width(w)
-                    .height(w)
+                    .radiusX(radius)
+                    .radiusZ(radius)
                     .build(), new HeadlessPregenMethod(engine), engine);
             String msg = C.GREEN + "Headless Pregen started in " + C.GOLD + world.getName() + C.GREEN + " of " + C.GOLD + (radius * 2) + C.GREEN + " by " + C.GOLD + (radius * 2) + C.GREEN + " blocks from " + C.GOLD + center.getX() + "," + center.getZ();
             sender().sendMessage(msg);

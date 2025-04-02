@@ -174,8 +174,8 @@ public class IrisPackBenchmarking {
         IrisToolbelt.pregenerate(PregenTask
                 .builder()
                 .gui(gui)
-                .width(diameter)
-                .height(diameter)
+                .radiusX(diameter)
+                .radiusZ(diameter)
                 .build(), headless ?
                 new HeadlessPregenMethod(engine) :
                 new HybridPregenMethod(

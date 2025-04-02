@@ -6,24 +6,39 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 
+import com.mojang.serialization.Lifecycle;
+import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.core.nms.headless.IRegionStorage;
 import com.volmit.iris.core.nms.v1_21_R2.headless.RegionStorage;
 import com.volmit.iris.util.scheduling.J;
+import lombok.SneakyThrows;
 import net.minecraft.core.*;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.*;
 import net.minecraft.nbt.Tag;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.WorldLoader;
 import net.minecraft.server.commands.data.BlockDataAccessor;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.chunk.status.WorldGenContext;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.dimension.LevelStem;
+import net.minecraft.world.level.levelgen.FlatLevelSource;
+import net.minecraft.world.level.levelgen.flat.FlatLayerInfo;
+import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -74,9 +89,11 @@ public class NMSBinding implements INMSBinding {
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
     private final BlockData AIR = Material.AIR.createBlockData();
     private final AtomicCache<MCAIdMap<net.minecraft.world.level.biome.Biome>> biomeMapCache = new AtomicCache<>();
+    private final AtomicCache<WorldLoader.DataLoadContext> dataLoadContext = new AtomicCache<>();
     private final AtomicCache<MCAIdMapper<BlockState>> registryCache = new AtomicCache<>();
     private final AtomicCache<MCAPalette<BlockState>> globalCache = new AtomicCache<>();
     private final AtomicCache<RegistryAccess> registryAccess = new AtomicCache<>();
+    private final ReentrantLock dataContextLock = new ReentrantLock(true);
     private final AtomicCache<Method> byIdRef = new AtomicCache<>();
     private Field biomeStorageCache = null;
 
@@ -535,6 +552,9 @@ public class NMSBinding implements INMSBinding {
         var worldGenContextField = getField(chunkMap.getClass(), WorldGenContext.class);
         worldGenContextField.setAccessible(true);
         var worldGenContext = (WorldGenContext) worldGenContextField.get(chunkMap);
+        var dimensionType = chunkMap.level.dimensionTypeRegistration().unwrapKey().orElse(null);
+        if (dimensionType != null && !dimensionType.location().getNamespace().equals("iris"))
+            Iris.error("Loaded world %s with invalid dimension type! (%s)", world.getName(), dimensionType.location().toString());
 
         var newContext = new WorldGenContext(
                 worldGenContext.level(), new IrisChunkGenerator(worldGenContext.generator(), seed, engine, world),
@@ -650,5 +670,121 @@ public class NMSBinding implements INMSBinding {
     @Override
     public IRegionStorage createRegionStorage(Engine engine) {
         return new RegionStorage(engine);
+    }
+
+    @Override
+    public AutoClosing injectLevelStems() {
+        return inject(this::supplier);
+    }
+
+    @Override
+    @SneakyThrows
+    public Pair<Integer, AutoClosing> injectUncached(boolean overworld, boolean nether, boolean end) {
+        var reg = registry();
+        var field = getField(RegistryAccess.ImmutableRegistryAccess.class, Map.class);
+        field.setAccessible(true);
+
+        AutoClosing closing = inject(old -> new WorldLoader.DataLoadContext(
+                        old.resources(),
+                        old.dataConfiguration(),
+                        old.datapackWorldgen(),
+                        createRegistryAccess(old.datapackDimensions(), true, overworld, nether, end)
+                )
+        );
+
+        var injected = ((CraftServer) Bukkit.getServer()).getServer().worldLoader.datapackDimensions().lookupOrThrow(Registries.LEVEL_STEM);
+        var old = (Map<ResourceKey<? extends Registry<?>>, Registry<?>>) field.get(reg);
+        var fake = new HashMap<>(old);
+        fake.put(Registries.LEVEL_STEM, injected);
+        field.set(reg, fake);
+
+        return new Pair<>(
+                injected.size(),
+                new AutoClosing(() -> {
+                    closing.close();
+                    field.set(reg, old);
+                }));
+    }
+
+    @Override
+    public boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end) {
+        var registry = registry().lookupOrThrow(Registries.DIMENSION_TYPE);
+        if (overworld) overworld = !registry.containsKey(createIrisKey(LevelStem.OVERWORLD));
+        if (nether) nether = !registry.containsKey(createIrisKey(LevelStem.NETHER));
+        if (end) end = !registry.containsKey(createIrisKey(LevelStem.END));
+        return overworld || nether || end;
+    }
+
+    private WorldLoader.DataLoadContext supplier(WorldLoader.DataLoadContext old) {
+        return dataLoadContext.aquire(() -> new WorldLoader.DataLoadContext(
+                old.resources(),
+                old.dataConfiguration(),
+                old.datapackWorldgen(),
+                createRegistryAccess(old.datapackDimensions(), false, true, true, true)
+        ));
+    }
+
+    @SneakyThrows
+    private AutoClosing inject(Function<WorldLoader.DataLoadContext, WorldLoader.DataLoadContext> transformer) {
+        if (!dataContextLock.tryLock()) throw new IllegalStateException("Failed to inject data context!");
+
+        var server = ((CraftServer) Bukkit.getServer());
+        var field = getField(MinecraftServer.class, WorldLoader.DataLoadContext.class);
+        var nmsServer = server.getServer();
+        var old = nmsServer.worldLoader;
+
+        field.setAccessible(true);
+        field.set(nmsServer, transformer.apply(old));
+
+        return new AutoClosing(() -> {
+            field.set(nmsServer, old);
+            dataContextLock.unlock();
+        });
+    }
+
+    private RegistryAccess.Frozen createRegistryAccess(RegistryAccess.Frozen datapack, boolean copy, boolean overworld, boolean nether, boolean end) {
+        var access = registry();
+        var dimensions = access.lookupOrThrow(Registries.DIMENSION_TYPE);
+
+        var settings = new FlatLevelGeneratorSettings(
+                Optional.empty(),
+                access.lookupOrThrow(Registries.BIOME).getOrThrow(Biomes.THE_VOID),
+                List.of()
+        );
+        settings.getLayersInfo().add(new FlatLayerInfo(1, Blocks.AIR));
+        settings.updateLayers();
+
+        var source = new FlatLevelSource(settings);
+        var fake = new MappedRegistry<>(Registries.LEVEL_STEM, Lifecycle.experimental());
+        if (overworld) register(fake, dimensions, source, LevelStem.OVERWORLD);
+        if (nether) register(fake, dimensions, source, LevelStem.NETHER);
+        if (end) register(fake, dimensions, source, LevelStem.END);
+        copy(fake, datapack.lookup(Registries.LEVEL_STEM).orElse(null));
+
+        if (copy) copy(fake, access.lookupOrThrow(Registries.LEVEL_STEM));
+
+        return new RegistryAccess.Frozen.ImmutableRegistryAccess(List.of(fake.freeze())).freeze();
+    }
+
+    private void register(MappedRegistry<LevelStem> target, Registry<DimensionType> dimensions, FlatLevelSource source, ResourceKey<LevelStem> key) {
+        var loc = createIrisKey(key);
+        target.register(key, new LevelStem(
+                dimensions.get(loc).orElseThrow(() -> new IllegalStateException("Missing dimension type " + loc + " in " + dimensions.keySet())),
+                source
+        ), RegistrationInfo.BUILT_IN);
+    }
+
+    private void copy(MappedRegistry<LevelStem> target, Registry<LevelStem> source) {
+        if (source == null) return;
+        source.listElementIds().forEach(key -> {
+            var value = source.getValue(key);
+            var info = source.registrationInfo(key).orElse(null);
+            if (value != null && info != null && !target.containsKey(key))
+                target.register(key, value, info);
+        });
+    }
+
+    private ResourceLocation createIrisKey(ResourceKey<LevelStem> key) {
+        return ResourceLocation.fromNamespaceAndPath("iris", key.location().getPath());
     }
 }

@@ -181,6 +181,7 @@ public class IrisSettings {
         public boolean splashLogoStartup = true;
         public boolean useConsoleCustomColors = true;
         public boolean useCustomColorsIngame = true;
+        public boolean adjustVanillaHeight = false;
         public String forceMainWorld = "";
         public int spinh = -20;
         public int spins = 7;

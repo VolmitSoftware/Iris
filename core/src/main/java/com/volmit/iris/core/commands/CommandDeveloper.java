@@ -145,7 +145,7 @@ public class CommandDeveloper implements DecreeExecutor {
     public void packBenchmark(
             @Param(description = "The pack to bench", aliases = {"pack"}, defaultValue = "overworld")
             IrisDimension dimension,
-            @Param(description = "Diameter in regions", defaultValue = "5")
+            @Param(description = "Diameter in regions", defaultValue = "2048")
             int diameter,
             @Param(description = "Headless", defaultValue = "true")
             boolean headless,

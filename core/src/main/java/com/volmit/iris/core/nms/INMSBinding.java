@@ -18,7 +18,9 @@
 
 package com.volmit.iris.core.nms;
 
+import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.core.nms.headless.IRegionStorage;
 import com.volmit.iris.engine.framework.Engine;
@@ -89,7 +91,12 @@ public interface INMSBinding {
     MCABiomeContainer newBiomeContainer(int min, int max);
 
     default World createWorld(WorldCreator c) {
-        return c.createWorld();
+        if (missingDimensionTypes(true, true, true))
+            throw new IllegalStateException("Missing dimenstion types to create world");
+
+        try (var ignored = injectLevelStems()) {
+            return c.createWorld();
+        }
     }
 
     int countCustomBiomes();
@@ -125,4 +132,10 @@ public interface INMSBinding {
     IRegionStorage createRegionStorage(Engine engine);
 
     KList<String> getStructureKeys();
+
+    AutoClosing injectLevelStems();
+
+    Pair<Integer, AutoClosing> injectUncached(boolean overworld, boolean nether, boolean end);
+
+    boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end);
 }

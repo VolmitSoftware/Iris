@@ -135,4 +135,6 @@ public interface INMSBinding {
     Pair<Integer, AutoClosing> injectUncached(boolean overworld, boolean nether, boolean end);
 
     boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end);
+
+    void placeStructures(Chunk chunk);
 }

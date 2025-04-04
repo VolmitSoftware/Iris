@@ -707,6 +707,14 @@ public class NMSBinding implements INMSBinding {
         return overworld || nether || end;
     }
 
+    @Override
+    public void placeStructures(Chunk chunk) {
+        var craft = ((CraftChunk) chunk);
+        var level = craft.getCraftWorld().getHandle();
+        var access = ((CraftChunk) chunk).getHandle(ChunkStatus.FULL);
+        level.getChunkSource().getGenerator().applyBiomeDecoration(level, access, level.structureManager());
+    }
+
     private WorldLoader.DataLoadContext supplier(WorldLoader.DataLoadContext old) {
         return dataLoadContext.aquire(() -> new WorldLoader.DataLoadContext(
                 old.resources(),

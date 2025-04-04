@@ -8,16 +8,17 @@ import com.volmit.iris.engine.framework.ResultLocator;
 import com.volmit.iris.engine.framework.WrongEngineBroException;
 import com.volmit.iris.engine.object.IrisJigsawStructure;
 import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
+import com.volmit.iris.engine.object.IrisStructurePopulator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.reflect.WrappedField;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
-import net.minecraft.core.HolderSet;
-import net.minecraft.core.RegistryAccess;
+import net.minecraft.CrashReport;
+import net.minecraft.CrashReportCategory;
+import net.minecraft.ReportedException;
+import net.minecraft.core.*;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -26,45 +27,51 @@ import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.random.WeightedRandomList;
 import net.minecraft.world.entity.MobCategory;
-import net.minecraft.world.level.LevelHeightAccessor;
-import net.minecraft.world.level.NoiseColumn;
-import net.minecraft.world.level.StructureManager;
-import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.*;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeManager;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.MobSpawnSettings;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
-import net.minecraft.world.level.levelgen.GenerationStep;
-import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.levelgen.RandomState;
+import net.minecraft.world.level.levelgen.*;
 import net.minecraft.world.level.levelgen.blending.Blender;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.v1_20_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_20_R1.generator.CustomChunkGenerator;
+import org.bukkit.craftbukkit.v1_20_R1.generator.structure.CraftStructure;
+import org.bukkit.event.world.AsyncStructureSpawnEvent;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.function.Supplier;
 
 public class IrisChunkGenerator extends CustomChunkGenerator {
     private static final WrappedField<ChunkGenerator, BiomeSource> BIOME_SOURCE;
     private final ChunkGenerator delegate;
     private final Engine engine;
     private final KMap<ResourceKey<Structure>, KSet<String>> structures = new KMap<>();
+    private final IrisStructurePopulator populator;
 
     public IrisChunkGenerator(ChunkGenerator delegate, long seed, Engine engine, World world) {
         super(((CraftWorld) world).getHandle(), edit(delegate, new CustomBiomeSource(seed, engine, world)), null);
         this.delegate = delegate;
         this.engine = engine;
+        this.populator = new IrisStructurePopulator(engine);
         var dimension = engine.getDimension();
 
         KSet<IrisJigsawStructure> placements = new KSet<>();
@@ -176,8 +183,58 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
     }
 
     @Override
-    public void createStructures(RegistryAccess iregistrycustom, ChunkGeneratorStructureState chunkgeneratorstructurestate, StructureManager structuremanager, ChunkAccess ichunkaccess, StructureTemplateManager structuretemplatemanager) {
-        delegate.createStructures(iregistrycustom, chunkgeneratorstructurestate, structuremanager, ichunkaccess, structuretemplatemanager);
+    public void createStructures(RegistryAccess registryAccess, ChunkGeneratorStructureState structureState, StructureManager structureManager, ChunkAccess access, StructureTemplateManager templateManager) {
+        if (!structureManager.shouldGenerateStructures())
+            return;
+        var chunkPos = access.getPos();
+        var sectionPos = SectionPos.bottomOf(access);
+        var registry = registryAccess.registryOrThrow(Registries.STRUCTURE);
+        populator.populateStructures(chunkPos.x, chunkPos.z, (key, ignoreBiomes) -> {
+            var loc = ResourceLocation.tryParse(key);
+            if (loc == null) return false;
+            var structure = registry.getOptional(loc).orElse(null);
+            if (structure == null) return false;
+            var biomes = structure.biomes();
+
+            var start = structure.generate(
+                    registryAccess,
+                    this,
+                    biomeSource,
+                    structureState.randomState(),
+                    templateManager,
+                    structureState.getLevelSeed(),
+                    chunkPos,
+                    fetchReferences(structureManager, access, sectionPos, structure),
+                    access,
+                    (biome) -> ignoreBiomes || biomes.contains(biome)
+            );
+
+            if (!start.isValid())
+                return false;
+
+            BoundingBox box = start.getBoundingBox();
+            AsyncStructureSpawnEvent event = new AsyncStructureSpawnEvent(
+                    structureManager.level.getMinecraftWorld().getWorld(),
+                    CraftStructure.minecraftToBukkit(structure, registryAccess),
+                    new org.bukkit.util.BoundingBox(
+                            box.minX(),
+                            box.minY(),
+                            box.minZ(),
+                            box.maxX(),
+                            box.maxY(),
+                            box.maxZ()
+                    ), chunkPos.x, chunkPos.z);
+            Bukkit.getPluginManager().callEvent(event);
+            if (!event.isCancelled()) {
+                structureManager.setStartForStructure(sectionPos, structure, start, access);
+            }
+            return true;
+        });
+    }
+
+    private static int fetchReferences(StructureManager structureManager, ChunkAccess access, SectionPos sectionPos, Structure structure) {
+        StructureStart structurestart = structureManager.getStartForStructure(sectionPos, structure, access);
+        return structurestart != null ? structurestart.getReferences() : 0;
     }
 
     @Override
@@ -196,18 +253,60 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
     }
 
     @Override
-    public int getBaseHeight(int i, int j, Heightmap.Types heightmap_type, LevelHeightAccessor levelheightaccessor, RandomState randomstate) {
-        return delegate.getBaseHeight(i, j, heightmap_type, levelheightaccessor, randomstate);
-    }
-
-    @Override
     public WeightedRandomList<MobSpawnSettings.SpawnerData> getMobsAt(Holder<Biome> holder, StructureManager structuremanager, MobCategory enumcreaturetype, BlockPos blockposition) {
         return delegate.getMobsAt(holder, structuremanager, enumcreaturetype, blockposition);
     }
 
     @Override
     public void applyBiomeDecoration(WorldGenLevel generatoraccessseed, ChunkAccess ichunkaccess, StructureManager structuremanager) {
-        delegate.applyBiomeDecoration(generatoraccessseed, ichunkaccess, structuremanager);
+        applyBiomeDecoration(generatoraccessseed, ichunkaccess, structuremanager, true);
+    }
+
+    @Override
+    public void applyBiomeDecoration(WorldGenLevel generatoraccessseed, ChunkAccess ichunkaccess, StructureManager structuremanager, boolean vanilla) {
+        addVanillaDecorations(generatoraccessseed, ichunkaccess, structuremanager);
+        delegate.applyBiomeDecoration(generatoraccessseed, ichunkaccess, structuremanager, false);
+    }
+
+    @Override
+    public void addVanillaDecorations(WorldGenLevel level, ChunkAccess chunkAccess, StructureManager structureManager) {
+        if (!structureManager.shouldGenerateStructures())
+            return;
+
+        SectionPos sectionPos = SectionPos.of(chunkAccess.getPos(), level.getMinSection());
+        BlockPos blockPos = sectionPos.origin();
+        WorldgenRandom random = new WorldgenRandom(new XoroshiroRandomSource(RandomSupport.generateUniqueSeed()));
+        long i = random.setDecorationSeed(level.getSeed(), blockPos.getX(), blockPos.getZ());
+        var structures = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
+        var list = structures.stream()
+                .sorted(Comparator.comparingInt(s -> s.step().ordinal()))
+                .toList();
+
+        for (int j = 0; j < list.size(); j++) {
+            Structure structure = list.get(j);
+            random.setFeatureSeed(i, j, structure.step().ordinal());
+            Supplier<String> supplier = () -> structures.getResourceKey(structure).map(Object::toString).orElseGet(structure::toString);
+
+            try {
+                level.setCurrentlyGenerating(supplier);
+                structureManager.startsForStructure(sectionPos, structure).forEach((start) -> start.placeInChunk(level, structureManager, this, random, getWritableArea(chunkAccess), chunkAccess.getPos()));
+            } catch (Exception exception) {
+                CrashReport crashReport = CrashReport.forThrowable(exception, "Feature placement");
+                CrashReportCategory category = crashReport.addCategory("Feature");
+                category.setDetail("Description", supplier::get);
+                throw new ReportedException(crashReport);
+            }
+        }
+    }
+
+    private static BoundingBox getWritableArea(ChunkAccess ichunkaccess) {
+        ChunkPos chunkPos = ichunkaccess.getPos();
+        int minX = chunkPos.getMinBlockX();
+        int minZ = chunkPos.getMinBlockZ();
+        LevelHeightAccessor heightAccessor = ichunkaccess.getHeightAccessorForGeneration();
+        int minY = heightAccessor.getMinBuildHeight() + 1;
+        int maxY = heightAccessor.getMaxBuildHeight() - 1;
+        return new BoundingBox(minX, minY, minZ, minX + 15, maxY, minZ + 15);
     }
 
     @Override
@@ -231,8 +330,21 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
     }
 
     @Override
+    public int getBaseHeight(int i, int j, Heightmap.Types heightmap_type, LevelHeightAccessor levelheightaccessor, RandomState randomstate) {
+        return levelheightaccessor.getMinBuildHeight() + engine.getHeight(i, j, !heightmap_type.isOpaque().test(Blocks.WATER.defaultBlockState())) + 1;
+    }
+
+    @Override
     public NoiseColumn getBaseColumn(int i, int j, LevelHeightAccessor levelheightaccessor, RandomState randomstate) {
-        return delegate.getBaseColumn(i, j, levelheightaccessor, randomstate);
+        int block = engine.getHeight(i, j, true);
+        int water = engine.getHeight(i, j, false);
+        BlockState[] column = new BlockState[levelheightaccessor.getHeight()];
+        for (int k = 0; k < column.length; k++) {
+            if (k <= block) column[k] = Blocks.STONE.defaultBlockState();
+            else if (k <= water) column[k] = Blocks.WATER.defaultBlockState();
+            else column[k] = Blocks.AIR.defaultBlockState();
+        }
+        return new NoiseColumn(levelheightaccessor.getMinBuildHeight(), column);
     }
 
     static {

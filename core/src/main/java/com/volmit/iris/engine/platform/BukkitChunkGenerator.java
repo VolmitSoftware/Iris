@@ -231,6 +231,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                         }
                     }
                 });
+                jobs.accept(() -> INMS.get().placeStructures(c));
             }
 
             loadLock.release();

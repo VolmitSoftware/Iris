@@ -136,6 +136,11 @@ public class NMSBinding1X implements INMSBinding {
     }
 
     @Override
+    public void placeStructures(Chunk chunk) {
+
+    }
+
+    @Override
     public CompoundTag serializeEntity(Entity location) {
         return null;
     }

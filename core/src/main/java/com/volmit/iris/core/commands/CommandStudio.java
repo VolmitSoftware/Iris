@@ -404,9 +404,16 @@ public class CommandStudio implements DecreeExecutor {
             @Param(name = "world", description = "The world to open the generator for", contextual = true)
             World world
     ) {
-        if (noGUI()) return;
+        if (noGUI()) {
+            sender().sendMessage(C.GOLD + "GUI Support isn't enabled or supported on this server.");
+            return;
+        }
 
-        if (!IrisToolbelt.isIrisWorld(world)) {
+        if (world == null) {
+            if (noStudio()) return;
+            world = player().getWorld();
+        }
+        else if (!IrisToolbelt.isIrisWorld(world)) {
             sender().sendMessage(C.RED + "You need to be in or specify an Iris-generated world!");
             return;
         }

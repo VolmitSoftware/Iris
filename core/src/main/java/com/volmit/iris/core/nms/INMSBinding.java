@@ -18,9 +18,11 @@
 
 package com.volmit.iris.core.nms;
 
+import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.container.Pair;
+import com.volmit.iris.core.nms.container.StructurePlacement;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
@@ -137,4 +139,6 @@ public interface INMSBinding {
     boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end);
 
     void placeStructures(Chunk chunk);
+
+    KMap<Identifier, StructurePlacement> collectStructures();
 }

@@ -19,10 +19,12 @@
 package com.volmit.iris.core.nms.v1X;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.container.Pair;
+import com.volmit.iris.core.nms.container.StructurePlacement;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -138,6 +140,11 @@ public class NMSBinding1X implements INMSBinding {
     @Override
     public void placeStructures(Chunk chunk) {
 
+    }
+
+    @Override
+    public KMap<Identifier, StructurePlacement> collectStructures() {
+        return new KMap<>();
     }
 
     @Override

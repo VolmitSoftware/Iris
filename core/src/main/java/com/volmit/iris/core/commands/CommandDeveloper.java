@@ -18,19 +18,25 @@
 
 package com.volmit.iris.core.commands;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.core.service.IrisEngineSVC;
 import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
+import com.volmit.iris.util.decree.specialhandlers.NullableDimensionHandler;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.CountingDataInputStream;
@@ -40,6 +46,7 @@ import com.volmit.iris.util.nbt.mca.MCAFile;
 import com.volmit.iris.util.nbt.mca.MCAUtil;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
+import lombok.SneakyThrows;
 import net.jpountz.lz4.LZ4BlockInputStream;
 import net.jpountz.lz4.LZ4BlockOutputStream;
 import net.jpountz.lz4.LZ4FrameInputStream;
@@ -56,6 +63,8 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -134,6 +143,108 @@ public class CommandDeveloper implements DecreeExecutor {
 
         }
 
+    }
+
+    @SneakyThrows
+    @Decree(description = "Generate Iris structures for all loaded datapack structures")
+    public void generateStructures(
+            @Param(description = "The pack to add the generated structures to", aliases = "pack", defaultValue = "---", customHandler = NullableDimensionHandler.class)
+            IrisDimension dimension,
+            @Param(description = "Ignore existing structures", defaultValue = "false")
+            boolean force
+    ) {
+        var map = INMS.get().collectStructures();
+        if (map.isEmpty()) {
+            sender().sendMessage(C.IRIS + "No structures found");
+            return;
+        }
+
+        sender().sendMessage(C.IRIS + "Found " + map.size() + " structures");
+
+        IrisData data;
+        Set<String> existingStructures;
+        File dimensionFile;
+        File structuresFolder;
+
+        var dimensionObj = new JsonObject();
+
+        if (dimension == null) {
+            File dataDir = Iris.instance.getDataFolder("structures");
+            IO.delete(dataDir);
+            data = IrisData.get(dataDir);
+            structuresFolder = new File(dataDir, "jigsaw-structures");
+            existingStructures = Set.of();
+            dimensionFile = new File(dataDir, "structures.json");
+        } else {
+            data = dimension.getLoader();
+            existingStructures = Stream.concat(
+                            dimension.getJigsawStructures().stream().map(IrisJigsawStructurePlacement::getStructure),
+                            Arrays.stream(data.getJigsawStructureLoader().getPossibleKeys()))
+                    .collect(Collectors.toSet());
+
+            dimensionObj = data.getGson().fromJson(IO.readAll(dimension.getLoadFile()), JsonObject.class);
+            dimensionFile = dimension.getLoadFile();
+            structuresFolder = new File(data.getDataFolder(), "jigsaw-structures");
+        }
+
+        var gson = data.getGson();
+        var jigsawStructures = Optional.ofNullable(dimensionObj.getAsJsonArray("jigsawStructures"))
+                .orElse(new JsonArray(map.size()));
+
+        map.forEach((key, placement) -> {
+            String loadKey = "datapack/" + key.namespace() + "/" + key.key();
+            if (existingStructures.contains(loadKey) && !force)
+                return;
+
+            var structures = placement.structures();
+            var obj = placement.toJson(loadKey);
+            if (obj == null || structures.isEmpty()) {
+                sender().sendMessage(C.RED + "Failed to generate hook for " + key);
+                return;
+            }
+
+            String structureKey;
+            if (structures.size() > 1) {
+                KList<String> common = new KList<>();
+                for (int i = 0; i < structures.size(); i++) {
+                    var tags = structures.get(i).tags();
+                    if (i == 0) common.addAll(tags);
+                    else common.removeIf(tag -> !tags.contains(tag));
+                }
+                structureKey = common.isNotEmpty() ? common.getFirst() : structures.getFirst().key();
+            } else structureKey = structures.getFirst().key();
+
+            JsonArray array = new JsonArray();
+            if (structures.size() > 1) {
+                structures.stream()
+                        .flatMap(structure -> {
+                            String[] arr = new String[structure.weight()];
+                            Arrays.fill(arr, structure.key());
+                            return Arrays.stream(arr);
+                        })
+                        .forEach(array::add);
+            } else array.add(structureKey);
+
+            jigsawStructures.asList().removeIf(e -> e.getAsJsonObject().get("structure").getAsString().equals(loadKey));
+            jigsawStructures.add(obj);
+
+            obj = new JsonObject();
+            obj.addProperty("structureKey", structureKey);
+            obj.add("datapackStructures", array);
+
+            File out = new File(structuresFolder, loadKey + ".json");
+            out.getParentFile().mkdirs();
+            try {
+                IO.writeAll(out, gson.toJson(obj));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        dimensionObj.add("jigsawStructures", jigsawStructures);
+        IO.writeAll(dimensionFile, gson.toJson(dimensionObj));
+
+        data.hotloaded();
     }
 
     @Decree(description = "Test")

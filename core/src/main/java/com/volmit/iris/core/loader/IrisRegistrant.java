@@ -28,6 +28,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.awt.*;
 import java.io.File;
@@ -39,6 +40,7 @@ public abstract class IrisRegistrant {
     @ArrayType(min = 1, type = String.class)
     private KList<String> preprocessors = new KList<>();
 
+    @EqualsAndHashCode.Exclude
     private transient IrisData loader;
 
     private transient String loadKey;

@@ -4,11 +4,14 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Lifecycle;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.container.StructurePlacement;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.hunk.Hunk;
@@ -52,6 +55,8 @@ import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.FlatLevelSource;
 import net.minecraft.world.level.levelgen.flat.FlatLayerInfo;
 import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings;
+import net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement;
+import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -88,6 +93,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class NMSBinding implements INMSBinding {
 
@@ -693,6 +699,63 @@ public class NMSBinding implements INMSBinding {
         var level = craft.getCraftWorld().getHandle();
         var access = ((CraftChunk) chunk).getHandle(ChunkStatus.FULL);
         level.getChunkSource().getGenerator().applyBiomeDecoration(level, access, level.structureManager());
+    }
+
+    @Override
+    public KMap<Identifier, StructurePlacement> collectStructures() {
+        var structureSets = registry().registryOrThrow(Registries.STRUCTURE_SET);
+        var structurePlacements = registry().registryOrThrow(Registries.STRUCTURE_PLACEMENT);
+        return structureSets.registryKeySet()
+                .stream()
+                .map(structureSets::getHolder)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(holder -> {
+                    var set = holder.value();
+                    var placement = set.placement();
+                    var key = holder.key().location();
+                    StructurePlacement.StructurePlacementBuilder<?, ?> builder;
+                    if (placement instanceof RandomSpreadStructurePlacement random) {
+                        builder = StructurePlacement.RandomSpread.builder()
+                                .separation(random.separation())
+                                .spacing(random.spacing())
+                                .spreadType(switch (random.spreadType()) {
+                                    case LINEAR -> IrisJigsawStructurePlacement.SpreadType.LINEAR;
+                                    case TRIANGULAR -> IrisJigsawStructurePlacement.SpreadType.TRIANGULAR;
+                                });
+                    } else if (placement instanceof ConcentricRingsStructurePlacement rings) {
+                        builder = StructurePlacement.ConcentricRings.builder()
+                                .distance(rings.distance())
+                                .spread(rings.spread())
+                                .count(rings.count());
+                    } else {
+                        Iris.warn("Unsupported structure placement for set " + key + " with type " + structurePlacements.getKey(placement.type()));
+                        return null;
+                    }
+
+                    return new com.volmit.iris.core.nms.container.Pair<>(new Identifier(key.getNamespace(), key.getPath()), builder
+                            .salt(placement.salt)
+                            .frequency(placement.frequency)
+                            .structures(set.structures()
+                                    .stream()
+                                    .map(entry -> new StructurePlacement.Structure(
+                                            entry.weight(),
+                                            entry.structure()
+                                                    .unwrapKey()
+                                                    .map(ResourceKey::location)
+                                                    .map(ResourceLocation::toString)
+                                                    .orElse(null),
+                                            entry.structure().tags()
+                                                    .map(TagKey::location)
+                                                    .map(ResourceLocation::toString)
+                                                    .toList()
+                                    ))
+                                    .filter(StructurePlacement.Structure::isValid)
+                                    .toList())
+                            .build());
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(com.volmit.iris.core.nms.container.Pair::getA, com.volmit.iris.core.nms.container.Pair::getB, (a, b) -> a, KMap::new));
     }
 
     private WorldLoader.DataLoadContext supplier(WorldLoader.DataLoadContext old) {

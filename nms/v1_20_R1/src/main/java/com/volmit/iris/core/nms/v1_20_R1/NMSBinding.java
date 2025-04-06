@@ -687,6 +687,11 @@ public class NMSBinding implements INMSBinding {
         return overworld || nether || end;
     }
 
+    @Override
+    public void removeCustomDimensions(World world) {
+        ((CraftWorld) world).getHandle().K.customDimensions = null;
+    }
+
     private WorldLoader.DataLoadContext supplier(WorldLoader.DataLoadContext old) {
         return dataLoadContext.aquire(() -> new WorldLoader.DataLoadContext(
                 old.resources(),

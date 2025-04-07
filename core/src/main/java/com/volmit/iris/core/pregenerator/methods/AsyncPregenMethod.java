@@ -32,6 +32,7 @@ import io.papermc.lib.PaperLib;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
@@ -150,19 +151,19 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     public static void increaseWorkerThreads() {
         THREAD_COUNT.updateAndGet(i -> {
             if (i > 0) return 1;
+            var adjusted = IrisSettings.get().getConcurrency().getWorldGenThreads();
             try {
                 var field = Class.forName("ca.spottedleaf.moonrise.common.util.MoonriseCommon").getDeclaredField("WORKER_POOL");
                 var pool = field.get(null);
                 var threads = ((Thread[]) pool.getClass().getDeclaredMethod("getCoreThreads").invoke(pool)).length;
-                var adjusted = IrisSettings.get().getConcurrency().getWorldGenThreads();
                 if (threads >= adjusted) return 0;
 
                 pool.getClass().getDeclaredMethod("adjustThreadCount", int.class).invoke(pool, adjusted);
                 return threads;
-            } catch (ClassNotFoundException ignored) {
             } catch (Throwable e) {
-                Iris.error("Failed to increase worker threads");
-                e.printStackTrace();
+                Iris.warn("Failed to increase worker threads, please increase it manually to " + adjusted);
+                Iris.warn("For more information see https://docs.papermc.io/paper/reference/global-configuration#chunk_system_worker_threads");
+                if (e instanceof InvocationTargetException) e.printStackTrace();
             }
             return 0;
         });
@@ -177,7 +178,6 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 var method = pool.getClass().getDeclaredMethod("adjustThreadCount", int.class);
                 method.invoke(pool, i);
                 return 0;
-            } catch (ClassNotFoundException ignored) {
             } catch (Throwable e) {
                 Iris.error("Failed to reset worker threads");
                 e.printStackTrace();

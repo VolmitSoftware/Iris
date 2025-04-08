@@ -132,7 +132,9 @@ public interface INMSBinding {
 
     AutoClosing injectLevelStems();
 
-    Pair<Integer, AutoClosing> injectUncached(boolean overworld, boolean nether, boolean end);
+    default AutoClosing injectUncached(boolean overworld, boolean nether, boolean end) {
+        return null;
+    }
 
     boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end);
 

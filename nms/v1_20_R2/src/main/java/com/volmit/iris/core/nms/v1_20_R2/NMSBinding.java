@@ -646,37 +646,44 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
+    @SneakyThrows
     public AutoClosing injectLevelStems() {
-        return inject(this::supplier);
+        if (!dataContextLock.tryLock()) throw new IllegalStateException("Failed to inject data context!");
+
+        var server = ((CraftServer) Bukkit.getServer());
+        var field = getField(MinecraftServer.class, WorldLoader.DataLoadContext.class);
+        var nmsServer = server.getServer();
+        var old = nmsServer.worldLoader;
+
+        field.setAccessible(true);
+        field.set(nmsServer, dataLoadContext.aquire(() -> new WorldLoader.DataLoadContext(
+                old.resources(),
+                old.dataConfiguration(),
+                old.datapackWorldgen(),
+                createRegistryAccess(old.datapackDimensions(), false, true, true, true)
+        )));
+
+        return new AutoClosing(() -> {
+            field.set(nmsServer, old);
+            dataContextLock.unlock();
+        });
     }
 
     @Override
     @SneakyThrows
-    public com.volmit.iris.core.nms.container.Pair<Integer, AutoClosing> injectUncached(boolean overworld, boolean nether, boolean end) {
+    public AutoClosing injectUncached(boolean overworld, boolean nether, boolean end) {
         var reg = registry();
         var field = getField(RegistryAccess.ImmutableRegistryAccess.class, Map.class);
         field.setAccessible(true);
 
-        AutoClosing closing = inject(old -> new WorldLoader.DataLoadContext(
-                        old.resources(),
-                        old.dataConfiguration(),
-                        old.datapackWorldgen(),
-                        createRegistryAccess(old.datapackDimensions(), true, overworld, nether, end)
-                )
-        );
-
-        var injected = ((CraftServer) Bukkit.getServer()).getServer().worldLoader.datapackDimensions().registryOrThrow(Registries.LEVEL_STEM);
+        var access = createRegistryAccess(((CraftServer) Bukkit.getServer()).getServer().worldLoader.datapackDimensions(), true, overworld, nether, end);
+        var injected = access.registryOrThrow(Registries.LEVEL_STEM);
         var old = (Map<ResourceKey<? extends Registry<?>>, Registry<?>>) field.get(reg);
         var fake = new HashMap<>(old);
         fake.put(Registries.LEVEL_STEM, injected);
         field.set(reg, fake);
 
-        return new com.volmit.iris.core.nms.container.Pair<>(
-                injected.size(),
-                new AutoClosing(() -> {
-                    closing.close();
-                    field.set(reg, old);
-                }));
+        return new AutoClosing(() -> field.set(reg, old));
     }
 
     @Override
@@ -691,33 +698,6 @@ public class NMSBinding implements INMSBinding {
     @Override
     public void removeCustomDimensions(World world) {
         ((CraftWorld) world).getHandle().K.customDimensions = null;
-    }
-
-    private WorldLoader.DataLoadContext supplier(WorldLoader.DataLoadContext old) {
-        return dataLoadContext.aquire(() -> new WorldLoader.DataLoadContext(
-                old.resources(),
-                old.dataConfiguration(),
-                old.datapackWorldgen(),
-                createRegistryAccess(old.datapackDimensions(), false, true, true, true)
-        ));
-    }
-
-    @SneakyThrows
-    private AutoClosing inject(Function<WorldLoader.DataLoadContext, WorldLoader.DataLoadContext> transformer) {
-        if (!dataContextLock.tryLock()) throw new IllegalStateException("Failed to inject data context!");
-
-        var server = ((CraftServer) Bukkit.getServer());
-        var field = getField(MinecraftServer.class, WorldLoader.DataLoadContext.class);
-        var nmsServer = server.getServer();
-        var old = nmsServer.worldLoader;
-
-        field.setAccessible(true);
-        field.set(nmsServer, transformer.apply(old));
-
-        return new AutoClosing(() -> {
-            field.set(nmsServer, old);
-            dataContextLock.unlock();
-        });
     }
 
     private RegistryAccess.Frozen createRegistryAccess(RegistryAccess.Frozen datapack, boolean copy, boolean overworld, boolean nether, boolean end) {
@@ -741,7 +721,7 @@ public class NMSBinding implements INMSBinding {
 
         if (copy) copy(fake, access.registryOrThrow(Registries.LEVEL_STEM));
 
-        return new RegistryAccess.Frozen.ImmutableRegistryAccess(List.of(fake.freeze())).freeze();
+        return new RegistryAccess.Frozen.ImmutableRegistryAccess(List.of(fake)).freeze();
     }
 
     private void register(MappedRegistry<LevelStem> target, Registry<DimensionType> dimensions, FlatLevelSource source, ResourceKey<LevelStem> key) {

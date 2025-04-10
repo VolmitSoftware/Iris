@@ -20,7 +20,6 @@ package com.volmit.iris.core.nms;
 
 import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
-import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
@@ -94,6 +93,7 @@ public interface INMSBinding {
             throw new IllegalStateException("Missing dimenstion types to create world");
 
         try (var ignored = injectLevelStems()) {
+            ignored.storeContext();
             return c.createWorld();
         }
     }
@@ -132,7 +132,11 @@ public interface INMSBinding {
 
     AutoClosing injectLevelStems();
 
-    Pair<Integer, AutoClosing> injectUncached(boolean overworld, boolean nether, boolean end);
+    default AutoClosing injectUncached(boolean overworld, boolean nether, boolean end) {
+        return null;
+    }
 
     boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end);
+
+    void removeCustomDimensions(World world);
 }

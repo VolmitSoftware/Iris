@@ -165,8 +165,11 @@ public class ChunkUpdater {
             if (rX < dimensions.min.getX() || rX > dimensions.max.getX() || rZ < dimensions.min.getZ() || rZ > dimensions.max.getZ()) {
                 return;
             }
+            if (!new File(world.getWorldFolder(), "region" + File.separator + rX + "." + rZ + ".mca").exists()) {
+                return;
+            }
 
-            PregenTask.iterateRegion(rX, rZ, (x, z) -> {
+            task.iterateChunks(rX, rZ, (x, z) -> {
                 while (paused.get() && !cancelled.get()) {
                     J.sleep(50);
                 }
@@ -348,8 +351,8 @@ public class ChunkUpdater {
         int width = maxZ - minZ + 1;
 
         return new Dimensions(new Position2(minX, minZ), new Position2(maxX, maxZ), height * width, PregenTask.builder()
-                .width((int) Math.ceil(width / 2d))
-                .height((int) Math.ceil(height / 2d))
+                .radiusZ((int) Math.ceil(width / 2d * 512))
+                .radiusX((int) Math.ceil(height / 2d * 512))
                 .center(new Position2(oX, oZ))
                 .build());
     }

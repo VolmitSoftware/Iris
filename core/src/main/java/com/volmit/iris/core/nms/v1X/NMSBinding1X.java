@@ -126,13 +126,18 @@ public class NMSBinding1X implements INMSBinding {
     }
 
     @Override
-    public Pair<Integer, AutoClosing> injectUncached(boolean overworld, boolean nether, boolean end) {
-        return new Pair<>(0, new AutoClosing(() -> {}));
+    public AutoClosing injectUncached(boolean overworld, boolean nether, boolean end) {
+        return injectLevelStems();
     }
 
     @Override
     public boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end) {
         return false;
+    }
+
+    @Override
+    public void removeCustomDimensions(World world) {
+
     }
 
     @Override

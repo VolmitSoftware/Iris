@@ -21,6 +21,7 @@ package com.volmit.iris.engine.platform;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
@@ -48,6 +49,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldInitEvent;
 import org.bukkit.generator.BiomeProvider;
@@ -122,11 +124,13 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onWorldInit(WorldInitEvent event) {
         try {
             if (initialized || !world.name().equals(event.getWorld().getName()))
                 return;
+            AutoClosing.closeContext();
+            INMS.get().removeCustomDimensions(event.getWorld());
             world.setRawWorldSeed(event.getWorld().getSeed());
             Engine engine = getEngine(event.getWorld());
             if (engine == null) {

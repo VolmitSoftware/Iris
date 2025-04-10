@@ -135,6 +135,7 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsConcurrency {
         public int parallelism = -1;
+        public boolean useVirtualThreads = false;
     }
 
     @Data

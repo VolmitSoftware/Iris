@@ -19,6 +19,7 @@
 package com.volmit.iris.core.pregenerator.methods;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -33,11 +34,13 @@ import org.bukkit.World;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 
 public class AsyncPregenMethod implements PregeneratorMethod {
     private final World world;
-    private final MultiBurst burst;
+    private final ExecutorService service;
     private final Semaphore semaphore;
     private final Map<Chunk, Long> lastUse;
 
@@ -47,7 +50,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
 
         this.world = world;
-        burst = new MultiBurst("Iris Async Pregen", Thread.MIN_PRIORITY);
+        service = IrisSettings.get().getConcurrency().isUseVirtualThreads() ?
+                Executors.newVirtualThreadPerTaskExecutor() :
+                new MultiBurst("Iris Async Pregen", Thread.MIN_PRIORITY);
         semaphore = new Semaphore(256);
         this.lastUse = new KMap<>();
     }
@@ -103,7 +108,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     public void close() {
         semaphore.acquireUninterruptibly(256);
         unloadAndSaveAllChunks();
-        burst.close();
+        service.shutdown();
     }
 
     @Override
@@ -129,7 +134,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         } catch (InterruptedException e) {
             return;
         }
-        burst.complete(() -> completeChunk(x, z, listener));
+        service.submit(() -> completeChunk(x, z, listener));
     }
 
     @Override

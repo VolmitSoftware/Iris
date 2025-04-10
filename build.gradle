@@ -97,6 +97,7 @@ NMS_BINDINGS.forEach { key, value ->
         systemProperty("disable.watchdog", "")
         systemProperty("net.kyori.ansi.colorLevel", COLOR)
         systemProperty("com.mojang.eula.agree", true)
+        jvmArgs("-javaagent:${tasks.shadowJar.archiveFile.get().asFile.absolutePath}")
     }
 }
 
@@ -113,6 +114,12 @@ shadowJar {
     relocate 'net.kyori', 'com.volmit.iris.util.kyori'
     relocate 'org.bstats', 'com.volmit.util.metrics'
     archiveFileName.set("Iris-${project.version}.jar")
+    manifest.attributes(
+            'Agent-Class': 'com.volmit.iris.util.agent.Installer',
+            'Premain-Class': 'com.volmit.iris.util.agent.Installer',
+            'Can-Redefine-Classes': true,
+            'Can-Retransform-Classes': true
+    )
 }
 
 dependencies {
@@ -173,6 +180,9 @@ allprojects {
         compileOnly 'com.github.ben-manes.caffeine:caffeine:3.0.6'
         compileOnly 'org.apache.commons:commons-lang3:3.12.0'
         compileOnly 'com.github.oshi:oshi-core:6.6.5'
+
+        compileOnly("net.bytebuddy:byte-buddy:1.17.5")
+        compileOnly("net.bytebuddy:byte-buddy-agent:1.17.5")
     }
 
     /**

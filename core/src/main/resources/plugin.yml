@@ -20,6 +20,8 @@ libraries:
   - bsf:bsf:2.4.0
   - org.lz4:lz4-java:1.8.0
   - com.github.oshi:oshi-core:6.6.5
+  - net.bytebuddy:byte-buddy:1.17.5
+  - net.bytebuddy:byte-buddy-agent:1.17.5
 commands:
   iris:
     aliases: [ ir, irs ]

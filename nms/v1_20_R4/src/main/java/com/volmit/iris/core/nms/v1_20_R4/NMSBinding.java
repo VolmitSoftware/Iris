@@ -5,18 +5,22 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Function;
 
 import com.mojang.datafixers.util.Pair;
-import com.mojang.serialization.Lifecycle;
-import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.datapack.DataVersion;
+import com.volmit.iris.util.agent.Agent;
+import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.misc.ServerProperties;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.scheduling.J;
 import lombok.SneakyThrows;
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.asm.Advice;
+import net.bytebuddy.matcher.ElementMatchers;
 import net.minecraft.core.*;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponents;
@@ -31,23 +35,24 @@ import net.minecraft.nbt.ShortTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.WorldLoader;
 import net.minecraft.server.commands.data.BlockDataAccessor;
-import net.minecraft.server.commands.data.DataCommands;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.progress.ChunkProgressListener;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.RandomSequences;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EntityBlock;
-import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.FlatLevelSource;
 import net.minecraft.world.level.levelgen.flat.FlatLayerInfo;
 import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings;
+import net.minecraft.world.level.storage.LevelStorageSource;
+import net.minecraft.world.level.storage.PrimaryLevelData;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -56,15 +61,12 @@ import org.bukkit.craftbukkit.v1_20_R4.CraftServer;
 import org.bukkit.craftbukkit.v1_20_R4.CraftWorld;
 import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlockState;
 import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlockStates;
-import org.bukkit.craftbukkit.v1_20_R4.block.CraftBlockType;
 import org.bukkit.craftbukkit.v1_20_R4.block.data.CraftBlockData;
-import org.bukkit.craftbukkit.v1_20_R4.entity.CraftDolphin;
-import org.bukkit.craftbukkit.v1_20_R4.generator.CustomChunkGenerator;
 import org.bukkit.craftbukkit.v1_20_R4.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.v1_20_R4.util.CraftNamespacedKey;
-import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Contract;
@@ -100,11 +102,11 @@ public class NMSBinding implements INMSBinding {
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
     private final BlockData AIR = Material.AIR.createBlockData();
     private final AtomicCache<MCAIdMap<net.minecraft.world.level.biome.Biome>> biomeMapCache = new AtomicCache<>();
-    private final AtomicCache<WorldLoader.DataLoadContext> dataLoadContext = new AtomicCache<>();
+    private final AtomicBoolean injected = new AtomicBoolean();
     private final AtomicCache<MCAIdMapper<BlockState>> registryCache = new AtomicCache<>();
     private final AtomicCache<MCAPalette<BlockState>> globalCache = new AtomicCache<>();
     private final AtomicCache<RegistryAccess> registryAccess = new AtomicCache<>();
-    private final ReentrantLock dataContextLock = new ReentrantLock(true);
+    private final KMap<World.Environment, LevelStem> stems = new KMap<>();
     private final AtomicCache<Method> byIdRef = new AtomicCache<>();
     private Field biomeStorageCache = null;
 
@@ -672,44 +674,28 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
-    @SneakyThrows
-    public AutoClosing injectLevelStems() {
-        if (!dataContextLock.tryLock()) throw new IllegalStateException("Failed to inject data context!");
+    @SuppressWarnings("all")
+    public KMap<String, World.Environment> getMainWorlds() {
+        String levelName = ServerProperties.LEVEL_NAME;
+        KMap<String, World.Environment> worlds = new KMap<>();
+        for (var key : registry().registryOrThrow(Registries.LEVEL_STEM).registryKeySet()) {
+            World.Environment env = World.Environment.NORMAL;
+            if (key == LevelStem.NETHER) {
+                if (!Bukkit.getAllowNether())
+                    continue;
+                env = World.Environment.NETHER;
+            } else if (key == LevelStem.END) {
+                if (!Bukkit.getAllowEnd())
+                    continue;
+                env = World.Environment.THE_END;
+            } else if (key != LevelStem.OVERWORLD) {
+                env = World.Environment.CUSTOM;
+            }
 
-        var server = ((CraftServer) Bukkit.getServer());
-        var field = getField(MinecraftServer.class, WorldLoader.DataLoadContext.class);
-        var nmsServer = server.getServer();
-        var old = nmsServer.worldLoader;
-
-        field.setAccessible(true);
-        field.set(nmsServer, dataLoadContext.aquire(() -> new WorldLoader.DataLoadContext(
-                old.resources(),
-                old.dataConfiguration(),
-                old.datapackWorldgen(),
-                createRegistryAccess(old.datapackDimensions(), false, true, true, true)
-        )));
-
-        return new AutoClosing(() -> {
-            field.set(nmsServer, old);
-            dataContextLock.unlock();
-        });
-    }
-
-    @Override
-    @SneakyThrows
-    public AutoClosing injectUncached(boolean overworld, boolean nether, boolean end) {
-        var reg = registry();
-        var field = getField(RegistryAccess.ImmutableRegistryAccess.class, Map.class);
-        field.setAccessible(true);
-
-        var access = createRegistryAccess(((CraftServer) Bukkit.getServer()).getServer().worldLoader.datapackDimensions(), true, overworld, nether, end);
-        var injected = access.registryOrThrow(Registries.LEVEL_STEM);
-        var old = (Map<ResourceKey<? extends Registry<?>>, Registry<?>>) field.get(reg);
-        var fake = new HashMap<>(old);
-        fake.put(Registries.LEVEL_STEM, injected);
-        field.set(reg, fake);
-
-        return new AutoClosing(() -> field.set(reg, old));
+            String worldType = env == World.Environment.CUSTOM ? key.location().getNamespace() + "_" + key.location().getPath() : env.toString().toLowerCase(Locale.ROOT);
+            worlds.put(key == LevelStem.OVERWORLD ? levelName : levelName + "_" + worldType, env);
+        }
+        return worlds;
     }
 
     @Override
@@ -722,53 +708,74 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
-    public void removeCustomDimensions(World world) {
-        ((CraftWorld) world).getHandle().K.customDimensions = null;
-    }
-
-    private RegistryAccess.Frozen createRegistryAccess(RegistryAccess.Frozen datapack, boolean copy, boolean overworld, boolean nether, boolean end) {
-        var access = registry();
-        var dimensions = access.registryOrThrow(Registries.DIMENSION_TYPE);
-
-        var settings = new FlatLevelGeneratorSettings(
-                Optional.empty(),
-                access.lookupOrThrow(Registries.BIOME).getOrThrow(Biomes.THE_VOID),
-                List.of()
-        );
-        settings.getLayersInfo().add(new FlatLayerInfo(1, Blocks.AIR));
-        settings.updateLayers();
-
-        var source = new FlatLevelSource(settings);
-        var fake = new MappedRegistry<>(Registries.LEVEL_STEM, Lifecycle.experimental());
-        if (overworld) register(fake, dimensions, source, LevelStem.OVERWORLD);
-        if (nether) register(fake, dimensions, source, LevelStem.NETHER);
-        if (end) register(fake, dimensions, source, LevelStem.END);
-        copy(fake, datapack.registry(Registries.LEVEL_STEM).orElse(null));
-
-        if (copy) copy(fake, access.registryOrThrow(Registries.LEVEL_STEM));
-
-        return new RegistryAccess.Frozen.ImmutableRegistryAccess(List.of(fake)).freeze();
-    }
-
-    private void register(MappedRegistry<LevelStem> target, Registry<DimensionType> dimensions, FlatLevelSource source, ResourceKey<LevelStem> key) {
-        var loc = createIrisKey(key);
-        target.register(key, new LevelStem(
-                dimensions.getHolder(ResourceKey.create(Registries.DIMENSION_TYPE, loc)).orElseThrow(() -> new IllegalStateException("Missing dimension type " + loc + " in " + dimensions.keySet())),
-                source
-        ), RegistrationInfo.BUILT_IN);
-    }
-
-    private void copy(MappedRegistry<LevelStem> target, Registry<LevelStem> source) {
-        if (source == null) return;
-        source.registryKeySet().forEach(key -> {
-            var value = source.get(key);
-            var info = source.registrationInfo(key).orElse(null);
-            if (value != null && info != null && !target.containsKey(key))
-                target.register(key, value, info);
-        });
+    public boolean injectBukkit() {
+        if (injected.getAndSet(true))
+            return true;
+        try {
+            Iris.info("Injecting Bukkit");
+            new ByteBuddy()
+                    .redefine(ServerLevel.class)
+                    .visit(Advice.to(ServerLevelAdvice.class).on(ElementMatchers.isConstructor().and(ElementMatchers.takesArguments(
+                            MinecraftServer.class, Executor.class, LevelStorageSource.LevelStorageAccess.class, PrimaryLevelData.class,
+                            ResourceKey.class, LevelStem.class, ChunkProgressListener.class, boolean.class, long.class, List.class,
+                            boolean.class, RandomSequences.class, World.Environment.class, ChunkGenerator.class, BiomeProvider.class))))
+                    .make()
+                    .load(ServerLevel.class.getClassLoader(), Agent.installed());
+            return true;
+        } catch (Throwable e) {
+            Iris.error(C.RED + "Failed to inject Bukkit");
+            e.printStackTrace();
+        }
+        return false;
     }
 
     private ResourceLocation createIrisKey(ResourceKey<LevelStem> key) {
         return new ResourceLocation("iris", key.location().getPath());
+    }
+
+    public LevelStem levelStem(RegistryAccess access, World.Environment env) {
+        if (env == World.Environment.CUSTOM)
+            env = World.Environment.NORMAL;
+        return stems.computeIfAbsent(env, key -> new LevelStem(dimensionType(access, key), chunkGenerator(access)));
+    }
+
+    private Holder.Reference<DimensionType> dimensionType(RegistryAccess access, World.Environment env) {
+        return access.registryOrThrow(Registries.DIMENSION_TYPE).getHolderOrThrow(ResourceKey.create(Registries.DIMENSION_TYPE, new ResourceLocation("iris", switch (env) {
+            case NORMAL, CUSTOM -> "overworld";
+            case NETHER -> "the_nether";
+            case THE_END -> "the_end";
+        })));
+    }
+
+    private net.minecraft.world.level.chunk.ChunkGenerator chunkGenerator(RegistryAccess access) {
+        var settings = new FlatLevelGeneratorSettings(Optional.empty(), access.registryOrThrow(Registries.BIOME).getHolderOrThrow(Biomes.THE_VOID), List.of());
+        settings.getLayersInfo().add(new FlatLayerInfo(1, Blocks.AIR));
+        settings.updateLayers();
+        return new FlatLevelSource(settings);
+    }
+
+    private static class ServerLevelAdvice {
+        @SneakyThrows
+        @Advice.OnMethodEnter
+        static void enter(
+                @Advice.Argument(0) MinecraftServer server,
+                @Advice.Argument(3) PrimaryLevelData levelData,
+                @Advice.Argument(value = 5, readOnly = false) LevelStem levelStem,
+                @Advice.Argument(12) World.Environment env,
+                @Advice.Argument(value = 13) ChunkGenerator gen
+        ) {
+            if (gen == null || !gen.getClass().getPackageName().startsWith("com.volmit.iris"))
+                return;
+
+            Object bindings = Class.forName("com.volmit.iris.core.nms.INMS", true, Bukkit.getPluginManager().getPlugin("Iris")
+                            .getClass()
+                            .getClassLoader())
+                    .getDeclaredMethod("get")
+                    .invoke(null);
+            levelStem = (LevelStem) bindings.getClass()
+                    .getDeclaredMethod("levelStem", RegistryAccess.class, World.Environment.class)
+                    .invoke(bindings, server.registryAccess(), env);
+            levelData.customDimensions = null;
+        }
     }
 }

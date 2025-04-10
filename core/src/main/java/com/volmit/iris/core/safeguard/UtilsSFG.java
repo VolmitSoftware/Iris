@@ -44,6 +44,11 @@ public class UtilsSFG {
                 Iris.safeguard(C.RED + "- Required Iris dimension types were not loaded.");
                 Iris.safeguard(C.RED + "- If this still happens after a restart please contact support.");
             }
+            if (ServerBootSFG.missingAgent) {
+                Iris.safeguard(C.RED + "Java Agent");
+                Iris.safeguard(C.RED + "- Please enable dynamic agent loading by adding -XX:+EnableDynamicAgentLoading to your jvm arguments.");
+                Iris.safeguard(C.RED + "- or add the jvm argument -javaagent:plugins/" + Iris.instance.getJarFile().getName());
+            }
             if (!ServerBootSFG.passedserversoftware) {
                 Iris.safeguard(C.YELLOW + "Unsupported Server Software");
                 Iris.safeguard(C.YELLOW + "- Please consider using Paper or Purpur instead.");

@@ -130,7 +130,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             if (initialized || !world.name().equals(event.getWorld().getName()))
                 return;
             AutoClosing.closeContext();
-            INMS.get().removeCustomDimensions(event.getWorld());
             world.setRawWorldSeed(event.getWorld().getSeed());
             Engine engine = getEngine(event.getWorld());
             if (engine == null) {

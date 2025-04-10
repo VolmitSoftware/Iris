@@ -121,23 +121,13 @@ public class NMSBinding1X implements INMSBinding {
     }
 
     @Override
-    public AutoClosing injectLevelStems() {
-        return new AutoClosing(() -> {});
-    }
-
-    @Override
-    public AutoClosing injectUncached(boolean overworld, boolean nether, boolean end) {
-        return injectLevelStems();
+    public KMap<String, World.Environment> getMainWorlds() {
+        return new KMap<>();
     }
 
     @Override
     public boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end) {
         return false;
-    }
-
-    @Override
-    public void removeCustomDimensions(World world) {
-
     }
 
     @Override

@@ -40,7 +40,7 @@ class PregenCacheImpl implements PregenCache {
 
     @RegionCoordinates
     public boolean isRegionCached(int x, int z) {
-        var plate = cache.get(new Pos(x >>= 5, z >>= 5));
+        var plate = cache.get(new Pos((x >>= 5) >> 5, (z >>= 5) >> 5));
         if (plate == null) return false;
         return plate.isCached(x & 31, z & 31, Region::isCached);
     }
@@ -53,7 +53,7 @@ class PregenCacheImpl implements PregenCache {
 
     @RegionCoordinates
     public void cacheRegion(int x, int z) {
-        var plate = cache.get(new Pos(x >>= 5, z >>= 5));
+        var plate = cache.get(new Pos((x >>= 5) >> 5, (z >>= 5) >> 5));
         plate.cache(x & 31, z & 31, Region::cache);
     }
 

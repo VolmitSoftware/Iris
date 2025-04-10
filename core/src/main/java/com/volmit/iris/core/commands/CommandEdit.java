@@ -26,6 +26,8 @@ import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
+import com.volmit.iris.util.decree.specialhandlers.NullableBiomeHandler;
+import com.volmit.iris.util.decree.specialhandlers.NullableRegionHandler;
 import com.volmit.iris.util.format.C;
 import org.bukkit.block.Biome;
 

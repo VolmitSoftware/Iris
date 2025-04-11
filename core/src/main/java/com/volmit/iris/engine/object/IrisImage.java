@@ -123,8 +123,6 @@ public class IrisImage extends IrisRegistrant {
     }
 
     public void writeDebug(IrisImageChannel channel) {
-
-
         try {
             File at = new File(getLoadFile().getParentFile(), "debug-see-" + getLoadFile().getName());
             BufferedImage b = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_RGB);

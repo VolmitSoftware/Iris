@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.gui.NoiseExplorerGUI;
 import com.volmit.iris.core.gui.VisionGUI;
+import com.volmit.iris.core.gui.components.IrisRenderer;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.service.ConversionSVC;
@@ -65,6 +66,9 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
+import javax.imageio.ImageIO;
+import java.awt.Color;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -154,6 +158,37 @@ public class CommandStudio implements DecreeExecutor {
             IrisDimension dimension
     ) {
         sender().sendMessage(C.GREEN + "The \"" + dimension.getName() + "\" pack has version: " + dimension.getVersion());
+    }
+
+    @Decree(description = "Debug image")
+    public void printImageChannel(
+            @Param(name = "image", description = "Image found in the image folder inside the project")
+            String image,
+            @Param(name = "channel", description = "Image channel")
+            IrisImageChannel channel
+    ) {
+        if (noStudio()) return;
+        try {
+            File file = new File(access().getEngine().getComplex().getData().getDataFolder(), "images/" + image);
+            if (!file.exists()) {
+                sender().sendMessage(C.RED + "The image \"" + image + "\" does not exist.");
+                return;
+            }
+            BufferedImage buffer = ImageIO.read(file);
+            IrisImage irisImage = new IrisImage(buffer);
+            File at = new File(file.getParentFile(), "debug-see-" + file.getName());
+            BufferedImage b = new BufferedImage(buffer.getWidth(), buffer.getHeight(), BufferedImage.TYPE_INT_RGB);
+            for (int i = 0; i < buffer.getWidth(); i++) {
+                for (int j = 0; j < buffer.getHeight(); j++) {
+                    b.setRGB(i, j, Color.getHSBColor(0, 0, (float) irisImage.getValue(channel, i, j)).getRGB());
+                }
+            }
+            ImageIO.write(b, "png", at);
+            sender().sendMessage(C.IRIS + "Debug image written to ./images for channel " + channel.name());
+        } catch (Exception e) {
+            sender().sendMessage(C.RED + "Something went wrong.. ");
+            e.printStackTrace();
+        }
     }
 
     @Decree(name = "regen", description = "Regenerate nearby chunks.", aliases = "rg", sync = true, origin = DecreeOrigin.PLAYER)
@@ -849,7 +884,7 @@ public class CommandStudio implements DecreeExecutor {
             sender().sendMessage(C.RED + "No studio world is open!");
             return true;
         }
-        if (!engine().isStudio()) {
+       if (engine() == null || !engine().isStudio()) {
             sender().sendMessage(C.RED + "You must be in a studio world!");
             return true;
         }

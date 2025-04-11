@@ -56,6 +56,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
 
+//todo
+// - Misalignment
+// - Weird snapping?
 public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener, MouseMotionListener, MouseInputListener {
     private static final long serialVersionUID = 2094606939770332040L;
     private final KList<LivingEntity> lastEntities = new KList<>();

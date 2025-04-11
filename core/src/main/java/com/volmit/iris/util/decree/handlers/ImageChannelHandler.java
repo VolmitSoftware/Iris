@@ -33,7 +33,7 @@ public class ImageChannelHandler implements DecreeParameterHandler<IrisImageChan
 
     @Override
     public String toString(IrisImageChannel channel) {
-        return channel.toString();
+        return channel.name();
     }
 
     @Override

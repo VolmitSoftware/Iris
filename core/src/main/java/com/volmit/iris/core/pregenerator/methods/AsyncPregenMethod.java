@@ -50,10 +50,10 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
 
         this.world = world;
-        service = IrisSettings.get().getConcurrency().isUseVirtualThreads() ?
+        service = IrisSettings.get().getPregen().isUseVirtualThreads() ?
                 Executors.newVirtualThreadPerTaskExecutor() :
                 new MultiBurst("Iris Async Pregen", Thread.MIN_PRIORITY);
-        semaphore = new Semaphore(256);
+        semaphore = new Semaphore(IrisSettings.get().getPregen().getMaxConcurrency());
         this.lastUse = new KMap<>();
     }
 

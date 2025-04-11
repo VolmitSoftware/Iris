@@ -36,6 +36,7 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.CountingDataInputStream;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.mantle.TectonicPlate;
+import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.nbt.mca.MCAFile;
 import com.volmit.iris.util.nbt.mca.MCAUtil;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -113,6 +114,42 @@ public class CommandDeveloper implements DecreeExecutor {
         Iris.info(C.DARK_PURPLE + "Highest Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration(highestUnloadDuration));
         Iris.info(C.DARK_PURPLE + "Cache Size: " + C.LIGHT_PURPLE + Form.f(IrisData.cacheSize()));
         Iris.info("-------------------------");
+    }
+
+    @Decree(description = "Test")
+    public void dumpThreads() {
+        try {
+            File fi = Iris.instance.getDataFile("dump", "td-" + new java.sql.Date(M.ms()) + ".txt");
+            FileOutputStream fos = new FileOutputStream(fi);
+            Map<Thread, StackTraceElement[]> f = Thread.getAllStackTraces();
+            PrintWriter pw = new PrintWriter(fos);
+
+            pw.println(Thread.activeCount() + "/" + f.size());
+            var run = Runtime.getRuntime();
+            pw.println("Memory:");
+            pw.println("\tMax: " + run.maxMemory());
+            pw.println("\tTotal: " + run.totalMemory());
+            pw.println("\tFree: " + run.freeMemory());
+            pw.println("\tUsed: " + (run.totalMemory() - run.freeMemory()));
+
+            for (Thread i : f.keySet()) {
+                pw.println("========================================");
+                pw.println("Thread: '" + i.getName() + "' ID: " + i.getId() + " STATUS: " + i.getState().name());
+
+                for (StackTraceElement j : f.get(i)) {
+                    pw.println("    @ " + j.toString());
+                }
+
+                pw.println("========================================");
+                pw.println();
+                pw.println();
+            }
+
+            pw.close();
+            Iris.info("DUMPED! See " + fi.getAbsolutePath());
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
     }
 
     @Decree(description = "Test")

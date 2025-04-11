@@ -181,42 +181,42 @@ public class MultiBurst implements ExecutorService {
     @NotNull
     @Override
     public <T> Future<T> submit(@NotNull Callable<T> task) {
-        return service.submit(task);
+        return getService().submit(task);
     }
 
     @NotNull
     @Override
     public <T> Future<T> submit(@NotNull Runnable task, T result) {
-        return service.submit(task, result);
+        return getService().submit(task, result);
     }
 
     @NotNull
     @Override
     public Future<?> submit(@NotNull Runnable task) {
-        return service.submit(task);
+        return getService().submit(task);
     }
 
     @NotNull
     @Override
     public <T> List<Future<T>> invokeAll(@NotNull Collection<? extends Callable<T>> tasks) throws InterruptedException {
-        return service.invokeAll(tasks);
+        return getService().invokeAll(tasks);
     }
 
     @NotNull
     @Override
     public <T> List<Future<T>> invokeAll(@NotNull Collection<? extends Callable<T>> tasks, long timeout, @NotNull TimeUnit unit) throws InterruptedException {
-        return service.invokeAll(tasks, timeout, unit);
+        return getService().invokeAll(tasks, timeout, unit);
     }
 
     @NotNull
     @Override
     public <T> T invokeAny(@NotNull Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
-        return service.invokeAny(tasks);
+        return getService().invokeAny(tasks);
     }
 
     @Override
     public <T> T invokeAny(@NotNull Collection<? extends Callable<T>> tasks, long timeout, @NotNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-        return service.invokeAny(tasks, timeout, unit);
+        return getService().invokeAny(tasks, timeout, unit);
     }
 
     public void close() {

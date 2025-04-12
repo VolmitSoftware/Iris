@@ -42,6 +42,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private final World world;
     private final ExecutorService service;
     private final Semaphore semaphore;
+    private final int threads;
     private final Map<Chunk, Long> lastUse;
 
     public AsyncPregenMethod(World world, int threads) {
@@ -53,7 +54,8 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         service = IrisSettings.get().getPregen().isUseVirtualThreads() ?
                 Executors.newVirtualThreadPerTaskExecutor() :
                 new MultiBurst("Iris Async Pregen", Thread.MIN_PRIORITY);
-        semaphore = new Semaphore(IrisSettings.get().getPregen().getMaxConcurrency());
+        this.threads = IrisSettings.get().getPregen().getMaxConcurrency();
+        semaphore = new Semaphore(threads);
         this.lastUse = new KMap<>();
     }
 
@@ -106,7 +108,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
     @Override
     public void close() {
-        semaphore.acquireUninterruptibly(256);
+        semaphore.acquireUninterruptibly(threads);
         unloadAndSaveAllChunks();
         service.shutdown();
     }

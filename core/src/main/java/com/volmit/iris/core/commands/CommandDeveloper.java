@@ -107,7 +107,7 @@ public class CommandDeveloper implements DecreeExecutor {
     public void packBenchmark(
             @Param(description = "The pack to bench", aliases = {"pack"}, defaultValue = "overworld")
             IrisDimension dimension,
-            @Param(description = "Radius in regions", defaultValue = "5")
+            @Param(description = "Radius in regions", defaultValue = "2048")
             int radius,
             @Param(description = "Open GUI while benchmarking", defaultValue = "false")
             boolean gui

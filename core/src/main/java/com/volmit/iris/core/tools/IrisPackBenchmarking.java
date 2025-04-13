@@ -146,8 +146,8 @@ public class IrisPackBenchmarking {
         IrisToolbelt.pregenerate(PregenTask
                 .builder()
                 .gui(gui)
-                .width(radius)
-                .height(radius)
+                .radiusX(radius)
+                .radiusZ(radius)
                 .build(), Bukkit.getWorld("benchmark")
         );
     }

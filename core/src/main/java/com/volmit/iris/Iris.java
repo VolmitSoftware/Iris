@@ -35,6 +35,7 @@ import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.engine.object.IrisCompat;
+import com.volmit.iris.engine.object.IrisContextInjector;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
@@ -458,9 +459,12 @@ public class Iris extends VolmitPlugin implements Listener {
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
         INMS.get();
         IO.delete(new File("iris"));
+        compat = IrisCompat.configured(getDataFile("compat.json"));
+        ServerConfigurator.configure();
+        new IrisContextInjector();
         IrisSafeguard.IrisSafeguardSystem();
         getSender().setTag(getTag());
-        compat = IrisCompat.configured(getDataFile("compat.json"));
+        IrisSafeguard.earlySplash();
         linkMultiverseCore = new MultiverseCoreLink();
         linkMythicMobs = new MythicMobsLink();
         configWatcher = new FileWatcher(getDataFile("settings.json"));
@@ -515,11 +519,10 @@ public class Iris extends VolmitPlugin implements Listener {
                 Iris.info("Loading World: %s | Generator: %s", s, generator);
 
                 Iris.info(C.LIGHT_PURPLE + "Preparing Spawn for " + s + "' using Iris:" + generator + "...");
-                new WorldCreator(s)
-                        .type(IrisWorldCreator.IRIS)
+                WorldCreator c = new WorldCreator(s)
                         .generator(getDefaultWorldGenerator(s, generator))
-                        .environment(IrisData.loadAnyDimension(generator).getEnvironment())
-                        .createWorld();
+                        .environment(IrisData.loadAnyDimension(generator).getEnvironment());
+                INMS.get().createWorld(c);
                 Iris.info(C.LIGHT_PURPLE + "Loaded " + s + "!");
             }
         } catch (Throwable e) {

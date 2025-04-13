@@ -18,6 +18,7 @@
 
 package com.volmit.iris.core.nms;
 
+import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.engine.framework.Engine;
@@ -30,15 +31,12 @@ import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
-import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
-import org.bukkit.generator.structure.Structure;
 import org.bukkit.inventory.ItemStack;
 
-import java.awt.*;
 import java.awt.Color;
 
 public interface INMSBinding {
@@ -91,7 +89,13 @@ public interface INMSBinding {
     MCABiomeContainer newBiomeContainer(int min, int max);
 
     default World createWorld(WorldCreator c) {
-        return c.createWorld();
+        if (missingDimensionTypes(true, true, true))
+            throw new IllegalStateException("Missing dimenstion types to create world");
+
+        try (var ignored = injectLevelStems()) {
+            ignored.storeContext();
+            return c.createWorld();
+        }
     }
 
     int countCustomBiomes();
@@ -125,4 +129,14 @@ public interface INMSBinding {
     }
 
     KList<String> getStructureKeys();
+
+    AutoClosing injectLevelStems();
+
+    default AutoClosing injectUncached(boolean overworld, boolean nether, boolean end) {
+        return null;
+    }
+
+    boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end);
+
+    void removeCustomDimensions(World world);
 }

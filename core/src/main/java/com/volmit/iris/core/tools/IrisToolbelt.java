@@ -153,7 +153,7 @@ public class IrisToolbelt {
      * @return the pregenerator job (already started)
      */
     public static PregeneratorJob pregenerate(PregenTask task, PregeneratorMethod method, Engine engine, boolean cached) {
-        return new PregeneratorJob(task, cached && engine != null ? new CachedPregenMethod(method, new File(engine.getWorld().worldFolder(), "iris/pregen")) : method, engine);
+        return new PregeneratorJob(task, cached && engine != null ? new CachedPregenMethod(method, engine.getWorld().name()) : method, engine);
     }
 
     /**

@@ -1,21 +1,26 @@
 package com.volmit.iris.core.pregenerator.methods;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.pregenerator.cache.PregenCache;
+import com.volmit.iris.core.service.GlobalCacheSVC;
 import com.volmit.iris.util.mantle.Mantle;
 import lombok.AllArgsConstructor;
-
-import java.io.*;
 
 @AllArgsConstructor
 public class CachedPregenMethod implements PregeneratorMethod {
     private final PregeneratorMethod method;
     private final PregenCache cache;
 
-    public CachedPregenMethod(PregeneratorMethod method, File file) {
+    public CachedPregenMethod(PregeneratorMethod method, String worldName) {
         this.method = method;
-        cache = PregenCache.create(file);
+        var cache = Iris.service(GlobalCacheSVC.class).get(worldName);
+        if (cache == null) {
+            Iris.debug("Could not find existing cache for " + worldName  + " creating fallback");
+            cache = GlobalCacheSVC.createDefault(worldName);
+        }
+        this.cache = cache;
     }
 
     @Override

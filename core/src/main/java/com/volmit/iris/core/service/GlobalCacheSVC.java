@@ -99,6 +99,6 @@ public class GlobalCacheSVC implements IrisService {
     }
 
     private static PregenCache createDefault0(String worldName) {
-        return PregenCache.create(new File(Bukkit.getWorldContainer(), String.join(File.pathSeparator, worldName, "iris", "pregen"))).sync();
+        return PregenCache.create(new File(Bukkit.getWorldContainer(), String.join(File.separator, worldName, "iris", "pregen"))).sync();
     }
 }

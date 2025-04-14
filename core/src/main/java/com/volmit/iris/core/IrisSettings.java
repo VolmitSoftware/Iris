@@ -130,6 +130,7 @@ public class IrisSettings {
         public boolean markerEntitySpawningSystem = true;
         public boolean effectSystem = true;
         public boolean worldEditWandCUI = true;
+        public boolean globalPregenCache = true;
     }
 
     @Data

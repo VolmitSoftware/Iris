@@ -221,27 +221,31 @@ public class MultiBurst implements ExecutorService {
 
     public void close() {
         if (service != null) {
-            service.shutdown();
-            PrecisionStopwatch p = PrecisionStopwatch.start();
-            try {
-                while (!service.awaitTermination(1, TimeUnit.SECONDS)) {
-                    Iris.info("Still waiting to shutdown burster...");
-                    if (p.getMilliseconds() > 7000) {
-                        Iris.warn("Forcing Shutdown...");
+            close(service);
+        }
+    }
 
-                        try {
-                            service.shutdownNow();
-                        } catch (Throwable e) {
+    public static void close(ExecutorService service) {
+        service.shutdown();
+        PrecisionStopwatch p = PrecisionStopwatch.start();
+        try {
+            while (!service.awaitTermination(1, TimeUnit.SECONDS)) {
+                Iris.info("Still waiting to shutdown burster...");
+                if (p.getMilliseconds() > 7000) {
+                    Iris.warn("Forcing Shutdown...");
 
-                        }
+                    try {
+                        service.shutdownNow();
+                    } catch (Throwable e) {
 
-                        break;
                     }
+
+                    break;
                 }
-            } catch (Throwable e) {
-                e.printStackTrace();
-                Iris.reportError(e);
             }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Iris.reportError(e);
         }
     }
 }

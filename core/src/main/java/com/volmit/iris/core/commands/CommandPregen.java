@@ -39,7 +39,9 @@ public class CommandPregen implements DecreeExecutor {
             @Param(description = "The world to pregen", contextual = true)
             World world,
             @Param(aliases = "middle", description = "The center location of the pregen. Use \"me\" for your current location", defaultValue = "0,0")
-            Vector center
+            Vector center,
+            @Param(description = "Open the Iris pregen gui", defaultValue = "true")
+            boolean gui
             ) {
         try {
             if (sender().isPlayer() && access() == null) {
@@ -50,7 +52,7 @@ public class CommandPregen implements DecreeExecutor {
             IrisToolbelt.pregenerate(PregenTask
                     .builder()
                     .center(new Position2(center.getBlockX(), center.getBlockZ()))
-                    .gui(true)
+                    .gui(gui)
                     .radiusX(radius)
                     .radiusZ(radius)
                     .build(), world);

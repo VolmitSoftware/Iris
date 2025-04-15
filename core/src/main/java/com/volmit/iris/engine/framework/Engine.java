@@ -75,6 +75,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
 import java.util.Arrays;
@@ -852,6 +853,25 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return getBiomeOrMantle(l.getBlockX(), l.getBlockY(), l.getBlockZ());
     }
 
+    @Nullable
+    @BlockCoordinates
+    default Position2 getNearestStronghold(Position2 pos) {
+        KList<Position2> p = getDimension().getStrongholds(getSeedManager().getMantle());
+        if (p.isEmpty()) return null;
+
+        Position2 pr = null;
+        double d = Double.MAX_VALUE;
+
+        for (Position2 i : p) {
+            double dx = i.distance(pos);
+            if (dx < d) {
+                d = dx;
+                pr = i;
+            }
+        }
+        return pr;
+    }
+
     default void gotoBiome(IrisBiome biome, Player player, boolean teleport) {
         Set<String> regionKeys = getDimension()
                 .getAllRegions(this).stream()
@@ -872,31 +892,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     default void gotoJigsaw(IrisJigsawStructure s, Player player, boolean teleport) {
         if (s.getLoadKey().equals(getDimension().getStronghold())) {
-            KList<Position2> p = getDimension().getStrongholds(getSeedManager().getMantle());
-
-            if (p.isEmpty()) {
+            Position2 pr = getNearestStronghold(new Position2(player.getLocation().getBlockX(), player.getLocation().getBlockZ()));
+            if (pr == null) {
                 player.sendMessage(C.GOLD + "No strongholds in world.");
-            }
-
-            Position2 px = new Position2(player.getLocation().getBlockX(), player.getLocation().getBlockZ());
-            Position2 pr = null;
-            double d = Double.MAX_VALUE;
-
-            Iris.debug("Ps: " + p.size());
-
-            for (Position2 i : p) {
-                Iris.debug("- " + i.getX() + " " + i.getZ());
-            }
-
-            for (Position2 i : p) {
-                double dx = i.distance(px);
-                if (dx < d) {
-                    d = dx;
-                    pr = i;
-                }
-            }
-
-            if (pr != null) {
+            } else {
                 Location ll = new Location(player.getWorld(), pr.getX(), 40, pr.getZ());
                 J.s(() -> player.teleport(ll));
             }

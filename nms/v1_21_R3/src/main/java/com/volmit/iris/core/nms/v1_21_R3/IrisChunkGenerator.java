@@ -209,7 +209,7 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
 
     @Override
     public WeightedRandomList<MobSpawnSettings.SpawnerData> getMobsAt(Holder<Biome> holder, StructureManager structuremanager, MobCategory enumcreaturetype, BlockPos blockposition) {
-        return delegate.getMobsAt(holder, structuremanager, enumcreaturetype, blockposition);
+        return WeightedRandomList.create();
     }
 
     @Override

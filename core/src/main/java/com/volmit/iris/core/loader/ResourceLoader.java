@@ -44,6 +44,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -217,6 +218,10 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
 
     public Stream<T> streamAll(Stream<String> s) {
         return s.map(this::load);
+    }
+
+    public Stream<T> streamAllPossible() {
+        return streamAll(Arrays.stream(getPossibleKeys()));
     }
 
     public KList<T> loadAll(KList<String> s) {

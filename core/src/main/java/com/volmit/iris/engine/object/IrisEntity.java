@@ -404,7 +404,7 @@ public class IrisEntity extends IrisRegistrant {
         });
 
 
-        return e;
+        return e.isValid() ? e : null;
     }
 
     private int surfaceY(Location l) {

@@ -74,6 +74,9 @@ public class IrisSpawner extends IrisRegistrant {
     @Desc("Where should these spawns be placed")
     private IrisSpawnGroup group = IrisSpawnGroup.NORMAL;
 
+    @Desc("Conditions for this spawner to be triggered")
+    private IrisSpawnCondition conditions = new IrisSpawnCondition();
+
     public boolean isValid(IrisBiome biome) {
         return switch (group) {
             case NORMAL -> switch (biome.getInferredType()) {

@@ -28,19 +28,12 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.matter.MatterMarker;
 import com.volmit.iris.util.matter.slices.MarkerMatter;
-import io.lumine.mythic.bukkit.adapters.BukkitEntity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.util.BoundingBox;
 
 @Snippet("entity-spawn")
 @Accessors(chain = true)
@@ -68,6 +61,10 @@ public class IrisEntitySpawn implements IRare {
     private int maxSpawns = 1;
     private transient IrisSpawner referenceSpawner;
     private transient IrisMarker referenceMarker;
+
+    public boolean check(Engine eng, IrisPosition c, ChunkSnapshot snapshot) {
+        return getRealEntity(eng).getSurface().matches(snapshot.getBlockData(c.getX() & 15, c.getY(), c.getZ() & 15));
+    }
 
     public int spawn(Engine gen, Chunk c, RNG rng) {
         int spawns = minSpawns == maxSpawns ? minSpawns : rng.i(Math.min(minSpawns, maxSpawns), Math.max(minSpawns, maxSpawns));
@@ -168,7 +165,7 @@ public class IrisEntitySpawn implements IRare {
                 return null;
             }
 
-            if (!ignoreSurfaces && !irisEntity.getSurface().matches(at.clone().subtract(0, 1, 0).getBlock())) {
+            if (!ignoreSurfaces && !irisEntity.getSurface().matches(at.clone().subtract(0, 1, 0).getBlock().getBlockData())) {
                 return null;
             }
 
@@ -183,6 +180,10 @@ public class IrisEntitySpawn implements IRare {
             Entity e = irisEntity.spawn(g, at.add(0.5, 0.5, 0.5), rng.aquire(() -> new RNG(g.getSeedManager().getEntity())));
             if (e != null) {
                 Iris.debug("Spawned " + C.DARK_AQUA + "Entity<" + getEntity() + "> " + C.GREEN + e.getType() + C.LIGHT_PURPLE + " @ " + C.GRAY + e.getLocation().getX() + ", " + e.getLocation().getY() + ", " + e.getLocation().getZ());
+
+                if (referenceSpawner != null) {
+                    referenceSpawner.getConditions().apply(e);
+                }
             }
 
             return e;

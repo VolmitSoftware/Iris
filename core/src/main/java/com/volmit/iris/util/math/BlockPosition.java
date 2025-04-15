@@ -19,10 +19,13 @@
 package com.volmit.iris.util.math;
 
 import lombok.Data;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
 import java.util.Objects;
+
+import static com.volmit.iris.util.math.RNG.r;
 
 @Data
 public class BlockPosition {
@@ -41,6 +44,10 @@ public class BlockPosition {
         this.x = x;
         this.y = y;
         this.z = z;
+    }
+
+    public static BlockPosition fromLocation(Location loc) {
+        return new BlockPosition(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
     }
 
     public static long toLong(int x, int y, int z) {
@@ -107,5 +114,19 @@ public class BlockPosition {
         setX(Math.max(i.getX(), getX()));
         setY(Math.max(i.getY(), getY()));
         setZ(Math.max(i.getZ(), getZ()));
+    }
+
+    public BlockPosition randomPoint(int radius, int innerRadius) {
+        int max = radius * radius;
+        int min = innerRadius * innerRadius;
+
+        while (true) {
+            int x = r.nextInt(-radius, radius + 1);
+            int y = r.nextInt(-radius, radius + 1);
+            int z = r.nextInt(-radius, radius + 1);
+            double dist = x * x + y * y + z * z;
+            if (dist < min || dist > max) continue;
+            return add(x, y, z);
+        }
     }
 }

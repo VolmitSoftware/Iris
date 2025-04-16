@@ -18,6 +18,10 @@
 
 package com.volmit.iris.util.io;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.format.Form;
 
@@ -134,8 +138,7 @@ public class IO {
                     continue;
                 }
 
-                try (var fin = new FileInputStream(file)) {
-                    var din = new CheckedInputStream(fin, crc);
+                try (var din = new CheckedInputStream(readDeterministic(file), crc)) {
                     fullTransfer(din, new VoidOutputStream(), 8192);
                 } catch (IOException e) {
                     Iris.reportError(e);
@@ -152,10 +155,43 @@ public class IO {
         return 0;
     }
 
+    public static InputStream readDeterministic(File file) throws IOException {
+        if (!file.getName().endsWith(".json"))
+            return new FileInputStream(file);
+
+        JsonElement json;
+        try (FileReader reader = new FileReader(file)) {
+            json = JsonParser.parseReader(reader);
+        }
+
+        var queue = new LinkedList<JsonElement>();
+        queue.add(json);
+
+        while (!queue.isEmpty()) {
+            var element = queue.pop();
+            Collection<JsonElement> add = List.of();
+
+            if (element instanceof JsonObject obj) {
+                var map = obj.asMap();
+                var sorted = new TreeMap<>(map);
+                map.clear();
+                map.putAll(sorted);
+
+                add = sorted.values();
+            } else if (element instanceof JsonArray array) {
+                add = array.asList();
+            }
+
+            add.stream().filter(e -> e.isJsonObject() || e.isJsonArray()).forEach(queue::add);
+        }
+
+        return toInputStream(json.toString());
+    }
+
     public static String hash(File b) {
         try {
             MessageDigest d = MessageDigest.getInstance("SHA-256");
-            DigestInputStream din = new DigestInputStream(new FileInputStream(b), d);
+            DigestInputStream din = new DigestInputStream(readDeterministic(b), d);
             fullTransfer(din, new VoidOutputStream(), 8192);
             din.close();
             return bytesToHex(din.getMessageDigest().digest());

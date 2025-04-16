@@ -24,7 +24,6 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.VolmitSender;
-import com.volmit.iris.util.scheduling.ChronoLatch;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -45,6 +44,7 @@ public class IrisSettings {
     private IrisSettingsStudio studio = new IrisSettingsStudio();
     private IrisSettingsPerformance performance = new IrisSettingsPerformance();
     private IrisSettingsUpdater updater = new IrisSettingsUpdater();
+    private IrisSettingsPregen pregen = new IrisSettingsPregen();
 
     public static int getThreadCount(int c) {
         return switch (c) {
@@ -130,11 +130,18 @@ public class IrisSettings {
         public boolean markerEntitySpawningSystem = true;
         public boolean effectSystem = true;
         public boolean worldEditWandCUI = true;
+        public boolean globalPregenCache = true;
     }
 
     @Data
     public static class IrisSettingsConcurrency {
         public int parallelism = -1;
+    }
+
+    @Data
+    public static class IrisSettingsPregen {
+        public boolean useVirtualThreads = false;
+        public int maxConcurrency = 256;
     }
 
     @Data

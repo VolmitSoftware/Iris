@@ -19,11 +19,15 @@
 package com.volmit.iris.core.pregenerator;
 
 public interface PregenListener {
-    void onTick(double chunksPerSecond, double chunksPerMinute, double regionsPerMinute, double percent, int generated, int totalChunks, int chunksRemaining, long eta, long elapsed, String method);
+    void onTick(double chunksPerSecond, double chunksPerMinute, double regionsPerMinute, double percent, long generated, long totalChunks, long chunksRemaining, long eta, long elapsed, String method, boolean cached);
 
     void onChunkGenerating(int x, int z);
 
-    void onChunkGenerated(int x, int z);
+    default void onChunkGenerated(int x, int z) {
+        onChunkGenerated(x, z, false);
+    }
+
+    void onChunkGenerated(int x, int z, boolean cached);
 
     void onRegionGenerated(int x, int z);
 

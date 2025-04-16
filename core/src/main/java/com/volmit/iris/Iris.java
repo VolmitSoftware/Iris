@@ -620,12 +620,22 @@ public class Iris extends VolmitPlugin implements Listener {
             Iris.warn("=");
             Iris.warn("============================================");
         }
-        if (!instance.getServer().getVersion().contains("Purpur")) {
-            passed = false;
+
+        try {
+            Class.forName("io.papermc.paper.configuration.PaperConfigurations");
+        } catch (ClassNotFoundException e) {
+            Iris.info(C.RED + "Iris requires paper or above to function properly..");
+            return false;
+        }
+
+        try {
+            Class.forName("org.purpurmc.purpur.PurpurConfig");
+        } catch (ClassNotFoundException e) {
             Iris.info("We recommend using Purpur for the best experience with Iris.");
             Iris.info("Purpur is a fork of Paper that is optimized for performance and stability.");
             Iris.info("Plugins that work on Spigot / Paper work on Purpur.");
             Iris.info("You can download it here: https://purpurmc.org");
+            return false;
         }
         return passed;
     }
@@ -850,13 +860,6 @@ public class Iris extends VolmitPlugin implements Listener {
             Iris.info("Server type & version: " + C.RED + Bukkit.getVersion());
         } else { Iris.info("Server type & version: " + Bukkit.getVersion()); }
         Iris.info("Java: " + getJava());
-        if (!instance.getServer().getVersion().contains("Purpur")) {
-            if (instance.getServer().getVersion().contains("Spigot") && instance.getServer().getVersion().contains("Bukkit")) {
-                 Iris.info(C.RED + " Iris requires paper or above to function properly..");
-            } else {
-                Iris.info(C.YELLOW + "Purpur is recommended to use with iris.");
-            }
-        }
         if (getHardware.getProcessMemory() < 5999) {
             Iris.warn("6GB+ Ram is recommended");
             Iris.warn("Process Memory: " + getHardware.getProcessMemory() + " MB");

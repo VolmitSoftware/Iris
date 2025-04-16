@@ -7,6 +7,7 @@ import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.agent.Agent;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -22,7 +23,6 @@ import com.volmit.iris.util.nbt.mca.palette.*;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.scheduling.J;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import lombok.SneakyThrows;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.matcher.ElementMatchers;
@@ -49,7 +49,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.FlatLevelSource;
 import net.minecraft.world.level.levelgen.flat.FlatLayerInfo;
@@ -78,6 +77,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.awt.Color;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -700,18 +700,13 @@ public class NMSBinding implements INMSBinding {
         return new ResourceLocation("iris", key.location().getPath());
     }
 
-    public LevelStem levelStem(RegistryAccess access, World.Environment env) {
-        if (env == World.Environment.CUSTOM)
-            env = World.Environment.NORMAL;
-        return stems.computeIfAbsent(env, key -> new LevelStem(dimensionType(access, key), chunkGenerator(access)));
-    }
+    public LevelStem levelStem(RegistryAccess access, ChunkGenerator raw) {
+        if (!(raw instanceof PlatformChunkGenerator gen))
+            throw new IllegalStateException("Generator is not platform chunk generator!");
 
-    private Holder.Reference<DimensionType> dimensionType(RegistryAccess access, World.Environment env) {
-        return access.registryOrThrow(Registries.DIMENSION_TYPE).getHolderOrThrow(ResourceKey.create(Registries.DIMENSION_TYPE, new ResourceLocation("iris", switch (env) {
-            case NORMAL, CUSTOM -> "overworld";
-            case NETHER -> "the_nether";
-            case THE_END -> "the_end";
-        })));
+        var dimensionKey = new ResourceLocation("iris", gen.getTarget().getDimension().getDimensionTypeKey());
+        var dimensionType = access.lookupOrThrow(Registries.DIMENSION_TYPE).getOrThrow(ResourceKey.create(Registries.DIMENSION_TYPE, dimensionKey));
+        return new LevelStem(dimensionType, chunkGenerator(access));
     }
 
     private net.minecraft.world.level.chunk.ChunkGenerator chunkGenerator(RegistryAccess access) {
@@ -722,7 +717,6 @@ public class NMSBinding implements INMSBinding {
     }
 
     private static class ServerLevelAdvice {
-        @SneakyThrows
         @Advice.OnMethodEnter
         static void enter(
                 @Advice.Argument(0) MinecraftServer server,
@@ -734,15 +728,20 @@ public class NMSBinding implements INMSBinding {
             if (gen == null || !gen.getClass().getPackageName().startsWith("com.volmit.iris"))
                 return;
 
-            Object bindings = Class.forName("com.volmit.iris.core.nms.INMS", true, Bukkit.getPluginManager().getPlugin("Iris")
-                            .getClass()
-                            .getClassLoader())
-                    .getDeclaredMethod("get")
-                    .invoke(null);
-            levelStem = (LevelStem) bindings.getClass()
-                    .getDeclaredMethod("levelStem", RegistryAccess.class, World.Environment.class)
-                    .invoke(bindings, server.registryAccess(), env);
-            levelData.customDimensions = null;
+            try {
+                Object bindings = Class.forName("com.volmit.iris.core.nms.INMS", true, Bukkit.getPluginManager().getPlugin("Iris")
+                                .getClass()
+                                .getClassLoader())
+                        .getDeclaredMethod("get")
+                        .invoke(null);
+                levelStem = (LevelStem) bindings.getClass()
+                        .getDeclaredMethod("levelStem", RegistryAccess.class, ChunkGenerator.class)
+                        .invoke(bindings, server.registryAccess(), gen);
+
+                levelData.customDimensions = null;
+            } catch (Throwable e) {
+                throw new RuntimeException("Iris failed to replace the levelStem", e instanceof InvocationTargetException ex ? ex.getCause() : e);
+            }
         }
     }
 }

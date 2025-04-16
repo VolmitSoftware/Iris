@@ -1,7 +1,6 @@
 package com.volmit.iris.core.nms.datapack;
 
 import com.volmit.iris.engine.object.IrisBiomeCustom;
-import com.volmit.iris.engine.object.IrisRange;
 import com.volmit.iris.util.json.JSONObject;
 
 public interface IDataFixer {
@@ -12,17 +11,17 @@ public interface IDataFixer {
 
     JSONObject rawDimension(Dimension dimension);
 
-    default JSONObject createDimension(Dimension dimension, IrisRange height, int logicalHeight) {
+    default JSONObject createDimension(Dimension dimension, int minY, int maxY, int logicalHeight) {
         JSONObject obj = rawDimension(dimension);
-        obj.put("min_y", height.getMin());
-        obj.put("height", height.getMax() - height.getMin());
+        obj.put("min_y", minY);
+        obj.put("height", maxY - minY);
         obj.put("logical_height", logicalHeight);
         return obj;
     }
 
     enum Dimension {
-        OVERRWORLD,
+        OVERWORLD,
         NETHER,
-        THE_END
+        END
     }
 }

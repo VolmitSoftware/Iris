@@ -7,7 +7,7 @@ import java.util.Map;
 public class DataFixerV1192 implements IDataFixer {
 
     private static final Map<Dimension, String> DIMENSIONS = Map.of(
-            Dimension.OVERRWORLD, """
+            Dimension.OVERWORLD, """
             {
               "ambient_light": 0.0,
               "bed_works": true,
@@ -48,7 +48,7 @@ public class DataFixerV1192 implements IDataFixer {
               "respawn_anchor_works": true,
               "ultrawarm": true
             }""",
-            Dimension.THE_END, """
+            Dimension.END, """
             {
               "ambient_light": 0.0,
               "bed_works": false,

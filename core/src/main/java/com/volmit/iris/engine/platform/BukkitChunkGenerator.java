@@ -24,6 +24,7 @@ import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.IrisEngine;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
@@ -86,6 +87,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final boolean studio;
     private final AtomicInteger a = new AtomicInteger(0);
     private final CompletableFuture<Integer> spawnChunks = new CompletableFuture<>();
+    private final AtomicCache<EngineTarget> targetCache = new AtomicCache<>();
     private Engine engine;
     private Looper hotloader;
     private StudioMode lastMode;
@@ -158,37 +160,48 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     private void setupEngine() {
-        IrisData data = IrisData.get(dataLocation);
-        IrisDimension dimension = data.getDimensionLoader().load(dimensionKey);
+        lastMode = StudioMode.NORMAL;
+        engine = new IrisEngine(getTarget(), studio);
+        populators.clear();
+        targetCache.reset();
+    }
 
-        if (dimension == null) {
-            Iris.error("Oh No! There's no pack in " + data.getDataFolder().getPath() + " or... there's no dimension for the key " + dimensionKey);
-            IrisDimension test = IrisData.loadAnyDimension(dimensionKey);
+    @NotNull
+    @Override
+    public EngineTarget getTarget() {
+        if (engine != null) return engine.getTarget();
 
-            if (test != null) {
-                Iris.warn("Looks like " + dimensionKey + " exists in " + test.getLoadFile().getPath() + " ");
-                Iris.service(StudioSVC.class).installIntoWorld(Iris.getSender(), dimensionKey, dataLocation.getParentFile().getParentFile());
-                Iris.warn("Attempted to install into " + data.getDataFolder().getPath());
-                data.dump();
-                data.clearLists();
-                test = data.getDimensionLoader().load(dimensionKey);
+        return targetCache.aquire(() -> {
+            IrisData data = IrisData.get(dataLocation);
+            IrisDimension dimension = data.getDimensionLoader().load(dimensionKey);
+
+            if (dimension == null) {
+                Iris.error("Oh No! There's no pack in " + data.getDataFolder().getPath() + " or... there's no dimension for the key " + dimensionKey);
+                IrisDimension test = IrisData.loadAnyDimension(dimensionKey);
 
                 if (test != null) {
-                    Iris.success("Woo! Patched the Engine!");
-                    dimension = test;
+                    Iris.warn("Looks like " + dimensionKey + " exists in " + test.getLoadFile().getPath() + " ");
+                    Iris.service(StudioSVC.class).installIntoWorld(Iris.getSender(), dimensionKey, dataLocation.getParentFile().getParentFile());
+                    Iris.warn("Attempted to install into " + data.getDataFolder().getPath());
+                    data.dump();
+                    data.clearLists();
+                    test = data.getDimensionLoader().load(dimensionKey);
+
+                    if (test != null) {
+                        Iris.success("Woo! Patched the Engine!");
+                        dimension = test;
+                    } else {
+                        Iris.error("Failed to patch dimension!");
+                        throw new RuntimeException("Missing Dimension: " + dimensionKey);
+                    }
                 } else {
-                    Iris.error("Failed to patch dimension!");
+                    Iris.error("Nope, you don't have an installation containing " + dimensionKey + " try downloading it?");
                     throw new RuntimeException("Missing Dimension: " + dimensionKey);
                 }
-            } else {
-                Iris.error("Nope, you don't have an installation containing " + dimensionKey + " try downloading it?");
-                throw new RuntimeException("Missing Dimension: " + dimensionKey);
             }
-        }
 
-        lastMode = StudioMode.NORMAL;
-        engine = new IrisEngine(new EngineTarget(world, dimension, data), studio);
-        populators.clear();
+            return new EngineTarget(world, dimension, data);
+        });
     }
 
     @Override

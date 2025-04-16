@@ -228,6 +228,10 @@ public class ServerConfigurator {
         return Stream.concat(listFiles(new File("plugins/Iris/packs")),
                         listFiles(Bukkit.getWorldContainer()).map(w -> new File(w, "iris/pack")))
                 .filter(File::isDirectory)
+                .filter( base -> {
+                    var content = new File(base, "dimensions").listFiles();
+                    return content != null && content.length > 0;
+                })
                 .map(IrisData::get);
     }
 

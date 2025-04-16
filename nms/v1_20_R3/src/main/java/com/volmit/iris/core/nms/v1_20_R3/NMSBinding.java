@@ -1,38 +1,56 @@
 package com.volmit.iris.core.nms.v1_20_R3;
 
-import java.awt.Color;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.*;
-import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Pair;
+import com.volmit.iris.Iris;
+import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.agent.Agent;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.misc.ServerProperties;
+import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.math.Vector3d;
+import com.volmit.iris.util.matter.MatterBiomeInject;
+import com.volmit.iris.util.nbt.mca.NBTWorld;
+import com.volmit.iris.util.nbt.mca.palette.*;
+import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.scheduling.J;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.matcher.ElementMatchers;
-import net.minecraft.core.*;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.*;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.commands.data.BlockDataAccessor;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.progress.ChunkProgressListener;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.RandomSequences;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.FlatLevelSource;
 import net.minecraft.world.level.levelgen.flat.FlatLayerInfo;
@@ -58,34 +76,17 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.volmit.iris.Iris;
-import com.volmit.iris.core.nms.INMSBinding;
-import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.json.JSONObject;
-import com.volmit.iris.util.mantle.Mantle;
-import com.volmit.iris.util.math.Vector3d;
-import com.volmit.iris.util.matter.MatterBiomeInject;
-import com.volmit.iris.util.nbt.mca.NBTWorld;
-import com.volmit.iris.util.nbt.mca.palette.*;
-import com.volmit.iris.util.nbt.tag.CompoundTag;
-
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.ChunkStatus;
-import net.minecraft.world.level.chunk.LevelChunk;
+import java.awt.*;
+import java.awt.Color;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.*;
+import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class NMSBinding implements INMSBinding {
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
@@ -646,37 +647,16 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
-    @SuppressWarnings("all")
-    public KMap<String, World.Environment> getMainWorlds() {
-        String levelName = ServerProperties.LEVEL_NAME;
-        KMap<String, World.Environment> worlds = new KMap<>();
-        for (var key : registry().registryOrThrow(Registries.LEVEL_STEM).registryKeySet()) {
-            World.Environment env = World.Environment.NORMAL;
-            if (key == LevelStem.NETHER) {
-                if (!Bukkit.getAllowNether())
-                    continue;
-                env = World.Environment.NETHER;
-            } else if (key == LevelStem.END) {
-                if (!Bukkit.getAllowEnd())
-                    continue;
-                env = World.Environment.THE_END;
-            } else if (key != LevelStem.OVERWORLD) {
-                env = World.Environment.CUSTOM;
-            }
-
-            String worldType = env == World.Environment.CUSTOM ? key.location().getNamespace() + "_" + key.location().getPath() : env.toString().toLowerCase(Locale.ROOT);
-            worlds.put(key == LevelStem.OVERWORLD ? levelName : levelName + "_" + worldType, env);
-        }
-        return worlds;
-    }
-
-    @Override
-    public boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end) {
-        var registry = registry().registryOrThrow(Registries.DIMENSION_TYPE);
-        if (overworld) overworld = !registry.containsKey(createIrisKey(LevelStem.OVERWORLD));
-        if (nether) nether = !registry.containsKey(createIrisKey(LevelStem.NETHER));
-        if (end) end = !registry.containsKey(createIrisKey(LevelStem.END));
-        return overworld || nether || end;
+    public boolean missingDimensionTypes(ChunkGenerator generator) {
+        if (generator == null)
+            return registry().registryOrThrow(Registries.DIMENSION_TYPE)
+                    .keySet()
+                    .stream()
+                    .noneMatch(loc -> loc.getNamespace().equals("iris"));
+        if (!(generator instanceof PlatformChunkGenerator pcg))
+            return false;
+        var dimensionKey = new ResourceLocation("iris", pcg.getTarget().getDimension().getDimensionTypeKey());
+        return !registry().registryOrThrow(Registries.DIMENSION_TYPE).containsKey(dimensionKey);
     }
 
     @Override
@@ -699,10 +679,6 @@ public class NMSBinding implements INMSBinding {
             e.printStackTrace();
         }
         return false;
-    }
-
-    private ResourceLocation createIrisKey(ResourceKey<LevelStem> key) {
-        return new ResourceLocation("iris", key.location().getPath());
     }
 
     public LevelStem levelStem(RegistryAccess access, ChunkGenerator raw) {

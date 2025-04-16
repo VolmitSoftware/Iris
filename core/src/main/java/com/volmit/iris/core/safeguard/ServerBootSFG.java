@@ -4,11 +4,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.util.agent.Agent;
-import com.volmit.iris.util.misc.ServerProperties;
 import org.bukkit.Bukkit;
-import org.bukkit.World;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import javax.tools.JavaCompiler;
@@ -20,7 +16,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
-import java.util.function.Predicate;
 
 import static com.volmit.iris.Iris.getJavaVersion;
 import static com.volmit.iris.core.safeguard.IrisSafeguard.*;
@@ -189,30 +184,6 @@ public class ServerBootSFG {
     }
 
     private static boolean missingDimensionTypes() {
-        var irisWorlds = irisWorlds();
-        if (irisWorlds.isEmpty()) return false;
-
-        var worlds = INMS.get().getMainWorlds();
-        worlds.keySet().removeIf(Predicate.not(irisWorlds::contains));
-
-        boolean overworld = worlds.containsValue(World.Environment.NORMAL) || worlds.containsValue(World.Environment.CUSTOM);
-        boolean nether = worlds.containsValue(World.Environment.NETHER);
-        boolean end = worlds.containsValue(World.Environment.THE_END);
-
-        if (overworld || nether || end)
-            return INMS.get().missingDimensionTypes(overworld, nether, end);
-        return false;
+        return INMS.get().missingDimensionTypes(null);
     }
-
-    private static List<String> irisWorlds() {
-        var config = YamlConfiguration.loadConfiguration(ServerProperties.BUKKIT_YML);
-        ConfigurationSection section = config.getConfigurationSection("worlds");
-        if (section == null) return List.of();
-
-        return section.getKeys(false)
-                .stream()
-                .filter(k -> section.getString(k + ".generator", "").startsWith("Iris"))
-                .toList();
-    }
-
 }

@@ -35,6 +35,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
 
@@ -88,7 +89,7 @@ public interface INMSBinding {
     MCABiomeContainer newBiomeContainer(int min, int max);
 
     default World createWorld(WorldCreator c) {
-        if (missingDimensionTypes(c.environment()))
+        if (missingDimensionTypes(c.generator()))
             throw new IllegalStateException("Missing dimenstion types to create world");
 
         return c.createWorld();
@@ -126,18 +127,7 @@ public interface INMSBinding {
 
     KList<String> getStructureKeys();
 
-    KMap<String, World.Environment> getMainWorlds();
-
-    boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end);
-
-    default boolean missingDimensionTypes(World.Environment env) {
-        return switch (env) {
-            case NORMAL -> missingDimensionTypes(true, false, false);
-            case NETHER -> missingDimensionTypes(false, true, false);
-            case THE_END -> missingDimensionTypes(false, false, true);
-            default -> true;
-        };
-    }
+    boolean missingDimensionTypes(@Nullable ChunkGenerator generator);
 
     default boolean injectBukkit() {
         return true;

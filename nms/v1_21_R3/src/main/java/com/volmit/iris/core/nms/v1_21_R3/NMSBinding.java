@@ -25,12 +25,12 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.matcher.ElementMatchers;
-import net.minecraft.core.Registry;
 import net.minecraft.core.*;
+import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.nbt.Tag;
 import net.minecraft.nbt.*;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -77,13 +77,14 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.*;
 import java.awt.Color;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.List;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -671,37 +672,16 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
-    @SuppressWarnings("all")
-    public KMap<String, World.Environment> getMainWorlds() {
-        String levelName = ServerProperties.LEVEL_NAME;
-        KMap<String, World.Environment> worlds = new KMap<>();
-        for (var key : registry().lookupOrThrow(Registries.LEVEL_STEM).registryKeySet()) {
-            World.Environment env = World.Environment.NORMAL;
-            if (key == LevelStem.NETHER) {
-                if (!Bukkit.getAllowNether())
-                    continue;
-                env = World.Environment.NETHER;
-            } else if (key == LevelStem.END) {
-                if (!Bukkit.getAllowEnd())
-                    continue;
-                env = World.Environment.THE_END;
-            } else if (key != LevelStem.OVERWORLD) {
-                env = World.Environment.CUSTOM;
-            }
-
-            String worldType = env == World.Environment.CUSTOM ? key.location().getNamespace() + "_" + key.location().getPath() : env.toString().toLowerCase(Locale.ROOT);
-            worlds.put(key == LevelStem.OVERWORLD ? levelName : levelName + "_" + worldType, env);
-        }
-        return worlds;
-    }
-
-    @Override
-    public boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end) {
-        var registry = registry().lookupOrThrow(Registries.DIMENSION_TYPE);
-        if (overworld) overworld = !registry.containsKey(createIrisKey(LevelStem.OVERWORLD));
-        if (nether) nether = !registry.containsKey(createIrisKey(LevelStem.NETHER));
-        if (end) end = !registry.containsKey(createIrisKey(LevelStem.END));
-        return overworld || nether || end;
+    public boolean missingDimensionTypes(ChunkGenerator generator) {
+        if (generator == null)
+            return registry().lookupOrThrow(Registries.DIMENSION_TYPE)
+                    .keySet()
+                    .stream()
+                    .noneMatch(loc -> loc.getNamespace().equals("iris"));
+        if (!(generator instanceof PlatformChunkGenerator pcg))
+            return false;
+        var dimensionKey = ResourceLocation.fromNamespaceAndPath("iris", pcg.getTarget().getDimension().getDimensionTypeKey());
+        return !registry().lookupOrThrow(Registries.DIMENSION_TYPE).containsKey(dimensionKey);
     }
 
     @Override

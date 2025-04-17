@@ -23,9 +23,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.core.nms.datapack.IDataFixer;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBiomeCustom;
-import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -296,7 +294,7 @@ public class ServerConfigurator {
             int logicalHeight = data.get(2);
             if (minY == Integer.MAX_VALUE || maxY == Integer.MIN_VALUE || Integer.MIN_VALUE == logicalHeight)
                 return null;
-            return fixer.createDimension(dimension, minY, maxY, logicalHeight).toString(4);
+            return fixer.createDimension(dimension, minY, maxY - minY, logicalHeight, null).toString(4);
         }
     }
 }

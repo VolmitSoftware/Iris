@@ -1,81 +1,104 @@
 package com.volmit.iris.core.nms.datapack.v1192;
 
 import com.volmit.iris.core.nms.datapack.IDataFixer;
+import com.volmit.iris.engine.object.IrisDimensionTypeOptions;
 import com.volmit.iris.util.json.JSONObject;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.Map;
 
+import static com.volmit.iris.engine.object.IrisDimensionTypeOptions.TriState.*;
+
 public class DataFixerV1192 implements IDataFixer {
+    private static final Map<Dimension, IrisDimensionTypeOptions> OPTIONS = Map.of(
+            Dimension.OVERWORLD, new IrisDimensionTypeOptions(
+                    FALSE,
+                    TRUE,
+                    FALSE,
+                    FALSE,
+                    TRUE,
+                    TRUE,
+                    TRUE,
+                    FALSE,
+                    1d,
+                    0f,
+                    null,
+                    192,
+                    0),
+            Dimension.NETHER, new IrisDimensionTypeOptions(
+                    TRUE,
+                    FALSE,
+                    TRUE,
+                    TRUE,
+                    FALSE,
+                    FALSE,
+                    FALSE,
+                    TRUE,
+                    8d,
+                    0.1f,
+                    18000L,
+                    null,
+                    15),
+            Dimension.END, new IrisDimensionTypeOptions(
+                    FALSE,
+                    FALSE,
+                    FALSE,
+                    FALSE,
+                    FALSE,
+                    TRUE,
+                    FALSE,
+                    FALSE,
+                    1d,
+                    0f,
+                    6000L,
+                    null,
+                    0)
+    );
 
     private static final Map<Dimension, String> DIMENSIONS = Map.of(
             Dimension.OVERWORLD, """
             {
-              "ambient_light": 0.0,
-              "bed_works": true,
-              "coordinate_scale": 1.0,
               "effects": "minecraft:overworld",
-              "has_ceiling": false,
-              "has_raids": true,
-              "has_skylight": true,
               "infiniburn": "#minecraft:infiniburn_overworld",
-              "monster_spawn_block_light_limit": 0,
               "monster_spawn_light_level": {
                 "type": "minecraft:uniform",
                 "value": {
                   "max_inclusive": 7,
                   "min_inclusive": 0
                 }
-              },
-              "natural": true,
-              "piglin_safe": false,
-              "respawn_anchor_works": false,
-              "ultrawarm": false
+              }
             }""",
             Dimension.NETHER, """
             {
-              "ambient_light": 0.1,
-              "bed_works": false,
-              "coordinate_scale": 8.0,
               "effects": "minecraft:the_nether",
-              "fixed_time": 18000,
-              "has_ceiling": true,
-              "has_raids": false,
-              "has_skylight": false,
               "infiniburn": "#minecraft:infiniburn_nether",
-              "monster_spawn_block_light_limit": 15,
               "monster_spawn_light_level": 7,
-              "natural": false,
-              "piglin_safe": true,
-              "respawn_anchor_works": true,
-              "ultrawarm": true
             }""",
             Dimension.END, """
             {
-              "ambient_light": 0.0,
-              "bed_works": false,
-              "coordinate_scale": 1.0,
               "effects": "minecraft:the_end",
-              "fixed_time": 6000,
-              "has_ceiling": false,
-              "has_raids": true,
-              "has_skylight": false,
               "infiniburn": "#minecraft:infiniburn_end",
-              "monster_spawn_block_light_limit": 0,
               "monster_spawn_light_level": {
                 "type": "minecraft:uniform",
                 "value": {
                   "max_inclusive": 7,
                   "min_inclusive": 0
                 }
-              },
-              "natural": false,
-              "piglin_safe": false,
-              "respawn_anchor_works": false,
-              "ultrawarm": false
+              }
             }"""
     );
 
     @Override
-    public JSONObject rawDimension(Dimension dimension) {
-        return new JSONObject(DIMENSIONS.get(dimension));
+    public JSONObject resolve(Dimension dimension, @Nullable IrisDimensionTypeOptions options) {
+        return options == null ? OPTIONS.get(dimension).toJson() : options.resolve(OPTIONS.get(dimension)).toJson();
+    }
+
+    @Override
+    public void fixDimension(Dimension dimension, JSONObject json) {
+        var missing = new JSONObject(DIMENSIONS.get(dimension));
+        for (String key : missing.keySet()) {
+            if (json.has(key)) continue;
+            json.put(key, missing.get(key));
+        }
     }
 }

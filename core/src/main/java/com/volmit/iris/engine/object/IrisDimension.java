@@ -31,7 +31,6 @@ import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.DataProvider;
-import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.Position2;
@@ -47,10 +46,7 @@ import org.bukkit.Material;
 import org.bukkit.World.Environment;
 import org.bukkit.block.data.BlockData;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 
 @Accessors(chain = true)
 @AllArgsConstructor
@@ -166,6 +162,8 @@ public class IrisDimension extends IrisRegistrant {
     private int fluidHeight = 63;
     @Desc("Define the min and max Y bounds of this dimension. Please keep in mind that Iris internally generates from 0 to (max - min). \n\nFor example at -64 to 320, Iris is internally generating to 0 to 384, then on outputting chunks, it shifts it down by the min height (64 blocks). The default is -64 to 320. \n\nThe fluid height is placed at (fluid height + min height). So a fluid height of 63 would actually show up in the world at 1.")
     private IrisRange dimensionHeight = new IrisRange(-64, 320);
+    @Desc("Define options for this dimension")
+    private IrisDimensionTypeOptions dimensionOptions = new IrisDimensionTypeOptions();
     @RegistryListResource(IrisBiome.class)
     @Desc("Keep this either undefined or empty. Setting any biome name into this will force iris to only generate the specified biome. Great for testing.")
     private String focus = "";
@@ -415,21 +413,20 @@ public class IrisDimension extends IrisRegistrant {
     }
 
     public String getDimensionTypeKey() {
-        return getDimensionTypeKey(getBaseDimension(), getMinHeight(), getMaxHeight(), getLogicalHeight());
+        return getDimensionType().key();
+    }
+
+    public IrisDimensionType getDimensionType() {
+        return new IrisDimensionType(getBaseDimension(), getDimensionOptions(), getLogicalHeight(), getMaxHeight() - getMinHeight(), getMinHeight());
     }
 
     public void installDimensionType(IDataFixer fixer, KList<File> folders) {
-        String key = getDimensionTypeKey();
-        String json = fixer.createDimension(
-                getBaseDimension(),
-                getMinHeight(),
-                getMaxHeight(),
-                getLogicalHeight()
-        ).toString(4);
+        IrisDimensionType type = getDimensionType();
+        String json = type.toJson(fixer);
 
-        Iris.verbose("    Installing Data Pack Dimension Type: \"iris:" + key + '"');
+        Iris.verbose("    Installing Data Pack Dimension Type: \"iris:" + type.key() + '"');
         for (File datapacks : folders) {
-            File output = new File(datapacks, "iris/data/iris/dimension_type/" + key + ".json");
+            File output = new File(datapacks, "iris/data/iris/dimension_type/" + type.key() + ".json");
             output.getParentFile().mkdirs();
             try {
                 IO.writeAll(output, json);
@@ -483,20 +480,6 @@ public class IrisDimension extends IrisRegistrant {
             }
             Iris.verbose("    Installing Data Pack MCMeta: " + mcm.getPath());
         }
-    }
-
-    public static String getDimensionTypeKey(Dimension dimension, int minY, int maxY, int logicalHeight) {
-        var stream = new ByteArrayOutputStream(13);
-        try (var dos = new DataOutputStream(stream)) {
-            dos.writeByte(dimension.ordinal());
-            Varint.writeUnsignedVarInt(logicalHeight, dos);
-            Varint.writeUnsignedVarInt(maxY - minY, dos);
-            Varint.writeSignedVarInt(minY, dos);
-        } catch (IOException e) {
-            throw new RuntimeException("This is impossible", e);
-        }
-
-        return IO.encode(stream.toByteArray()).replace("=", ".").toLowerCase();
     }
 
     private static void write(File datapacks, String type, String json) {

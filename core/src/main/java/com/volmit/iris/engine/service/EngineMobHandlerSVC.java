@@ -1,5 +1,6 @@
 package com.volmit.iris.engine.service;
 
+import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
@@ -23,6 +24,7 @@ import io.papermc.lib.PaperLib;
 import lombok.SneakyThrows;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.GameRule;
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -37,6 +39,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -50,10 +53,12 @@ public class EngineMobHandlerSVC extends IrisEngineService {
     private final AtomicLong currentTick = new AtomicLong();
     private final Sync<Long> sync = new Sync<>();
     private final Set<Player> players = ConcurrentHashMap.newKeySet();
-    private KList<Entity> entities = new KList<>();
-    private Thread asyncTicker = null;
-    private Thread entityCollector = null;
-    private int task = -1;
+    private final AtomicBoolean running = new AtomicBoolean(false);
+    private transient KList<Entity> entities = new KList<>();
+    private transient Thread asyncTicker = null;
+    private transient Thread entityCollector = null;
+    private transient boolean charge = false;
+    private transient int task = -1;
 
     public EngineMobHandlerSVC(Engine engine) {
         super(engine);
@@ -61,22 +66,24 @@ public class EngineMobHandlerSVC extends IrisEngineService {
 
     @Override
     public void onEnable(boolean hotload) {
-        if (task != -1) J.csr(task);
-        task = J.sr(() -> sync.advance(currentTick.getAndIncrement()), 0);
+        if (running.get()) {
+            running.set(false);
+            cancel(asyncTicker);
+            cancel(entityCollector);
+        }
 
-        cancel(asyncTicker);
-        cancel(entityCollector);
+        running.set(true);
+        charge = hotload;
         asyncTicker = Thread.ofPlatform()
                 .name("Iris Async Mob Spawning - " + engine.getWorld().name())
                 .priority(9)
                 .start(() -> {
-                    while (!engine.isClosed()) {
-                        if (Thread.interrupted())
-                            return;
-
+                    while (mayLoop()) {
                         try {
                             asyncTick();
                         } catch (Throwable e) {
+                            if (isInterrupted(e))
+                                return;
                             Iris.error("Error in async tick for " + engine.getWorld().name());
                             e.printStackTrace();
 
@@ -87,16 +94,16 @@ public class EngineMobHandlerSVC extends IrisEngineService {
         entityCollector = Thread.ofVirtual()
                 .name("Iris Async Entity Collector - " + engine.getWorld().name())
                 .start(() -> {
-                    while (!engine.isClosed()) {
-                        if (Thread.interrupted())
-                            return;
-
+                    while (mayLoop()) {
                         try {
-                            sync.next().join();
+                            sync.next().get();
                             var world = engine.getWorld().realWorld();
                             if (world == null) continue;
                             J.s(() -> entities = new KList<>(world.getEntities()));
                         } catch (Throwable e) {
+                            if (isInterrupted(e))
+                                return;
+
                             Iris.error("Error in async tick for " + engine.getWorld().name());
                             e.printStackTrace();
 
@@ -104,19 +111,26 @@ public class EngineMobHandlerSVC extends IrisEngineService {
                         }
                     }
                 });
+        if (task != -1) J.csr(task);
+        task = J.sr(() -> sync.advance(currentTick.getAndIncrement()), 0);
     }
 
     @Override
     public void onDisable(boolean hotload) {
-        J.csr(task);
+        running.set(false);
         cancel(asyncTicker);
         cancel(entityCollector);
+        if (!hotload) J.csr(task);
     }
 
-    @SneakyThrows
-    private void asyncTick() {
-        long tick = sync.next().join();
+    private void asyncTick() throws Throwable {
+        long tick = sync.next().get();
         var manager = (IrisWorldManager) engine.getWorldManager();
+        if (charge) {
+            manager.chargeEnergy();
+            charge = false;
+        }
+
         var world = engine.getWorld().realWorld();
         if (world == null
                 || noSpawning()
@@ -133,7 +147,7 @@ public class EngineMobHandlerSVC extends IrisEngineService {
         var invalid = data.getSpawnerLoader()
                 .streamAllPossible()
                 .filter(Predicate.not(spawner -> spawner.canSpawn(engine)
-                                && spawner.getConditions().check(conditionCache, entities)))
+                        && spawner.getConditions().check(conditionCache, entities)))
                 .map(IrisSpawner::getLoadKey)
                 .collect(Collectors.toSet());
 
@@ -148,68 +162,75 @@ public class EngineMobHandlerSVC extends IrisEngineService {
         if (centers.isEmpty())
             return;
 
-        double delta = 0;
+        AtomicDouble delta = new AtomicDouble();
         int actuallySpawned = 0;
 
         KMap<Position2, Pair<Entity[], ChunkSnapshot>> cache = new KMap<>();
         while (centers.isNotEmpty()) {
             var center = centers.pop();
-            var pos = center.randomPoint(MAX_RADIUS, SAFE_RADIUS);
-            if (pos.getY() < world.getMinHeight() || pos.getY() >= world.getMaxHeight())
-                continue;
-
-            var chunkPos = new Position2(center.getX() >> 4, center.getZ() >> 4);
-            var pair = cache.computeIfAbsent(chunkPos, cPos -> {
-                try {
-                    return PaperLib.getChunkAtAsync(world, cPos.getX(), cPos.getZ(), false)
-                            .thenApply(c -> c != null ? new Pair<>(c.getEntities(), c.getChunkSnapshot(false, false, false)) : null)
-                            .get();
-                } catch (InterruptedException | ExecutionException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-            if (pair == null)
-                continue;
-
-            var spawners = spawnersAt(pair.getB(), pos, invalid);
-            spawners.removeIf(i -> invalid.contains(i.getLoadKey()));
-            spawners.removeIf(i -> !i.canSpawn(engine, chunkPos.getX(), chunkPos.getZ()));
-
-            if (spawners.isEmpty())
-                continue;
-
-            boolean failed = true;
-            IrisPosition irisPos = new IrisPosition(pos.getX(), pos.getY(), pos.getZ());
-            for (var spawner : spawners) {
-                var spawns = spawner.getSpawns().copy();
-                spawns.removeIf(spawn -> !spawn.check(engine, irisPos, pair.getB()));
-
-                var entity = IRare.pick(spawns, RNG.r.nextDouble());
-                if (entity == null)
-                    continue;
-
-                entity.setReferenceSpawner(spawner);
-                entity.setReferenceMarker(spawner.getReferenceMarker());
-                int spawned = entity.spawn(engine, irisPos, RNG.r);
-                if (spawned == 0)
-                    continue;
-
-                delta += spawned * ((entity.getEnergyMultiplier() * spawner.getEnergyMultiplier() * 1));
-                actuallySpawned += spawned;
-
-                spawner.spawn(engine, chunkPos.getX(), chunkPos.getZ());
-                if (!spawner.canSpawn(engine))
-                    invalid.add(spawner.getLoadKey());
-                failed = false;
-                break;
-            }
-            if (failed && p.getMilliseconds() < 1000)
+            var spawned = trySpawn(world, invalid, cache, center, delta);
+            if (spawned == 0 && p.getMilliseconds() < 1000)
                 centers.add(center);
+            actuallySpawned += spawned;
         }
-        manager.setEnergy(manager.getEnergy() - delta);
+        manager.setEnergy(manager.getEnergy() - delta.get());
         if (actuallySpawned > 0) {
             Iris.info("Async Mob Spawning " + world.getName() + " used " + delta + " energy and took " + Form.duration((long) p.getMilliseconds()));
         }
+    }
+
+    private int trySpawn(
+            World world,
+            Set<String> invalid,
+            KMap<Position2, Pair<Entity[], ChunkSnapshot>> cache,
+            BlockPosition center,
+            AtomicDouble delta
+    ) {
+        var pos = center.randomPoint(MAX_RADIUS, SAFE_RADIUS);
+        if (pos.getY() < world.getMinHeight() || pos.getY() >= world.getMaxHeight())
+            return 0;
+
+        var chunkPos = new Position2(center.getX() >> 4, center.getZ() >> 4);
+        var pair = cache.computeIfAbsent(chunkPos, cPos -> {
+            try {
+                return PaperLib.getChunkAtAsync(world, cPos.getX(), cPos.getZ(), false)
+                        .thenApply(c -> c != null ? new Pair<>(c.getEntities(), c.getChunkSnapshot(false, false, false)) : null)
+                        .get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        if (pair == null)
+            return 0;
+
+        var spawners = spawnersAt(pair.getB(), pos, invalid);
+        spawners.removeIf(i -> !i.canSpawn(engine, chunkPos.getX(), chunkPos.getZ()));
+
+        if (spawners.isEmpty())
+            return 0;
+
+        IrisPosition irisPos = new IrisPosition(pos.getX(), pos.getY(), pos.getZ());
+        for (var spawner : spawners) {
+            var spawns = spawner.getSpawns().copy();
+            spawns.removeIf(spawn -> !spawn.check(engine, irisPos, pair.getB()));
+
+            var entity = IRare.pick(spawns, RNG.r.nextDouble());
+            if (entity == null)
+                continue;
+
+            entity.setReferenceSpawner(spawner);
+            entity.setReferenceMarker(spawner.getReferenceMarker());
+            int spawned = entity.spawn(engine, irisPos, RNG.r);
+            if (spawned == 0)
+                continue;
+
+            delta.addAndGet(spawned * ((entity.getEnergyMultiplier() * spawner.getEnergyMultiplier() * 1)));
+            spawner.spawn(engine, chunkPos.getX(), chunkPos.getZ());
+            if (!spawner.canSpawn(engine))
+                invalid.add(spawner.getLoadKey());
+            return spawned;
+        }
+        return 0;
     }
 
     private KSet<IrisSpawner> spawnersAt(ChunkSnapshot chunk, BlockPosition pos, Set<String> invalid) {
@@ -296,10 +317,24 @@ public class EngineMobHandlerSVC extends IrisEngineService {
     private static void cancel(Thread thread) {
         if (thread == null || !thread.isAlive()) return;
         thread.interrupt();
+        thread.join();
     }
 
     private static boolean noSpawning() {
         var world = IrisSettings.get().getWorld();
         return !world.isMarkerEntitySpawningSystem() && !world.isAnbientEntitySpawningSystem();
+    }
+
+    private boolean mayLoop() {
+        return !engine.isClosed() && running.get() && !Thread.interrupted();
+    }
+
+    private static boolean isInterrupted(Throwable e) {
+        while (e != null) {
+            if (e instanceof InterruptedException)
+                return true;
+            e = e.getCause();
+        }
+        return false;
     }
 }

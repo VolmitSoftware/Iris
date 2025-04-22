@@ -40,6 +40,8 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -64,6 +66,7 @@ public class PregeneratorJob implements PregenListener {
     private final Position2 max;
     private final ChronoLatch cl = new ChronoLatch(TimeUnit.MINUTES.toMillis(1));
     private final Engine engine;
+    private final ExecutorService service;
     private JFrame frame;
     private PregenRenderer renderer;
     private int rgc = 0;
@@ -96,6 +99,7 @@ public class PregeneratorJob implements PregenListener {
         }, "Iris Pregenerator");
         t.setPriority(Thread.MIN_PRIORITY);
         t.start();
+        service = Executors.newVirtualThreadPerTaskExecutor();
     }
 
     public static boolean shutdownInstance() {
@@ -219,10 +223,10 @@ public class PregeneratorJob implements PregenListener {
     }
 
     @Override
-    public void onTick(double chunksPerSecond, double chunksPerMinute, double regionsPerMinute, double percent, int generated, int totalChunks, int chunksRemaining, long eta, long elapsed, String method) {
+    public void onTick(double chunksPerSecond, double chunksPerMinute, double regionsPerMinute, double percent, long generated, long totalChunks, long chunksRemaining, long eta, long elapsed, String method, boolean cached) {
         info = new String[]{
                 (paused() ? "PAUSED" : (saving ? "Saving... " : "Generating")) + " " + Form.f(generated) + " of " + Form.f(totalChunks) + " (" + Form.pc(percent, 0) + " Complete)",
-                "Speed: " + Form.f(chunksPerSecond, 0) + " Chunks/s, " + Form.f(regionsPerMinute, 1) + " Regions/m, " + Form.f(chunksPerMinute, 0) + " Chunks/m",
+                "Speed: " + (cached ? "Cached " : "") + Form.f(chunksPerSecond, 0) + " Chunks/s, " + Form.f(regionsPerMinute, 1) + " Regions/m, " + Form.f(chunksPerMinute, 0) + " Chunks/m",
                 Form.duration(eta, 2) + " Remaining " + " (" + Form.duration(elapsed, 2) + " Elapsed)",
                 "Generation Method: " + method,
                 "Memory: " + Form.memSize(monitor.getUsedBytes(), 2) + " (" + Form.pc(monitor.getUsagePercent(), 0) + ") Pressure: " + Form.memSize(monitor.getPressure(), 0) + "/s",
@@ -240,13 +244,16 @@ public class PregeneratorJob implements PregenListener {
     }
 
     @Override
-    public void onChunkGenerated(int x, int z) {
-        if (engine != null) {
-            draw(x, z, engine.draw((x << 4) + 8, (z << 4) + 8));
-            return;
-        }
+    public void onChunkGenerated(int x, int z, boolean cached) {
+        if (renderer == null || frame == null || !frame.isVisible()) return;
+        service.submit(() -> {
+            if (engine != null) {
+                draw(x, z, engine.draw((x << 4) + 8, (z << 4) + 8));
+                return;
+            }
 
-        draw(x, z, COLOR_GENERATED);
+            draw(x, z, COLOR_GENERATED);
+        });
     }
 
     @Override
@@ -306,6 +313,7 @@ public class PregeneratorJob implements PregenListener {
         close();
         instance = null;
         whenDone.forEach(Runnable::run);
+        service.shutdownNow();
     }
 
     @Override

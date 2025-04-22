@@ -78,6 +78,9 @@ public class IrisJigsawStructurePlacement implements IRare {
     @Desc("Threshold for noise style")
     private double threshold = 0.5;
 
+    @Desc("Exclude the structure from certain places")
+    private IrisPlacementExclusion exclude = new IrisPlacementExclusion();
+
     @ArrayType(type = IrisJigsawMinDistance.class)
     @Desc("List of minimum distances to check for")
     private KList<IrisJigsawMinDistance> minDistances = new KList<>();

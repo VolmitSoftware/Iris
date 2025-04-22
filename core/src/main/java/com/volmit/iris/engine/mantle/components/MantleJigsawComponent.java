@@ -93,11 +93,31 @@ public class MantleJigsawComponent extends IrisMantleComponent {
         try {
             if (i == null || checkMinDistances(i.collectMinDistances(), x, z, cachedRegions, cache, distanceCache))
                 return false;
-        } catch (Throwable ignored) {}
+            if (!checkBiomes(i, x, z))
+                return false;
+        } catch (Throwable ignored) {
+        }
         RNG rng = new RNG(seed);
         IrisPosition position = new IrisPosition((x << 4) + rng.nextInt(15), 0, (z << 4) + rng.nextInt(15));
         IrisJigsawStructure structure = getData().getJigsawStructureLoader().load(i.getStructure());
         return place(writer, position, structure, rng, false);
+    }
+
+    private boolean checkBiomes(IrisJigsawStructurePlacement placement, int x, int z) {
+        // todo: biome getting kinda sucks
+        var biome = getEngineMantle().getEngine().getSurfaceBiome((x << 4) + 8, (z << 4) + 8);
+        if (biome != null) {
+            if (biome.isSea() && placement.getExclude().isExcludeOceanBiomes()) {
+                return false;
+            }
+            if (biome.isLand() && placement.getExclude().isExcludeLandBiomes()) {
+                return false;
+            }
+            if (biome.isShore() && placement.getExclude().isExcludeShoreBiomes()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @ChunkCoordinates

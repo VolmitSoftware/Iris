@@ -17,11 +17,13 @@ import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.matter.MatterBiomeInject;
+import com.volmit.iris.util.misc.ServerProperties;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.mca.palette.*;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.scheduling.J;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import joptsimple.OptionSet;
 import lombok.SneakyThrows;
 import net.minecraft.core.Registry;
 import net.minecraft.core.*;
@@ -73,6 +75,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.Color;
+import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -717,6 +720,25 @@ public class NMSBinding implements INMSBinding {
     @Override
     public void removeCustomDimensions(World world) {
         ((CraftWorld) world).getHandle().L.customDimensions = null;
+    }
+
+    @Override
+    public Map<ServerProperties.FILES, Object> getFileLocations() {
+        OptionSet options = ((CraftServer)Bukkit.getServer()).getServer().options;
+        Object bukkit = options.valueOf("bukkit-settings");
+        Object spigot = options.valueOf("spigot-settings");
+        Object paperDir = options.valueOf("paper-settings-directory");
+        Object serverProperties = options.valueOf("config");
+        Object world = options.valueOf("world");
+        if (world == null) world = "world";
+
+        return Map.of(
+                ServerProperties.FILES.SERVER_PROPERTIES, serverProperties,
+                ServerProperties.FILES.BUKKIT_YML, bukkit,
+                ServerProperties.FILES.SPIGOT_YML, spigot,
+                ServerProperties.FILES.PAPER_DIR, paperDir,
+                ServerProperties.FILES.WORLD_NAME, world
+        );
     }
 
     private RegistryAccess.Frozen createRegistryAccess(RegistryAccess.Frozen datapack, boolean copy, boolean overworld, boolean nether, boolean end) {

@@ -16,12 +16,13 @@ import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.matter.MatterBiomeInject;
-import com.volmit.iris.util.nbt.io.NBTUtil;
+import com.volmit.iris.util.misc.ServerProperties;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.mca.palette.*;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.scheduling.J;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import joptsimple.OptionSet;
 import lombok.SneakyThrows;
 import net.minecraft.core.*;
 import net.minecraft.core.Registry;
@@ -35,9 +36,7 @@ import net.minecraft.server.WorldLoader;
 import net.minecraft.server.commands.data.BlockDataAccessor;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
-import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -63,31 +62,22 @@ import org.bukkit.craftbukkit.v1_20_R1.block.CraftBlock;
 import org.bukkit.craftbukkit.v1_20_R1.block.CraftBlockState;
 import org.bukkit.craftbukkit.v1_20_R1.block.CraftBlockStates;
 import org.bukkit.craftbukkit.v1_20_R1.block.data.CraftBlockData;
-import org.bukkit.craftbukkit.v1_20_R1.entity.CraftDolphin;
 import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
-import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.entity.EntityType;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import sun.misc.Unsafe;
 
 import java.awt.Color;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Function;
 
 public class NMSBinding implements INMSBinding {
 
@@ -697,6 +687,25 @@ public class NMSBinding implements INMSBinding {
     @Override
     public void removeCustomDimensions(World world) {
         ((CraftWorld) world).getHandle().K.customDimensions = null;
+    }
+
+    @Override
+    public Map<ServerProperties.FILES, Object> getFileLocations() {
+        OptionSet options = ((CraftServer)Bukkit.getServer()).getServer().options;
+        Object bukkit = options.valueOf("bukkit-settings");
+        Object spigot = options.valueOf("spigot-settings");
+        Object paperDir = options.valueOf("paper-settings-directory");
+        Object serverProperties = options.valueOf("config");
+        Object world = options.valueOf("world");
+        if (world == null) world = "world";
+
+        return Map.of(
+                ServerProperties.FILES.SERVER_PROPERTIES, serverProperties,
+                ServerProperties.FILES.BUKKIT_YML, bukkit,
+                ServerProperties.FILES.SPIGOT_YML, spigot,
+                ServerProperties.FILES.PAPER_DIR, paperDir,
+                ServerProperties.FILES.WORLD_NAME, world
+        );
     }
 
     private RegistryAccess.Frozen createRegistryAccess(RegistryAccess.Frozen datapack, boolean copy, boolean overworld, boolean nether, boolean end) {

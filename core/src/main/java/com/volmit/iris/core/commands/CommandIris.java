@@ -39,6 +39,7 @@ import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.decree.specialhandlers.NullablePlayerHandler;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.misc.ServerProperties;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.Bukkit;
@@ -494,7 +495,7 @@ public class CommandIris implements DecreeExecutor {
             return;
         }
 
-        File BUKKIT_YML = new File("bukkit.yml");
+        File BUKKIT_YML = ServerProperties.BUKKIT_YML;
         String pathtodim = world + File.separator +"iris"+File.separator +"pack"+File.separator +"dimensions"+File.separator;
         File directory = new File(Bukkit.getWorldContainer(), pathtodim);
 
@@ -556,7 +557,7 @@ public class CommandIris implements DecreeExecutor {
     private void checkForBukkitWorlds(String world) {
         FileConfiguration fc = new YamlConfiguration();
         try {
-            fc.load(new File("bukkit.yml"));
+            fc.load(ServerProperties.BUKKIT_YML);
             ConfigurationSection section = fc.getConfigurationSection("worlds");
             if (section == null) {
                 return;

@@ -1,10 +1,7 @@
 package com.volmit.iris.core.nms.v1_20_R2;
 
 import java.awt.Color;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -17,7 +14,9 @@ import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Lifecycle;
 import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.util.misc.ServerProperties;
 import com.volmit.iris.util.scheduling.J;
+import joptsimple.OptionSet;
 import lombok.SneakyThrows;
 import net.minecraft.core.*;
 import net.minecraft.core.Registry;
@@ -698,6 +697,25 @@ public class NMSBinding implements INMSBinding {
     @Override
     public void removeCustomDimensions(World world) {
         ((CraftWorld) world).getHandle().K.customDimensions = null;
+    }
+
+    @Override
+    public Map<ServerProperties.FILES, Object> getFileLocations() {
+        OptionSet options = ((CraftServer)Bukkit.getServer()).getServer().options;
+        Object bukkit = options.valueOf("bukkit-settings");
+        Object spigot = options.valueOf("spigot-settings");
+        Object paperDir = options.valueOf("paper-settings-directory");
+        Object serverProperties = options.valueOf("config");
+        Object world = options.valueOf("world");
+        if (world == null) world = "world";
+
+        return Map.of(
+                ServerProperties.FILES.SERVER_PROPERTIES, serverProperties,
+                ServerProperties.FILES.BUKKIT_YML, bukkit,
+                ServerProperties.FILES.SPIGOT_YML, spigot,
+                ServerProperties.FILES.PAPER_DIR, paperDir,
+                ServerProperties.FILES.WORLD_NAME, world
+        );
     }
 
     private RegistryAccess.Frozen createRegistryAccess(RegistryAccess.Frozen datapack, boolean copy, boolean overworld, boolean nether, boolean end) {

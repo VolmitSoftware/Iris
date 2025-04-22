@@ -104,20 +104,14 @@ public class MantleJigsawComponent extends IrisMantleComponent {
     }
 
     private boolean checkBiomes(IrisJigsawStructurePlacement placement, int x, int z) {
-        // todo: biome getting kinda sucks
         var biome = getEngineMantle().getEngine().getSurfaceBiome((x << 4) + 8, (z << 4) + 8);
-        if (biome != null) {
-            if (biome.isSea() && placement.getExclude().isExcludeOceanBiomes()) {
-                return false;
-            }
-            if (biome.isLand() && placement.getExclude().isExcludeLandBiomes()) {
-                return false;
-            }
-            if (biome.isShore() && placement.getExclude().isExcludeShoreBiomes()) {
-                return false;
-            }
+        if (biome == null) {
+            return true;
         }
-        return true;
+        var exclude = placement.getExclude();
+        return !(biome.isSea() && exclude.isExcludeOceanBiomes() ||
+                biome.isLand() && exclude.isExcludeLandBiomes() ||
+                biome.isShore() && exclude.isExcludeShoreBiomes());
     }
 
     @ChunkCoordinates

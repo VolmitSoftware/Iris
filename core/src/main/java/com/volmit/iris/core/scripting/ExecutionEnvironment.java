@@ -46,10 +46,10 @@ public class ExecutionEnvironment {
 
     @SneakyThrows
     private static URLClassLoader buildLoader() {
-        String version = "ac94c94427";
+        String version = "46d271c6ce";
         String url = BASE_URL.formatted(version, version);
         String hash = IO.hash("Iris-Scripts.jar@" + version);
-        var file = Iris.instance.getDataFile("cache", hash.substring(0, 2), hash.substring(3, 5), hash);
+        var file = Iris.instance.getDataFile("cache", hash.substring(0, 2), hash.substring(3, 5), hash + ".jar");
         var libsDir = new File(file.getParentFile(), "libs");
 
         KList<String> libs = null;

@@ -252,10 +252,8 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
             if (engine != null && t.getPreprocessors().isNotEmpty()) {
                 synchronized (this) {
-                    engine.getExecution().getAPI().setPreprocessorObject(t);
-
                     for (String i : t.getPreprocessors()) {
-                        engine.getExecution().execute(i);
+                        engine.getExecution().preprocessObject(i, t);
                         Iris.debug("Loader<" + C.GREEN + t.getTypeName() + C.LIGHT_PURPLE + "> iprocess " + C.YELLOW + t.getLoadKey() + C.LIGHT_PURPLE + " in <rainbow>" + i);
                     }
                 }

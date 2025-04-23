@@ -24,6 +24,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.loader.ResourceLoader;
+import com.volmit.iris.core.scripting.ExecutionEnvironment;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.object.annotations.Snippet;
@@ -274,6 +275,7 @@ public class IrisProject {
             PrecisionStopwatch p = PrecisionStopwatch.start();
             JSONObject j = createCodeWorkspaceConfig();
             IO.writeAll(ws, j.toString(4));
+            ExecutionEnvironment.createPack(IrisData.get(path)).buildProject();
             p.end();
             return true;
         } catch (Throwable e) {

@@ -168,8 +168,6 @@ allprojects {
         compileOnly 'com.google.code.gson:gson:2.10.1'
         compileOnly 'org.ow2.asm:asm:9.2'
         compileOnly 'com.google.guava:guava:33.0.0-jre'
-        compileOnly 'bsf:bsf:2.4.0'
-        compileOnly 'rhino:js:1.7R2'
         compileOnly 'com.github.ben-manes.caffeine:caffeine:3.0.6'
         compileOnly 'org.apache.commons:commons-lang3:3.12.0'
         compileOnly 'com.github.oshi:oshi-core:6.6.5'

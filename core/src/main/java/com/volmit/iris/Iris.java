@@ -30,6 +30,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
+import com.volmit.iris.core.scripting.ExecutionEnvironment;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.core.tools.IrisWorldCreator;
@@ -462,6 +463,7 @@ public class Iris extends VolmitPlugin implements Listener {
         compat = IrisCompat.configured(getDataFile("compat.json"));
         ServerConfigurator.configure();
         new IrisContextInjector();
+        ExecutionEnvironment.createSimple();
         IrisSafeguard.IrisSafeguardSystem();
         getSender().setTag(getTag());
         IrisSafeguard.earlySplash();

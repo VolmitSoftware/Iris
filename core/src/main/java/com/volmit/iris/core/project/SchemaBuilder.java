@@ -108,7 +108,9 @@ public class SchemaBuilder {
     private JSONObject buildProperties(Class<?> c) {
         JSONObject o = new JSONObject();
         JSONObject properties = new JSONObject();
-        o.put("description", getDescription(c));
+        String desc = getDescription(c);
+        o.put("description", desc);
+        o.put("x-intellij-html-description", desc.replace("\n", "<br>"));
         o.put("type", getType(c));
         JSONArray required = new JSONArray();
 
@@ -506,16 +508,18 @@ public class SchemaBuilder {
         }
 
         KList<String> d = new KList<>();
-        d.add(k.getName());
-        d.add(getFieldDescription(k));
-        d.add("   ");
-        d.add(fancyType);
-        d.add(getDescription(k.getType()));
+        d.add("<h>" + k.getName() + "</h>");
+        d.add(getFieldDescription(k) + "<hr></hr>");
+        d.add("<h>" + fancyType + "</h>");
+        String typeDesc = getDescription(k.getType());
+        boolean present = !typeDesc.isBlank();
+        if (present) d.add(typeDesc);
 
         if (k.getType().isAnnotationPresent(Snippet.class)) {
             String sm = k.getType().getDeclaredAnnotation(Snippet.class).value();
-            d.add("    ");
+            if (present) d.add("    ");
             d.add("You can instead specify \"snippet/" + sm + "/some-name.json\" to use a snippet file instead of specifying it here.");
+            present = false;
         }
 
         try {
@@ -523,15 +527,13 @@ public class SchemaBuilder {
             Object value = k.get(cl.newInstance());
 
             if (value != null) {
+                if (present) d.add("    ");
                 if (value instanceof List) {
-                    d.add("    ");
-                    d.add("* Default Value is an empty list");
+                    d.add(SYMBOL_LIMIT__N + " Default Value is an empty list");
                 } else if (!cl.isPrimitive() && !(value instanceof Number) && !(value instanceof String) && !(cl.isEnum()) && !OldEnum.isOldEnum(cl)) {
-                    d.add("    ");
-                    d.add("* Default Value is a default object (create this object to see default properties)");
+                    d.add(SYMBOL_LIMIT__N + " Default Value is a default object (create this object to see default properties)");
                 } else {
-                    d.add("    ");
-                    d.add("* Default Value is " + value);
+                    d.add(SYMBOL_LIMIT__N + " Default Value is " + value);
                 }
             }
         } catch (Throwable ignored) {
@@ -539,8 +541,14 @@ public class SchemaBuilder {
         }
 
         description.forEach((g) -> d.add(g.trim()));
+        String desc = d.toString("\n")
+                .replace("<hr></hr>", "\n")
+                .replace("<h>", "")
+                .replace("</h>", "");
+        String hDesc = d.toString("<br>");
         prop.put("type", type);
-        prop.put("description", d.toString("\n"));
+        prop.put("description", desc);
+        prop.put("x-intellij-html-description", hDesc);
 
         if (k.getType().isAnnotationPresent(Snippet.class)) {
             JSONObject anyOf = new JSONObject();
@@ -560,10 +568,13 @@ public class SchemaBuilder {
 
             arr.put(prop);
             arr.put(str);
-            prop.put("description", d.toString("\n"));
-            str.put("description", d.toString("\n"));
+            prop.put("description", desc);
+            prop.put("x-intellij-html-description", hDesc);
+            str.put("description", desc);
+            str.put("x-intellij-html-description", hDesc);
             anyOf.put("anyOf", arr);
-            anyOf.put("description", d.toString("\n"));
+            anyOf.put("description", desc);
+            anyOf.put("x-intellij-html-description", hDesc);
             anyOf.put("!required", k.isAnnotationPresent(Required.class));
 
             return anyOf;
@@ -592,7 +603,9 @@ public class SchemaBuilder {
                     String name = function.apply(gg);
                     j.put("const", name);
                     Desc dd = type.getField(name).getAnnotation(Desc.class);
-                    j.put("description", dd == null ? ("No Description for " + name) : dd.value());
+                    String desc = dd == null ? ("No Description for " + name) : dd.value();
+                    j.put("description", desc);
+                    j.put("x-intellij-html-description", desc.replace("\n", "<br>"));
                     a.put(j);
                 } catch (Throwable e) {
                     Iris.reportError(e);

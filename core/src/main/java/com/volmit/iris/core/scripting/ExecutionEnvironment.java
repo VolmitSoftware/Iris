@@ -10,6 +10,7 @@ import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
+import org.dom4j.Document;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -46,7 +47,7 @@ public class ExecutionEnvironment {
 
     @SneakyThrows
     private static URLClassLoader buildLoader() {
-        String version = "46d271c6ce";
+        String version = "868b3b9910";
         String url = BASE_URL.formatted(version, version);
         String hash = IO.hash("Iris-Scripts.jar@" + version);
         var file = Iris.instance.getDataFile("cache", hash.substring(0, 2), hash.substring(3, 5), hash + ".jar");
@@ -124,6 +125,16 @@ public class ExecutionEnvironment {
 
 
     public interface Simple {
+        default void configureProject(@NonNull File projectDir) {
+            var workspaceFile = new File(projectDir, ".idea" + File.separator + "workspace.xml");
+            var workspaceDoc = IO.read(workspaceFile);
+            if (configureProject(projectDir, workspaceDoc)) {
+                IO.write(workspaceFile, workspaceDoc);
+            }
+        }
+
+        boolean configureProject(@NonNull File projectDir, @NonNull Document workspace);
+
         void execute(@NonNull String script);
 
         void execute(@NonNull String script, @NonNull Class<?> type, @Nullable Map<@NonNull String, Object> vars);
@@ -142,8 +153,6 @@ public class ExecutionEnvironment {
     public interface Pack extends Simple {
         @NonNull
         IrisData getData();
-
-        void buildProject();
     }
 
     public interface Engine extends Pack {

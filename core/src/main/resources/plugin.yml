@@ -18,6 +18,8 @@ libraries:
   - org.ow2.asm:asm:9.2
   - org.lz4:lz4-java:1.8.0
   - com.github.oshi:oshi-core:6.6.5
+  - org.dom4j:dom4j:2.1.4
+  - jaxen:jaxen:1.1.6
 commands:
   iris:
     aliases: [ ir, irs ]

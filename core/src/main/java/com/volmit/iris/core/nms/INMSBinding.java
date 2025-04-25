@@ -26,6 +26,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.Vector3d;
+import com.volmit.iris.util.misc.ServerProperties;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
 import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
@@ -38,6 +39,7 @@ import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 
 import java.awt.Color;
+import java.util.Map;
 
 public interface INMSBinding {
     boolean hasTile(Material material);
@@ -139,4 +141,6 @@ public interface INMSBinding {
     boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end);
 
     void removeCustomDimensions(World world);
+
+    Map<ServerProperties.FILES, Object> getFileLocations();
 }

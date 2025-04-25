@@ -28,6 +28,7 @@ import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
 import com.volmit.iris.core.service.StudioSVC;
@@ -55,6 +56,7 @@ import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.io.JarScanner;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.misc.ServerProperties;
 import com.volmit.iris.util.misc.getHardware;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.IrisService;
@@ -457,7 +459,7 @@ public class Iris extends VolmitPlugin implements Listener {
         services = new KMap<>();
         setupAudience();
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
-        INMS.get();
+        ServerProperties.init(INMS.get());
         IO.delete(new File("iris"));
         compat = IrisCompat.configured(getDataFile("compat.json"));
         ServerConfigurator.configure();
@@ -492,7 +494,7 @@ public class Iris extends VolmitPlugin implements Listener {
     private void checkForBukkitWorlds() {
         FileConfiguration fc = new YamlConfiguration();
         try {
-            fc.load(new File("bukkit.yml"));
+            fc.load(ServerProperties.BUKKIT_YML);
             ConfigurationSection section = fc.getConfigurationSection("worlds");
             if (section == null) {
                 return;

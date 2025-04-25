@@ -1,10 +1,7 @@
 package com.volmit.iris.core.nms.v1_21_R1;
 
 import java.awt.Color;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -18,7 +15,10 @@ import com.mojang.serialization.Lifecycle;
 import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.datapack.DataVersion;
+import com.volmit.iris.util.misc.ServerProperties;
+import com.volmit.iris.util.reflect.NMSRef;
 import com.volmit.iris.util.scheduling.J;
+import joptsimple.OptionSet;
 import lombok.SneakyThrows;
 import net.minecraft.core.*;
 import net.minecraft.core.Registry;
@@ -104,56 +104,6 @@ public class NMSBinding implements INMSBinding {
     private final ReentrantLock dataContextLock = new ReentrantLock(true);
     private final AtomicCache<Method> byIdRef = new AtomicCache<>();
     private Field biomeStorageCache = null;
-
-    private static Object getFor(Class<?> type, Object source) {
-        Object o = fieldFor(type, source);
-
-        if (o != null) {
-            return o;
-        }
-
-        return invokeFor(type, source);
-    }
-
-    private static Object invokeFor(Class<?> returns, Object in) {
-        for (Method i : in.getClass().getMethods()) {
-            if (i.getReturnType().equals(returns)) {
-                i.setAccessible(true);
-                try {
-                    Iris.debug("[NMS] Found " + returns.getSimpleName() + " in " + in.getClass().getSimpleName() + "." + i.getName() + "()");
-                    return i.invoke(in);
-                } catch (Throwable e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private static Object fieldFor(Class<?> returns, Object in) {
-        return fieldForClass(returns, in.getClass(), in);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> T fieldForClass(Class<T> returnType, Class<?> sourceType, Object in) {
-        for (Field i : sourceType.getDeclaredFields()) {
-            if (i.getType().equals(returnType)) {
-                i.setAccessible(true);
-                try {
-                    Iris.debug("[NMS] Found " + returnType.getSimpleName() + " in " + sourceType.getSimpleName() + "." + i.getName());
-                    return (T) i.get(in);
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        return null;
-    }
-
-    private static Class<?> getClassType(Class<?> type, int ordinal) {
-        return type.getDeclaredClasses()[ordinal];
-    }
 
     @Override
     public boolean hasTile(Material material) {
@@ -276,7 +226,7 @@ public class NMSBinding implements INMSBinding {
     }
 
     private RegistryAccess registry() {
-        return registryAccess.aquire(() -> (RegistryAccess) getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()));
+        return registryAccess.aquire(() -> (RegistryAccess) NMSRef.getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()));
     }
 
     private Registry<net.minecraft.world.level.biome.Biome> getCustomBiomeRegistry() {
@@ -557,7 +507,7 @@ public class NMSBinding implements INMSBinding {
 
     public void inject(long seed, Engine engine, World world) throws NoSuchFieldException, IllegalAccessException {
         var chunkMap = ((CraftWorld)world).getHandle().getChunkSource().chunkMap;
-        var worldGenContextField = getField(chunkMap.getClass(), WorldGenContext.class);
+        var worldGenContextField = NMSRef.getField(chunkMap.getClass(), WorldGenContext.class);
         worldGenContextField.setAccessible(true);
         var worldGenContext = (WorldGenContext) worldGenContextField.get(chunkMap);
         var dimensionType = chunkMap.level.dimensionTypeRegistration().unwrapKey().orElse(null);
@@ -624,23 +574,6 @@ public class NMSBinding implements INMSBinding {
         return new Color(rgba, true);
     }
 
-    private static Field getField(Class<?> clazz, Class<?> fieldType) throws NoSuchFieldException {
-        try {
-            for (Field f : clazz.getDeclaredFields()) {
-                if (f.getType().equals(fieldType))
-                    return f;
-            }
-            throw new NoSuchFieldException(fieldType.getName());
-        } catch (NoSuchFieldException var4) {
-            Class<?> superClass = clazz.getSuperclass();
-            if (superClass == null) {
-                throw var4;
-            } else {
-                return getField(superClass, fieldType);
-            }
-        }
-    }
-
     public static Holder<net.minecraft.world.level.biome.Biome> biomeToBiomeBase(Registry<net.minecraft.world.level.biome.Biome> registry, Biome biome) {
         return registry.getHolderOrThrow(ResourceKey.create(Registries.BIOME, CraftNamespacedKey.toMinecraft(biome.getKey())));
     }
@@ -681,7 +614,7 @@ public class NMSBinding implements INMSBinding {
         if (!dataContextLock.tryLock()) throw new IllegalStateException("Failed to inject data context!");
 
         var server = ((CraftServer) Bukkit.getServer());
-        var field = getField(MinecraftServer.class, WorldLoader.DataLoadContext.class);
+        var field = NMSRef.getField(MinecraftServer.class, WorldLoader.DataLoadContext.class);
         var nmsServer = server.getServer();
         var old = nmsServer.worldLoader;
 
@@ -703,7 +636,7 @@ public class NMSBinding implements INMSBinding {
     @SneakyThrows
     public AutoClosing injectUncached(boolean overworld, boolean nether, boolean end) {
         var reg = registry();
-        var field = getField(RegistryAccess.ImmutableRegistryAccess.class, Map.class);
+        var field = NMSRef.getField(RegistryAccess.ImmutableRegistryAccess.class, Map.class);
         field.setAccessible(true);
 
         var access = createRegistryAccess(((CraftServer) Bukkit.getServer()).getServer().worldLoader.datapackDimensions(), true, overworld, nether, end);
@@ -728,6 +661,25 @@ public class NMSBinding implements INMSBinding {
     @Override
     public void removeCustomDimensions(World world) {
         ((CraftWorld) world).getHandle().K.customDimensions = null;
+    }
+
+    @Override
+    public Map<ServerProperties.FILES, Object> getFileLocations() {
+        OptionSet options = ((CraftServer)Bukkit.getServer()).getServer().options;
+        Object bukkit = options.valueOf("bukkit-settings");
+        Object spigot = options.valueOf("spigot-settings");
+        Object paperDir = options.valueOf("paper-settings-directory");
+        Object serverProperties = options.valueOf("config");
+        Object world = options.valueOf("world");
+        if (world == null) world = "world";
+
+        return Map.of(
+                ServerProperties.FILES.SERVER_PROPERTIES, serverProperties,
+                ServerProperties.FILES.BUKKIT_YML, bukkit,
+                ServerProperties.FILES.SPIGOT_YML, spigot,
+                ServerProperties.FILES.PAPER_DIR, paperDir,
+                ServerProperties.FILES.WORLD_NAME, world
+        );
     }
 
     private RegistryAccess.Frozen createRegistryAccess(RegistryAccess.Frozen datapack, boolean copy, boolean overworld, boolean nether, boolean end) {

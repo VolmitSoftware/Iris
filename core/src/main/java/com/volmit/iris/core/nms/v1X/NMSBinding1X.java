@@ -28,6 +28,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.Vector3d;
+import com.volmit.iris.util.misc.ServerProperties;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
 import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
@@ -41,6 +42,7 @@ import org.bukkit.generator.structure.Structure;
 import org.bukkit.inventory.ItemStack;
 
 import java.awt.Color;
+import java.util.Map;
 import java.util.stream.StreamSupport;
 
 public class NMSBinding1X implements INMSBinding {
@@ -138,6 +140,11 @@ public class NMSBinding1X implements INMSBinding {
     @Override
     public void removeCustomDimensions(World world) {
 
+    }
+
+    @Override
+    public Map<ServerProperties.FILES, Object> getFileLocations() {
+        return null;
     }
 
     @Override

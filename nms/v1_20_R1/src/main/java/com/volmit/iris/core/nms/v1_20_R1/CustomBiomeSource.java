@@ -8,6 +8,7 @@ import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.reflect.NMSRef;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
@@ -43,7 +44,7 @@ public class CustomBiomeSource extends BiomeSource {
         this.engine = engine;
         this.seed = seed;
         this.biomeCustomRegistry = registry().registry(Registries.BIOME).orElse(null);
-        this.biomeRegistry = ((RegistryAccess) getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer())).registry(Registries.BIOME).orElse(null);
+        this.biomeRegistry = ((RegistryAccess) NMSRef.getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer())).registry(Registries.BIOME).orElse(null);
         this.rng = new RNG(engine.getSeedManager().getBiome());
         this.customBiomes = fillCustomBiomes(biomeCustomRegistry, engine);
     }
@@ -65,56 +66,10 @@ public class CustomBiomeSource extends BiomeSource {
         return b;
     }
 
-    private static Object getFor(Class<?> type, Object source) {
-        Object o = fieldFor(type, source);
-
-        if (o != null) {
-            return o;
-        }
-
-        return invokeFor(type, source);
-    }
-
-    private static Object fieldFor(Class<?> returns, Object in) {
-        return fieldForClass(returns, in.getClass(), in);
-    }
-
-    private static Object invokeFor(Class<?> returns, Object in) {
-        for (Method i : in.getClass().getMethods()) {
-            if (i.getReturnType().equals(returns)) {
-                i.setAccessible(true);
-                try {
-                    Iris.debug("[NMS] Found " + returns.getSimpleName() + " in " + in.getClass().getSimpleName() + "." + i.getName() + "()");
-                    return i.invoke(in);
-                } catch (Throwable e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        return null;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> T fieldForClass(Class<T> returnType, Class<?> sourceType, Object in) {
-        for (Field i : sourceType.getDeclaredFields()) {
-            if (i.getType().equals(returnType)) {
-                i.setAccessible(true);
-                try {
-                    Iris.debug("[NMS] Found " + returnType.getSimpleName() + " in " + sourceType.getSimpleName() + "." + i.getName());
-                    return (T) i.get(in);
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        return null;
-    }
-
     @Override
     protected Stream<Holder<Biome>> collectPossibleBiomes() {
         return getAllBiomes(
-                ((RegistryAccess) getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()))
+                ((RegistryAccess) NMSRef.getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()))
                         .registry(Registries.BIOME).orElse(null),
                 ((CraftWorld) engine.getWorld().realWorld()).getHandle().registryAccess().registry(Registries.BIOME).orElse(null),
                 engine).stream();
@@ -147,7 +102,7 @@ public class CustomBiomeSource extends BiomeSource {
     }
 
     private RegistryAccess registry() {
-        return registryAccess.aquire(() -> (RegistryAccess) getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()));
+        return registryAccess.aquire(() -> (RegistryAccess) NMSRef.getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()));
     }
 
     @Override

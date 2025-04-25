@@ -16,12 +16,14 @@ import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.Vector3d;
 import com.volmit.iris.util.matter.MatterBiomeInject;
-import com.volmit.iris.util.nbt.io.NBTUtil;
+import com.volmit.iris.util.misc.ServerProperties;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.mca.palette.*;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
+import com.volmit.iris.util.reflect.NMSRef;
 import com.volmit.iris.util.scheduling.J;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import joptsimple.OptionSet;
 import lombok.SneakyThrows;
 import net.minecraft.core.*;
 import net.minecraft.core.Registry;
@@ -35,9 +37,7 @@ import net.minecraft.server.WorldLoader;
 import net.minecraft.server.commands.data.BlockDataAccessor;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
-import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -63,31 +63,22 @@ import org.bukkit.craftbukkit.v1_20_R1.block.CraftBlock;
 import org.bukkit.craftbukkit.v1_20_R1.block.CraftBlockState;
 import org.bukkit.craftbukkit.v1_20_R1.block.CraftBlockStates;
 import org.bukkit.craftbukkit.v1_20_R1.block.data.CraftBlockData;
-import org.bukkit.craftbukkit.v1_20_R1.entity.CraftDolphin;
 import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
-import org.bukkit.entity.Dolphin;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.entity.EntityType;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import sun.misc.Unsafe;
 
 import java.awt.Color;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Function;
 
 public class NMSBinding implements INMSBinding {
 
@@ -102,56 +93,6 @@ public class NMSBinding implements INMSBinding {
     private final ReentrantLock dataContextLock = new ReentrantLock(true);
     private final AtomicCache<Method> byIdRef = new AtomicCache<>();
     private Field biomeStorageCache = null;
-
-    private static Object getFor(Class<?> type, Object source) {
-        Object o = fieldFor(type, source);
-
-        if (o != null) {
-            return o;
-        }
-
-        return invokeFor(type, source);
-    }
-
-    private static Object invokeFor(Class<?> returns, Object in) {
-        for (Method i : in.getClass().getMethods()) {
-            if (i.getReturnType().equals(returns)) {
-                i.setAccessible(true);
-                try {
-                    Iris.debug("[NMS] Found " + returns.getSimpleName() + " in " + in.getClass().getSimpleName() + "." + i.getName() + "()");
-                    return i.invoke(in);
-                } catch (Throwable e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private static Object fieldFor(Class<?> returns, Object in) {
-        return fieldForClass(returns, in.getClass(), in);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> T fieldForClass(Class<T> returnType, Class<?> sourceType, Object in) {
-        for (Field i : sourceType.getDeclaredFields()) {
-            if (i.getType().equals(returnType)) {
-                i.setAccessible(true);
-                try {
-                    Iris.debug("[NMS] Found " + returnType.getSimpleName() + " in " + sourceType.getSimpleName() + "." + i.getName());
-                    return (T) i.get(in);
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        return null;
-    }
-
-    private static Class<?> getClassType(Class<?> type, int ordinal) {
-        return type.getDeclaredClasses()[ordinal];
-    }
 
     @Override
     public boolean hasTile(Material material) {
@@ -271,7 +212,7 @@ public class NMSBinding implements INMSBinding {
     }
 
     private RegistryAccess registry() {
-        return registryAccess.aquire(() -> (RegistryAccess) getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()));
+        return registryAccess.aquire(() -> (RegistryAccess) NMSRef.getFor(RegistryAccess.Frozen.class, ((CraftServer) Bukkit.getServer()).getHandle().getServer()));
     }
 
     private Registry<net.minecraft.world.level.biome.Biome> getCustomBiomeRegistry() {
@@ -627,30 +568,13 @@ public class NMSBinding implements INMSBinding {
         return keys;
     }
 
-    private static Field getField(Class<?> clazz, Class<?> fieldType) throws NoSuchFieldException {
-        try {
-            for (Field f : clazz.getDeclaredFields()) {
-                if (f.getType().equals(fieldType))
-                    return f;
-            }
-            throw new NoSuchFieldException(fieldType.getName());
-        } catch (NoSuchFieldException var4) {
-            Class<?> superClass = clazz.getSuperclass();
-            if (superClass == null) {
-                throw var4;
-            } else {
-                return getField(superClass, fieldType);
-            }
-        }
-    }
-
     @Override
     @SneakyThrows
     public AutoClosing injectLevelStems() {
         if (!dataContextLock.tryLock()) throw new IllegalStateException("Failed to inject data context!");
 
         var server = ((CraftServer) Bukkit.getServer());
-        var field = getField(MinecraftServer.class, WorldLoader.DataLoadContext.class);
+        var field = NMSRef.getField(MinecraftServer.class, WorldLoader.DataLoadContext.class);
         var nmsServer = server.getServer();
         var old = nmsServer.worldLoader;
 
@@ -672,7 +596,7 @@ public class NMSBinding implements INMSBinding {
     @SneakyThrows
     public AutoClosing injectUncached(boolean overworld, boolean nether, boolean end) {
         var reg = registry();
-        var field = getField(RegistryAccess.ImmutableRegistryAccess.class, Map.class);
+        var field = NMSRef.getField(RegistryAccess.ImmutableRegistryAccess.class, Map.class);
         field.setAccessible(true);
 
         var access = createRegistryAccess(((CraftServer) Bukkit.getServer()).getServer().worldLoader.datapackDimensions(), true, overworld, nether, end);
@@ -697,6 +621,25 @@ public class NMSBinding implements INMSBinding {
     @Override
     public void removeCustomDimensions(World world) {
         ((CraftWorld) world).getHandle().K.customDimensions = null;
+    }
+
+    @Override
+    public Map<ServerProperties.FILES, Object> getFileLocations() {
+        OptionSet options = ((CraftServer)Bukkit.getServer()).getServer().options;
+        Object bukkit = options.valueOf("bukkit-settings");
+        Object spigot = options.valueOf("spigot-settings");
+        Object paperDir = options.valueOf("paper-settings-directory");
+        Object serverProperties = options.valueOf("config");
+        Object world = options.valueOf("world");
+        if (world == null) world = "world";
+
+        return Map.of(
+                ServerProperties.FILES.SERVER_PROPERTIES, serverProperties,
+                ServerProperties.FILES.BUKKIT_YML, bukkit,
+                ServerProperties.FILES.SPIGOT_YML, spigot,
+                ServerProperties.FILES.PAPER_DIR, paperDir,
+                ServerProperties.FILES.WORLD_NAME, world
+        );
     }
 
     private RegistryAccess.Frozen createRegistryAccess(RegistryAccess.Frozen datapack, boolean copy, boolean overworld, boolean nether, boolean end) {

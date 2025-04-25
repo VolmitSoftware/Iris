@@ -30,6 +30,7 @@ import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.misc.ServerProperties;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
@@ -52,7 +53,7 @@ import java.util.function.Supplier;
 @Data
 @Accessors(fluent = true, chain = true)
 public class IrisCreator {
-    private static final File BUKKIT_YML = new File("bukkit.yml");
+    private static final File BUKKIT_YML = ServerProperties.BUKKIT_YML;
     /**
      * Specify an area to pregenerate during creation
      */

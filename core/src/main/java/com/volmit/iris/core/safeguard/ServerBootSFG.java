@@ -1,10 +1,15 @@
 package com.volmit.iris.core.safeguard;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
+import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.agent.Agent;
+import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.misc.ServerProperties;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import javax.tools.JavaCompiler;
@@ -184,6 +189,31 @@ public class ServerBootSFG {
     }
 
     private static boolean missingDimensionTypes() {
-        return INMS.get().missingDimensionTypes(null);
+        return INMS.get().missingDimensionTypes(getDimensionTypes().toArray(String[]::new));
+    }
+
+    private static KSet<String> getDimensionTypes() {
+        var bukkit = YamlConfiguration.loadConfiguration(ServerProperties.BUKKIT_YML);
+        var worlds = bukkit.getConfigurationSection("worlds");
+        if (worlds == null) return new KSet<>();
+
+        var types = new KSet<String>();
+        for (String world : worlds.getKeys(false)) {
+            var gen = worlds.getString(world + ".generator");
+            if (gen == null) continue;
+
+            String loadKey;
+            if (gen.equalsIgnoreCase("iris")) {
+                loadKey = IrisSettings.get().getGenerator().getDefaultWorldType();
+            } else if (gen.startsWith("Iris:")) {
+                loadKey = gen.substring(5);
+            } else continue;
+
+            IrisDimension dimension = Iris.loadDimension(world, loadKey);
+            if (dimension == null) continue;
+            types.add(dimension.getDimensionTypeKey());
+        }
+
+        return types;
     }
 }

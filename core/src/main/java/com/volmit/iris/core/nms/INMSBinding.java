@@ -21,6 +21,7 @@ package com.volmit.iris.core.nms;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.mantle.Mantle;
@@ -89,9 +90,9 @@ public interface INMSBinding {
     MCABiomeContainer newBiomeContainer(int min, int max);
 
     default World createWorld(WorldCreator c) {
-        if (missingDimensionTypes(c.generator()))
-            throw new IllegalStateException("Missing dimenstion types to create world");
-
+        if (c.generator() instanceof PlatformChunkGenerator gen
+                && missingDimensionTypes(gen.getTarget().getDimension().getDimensionTypeKey()))
+            throw new IllegalStateException("Missing dimension types to create world");
         return c.createWorld();
     }
 
@@ -127,7 +128,7 @@ public interface INMSBinding {
 
     KList<String> getStructureKeys();
 
-    boolean missingDimensionTypes(@Nullable ChunkGenerator generator);
+    boolean missingDimensionTypes(String... keys);
 
     default boolean injectBukkit() {
         return true;

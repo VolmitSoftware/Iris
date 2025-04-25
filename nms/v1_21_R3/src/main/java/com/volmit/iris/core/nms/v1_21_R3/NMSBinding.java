@@ -11,6 +11,7 @@ import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.agent.Agent;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.json.JSONObject;
@@ -77,7 +78,6 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.*;
 import java.awt.Color;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -97,7 +97,6 @@ public class NMSBinding implements INMSBinding {
     private final AtomicCache<MCAIdMapper<BlockState>> registryCache = new AtomicCache<>();
     private final AtomicCache<MCAPalette<BlockState>> globalCache = new AtomicCache<>();
     private final AtomicCache<RegistryAccess> registryAccess = new AtomicCache<>();
-    private final KMap<World.Environment, LevelStem> stems = new KMap<>();
     private final AtomicCache<Method> byIdRef = new AtomicCache<>();
     private Field biomeStorageCache = null;
 
@@ -672,16 +671,11 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
-    public boolean missingDimensionTypes(ChunkGenerator generator) {
-        if (generator == null)
-            return registry().lookupOrThrow(Registries.DIMENSION_TYPE)
-                    .keySet()
-                    .stream()
-                    .noneMatch(loc -> loc.getNamespace().equals("iris"));
-        if (!(generator instanceof PlatformChunkGenerator pcg))
-            return false;
-        var dimensionKey = ResourceLocation.fromNamespaceAndPath("iris", pcg.getTarget().getDimension().getDimensionTypeKey());
-        return !registry().lookupOrThrow(Registries.DIMENSION_TYPE).containsKey(dimensionKey);
+    public boolean missingDimensionTypes(String... keys) {
+        var type = registry().lookupOrThrow(Registries.DIMENSION_TYPE);
+        return !Arrays.stream(keys)
+                .map(key -> ResourceLocation.fromNamespaceAndPath("iris", key))
+                .allMatch(type::containsKey);
     }
 
     @Override
@@ -704,10 +698,6 @@ public class NMSBinding implements INMSBinding {
             e.printStackTrace();
         }
         return false;
-    }
-
-    private ResourceLocation createIrisKey(ResourceKey<LevelStem> key) {
-        return ResourceLocation.fromNamespaceAndPath("iris", key.location().getPath());
     }
 
     public LevelStem levelStem(RegistryAccess access, ChunkGenerator raw) {

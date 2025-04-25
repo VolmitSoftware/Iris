@@ -120,7 +120,12 @@ public class NMSBinding1X implements INMSBinding {
     }
 
     @Override
-    public boolean missingDimensionTypes(@Nullable ChunkGenerator generator) {
+    public KList<String> getLevelStems() {
+        return new KList<>();
+    }
+
+    @Override
+    public boolean missingDimensionTypes(String... keys) {
         return false;
     }
 

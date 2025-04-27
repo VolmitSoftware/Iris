@@ -35,14 +35,17 @@ import org.bukkit.World;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class AsyncPregenMethod implements PregeneratorMethod {
     private static final AtomicInteger THREAD_COUNT = new AtomicInteger();
     private final World world;
-    private final MultiBurst burst;
+    private final ExecutorService service;
     private final Semaphore semaphore;
+    private final int threads;
     private final Map<Chunk, Long> lastUse;
 
     public AsyncPregenMethod(World world, int threads) {
@@ -51,8 +54,11 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         }
 
         this.world = world;
-        burst = new MultiBurst("Iris Async Pregen", Thread.MIN_PRIORITY);
-        semaphore = new Semaphore(256);
+        service = IrisSettings.get().getPregen().isUseVirtualThreads() ?
+                Executors.newVirtualThreadPerTaskExecutor() :
+                new MultiBurst("Iris Async Pregen", Thread.MIN_PRIORITY);
+        this.threads = IrisSettings.get().getPregen().getMaxConcurrency();
+        semaphore = new Semaphore(threads);
         this.lastUse = new KMap<>();
     }
 
@@ -106,9 +112,9 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
     @Override
     public void close() {
-        semaphore.acquireUninterruptibly(256);
+        semaphore.acquireUninterruptibly(threads);
         unloadAndSaveAllChunks();
-        burst.close();
+        service.shutdown();
         resetWorkerThreads();
     }
 
@@ -135,7 +141,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         } catch (InterruptedException e) {
             return;
         }
-        burst.complete(() -> completeChunk(x, z, listener));
+        service.submit(() -> completeChunk(x, z, listener));
     }
 
     @Override

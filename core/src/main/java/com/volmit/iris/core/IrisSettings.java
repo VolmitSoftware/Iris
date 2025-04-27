@@ -44,6 +44,7 @@ public class IrisSettings {
     private IrisSettingsStudio studio = new IrisSettingsStudio();
     private IrisSettingsPerformance performance = new IrisSettingsPerformance();
     private IrisSettingsUpdater updater = new IrisSettingsUpdater();
+    private IrisSettingsPregen pregen = new IrisSettingsPregen();
 
     public static int getThreadCount(int c) {
         return switch (c) {
@@ -129,6 +130,7 @@ public class IrisSettings {
         public boolean markerEntitySpawningSystem = true;
         public boolean effectSystem = true;
         public boolean worldEditWandCUI = true;
+        public boolean globalPregenCache = true;
     }
 
     @Data
@@ -139,6 +141,12 @@ public class IrisSettings {
         public int getWorldGenThreads() {
             return getThreadCount(worldGenParallelism);
         }
+    }
+
+    @Data
+    public static class IrisSettingsPregen {
+        public boolean useVirtualThreads = false;
+        public int maxConcurrency = 256;
     }
 
     @Data

@@ -3,25 +3,20 @@ package com.volmit.iris.core.scripting;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.io.IO;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
-import org.dom4j.Document;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.util.*;
-import java.util.jar.JarFile;
-import java.util.jar.JarOutputStream;
 
 @UtilityClass
 public class ExecutionEnvironment {
@@ -47,69 +42,18 @@ public class ExecutionEnvironment {
 
     @SneakyThrows
     private static URLClassLoader buildLoader() {
-        String version = "868b3b9910";
+        String version = "b5e2cc6e";
         String url = BASE_URL.formatted(version, version);
         String hash = IO.hash("Iris-Scripts.jar@" + version);
         var file = Iris.instance.getDataFile("cache", hash.substring(0, 2), hash.substring(3, 5), hash + ".jar");
-        var libsDir = new File(file.getParentFile(), "libs");
-
-        KList<String> libs = null;
         if (!file.exists()) {
-            libsDir.mkdirs();
-
             Iris.info("Downloading Script Engine...");
-            var tempFile = Iris.getNonCachedFile(UUID.randomUUID().toString(), url);
-            try (var jar = new JarFile(tempFile); var out = new JarOutputStream(new FileOutputStream(file)) ) {
-                libs = getLibraries(jar);
-                for (var it = jar.entries().asIterator(); it.hasNext(); ) {
-                    var entry = it.next();
-                    if (entry.isDirectory()) {
-                        out.putNextEntry(entry);
-                        out.closeEntry();
-                        continue;
-                    }
-
-                    try (var in = jar.getInputStream(entry)) {
-                        if (libs.contains(entry.getName())) {
-                            var target = new File(libsDir, entry.getName());
-                            target.getParentFile().mkdirs();
-                            Files.copy(in, target.toPath());
-                            continue;
-                        }
-                        out.putNextEntry(entry);
-                        IO.copy(in, out);
-                        out.closeEntry();
-                    }
-                }
+            try (var stream = URI.create(url).toURL().openStream()) {
+                Files.copy(stream, file.toPath());
             }
-            IO.deleteUp(tempFile);
             Iris.info("Downloaded Script Engine!");
         }
-
-        if (libs == null) {
-            try (var jar = new JarFile(file)) {
-                libs = getLibraries(jar);
-            }
-        }
-        var urls = new URL[libs.size() + 1];
-        urls[0] = file.toURI().toURL();
-        for (int i = 0; i < libs.size(); i++) {
-            File lib = new File(libsDir, libs.get(i));
-            if (!lib.exists()) {
-                Iris.warn("Missing library: " + lib.getAbsolutePath());
-                continue;
-            }
-
-            urls[i + 1] = lib.toURI().toURL();
-        }
-        return new URLClassLoader(urls, Provider.class.getClassLoader());
-    }
-
-    private static KList<String> getLibraries(JarFile jar) throws IOException {
-        return new KList<>(jar.getManifest()
-                .getMainAttributes()
-                .getValue("Libraries")
-                .split(";"));
+        return new URLClassLoader(new URL[]{file.toURI().toURL()}, Provider.class.getClassLoader());
     }
 
     public interface Provider {
@@ -125,15 +69,7 @@ public class ExecutionEnvironment {
 
 
     public interface Simple {
-        default void configureProject(@NonNull File projectDir) {
-            var workspaceFile = new File(projectDir, ".idea" + File.separator + "workspace.xml");
-            var workspaceDoc = IO.read(workspaceFile);
-            if (configureProject(projectDir, workspaceDoc)) {
-                IO.write(workspaceFile, workspaceDoc);
-            }
-        }
-
-        boolean configureProject(@NonNull File projectDir, @NonNull Document workspace);
+        void configureProject(@NonNull File projectDir);
 
         void execute(@NonNull String script);
 

@@ -367,7 +367,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     private void spawn(IrisPosition pos, IrisEntitySpawn i) {
         IrisSpawner ref = i.getReferenceSpawner();
-        if (!ref.canSpawn(getEngine(), pos.getX() >> 4, pos.getZ()))
+        if (!ref.canSpawn(getEngine(), pos.getX() >> 4, pos.getZ() >> 4))
             return;
 
         int s = i.spawn(getEngine(), pos, RNG.r);

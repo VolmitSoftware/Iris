@@ -180,7 +180,10 @@ public class IrisEngine implements Engine {
                 File[] roots = getData().getLoaders()
                         .values()
                         .stream()
-                        .map(ResourceLoader::getRoot)
+                        .map(ResourceLoader::getFolderName)
+                        .map(n -> new File(getData().getDataFolder(), n))
+                        .filter(File::exists)
+                        .filter(File::isDirectory)
                         .toArray(File[]::new);
                 hash32.complete(IO.hashRecursive(roots));
             });

@@ -145,7 +145,10 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsPregen {
+        public boolean useCacheByDefault = true;
+        public boolean useHighPriority = false;
         public boolean useVirtualThreads = false;
+        public boolean useTicketQueue = false;
         public int maxConcurrency = 256;
     }
 

@@ -136,6 +136,15 @@ public class TectonicPlate {
         return false;
     }
 
+    public void close() throws InterruptedException {
+        for (int i = 0; i < chunks.length(); i++) {
+            MantleChunk chunk = chunks.get(i);
+            if (chunk != null) {
+                chunk.close();
+            }
+        }
+    }
+
     /**
      * Check if a chunk exists in this plate or not (same as get(x, z) != null)
      *

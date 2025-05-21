@@ -30,7 +30,8 @@ import lombok.Getter;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
@@ -45,7 +46,8 @@ public class MantleChunk {
     private final int z;
     private final AtomicIntegerArray flags;
     private final AtomicReferenceArray<Matter> sections;
-    private final AtomicInteger ref = new AtomicInteger();
+    private final Semaphore ref = new Semaphore(Integer.MAX_VALUE, true);
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     /**
      * Create a mantle chunk
@@ -103,20 +105,27 @@ public class MantleChunk {
         }
     }
 
+    public void close() throws InterruptedException {
+        closed.set(true);
+        ref.acquire(Integer.MAX_VALUE);
+    }
+
     public boolean inUse() {
-        return ref.get() > 0;
+        return ref.availablePermits() < Integer.MAX_VALUE;
     }
 
     public MantleChunk use() {
-        ref.incrementAndGet();
+        if (closed.get()) throw new IllegalStateException("Chunk is closed!");
+        ref.acquireUninterruptibly();
         return this;
     }
 
     public void release() {
-        ref.decrementAndGet();
+        ref.release();
     }
 
     public void flag(MantleFlag flag, boolean f) {
+        if (closed.get()) throw new IllegalStateException("Chunk is closed!");
         flags.set(flag.ordinal(), f ? 1 : 0);
     }
 

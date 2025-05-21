@@ -572,12 +572,17 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public void onDisable() {
+        Bukkit.getWorlds()
+                .parallelStream()
+                .map(IrisToolbelt::access)
+                .filter(Objects::nonNull)
+                .forEach(PlatformChunkGenerator::close);
         services.values().forEach(IrisService::onDisable);
         Bukkit.getScheduler().cancelTasks(this);
         HandlerList.unregisterAll((Plugin) this);
         postShutdown.forEach(Runnable::run);
-        services.clear();
         MultiBurst.burst.close();
+        services.clear();
         super.onDisable();
     }
 

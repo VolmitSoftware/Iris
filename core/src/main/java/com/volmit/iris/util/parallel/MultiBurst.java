@@ -32,6 +32,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MultiBurst implements ExecutorService {
+    private static final long TIMEOUT = Long.getLong("iris.burst.timeout", 15000);
     public static final MultiBurst burst = new MultiBurst();
     private final AtomicLong last;
     private final String name;
@@ -231,7 +232,7 @@ public class MultiBurst implements ExecutorService {
         try {
             while (!service.awaitTermination(1, TimeUnit.SECONDS)) {
                 Iris.info("Still waiting to shutdown burster...");
-                if (p.getMilliseconds() > 7000) {
+                if (p.getMilliseconds() > TIMEOUT) {
                     Iris.warn("Forcing Shutdown...");
 
                     try {

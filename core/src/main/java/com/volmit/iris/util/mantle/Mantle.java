@@ -359,16 +359,18 @@ public class Mantle {
         }
 
         closed.set(true);
-        BurstExecutor b = ioBurst.burst(loadedRegions.size());
-        for (Long i : loadedRegions.keySet()) {
-            b.queue(() -> {
-                try {
-                    loadedRegions.get(i).write(fileForRegion(dataFolder, i));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            });
-        }
+        hyperLock.disable();
+        BurstExecutor b = ioBurst.burst(toUnload.size());
+        loadedRegions.forEach((i, plate) -> b.queue(() -> {
+            try {
+                plate.close();
+                plate.write(fileForRegion(dataFolder, i));
+            } catch (Throwable e) {
+                Iris.error("Failed to write Tectonic Plate " + C.DARK_GREEN + Cache.keyX(i) + " " + Cache.keyZ(i));
+                e.printStackTrace();
+            }
+        }));
+        loadedRegions.clear();
 
         try {
             b.complete();
@@ -376,7 +378,6 @@ public class Mantle {
             Iris.reportError(e);
         }
 
-        loadedRegions.clear();
         Iris.debug("The Mantle has Closed " + C.DARK_AQUA + dataFolder.getAbsolutePath());
     }
 

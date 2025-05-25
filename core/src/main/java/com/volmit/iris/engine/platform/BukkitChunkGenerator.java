@@ -301,7 +301,9 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 hotloader.interrupt();
             }
 
-            getEngine().close();
+            final Engine engine = getEngine();
+            if (engine != null && !engine.isClosed())
+                engine.close();
             folder.clear();
             populators.clear();
 

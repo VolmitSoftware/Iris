@@ -31,16 +31,22 @@ public class JarScanner {
     private final KSet<Class<?>> classes;
     private final File jar;
     private final String superPackage;
+    private final boolean report;
 
     /**
      * Create a scanner
      *
      * @param jar the path to the jar
      */
-    public JarScanner(File jar, String superPackage) {
+    public JarScanner(File jar, String superPackage, boolean report) {
         this.jar = jar;
         this.classes = new KSet<>();
         this.superPackage = superPackage;
+        this.report = report;
+    }
+
+    public JarScanner(File jar, String superPackage) {
+        this(jar, superPackage, true);
     }
 
     /**
@@ -65,7 +71,8 @@ public class JarScanner {
                     try {
                         Class<?> clazz = Class.forName(c);
                         classes.add(clazz);
-                    } catch (ClassNotFoundException e) {
+                    } catch (Throwable e) {
+                        if (!report) continue;
                         Iris.reportError(e);
                         e.printStackTrace();
                     }

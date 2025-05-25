@@ -37,7 +37,6 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.generator.structure.Structure;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
 import java.util.stream.StreamSupport;
@@ -117,11 +116,6 @@ public class NMSBinding1X implements INMSBinding {
                 .map(NamespacedKey::toString)
                 .toList();
         return new KList<>(list);
-    }
-
-    @Override
-    public KList<String> getLevelStems() {
-        return new KList<>();
     }
 
     @Override

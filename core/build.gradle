@@ -36,6 +36,7 @@ compileJava {
 repositories {
     maven { url 'https://nexus.phoenixdevt.fr/repository/maven-public/'}
     maven { url 'https://repo.auxilor.io/repository/maven-public/' }
+    maven { url = "https://repo.onarandombox.com/content/groups/public/" }
 }
 
 /**
@@ -68,6 +69,7 @@ dependencies {
     compileOnly 'com.github.Ssomar-Developement:SCore:4.23.10.8'
     compileOnly 'net.Indyuce:MMOItems-API:6.9.5-SNAPSHOT'
     compileOnly 'com.willfp:EcoItems:5.44.0'
+    compileOnly 'org.mvplugins.multiverse.core:multiverse-core:5.0.0-SNAPSHOT'
     //implementation files('libs/CustomItems.jar')
 }
 

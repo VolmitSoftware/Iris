@@ -45,9 +45,7 @@ public class ServerBootSFG {
         Plugin[] plugins = pluginManager.getPlugins();
 
         incompatibilities.clear();
-        incompatibilities.put("Multiverse-Core", false);
         incompatibilities.put("dynmap", false);
-        incompatibilities.put("TerraformGenerator", false);
         incompatibilities.put("Stratos", false);
 
         String pluginName;

@@ -32,14 +32,12 @@ import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.engine.object.IrisContextInjector;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
-import com.volmit.iris.engine.platform.DummyChunkGenerator;
 import com.volmit.iris.core.safeguard.IrisSafeguard;
 import com.volmit.iris.core.safeguard.UtilsSFG;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
@@ -740,18 +738,6 @@ public class Iris extends VolmitPlugin implements Listener {
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
         Iris.debug("Default World Generator Called for " + worldName + " using ID: " + id);
-        if (worldName.equals("test")) {
-            try {
-                throw new RuntimeException();
-            } catch (Throwable e) {
-                Iris.info(e.getStackTrace()[1].getClassName());
-                if (e.getStackTrace()[1].getClassName().contains("com.onarandombox.MultiverseCore")) {
-                    Iris.debug("MVC Test detected, Quick! Send them the dummy!");
-                    return new DummyChunkGenerator();
-                }
-            }
-        }
-
         IrisDimension dim;
         if (id == null || id.isEmpty()) {
             dim = IrisData.loadAnyDimension(IrisSettings.get().getGenerator().getDefaultWorldType());

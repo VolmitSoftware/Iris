@@ -103,7 +103,7 @@ public class Mantle {
      * @return the file
      */
     public static File fileForRegion(File folder, int x, int z) {
-        return fileForRegion(folder, key(x, z));
+        return fileForRegion(folder, key(x, z), true);
     }
 
     /**
@@ -113,12 +113,28 @@ public class Mantle {
      * @param key    the region key
      * @return the file
      */
-    public static File fileForRegion(File folder, Long key) {
-        File f = new File(folder, "p." + key + ".ttp.lz4b");
-        if (!f.getParentFile().exists()) {
-            f.getParentFile().mkdirs();
+    public static File fileForRegion(File folder, Long key, boolean convert) {
+        File f = oldFileForRegion(folder, key);
+        File fv = new File(folder, "pv." + key + ".ttp.lz4b");
+        if (f.exists() && !fv.exists() && convert)
+            return f;
+
+        if (!fv.getParentFile().exists()) {
+            fv.getParentFile().mkdirs();
         }
-        return f;
+        return fv;
+    }
+
+
+    /**
+     * Get the old file for the given region
+     *
+     * @param folder the data folder
+     * @param key    the region key
+     * @return the file
+     */
+    public static File oldFileForRegion(File folder, Long key) {
+        return new File(folder, "p." + key + ".ttp.lz4b");
     }
 
     /**
@@ -210,7 +226,7 @@ public class Mantle {
     @RegionCoordinates
     public boolean hasTectonicPlate(int x, int z) {
         Long k = key(x, z);
-        return loadedRegions.containsKey(k) || fileForRegion(dataFolder, k).exists();
+        return loadedRegions.containsKey(k) || fileForRegion(dataFolder, k, true).exists();
     }
 
     /**
@@ -364,7 +380,8 @@ public class Mantle {
         loadedRegions.forEach((i, plate) -> b.queue(() -> {
             try {
                 plate.close();
-                plate.write(fileForRegion(dataFolder, i));
+                plate.write(fileForRegion(dataFolder, i, false));
+                oldFileForRegion(dataFolder, i).delete();
             } catch (Throwable e) {
                 Iris.error("Failed to write Tectonic Plate " + C.DARK_GREEN + Cache.keyX(i) + " " + Cache.keyZ(i));
                 e.printStackTrace();
@@ -479,7 +496,8 @@ public class Mantle {
                                         return;
                                     }
                                     try {
-                                        m.write(fileForRegion(dataFolder, id));
+                                        m.write(fileForRegion(dataFolder, id, false));
+                                        oldFileForRegion(dataFolder, id).delete();
                                         loadedRegions.remove(id);
                                         lastUse.remove(id);
                                         if (disableClear) toUnload.remove(id);
@@ -577,7 +595,7 @@ public class Mantle {
             if (file.exists()) {
                 try {
                     Iris.addPanic("reading.tectonic-plate", file.getAbsolutePath());
-                    region = TectonicPlate.read(worldHeight, file);
+                    region = TectonicPlate.read(worldHeight, file, file.getName().startsWith("pv."));
 
                     if (region.getX() != x || region.getZ() != z) {
                         Iris.warn("Loaded Tectonic Plate " + x + "," + z + " but read it as " + region.getX() + "," + region.getZ() + "... Assuming " + x + "," + z);

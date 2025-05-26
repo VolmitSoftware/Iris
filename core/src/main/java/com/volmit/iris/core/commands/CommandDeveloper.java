@@ -166,7 +166,7 @@ public class CommandDeveloper implements DecreeExecutor {
 
         File tectonicplates = new File(folder, "mantle");
         for (File i : Objects.requireNonNull(tectonicplates.listFiles())) {
-            TectonicPlate.read(maxHeight, i);
+            TectonicPlate.read(maxHeight, i, true);
             c++;
             Iris.info("Loaded count: " + c );
 
@@ -272,7 +272,8 @@ public class CommandDeveloper implements DecreeExecutor {
             @Param(description = "base IrisWorld") World world,
             @Param(description = "raw TectonicPlate File") String path,
             @Param(description = "Algorithm to Test") String algorithm,
-            @Param(description = "Amount of Tests") int amount) {
+            @Param(description = "Amount of Tests") int amount,
+            @Param(description = "Is versioned", defaultValue = "false") boolean versioned) {
         if (!IrisToolbelt.isIrisWorld(world)) {
             sender().sendMessage(C.RED + "This is not an Iris world. Iris worlds: " + String.join(", ", Bukkit.getServer().getWorlds().stream().filter(IrisToolbelt::isIrisWorld).map(World::getName).toList()));
             return;
@@ -289,7 +290,7 @@ public class CommandDeveloper implements DecreeExecutor {
             service.submit(() -> {
                 try {
                     CountingDataInputStream raw = CountingDataInputStream.wrap(new FileInputStream(file));
-                    TectonicPlate plate = new TectonicPlate(height, raw);
+                    TectonicPlate plate = new TectonicPlate(height, raw, versioned);
                     raw.close();
 
                     double d1 = 0;
@@ -308,7 +309,7 @@ public class CommandDeveloper implements DecreeExecutor {
                             size = tmp.length();
                         start = System.currentTimeMillis();
                         CountingDataInputStream din = createInput(tmp, algorithm);
-                        new TectonicPlate(height, din);
+                        new TectonicPlate(height, din, true);
                         din.close();
                         d2 += System.currentTimeMillis() - start;
                         tmp.delete();

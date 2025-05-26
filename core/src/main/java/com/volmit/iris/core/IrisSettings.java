@@ -191,6 +191,7 @@ public class IrisSettings {
         public boolean DoomsdayAnnihilationSelfDestructMode = false;
         public boolean commandSounds = true;
         public boolean debug = false;
+        public boolean dumpMantleOnError = false;
         public boolean disableNMS = false;
         public boolean pluginMetrics = true;
         public boolean splashLogoStartup = true;

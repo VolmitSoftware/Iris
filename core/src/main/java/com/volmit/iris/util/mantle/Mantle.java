@@ -474,6 +474,7 @@ public class Mantle {
 
                     if (m.inUse()) {
                         Iris.debug("Tectonic Plate was added to unload while in use " + C.DARK_GREEN + m.getX() + " " + m.getZ());
+                        lastUse.put(id, M.ms());
                         toUnload.remove(id);
                         return;
                     }

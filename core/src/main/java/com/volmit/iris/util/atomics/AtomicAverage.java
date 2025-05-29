@@ -31,11 +31,11 @@ import com.volmit.iris.util.data.DoubleArrayUtils;
  */
 public class AtomicAverage {
     protected final AtomicDoubleArray values;
-    protected int cursor;
-    private double average;
-    private double lastSum;
-    private boolean dirty;
-    private boolean brandNew;
+    protected transient int cursor;
+    private transient double average;
+    private transient double lastSum;
+    private transient boolean dirty;
+    private transient boolean brandNew;
 
     /**
      * Create an average holder
@@ -57,7 +57,7 @@ public class AtomicAverage {
      *
      * @param i the value
      */
-    public void put(double i) {
+    public synchronized void put(double i) {
 
         try {
             dirty = true;

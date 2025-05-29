@@ -19,6 +19,7 @@
 package com.volmit.iris.util.mantle;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.io.CountingDataInputStream;
@@ -74,11 +75,12 @@ public class MantleChunk {
      * @throws IOException            shit happens
      * @throws ClassNotFoundException shit happens
      */
-    public MantleChunk(int sectionHeight, CountingDataInputStream din) throws IOException {
+    public MantleChunk(int version, int sectionHeight, CountingDataInputStream din) throws IOException {
         this(sectionHeight, din.readByte(), din.readByte());
         int s = din.readByte();
+        int l = version < 0 ? flags.length() : Varint.readUnsignedVarInt(din);
 
-        for (int i = 0; i < flags.length(); i++) {
+        for (int i = 0; i < flags.length() && i < l; i++) {
             flags.set(i, din.readBoolean() ? 1 : 0);
         }
 
@@ -87,6 +89,10 @@ public class MantleChunk {
             long size = din.readInt();
             if (size == 0) continue;
             long start = din.count();
+            if (i >= sectionHeight) {
+                din.skipTo(start + size);
+                continue;
+            }
 
             try {
                 sections.set(i, Matter.readDin(din));
@@ -210,6 +216,7 @@ public class MantleChunk {
         dos.writeByte(x);
         dos.writeByte(z);
         dos.writeByte(sections.length());
+        Varint.writeUnsignedVarInt(flags.length(), dos);
 
         for (int i = 0; i < flags.length(); i++) {
             dos.writeBoolean(flags.get(i) == 1);

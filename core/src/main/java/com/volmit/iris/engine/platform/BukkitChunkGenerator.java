@@ -40,6 +40,7 @@ import com.volmit.iris.util.io.ReactiveFolder;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
+import io.papermc.lib.PaperLib;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Setter;
@@ -142,6 +143,20 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         } catch (Throwable e) {
             e.printStackTrace();
         }
+    }
+
+    @Nullable
+    @Override
+    public Location getFixedSpawnLocation(@NotNull World world, @NotNull Random random) {
+        Location location = new Location(world, 0, 64, 0);
+        PaperLib.getChunkAtAsync(location)
+                .thenAccept(c -> {
+                    World w = c.getWorld();
+                    if (!w.getSpawnLocation().equals(location))
+                        return;
+                    w.setSpawnLocation(location.add(0, w.getHighestBlockYAt(location) - 64, 0));
+                });
+        return location;
     }
 
     private void setupEngine() {

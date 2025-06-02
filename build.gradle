@@ -36,7 +36,7 @@ plugins {
 }
 
 
-version '3.6.8-1.20.1-1.21.4'
+version '3.6.8-1.20.1-1.21.5'
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================
@@ -62,6 +62,7 @@ def MAX_HEAP_SIZE = "8G"
 def COLOR = "truecolor"
 
 def NMS_BINDINGS = Map.of(
+        "v1_21_R4", "1.21.5-R0.1-SNAPSHOT",
         "v1_21_R3", "1.21.4-R0.1-SNAPSHOT",
         "v1_21_R2", "1.21.3-R0.1-SNAPSHOT",
         "v1_21_R1", "1.21.1-R0.1-SNAPSHOT",

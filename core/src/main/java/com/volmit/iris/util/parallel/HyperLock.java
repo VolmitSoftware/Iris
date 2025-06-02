@@ -143,5 +143,6 @@ public class HyperLock {
 
     public void disable() {
         enabled = false;
+        locks.values().forEach(ReentrantLock::lock);
     }
 }

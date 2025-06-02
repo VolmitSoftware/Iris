@@ -19,9 +19,10 @@
 package com.volmit.iris.util.mantle;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.engine.data.cache.Cache;
-import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -44,7 +45,9 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
  * Tectonic Plates are fully atomic & thread safe
  */
 public class TectonicPlate {
-    private static final KSet<Thread> errors = new KSet<>();
+    private static final ThreadLocal<Boolean> errors = ThreadLocal.withInitial(() -> false);
+    public static final int MISSING = -1;
+    public static final int CURRENT = 0;
 
     private final int sectionHeight;
     private final AtomicReferenceArray<MantleChunk> chunks;
@@ -74,11 +77,12 @@ public class TectonicPlate {
      * @param din         the data input
      * @throws IOException            shit happens yo
      */
-    public TectonicPlate(int worldHeight, CountingDataInputStream din) throws IOException {
+    public TectonicPlate(int worldHeight, CountingDataInputStream din, boolean versioned) throws IOException {
         this(worldHeight, din.readInt(), din.readInt());
         if (!din.markSupported())
             throw new IOException("Mark not supported!");
 
+        int v = versioned ? Varint.readUnsignedVarInt(din) : MISSING;
         for (int i = 0; i < chunks.length(); i++) {
             long size = din.readInt();
             if (size == 0) continue;
@@ -86,7 +90,7 @@ public class TectonicPlate {
 
             try {
                 Iris.addPanic("read-chunk", "Chunk[" + i + "]");
-                chunks.set(i, new MantleChunk(sectionHeight, din));
+                chunks.set(i, new MantleChunk(v, sectionHeight, din));
                 EnginePanic.saveLast();
             } catch (Throwable e) {
                 long end = start + size;
@@ -103,7 +107,7 @@ public class TectonicPlate {
         }
     }
 
-    public static TectonicPlate read(int worldHeight, File file) throws IOException {
+    public static TectonicPlate read(int worldHeight, File file, boolean versioned) throws IOException {
         try (FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.SYNC)) {
             fc.lock();
 
@@ -111,10 +115,10 @@ public class TectonicPlate {
             LZ4BlockInputStream lz4 = new LZ4BlockInputStream(fin);
             BufferedInputStream bis = new BufferedInputStream(lz4);
             try (CountingDataInputStream din = CountingDataInputStream.wrap(bis)) {
-                return new TectonicPlate(worldHeight, din);
+                return new TectonicPlate(worldHeight, din, versioned);
             }
         } finally {
-            if (errors.remove(Thread.currentThread())) {
+            if (IrisSettings.get().getGeneral().isDumpMantleOnError() && errors.get()) {
                 File dump = Iris.instance.getDataFolder("dump", file.getName() + ".bin");
                 try (FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.SYNC)) {
                     fc.lock();
@@ -124,6 +128,7 @@ public class TectonicPlate {
                     Files.copy(lz4, dump.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 }
             }
+            errors.remove();
         }
     }
 
@@ -134,6 +139,15 @@ public class TectonicPlate {
                 return true;
         }
         return false;
+    }
+
+    public void close() throws InterruptedException {
+        for (int i = 0; i < chunks.length(); i++) {
+            MantleChunk chunk = chunks.get(i);
+            if (chunk != null) {
+                chunk.close();
+            }
+        }
     }
 
     /**
@@ -208,15 +222,13 @@ public class TectonicPlate {
      */
     public void write(File file) throws IOException {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        try (FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.SYNC)) {
-            fc.lock();
-
-            OutputStream fos = Channels.newOutputStream(fc);
-            try (DataOutputStream dos = new DataOutputStream(new LZ4BlockOutputStream(fos))) {
-                write(dos);
-                Iris.debug("Saved Tectonic Plate " + C.DARK_GREEN + file.getName().split("\\Q.\\E")[0] + C.RED + " in " + Form.duration(p.getMilliseconds(), 2));
-            }
+        File temp = File.createTempFile("iris-tectonic-plate", ".bin");
+        try (DataOutputStream dos = new DataOutputStream(new LZ4BlockOutputStream(new FileOutputStream(temp)))) {
+            write(dos);
         }
+        Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        Iris.debug("Saved Tectonic Plate " + C.DARK_GREEN + file.getName() + C.RED + " in " + Form.duration(p.getMilliseconds(), 2));
+        temp.delete();
     }
 
     /**
@@ -228,6 +240,7 @@ public class TectonicPlate {
     public void write(DataOutputStream dos) throws IOException {
         dos.writeInt(x);
         dos.writeInt(z);
+        Varint.writeUnsignedVarInt(CURRENT, dos);
 
         var bytes = new ByteArrayOutputStream(8192);
         var sub = new DataOutputStream(bytes);
@@ -249,6 +262,6 @@ public class TectonicPlate {
     }
 
     public static void addError() {
-        errors.add(Thread.currentThread());
+        errors.set(true);
     }
 }

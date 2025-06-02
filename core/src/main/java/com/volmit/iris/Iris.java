@@ -576,9 +576,19 @@ public class Iris extends VolmitPlugin implements Listener {
         Bukkit.getScheduler().cancelTasks(this);
         HandlerList.unregisterAll((Plugin) this);
         postShutdown.forEach(Runnable::run);
-        services.clear();
-        MultiBurst.burst.close();
         super.onDisable();
+
+        J.attempt(new JarScanner(instance.getJarFile(), "", false)::scan);
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            Bukkit.getWorlds()
+                    .stream()
+                    .map(IrisToolbelt::access)
+                    .filter(Objects::nonNull)
+                    .forEach(PlatformChunkGenerator::close);
+
+            MultiBurst.burst.close();
+            services.clear();
+        }));
     }
 
     private void setupPapi() {

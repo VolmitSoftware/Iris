@@ -289,23 +289,25 @@ public interface EngineMantle extends IObjectPlacer {
     }
 
     default void cleanupChunk(int x, int z) {
-        if (!getMantle().hasFlag(x, z, MantleFlag.CLEANED) && isCovered(x, z)) {
-            getMantle().raiseFlag(x, z, MantleFlag.CLEANED, () -> {
-                getMantle().deleteChunkSlice(x, z, BlockData.class);
-                getMantle().deleteChunkSlice(x, z, String.class);
-                getMantle().deleteChunkSlice(x, z, MatterCavern.class);
-                getMantle().deleteChunkSlice(x, z, MatterFluidBody.class);
+        if (!isCovered(x, z)) return;
+        MantleChunk chunk = getMantle().getChunk(x, z).use();
+        try {
+            chunk.raiseFlag(MantleFlag.CLEANED, () -> {
+                chunk.deleteSlices(BlockData.class);
+                chunk.deleteSlices(String.class);
+                chunk.deleteSlices(MatterCavern.class);
+                chunk.deleteSlices(MatterFluidBody.class);
             });
+        } finally {
+            chunk.release();
         }
     }
 
-    default long getToUnload(){
-        return getMantle().getToUnload().size();
+    default long getUnloadRegionCount() {
+        return getMantle().getUnloadRegionCount();
     }
-    default long getNotQueuedLoadedRegions(){
-        return getMantle().getLoadedRegions().size() - getMantle().getToUnload().size();
-    }
-    default double getTectonicDuration(){
-        return getMantle().getAdjustedIdleDuration().get();
+
+    default double getAdjustedIdleDuration() {
+        return getMantle().getAdjustedIdleDuration();
     }
 }

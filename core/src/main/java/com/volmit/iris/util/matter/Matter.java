@@ -154,15 +154,16 @@ public interface Matter {
                 matter.putSlice(type, slice);
             } catch (Throwable e) {
                 long end = start + size;
-                Iris.error("Failed to read matter slice, skipping it.");
-                Iris.addPanic("read.byte.range", start + " " + end);
-                Iris.addPanic("read.byte.current", din.count() + "");
-                Iris.reportError(e);
-                e.printStackTrace();
-                Iris.panic();
-
+                if (!(e instanceof ClassNotFoundException)) {
+                    Iris.error("Failed to read matter slice, skipping it.");
+                    Iris.addPanic("read.byte.range", start + " " + end);
+                    Iris.addPanic("read.byte.current", din.count() + "");
+                    Iris.reportError(e);
+                    e.printStackTrace();
+                    Iris.panic();
+                    TectonicPlate.addError();
+                }
                 din.skipTo(end);
-                TectonicPlate.addError();
             }
         }
 

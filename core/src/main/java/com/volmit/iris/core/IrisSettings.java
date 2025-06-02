@@ -155,6 +155,7 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsPerformance {
+        private IrisSettingsEngineSVC engineSVC = new IrisSettingsEngineSVC();
         public boolean trimMantleInStudio = false; 
         public int mantleKeepAlive = 30;
         public int cacheSize = 4_096;
@@ -241,5 +242,15 @@ public class IrisSettings {
         public boolean openVSCode = true;
         public boolean disableTimeAndWeather = true;
         public boolean autoStartDefaultStudio = false;
+    }
+
+    @Data
+    public static class IrisSettingsEngineSVC {
+        public boolean useVirtualThreads = true;
+        public int priority = Thread.NORM_PRIORITY;
+
+        public int getPriority() {
+            return Math.max(Math.min(priority, Thread.MAX_PRIORITY), Thread.MIN_PRIORITY);
+        }
     }
 }

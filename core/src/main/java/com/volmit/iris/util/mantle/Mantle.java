@@ -421,12 +421,9 @@ public class Mantle {
         }
 
         adjustedIdleDuration.set(baseIdleDuration);
-
-        if (loadedRegions != null) {
-            if (loadedRegions.size() > tectonicLimit) {
-                // todo update this correctly and maybe do something when its above a 100%
-                adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (((loadedRegions.size() - tectonicLimit) / (double) tectonicLimit) * 100) * 0.4), 4000));
-            }
+        if (loadedRegions.size() > tectonicLimit) {
+            // todo update this correctly and maybe do something when its above a 100%
+            adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (((loadedRegions.size() - tectonicLimit) / (double) tectonicLimit) * 100) * 0.4), 4000));
         }
 
         ioTrim.set(true);

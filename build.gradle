@@ -113,6 +113,11 @@ shadowJar {
     relocate 'net.kyori', 'com.volmit.iris.util.kyori'
     relocate 'org.bstats', 'com.volmit.util.metrics'
     archiveFileName.set("Iris-${project.version}.jar")
+
+    dependencies {
+        exclude(dependency("org.ow2.asm:asm:"))
+        exclude(dependency("org.jetbrains:"))
+    }
 }
 
 dependencies {

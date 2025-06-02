@@ -23,6 +23,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.misc.getHardware;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -160,6 +161,14 @@ public class IrisSettings {
         public int resourceLoaderCacheSize = 1_024;
         public int objectLoaderCacheSize = 4_096;
         public int scriptLoaderCacheSize = 512;
+        public int tectonicPlateSize = -1;
+
+        public int getTectonicPlateSize() {
+            if (tectonicPlateSize > 0)
+                return tectonicPlateSize;
+
+            return (int) (getHardware.getProcessMemory() / 200L);
+        }
     }
 
     @Data
@@ -191,6 +200,7 @@ public class IrisSettings {
         public boolean DoomsdayAnnihilationSelfDestructMode = false;
         public boolean commandSounds = true;
         public boolean debug = false;
+        public boolean dumpMantleOnError = false;
         public boolean disableNMS = false;
         public boolean pluginMetrics = true;
         public boolean splashLogoStartup = true;

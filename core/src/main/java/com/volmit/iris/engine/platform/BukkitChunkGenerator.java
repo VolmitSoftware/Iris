@@ -86,12 +86,12 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final boolean studio;
     private final AtomicInteger a = new AtomicInteger(0);
     private final CompletableFuture<Integer> spawnChunks = new CompletableFuture<>();
-    private Engine engine;
-    private Looper hotloader;
-    private StudioMode lastMode;
-    private DummyBiomeProvider dummyBiomeProvider;
+    private volatile Engine engine;
+    private volatile Looper hotloader;
+    private volatile StudioMode lastMode;
+    private volatile DummyBiomeProvider dummyBiomeProvider;
     @Setter
-    private StudioGenerator studioGenerator;
+    private volatile StudioGenerator studioGenerator;
 
     private boolean initialized = false;
 
@@ -108,20 +108,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         this.dimensionKey = dimensionKey;
         this.folder = new ReactiveFolder(dataLocation, (_a, _b, _c) -> hotload());
         Bukkit.getServer().getPluginManager().registerEvents(this, Iris.instance);
-    }
-
-    private static Field getField(Class clazz, String fieldName)
-            throws NoSuchFieldException {
-        try {
-            return clazz.getDeclaredField(fieldName);
-        } catch (NoSuchFieldException e) {
-            Class superClass = clazz.getSuperclass();
-            if (superClass == null) {
-                throw e;
-            } else {
-                return getField(superClass, fieldName);
-            }
-        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

@@ -42,6 +42,9 @@ import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 @Data
@@ -121,11 +124,16 @@ public class IrisComplex implements DataProvider {
         regionStyleStream = engine.getDimension().getRegionStyle().create(rng.nextParallelRNG(883), getData()).stream()
                 .zoom(engine.getDimension().getRegionZoom()).waste("Region Style");
         regionIdentityStream = regionStyleStream.fit(Integer.MIN_VALUE, Integer.MAX_VALUE).waste("Region Identity Stream");
+
+        //Fix for the same world generating everytime regardless of the seed
+        List<IrisRegion> regions = data.getRegionLoader().loadAll(engine.getDimension().getRegions());
+        Collections.shuffle(regions, new Random(engine.getSeedManager().getSeed()));
+
         regionStream = focusRegion != null ?
                 ProceduralStream.of((x, z) -> focusRegion,
                         Interpolated.of(a -> 0D, a -> focusRegion))
                 : regionStyleStream
-                .selectRarity(data.getRegionLoader().loadAll(engine.getDimension().getRegions()))
+                .selectRarity(regions)
                 .cache2D("regionStream", engine, cacheSize).waste("Region Stream");
         regionIDStream = regionIdentityStream.convertCached((i) -> new UUID(Double.doubleToLongBits(i),
                 String.valueOf(i * 38445).hashCode() * 3245556666L)).waste("Region ID Stream");

@@ -62,7 +62,7 @@ public class IrisWorm {
     private IrisStyledRange girth = new IrisStyledRange().setMin(3).setMax(5)
             .setStyle(new IrisGeneratorStyle(NoiseStyle.PERLIN));
 
-    public KList<IrisPosition> generate(RNG rng, IrisData data, MantleWriter writer, IrisRange verticalRange, int x, int y, int z, Consumer<IrisPosition> fork) {
+    public KList<IrisPosition> generate(RNG rng, IrisData data, MantleWriter writer, IrisRange verticalRange, int x, int y, int z, boolean breakSurface, double distance) {
         int itr = maxIterations;
         double jx, jy, jz;
         double cx = x;
@@ -77,7 +77,6 @@ public class IrisWorm {
 
         while (itr-- > 0) {
             IrisPosition current = new IrisPosition(Math.round(cx), Math.round(cy), Math.round(cz));
-            fork.accept(current);
             pos.add(current);
 
             if (check != null) {
@@ -91,6 +90,10 @@ public class IrisWorm {
             cy += jy;
             cz += jz;
             IrisPosition next = new IrisPosition(Math.round(cx), Math.round(cy), Math.round(cz));
+
+            if (!breakSurface && writer.getEngineMantle().getHighest(next.getX(), next.getZ(), true) <= next.getY() + distance) {
+                break;
+            }
 
             if (verticalRange != null && !verticalRange.contains(next.getY())) {
                 break;

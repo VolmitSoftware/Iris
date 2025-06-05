@@ -23,6 +23,7 @@ import com.volmit.iris.util.nbt.mca.palette.*;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.scheduling.J;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.shorts.ShortList;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.matcher.ElementMatchers;
@@ -51,6 +52,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.chunk.status.WorldGenContext;
 import net.minecraft.world.level.dimension.LevelStem;
@@ -684,14 +686,21 @@ public class NMSBinding implements INMSBinding {
             return true;
         try {
             Iris.info("Injecting Bukkit");
-            new ByteBuddy()
-                    .redefine(ServerLevel.class)
+            var buddy = new ByteBuddy();
+            buddy.redefine(ServerLevel.class)
                     .visit(Advice.to(ServerLevelAdvice.class).on(ElementMatchers.isConstructor().and(ElementMatchers.takesArguments(
                             MinecraftServer.class, Executor.class, LevelStorageSource.LevelStorageAccess.class, PrimaryLevelData.class,
                             ResourceKey.class, LevelStem.class, ChunkProgressListener.class, boolean.class, long.class, List.class,
                             boolean.class, RandomSequences.class, World.Environment.class, ChunkGenerator.class, BiomeProvider.class))))
                     .make()
                     .load(ServerLevel.class.getClassLoader(), Agent.installed());
+            for (Class<?> clazz : List.of(ChunkAccess.class, ProtoChunk.class)) {
+                buddy.redefine(clazz)
+                        .visit(Advice.to(ChunkAccessAdvice.class).on(ElementMatchers.isMethod().and(ElementMatchers.takesArguments(ShortList.class, int.class))))
+                        .make()
+                        .load(clazz.getClassLoader(), Agent.installed());
+            }
+
             return true;
         } catch (Throwable e) {
             Iris.error(C.RED + "Failed to inject Bukkit");
@@ -714,6 +723,13 @@ public class NMSBinding implements INMSBinding {
         settings.getLayersInfo().add(new FlatLayerInfo(1, Blocks.AIR));
         settings.updateLayers();
         return new FlatLevelSource(settings);
+    }
+
+    private static class ChunkAccessAdvice {
+        @Advice.OnMethodEnter(skipOn = Advice.OnNonDefaultValue.class)
+        static boolean enter(@Advice.This ChunkAccess access, @Advice.Argument(1) int index) {
+            return index >= access.getPostProcessing().length;
+        }
     }
 
     private static class ServerLevelAdvice {

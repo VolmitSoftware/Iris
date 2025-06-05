@@ -694,6 +694,12 @@ public class NMSBinding implements INMSBinding {
                             boolean.class, RandomSequences.class, World.Environment.class, ChunkGenerator.class, BiomeProvider.class))))
                     .make()
                     .load(ServerLevel.class.getClassLoader(), Agent.installed());
+            for (Class<?> clazz : List.of(ChunkAccess.class, ProtoChunk.class)) {
+                buddy.redefine(clazz)
+                        .visit(Advice.to(ChunkAccessAdvice.class).on(ElementMatchers.isMethod().and(ElementMatchers.takesArguments(ShortList.class, int.class))))
+                        .make()
+                        .load(clazz.getClassLoader(), Agent.installed());
+            }
 
             return true;
         } catch (Throwable e) {
@@ -717,6 +723,13 @@ public class NMSBinding implements INMSBinding {
         settings.getLayersInfo().add(new FlatLayerInfo(1, Blocks.AIR));
         settings.updateLayers();
         return new FlatLevelSource(settings);
+    }
+
+    private static class ChunkAccessAdvice {
+        @Advice.OnMethodEnter(skipOn = Advice.OnNonDefaultValue.class)
+        static boolean enter(@Advice.This ChunkAccess access, @Advice.Argument(1) int index) {
+            return index >= access.getPostProcessing().length;
+        }
     }
 
     private static class ServerLevelAdvice {

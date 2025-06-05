@@ -68,10 +68,12 @@ public class ServerConfigurator {
         f.load(spigotConfig);
         long tt = f.getLong("settings.timeout-time");
 
-        if (tt < TimeUnit.MINUTES.toSeconds(5)) {
-            Iris.warn("Updating spigot.yml timeout-time: " + tt + " -> " + TimeUnit.MINUTES.toSeconds(20) + " (5 minutes)");
+        long spigotTimeout = TimeUnit.MINUTES.toSeconds(5);
+
+        if (tt < spigotTimeout) {
+            Iris.warn("Updating spigot.yml timeout-time: " + tt + " -> " + spigotTimeout + " (5 minutes)");
             Iris.warn("You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
-            f.set("settings.timeout-time", TimeUnit.MINUTES.toSeconds(5));
+            f.set("settings.timeout-time", spigotTimeout);
             f.save(spigotConfig);
         }
     }
@@ -81,10 +83,11 @@ public class ServerConfigurator {
         f.load(spigotConfig);
         long tt = f.getLong("watchdog.early-warning-delay");
 
-        if (tt < TimeUnit.MINUTES.toMillis(3)) {
-            Iris.warn("Updating paper.yml watchdog early-warning-delay: " + tt + " -> " + TimeUnit.MINUTES.toMillis(15) + " (3 minutes)");
+        long watchdog = TimeUnit.MINUTES.toMillis(3);
+        if (tt < watchdog) {
+            Iris.warn("Updating paper.yml watchdog early-warning-delay: " + tt + " -> " + watchdog + " (3 minutes)");
             Iris.warn("You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
-            f.set("watchdog.early-warning-delay", TimeUnit.MINUTES.toMillis(3));
+            f.set("watchdog.early-warning-delay", watchdog);
             f.save(spigotConfig);
         }
     }

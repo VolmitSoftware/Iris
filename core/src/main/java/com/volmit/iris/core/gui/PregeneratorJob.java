@@ -43,6 +43,7 @@ import java.awt.image.BufferedImage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
@@ -55,7 +56,7 @@ public class PregeneratorJob implements PregenListener {
     private static final Color COLOR_NETWORK_GENERATING = parseColor("#836b8c");
     private static final Color COLOR_GENERATED = parseColor("#65c295");
     private static final Color COLOR_CLEANED = parseColor("#34eb93");
-    public static PregeneratorJob instance;
+    private static final AtomicReference<PregeneratorJob> instance = new AtomicReference<>();
     private final MemoryMonitor monitor;
     private final PregenTask task;
     private final boolean saving;
@@ -73,8 +74,14 @@ public class PregeneratorJob implements PregenListener {
     private String[] info;
 
     public PregeneratorJob(PregenTask task, PregeneratorMethod method, Engine engine) {
+        instance.updateAndGet(old -> {
+            if (old != null) {
+                old.pregenerator.close();
+                old.close();
+            }
+            return this;
+        });
         this.engine = engine;
-        instance = this;
         monitor = new MemoryMonitor(50);
         saving = false;
         info = new String[]{"Initializing..."};
@@ -103,37 +110,40 @@ public class PregeneratorJob implements PregenListener {
     }
 
     public static boolean shutdownInstance() {
-        if (instance == null) {
+        PregeneratorJob inst = instance.get();
+        if (inst == null) {
             return false;
         }
 
-        J.a(() -> instance.pregenerator.close());
+        J.a(inst.pregenerator::close);
         return true;
     }
 
     public static PregeneratorJob getInstance() {
-        return instance;
+        return instance.get();
     }
 
     public static boolean pauseResume() {
-        if (instance == null) {
+        PregeneratorJob inst = instance.get();
+        if (inst == null) {
             return false;
         }
 
         if (isPaused()) {
-            instance.pregenerator.resume();
+            inst.pregenerator.resume();
         } else {
-            instance.pregenerator.pause();
+            inst.pregenerator.pause();
         }
         return true;
     }
 
     public static boolean isPaused() {
-        if (instance == null) {
+        PregeneratorJob inst = instance.get();
+        if (inst == null) {
             return true;
         }
 
-        return instance.paused();
+        return inst.paused();
     }
 
     private static Color parseColor(String c) {
@@ -183,7 +193,7 @@ public class PregeneratorJob implements PregenListener {
         J.a(() -> {
             pregenerator.close();
             close();
-            instance = null;
+            instance.compareAndSet(this, null);
         });
     }
 
@@ -311,7 +321,7 @@ public class PregeneratorJob implements PregenListener {
     @Override
     public void onClose() {
         close();
-        instance = null;
+        instance.compareAndSet(this, null);
         whenDone.forEach(Runnable::run);
         service.shutdownNow();
     }

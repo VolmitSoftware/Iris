@@ -175,13 +175,9 @@ public class ServerBootSFG {
     }
 
     public static boolean enoughDiskSpace() {
-        File freeSpace = new File(Bukkit.getWorldContainer() + ".");
+        File freeSpace = Bukkit.getWorldContainer();
         double gigabytes = freeSpace.getFreeSpace() / (1024.0 * 1024.0 * 1024.0);
-        if (gigabytes > 3){
-            return true;
-        } else {
-            return false;
-        }
+        return gigabytes > 3;
     }
 
     private static boolean checkJavac(String path) {

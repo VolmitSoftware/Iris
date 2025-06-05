@@ -9,39 +9,35 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import lombok.Getter;
 import org.bukkit.Bukkit;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Collections;
 
 
 public class IrisPackBenchmarking {
-    @Getter
-    public static IrisPackBenchmarking instance;
-    public static boolean benchmarkInProgress = false;
+    private static final ThreadLocal<IrisPackBenchmarking> instance = new ThreadLocal<>();
     private final PrecisionStopwatch stopwatch = new PrecisionStopwatch();
     private final IrisDimension dimension;
     private final int radius;
     private final boolean gui;
 
     public IrisPackBenchmarking(IrisDimension dimension, int radius, boolean gui) {
-        instance = this;
         this.dimension = dimension;
         this.radius = radius;
         this.gui = gui;
         runBenchmark();
+    }
+
+    public static IrisPackBenchmarking getInstance() {
+        return instance.get();
     }
 
     private void runBenchmark() {
@@ -49,11 +45,7 @@ public class IrisPackBenchmarking {
                 .name("PackBenchmarking")
                 .start(() -> {
                     Iris.info("Setting up benchmark environment ");
-                    benchmarkInProgress = true;
-                    File file = new File("benchmark");
-                    if (file.exists()) {
-                        deleteDirectory(file.toPath());
-                    }
+                    IO.delete(new File(Bukkit.getWorldContainer(), "benchmark"));
                     createBenchmark();
                     while (!IrisToolbelt.isIrisWorld(Bukkit.getWorld("benchmark"))) {
                         J.sleep(1000);
@@ -66,13 +58,9 @@ public class IrisPackBenchmarking {
 
     }
 
-    public boolean getBenchmarkInProgress() {
-        return benchmarkInProgress;
-    }
-
     public void finishedBenchmark(KList<Integer> cps) {
         try {
-            String time = Form.duration(stopwatch.getMillis());
+            String time = Form.duration((long) stopwatch.getMilliseconds());
             Engine engine = IrisToolbelt.access(Bukkit.getWorld("benchmark")).getEngine();
             Iris.info("-----------------");
             Iris.info("Results:");
@@ -83,11 +71,7 @@ public class IrisPackBenchmarking {
             Iris.info("  - Lowest CPS: " + findLowest(cps));
             Iris.info("-----------------");
             Iris.info("Creating a report..");
-            File profilers = new File("plugins" + File.separator + "Iris" + File.separator + "packbenchmarks");
-            profilers.mkdir();
-
-            File results = new File(profilers, dimension.getName() + " " + LocalDateTime.now(Clock.systemDefaultZone()).toString().replace(':', '-') + ".txt");
-            results.getParentFile().mkdirs();
+            File results = Iris.instance.getDataFile("packbenchmarks", dimension.getName() + " " + LocalDateTime.now(Clock.systemDefaultZone()).toString().replace(':', '-') + ".txt");
             KMap<String, Double> metrics = engine.getMetrics().pull();
             try (FileWriter writer = new FileWriter(results)) {
                 writer.write("-----------------\n");
@@ -143,13 +127,18 @@ public class IrisPackBenchmarking {
     }
 
     private void startBenchmark() {
-        IrisToolbelt.pregenerate(PregenTask
-                .builder()
-                .gui(gui)
-                .radiusX(radius)
-                .radiusZ(radius)
-                .build(), Bukkit.getWorld("benchmark")
-        );
+        try {
+            instance.set(this);
+            IrisToolbelt.pregenerate(PregenTask
+                    .builder()
+                    .gui(gui)
+                    .radiusX(radius)
+                    .radiusZ(radius)
+                    .build(), Bukkit.getWorld("benchmark")
+            );
+        } finally {
+            instance.remove();
+        }
     }
 
     private double calculateAverage(KList<Integer> list) {
@@ -177,27 +166,5 @@ public class IrisPackBenchmarking {
 
     private int findHighest(KList<Integer> list) {
         return Collections.max(list);
-    }
-
-    private boolean deleteDirectory(Path dir) {
-        try {
-            Files.walkFileTree(dir, new SimpleFileVisitor<>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    Files.delete(file);
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                    Files.delete(dir);
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
     }
 }

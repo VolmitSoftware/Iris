@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ChunkUpdater {
+    private static final String REGION_PATH = "region" + File.separator + "r.";
     private final AtomicBoolean paused = new AtomicBoolean();
     private final AtomicBoolean cancelled = new AtomicBoolean();
     private final KMap<Long, Pair<Long, AtomicInteger>> lastUse = new KMap<>();
@@ -162,12 +163,12 @@ public class ChunkUpdater {
                 J.sleep(50);
             }
 
-            if (rX < dimensions.min.getX() || rX > dimensions.max.getX() || rZ < dimensions.min.getZ() || rZ > dimensions.max.getZ()) {
-                return;
-            }
-            if (!new File(world.getWorldFolder(), "region" + File.separator + rX + "." + rZ + ".mca").exists()) {
-                return;
-            }
+            if (rX < dimensions.min.getX() ||
+                    rX > dimensions.max.getX() ||
+                    rZ < dimensions.min.getZ() ||
+                    rZ > dimensions.max.getZ() ||
+                    !new File(world.getWorldFolder(), REGION_PATH + rX + "." + rZ + ".mca").exists()
+            ) return;
 
             task.iterateChunks(rX, rZ, (x, z) -> {
                 while (paused.get() && !cancelled.get()) {

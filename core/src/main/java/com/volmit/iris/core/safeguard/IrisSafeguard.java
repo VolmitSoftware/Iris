@@ -20,5 +20,15 @@ public class IrisSafeguard {
         Iris.instance.splash();
         UtilsSFG.splash();
     }
+
+    public static String mode() {
+        if (unstablemode) {
+            return "unstable";
+        } else if (warningmode) {
+            return "warning";
+        } else {
+            return "stable";
+        }
+    }
 }
 

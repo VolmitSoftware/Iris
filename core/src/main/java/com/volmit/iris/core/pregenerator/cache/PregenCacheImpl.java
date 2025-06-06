@@ -71,6 +71,7 @@ class PregenCacheImpl implements PregenCache {
                 return new Plate(key, in);
             } catch (IOException e){
                 Iris.error("Failed to read pregen cache " + file);
+                Iris.reportError(e);
                 e.printStackTrace();
                 return new Plate(key);
             }
@@ -87,6 +88,7 @@ class PregenCacheImpl implements PregenCache {
                 IO.write(file, out -> new DataOutputStream(new LZ4BlockOutputStream(out)), plate::write);
             } catch (IOException e) {
                 Iris.error("Failed to write pregen cache " + file);
+                Iris.reportError(e);
                 e.printStackTrace();
             }
         } finally {

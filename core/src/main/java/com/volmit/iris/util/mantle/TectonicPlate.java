@@ -222,13 +222,16 @@ public class TectonicPlate {
      */
     public void write(File file) throws IOException {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        File temp = File.createTempFile("iris-tectonic-plate", ".bin");
-        try (DataOutputStream dos = new DataOutputStream(new LZ4BlockOutputStream(new FileOutputStream(temp)))) {
-            write(dos);
+        File temp = File.createTempFile("iris-tectonic-plate", ".bin", new File(file.getParentFile(), ".tmp"));
+        try {
+            try (DataOutputStream dos = new DataOutputStream(new LZ4BlockOutputStream(new FileOutputStream(temp)))) {
+                write(dos);
+            }
+            Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            Iris.debug("Saved Tectonic Plate " + C.DARK_GREEN + file.getName() + C.RED + " in " + Form.duration(p.getMilliseconds(), 2));
+        } finally {
+            temp.delete();
         }
-        Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        Iris.debug("Saved Tectonic Plate " + C.DARK_GREEN + file.getName() + C.RED + " in " + Form.duration(p.getMilliseconds(), 2));
-        temp.delete();
     }
 
     /**

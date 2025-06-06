@@ -490,12 +490,6 @@ public class Iris extends VolmitPlugin implements Listener {
             checkForBukkitWorlds();
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
             IrisToolbelt.retainMantleDataForSlice(BlockData.class.getCanonicalName());
-
-            try {
-                throw new Exception("This is a test exception");
-            } catch (Exception e) {
-                reportError(e);
-            }
         });
     }
 

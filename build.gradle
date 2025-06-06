@@ -291,3 +291,39 @@ def registerCustomOutputTaskUnix(name, path) {
 }
 
 tasks.build.dependsOn(shadowJar)
+
+def cli = file("sentry-cli.exe")
+tasks.register("downloadCli", Download) {
+    group = "sentry"
+    src "https://release-registry.services.sentry.io/apps/sentry-cli/latest?response=download&arch=x86_64&platform=${System.getProperty("os.name")}&package=sentry-cli"
+    dest cli
+
+    doLast {
+        cli.setExecutable(true)
+    }
+}
+
+tasks.register("release") {
+    group = "sentry"
+    dependsOn("downloadCli")
+    doLast {
+        def authToken = project.hasProperty("sentry.auth.token") ?
+                project.property("sentry.auth.token") :
+                System.getenv("SENTRY_AUTH_TOKEN")
+        def org = "volmit-software"
+        def projectName = "iris"
+        exec {
+            executable(cli)
+            args("releases", "new", "--auth-token", authToken, "-o", org, "-p", projectName, version)
+        }
+        exec {
+            executable(cli)
+            args("releases", "set-commits", "--auth-token", authToken, "-o", org, "-p", projectName, version, "--auto")
+        }
+        exec {
+            executable(cli)
+            args("releases", "finalize", "--auth-token", authToken, "-o", org, "-p", projectName, version)
+        }
+        cli.delete()
+    }
+}

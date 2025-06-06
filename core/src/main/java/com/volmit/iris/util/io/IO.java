@@ -24,9 +24,13 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.format.Form;
+import org.apache.commons.io.function.IOConsumer;
+import org.apache.commons.io.function.IOFunction;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -1637,5 +1641,20 @@ public class IO {
 
         int ch2 = input2.read();
         return (ch2 == -1);
+    }
+
+    public static <T extends OutputStream> void write(File file, IOFunction<FileOutputStream, T> builder, IOConsumer<T> action) throws IOException {
+        File dir = new File(file.getParentFile(), ".tmp");
+        dir.mkdirs();
+        dir.deleteOnExit();
+        File temp = File.createTempFile("iris",".bin", dir);
+        try {
+            try (var out = builder.apply(new FileOutputStream(temp))) {
+                action.accept(out);
+            }
+            Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } finally {
+            temp.delete();
+        }
     }
 }

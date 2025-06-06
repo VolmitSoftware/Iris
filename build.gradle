@@ -211,7 +211,9 @@ allprojects {
 
         org = "volmit-software"
         projectName = "iris"
-        authToken = property("sentry.auth.token")
+        authToken = hasProperty("sentry.auth.token") ?
+                property("sentry.auth.token") :
+                System.getenv("SENTRY_AUTH_TOKEN")
     }
 }
 

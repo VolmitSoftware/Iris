@@ -33,6 +33,7 @@ plugins {
     id "io.github.goooler.shadow" version "8.1.7"
     id "de.undercouch.download" version "5.0.1"
     id "xyz.jpenilla.run-paper" version "2.3.1"
+    id "io.sentry.jvm.gradle" version "5.7.0"
 }
 
 
@@ -132,6 +133,7 @@ configurations.configureEach {
 
 allprojects {
     apply plugin: 'java'
+    apply plugin: 'io.sentry.jvm.gradle'
 
     repositories {
         mavenCentral()
@@ -202,6 +204,14 @@ allprojects {
     task javadocJar(type: Jar, dependsOn: javadoc) {
         archiveClassifier.set('javadoc')
         from javadoc.destinationDir
+    }
+
+    sentry {
+        includeSourceContext = true
+
+        org = "volmit-software"
+        projectName = "iris"
+        authToken = property("sentry.auth.token")
     }
 }
 

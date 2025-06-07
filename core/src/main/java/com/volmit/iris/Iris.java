@@ -490,6 +490,8 @@ public class Iris extends VolmitPlugin implements Listener {
             checkForBukkitWorlds();
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
             IrisToolbelt.retainMantleDataForSlice(BlockData.class.getCanonicalName());
+
+            reportError(new Exception("This is a test"));
         });
     }
 
@@ -950,7 +952,7 @@ public class Iris extends VolmitPlugin implements Listener {
         var settings = IrisSettings.get().getSentry();
         if (settings.disableAutoReporting || Sentry.isEnabled()) return;
         Sentry.init(options -> {
-            options.setDsn("https://9e190553a1aea18f1cab566cbc894d3f@o4509451052646400.ingest.de.sentry.io/4509451115036752");
+            options.setDsn("https://b16ecc222e9c1e0c48faecacb906fd89@o4509451052646400.ingest.de.sentry.io/4509452722765904");
             if (settings.debug) {
                 options.setLogger(new IrisLogger());
                 options.setDebug(true);

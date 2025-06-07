@@ -34,6 +34,7 @@ import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer4;
+import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterSlice;
@@ -84,7 +85,7 @@ public class Mantle {
         this.worldHeight = worldHeight;
         this.ioTrim = new AtomicBoolean(false);
         this.ioTectonicUnload = new AtomicBoolean(false);
-        dataFolder.mkdirs();
+        new File(dataFolder, ".tmp").mkdirs();
         loadedRegions = new KMap<>();
         lastUse = new KMap<>();
         ioBurst = MultiBurst.burst;
@@ -387,6 +388,7 @@ public class Mantle {
             }
         }));
         loadedRegions.clear();
+        IO.delete(new File(dataFolder, ".tmp"));
 
         try {
             b.complete();

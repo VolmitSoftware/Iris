@@ -18,10 +18,10 @@
 
 package com.volmit.iris.util.matter.slices;
 
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.Sliced;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
@@ -63,6 +63,6 @@ public class BlockMatter extends RawMatter<BlockData> {
 
     @Override
     public BlockData readNode(DataInputStream din) throws IOException {
-        return Bukkit.createBlockData(din.readUTF());
+        return B.get(din.readUTF());
     }
 }

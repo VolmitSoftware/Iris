@@ -47,6 +47,7 @@ public class WorldEditLink {
         } catch (Throwable e) {
             Iris.error("Could not get selection");
             e.printStackTrace();
+            Iris.reportError(e);
             active.reset();
             active.aquire(() -> false);
         }

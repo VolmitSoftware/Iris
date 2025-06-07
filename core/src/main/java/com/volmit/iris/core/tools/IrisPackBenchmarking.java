@@ -12,7 +12,6 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import lombok.Getter;
 import org.bukkit.Bukkit;
 
 import java.io.File;
@@ -24,20 +23,21 @@ import java.util.Collections;
 
 
 public class IrisPackBenchmarking {
-    @Getter
-    public static IrisPackBenchmarking instance;
-    public static boolean benchmarkInProgress = false;
+    private static final ThreadLocal<IrisPackBenchmarking> instance = new ThreadLocal<>();
     private final PrecisionStopwatch stopwatch = new PrecisionStopwatch();
     private final IrisDimension dimension;
     private final int radius;
     private final boolean gui;
 
     public IrisPackBenchmarking(IrisDimension dimension, int radius, boolean gui) {
-        instance = this;
         this.dimension = dimension;
         this.radius = radius;
         this.gui = gui;
         runBenchmark();
+    }
+
+    public static IrisPackBenchmarking getInstance() {
+        return instance.get();
     }
 
     private void runBenchmark() {
@@ -45,7 +45,6 @@ public class IrisPackBenchmarking {
                 .name("PackBenchmarking")
                 .start(() -> {
                     Iris.info("Setting up benchmark environment ");
-                    benchmarkInProgress = true;
                     IO.delete(new File(Bukkit.getWorldContainer(), "benchmark"));
                     createBenchmark();
                     while (!IrisToolbelt.isIrisWorld(Bukkit.getWorld("benchmark"))) {
@@ -57,10 +56,6 @@ public class IrisPackBenchmarking {
                     startBenchmark();
                 });
 
-    }
-
-    public boolean getBenchmarkInProgress() {
-        return benchmarkInProgress;
     }
 
     public void finishedBenchmark(KList<Integer> cps) {
@@ -132,13 +127,18 @@ public class IrisPackBenchmarking {
     }
 
     private void startBenchmark() {
-        IrisToolbelt.pregenerate(PregenTask
-                .builder()
-                .gui(gui)
-                .radiusX(radius)
-                .radiusZ(radius)
-                .build(), Bukkit.getWorld("benchmark")
-        );
+        try {
+            instance.set(this);
+            IrisToolbelt.pregenerate(PregenTask
+                    .builder()
+                    .gui(gui)
+                    .radiusX(radius)
+                    .radiusZ(radius)
+                    .build(), Bukkit.getWorld("benchmark")
+            );
+        } finally {
+            instance.remove();
+        }
     }
 
     private double calculateAverage(KList<Integer> list) {

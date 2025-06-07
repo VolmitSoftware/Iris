@@ -66,8 +66,10 @@ public class IrisPregenerator {
     private final KSet<Position2> net;
     private final ChronoLatch cl;
     private final ChronoLatch saveLatch = new ChronoLatch(30000);
+    private final IrisPackBenchmarking benchmarking;
 
     public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener) {
+        benchmarking = IrisPackBenchmarking.getInstance();
         this.listener = listenify(listener);
         cl = new ChronoLatch(5000);
         generatedRegions = new KSet<>();
@@ -135,7 +137,7 @@ public class IrisPregenerator {
                     double percentage = ((double) generated.get() / (double) totalChunks.get()) * 100;
 
                     Iris.info("%s: %s of %s (%.0f%%), %s/s ETA: %s",
-                            IrisPackBenchmarking.benchmarkInProgress ? "Benchmarking" : "Pregen",
+                            benchmarking != null ? "Benchmarking" : "Pregen",
                             Form.f(generated.get()),
                             Form.f(totalChunks.get()),
                             percentage,
@@ -174,10 +176,10 @@ public class IrisPregenerator {
         task.iterateRegions((x, z) -> visitRegion(x, z, false));
         Iris.info("Pregen took " + Form.duration((long) p.getMilliseconds()));
         shutdown();
-        if (!IrisPackBenchmarking.benchmarkInProgress) {
+        if (benchmarking == null) {
             Iris.info(C.IRIS + "Pregen stopped.");
         } else {
-            IrisPackBenchmarking.instance.finishedBenchmark(chunksPerSecondHistory);
+            benchmarking.finishedBenchmark(chunksPerSecondHistory);
         }
     }
 

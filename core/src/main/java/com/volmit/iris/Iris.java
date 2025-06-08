@@ -957,6 +957,7 @@ public class Iris extends VolmitPlugin implements Listener {
                 options.setDebug(true);
             }
 
+            options.setAttachServerName(false);
             options.setEnableUncaughtExceptionHandler(false);
             options.setRelease(Iris.instance.getDescription().getVersion());
             options.setBeforeSend((event, hint) -> {

@@ -490,8 +490,6 @@ public class Iris extends VolmitPlugin implements Listener {
             checkForBukkitWorlds();
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
             IrisToolbelt.retainMantleDataForSlice(BlockData.class.getCanonicalName());
-
-            reportError(new Exception("This is a test"));
         });
     }
 
@@ -533,7 +531,7 @@ public class Iris extends VolmitPlugin implements Listener {
             }
         } catch (Throwable e) {
             e.printStackTrace();
-            Sentry.captureException(e);
+            reportError(e);
         }
     }
 
@@ -551,7 +549,7 @@ public class Iris extends VolmitPlugin implements Listener {
                     });
                 });
             } catch (IrisException e) {
-                Sentry.captureException(e);
+                reportError(e);
             }
         }
     }
@@ -951,6 +949,7 @@ public class Iris extends VolmitPlugin implements Listener {
     private static void setupSentry() {
         var settings = IrisSettings.get().getSentry();
         if (settings.disableAutoReporting || Sentry.isEnabled()) return;
+        Iris.info("Enabling Sentry for anonymous error reporting. You can disable this in the settings.");
         Sentry.init(options -> {
             options.setDsn("https://b16ecc222e9c1e0c48faecacb906fd89@o4509451052646400.ingest.de.sentry.io/4509452722765904");
             if (settings.debug) {
@@ -958,6 +957,9 @@ public class Iris extends VolmitPlugin implements Listener {
                 options.setDebug(true);
             }
 
+            options.setAttachServerName(false);
+            options.setEnableUncaughtExceptionHandler(false);
+            options.setRelease(Iris.instance.getDescription().getVersion());
             options.setBeforeSend((event, hint) -> {
                 event.setTag("iris.safeguard", IrisSafeguard.mode());
                 event.setTag("iris.nms", INMS.get().getClass().getCanonicalName());

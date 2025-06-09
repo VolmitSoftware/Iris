@@ -71,6 +71,11 @@ public class CommandDeveloper implements DecreeExecutor {
                 .engineStatus(sender());
     }
 
+    @Decree(description = "Send a test exception to sentry")
+    public void Sentry() {
+        Iris.reportError(new Exception("This is a test"));
+    }
+
     @Decree(description = "Test")
     public void dumpThreads() {
         try {

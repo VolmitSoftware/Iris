@@ -44,6 +44,7 @@ import com.volmit.iris.core.safeguard.UtilsSFG;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -963,6 +964,8 @@ public class Iris extends VolmitPlugin implements Listener {
             options.setBeforeSend((event, hint) -> {
                 event.setTag("iris.safeguard", IrisSafeguard.mode());
                 event.setTag("iris.nms", INMS.get().getClass().getCanonicalName());
+                var context = IrisContext.get();
+                if (context != null) event.getContexts().set("engine", context.asContext());
                 return event;
             });
         });

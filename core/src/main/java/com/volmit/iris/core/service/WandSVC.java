@@ -51,6 +51,7 @@ import org.bukkit.util.Vector;
 
 import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 
@@ -80,6 +81,8 @@ public class WandSVC implements IrisService {
 
         try {
             Location[] f = getCuboid(p);
+            if (f == null || f[0] == null || f[1] == null)
+                return null;
             Cuboid c = new Cuboid(f[0], f[1]);
             IrisObject s = new IrisObject(c.getSizeX(), c.getSizeY(), c.getSizeZ());
 
@@ -357,6 +360,7 @@ public class WandSVC implements IrisService {
             try {
                 if ((IrisSettings.get().getWorld().worldEditWandCUI && isHoldingWand(p)) || isWand(p.getInventory().getItemInMainHand())) {
                     Location[] d = getCuboid(p);
+                    if (d == null || d[0] == null || d[1] == null) return;
                     new WandSelection(new Cuboid(d[0], d[1]), p).draw();
                 }
             } catch (Throwable e) {

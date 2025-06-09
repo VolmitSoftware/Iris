@@ -147,7 +147,7 @@ tasks {
         group = "io.sentry"
         dependsOn("downloadCli")
         doLast {
-            val authToken = project.property("sentry.auth.token") ?: System.getenv("SENTRY_AUTH_TOKEN")
+            val authToken = project.findProperty("sentry.auth.token") ?: System.getenv("SENTRY_AUTH_TOKEN")
             val org = "volmit-software"
             val projectName = "iris"
             exec(cli, "releases", "new", "--auth-token", authToken, "-o", org, "-p", projectName, version)

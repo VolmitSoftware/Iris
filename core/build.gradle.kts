@@ -100,7 +100,7 @@ sentry {
 
     org = "volmit-software"
     projectName = "iris"
-    authToken = property("sentry.auth.token") as String? ?: System.getenv("SENTRY_AUTH_TOKEN")
+    authToken = findProperty("sentry.auth.token") as String? ?: System.getenv("SENTRY_AUTH_TOKEN")
 }
 
 tasks {

@@ -54,7 +54,6 @@ dependencies {
     compileOnly("org.lz4:lz4-java:1.8.0")
 
     // Third Party Integrations
-    compileOnly("com.ticxo.playeranimator:PlayerAnimator:R1.2.7")
     compileOnly("com.nexomc:nexo:1.6.0")
     compileOnly("com.github.LoneDev6:api-itemsadder:3.4.1-r4")
     compileOnly("com.github.PlaceholderAPI:placeholderapi:2.11.3")

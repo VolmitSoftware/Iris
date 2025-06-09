@@ -32,7 +32,6 @@ import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.core.tools.IrisWorldCreator;
 import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.engine.object.IrisContextInjector;
@@ -64,7 +63,10 @@ import com.volmit.iris.util.reflect.ShadeFix;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
+import com.volmit.iris.util.sentry.Attachments;
+import com.volmit.iris.util.sentry.IrisLogger;
 import io.papermc.lib.PaperLib;
+import io.sentry.Sentry;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
 import org.bstats.bukkit.Metrics;
@@ -392,6 +394,7 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public static void reportError(Throwable e) {
+        Sentry.captureException(e);
         if (IrisSettings.get().getGeneral().isDebug()) {
             String n = e.getClass().getCanonicalName() + "-" + e.getStackTrace()[0].getClassName() + "-" + e.getStackTrace()[0].getLineNumber();
 
@@ -456,6 +459,7 @@ public class Iris extends VolmitPlugin implements Listener {
         instance = this;
         services = new KMap<>();
         setupAudience();
+        setupSentry();
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
         INMS.get();
         IO.delete(new File("iris"));
@@ -527,6 +531,7 @@ public class Iris extends VolmitPlugin implements Listener {
             }
         } catch (Throwable e) {
             e.printStackTrace();
+            reportError(e);
         }
     }
 
@@ -544,7 +549,7 @@ public class Iris extends VolmitPlugin implements Listener {
                     });
                 });
             } catch (IrisException e) {
-                e.printStackTrace();
+                reportError(e);
             }
         }
     }
@@ -939,5 +944,34 @@ public class Iris extends VolmitPlugin implements Listener {
         } catch (Exception e) {
             return -1;
         }
+    }
+
+    private static void setupSentry() {
+        var settings = IrisSettings.get().getSentry();
+        if (settings.disableAutoReporting || Sentry.isEnabled()) return;
+        Iris.info("Enabling Sentry for anonymous error reporting. You can disable this in the settings.");
+        Sentry.init(options -> {
+            options.setDsn("https://b16ecc222e9c1e0c48faecacb906fd89@o4509451052646400.ingest.de.sentry.io/4509452722765904");
+            if (settings.debug) {
+                options.setLogger(new IrisLogger());
+                options.setDebug(true);
+            }
+
+            options.setAttachServerName(false);
+            options.setEnableUncaughtExceptionHandler(false);
+            options.setRelease(Iris.instance.getDescription().getVersion());
+            options.setBeforeSend((event, hint) -> {
+                event.setTag("iris.safeguard", IrisSafeguard.mode());
+                event.setTag("iris.nms", INMS.get().getClass().getCanonicalName());
+                return event;
+            });
+        });
+        Sentry.configureScope(scope -> {
+            scope.addAttachment(Attachments.PLUGINS);
+            scope.setTag("server", Bukkit.getVersion());
+            scope.setTag("server.type", Bukkit.getName());
+            scope.setTag("server.api", Bukkit.getBukkitVersion());
+        });
+        Runtime.getRuntime().addShutdownHook(new Thread(Sentry::close));
     }
 }

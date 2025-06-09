@@ -60,8 +60,9 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
         this.x = x;
         this.z = z;
 
-        for (int i = -radius; i <= radius; i++) {
-            for (int j = -radius; j <= radius; j++) {
+        int r = radius / 4;
+        for (int i = -r; i <= r; i++) {
+            for (int j = -r; j <= r; j++) {
                 cachedChunks.put(Cache.key(i + x, j + z), mantle.getChunk(i + x, j + z).use());
             }
         }
@@ -143,7 +144,7 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
 
         if (cx >= this.x - radius && cx <= this.x + radius
                 && cz >= this.z - radius && cz <= this.z + radius) {
-            MantleChunk chunk = cachedChunks.get(Cache.key(cx, cz));
+            MantleChunk chunk = cachedChunks.computeIfAbsent(Cache.key(cx, cz), k -> mantle.getChunk(cx, cz).use());
 
             if (chunk == null) {
                 Iris.error("Mantle Writer Accessed " + cx + "," + cz + " and came up null (and yet within bounds!)");
@@ -152,6 +153,8 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
 
             Matter matter = chunk.getOrCreate(y >> 4);
             matter.slice(matter.getClass(t)).set(x & 15, y & 15, z & 15, t);
+        } else {
+            Iris.error("Mantle Writer Accessed chunk out of bounds" + cx + "," + cz);
         }
     }
 
@@ -639,9 +642,10 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
 
     @Override
     public void close() {
-        cachedChunks.values().removeIf(c -> {
-            c.release();
-            return true;
-        });
+        var iterator = cachedChunks.values().iterator();
+        while (iterator.hasNext()) {
+            iterator.next().release();
+            iterator.remove();
+        }
     }
 }

@@ -33,6 +33,7 @@ plugins {
     id "io.github.goooler.shadow" version "8.1.7"
     id "de.undercouch.download" version "5.0.1"
     id "xyz.jpenilla.run-paper" version "2.3.1"
+    id "io.sentry.jvm.gradle" version "5.7.0"
 }
 
 
@@ -113,6 +114,7 @@ shadowJar {
     relocate 'io.papermc.lib', 'com.volmit.iris.util.paper'
     relocate 'net.kyori', 'com.volmit.iris.util.kyori'
     relocate 'org.bstats', 'com.volmit.util.metrics'
+    relocate "io.sentry", "com.volmit.iris.util.sentry"
     archiveFileName.set("Iris-${project.version}.jar")
 
     dependencies {
@@ -132,6 +134,7 @@ configurations.configureEach {
 
 allprojects {
     apply plugin: 'java'
+    apply plugin: 'io.sentry.jvm.gradle'
 
     repositories {
         mavenCentral()
@@ -202,6 +205,16 @@ allprojects {
     task javadocJar(type: Jar, dependsOn: javadoc) {
         archiveClassifier.set('javadoc')
         from javadoc.destinationDir
+    }
+
+    sentry {
+        includeSourceContext = true
+
+        org = "volmit-software"
+        projectName = "iris"
+        authToken = hasProperty("sentry.auth.token") ?
+                property("sentry.auth.token") :
+                System.getenv("SENTRY_AUTH_TOKEN")
     }
 }
 
@@ -279,3 +292,39 @@ def registerCustomOutputTaskUnix(name, path) {
 }
 
 tasks.build.dependsOn(shadowJar)
+
+def cli = file("sentry-cli.exe")
+tasks.register("downloadCli", Download) {
+    group = "sentry"
+    src "https://release-registry.services.sentry.io/apps/sentry-cli/latest?response=download&arch=x86_64&platform=${System.getProperty("os.name")}&package=sentry-cli"
+    dest cli
+
+    doLast {
+        cli.setExecutable(true)
+    }
+}
+
+tasks.register("release") {
+    group = "sentry"
+    dependsOn("downloadCli")
+    doLast {
+        def authToken = project.hasProperty("sentry.auth.token") ?
+                project.property("sentry.auth.token") :
+                System.getenv("SENTRY_AUTH_TOKEN")
+        def org = "volmit-software"
+        def projectName = "iris"
+        exec {
+            executable(cli)
+            args("releases", "new", "--auth-token", authToken, "-o", org, "-p", projectName, version)
+        }
+        exec {
+            executable(cli)
+            args("releases", "set-commits", "--auth-token", authToken, "-o", org, "-p", projectName, version, "--auto")
+        }
+        exec {
+            executable(cli)
+            args("releases", "finalize", "--auth-token", authToken, "-o", org, "-p", projectName, version)
+        }
+        cli.delete()
+    }
+}

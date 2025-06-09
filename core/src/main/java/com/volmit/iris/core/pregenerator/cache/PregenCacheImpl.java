@@ -7,6 +7,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.documentation.RegionCoordinates;
+import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.parallel.HyperLock;
 import lombok.RequiredArgsConstructor;
 import net.jpountz.lz4.LZ4BlockInputStream;
@@ -70,6 +71,7 @@ class PregenCacheImpl implements PregenCache {
                 return new Plate(key, in);
             } catch (IOException e){
                 Iris.error("Failed to read pregen cache " + file);
+                Iris.reportError(e);
                 e.printStackTrace();
                 return new Plate(key);
             }
@@ -82,10 +84,11 @@ class PregenCacheImpl implements PregenCache {
         hyperLock.lock(plate.pos.x, plate.pos.z);
         try {
             File file = fileForPlate(plate.pos);
-            try (var out = new DataOutputStream(new LZ4BlockOutputStream(new FileOutputStream(file)))) {
-                plate.write(out);
+            try {
+                IO.write(file, out -> new DataOutputStream(new LZ4BlockOutputStream(out)), plate::write);
             } catch (IOException e) {
                 Iris.error("Failed to write pregen cache " + file);
+                Iris.reportError(e);
                 e.printStackTrace();
             }
         } finally {

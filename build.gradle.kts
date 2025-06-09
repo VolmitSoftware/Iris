@@ -134,7 +134,7 @@ tasks {
 
     val cli = file("sentry-cli.exe")
     register<Download>("downloadCli") {
-        group = "sentry"
+        group = "io.sentry"
         src("https://release-registry.services.sentry.io/apps/sentry-cli/latest?response=download&arch=x86_64&platform=${System.getProperty("os.name")}&package=sentry-cli")
         dest(cli)
 
@@ -144,26 +144,26 @@ tasks {
     }
 
     register("release") {
+        group = "io.sentry"
         dependsOn("downloadCli")
         doLast {
             val authToken = project.property("sentry.auth.token") ?: System.getenv("SENTRY_AUTH_TOKEN")
             val org = "volmit-software"
             val projectName = "iris"
-            providers.exec {
-                executable(cli)
-                args("releases", "new", "--auth-token", authToken, "-o", org, "-p", projectName, version)
-            }.result.get()
-            providers.exec {
-                executable(cli)
-                args("releases", "set-commits", "--auth-token", authToken, "-o", org, "-p", projectName, version, "--auto")
-            }.result.get()
-            providers.exec {
-                executable(cli)
-                args("releases", "finalize", "--auth-token", authToken, "-o", org, "-p", projectName, version)
-            }.result.get()
+            exec(cli, "releases", "new", "--auth-token", authToken, "-o", org, "-p", projectName, version)
+            exec(cli, "releases", "set-commits", "--auth-token", authToken, "-o", org, "-p", projectName, version, "--auto", "--ignore-missing")
+            exec(cli, "releases", "finalize", "--auth-token", authToken, "-o", org, "-p", projectName, version)
             cli.delete()
         }
     }
+}
+
+fun exec(vararg command: Any) {
+    val p = ProcessBuilder(command.map { it.toString() })
+        .start()
+    p.inputStream.reader().useLines { it.forEach(::println) }
+    p.errorStream.reader().useLines { it.forEach(::println) }
+    p.waitFor()
 }
 
 dependencies {

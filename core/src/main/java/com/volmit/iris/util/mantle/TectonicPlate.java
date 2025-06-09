@@ -27,6 +27,7 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.CountingDataInputStream;
+import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
 import net.jpountz.lz4.LZ4BlockInputStream;
@@ -222,16 +223,8 @@ public class TectonicPlate {
      */
     public void write(File file) throws IOException {
         PrecisionStopwatch p = PrecisionStopwatch.start();
-        File temp = File.createTempFile("iris-tectonic-plate", ".bin", new File(file.getParentFile(), ".tmp"));
-        try {
-            try (DataOutputStream dos = new DataOutputStream(new LZ4BlockOutputStream(new FileOutputStream(temp)))) {
-                write(dos);
-            }
-            Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            Iris.debug("Saved Tectonic Plate " + C.DARK_GREEN + file.getName() + C.RED + " in " + Form.duration(p.getMilliseconds(), 2));
-        } finally {
-            temp.delete();
-        }
+        IO.write(file, out -> new DataOutputStream(new LZ4BlockOutputStream(out)), this::write);
+        Iris.debug("Saved Tectonic Plate " + C.DARK_GREEN + file.getName() + C.RED + " in " + Form.duration(p.getMilliseconds(), 2));
     }
 
     /**

@@ -85,7 +85,6 @@ public class Mantle {
         this.worldHeight = worldHeight;
         this.ioTrim = new AtomicBoolean(false);
         this.ioTectonicUnload = new AtomicBoolean(false);
-        new File(dataFolder, ".tmp").mkdirs();
         loadedRegions = new KMap<>();
         lastUse = new KMap<>();
         ioBurst = MultiBurst.burst;

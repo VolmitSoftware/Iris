@@ -201,7 +201,9 @@ public class WandSVC implements IrisService {
     public static Location stringToLocation(String s) {
         try {
             String[] f = s.split("\\Q in \\E");
+            if (f.length != 2) return null;
             String[] g = f[0].split("\\Q,\\E");
+            if (g.length != 3) return null;
             return new Location(Bukkit.getWorld(f[1]), Integer.parseInt(g[0]), Integer.parseInt(g[1]), Integer.parseInt(g[2]));
         } catch (Throwable e) {
             Iris.reportError(e);

@@ -46,6 +46,7 @@ public class IrisSettings {
     private IrisSettingsPerformance performance = new IrisSettingsPerformance();
     private IrisSettingsUpdater updater = new IrisSettingsUpdater();
     private IrisSettingsPregen pregen = new IrisSettingsPregen();
+    private IrisSettingsSentry sentry = new IrisSettingsSentry();
 
     public static int getThreadCount(int c) {
         return switch (c) {
@@ -131,7 +132,7 @@ public class IrisSettings {
         public boolean markerEntitySpawningSystem = true;
         public boolean effectSystem = true;
         public boolean worldEditWandCUI = true;
-        public boolean globalPregenCache = true;
+        public boolean globalPregenCache = false;
     }
 
     @Data
@@ -220,6 +221,12 @@ public class IrisSettings {
         public boolean canUseCustomColors(VolmitSender volmitSender) {
             return volmitSender.isPlayer() ? useCustomColorsIngame : useConsoleCustomColors;
         }
+    }
+
+    @Data
+    public static class IrisSettingsSentry {
+        public boolean disableAutoReporting = false;
+        public boolean debug = false;
     }
 
     @Data

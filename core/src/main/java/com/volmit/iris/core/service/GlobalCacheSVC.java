@@ -23,9 +23,11 @@ public class GlobalCacheSVC implements IrisService {
     private static final Cache<String, PregenCache> REFERENCE_CACHE = Caffeine.newBuilder().weakValues().build();
     private final KMap<String, PregenCache> globalCache = new KMap<>();
     private transient boolean lastState;
+    private static boolean disabled = true;
 
     @Override
     public void onEnable() {
+        disabled = false;
         lastState = !IrisSettings.get().getWorld().isGlobalPregenCache();
         if (lastState) return;
         Bukkit.getWorlds().forEach(this::createCache);
@@ -33,7 +35,8 @@ public class GlobalCacheSVC implements IrisService {
 
     @Override
     public void onDisable() {
-        globalCache.values().forEach(PregenCache::write);
+        disabled = true;
+        globalCache.qclear((world, cache) -> cache.write());
     }
 
     @Nullable
@@ -99,6 +102,7 @@ public class GlobalCacheSVC implements IrisService {
     }
 
     private static PregenCache createDefault0(String worldName) {
+        if (disabled) return PregenCache.EMPTY;
         return PregenCache.create(new File(Bukkit.getWorldContainer(), String.join(File.separator, worldName, "iris", "pregen"))).sync();
     }
 }

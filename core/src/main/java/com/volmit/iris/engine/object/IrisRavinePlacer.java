@@ -50,16 +50,20 @@ public class IrisRavinePlacer implements IRare {
     @Desc("The ravine to place")
     @RegistryListResource(IrisRavine.class)
     private String ravine;
+    @MinNumber(1)
+    @MaxNumber(256)
+    @Desc("The maximum recursion depth")
+    private int maxRecursion = 100;
 
     public IrisRavine getRealRavine(IrisData data) {
         return ravineCache.aquire(() -> data.getRavineLoader().load(getRavine()));
     }
 
     public void generateRavine(MantleWriter mantle, RNG rng, Engine engine, int x, int y, int z) {
-        generateRavine(mantle, rng, engine, x, y, z, -1);
+        generateRavine(mantle, rng, engine, x, y, z, 0, -1);
     }
 
-    public void generateRavine(MantleWriter mantle, RNG rng, Engine engine, int x, int y, int z, int waterHint) {
+    public void generateRavine(MantleWriter mantle, RNG rng, Engine engine, int x, int y, int z, int recursion, int waterHint) {
         if (fail.get()) {
             return;
         }
@@ -80,14 +84,14 @@ public class IrisRavinePlacer implements IRare {
         try {
             int xx = x + rng.nextInt(15);
             int zz = z + rng.nextInt(15);
-            ravine.generate(mantle, rng, engine, xx, y, zz, waterHint);
+            ravine.generate(mantle, rng, engine, xx, y, zz, recursion, waterHint);
         } catch (Throwable e) {
             e.printStackTrace();
             fail.set(true);
         }
     }
 
-    public int getSize(IrisData data) {
-        return getRealRavine(data).getMaxSize(data);
+    public int getSize(IrisData data, int depth) {
+        return getRealRavine(data).getMaxSize(data, depth);
     }
 }

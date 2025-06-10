@@ -187,7 +187,7 @@ public class IrisEngineSVC implements IrisService {
                         return;
 
                     try {
-                        engine.getMantle().trim(tectonicLimit.get() / worlds.size());
+                        engine.getMantle().trim(tectonicLimit());
                     } catch (Throwable e) {
                         Iris.reportError(e);
                         Iris.error("EngineSVC: Failed to trim for " + name);
@@ -204,7 +204,7 @@ public class IrisEngineSVC implements IrisService {
 
                     try {
                         long unloadStart = System.currentTimeMillis();
-                        int count = engine.getMantle().unloadTectonicPlate(tectonicLimit.get() / worlds.size());
+                        int count = engine.getMantle().unloadTectonicPlate(tectonicLimit());
                         if (count > 0) {
                             Iris.debug(C.GOLD + "Unloaded " + C.YELLOW + count + " TectonicPlates in " + C.RED + Form.duration(System.currentTimeMillis() - unloadStart, 2));
                         }
@@ -215,6 +215,10 @@ public class IrisEngineSVC implements IrisService {
                     }
                 }, RNG.r.nextInt(1000), 1000, TimeUnit.MILLISECONDS);
             }
+        }
+
+        private int tectonicLimit() {
+            return tectonicLimit.get() / Math.max(worlds.size(), 1);
         }
 
         @Synchronized

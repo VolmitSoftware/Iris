@@ -300,6 +300,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
             return r;
         } catch (Throwable e) {
+            Iris.reportError(e);
             e.printStackTrace();
             Iris.error("Failed to create loader! " + registrant.getCanonicalName());
         }

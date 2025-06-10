@@ -89,6 +89,7 @@ nmsBindings.forEach { key, value ->
         dependencies {
             compileOnly(project(":core"))
             compileOnly("org.jetbrains:annotations:26.0.2")
+            compileOnly("net.bytebuddy:byte-buddy:1.17.5")
         }
     }
 
@@ -103,6 +104,7 @@ nmsBindings.forEach { key, value ->
         systemProperty("disable.watchdog", "")
         systemProperty("net.kyori.ansi.colorLevel", color)
         systemProperty("com.mojang.eula.agree", true)
+        jvmArgs("-javaagent:${tasks.jar.flatMap { it.archiveFile }.get().asFile.absolutePath}")
     }
 }
 
@@ -114,6 +116,13 @@ tasks {
         }
         from(project(":core").tasks.shadowJar.flatMap { it.archiveFile }.map { zipTree(it) })
         archiveFileName.set("Iris-${project.version}.jar")
+
+        manifest.attributes(
+            "Agent-Class" to "com.volmit.iris.util.agent.Installer",
+            "Premain-Class" to "com.volmit.iris.util.agent.Installer",
+            "Can-Redefine-Classes" to true,
+            "Can-Retransform-Classes" to true
+        )
     }
 
     register<Copy>("iris") {
@@ -191,6 +200,7 @@ allprojects {
         maven("https://repo.mineinabyss.com/releases")
         maven("https://hub.jeff-media.com/nexus/repository/jeff-media-public/")
         maven("https://repo.nexomc.com/releases/")
+        maven("https://nexus.phoenixdevt.fr/repository/maven-public/")
     }
 
     dependencies {

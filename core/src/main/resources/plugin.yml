@@ -5,23 +5,7 @@ load: STARTUP
 authors: [ cyberpwn, NextdoorPsycho, Vatuu ]
 website: volmit.com
 description: More than a Dimension!
-libraries:
-  - com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2
-  - com.github.ben-manes.caffeine:caffeine:3.0.5
-  - org.apache.commons:commons-lang3:3.12.0
-  - commons-io:commons-io:2.13.0
-  - io.timeandspace:smoothie-map:2.0.2
-  - com.google.guava:guava:31.0.1-jre
-  - com.google.code.gson:gson:2.10.1
-  - org.zeroturnaround:zt-zip:1.14
-  - it.unimi.dsi:fastutil:8.5.6
-  - org.ow2.asm:asm:9.2
-  - rhino:js:1.7R2
-  - bsf:bsf:2.4.0
-  - org.lz4:lz4-java:1.8.0
-  - com.github.oshi:oshi-core:6.6.5
-  - net.bytebuddy:byte-buddy:1.17.5
-  - net.bytebuddy:byte-buddy-agent:1.17.5
+libraries: ${libraries}
 commands:
   iris:
     aliases: [ ir, irs ]

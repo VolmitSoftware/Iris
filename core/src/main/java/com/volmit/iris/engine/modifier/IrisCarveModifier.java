@@ -43,7 +43,6 @@ import org.bukkit.block.data.BlockData;
 public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     private final RNG rng;
     private final BlockData AIR = Material.CAVE_AIR.createBlockData();
-    private final BlockData WATER = Material.WATER.createBlockData();
     private final BlockData LAVA = Material.LAVA.createBlockData();
     private final IrisDecorantActuator decorant;
 
@@ -103,7 +102,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             }
 
             if (c.isWater()) {
-                output.set(rx, yy, rz, WATER);
+                output.set(rx, yy, rz, context.getFluid().get(rx, rz));
             } else if (c.isLava()) {
                 output.set(rx, yy, rz, LAVA);
             } else {

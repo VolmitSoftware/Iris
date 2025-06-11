@@ -78,7 +78,6 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
-import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -459,14 +458,11 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             }
         }
 
-        for (int i = 0; i < 4; i++) {
-            try {
-                Arrays.parallelSort(nitems, (a, b) -> rng.nextInt());
-                break;
-            } catch (Throwable e) {
-                Iris.reportError(e);
-
-            }
+        for (int i = nitems.length; i > 1; i--) {
+            int j = rng.nextInt(i);
+            ItemStack tmp = nitems[i - 1];
+            nitems[i - 1] = nitems[j];
+            nitems[j] = tmp;
         }
 
         inventory.setContents(nitems);

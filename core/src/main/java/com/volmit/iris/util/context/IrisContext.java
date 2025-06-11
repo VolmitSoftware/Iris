@@ -87,4 +87,21 @@ public class IrisContext {
     public IrisComplex getComplex() {
         return engine.getComplex();
     }
+
+    public KMap<String, Object> asContext() {
+        var hash32 = engine.getHash32().getNow(null);
+        var dimension = engine.getDimension();
+        var mantle = engine.getMantle();
+        return new KMap<String, Object>()
+                .qput("studio", engine.isStudio())
+                .qput("closed", engine.isClosed())
+                .qput("pack", new KMap<>()
+                        .qput("key", dimension.getLoadKey())
+                        .qput("version", dimension.getVersion())
+                        .qput("hash", hash32 == null ? "" : Long.toHexString(hash32)))
+                .qput("mantle", new KMap<>()
+                        .qput("idle", mantle.getAdjustedIdleDuration())
+                        .qput("loaded", mantle.getLoadedRegionCount())
+                        .qput("queued", mantle.getUnloadRegionCount()));
+    }
 }

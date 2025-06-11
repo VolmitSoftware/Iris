@@ -53,6 +53,7 @@ import com.volmit.iris.util.io.FileWatcher;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.io.JarScanner;
+import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.misc.getHardware;
@@ -947,6 +948,10 @@ public class Iris extends VolmitPlugin implements Listener {
         }
     }
 
+    private static boolean suppress(Throwable e) {
+        return (e instanceof IllegalStateException ex && "zip file closed".equals(ex.getMessage())) || e instanceof JSONException;
+    }
+
     private static void setupSentry() {
         var settings = IrisSettings.get().getSentry();
         if (settings.disableAutoReporting || Sentry.isEnabled()) return;
@@ -962,6 +967,7 @@ public class Iris extends VolmitPlugin implements Listener {
             options.setEnableUncaughtExceptionHandler(false);
             options.setRelease(Iris.instance.getDescription().getVersion());
             options.setBeforeSend((event, hint) -> {
+                if (suppress(event.getThrowable())) return null;
                 event.setTag("iris.safeguard", IrisSafeguard.mode());
                 event.setTag("iris.nms", INMS.get().getClass().getCanonicalName());
                 var context = IrisContext.get();

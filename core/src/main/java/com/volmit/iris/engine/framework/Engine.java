@@ -140,7 +140,9 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return getTarget().getWorld().minHeight();
     }
 
-    void setMinHeight(int min);
+    default void setMinHeight(int min) {
+        getTarget().getWorld().minHeight(min);
+    }
 
     @BlockCoordinates
     default void generate(int x, int z, TerrainChunk tc, boolean multicore) throws WrongEngineBroException {

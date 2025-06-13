@@ -955,7 +955,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
     private static void setupSentry() {
         var settings = IrisSettings.get().getSentry();
-        if (settings.disableAutoReporting || Sentry.isEnabled()) return;
+        if (settings.disableAutoReporting || Sentry.isEnabled() || !Boolean.getBoolean("iris.errorReporting")) return;
         Iris.info("Enabling Sentry for anonymous error reporting. You can disable this in the settings.");
         Iris.info("Your server ID is: " + ServerID.ID);
         Sentry.init(options -> {

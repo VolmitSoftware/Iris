@@ -67,6 +67,7 @@ import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
 import com.volmit.iris.util.sentry.Attachments;
 import com.volmit.iris.util.sentry.IrisLogger;
+import com.volmit.iris.util.sentry.ServerID;
 import io.papermc.lib.PaperLib;
 import io.sentry.Sentry;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
@@ -956,6 +957,7 @@ public class Iris extends VolmitPlugin implements Listener {
         var settings = IrisSettings.get().getSentry();
         if (settings.disableAutoReporting || Sentry.isEnabled()) return;
         Iris.info("Enabling Sentry for anonymous error reporting. You can disable this in the settings.");
+        Iris.info("Your server ID is: " + ServerID.ID);
         Sentry.init(options -> {
             options.setDsn("https://b16ecc222e9c1e0c48faecacb906fd89@o4509451052646400.ingest.de.sentry.io/4509452722765904");
             if (settings.debug) {
@@ -976,6 +978,7 @@ public class Iris extends VolmitPlugin implements Listener {
             });
         });
         Sentry.configureScope(scope -> {
+            if (settings.includeServerId) scope.setUser(ServerID.asUser());
             scope.addAttachment(Attachments.PLUGINS);
             scope.setTag("server", Bukkit.getVersion());
             scope.setTag("server.type", Bukkit.getName());

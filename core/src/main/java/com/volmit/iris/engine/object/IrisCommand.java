@@ -65,6 +65,7 @@ public class IrisCommand {
             return;
         }
 
+        var scheduler = Iris.scheduler.global();
         for (String command : commands) {
             command = (command.startsWith("/") ? command.replaceFirst("/", "") : command)
                     .replaceAll("\\Q{x}\\E", String.valueOf(at.getBlockX()))
@@ -72,9 +73,9 @@ public class IrisCommand {
                     .replaceAll("\\Q{z}\\E", String.valueOf(at.getBlockZ()));
             final String finalCommand = command;
             if (repeat) {
-                Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, () -> Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), finalCommand), delay, repeatDelay);
+                scheduler.runAtFixedRate(() -> Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), finalCommand), Math.max(delay, 1), Math.max(repeatDelay, 1));
             } else {
-                Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), finalCommand), delay);
+                scheduler.runDelayed(() -> Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), finalCommand), Math.max(delay, 1));
             }
         }
     }

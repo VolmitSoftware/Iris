@@ -31,6 +31,7 @@ import org.bukkit.Bukkit;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -91,7 +92,7 @@ public class J {
         if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
             return;
         }
-        Bukkit.getScheduler().scheduleAsyncDelayedTask(Iris.instance, a);
+        Iris.scheduler.async().run(a);
     }
 
     public static <T> Future<T> a(Callable<T> a) {
@@ -224,33 +225,29 @@ public class J {
         if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
             return;
         }
-        Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, r);
+        Iris.scheduler.global().run(r);
     }
 
     public static CompletableFuture sfut(Runnable r) {
-        CompletableFuture f = new CompletableFuture();
-
         if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
             return null;
         }
-        Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
+
+        return Iris.scheduler.global().run(() -> {
             r.run();
-            f.complete(null);
-        });
-        return f;
+            return null;
+        }).result();
     }
 
     public static CompletableFuture sfut(Runnable r, int delay) {
-        CompletableFuture f = new CompletableFuture();
-
         if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
             return null;
         }
-        Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
+
+        return Iris.scheduler.global().runDelayed(() -> {
             r.run();
-            f.complete(null);
-        }, delay);
-        return f;
+            return null;
+        }, delay).result();
     }
 
     public static CompletableFuture afut(Runnable r) {
@@ -273,19 +270,10 @@ public class J {
             if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
                 return;
             }
-            Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, r, delay);
+            Iris.scheduler.global().runDelayed(r, delay);
         } catch (Throwable e) {
             Iris.reportError(e);
         }
-    }
-
-    /**
-     * Cancel a sync repeating task
-     *
-     * @param id the task id
-     */
-    public static void csr(int id) {
-        Bukkit.getScheduler().cancelTask(id);
     }
 
     /**
@@ -295,34 +283,11 @@ public class J {
      * @param interval the interval
      * @return the task id
      */
-    public static int sr(Runnable r, int interval) {
+    public static Task sr(Runnable r, int interval) {
         if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
-            return -1;
+            return null;
         }
-        return Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, r, 0, interval);
-    }
-
-    /**
-     * Start a sync repeating task for a limited amount of ticks
-     *
-     * @param r         the runnable
-     * @param interval  the interval in ticks
-     * @param intervals the maximum amount of intervals to run
-     */
-    public static void sr(Runnable r, int interval, int intervals) {
-        FinalInteger fi = new FinalInteger(0);
-
-        new SR() {
-            @Override
-            public void run() {
-                fi.add(1);
-                r.run();
-
-                if (fi.get() >= intervals) {
-                    cancel();
-                }
-            }
-        };
+        return Iris.scheduler.global().runAtFixedRate(r, 1, Math.max(interval, 1));
     }
 
     /**
@@ -331,20 +296,10 @@ public class J {
      * @param r     the runnable
      * @param delay the delay to wait before running
      */
-    @SuppressWarnings("deprecation")
     public static void a(Runnable r, int delay) {
         if (Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
-            Bukkit.getScheduler().scheduleAsyncDelayedTask(Iris.instance, r, delay);
+            Iris.scheduler.async().runDelayed(r, Math.max(delay * 50, 0), TimeUnit.MILLISECONDS);
         }
-    }
-
-    /**
-     * Cancel an async repeat task
-     *
-     * @param id the id
-     */
-    public static void car(int id) {
-        Bukkit.getScheduler().cancelTask(id);
     }
 
     /**
@@ -354,12 +309,11 @@ public class J {
      * @param interval the interval in ticks
      * @return the task id
      */
-    @SuppressWarnings("deprecation")
-    public static int ar(Runnable r, int interval) {
+    public static Task ar(Runnable r, int interval) {
         if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
-            return -1;
+            return null;
         }
-        return Bukkit.getScheduler().scheduleAsyncRepeatingTask(Iris.instance, r, 0, interval);
+        return Iris.scheduler.async().runAtFixedRate(r, 0, Math.max(interval, 1) * 50, TimeUnit.MILLISECONDS);
     }
 
     /**

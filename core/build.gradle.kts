@@ -70,6 +70,7 @@ dependencies {
     implementation("net.kyori:adventure-platform-bukkit:4.3.4")
     implementation("net.kyori:adventure-api:4.17.0")
     implementation("org.bstats:bstats-bukkit:3.1.0")
+    implementation(project(":scheduler"))
 
     //implementation("org.bytedeco:javacpp:1.5.10")
     //implementation("org.bytedeco:cuda-platform:12.3-8.9-1.5.10")

@@ -30,6 +30,7 @@ import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.Task;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -55,7 +56,7 @@ public class JigsawEditor implements Listener {
     private final IrisJigsawPiece piece;
     private final Location origin;
     private final Cuboid cuboid;
-    private final int ticker;
+    private final Task ticker;
     private final KMap<IrisPosition, Runnable> falling = new KMap<>();
     private final ChronoLatch cl = new ChronoLatch(100);
     private Location target;
@@ -197,7 +198,7 @@ public class JigsawEditor implements Listener {
     }
 
     public void exit() {
-        J.car(ticker);
+        if (ticker != null) ticker.cancel();
         Iris.instance.unregisterListener(this);
         try {
             J.sfut(() -> {

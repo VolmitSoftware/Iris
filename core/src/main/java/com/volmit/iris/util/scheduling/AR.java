@@ -21,22 +21,18 @@ package com.volmit.iris.util.scheduling;
 import com.volmit.iris.util.plugin.CancellableTask;
 
 public abstract class AR implements Runnable, CancellableTask {
-    private int id = 0;
+    private final Task task;
 
     public AR() {
-        this(0);
+        this(1);
     }
 
     public AR(int interval) {
-        id = J.ar(this, interval);
+        task = J.ar(this, interval);
     }
 
     @Override
     public void cancel() {
-        J.car(id);
-    }
-
-    public int getId() {
-        return id;
+        task.cancel();
     }
 }

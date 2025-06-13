@@ -55,11 +55,11 @@ import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.O;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
 import io.papermc.lib.PaperLib;
 import org.bukkit.*;
+import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.util.BlockVector;
@@ -309,27 +309,25 @@ public class CommandStudio implements DecreeExecutor {
             return;
         }
 
+        Player player = player();
+        var scheduler = Iris.scheduler.entity(player);
+        scheduler.run(() -> {
+            sender().sendMessage(C.GREEN + "Opening inventory now!");
+            player.openInventory(inv);
 
-        O<Integer> ta = new O<>();
-        ta.set(-1);
+            scheduler.runAtFixedRate(refresh -> {
+                if (!player.getOpenInventory().getType().equals(InventoryType.CHEST)) {
+                    refresh.cancel();
+                    return;
+                }
 
-        ta.set(Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, () ->
-        {
-            if (!player().getOpenInventory().getType().equals(InventoryType.CHEST)) {
-                Bukkit.getScheduler().cancelTask(ta.get());
-                sender().sendMessage(C.GREEN + "Opened inventory!");
-                return;
-            }
+                if (!add) {
+                    inv.clear();
+                }
 
-            if (!add) {
-                inv.clear();
-            }
-
-            engine().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, player().getWorld(), player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
-        }, 0, fast ? 5 : 35));
-
-        sender().sendMessage(C.GREEN + "Opening inventory now!");
-        player().openInventory(inv);
+                engine().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, player.getWorld(), player.getLocation().getBlockX(), player.getLocation().getBlockY(), player.getLocation().getBlockZ(), 1);
+            }, null, 1, fast ? 5 : 35);
+        }, null);
     }
 
 
@@ -350,9 +348,7 @@ public class CommandStudio implements DecreeExecutor {
         var loc = player().getLocation();
         int totalTasks = d * d;
         AtomicInteger completedTasks = new AtomicInteger(0);
-        int c = J.ar(() -> {
-            sender.sendProgress((double) completedTasks.get() / totalTasks, "Finding structures");
-        }, 0);
+        var c = J.ar(() -> sender.sendProgress((double) completedTasks.get() / totalTasks, "Finding structures"), 0);
 
         new Spiraler(d, d, (x, z) -> executor.queue(() -> {
             var struct = engine.getStructureAt(x, z);
@@ -364,7 +360,7 @@ public class CommandStudio implements DecreeExecutor {
 
         executor.complete();
         multiBurst.close();
-        J.car(c);
+        if (c != null) c.cancel();
 
         for (var key : data.keySet()) {
             var list = data.get(key);

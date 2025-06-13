@@ -63,6 +63,7 @@ import com.volmit.iris.util.plugin.VolmitPlugin;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.reflect.ShadeFix;
 import com.volmit.iris.util.scheduling.J;
+import com.volmit.iris.util.scheduling.Platform;
 import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
 import com.volmit.iris.util.sentry.Attachments;
@@ -98,6 +99,7 @@ import java.math.RoundingMode;
 import java.net.URL;
 import java.text.NumberFormat;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -115,6 +117,7 @@ public class Iris extends VolmitPlugin implements Listener {
     public static MythicMobsLink linkMythicMobs;
     public static IrisCompat compat;
     public static FileWatcher configWatcher;
+    public static Platform scheduler;
     private static VolmitSender sender;
 
     static {
@@ -333,15 +336,14 @@ public class Iris extends VolmitPlugin implements Listener {
     @SuppressWarnings("deprecation")
     public static void later(NastyRunnable object) {
         try {
-            Bukkit.getScheduler().scheduleAsyncDelayedTask(instance, () ->
-            {
+            scheduler.async().runDelayed(task -> {
                 try {
                     object.run();
                 } catch (Throwable e) {
                     e.printStackTrace();
                     Iris.reportError(e);
                 }
-            }, RNG.r.i(100, 1200));
+            }, RNG.r.i(5, 60), TimeUnit.SECONDS);
         } catch (IllegalPluginAccessException ignored) {
 
         }
@@ -459,6 +461,7 @@ public class Iris extends VolmitPlugin implements Listener {
     }
     private void enable() {
         instance = this;
+        scheduler = Platform.create(this);
         services = new KMap<>();
         setupAudience();
         setupSentry();
@@ -580,7 +583,6 @@ public class Iris extends VolmitPlugin implements Listener {
 
     public void onDisable() {
         services.values().forEach(IrisService::onDisable);
-        Bukkit.getScheduler().cancelTasks(this);
         HandlerList.unregisterAll((Plugin) this);
         postShutdown.forEach(Runnable::run);
         super.onDisable();

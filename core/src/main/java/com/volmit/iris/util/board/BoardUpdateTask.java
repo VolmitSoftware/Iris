@@ -20,7 +20,6 @@ package com.volmit.iris.util.board;
 
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -30,7 +29,7 @@ import java.util.function.Predicate;
  * @since 5/31/2018
  */
 @RequiredArgsConstructor
-public class BoardUpdateTask extends BukkitRunnable {
+public class BoardUpdateTask implements Runnable {
 
     private static final Predicate<UUID> PLAYER_IS_ONLINE = uuid -> Bukkit.getPlayer(uuid) != null;
 

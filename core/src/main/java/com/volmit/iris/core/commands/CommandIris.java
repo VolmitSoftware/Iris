@@ -49,7 +49,6 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
@@ -157,13 +156,8 @@ public class CommandIris implements DecreeExecutor {
             return;
         }
 
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                target.teleport(world.getSpawnLocation());
-                new VolmitSender(target).sendMessage(C.GREEN + "You have been teleported to " + world.getName() + ".");
-            }
-        }.runTask(Iris.instance);
+        Iris.scheduler.teleportAsync(target, world.getSpawnLocation()).thenRun(() ->
+                new VolmitSender(target).sendMessage(C.GREEN + "You have been teleported to " + world.getName() + "."));
     }
 
     @Decree(description = "Print version information")

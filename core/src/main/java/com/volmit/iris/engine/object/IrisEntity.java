@@ -337,9 +337,7 @@ public class IrisEntity extends IrisRegistrant {
         if (e instanceof Villager) {
             Villager villager = (Villager) e;
             villager.setRemoveWhenFarAway(false);
-            Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
-                villager.setPersistent(true);
-            }, 1);
+            Iris.scheduler.entity(villager).run(() -> villager.setPersistent(true), null);
         }
 
         if (e instanceof Mob) {
@@ -377,10 +375,9 @@ public class IrisEntity extends IrisRegistrant {
                 ((LivingEntity) e).setCollidable(false);
                 ((LivingEntity) e).setNoDamageTicks(100000);
                 AtomicInteger t = new AtomicInteger(0);
-                AtomicInteger v = new AtomicInteger(0);
-                v.set(J.sr(() -> {
+                Iris.scheduler.global().runAtFixedRate(task -> {
                     if (t.get() > 100) {
-                        J.csr(v.get());
+                        task.cancel();
                         return;
                     }
 
@@ -393,13 +390,13 @@ public class IrisEntity extends IrisRegistrant {
                             e.getWorld().playSound(e.getLocation(), Sound.BLOCK_CHORUS_FLOWER_GROW, 0.8f, 0.1f);
                         }
                     } else {
-                        J.csr(v.get());
+                        task.cancel();
                         ((LivingEntity) e).setNoDamageTicks(0);
                         ((LivingEntity) e).setCollidable(true);
                         ((LivingEntity) e).setAI(true);
                         e.setInvulnerable(false);
                     }
-                }, 0));
+                }, 1, 1);
             }
         });
 

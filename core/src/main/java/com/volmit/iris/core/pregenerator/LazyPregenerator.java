@@ -19,7 +19,6 @@ import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldUnloadEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
@@ -238,16 +237,13 @@ public class LazyPregenerator extends Thread implements Listener {
             }
             save();
             jobs.remove(world.getName());
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    while (lazyFile.exists()){
-                        lazyFile.delete();
-                        J.sleep(1000);
-                    }
-                    Iris.info("LazyGen: " + C.IRIS + world.getName() + C.BLUE + " File deleted and instance closed.");
+            J.a(() -> {
+                while (lazyFile.exists()){
+                    lazyFile.delete();
+                    J.sleep(1000);
                 }
-            }.runTaskLater(Iris.instance, 20L);
+                Iris.info("LazyGen: " + C.IRIS + world.getName() + C.BLUE + " File deleted and instance closed.");
+            }, 20);
         } catch (Exception e) {
             Iris.error("Failed to shutdown Lazygen for " + world.getName());
             e.printStackTrace();

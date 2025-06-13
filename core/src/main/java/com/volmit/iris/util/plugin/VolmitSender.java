@@ -48,6 +48,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -298,17 +299,16 @@ public class VolmitSender implements CommandSender {
     }
 
     public <T> void showWaiting(String passive, CompletableFuture<T> f) {
-        AtomicInteger v = new AtomicInteger();
         AtomicReference<T> g = new AtomicReference<>();
-        v.set(J.ar(() -> {
+        Iris.scheduler.async().runAtFixedRate(task -> {
             if (f.isDone() && g.get() != null) {
-                J.car(v.get());
+                task.cancel();
                 sendAction(" ");
                 return;
             }
 
             sendProgress(-1, passive);
-        }, 0));
+        }, 0, 50, TimeUnit.MILLISECONDS);
         J.a(() -> {
             try {
                 g.set(f.get());

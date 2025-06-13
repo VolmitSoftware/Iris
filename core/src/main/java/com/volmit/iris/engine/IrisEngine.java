@@ -50,6 +50,7 @@ import com.volmit.iris.util.matter.MatterStructurePOI;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import com.volmit.iris.util.scheduling.Task;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -85,7 +86,7 @@ public class IrisEngine implements Engine {
     private final EngineMetrics metrics;
     private final boolean studio;
     private final AtomicRollingSequence wallClock;
-    private final int art;
+    private final Task art;
     private final AtomicCache<IrisEngineData> engineData = new AtomicCache<>();
     private final AtomicBoolean cleaning;
     private final ChronoLatch cleanLatch;
@@ -418,7 +419,7 @@ public class IrisEngine implements Engine {
     public void close() {
         PregeneratorJob.shutdownInstance();
         closed = true;
-        J.car(art);
+        art.cancel();
         getWorldManager().close();
         getTarget().close();
         saveEngineData();

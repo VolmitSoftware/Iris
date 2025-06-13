@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Range;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * The region task scheduler can be used to schedule tasks by location to be executed on the region which owns the location.
@@ -47,6 +48,43 @@ public interface IRegionScheduler {
      * @param chunkX The chunk X coordinate of the region that owns the task
      * @param chunkZ The chunk Z coordinate of the region that owns the task
      * @param task   The task to execute
+     * @return The {@link Task} that represents the scheduled task.
+     */
+    default @NotNull Task run(@NotNull World world,
+                              int chunkX,
+                              int chunkZ,
+                              @NotNull Runnable task) {
+        return run(world, chunkX, chunkZ, t -> {
+            task.run();
+            return null;
+        });
+    }
+
+    /**
+     * Schedules a task to be executed on the region which owns the location on the next tick.
+     *
+     * @param world  The world of the region that owns the task
+     * @param chunkX The chunk X coordinate of the region that owns the task
+     * @param chunkZ The chunk Z coordinate of the region that owns the task
+     * @param task   The task to execute
+     * @return The {@link Completable} that represents the scheduled task.
+     */
+    default @NotNull <R> Completable<R> run(@NotNull World world,
+                                            int chunkX,
+                                            int chunkZ,
+                                            @NotNull Supplier<R> task) {
+        return run(world, chunkX, chunkZ, t -> {
+            return task.get();
+        });
+    }
+
+    /**
+     * Schedules a task to be executed on the region which owns the location on the next tick.
+     *
+     * @param world  The world of the region that owns the task
+     * @param chunkX The chunk X coordinate of the region that owns the task
+     * @param chunkZ The chunk Z coordinate of the region that owns the task
+     * @param task   The task to execute
      * @return The {@link Completable} that represents the scheduled task.
      */
     default @NotNull <R> Completable<R> run(@NotNull World world,
@@ -66,6 +104,34 @@ public interface IRegionScheduler {
     default @NotNull Task run(@NotNull Location location,
                               @NotNull Consumer<Task> task) {
         return run(location.getWorld(), location.getBlockX() >> 4, location.getBlockZ() >> 4, task);
+    }
+
+    /**
+     * Schedules a task to be executed on the region which owns the location on the next tick.
+     *
+     * @param location The location at which the region executing should own
+     * @param task     The task to execute
+     * @return The {@link Task} that represents the scheduled task.
+     */
+    default @NotNull Task run(@NotNull Location location,
+                              @NotNull Runnable task) {
+        return run(location, t -> {
+            task.run();
+        });
+    }
+
+    /**
+     * Schedules a task to be executed on the region which owns the location on the next tick.
+     *
+     * @param location The location at which the region executing should own
+     * @param task     The task to execute
+     * @return The {@link Completable} that represents the scheduled task.
+     */
+    default @NotNull <R> Completable<R> run(@NotNull Location location,
+                                            @NotNull Supplier<R> task) {
+        return run(location, t -> {
+            return task.get();
+        });
     }
 
     /**
@@ -109,6 +175,47 @@ public interface IRegionScheduler {
      * @param chunkZ     The chunk Z coordinate of the region that owns the task
      * @param task       The task to execute
      * @param delayTicks The delay, in ticks.
+     * @return The {@link Task} that represents the scheduled task.
+     */
+    default @NotNull Task runDelayed(@NotNull World world,
+                                     int chunkX,
+                                     int chunkZ,
+                                     @NotNull Runnable task,
+                                     @Range(from = 1, to = Long.MAX_VALUE) long delayTicks) {
+        return runDelayed(world, chunkX, chunkZ, t -> {
+            task.run();
+            return null;
+        }, delayTicks);
+    }
+
+    /**
+     * Schedules a task to be executed on the region which owns the location after the specified delay in ticks.
+     *
+     * @param world      The world of the region that owns the task
+     * @param chunkX     The chunk X coordinate of the region that owns the task
+     * @param chunkZ     The chunk Z coordinate of the region that owns the task
+     * @param task       The task to execute
+     * @param delayTicks The delay, in ticks.
+     * @return The {@link Completable} that represents the scheduled task.
+     */
+    default @NotNull <R> Completable<R> runDelayed(@NotNull World world,
+                                                   int chunkX,
+                                                   int chunkZ,
+                                                   @NotNull Supplier<R> task,
+                                                   @Range(from = 1, to = Long.MAX_VALUE) long delayTicks) {
+        return runDelayed(world, chunkX, chunkZ, t -> {
+            return task.get();
+        }, delayTicks);
+    }
+
+    /**
+     * Schedules a task to be executed on the region which owns the location after the specified delay in ticks.
+     *
+     * @param world      The world of the region that owns the task
+     * @param chunkX     The chunk X coordinate of the region that owns the task
+     * @param chunkZ     The chunk Z coordinate of the region that owns the task
+     * @param task       The task to execute
+     * @param delayTicks The delay, in ticks.
      * @return The {@link Completable} that represents the scheduled task.
      */
     @NotNull <R> Completable<R> runDelayed(@NotNull World world,
@@ -130,6 +237,7 @@ public interface IRegionScheduler {
                                      @Range(from = 1, to = Long.MAX_VALUE) long delayTicks) {
         return runDelayed(location.getWorld(), location.getBlockX() >> 4, location.getBlockZ() >> 4, task, delayTicks);
     }
+
     /**
      * Schedules a task to be executed on the region which owns the location after the specified delay in ticks.
      *
@@ -156,12 +264,50 @@ public interface IRegionScheduler {
      * @param periodTicks       The period, in ticks.
      * @return The {@link Task} that represents the scheduled task.
      */
+    default @NotNull Task runAtFixedRate(@NotNull World world,
+                                         int chunkX,
+                                         int chunkZ,
+                                         @NotNull Runnable task,
+                                         @Range(from = 1, to = Long.MAX_VALUE) long initialDelayTicks,
+                                         @Range(from = 1, to = Long.MAX_VALUE) long periodTicks) {
+        return runAtFixedRate(world, chunkX, chunkZ, t -> task.run(), initialDelayTicks, periodTicks);
+    }
+
+    /**
+     * Schedules a repeating task to be executed on the region which owns the location after the initial delay with the
+     * specified period.
+     *
+     * @param world             The world of the region that owns the task
+     * @param chunkX            The chunk X coordinate of the region that owns the task
+     * @param chunkZ            The chunk Z coordinate of the region that owns the task
+     * @param task              The task to execute
+     * @param initialDelayTicks The initial delay, in ticks.
+     * @param periodTicks       The period, in ticks.
+     * @return The {@link Task} that represents the scheduled task.
+     */
     @NotNull Task runAtFixedRate(@NotNull World world,
                                  int chunkX,
                                  int chunkZ,
                                  @NotNull Consumer<Task> task,
                                  @Range(from = 1, to = Long.MAX_VALUE) long initialDelayTicks,
                                  @Range(from = 1, to = Long.MAX_VALUE) long periodTicks);
+
+    /**
+     * Schedules a repeating task to be executed on the region which owns the location after the initial delay with the
+     * specified period.
+     *
+     * @param location          The location at which the region executing should own
+     * @param task              The task to execute
+     * @param initialDelayTicks The initial delay, in ticks.
+     * @param periodTicks       The period, in ticks.
+     * @return The {@link Task} that represents the scheduled task.
+     */
+    default @NotNull Task runAtFixedRate(@NotNull Location location,
+                                         @NotNull Runnable task,
+                                         @Range(from = 1, to = Long.MAX_VALUE) long initialDelayTicks,
+                                         @Range(from = 1, to = Long.MAX_VALUE) long periodTicks) {
+        return runAtFixedRate(location, t -> task.run(), initialDelayTicks, periodTicks);
+    }
 
     /**
      * Schedules a repeating task to be executed on the region which owns the location after the initial delay with the

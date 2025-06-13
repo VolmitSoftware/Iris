@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Range;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * The global region task scheduler may be used to schedule tasks that will execute on the global region.
@@ -25,6 +26,29 @@ public interface IGlobalScheduler {
         return run(t -> {
             task.accept(t);
             return null;
+        });
+    }
+
+    /**
+     * Schedules a task to be executed on the global region on the next tick.
+     * @param task The task to execute
+     * @return The {@link Task} that represents the scheduled task.
+     */
+    default @NotNull Task run(@NotNull Runnable task) {
+        return run(t -> {
+            task.run();
+            return null;
+        });
+    }
+
+    /**
+     * Schedules a task to be executed on the global region on the next tick.
+     * @param task The task to execute
+     * @return The {@link Completable} that represents the scheduled task.
+     */
+    default @NotNull <R> Completable<R> run(@NotNull Supplier<R> task) {
+        return run(t -> {
+            return task.get();
         });
     }
 
@@ -55,10 +79,51 @@ public interface IGlobalScheduler {
      * Schedules a task to be executed on the global region after the specified delay in ticks.
      * @param task The task to execute
      * @param delayTicks The delay, in ticks.
+     * @return The {@link Task} that represents the scheduled task.
+     */
+    default @NotNull Task runDelayed(@NotNull Runnable task,
+                                     @Range(from = 1, to = Long.MAX_VALUE) long delayTicks) {
+        return runDelayed(t -> {
+            task.run();
+            return null;
+        }, delayTicks);
+    }
+
+    /**
+     * Schedules a task to be executed on the global region after the specified delay in ticks.
+     * @param task The task to execute
+     * @param delayTicks The delay, in ticks.
+     * @return The {@link Completable} that represents the scheduled task.
+     */
+    default @NotNull <R> Completable<R> runDelayed(@NotNull Supplier<R> task,
+                                                   @Range(from = 1, to = Long.MAX_VALUE) long delayTicks) {
+        return runDelayed(t -> {
+            return task.get();
+        }, delayTicks);
+    }
+
+    /**
+     * Schedules a task to be executed on the global region after the specified delay in ticks.
+     * @param task The task to execute
+     * @param delayTicks The delay, in ticks.
      * @return The {@link Completable} that represents the scheduled task.
      */
     @NotNull <R> Completable<R> runDelayed(@NotNull Function<Completable<R>, R> task,
                                            @Range(from = 1, to = Long.MAX_VALUE) long delayTicks);
+
+    /**
+     * Schedules a repeating task to be executed on the global region after the initial delay with the
+     * specified period.
+     * @param task The task to execute
+     * @param initialDelayTicks The initial delay, in ticks.
+     * @param periodTicks The period, in ticks.
+     * @return The {@link Task} that represents the scheduled task.
+     */
+    default @NotNull Task runAtFixedRate(@NotNull Runnable task,
+                                 @Range(from = 1, to = Long.MAX_VALUE) long initialDelayTicks,
+                                 @Range(from = 1, to = Long.MAX_VALUE) long periodTicks) {
+        return runAtFixedRate(t -> task.run(), initialDelayTicks, periodTicks);
+    }
 
     /**
      * Schedules a repeating task to be executed on the global region after the initial delay with the

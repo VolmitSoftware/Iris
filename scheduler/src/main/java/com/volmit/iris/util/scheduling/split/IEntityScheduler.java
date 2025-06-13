@@ -8,6 +8,7 @@ import org.jetbrains.annotations.Range;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * An entity can move between worlds with an arbitrary tick delay, be temporarily removed
@@ -48,6 +49,49 @@ public interface IEntityScheduler {
         return run(t -> {
             task.accept(t);
             return null;
+        }, retired);
+    }
+
+    /**
+     * Schedules a task to execute on the next tick. If the task failed to schedule because the scheduler is retired (entity
+     * removed), then returns {@code null}. Otherwise, either the task callback will be invoked after the specified delay,
+     * or the retired callback will be invoked if the scheduler is retired.
+     * Note that the retired callback is invoked in critical code, so it should not attempt to remove the entity, remove
+     * other entities, load chunks, load worlds, modify ticket levels, etc.
+     *
+     * <p>
+     * It is guaranteed that the task and retired callback are invoked on the region which owns the entity.
+     * </p>
+     * @param task The task to execute
+     * @param retired Retire callback to run if the entity is retired before the run callback can be invoked, may be null.
+     * @return The {@link Task} that represents the scheduled task, or {@code null} if the entity has been removed.
+     */
+    default @Nullable Task run(@NotNull Runnable task,
+                               @Nullable Runnable retired) {
+        return run(t -> {
+            task.run();
+            return null;
+        }, retired);
+    }
+
+    /**
+     * Schedules a task to execute on the next tick. If the task failed to schedule because the scheduler is retired (entity
+     * removed), then returns {@code null}. Otherwise, either the task callback will be invoked after the specified delay,
+     * or the retired callback will be invoked if the scheduler is retired.
+     * Note that the retired callback is invoked in critical code, so it should not attempt to remove the entity, remove
+     * other entities, load chunks, load worlds, modify ticket levels, etc.
+     *
+     * <p>
+     * It is guaranteed that the task and retired callback are invoked on the region which owns the entity.
+     * </p>
+     * @param task The task to execute
+     * @param retired Retire callback to run if the entity is retired before the run callback can be invoked, may be null.
+     * @return The {@link Completable} that represents the scheduled task, or {@code null} if the entity has been removed.
+     */
+    default @Nullable <R> Completable<R> run(@NotNull Supplier<R> task,
+                                             @Nullable Runnable retired) {
+        return run(t -> {
+            return task.get();
         }, retired);
     }
 
@@ -107,11 +151,81 @@ public interface IEntityScheduler {
      * @param task The task to execute
      * @param retired Retire callback to run if the entity is retired before the run callback can be invoked, may be null.
      * @param delayTicks The delay, in ticks.
+     * @return The {@link Task} that represents the scheduled task, or {@code null} if the entity has been removed.
+     */
+    default @Nullable Task runDelayed(@NotNull Runnable task,
+                                      @Nullable Runnable retired,
+                                      @Range(from = 1, to = Long.MAX_VALUE) long delayTicks) {
+        return runDelayed(t -> {
+            task.run();
+            return null;
+        }, retired, delayTicks);
+    }
+
+    /**
+     * Schedules a task with the given delay. If the task failed to schedule because the scheduler is retired (entity
+     * removed), then returns {@code null}. Otherwise, either the task callback will be invoked after the specified delay,
+     * or the retired callback will be invoked if the scheduler is retired.
+     * Note that the retired callback is invoked in critical code, so it should not attempt to remove the entity, remove
+     * other entities, load chunks, load worlds, modify ticket levels, etc.
+     *
+     * <p>
+     * It is guaranteed that the task and retired callback are invoked on the region which owns the entity.
+     * </p>
+     * @param task The task to execute
+     * @param retired Retire callback to run if the entity is retired before the run callback can be invoked, may be null.
+     * @param delayTicks The delay, in ticks.
+     * @return The {@link Completable} that represents the scheduled task, or {@code null} if the entity has been removed.
+     */
+    default @Nullable <R> Completable<R> runDelayed(@NotNull Supplier<R> task,
+                                                    @Nullable Runnable retired,
+                                                    @Range(from = 1, to = Long.MAX_VALUE) long delayTicks) {
+        return runDelayed(t -> {
+            return task.get();
+        }, retired, delayTicks);
+    }
+
+    /**
+     * Schedules a task with the given delay. If the task failed to schedule because the scheduler is retired (entity
+     * removed), then returns {@code null}. Otherwise, either the task callback will be invoked after the specified delay,
+     * or the retired callback will be invoked if the scheduler is retired.
+     * Note that the retired callback is invoked in critical code, so it should not attempt to remove the entity, remove
+     * other entities, load chunks, load worlds, modify ticket levels, etc.
+     *
+     * <p>
+     * It is guaranteed that the task and retired callback are invoked on the region which owns the entity.
+     * </p>
+     * @param task The task to execute
+     * @param retired Retire callback to run if the entity is retired before the run callback can be invoked, may be null.
+     * @param delayTicks The delay, in ticks.
      * @return The {@link Completable} that represents the scheduled task, or {@code null} if the entity has been removed.
      */
     @Nullable <R> Completable<R> runDelayed(@NotNull Function<Completable<R>, R> task,
                                             @Nullable Runnable retired,
                                             @Range(from = 1, to = Long.MAX_VALUE) long delayTicks);
+
+    /**
+     * Schedules a repeating task with the given delay and period. If the task failed to schedule because the scheduler
+     * is retired (entity removed), then returns {@code null}. Otherwise, either the task callback will be invoked after
+     * the specified delay, or the retired callback will be invoked if the scheduler is retired.
+     * Note that the retired callback is invoked in critical code, so it should not attempt to remove the entity, remove
+     * other entities, load chunks, load worlds, modify ticket levels, etc.
+     *
+     * <p>
+     * It is guaranteed that the task and retired callback are invoked on the region which owns the entity.
+     * </p>
+     * @param task The task to execute
+     * @param retired Retire callback to run if the entity is retired before the run callback can be invoked, may be null.
+     * @param initialDelayTicks The initial delay, in ticks.
+     * @param periodTicks The period, in ticks.
+     * @return The {@link Task} that represents the scheduled task, or {@code null} if the entity has been removed.
+     */
+    default @Nullable Task runAtFixedRate(@NotNull Runnable task,
+                                          @Nullable Runnable retired,
+                                          @Range(from = 1, to = Long.MAX_VALUE) long initialDelayTicks,
+                                          @Range(from = 1, to = Long.MAX_VALUE) long periodTicks) {
+        return runAtFixedRate(t -> task.run(), retired, initialDelayTicks, periodTicks);
+    }
 
     /**
      * Schedules a repeating task with the given delay and period. If the task failed to schedule because the scheduler

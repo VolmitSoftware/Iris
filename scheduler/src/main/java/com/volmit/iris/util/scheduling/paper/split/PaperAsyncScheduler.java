@@ -31,7 +31,7 @@ public class PaperAsyncScheduler implements IAsyncScheduler {
 
     @Override
     public @NotNull <R> Completable<R> runDelayed(@NotNull Function<Completable<R>, R> task,
-                                                  @Range(from = 1, to = Long.MAX_VALUE) long delay,
+                                                  @Range(from = 0, to = Long.MAX_VALUE) long delay,
                                                   @NotNull TimeUnit unit) {
         Ref<Completable<R>> ref = new Ref<>();
         return ref.value = new PaperTask.Completable<>(scheduler.runDelayed(plugin, t -> ref.value.complete(task), delay, unit), true);
@@ -39,7 +39,7 @@ public class PaperAsyncScheduler implements IAsyncScheduler {
 
     @Override
     public @NotNull Task runAtFixedRate(@NotNull Consumer<Task> task,
-                                        @Range(from = 1, to = Long.MAX_VALUE) long initialDelay,
+                                        @Range(from = 0, to = Long.MAX_VALUE) long initialDelay,
                                         @Range(from = 1, to = Long.MAX_VALUE) long period,
                                         @NotNull TimeUnit unit) {
         Ref<Task> ref = new Ref<>();

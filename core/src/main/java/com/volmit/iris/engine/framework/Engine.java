@@ -293,20 +293,21 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         try {
             Semaphore semaphore = new Semaphore(3);
             chunk.raiseFlag(MantleFlag.ETCHED, () -> {
-                chunk.raiseFlag(MantleFlag.TILE, run(semaphore, () -> J.s(() -> {
+                var region = Iris.scheduler.region();
+                chunk.raiseFlag(MantleFlag.TILE, run(semaphore, () -> region.run(c.getWorld(), c.getX(), c.getZ(), () -> {
                     mantle.iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, v) -> {
                         int betterY = y + getWorld().minHeight();
                         if (!TileData.setTileState(c.getBlock(x, betterY, z), v.getData()))
                             Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), v.getData().getMaterial().name());
                     });
                 })));
-                chunk.raiseFlag(MantleFlag.CUSTOM, run(semaphore, () -> J.s(() -> {
+                chunk.raiseFlag(MantleFlag.CUSTOM, run(semaphore, () -> region.run(c.getWorld(), c.getX(), c.getZ(), () -> {
                     mantle.iterateChunk(c.getX(), c.getZ(), Identifier.class, (x, y, z, v) -> {
                         Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
                     });
                 })));
 
-                chunk.raiseFlag(MantleFlag.UPDATE, run(semaphore, () -> J.s(() -> {
+                chunk.raiseFlag(MantleFlag.UPDATE, run(semaphore, () -> region.runDelayed(c.getWorld(), c.getX(), c.getZ(), () -> {
                     PrecisionStopwatch p = PrecisionStopwatch.start();
                     KMap<Long, Integer> updates = new KMap<>();
                     RNG r = new RNG(Cache.key(c.getX(), c.getZ()));
@@ -353,7 +354,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     });
                     mantle.deleteChunkSlice(c.getX(), c.getZ(), MatterUpdate.class);
                     getMetrics().getUpdates().put(p.getMilliseconds());
-                }, RNG.r.i(0, 20))));
+                }, RNG.r.i(1, 20))));
             });
 
             try {

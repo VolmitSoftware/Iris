@@ -20,7 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
 import org.bukkit.Material;
-import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 
 @Desc("The type of surface entities should spawn on")
@@ -47,8 +47,8 @@ public enum IrisSurface {
      * @param state The blockstate
      * @return True if it matches
      */
-    public boolean matches(Block state) {
-        Material type = state.getType();
+    public boolean matches(BlockData state) {
+        Material type = state.getMaterial();
         if (type.isSolid()) {
             return this == LAND || this == OVERWORLD || (this == ANIMAL
                     && (type == Material.GRASS_BLOCK || type == Material.DIRT

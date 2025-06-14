@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.framework;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.nms.container.BlockPos;
 import com.volmit.iris.core.nms.container.Pair;
@@ -36,7 +37,6 @@ import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
-import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.scheduling.jobs.SingleJob;
 import org.bukkit.Location;
@@ -114,7 +114,7 @@ public interface Locator<T> {
     default void find(Player player, boolean teleport, String message) {
         find(player, location -> {
             if (teleport) {
-                J.s(() -> player.teleport(location));
+                Iris.scheduler.teleportAsync(player, location);
             } else {
                 player.sendMessage(C.GREEN + message + " at: " + location.getBlockX() + " " + location.getBlockY() + " " + location.getBlockZ());
             }

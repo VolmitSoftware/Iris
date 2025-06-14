@@ -899,7 +899,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 player.sendMessage(C.GOLD + "No strongholds in world.");
             } else {
                 Location ll = new Location(player.getWorld(), pr.getX(), 40, pr.getZ());
-                J.s(() -> player.teleport(ll));
+                Iris.scheduler.teleportAsync(player, ll);
             }
 
             return;

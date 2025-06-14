@@ -30,6 +30,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
+import com.volmit.iris.core.safeguard.ServerBootSFG;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.EnginePanic;
@@ -974,6 +975,7 @@ public class Iris extends VolmitPlugin implements Listener {
                 event.setTag("iris.nms", INMS.get().getClass().getCanonicalName());
                 var context = IrisContext.get();
                 if (context != null) event.getContexts().set("engine", context.asContext());
+                event.getContexts().set("safeguard", ServerBootSFG.allIncompatibilities);
                 return event;
             });
         });

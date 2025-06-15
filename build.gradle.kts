@@ -36,7 +36,7 @@ plugins {
     id("io.sentry.jvm.gradle") version "5.7.0"
 }
 
-version = "3.6.10-1.20.1-1.21.5"
+version = "3.6.11-1.20.1-1.21.5"
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================
@@ -60,6 +60,7 @@ val serverMinHeap = "2G"
 val serverMaxHeap = "8G"
 //Valid values are: none, truecolor, indexed256, indexed16, indexed8
 val color = "truecolor"
+val errorReporting = false
 
 val nmsBindings = mapOf(
         "v1_21_R4" to "1.21.5-R0.1-SNAPSHOT",
@@ -104,6 +105,7 @@ nmsBindings.forEach { key, value ->
         systemProperty("disable.watchdog", "")
         systemProperty("net.kyori.ansi.colorLevel", color)
         systemProperty("com.mojang.eula.agree", true)
+        systemProperty("iris.errorReporting", errorReporting)
         jvmArgs("-javaagent:${tasks.jar.flatMap { it.archiveFile }.get().asFile.absolutePath}")
     }
 }

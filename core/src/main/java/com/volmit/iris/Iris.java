@@ -30,6 +30,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
+import com.volmit.iris.core.safeguard.ServerBootSFG;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.EnginePanic;
@@ -68,6 +69,7 @@ import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
 import com.volmit.iris.util.sentry.Attachments;
 import com.volmit.iris.util.sentry.IrisLogger;
+import com.volmit.iris.util.sentry.ServerID;
 import io.papermc.lib.PaperLib;
 import io.sentry.Sentry;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
@@ -956,8 +958,9 @@ public class Iris extends VolmitPlugin implements Listener {
 
     private static void setupSentry() {
         var settings = IrisSettings.get().getSentry();
-        if (settings.disableAutoReporting || Sentry.isEnabled()) return;
+        if (settings.disableAutoReporting || Sentry.isEnabled() || !Boolean.getBoolean("iris.errorReporting")) return;
         Iris.info("Enabling Sentry for anonymous error reporting. You can disable this in the settings.");
+        Iris.info("Your server ID is: " + ServerID.ID);
         Sentry.init(options -> {
             options.setDsn("https://b16ecc222e9c1e0c48faecacb906fd89@o4509451052646400.ingest.de.sentry.io/4509452722765904");
             if (settings.debug) {
@@ -974,10 +977,12 @@ public class Iris extends VolmitPlugin implements Listener {
                 event.setTag("iris.nms", INMS.get().getClass().getCanonicalName());
                 var context = IrisContext.get();
                 if (context != null) event.getContexts().set("engine", context.asContext());
+                event.getContexts().set("safeguard", ServerBootSFG.allIncompatibilities);
                 return event;
             });
         });
         Sentry.configureScope(scope -> {
+            if (settings.includeServerId) scope.setUser(ServerID.asUser());
             scope.addAttachment(Attachments.PLUGINS);
             scope.setTag("server", Bukkit.getVersion());
             scope.setTag("server.type", Bukkit.getName());

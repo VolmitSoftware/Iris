@@ -369,11 +369,10 @@ public class Mantle {
      */
     public synchronized void close() {
         Iris.debug("Closing The Mantle " + C.DARK_AQUA + dataFolder.getAbsolutePath());
-        if (closed.get()) {
+        if (closed.getAndSet(true)) {
             return;
         }
 
-        closed.set(true);
         hyperLock.disable();
         BurstExecutor b = ioBurst.burst(toUnload.size());
         loadedRegions.forEach((i, plate) -> b.queue(() -> {
@@ -383,11 +382,11 @@ public class Mantle {
                 oldFileForRegion(dataFolder, i).delete();
             } catch (Throwable e) {
                 Iris.error("Failed to write Tectonic Plate " + C.DARK_GREEN + Cache.keyX(i) + " " + Cache.keyZ(i));
+                Iris.reportError(e);
                 e.printStackTrace();
             }
         }));
         loadedRegions.clear();
-        IO.delete(new File(dataFolder, ".tmp"));
 
         try {
             b.complete();
@@ -395,6 +394,7 @@ public class Mantle {
             Iris.reportError(e);
         }
 
+        IO.delete(new File(dataFolder, ".tmp"));
         Iris.debug("The Mantle has Closed " + C.DARK_AQUA + dataFolder.getAbsolutePath());
     }
 

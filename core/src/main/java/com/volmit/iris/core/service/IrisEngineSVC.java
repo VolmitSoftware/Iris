@@ -1,317 +1,246 @@
 package com.volmit.iris.core.service;
 
+import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.mantle.TectonicPlate;
-import com.volmit.iris.util.misc.getHardware;
+import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.plugin.IrisService;
-import com.volmit.iris.util.scheduling.ChronoLatch;
+import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.Looper;
-import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import lombok.Synchronized;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.server.PluginDisableEvent;
-import org.bukkit.event.server.ServerLoadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
-import org.checkerframework.checker.units.qual.A;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Supplier;
 
 public class IrisEngineSVC implements IrisService {
-    public static IrisEngineSVC instance;
-    public boolean isServerShuttingDown = false;
-    public boolean isServerLoaded = false;
-    private static final AtomicInteger tectonicLimit = new AtomicInteger(30);
-    private ReentrantLock lastUseLock;
-    private KMap<World, Long> lastUse;
-    private List<World> IrisWorlds;
-    private Looper cacheTicker;
-    private Looper trimTicker;
-    private Looper unloadTicker;
+    private final AtomicInteger tectonicLimit = new AtomicInteger(30);
+    private final AtomicInteger tectonicPlates = new AtomicInteger();
+    private final AtomicInteger queuedTectonicPlates = new AtomicInteger();
+    private final AtomicInteger trimmerAlive = new AtomicInteger();
+    private final AtomicInteger unloaderAlive = new AtomicInteger();
+    private final AtomicInteger totalWorlds = new AtomicInteger();
+    private final AtomicDouble maxIdleDuration = new AtomicDouble();
+    private final AtomicDouble minIdleDuration = new AtomicDouble();
+    private final AtomicLong loadedChunks = new AtomicLong();
+    private final KMap<World, Registered> worlds = new KMap<>();
+    private ScheduledExecutorService service;
     private Looper updateTicker;
-    private PrecisionStopwatch trimAlive;
-    private PrecisionStopwatch unloadAlive;
-    public PrecisionStopwatch trimActiveAlive;
-    public PrecisionStopwatch unloadActiveAlive;
-    private AtomicInteger TotalTectonicPlates;
-    private AtomicInteger TotalQueuedTectonicPlates;
-    private AtomicInteger TotalNotQueuedTectonicPlates;
-    private AtomicBoolean IsUnloadAlive;
-    private AtomicBoolean IsTrimAlive;
-    ChronoLatch cl;
-
-    public List<World> corruptedIrisWorlds = new ArrayList<>();
 
     @Override
     public void onEnable() {
-        this.cl = new ChronoLatch(5000);
-        lastUse = new KMap<>();
-        lastUseLock = new ReentrantLock();
-        IrisWorlds = new ArrayList<>();
-        IsUnloadAlive = new AtomicBoolean(true);
-        IsTrimAlive = new AtomicBoolean(true);
-        trimActiveAlive = new PrecisionStopwatch();
-        unloadActiveAlive = new PrecisionStopwatch();
-        trimAlive = new PrecisionStopwatch();
-        unloadAlive = new PrecisionStopwatch();
-        TotalTectonicPlates = new AtomicInteger();
-        TotalQueuedTectonicPlates = new AtomicInteger();
-        TotalNotQueuedTectonicPlates = new AtomicInteger();
-        tectonicLimit.set(2);
-        long t = getHardware.getProcessMemory();
-        while (t > 200) {
-            tectonicLimit.getAndAdd(1);
-            t = t - 200;
-        }
-        this.setup();
-        this.TrimLogic();
-        this.UnloadLogic();
-
-        trimAlive.begin();
-        unloadAlive.begin();
-        trimActiveAlive.begin();
-        unloadActiveAlive.begin();
-
-        updateTicker.start();
-        cacheTicker.start();
-        //trimTicker.start();
-        //unloadTicker.start();
-        instance = this;
-
+        var settings = IrisSettings.get().getPerformance();
+        var engine = settings.getEngineSVC();
+        service = Executors.newScheduledThreadPool(0,
+                (engine.isUseVirtualThreads()
+                        ? Thread.ofVirtual()
+                        : Thread.ofPlatform().priority(engine.getPriority()))
+                        .name("Iris EngineSVC-", 0)
+                        .factory());
+        tectonicLimit.set(settings.getTectonicPlateSize());
+        Bukkit.getWorlds().forEach(this::add);
+        setup();
     }
 
-    public void engineStatus() {
-        boolean trimAlive = trimTicker.isAlive();
-        boolean unloadAlive = unloadTicker.isAlive();
-        Iris.info("Status:");
-        Iris.info("- Trim: " + trimAlive);
-        Iris.info("- Unload: " + unloadAlive);
-
+    @Override
+    public void onDisable() {
+        service.shutdown();
+        updateTicker.interrupt();
+        worlds.keySet().forEach(this::remove);
+        worlds.clear();
     }
 
-    public static int getTectonicLimit() {
-        return tectonicLimit.get();
+    public void engineStatus(VolmitSender sender) {
+        sender.sendMessage(C.DARK_PURPLE + "-------------------------");
+        sender.sendMessage(C.DARK_PURPLE + "Status:");
+        sender.sendMessage(C.DARK_PURPLE + "- Service: " + C.LIGHT_PURPLE + (service.isShutdown() ? "Shutdown" : "Running"));
+        sender.sendMessage(C.DARK_PURPLE + "- Updater: " + C.LIGHT_PURPLE + (updateTicker.isAlive() ? "Running" : "Stopped"));
+        sender.sendMessage(C.DARK_PURPLE + "- Trimmers: " + C.LIGHT_PURPLE + trimmerAlive.get());
+        sender.sendMessage(C.DARK_PURPLE + "- Unloaders: " + C.LIGHT_PURPLE + unloaderAlive.get());
+        sender.sendMessage(C.DARK_PURPLE + "Tectonic Plates:");
+        sender.sendMessage(C.DARK_PURPLE + "- Limit: " + C.LIGHT_PURPLE + tectonicLimit.get());
+        sender.sendMessage(C.DARK_PURPLE + "- Total: " + C.LIGHT_PURPLE + tectonicPlates.get());
+        sender.sendMessage(C.DARK_PURPLE + "- Queued: " + C.LIGHT_PURPLE + queuedTectonicPlates.get());
+        sender.sendMessage(C.DARK_PURPLE + "- Max Idle Duration: " + C.LIGHT_PURPLE + Form.duration(maxIdleDuration.get(), 2));
+        sender.sendMessage(C.DARK_PURPLE + "- Min Idle Duration: " + C.LIGHT_PURPLE + Form.duration(minIdleDuration.get(), 2));
+        sender.sendMessage(C.DARK_PURPLE + "Other:");
+        sender.sendMessage(C.DARK_PURPLE + "- Iris Worlds: " + C.LIGHT_PURPLE + totalWorlds.get());
+        sender.sendMessage(C.DARK_PURPLE + "- Loaded Chunks: " + C.LIGHT_PURPLE + loadedChunks.get());
+        sender.sendMessage(C.DARK_PURPLE + "- Cache Size: " + C.LIGHT_PURPLE + Form.f(IrisData.cacheSize()));
+        sender.sendMessage(C.DARK_PURPLE + "-------------------------");
     }
 
     @EventHandler
     public void onWorldUnload(WorldUnloadEvent event) {
-        updateWorlds();
+        remove(event.getWorld());
     }
 
     @EventHandler
     public void onWorldLoad(WorldLoadEvent event) {
-        updateWorlds();
+        add(event.getWorld());
     }
 
-    @EventHandler
-    public void onServerBoot(ServerLoadEvent event) {
-        isServerLoaded = true;
+    private void remove(World world) {
+        var entry = worlds.remove(world);
+        if (entry == null) return;
+        entry.close();
     }
 
-    @EventHandler
-    public void onPluginDisable(PluginDisableEvent event) {
-        if (event.getPlugin().equals(Iris.instance)) {
-            isServerShuttingDown = true;
-        }
+    private void add(World world) {
+        var access = IrisToolbelt.access(world);
+        if (access == null) return;
+        worlds.put(world, new Registered(world.getName(), access));
     }
 
-    public void updateWorlds() {
-        for (World world : Bukkit.getWorlds()) {
-            try {
-                if (IrisToolbelt.access(world).getEngine() != null) {
-                    IrisWorlds.add(world);
-                }
-            } catch (Exception e) {
-                // no
-            }
-        }
-    }
-
-    private void setup() {
-        cacheTicker = new Looper() {
-            @Override
-            protected long loop() {
-                long now = System.currentTimeMillis();
-                lastUseLock.lock();
-                try {
-                    for (World key : new ArrayList<>(lastUse.keySet())) {
-                        Long last = lastUse.get(key);
-                        if (last == null)
-                            continue;
-                        if (now - last > 60000) {
-                            lastUse.remove(key);
-                        }
-                    }
-                } finally {
-                    lastUseLock.unlock();
-                }
-                return 1000;
-            }
-        };
+    private synchronized void setup() {
+        if (updateTicker != null && updateTicker.isAlive())
+            return;
 
         updateTicker = new Looper() {
             @Override
             protected long loop() {
                 try {
-                    TotalQueuedTectonicPlates.set(0);
-                    TotalNotQueuedTectonicPlates.set(0);
-                    TotalTectonicPlates.set(0);
-                    for (World world : IrisWorlds) {
-                        Engine engine = Objects.requireNonNull(IrisToolbelt.access(world)).getEngine();
-                        TotalQueuedTectonicPlates.addAndGet((int) engine.getMantle().getToUnload());
-                        TotalNotQueuedTectonicPlates.addAndGet((int) engine.getMantle().getNotQueuedLoadedRegions());
-                        TotalTectonicPlates.addAndGet(engine.getMantle().getLoadedRegionCount());
-                    }
-                    if (!isServerShuttingDown && isServerLoaded) {
-                        if (!trimTicker.isAlive()) {
-                            Iris.info(C.RED + "TrimTicker found dead! Booting it up!");
-                            try {
-                                TrimLogic();
-                            } catch (Exception e) {
-                                Iris.error("What happened?");
-                                e.printStackTrace();
-                            }
-                        }
+                    queuedTectonicPlates.set(0);
+                    tectonicPlates.set(0);
+                    loadedChunks.set(0);
+                    unloaderAlive.set(0);
+                    trimmerAlive.set(0);
+                    totalWorlds.set(0);
 
-                        if (!unloadTicker.isAlive()) {
-                            Iris.info(C.RED + "UnloadTicker found dead! Booting it up!");
-                            try {
-                               UnloadLogic();
-                            } catch (Exception e) {
-                                Iris.error("What happened?");
-                                e.printStackTrace();
-                            }
-                        }
-                    }
+                    double maxDuration = Long.MIN_VALUE;
+                    double minDuration = Long.MAX_VALUE;
+                    for (var entry : worlds.entrySet()) {
+                        var registered = entry.getValue();
+                        if (registered.closed) continue;
 
-                } catch (Exception e) {
-                    return -1;
+                        totalWorlds.incrementAndGet();
+                        unloaderAlive.addAndGet(registered.unloaderAlive() ? 1 : 0);
+                        trimmerAlive.addAndGet(registered.trimmerAlive() ? 1 : 0);
+
+                        var engine = registered.getEngine();
+                        if (engine == null) continue;
+
+                        queuedTectonicPlates.addAndGet((int) engine.getMantle().getUnloadRegionCount());
+                        tectonicPlates.addAndGet(engine.getMantle().getLoadedRegionCount());
+                        loadedChunks.addAndGet(entry.getKey().getLoadedChunks().length);
+
+                        double duration = engine.getMantle().getAdjustedIdleDuration();
+                        if (duration > maxDuration) maxDuration = duration;
+                        if (duration < minDuration) minDuration = duration;
+                    }
+                    maxIdleDuration.set(maxDuration);
+                    minIdleDuration.set(minDuration);
+
+                    worlds.values().forEach(Registered::update);
+                } catch (Throwable e) {
+                    e.printStackTrace();
                 }
                 return 1000;
             }
         };
+        updateTicker.start();
     }
-    public void TrimLogic() {
-        if (trimTicker == null || !trimTicker.isAlive()) {
-            trimTicker = new Looper() {
-                private final Supplier<Engine> supplier = createSupplier();
 
-                @Override
-                protected long loop() {
-                    long start = System.currentTimeMillis();
-                    trimAlive.reset();
+    private final class Registered {
+        private final String name;
+        private final PlatformChunkGenerator access;
+        private transient ScheduledFuture<?> trimmer;
+        private transient ScheduledFuture<?> unloader;
+        private transient boolean closed;
+
+        private Registered(String name, PlatformChunkGenerator access) {
+            this.name = name;
+            this.access = access;
+            update();
+        }
+
+        private boolean unloaderAlive() {
+            return unloader != null && !unloader.isDone() && !unloader.isCancelled();
+        }
+
+        private boolean trimmerAlive() {
+            return trimmer != null && !trimmer.isDone() && !trimmer.isCancelled();
+        }
+
+        @Synchronized
+        private void update() {
+            if (closed || service == null || service.isShutdown())
+                return;
+
+            if (trimmer == null || trimmer.isDone() || trimmer.isCancelled()) {
+                trimmer = service.scheduleAtFixedRate(() -> {
+                    Engine engine = getEngine();
+                    if (engine == null || !engine.getMantle().getMantle().shouldReduce(engine))
+                        return;
+
                     try {
-                        Engine engine = supplier.get();
-                        if (engine != null) {
-                            engine.getMantle().trim(tectonicLimit.get() / lastUse.size());
+                        engine.getMantle().trim(tectonicLimit());
+                    } catch (Throwable e) {
+                        Iris.reportError(e);
+                        Iris.error("EngineSVC: Failed to trim for " + name);
+                        e.printStackTrace();
+                    }
+                }, RNG.r.nextInt(1000), 1000, TimeUnit.MILLISECONDS);
+            }
+
+            if (unloader == null || unloader.isDone() || unloader.isCancelled()) {
+                unloader = service.scheduleAtFixedRate(() -> {
+                    Engine engine = getEngine();
+                    if (engine == null || !engine.getMantle().getMantle().shouldReduce(engine))
+                        return;
+
+                    try {
+                        long unloadStart = System.currentTimeMillis();
+                        int count = engine.getMantle().unloadTectonicPlate(tectonicLimit());
+                        if (count > 0) {
+                            Iris.debug(C.GOLD + "Unloaded " + C.YELLOW + count + " TectonicPlates in " + C.RED + Form.duration(System.currentTimeMillis() - unloadStart, 2));
                         }
                     } catch (Throwable e) {
                         Iris.reportError(e);
-                        Iris.info(C.RED + "EngineSVC: Failed to trim.");
+                        Iris.error("EngineSVC: Failed to unload for " + name);
                         e.printStackTrace();
-                        return -1;
                     }
-
-                    int size = lastUse.size();
-                    long time = (size > 0 ? 1000 / size : 1000) - (System.currentTimeMillis() - start);
-                    if (time <= 0)
-                        return 0;
-                    return time;
-                }
-            };
-            trimTicker.start();
-        }
-    }
-    public void UnloadLogic() {
-        if (unloadTicker == null || !unloadTicker.isAlive()) {
-            unloadTicker = new Looper() {
-                private final Supplier<Engine> supplier = createSupplier();
-
-                @Override
-                protected long loop() {
-                    long start = System.currentTimeMillis();
-                    unloadAlive.reset();
-                    try {
-                        Engine engine = supplier.get();
-                        if (engine != null) {
-                            long unloadStart = System.currentTimeMillis();
-                            int count = engine.getMantle().unloadTectonicPlate(tectonicLimit.get() / lastUse.size());
-                            if (count > 0) {
-                                Iris.debug(C.GOLD + "Unloaded " + C.YELLOW + count + " TectonicPlates in " + C.RED + Form.duration(System.currentTimeMillis() - unloadStart, 2));
-                            }
-                        }
-                    } catch (Throwable e) {
-                        Iris.reportError(e);
-                        Iris.info(C.RED + "EngineSVC: Failed to unload.");
-                        e.printStackTrace();
-                        return -1;
-                    }
-
-                    int size = lastUse.size();
-                    long time = (size > 0 ? 1000 / size : 1000) - (System.currentTimeMillis() - start);
-                    if (time <= 0)
-                        return 0;
-                    return time;
-                }
-            };
-            unloadTicker.start();
-        }
-    }
-
-    private Supplier<Engine> createSupplier() {
-        AtomicInteger i = new AtomicInteger();
-        return () -> {
-            List<World> worlds = Bukkit.getWorlds();
-            if (i.get() >= worlds.size()) {
-                i.set(0);
+                }, RNG.r.nextInt(1000), 1000, TimeUnit.MILLISECONDS);
             }
-            try {
-                for (int j = 0; j < worlds.size(); j++) {
-                    World world = worlds.get(i.getAndIncrement());
-                    PlatformChunkGenerator generator = IrisToolbelt.access(world);
-                    if (i.get() >= worlds.size()) {
-                        i.set(0);
-                    }
+        }
 
-                    if (generator != null) {
-                        Engine engine = generator.getEngine();
-                        boolean closed = engine.getMantle().getData().isClosed();
-                        if (engine != null && !engine.isStudio() && !closed) {
-                            lastUseLock.lock();
-                            lastUse.put(world, System.currentTimeMillis());
-                            lastUseLock.unlock();
-                            return engine;
-                        }
-                    }
-                }
-            } catch (Throwable e) {
-                Iris.info(C.RED + "EngineSVC: Failed to create supplier.");
-                e.printStackTrace();
-                Iris.reportError(e);
+        private int tectonicLimit() {
+            return tectonicLimit.get() / Math.max(worlds.size(), 1);
+        }
+
+        @Synchronized
+        private void close() {
+            if (closed) return;
+            closed = true;
+
+            if (trimmer != null) {
+                trimmer.cancel(false);
+                trimmer = null;
             }
-            return null;
-        };
-    }
 
-    @Override
-    public void onDisable() {
-        cacheTicker.interrupt();
-        trimTicker.interrupt();
-        unloadTicker.interrupt();
-        lastUse.clear();
+            if (unloader != null) {
+                unloader.cancel(false);
+                unloader = null;
+            }
+        }
+
+        @Nullable
+        private Engine getEngine() {
+            if (closed) return null;
+            return access.getEngine();
+        }
     }
 }

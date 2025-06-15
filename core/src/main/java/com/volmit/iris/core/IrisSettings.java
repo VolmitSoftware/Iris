@@ -23,6 +23,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.misc.getHardware;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -45,6 +46,7 @@ public class IrisSettings {
     private IrisSettingsPerformance performance = new IrisSettingsPerformance();
     private IrisSettingsUpdater updater = new IrisSettingsUpdater();
     private IrisSettingsPregen pregen = new IrisSettingsPregen();
+    private IrisSettingsSentry sentry = new IrisSettingsSentry();
 
     public static int getThreadCount(int c) {
         return switch (c) {
@@ -130,28 +132,46 @@ public class IrisSettings {
         public boolean markerEntitySpawningSystem = true;
         public boolean effectSystem = true;
         public boolean worldEditWandCUI = true;
-        public boolean globalPregenCache = true;
+        public boolean globalPregenCache = false;
     }
 
     @Data
     public static class IrisSettingsConcurrency {
         public int parallelism = -1;
+        public int worldGenParallelism = -1;
+
+        public int getWorldGenThreads() {
+            return getThreadCount(worldGenParallelism);
+        }
     }
 
     @Data
     public static class IrisSettingsPregen {
+        public boolean useCacheByDefault = true;
+        public boolean useHighPriority = false;
         public boolean useVirtualThreads = false;
+        public boolean useTicketQueue = false;
         public int maxConcurrency = 256;
     }
 
     @Data
     public static class IrisSettingsPerformance {
+        private IrisSettingsEngineSVC engineSVC = new IrisSettingsEngineSVC();
         public boolean trimMantleInStudio = false; 
         public int mantleKeepAlive = 30;
         public int cacheSize = 4_096;
         public int resourceLoaderCacheSize = 1_024;
         public int objectLoaderCacheSize = 4_096;
         public int scriptLoaderCacheSize = 512;
+        public int tectonicPlateSize = -1;
+        public int mantleCleanupDelay = 200;
+
+        public int getTectonicPlateSize() {
+            if (tectonicPlateSize > 0)
+                return tectonicPlateSize;
+
+            return (int) (getHardware.getProcessMemory() / 200L);
+        }
     }
 
     @Data
@@ -183,6 +203,7 @@ public class IrisSettings {
         public boolean DoomsdayAnnihilationSelfDestructMode = false;
         public boolean commandSounds = true;
         public boolean debug = false;
+        public boolean dumpMantleOnError = false;
         public boolean disableNMS = false;
         public boolean pluginMetrics = true;
         public boolean splashLogoStartup = true;
@@ -200,6 +221,13 @@ public class IrisSettings {
         public boolean canUseCustomColors(VolmitSender volmitSender) {
             return volmitSender.isPlayer() ? useCustomColorsIngame : useConsoleCustomColors;
         }
+    }
+
+    @Data
+    public static class IrisSettingsSentry {
+        public boolean includeServerId = true;
+        public boolean disableAutoReporting = false;
+        public boolean debug = false;
     }
 
     @Data
@@ -222,5 +250,15 @@ public class IrisSettings {
         public boolean openVSCode = true;
         public boolean disableTimeAndWeather = true;
         public boolean autoStartDefaultStudio = false;
+    }
+
+    @Data
+    public static class IrisSettingsEngineSVC {
+        public boolean useVirtualThreads = true;
+        public int priority = Thread.NORM_PRIORITY;
+
+        public int getPriority() {
+            return Math.max(Math.min(priority, Thread.MAX_PRIORITY), Thread.MIN_PRIORITY);
+        }
     }
 }

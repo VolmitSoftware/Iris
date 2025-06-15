@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.nms.INMS;
@@ -34,8 +35,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.EntityType;
 
 import java.util.Map;
 
@@ -202,6 +203,14 @@ public class IrisBlockData extends IrisRegistrant {
     public TileData tryGetTile(IrisData data) {
         //TODO Do like a registry thing with the tile data registry. Also update the parsing of data to include **block** entities.
         var type = getBlockData(data).getMaterial();
+        if (type == Material.SPAWNER && this.data.containsKey("entitySpawn")) {
+            String id = (String) this.data.get("entitySpawn");
+            if (tileData == null) tileData = new KMap<>();
+            KMap<String, Object> spawnData = (KMap<String, Object>) tileData.computeIfAbsent("SpawnData", k -> new KMap<>());
+            KMap<String, Object> entity = (KMap<String, Object>) spawnData.computeIfAbsent("entity", k -> new KMap<>());
+            entity.putIfAbsent("id", Identifier.fromString(id).toString());
+        }
+
         if (!INMS.get().hasTile(type) || tileData == null || tileData.isEmpty())
             return null;
         return new TileData(type, this.tileData);

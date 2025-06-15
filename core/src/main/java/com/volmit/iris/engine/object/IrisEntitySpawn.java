@@ -36,7 +36,13 @@ import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
+
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static com.volmit.iris.Iris.scheduler;
 
 @Snippet("entity-spawn")
 @Accessors(chain = true)
@@ -164,8 +170,15 @@ public class IrisEntitySpawn implements IRare {
                 return null;
             }
 
-            if (!ignoreSurfaces && !irisEntity.getSurface().matches(at.clone().subtract(0, 1, 0).getBlock())) {
-                return null;
+            if (!ignoreSurfaces) {
+                Location block = at.clone().subtract(0, 1, 0);
+                BlockData data = scheduler.region()
+                        .run(block, () -> block.getBlock().getBlockData())
+                        .result()
+                        .join();
+                if (!irisEntity.getSurface().matches(data)) {
+                    return null;
+                }
             }
 
             Vector3d boundingBox = INMS.get().getBoundingbox(irisEntity.getType());
@@ -199,15 +212,22 @@ public class IrisEntitySpawn implements IRare {
         int startZ = center.getBlockZ() - (int) (boundingBox.z / 2);
         int endZ = center.getBlockZ() + (int) (boundingBox.z / 2);
 
+        var region = scheduler.region();
+        var lock = new Semaphore(Integer.MAX_VALUE, true);
+        var bool = new AtomicBoolean(true);
         for (int x = startX; x <= endX; x++) {
             for (int y = startY; y <= endY; y++) {
                 for (int z = startZ; z <= endZ; z++) {
-                    if (world.getBlockAt(x, y, z).getType() != Material.AIR) {
-                        return false;
-                    }
+                    Location l = new Location(world, x, y, z);
+                    lock.acquireUninterruptibly();
+                    region.run(l, () -> {
+                        if (!bool.get()) return false;
+                        return bool.compareAndSet(true, l.getBlock().getType() == Material.AIR);
+                    }).result().exceptionally(f -> false).thenRun(lock::release);
                 }
             }
         }
-        return true;
+        lock.acquireUninterruptibly(Integer.MAX_VALUE);
+        return bool.get();
     }
 }

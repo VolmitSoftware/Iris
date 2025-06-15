@@ -22,7 +22,6 @@ import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldUnloadEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -235,16 +234,13 @@ public class DeepSearchPregenerator extends Thread implements Listener {
             }
             save();
             jobs.remove(world.getName());
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    while (deepFile.exists()){
-                        deepFile.delete();
-                        J.sleep(1000);
-                    }
-                    Iris.info("DeepSearch: " + C.IRIS + world.getName() + C.BLUE + " File deleted and instance closed.");
+            J.a(() -> {
+                while (deepFile.exists()) {
+                    deepFile.delete();
+                    J.sleep(1000);
                 }
-            }.runTaskLater(Iris.instance, 20L);
+                Iris.info("DeepSearch: " + C.IRIS + world.getName() + C.BLUE + " File deleted and instance closed.");
+            }, 10);
         } catch (Exception e) {
             Iris.error("Failed to shutdown DeepSearch for " + world.getName());
             e.printStackTrace();

@@ -188,9 +188,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         for (Player i : getEngine().getWorld().realWorld().getPlayers()) {
             int r = 1;
 
+            int cX = i.getLocation().getBlockX() >> 4;
+            int cZ = i.getLocation().getBlockZ() >> 4;
             for (int x = -r; x <= r; x++) {
                 for (int z = -r; z <= r; z++) {
-                    mantle.getChunk(i.getLocation().getChunk()).flag(MantleFlag.DISCOVERED, true);
+                    mantle.getChunk(cX + x, cZ + z).flag(MantleFlag.DISCOVERED, true);
                 }
             }
         }
@@ -200,20 +202,22 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         for (Player i : getEngine().getWorld().realWorld().getPlayers()) {
             int r = 1;
 
-            Chunk c = i.getLocation().getChunk();
-            for (int x = -r; x <= r; x++) {
-                for (int z = -r; z <= r; z++) {
-                    if (c.getWorld().isChunkLoaded(c.getX() + x, c.getZ() + z) && Chunks.isSafe(getEngine().getWorld().realWorld(), c.getX() + x, c.getZ() + z)) {
+            Iris.scheduler.entity(i).run(() -> {
+                Chunk c = i.getLocation().getChunk();
+                for (int x = -r; x <= r; x++) {
+                    for (int z = -r; z <= r; z++) {
+                        int cX = c.getX() + x;
+                        int cZ = c.getZ() + z;
+                        if (!c.getWorld().isChunkLoaded(cX, cZ) || !Chunks.isSafe(getEngine().getWorld().realWorld(), cX, cZ))
+                            continue;
 
                         if (IrisSettings.get().getWorld().isPostLoadBlockUpdates()) {
-                            getEngine().updateChunk(c.getWorld().getChunkAt(c.getX() + x, c.getZ() + z));
+                            getEngine().updateChunk(c.getWorld().getChunkAt(cX, cZ));
                         }
 
                         if (IrisSettings.get().getWorld().isMarkerEntitySpawningSystem()) {
-                            Chunk cx = getEngine().getWorld().realWorld().getChunkAt(c.getX() + x, c.getZ() + z);
-                            int finalX = c.getX() + x;
-                            int finalZ = c.getZ() + z;
-                            J.a(() -> getMantle().raiseFlag(finalX, finalZ, MantleFlag.INITIAL_SPAWNED_MARKER,
+                            Chunk cx = getEngine().getWorld().realWorld().getChunkAt(cX, cZ);
+                            J.a(() -> getMantle().raiseFlag(cX, cZ, MantleFlag.INITIAL_SPAWNED_MARKER,
                                     () -> {
                                         J.a(() -> spawnIn(cx, true), RNG.r.i(5, 200));
                                         getSpawnersFromMarkers(cx).forEach((blockf, spawners) -> {
@@ -229,7 +233,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                         }
                     }
                 }
-            }
+            }, null);
         }
     }
 
@@ -532,19 +536,17 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             IrisPosition pos = new IrisPosition((c.getX() << 4) + x, y, (c.getZ() << 4) + z);
 
             if (mark.isEmptyAbove()) {
-                AtomicBoolean remove = new AtomicBoolean(false);
+                Boolean remove = Iris.scheduler.region()
+                        .run(c.getWorld(), c.getX(), c.getZ(), () -> c.getBlock(x, y + 1, z).getType().isSolid() || c.getBlock(x, y + 2, z).getType().isSolid())
+                        .result()
+                        .exceptionally(e -> {
+                            Iris.reportError(e);
+                            e.printStackTrace();
+                            return false;
+                        })
+                        .join();
 
-                try {
-                    J.sfut(() -> {
-                        if (c.getBlock(x, y + 1, z).getBlockData().getMaterial().isSolid() || c.getBlock(x, y + 2, z).getBlockData().getMaterial().isSolid()) {
-                            remove.set(true);
-                        }
-                    }).get();
-                } catch (InterruptedException | ExecutionException e) {
-                    e.printStackTrace();
-                }
-
-                if (remove.get()) {
+                if (remove == Boolean.TRUE) {
                     b.add(pos);
                     return;
                 }

@@ -38,7 +38,7 @@ public class EditSVC implements IrisService {
     @Override
     public void onEnable() {
         this.editors = new KMap<>();
-        Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::update, 1000, 1000);
+        Iris.scheduler.global().runAtFixedRate(this::update, 1000, 1000);
     }
 
     @Override

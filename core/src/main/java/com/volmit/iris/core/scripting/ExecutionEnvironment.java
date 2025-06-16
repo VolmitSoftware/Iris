@@ -42,7 +42,7 @@ public class ExecutionEnvironment {
 
     @SneakyThrows
     private static URLClassLoader buildLoader() {
-        String version = "41396a77d5";
+        String version = "e08b6f893e";
         String url = BASE_URL.formatted(version, version);
         String hash = IO.hash("Iris-Scripts.jar@" + version);
         var file = Iris.instance.getDataFile("cache", hash.substring(0, 2), hash.substring(3, 5), hash + ".jar");

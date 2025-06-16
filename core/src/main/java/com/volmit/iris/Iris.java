@@ -782,7 +782,7 @@ public class Iris extends VolmitPlugin implements Listener {
         if (dim == null) {
             Iris.warn("Unable to find dimension type " + id + " Looking for online packs...");
 
-            service(StudioSVC.class).downloadSearch(new VolmitSender(Bukkit.getConsoleSender()), id, true);
+            service(StudioSVC.class).downloadSearch(new VolmitSender(Bukkit.getConsoleSender()), id, false);
             dim = IrisData.loadAnyDimension(id);
 
             if (dim == null) {

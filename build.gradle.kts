@@ -105,7 +105,7 @@ nmsBindings.forEach { key, value ->
         systemProperty("disable.watchdog", "")
         systemProperty("net.kyori.ansi.colorLevel", color)
         systemProperty("com.mojang.eula.agree", true)
-        systemProperty("iris.errorReporting", errorReporting)
+        systemProperty("iris.suppressReporting", !errorReporting)
     }
 
     tasks.register<RunServer>("runFolia-$key") {

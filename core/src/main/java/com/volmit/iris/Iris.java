@@ -784,7 +784,7 @@ public class Iris extends VolmitPlugin implements Listener {
         if (dim == null) {
             Iris.warn("Unable to find dimension type " + id + " Looking for online packs...");
 
-            service(StudioSVC.class).downloadSearch(new VolmitSender(Bukkit.getConsoleSender()), id, true);
+            service(StudioSVC.class).downloadSearch(new VolmitSender(Bukkit.getConsoleSender()), id, false);
             dim = IrisData.loadAnyDimension(id);
 
             if (dim == null) {
@@ -958,7 +958,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
     private static void setupSentry() {
         var settings = IrisSettings.get().getSentry();
-        if (settings.disableAutoReporting || Sentry.isEnabled() || !Boolean.getBoolean("iris.errorReporting")) return;
+        if (settings.disableAutoReporting || Sentry.isEnabled() || Boolean.getBoolean("iris.suppressReporting")) return;
         Iris.info("Enabling Sentry for anonymous error reporting. You can disable this in the settings.");
         Iris.info("Your server ID is: " + ServerID.ID);
         Sentry.init(options -> {

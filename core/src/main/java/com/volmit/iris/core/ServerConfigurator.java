@@ -172,11 +172,14 @@ public class ServerConfigurator {
             Iris.warn("New data pack entries have been installed in Iris! Restarting server!");
             Iris.warn("This will only happen when your pack changes (updates/first time setup)");
             Iris.warn("(You can disable this auto restart in iris settings)");
+            if (!Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "restart")) {
+                Iris.warn("Looks like the restart command didn't work. Stopping the server instead!");
+                Bukkit.shutdown();
+            }
             J.s(() -> {
                 Iris.warn("Looks like the restart command didn't work. Stopping the server instead!");
                 Bukkit.shutdown();
             }, 100);
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "restart");
         });
     }
 

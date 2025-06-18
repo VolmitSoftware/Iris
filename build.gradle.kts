@@ -90,6 +90,7 @@ nmsBindings.forEach { key, value ->
 
         dependencies {
             compileOnly(project(":core"))
+            compileOnly(project(":scheduler"))
             compileOnly("org.jetbrains:annotations:26.0.2")
         }
     }

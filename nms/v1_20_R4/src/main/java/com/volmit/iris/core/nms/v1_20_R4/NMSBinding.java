@@ -217,7 +217,7 @@ public class NMSBinding implements INMSBinding {
         net.minecraft.nbt.CompoundTag tag = (net.minecraft.nbt.CompoundTag) convertToTag(map, 0, 64);
         var level = ((CraftWorld) pos.getWorld()).getHandle();
         var blockPos = new BlockPos(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ());
-        J.s(() -> merge(level, blockPos, tag));
+        Iris.scheduler.region().run(pos, () -> merge(level, blockPos, tag));
     }
 
     private void merge(ServerLevel level, BlockPos blockPos, net.minecraft.nbt.CompoundTag tag) {

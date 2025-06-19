@@ -75,11 +75,11 @@ public interface IRare {
         int totalWeight = 0; // This is he baseline
         int buffer = 0;
         for (T i : possibilities) { // Im adding all of the rarity together
-            totalWeight += i.getRarity();
+            totalWeight += i.getRarity() * 1000;
         }
         double threshold = totalWeight * (possibilities.size() - 1) * noiseValue;
         for (T i : possibilities) {
-            buffer += totalWeight - i.getRarity();
+            buffer += totalWeight - i.getRarity() * 1000;
 
             if (buffer >= threshold) {
                 return i;

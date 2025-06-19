@@ -241,7 +241,8 @@ public class CommandObject implements DecreeExecutor {
 
 
         Location[] b = WandSVC.getCuboid(player());
-        if (b == null) {
+        if (b == null || b[0] == null || b[1] == null) {
+            sender().sendMessage("No area selected.");
             return;
         }
         Location a1 = b[0].clone();
@@ -417,6 +418,10 @@ public class CommandObject implements DecreeExecutor {
         }
 
         Location[] b = WandSVC.getCuboid(player());
+        if (b == null || b[0] == null || b[1] == null) {
+            sender().sendMessage("No area selected.");
+            return;
+        }
         Location a1 = b[0].clone();
         Location a2 = b[1].clone();
         Direction d = Direction.closest(player().getLocation().getDirection()).reverse();
@@ -477,6 +482,10 @@ public class CommandObject implements DecreeExecutor {
         }
 
         Location[] b = WandSVC.getCuboid(player());
+        if (b == null || b[0] == null || b[1] == null) {
+            sender().sendMessage("No area selected.");
+            return;
+        }
         Location a1 = b[0].clone();
         Location a2 = b[1].clone();
         Location a1x = b[0].clone();
@@ -524,6 +533,10 @@ public class CommandObject implements DecreeExecutor {
         }
 
         Location[] b = WandSVC.getCuboid(player());
+        if (b == null || b[0] == null || b[1] == null) {
+            sender().sendMessage("No area selected.");
+            return;
+        }
         b[0].add(new Vector(0, 1, 0));
         b[1].add(new Vector(0, 1, 0));
         Location a1 = b[0].clone();

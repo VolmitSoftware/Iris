@@ -160,7 +160,8 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
         }
 
         J.aBukkit(() -> {
-            if (!call(new VolmitSender(sender), args)) {
+            var volmit = new VolmitSender(sender);
+            if (!call(volmit, args)) {
 
                 if (IrisSettings.get().getGeneral().isCommandSounds()) {
                     if (sender instanceof Player) {
@@ -169,7 +170,7 @@ public interface DecreeSystem extends CommandExecutor, TabCompleter {
                     }
                 }
 
-                sender.sendMessage(C.RED + "Unknown Iris Command");
+                volmit.sendMessage(C.RED + "Unknown Iris Command");
             } else {
                 if (IrisSettings.get().getGeneral().isCommandSounds()) {
                     if (sender instanceof Player) {

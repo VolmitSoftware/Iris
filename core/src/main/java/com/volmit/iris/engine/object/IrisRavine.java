@@ -93,10 +93,10 @@ public class IrisRavine extends IrisRegistrant {
     }
 
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
-        generate(writer, rng, engine, x, y, z, -1);
+        generate(writer, rng, engine, x, y, z, 0, -1);
     }
 
-    public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int waterHint) {
+    public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int recursion, int waterHint) {
         KList<IrisPosition> pos = getWorm().generate(rng, engine.getData(), writer, null, x, y, z, (at) -> {
         });
         CNG dg = depthStyle.getGenerator().createNoCache(rng, engine.getData());
@@ -135,7 +135,7 @@ public class IrisRavine extends IrisRegistrant {
             int width = (int) Math.round(bw.fitDouble(baseWidthStyle.getMin(), baseWidthStyle.getMax(), p.getX(), p.getZ()));
             int surface = (int) Math.round(rsurface - depth * 0.45);
 
-            fork.doCarving(writer, rng, engine, p.getX(), rng.i(surface - depth, surface), p.getZ(), Math.max(highestWater, waterHint));
+            fork.doCarving(writer, rng, engine, p.getX(), rng.i(surface - depth, surface), p.getZ(), recursion, Math.max(highestWater, waterHint));
 
             for (int i = surface + depth; i >= surface; i--) {
                 if (i % ribThickness == 0) {
@@ -184,7 +184,7 @@ public class IrisRavine extends IrisRegistrant {
 
     }
 
-    public int getMaxSize(IrisData data) {
-        return getWorm().getMaxDistance() + fork.getMaxRange(data);
+    public int getMaxSize(IrisData data, int depth) {
+        return getWorm().getMaxDistance() + fork.getMaxRange(data, depth);
     }
 }

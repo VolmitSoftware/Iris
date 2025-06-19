@@ -66,10 +66,10 @@ public class IrisCave extends IrisRegistrant {
     }
 
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
-        generate(writer, rng, engine, x, y, z, -1);
+        generate(writer, rng, engine, x, y, z, 0, -1);
     }
 
-    public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int waterHint) {
+    public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int recursion, int waterHint) {
 
         double girth = getWorm().getGirth().get(rng, x, z, engine.getData());
         KList<IrisPosition> points = getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z, (at) -> {
@@ -92,7 +92,7 @@ public class IrisCave extends IrisRegistrant {
         int h = Math.min(Math.max(highestWater, waterHint), engine.getDimension().getFluidHeight());
 
         for (IrisPosition i : points) {
-            fork.doCarving(writer, rng, engine, i.getX(), i.getY(), i.getZ(), h);
+            fork.doCarving(writer, rng, engine, i.getX(), i.getY(), i.getZ(), recursion, h);
         }
 
         MatterCavern c = new MatterCavern(true, customBiome, (byte) 0);
@@ -108,7 +108,7 @@ public class IrisCave extends IrisRegistrant {
 
     }
 
-    public int getMaxSize(IrisData data) {
-        return getWorm().getMaxDistance() + fork.getMaxRange(data);
+    public int getMaxSize(IrisData data, int depth) {
+        return getWorm().getMaxDistance() + fork.getMaxRange(data, depth);
     }
 }

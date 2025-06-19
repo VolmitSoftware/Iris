@@ -45,6 +45,7 @@ import lombok.ToString;
 
 import java.io.*;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -240,8 +241,10 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
         for (String i : s) {
             burst.queue(() -> {
                 T t = load(i);
+                if (t == null)
+                    return;
 
-                if (t != null) {
+                synchronized (m) {
                     m.add(t);
                 }
             });

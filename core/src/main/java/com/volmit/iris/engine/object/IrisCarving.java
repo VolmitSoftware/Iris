@@ -61,21 +61,25 @@ public class IrisCarving {
 
 
     @BlockCoordinates
-    public void doCarving(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
-        doCarving(writer, rng, engine, x, y, z, -1);
+    public void doCarving(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int depth) {
+        doCarving(writer, rng, engine, x, y, z, depth, -1);
     }
 
     @BlockCoordinates
-    public void doCarving(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int waterHint) {
+    public void doCarving(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int recursion, int waterHint) {
+        int nextRecursion = recursion + 1;
+
         if (caves.isNotEmpty()) {
             for (IrisCavePlacer i : caves) {
-                i.generateCave(writer, rng, engine, x, y, z, waterHint);
+                if (recursion > i.getMaxRecursion()) continue;
+                i.generateCave(writer, rng, engine, x, y, z, nextRecursion, waterHint);
             }
         }
 
         if (ravines.isNotEmpty()) {
             for (IrisRavinePlacer i : ravines) {
-                i.generateRavine(writer, rng, engine, x, y, z, waterHint);
+                if (recursion > i.getMaxRecursion()) continue;
+                i.generateRavine(writer, rng, engine, x, y, z, nextRecursion, waterHint);
             }
         }
 
@@ -104,15 +108,18 @@ public class IrisCarving {
         }
     }
 
-    public int getMaxRange(IrisData data) {
+    public int getMaxRange(IrisData data, int recursion) {
         int max = 0;
+        int nextRecursion = recursion + 1;
 
         for (IrisCavePlacer i : caves) {
-            max = Math.max(max, i.getSize(data));
+            if (recursion > i.getMaxRecursion()) continue;
+            max = Math.max(max, i.getSize(data, nextRecursion));
         }
 
         for (IrisRavinePlacer i : ravines) {
-            max = Math.max(max, i.getSize(data));
+            if (recursion > i.getMaxRecursion()) continue;
+            max = Math.max(max, i.getSize(data, nextRecursion));
         }
 
         if (elipsoids.isNotEmpty()) {

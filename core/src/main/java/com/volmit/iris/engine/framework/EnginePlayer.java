@@ -47,9 +47,7 @@ public class EnginePlayer {
     }
 
     public void tick() {
-        sample();
-
-        if (!IrisSettings.get().getWorld().isEffectSystem())
+        if (sample() || !IrisSettings.get().getWorld().isEffectSystem())
             return;
 
         J.a(() -> {
@@ -81,22 +79,22 @@ public class EnginePlayer {
         return M.ms() - lastSample;
     }
 
-    public void sample() {
+    public boolean sample() {
+        Location current = player.getLocation().clone();
+        if (current.getWorld() != engine.getWorld().realWorld())
+            return true;
         try {
-            if (ticksSinceLastSample() > 55 && player.getLocation().distanceSquared(lastLocation) > 9 * 9) {
-                lastLocation = player.getLocation().clone();
+            if (ticksSinceLastSample() > 55 && current.distanceSquared(lastLocation) > 9 * 9) {
+                lastLocation = current;
                 lastSample = M.ms();
-                sampleBiomeRegion();
+                biome = engine.getBiome(current);
+                region = engine.getRegion(current);
             }
+            return false;
         } catch (Throwable e) {
             Iris.reportError(e);
 
         }
-    }
-
-    private void sampleBiomeRegion() {
-        Location l = player.getLocation();
-        biome = engine.getBiome(l);
-        region = engine.getRegion(l);
+        return true;
     }
 }

@@ -34,6 +34,7 @@ import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer4;
+import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterSlice;
@@ -84,7 +85,6 @@ public class Mantle {
         this.worldHeight = worldHeight;
         this.ioTrim = new AtomicBoolean(false);
         this.ioTectonicUnload = new AtomicBoolean(false);
-        dataFolder.mkdirs();
         loadedRegions = new KMap<>();
         lastUse = new KMap<>();
         ioBurst = MultiBurst.burst;
@@ -369,11 +369,10 @@ public class Mantle {
      */
     public synchronized void close() {
         Iris.debug("Closing The Mantle " + C.DARK_AQUA + dataFolder.getAbsolutePath());
-        if (closed.get()) {
+        if (closed.getAndSet(true)) {
             return;
         }
 
-        closed.set(true);
         hyperLock.disable();
         BurstExecutor b = ioBurst.burst(toUnload.size());
         loadedRegions.forEach((i, plate) -> b.queue(() -> {
@@ -383,6 +382,7 @@ public class Mantle {
                 oldFileForRegion(dataFolder, i).delete();
             } catch (Throwable e) {
                 Iris.error("Failed to write Tectonic Plate " + C.DARK_GREEN + Cache.keyX(i) + " " + Cache.keyZ(i));
+                Iris.reportError(e);
                 e.printStackTrace();
             }
         }));
@@ -394,6 +394,7 @@ public class Mantle {
             Iris.reportError(e);
         }
 
+        IO.delete(new File(dataFolder, ".tmp"));
         Iris.debug("The Mantle has Closed " + C.DARK_AQUA + dataFolder.getAbsolutePath());
     }
 

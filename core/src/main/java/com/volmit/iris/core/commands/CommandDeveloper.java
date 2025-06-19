@@ -26,6 +26,7 @@ import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
 import com.volmit.iris.util.decree.annotations.Decree;
@@ -69,6 +70,13 @@ public class CommandDeveloper implements DecreeExecutor {
     public void EngineStatus() {
         Iris.service(IrisEngineSVC.class)
                 .engineStatus(sender());
+    }
+
+    @Decree(description = "Send a test exception to sentry")
+    public void Sentry() {
+        Engine engine = engine();
+        if (engine != null) IrisContext.getOr(engine);
+        Iris.reportError(new Exception("This is a test"));
     }
 
     @Decree(description = "Test")

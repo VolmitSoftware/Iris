@@ -295,9 +295,9 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 var region = Iris.platform.getRegionScheduler();
                 chunk.raiseFlag(MantleFlag.TILE, run(semaphore, () -> region.run(c.getWorld(), c.getX(), c.getZ(), () -> {
                     mantle.iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, v) -> {
-                        int betterY = y + getWorld().minHeight();
-                        if (!TileData.setTileState(c.getBlock(x, betterY, z), v.getData()))
-                            Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), v.getData().getMaterial().name());
+                        Block block = c.getBlock(x, y + getWorld().minHeight(), z);
+                        if (!TileData.setTileState(block, v.getData()))
+                            Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", block.getX(), block.getY(), block.getZ(), block.getType().getKey(), v.getData().getMaterial().getKey());
                     });
                 })));
                 chunk.raiseFlag(MantleFlag.CUSTOM, run(semaphore, () -> region.run(c.getWorld(), c.getX(), c.getZ(), () -> {

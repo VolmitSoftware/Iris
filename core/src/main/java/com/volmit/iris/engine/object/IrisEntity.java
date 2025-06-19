@@ -359,8 +359,8 @@ public class IrisEntity extends IrisRegistrant {
                 t.incrementAndGet();
                 if (e.getLocation().getBlock().getType().isSolid() || living.getEyeLocation().getBlock().getType().isSolid()) {
                     Iris.platform.teleportAsync(e, at.add(0, 0.1, 0));
-                    ItemStack itemCrackData = new ItemStack(living.getEyeLocation().clone().subtract(0, 2, 0).getBlock().getBlockData().getMaterial());
-                    e.getWorld().spawnParticle(ITEM, living.getEyeLocation(), 6, 0.2, 0.4, 0.2, 0.06f, itemCrackData);
+                    Material material = living.getEyeLocation().subtract(0, 2, 0).getBlock().getType();
+                    if (!material.isAir()) e.getWorld().spawnParticle(ITEM, living.getEyeLocation(), 6, 0.2, 0.4, 0.2, 0.06f, new ItemStack(material));
                     if (M.r(0.2)) {
                         e.getWorld().playSound(e.getLocation(), Sound.BLOCK_CHORUS_FLOWER_GROW, 0.8f, 0.1f);
                     }

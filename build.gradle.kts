@@ -123,6 +123,7 @@ nmsBindings.forEach { key, value ->
         systemProperty("disable.watchdog", "")
         systemProperty("net.kyori.ansi.colorLevel", color)
         systemProperty("com.mojang.eula.agree", true)
+        systemProperty("iris.suppressReporting", !errorReporting)
     }
 }
 

@@ -551,7 +551,7 @@ public class Iris extends VolmitPlugin implements Listener {
                     J.s(() -> {
                         for (Player i : getServer().getOnlinePlayers()) {
                             i.setGameMode(GameMode.SPECTATOR);
-                            i.teleport(new Location(w, 0, 200, 0));
+                            platform.teleportAsync(i, new Location(w, 0, 200, 0));
                         }
                     });
                 });

@@ -195,7 +195,7 @@ public class IrisToolbelt {
             if (!i.getName().equals(world.getName())) {
                 for (Player j : world.getPlayers()) {
                     new VolmitSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world.");
-                    j.teleport(i.getSpawnLocation());
+                    Iris.platform.teleportAsync(j, i.getSpawnLocation());
                 }
 
                 return true;
@@ -217,7 +217,7 @@ public class IrisToolbelt {
             if (!i.getName().equals(world.getName())) {
                 for (Player j : world.getPlayers()) {
                     new VolmitSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world. " + m);
-                    j.teleport(i.getSpawnLocation());
+                    Iris.platform.teleportAsync(j, i.getSpawnLocation());
                 }
                 return true;
             }

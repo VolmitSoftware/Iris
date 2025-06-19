@@ -476,8 +476,8 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             e.setCancelled(true);
             warmupAreaAsync(e.getPlayer(), e.getTo(), () -> J.s(() -> {
                 ignoreTP.set(true);
-                e.getPlayer().teleport(e.getTo(), e.getCause());
-                ignoreTP.set(false);
+                Iris.platform.teleportAsync(e.getPlayer(), e.getTo(), e.getCause())
+                        .thenRun(() -> ignoreTP.set(false));
             }));
         }
     }

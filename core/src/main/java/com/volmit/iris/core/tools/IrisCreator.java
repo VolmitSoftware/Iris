@@ -184,9 +184,7 @@ public class IrisCreator {
         done.set(true);
 
         if (sender.isPlayer() && !benchmark) {
-            J.s(() -> {
-                sender.player().teleport(new Location(world.get(), 0, world.get().getHighestBlockYAt(0, 0), 0));
-            });
+            J.s(() -> Iris.platform.teleportAsync(sender.player(), new Location(world.get(), 0, world.get().getHighestBlockYAt(0, 0), 0)));
         }
 
         if (studio || benchmark) {

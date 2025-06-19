@@ -23,16 +23,17 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.PregenListener;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.parallel.MultiBurst;
-import com.volmit.iris.util.scheduling.J;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -58,26 +59,28 @@ public class AsyncPregenMethod implements PregeneratorMethod {
 
     private void unloadAndSaveAllChunks() {
         try {
-            J.sfut(() -> {
-                if (world == null) {
-                    Iris.warn("World was null somehow...");
-                    return;
-                }
+            if (world == null) {
+                Iris.warn("World was null somehow...");
+                return;
+            }
 
-                long minTime = M.ms() - 10_000;
-                lastUse.entrySet().removeIf(i -> {
-                    final Chunk chunk = i.getKey();
-                    final Long lastUseTime = i.getValue();
-                    if (!chunk.isLoaded() || lastUseTime == null)
-                        return true;
-                    if (lastUseTime < minTime) {
-                        chunk.unload();
-                        return true;
-                    }
-                    return false;
-                });
-                world.save();
-            }).get();
+            long minTime = M.ms() - 10_000;
+            KList<CompletableFuture<?>> futures = new KList<>();
+            lastUse.entrySet().removeIf(i -> {
+                final Chunk chunk = i.getKey();
+                final Long lastUseTime = i.getValue();
+                if (!chunk.isLoaded() || lastUseTime == null)
+                    return true;
+                if (lastUseTime < minTime) {
+                    futures.add(Iris.platform.getRegionScheduler()
+                            .run(chunk.getWorld(), chunk.getX(), chunk.getZ(), () -> chunk.unload())
+                            .getResult());
+                    return true;
+                }
+                return false;
+            });
+            futures.add(Iris.platform.getRegionScheduler().run(world, 0, 0, world::save).getResult());
+            CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
         } catch (Throwable e) {
             e.printStackTrace();
         }

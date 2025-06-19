@@ -30,7 +30,7 @@ import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.Task;
+import de.crazydev22.platformutils.scheduler.task.Task;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;

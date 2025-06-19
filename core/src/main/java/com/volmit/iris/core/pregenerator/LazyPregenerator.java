@@ -11,7 +11,6 @@ import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
-import io.papermc.lib.PaperLib;
 import lombok.Data;
 import lombok.Getter;
 import org.bukkit.Bukkit;
@@ -148,23 +147,9 @@ public class LazyPregenerator extends Thread implements Listener {
 
     private void tickGenerate(Position2 chunk) {
         executorService.submit(() -> {
-            CountDownLatch latch = new CountDownLatch(1);
-            if (PaperLib.isPaper()) {
-                PaperLib.getChunkAtAsync(world, chunk.getX(), chunk.getZ(), true)
-                        .thenAccept((i) -> {
-                            Iris.verbose("Generated Async " + chunk);
-                            latch.countDown();
-                        });
-            } else {
-                J.s(() -> {
-                    world.getChunkAt(chunk.getX(), chunk.getZ());
-                    Iris.verbose("Generated " + chunk);
-                    latch.countDown();
-                });
-            }
-            try {
-                latch.await();
-            } catch (InterruptedException ignored) {}
+            Iris.platform.getChunkAtAsync(world, chunk.getX(), chunk.getZ(), true).thenAccept((i) -> {
+                Iris.verbose("Generated Async " + chunk);
+            }).join();
             lazyGeneratedChunks.addAndGet(1);
         });
     }

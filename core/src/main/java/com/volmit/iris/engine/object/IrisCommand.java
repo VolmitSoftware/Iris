@@ -65,7 +65,7 @@ public class IrisCommand {
             return;
         }
 
-        var scheduler = Iris.scheduler.global();
+        var scheduler = Iris.platform.getGlobalScheduler();
         for (String command : commands) {
             command = (command.startsWith("/") ? command.replaceFirst("/", "") : command)
                     .replaceAll("\\Q{x}\\E", String.valueOf(at.getBlockX()))

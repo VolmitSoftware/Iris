@@ -24,7 +24,6 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.ChronoLatch;
-import com.volmit.iris.util.scheduling.J;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -281,6 +280,6 @@ public class IrisEffect {
     }
 
     private void schedule(Entity entity, Runnable task) {
-        Iris.scheduler.entity(entity).run(task, null);
+        Iris.platform.getEntityScheduler(entity).run(task, null);
     }
 }

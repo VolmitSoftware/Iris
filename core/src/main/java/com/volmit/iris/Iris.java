@@ -64,13 +64,13 @@ import com.volmit.iris.util.plugin.VolmitPlugin;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.reflect.ShadeFix;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.Platform;
 import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
 import com.volmit.iris.util.sentry.Attachments;
 import com.volmit.iris.util.sentry.IrisLogger;
 import com.volmit.iris.util.sentry.ServerID;
-import io.papermc.lib.PaperLib;
+import de.crazydev22.platformutils.Platform;
+import de.crazydev22.platformutils.PlatformUtils;
 import io.sentry.Sentry;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
@@ -119,7 +119,7 @@ public class Iris extends VolmitPlugin implements Listener {
     public static MythicMobsLink linkMythicMobs;
     public static IrisCompat compat;
     public static FileWatcher configWatcher;
-    public static Platform scheduler;
+    public static Platform platform;
     private static VolmitSender sender;
 
     static {
@@ -338,7 +338,7 @@ public class Iris extends VolmitPlugin implements Listener {
     @SuppressWarnings("deprecation")
     public static void later(NastyRunnable object) {
         try {
-            scheduler.async().runDelayed(task -> {
+            platform.getAsyncScheduler().runDelayed(task -> {
                 try {
                     object.run();
                 } catch (Throwable e) {
@@ -463,7 +463,7 @@ public class Iris extends VolmitPlugin implements Listener {
     }
     private void enable() {
         instance = this;
-        scheduler = Platform.create(this);
+        platform = PlatformUtils.createPlatform(this);
         services = new KMap<>();
         setupAudience();
         setupSentry();
@@ -482,7 +482,7 @@ public class Iris extends VolmitPlugin implements Listener {
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
         J.s(() -> {
-            J.a(() -> PaperLib.suggestPaper(this));
+            //J.a(() -> PaperLib.suggestPaper(this)); //TODO reimplement this
             J.a(() -> IO.delete(getTemp()));
             J.a(LazyPregenerator::loadLazyGenerators, 100);
             J.a(this::bstats);

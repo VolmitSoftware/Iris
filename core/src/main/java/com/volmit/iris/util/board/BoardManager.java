@@ -19,7 +19,7 @@
 package com.volmit.iris.util.board;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.scheduling.Task;
+import de.crazydev22.platformutils.scheduler.task.Task;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -43,7 +43,7 @@ public class BoardManager {
         this.plugin = plugin;
         this.boardSettings = boardSettings;
         this.scoreboards = new ConcurrentHashMap<>();
-        this.updateTask = Iris.scheduler.global().runAtFixedRate(new BoardUpdateTask(this), 2L, 20L);
+        this.updateTask = Iris.platform.getGlobalScheduler().runAtFixedRate(new BoardUpdateTask(this), 2L, 20L);
         plugin.getServer().getOnlinePlayers().forEach(this::setup);
     }
 

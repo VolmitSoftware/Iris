@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.AR;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.SR;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
@@ -89,7 +88,7 @@ public class BlockSignal {
                     return;
                 }
 
-                Iris.scheduler.teleportAsync(e, tg.clone()).thenAccept(b -> {
+                Iris.platform.teleportAsync(e, tg.clone()).thenAccept(b -> {
                     e.setTicksLived(1);
                     e.setVelocity(new Vector(0, 0, 0));
                 }).join();

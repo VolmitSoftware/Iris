@@ -26,6 +26,7 @@ import com.volmit.iris.util.function.NastyRunnable;
 import com.volmit.iris.util.function.NastySupplier;
 import com.volmit.iris.util.math.FinalInteger;
 import com.volmit.iris.util.parallel.MultiBurst;
+import de.crazydev22.platformutils.scheduler.task.Task;
 import org.bukkit.Bukkit;
 
 import java.util.concurrent.Callable;
@@ -92,7 +93,7 @@ public class J {
         if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
             return;
         }
-        Iris.scheduler.async().run(a);
+        Iris.platform.getAsyncScheduler().run(a);
     }
 
     public static <T> Future<T> a(Callable<T> a) {
@@ -225,7 +226,7 @@ public class J {
         if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
             return;
         }
-        Iris.scheduler.global().run(r);
+        Iris.platform.getGlobalScheduler().run(r);
     }
 
     public static CompletableFuture sfut(Runnable r) {
@@ -233,10 +234,10 @@ public class J {
             return null;
         }
 
-        return Iris.scheduler.global().run(() -> {
+        return Iris.platform.getGlobalScheduler().run(() -> {
             r.run();
             return null;
-        }).result();
+        }).getResult();
     }
 
     public static CompletableFuture sfut(Runnable r, int delay) {
@@ -244,10 +245,10 @@ public class J {
             return null;
         }
 
-        return Iris.scheduler.global().runDelayed(() -> {
+        return Iris.platform.getGlobalScheduler().runDelayed(() -> {
             r.run();
             return null;
-        }, delay).result();
+        }, delay).getResult();
     }
 
     public static CompletableFuture afut(Runnable r) {
@@ -270,7 +271,7 @@ public class J {
             if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
                 return;
             }
-            Iris.scheduler.global().runDelayed(r, delay);
+            Iris.platform.getGlobalScheduler().runDelayed(r, delay);
         } catch (Throwable e) {
             Iris.reportError(e);
         }
@@ -287,7 +288,7 @@ public class J {
         if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
             return null;
         }
-        return Iris.scheduler.global().runAtFixedRate(r, 1, Math.max(interval, 1));
+        return Iris.platform.getGlobalScheduler().runAtFixedRate(r, 1, Math.max(interval, 1));
     }
 
     /**
@@ -298,7 +299,7 @@ public class J {
      */
     public static void a(Runnable r, int delay) {
         if (Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
-            Iris.scheduler.async().runDelayed(r, Math.max(delay * 50, 0), TimeUnit.MILLISECONDS);
+            Iris.platform.getAsyncScheduler().runDelayed(r, Math.max(delay * 50, 0), TimeUnit.MILLISECONDS);
         }
     }
 
@@ -313,7 +314,7 @@ public class J {
         if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
             return null;
         }
-        return Iris.scheduler.async().runAtFixedRate(r, 0, Math.max(interval, 1) * 50, TimeUnit.MILLISECONDS);
+        return Iris.platform.getAsyncScheduler().runAtFixedRate(r, 0, Math.max(interval, 1) * 50, TimeUnit.MILLISECONDS);
     }
 
     /**

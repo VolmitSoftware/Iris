@@ -65,12 +65,13 @@ dependencies {
 
     // Shaded
     implementation("com.dfsek:paralithic:0.8.1")
-    implementation("io.papermc:paperlib:1.0.5")
     implementation("net.kyori:adventure-text-minimessage:4.17.0")
     implementation("net.kyori:adventure-platform-bukkit:4.3.4")
     implementation("net.kyori:adventure-api:4.17.0")
     implementation("org.bstats:bstats-bukkit:3.1.0")
-    implementation(project(":scheduler"))
+    implementation("com.github.CrazyDev05:PlatformUtils:4bac4f6e75") {
+        isTransitive = false
+    }
 
     //implementation("org.bytedeco:javacpp:1.5.10")
     //implementation("org.bytedeco:cuda-platform:12.3-8.9-1.5.10")
@@ -135,6 +136,7 @@ tasks {
         relocate("net.kyori", "com.volmit.iris.util.kyori")
         relocate("org.bstats", "com.volmit.iris.util.metrics")
         relocate("io.sentry", "com.volmit.iris.util.sentry")
+        relocate("de.crazydev22.platformutils", "com.volmit.iris.util.platform")
 
         //minimize()
         dependencies {

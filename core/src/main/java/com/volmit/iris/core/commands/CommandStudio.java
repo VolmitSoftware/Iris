@@ -57,7 +57,6 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
-import io.papermc.lib.PaperLib;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
@@ -310,7 +309,7 @@ public class CommandStudio implements DecreeExecutor {
         }
 
         Player player = player();
-        var scheduler = Iris.scheduler.entity(player);
+        var scheduler = Iris.platform.getEntityScheduler(player);
         scheduler.run(() -> {
             sender().sendMessage(C.GREEN + "Opening inventory now!");
             player.openInventory(inv);
@@ -692,7 +691,7 @@ public class CommandStudio implements DecreeExecutor {
             pw.println("Iris Version: " + Iris.instance.getDescription().getVersion());
             pw.println("Bukkit Version: " + Bukkit.getBukkitVersion());
             pw.println("MC Version: " + Bukkit.getVersion());
-            pw.println("PaperSpigot: " + (PaperLib.isPaper() ? "Yup!" : "Nope!"));
+            //pw.println("PaperSpigot: " + (PaperLib.isPaper() ? "Yup!" : "Nope!")); //TODO update this
             pw.println("Report Captured At: " + new Date());
             pw.println("Chunks: (" + chunks.size() + "): ");
 

@@ -7,14 +7,11 @@ import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Function;
 
 import com.mojang.serialization.Lifecycle;
 import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
-import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.core.nms.datapack.DataVersion;
-import com.volmit.iris.util.scheduling.J;
 import lombok.SneakyThrows;
 import net.minecraft.core.*;
 import net.minecraft.core.Registry;
@@ -204,7 +201,7 @@ public class NMSBinding implements INMSBinding {
         net.minecraft.nbt.CompoundTag tag = (net.minecraft.nbt.CompoundTag) convertToTag(map, 0, 64);
         var level = ((CraftWorld) pos.getWorld()).getHandle();
         var blockPos = new BlockPos(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ());
-        Iris.scheduler.region().run(pos, () -> merge(level, blockPos, tag));
+        Iris.platform.getRegionScheduler().run(pos, () -> merge(level, blockPos, tag));
     }
 
     private void merge(ServerLevel level, BlockPos blockPos, net.minecraft.nbt.CompoundTag tag) {

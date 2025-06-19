@@ -11,7 +11,7 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.reflect.V;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import com.volmit.iris.util.scheduling.Task;
+import de.crazydev22.platformutils.scheduler.task.Task;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;

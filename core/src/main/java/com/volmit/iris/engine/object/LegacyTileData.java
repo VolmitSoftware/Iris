@@ -80,7 +80,7 @@ public class LegacyTileData extends TileData {
 
     @Override
     public void toBukkit(Block block) {
-        Iris.scheduler.region().run(block.getLocation(), () -> handler.toBukkit(block));
+        Iris.platform.getRegionScheduler().run(block.getLocation(), () -> handler.toBukkit(block));
     }
 
     @Override

@@ -178,11 +178,11 @@ public class IrisEntity extends IrisRegistrant {
     }
 
     public Entity spawn(Engine gen, final Location at, RNG rng) {
-        if (!Iris.scheduler.isOwnedByCurrentRegion(at)) {
+        if (!Iris.platform.isOwnedByCurrentRegion(at)) {
             try {
                 final Location finalAt = at;
-                return Iris.scheduler.region().run(at, () -> spawn(gen, finalAt, rng))
-                        .result()
+                return Iris.platform.getRegionScheduler().run(at, () -> spawn(gen, finalAt, rng))
+                        .getResult()
                         .get(500, TimeUnit.MILLISECONDS);
             } catch (Throwable e) {
                 return null;
@@ -350,7 +350,7 @@ public class IrisEntity extends IrisRegistrant {
             living.setCollidable(false);
             living.setNoDamageTicks(100000);
             AtomicInteger t = new AtomicInteger(0);
-            Iris.scheduler.region().runAtFixedRate(at, task -> {
+            Iris.platform.getRegionScheduler().runAtFixedRate(at, task -> {
                 if (t.get() > 100) {
                     task.cancel();
                     return;
@@ -358,7 +358,7 @@ public class IrisEntity extends IrisRegistrant {
 
                 t.incrementAndGet();
                 if (e.getLocation().getBlock().getType().isSolid() || living.getEyeLocation().getBlock().getType().isSolid()) {
-                    Iris.scheduler.teleportAsync(e, at.add(0, 0.1, 0));
+                    Iris.platform.teleportAsync(e, at.add(0, 0.1, 0));
                     ItemStack itemCrackData = new ItemStack(living.getEyeLocation().clone().subtract(0, 2, 0).getBlock().getBlockData().getMaterial());
                     e.getWorld().spawnParticle(ITEM, living.getEyeLocation(), 6, 0.2, 0.4, 0.2, 0.06f, itemCrackData);
                     if (M.r(0.2)) {

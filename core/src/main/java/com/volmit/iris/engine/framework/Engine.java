@@ -64,7 +64,6 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.stream.ProceduralStream;
-import io.papermc.lib.PaperLib;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
@@ -293,7 +292,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         try {
             Semaphore semaphore = new Semaphore(3);
             chunk.raiseFlag(MantleFlag.ETCHED, () -> {
-                var region = Iris.scheduler.region();
+                var region = Iris.platform.getRegionScheduler();
                 chunk.raiseFlag(MantleFlag.TILE, run(semaphore, () -> region.run(c.getWorld(), c.getX(), c.getZ(), () -> {
                     mantle.iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, v) -> {
                         int betterY = y + getWorld().minHeight();
@@ -541,8 +540,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         if (IrisLootEvent.callLootEvent(items, inv, world, x, y, z))
             return;
 
-        if (PaperLib.isPaper() && getWorld().hasRealWorld()) {
-            PaperLib.getChunkAtAsync(getWorld().realWorld(), x >> 4, z >> 4).thenAccept((c) -> {
+        if (getWorld().hasRealWorld()) {
+            Iris.platform.getChunkAtAsync(getWorld().realWorld(), x >> 4, z >> 4, true, false).thenAccept((c) -> {
                 Runnable r = () -> {
                     for (ItemStack i : items) {
                         inv.addItem(i);
@@ -899,7 +898,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 player.sendMessage(C.GOLD + "No strongholds in world.");
             } else {
                 Location ll = new Location(player.getWorld(), pr.getX(), 40, pr.getZ());
-                Iris.scheduler.teleportAsync(player, ll);
+                Iris.platform.teleportAsync(player, ll);
             }
 
             return;

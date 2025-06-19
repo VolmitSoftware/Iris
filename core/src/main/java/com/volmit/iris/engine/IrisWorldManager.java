@@ -41,7 +41,6 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
-import io.papermc.lib.PaperLib;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.bukkit.Chunk;
@@ -62,7 +61,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -202,7 +200,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         for (Player i : getEngine().getWorld().realWorld().getPlayers()) {
             int r = 1;
 
-            Iris.scheduler.entity(i).run(() -> {
+            Iris.platform.getEntityScheduler(i).run(() -> {
                 Chunk c = i.getLocation().getChunk();
                 for (int x = -r; x <= r; x++) {
                     for (int z = -r; z <= r; z++) {
@@ -499,7 +497,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                     }
 
                     futures.add(MultiBurst.burst.completeValue(()
-                            -> PaperLib.getChunkAtAsync(to.getWorld(),
+                            -> Iris.platform.getChunkAtAsync(to.getWorld(),
                             (to.getBlockX() >> 4) + finalI,
                             (to.getBlockZ() >> 4) + finalJ,
                             true, IrisSettings.get().getWorld().getAsyncTeleport().isUrgent()).get()));
@@ -536,9 +534,9 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             IrisPosition pos = new IrisPosition((c.getX() << 4) + x, y, (c.getZ() << 4) + z);
 
             if (mark.isEmptyAbove()) {
-                Boolean remove = Iris.scheduler.region()
+                Boolean remove = Iris.platform.getRegionScheduler()
                         .run(c.getWorld(), c.getX(), c.getZ(), () -> c.getBlock(x, y + 1, z).getType().isSolid() || c.getBlock(x, y + 2, z).getType().isSolid())
-                        .result()
+                        .getResult()
                         .exceptionally(e -> {
                             Iris.reportError(e);
                             e.printStackTrace();

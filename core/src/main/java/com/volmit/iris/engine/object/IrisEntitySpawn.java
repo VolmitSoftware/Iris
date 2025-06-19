@@ -42,7 +42,7 @@ import org.bukkit.entity.Entity;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.volmit.iris.Iris.scheduler;
+import static com.volmit.iris.Iris.platform;
 
 @Snippet("entity-spawn")
 @Accessors(chain = true)
@@ -172,9 +172,9 @@ public class IrisEntitySpawn implements IRare {
 
             if (!ignoreSurfaces) {
                 Location block = at.clone().subtract(0, 1, 0);
-                BlockData data = scheduler.region()
+                BlockData data = platform.getRegionScheduler()
                         .run(block, () -> block.getBlock().getBlockData())
-                        .result()
+                        .getResult()
                         .join();
                 if (!irisEntity.getSurface().matches(data)) {
                     return null;
@@ -212,7 +212,7 @@ public class IrisEntitySpawn implements IRare {
         int startZ = center.getBlockZ() - (int) (boundingBox.z / 2);
         int endZ = center.getBlockZ() + (int) (boundingBox.z / 2);
 
-        var region = scheduler.region();
+        var region = platform.getRegionScheduler();
         var lock = new Semaphore(Integer.MAX_VALUE, true);
         var bool = new AtomicBoolean(true);
         for (int x = startX; x <= endX; x++) {
@@ -223,7 +223,7 @@ public class IrisEntitySpawn implements IRare {
                     region.run(l, () -> {
                         if (!bool.get()) return false;
                         return bool.compareAndSet(true, l.getBlock().getType() == Material.AIR);
-                    }).result().exceptionally(f -> false).thenRun(lock::release);
+                    }).getResult().exceptionally(f -> false).thenRun(lock::release);
                 }
             }
         }

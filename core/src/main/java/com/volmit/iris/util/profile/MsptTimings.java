@@ -2,10 +2,8 @@ package com.volmit.iris.util.profile;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.math.M;
-import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
-import com.volmit.iris.util.scheduling.Task;
-import org.bukkit.Bukkit;
+import de.crazydev22.platformutils.scheduler.task.Task;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -54,10 +52,10 @@ public abstract class MsptTimings extends Looper {
     protected abstract void update(int mspt);
 
     private boolean startTickTask() {
-        if (task != null && !task.cancelled())
+        if (task != null && !task.isCancelled())
             return false;
 
-        task = Iris.scheduler.global().runAtFixedRate(t -> {
+        task = Iris.platform.getGlobalScheduler().runAtFixedRate(t -> {
             if (isInterrupted()) {
                 t.cancel();
                 return;

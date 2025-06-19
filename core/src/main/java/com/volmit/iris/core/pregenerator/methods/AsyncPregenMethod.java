@@ -28,7 +28,6 @@ import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.J;
-import io.papermc.lib.PaperLib;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
@@ -48,11 +47,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private final boolean urgent;
     private final Map<Chunk, Long> lastUse;
 
-    public AsyncPregenMethod(World world, int unusedThreads) {
-        if (!PaperLib.isPaper()) {
-            throw new UnsupportedOperationException("Cannot use PaperAsync on non paper!");
-        }
-
+    public AsyncPregenMethod(World world) {
         this.world = world;
         this.executor = IrisSettings.get().getPregen().isUseTicketQueue() ? new TicketExecutor() : new ServiceExecutor();
         this.threads = IrisSettings.get().getPregen().getMaxConcurrency();
@@ -197,7 +192,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         public void generate(int x, int z, PregenListener listener) {
             service.submit(() -> {
                 try {
-                    PaperLib.getChunkAtAsync(world, x, z, true, urgent).thenAccept((i) -> {
+                    Iris.platform.getChunkAtAsync(world, x, z, true, urgent).thenAccept((i) -> {
                         listener.onChunkGenerated(x, z);
                         listener.onChunkCleaned(x, z);
                         if (i == null) return;
@@ -222,7 +217,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private class TicketExecutor implements Executor {
         @Override
         public void generate(int x, int z, PregenListener listener) {
-            PaperLib.getChunkAtAsync(world, x, z, true, urgent)
+            Iris.platform.getChunkAtAsync(world, x, z, true, urgent)
                     .exceptionally(e -> {
                         Iris.reportError(e);
                         e.printStackTrace();

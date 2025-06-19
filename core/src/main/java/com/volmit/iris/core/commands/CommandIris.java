@@ -156,7 +156,7 @@ public class CommandIris implements DecreeExecutor {
             return;
         }
 
-        Iris.scheduler.teleportAsync(target, world.getSpawnLocation()).thenRun(() ->
+        Iris.platform.teleportAsync(target, world.getSpawnLocation()).thenRun(() ->
                 new VolmitSender(target).sendMessage(C.GREEN + "You have been teleported to " + world.getName() + "."));
     }
 

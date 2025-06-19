@@ -50,7 +50,7 @@ import com.volmit.iris.util.matter.MatterStructurePOI;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import com.volmit.iris.util.scheduling.Task;
+import de.crazydev22.platformutils.scheduler.task.Task;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;

@@ -20,24 +20,18 @@ package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.plugin.VolmitSender;
-import com.volmit.iris.util.scheduling.Task;
+import de.crazydev22.platformutils.scheduler.task.Task;
 import org.bukkit.*;
-import org.bukkit.entity.EnderSignal;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
-import org.bukkit.inventory.EquipmentSlot;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -53,7 +47,7 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
     public EngineAssignedWorldManager(Engine engine) {
         super(engine, "World");
         Iris.instance.registerListener(this);
-        task = Iris.scheduler.global().runAtFixedRate(this::onTick, 1, 1);
+        task = Iris.platform.getGlobalScheduler().runAtFixedRate(this::onTick, 1, 1);
     }
 
     @EventHandler

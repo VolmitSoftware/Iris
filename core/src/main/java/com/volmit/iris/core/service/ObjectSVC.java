@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Getter;
-import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 
@@ -71,7 +70,7 @@ public class ObjectSVC implements IrisService {
      */
     private void revert(Map<Block, BlockData> blocks) {
         Iterator<Map.Entry<Block, BlockData>> it = blocks.entrySet().iterator();
-        var scheduler = Iris.scheduler.region();
+        var scheduler = Iris.platform.getRegionScheduler();
         for (int i = 0; i < 200 && it.hasNext(); i++) {
             Map.Entry<Block, BlockData> entry = it.next();
             Block block = entry.getKey();

@@ -17,7 +17,6 @@ import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import io.papermc.lib.PaperLib;
 import lombok.Data;
 import lombok.Getter;
 import org.apache.logging.log4j.core.util.ExecutorServices;
@@ -226,7 +225,7 @@ public class TurboPregenerator extends Thread implements Listener {
     private void tickGenerate(Position2 chunk) {
         executorService.submit(() -> {
             CountDownLatch latch = new CountDownLatch(1);
-            PaperLib.getChunkAtAsync(world, chunk.getX(), chunk.getZ(), true)
+            Iris.platform.getChunkAtAsync(world, chunk.getX(), chunk.getZ(), true)
                     .thenAccept((i) -> {
                         latch.countDown();
                     });

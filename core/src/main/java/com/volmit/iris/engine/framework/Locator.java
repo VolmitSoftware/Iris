@@ -114,7 +114,7 @@ public interface Locator<T> {
     default void find(Player player, boolean teleport, String message) {
         find(player, location -> {
             if (teleport) {
-                Iris.scheduler.teleportAsync(player, location);
+                Iris.platform.teleportAsync(player, location);
             } else {
                 player.sendMessage(C.GREEN + message + " at: " + location.getBlockX() + " " + location.getBlockY() + " " + location.getBlockZ());
             }

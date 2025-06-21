@@ -10,8 +10,8 @@ public class OffsetNoiseGenerator implements NoiseGenerator {
     public OffsetNoiseGenerator(NoiseGenerator base, long seed) {
         this.base = base;
         RNG rng = new RNG(seed);
-        ox = rng.nextDouble(Integer.MIN_VALUE, Integer.MAX_VALUE);
-        oz = rng.nextDouble(Integer.MIN_VALUE, Integer.MAX_VALUE);
+        ox = rng.nextDouble(Short.MIN_VALUE, Short.MAX_VALUE);
+        oz = rng.nextDouble(Short.MIN_VALUE, Short.MAX_VALUE);
     }
 
     @Override

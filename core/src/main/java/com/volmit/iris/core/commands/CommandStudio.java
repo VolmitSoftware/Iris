@@ -356,6 +356,42 @@ public class CommandStudio implements DecreeExecutor {
         player().openInventory(inv);
     }
 
+    @Decree(description = "Calculate the chance for each region to generate", origin = DecreeOrigin.PLAYER)
+    public void regions(@Param(description = "The radius in chunks", defaultValue = "500") int radius) {
+        var engine = engine();
+        if (engine == null) {
+            sender().sendMessage(C.RED + "Only works in an Iris world!");
+            return;
+        }
+        var sender = sender();
+        var player = player();
+        Thread.ofVirtual()
+                .start(() -> {
+                    int d = radius * 2;
+                    KMap<String, AtomicInteger> data = new KMap<>();
+                    engine.getDimension().getRegions().forEach(key -> data.put(key, new AtomicInteger(0)));
+                    var multiBurst = new MultiBurst("Region Sampler", Thread.MIN_PRIORITY);
+                    var executor = multiBurst.burst(radius * radius);
+                    sender.sendMessage(C.GRAY + "Generating data...");
+                    var loc = player.getLocation();
+                    int totalTasks = d * d;
+                    AtomicInteger completedTasks = new AtomicInteger(0);
+                    int c = J.ar(() -> sender.sendProgress((double) completedTasks.get() / totalTasks, "Finding regions"), 0);
+                    new Spiraler(d, d, (x, z) -> executor.queue(() -> {
+                        var region = engine.getRegion((x << 4) + 8, (z << 4) + 8);
+                        data.computeIfAbsent(region.getLoadKey(), (k) -> new AtomicInteger(0))
+                                .incrementAndGet();
+                        completedTasks.incrementAndGet();
+                    })).setOffset(loc.getBlockX(), loc.getBlockZ()).drain();
+                    executor.complete();
+                    multiBurst.close();
+                    J.car(c);
+
+                    sender.sendMessage(C.GREEN + "Done!");
+                    var loader = engine.getData().getRegionLoader();
+                    data.forEach((k, v) -> sender.sendMessage(C.GREEN + k + ": " + loader.load(k).getRarity() + " / " + Form.f((double) v.get() / totalTasks * 100, 2) + "%"));
+                });
+    }
 
     @Decree(description = "Get all structures in a radius of chunks", aliases = "dist", origin = DecreeOrigin.PLAYER)
     public void distances(@Param(description = "The radius in chunks") int radius) {

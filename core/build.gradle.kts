@@ -60,6 +60,9 @@ dependencies {
     compileOnly("com.github.Ssomar-Developement:SCore:4.23.10.8")
     compileOnly("net.Indyuce:MMOItems-API:6.9.5-SNAPSHOT")
     compileOnly("com.willfp:EcoItems:5.44.0")
+    compileOnly("me.kryniowesegryderiusz:kgenerators-core:7.3") {
+        isTransitive = false
+    }
     //implementation files("libs/CustomItems.jar")
 
 

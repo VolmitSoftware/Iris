@@ -106,7 +106,7 @@ nmsBindings.forEach { key, value ->
         systemProperty("net.kyori.ansi.colorLevel", color)
         systemProperty("com.mojang.eula.agree", true)
         systemProperty("iris.errorReporting", errorReporting)
-        jvmArgs("-javaagent:${tasks.jar.flatMap { it.archiveFile }.get().asFile.absolutePath}")
+        jvmArgs("-javaagent:${project(":core:agent").tasks.jar.flatMap { it.archiveFile }.get().asFile.absolutePath}")
     }
 }
 
@@ -117,14 +117,8 @@ tasks {
             from(project(":nms:$key").tasks.named("remap").map { zipTree(it.outputs.files.singleFile) })
         }
         from(project(":core").tasks.shadowJar.flatMap { it.archiveFile }.map { zipTree(it) })
+        from(project(":core:agent").tasks.jar.flatMap { it.archiveFile })
         archiveFileName.set("Iris-${project.version}.jar")
-
-        manifest.attributes(
-            "Agent-Class" to "com.volmit.iris.util.agent.Installer",
-            "Premain-Class" to "com.volmit.iris.util.agent.Installer",
-            "Can-Redefine-Classes" to true,
-            "Can-Retransform-Classes" to true
-        )
     }
 
     register<Copy>("iris") {
@@ -175,10 +169,6 @@ fun exec(vararg command: Any) {
     p.inputStream.reader().useLines { it.forEach(::println) }
     p.errorStream.reader().useLines { it.forEach(::println) }
     p.waitFor()
-}
-
-dependencies {
-    implementation(project(":core"))
 }
 
 configurations.configureEach {

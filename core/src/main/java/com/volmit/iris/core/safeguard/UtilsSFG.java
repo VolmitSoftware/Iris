@@ -1,6 +1,7 @@
 package com.volmit.iris.core.safeguard;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.agent.Agent;
 import com.volmit.iris.util.format.C;
 
 public class UtilsSFG {
@@ -47,7 +48,7 @@ public class UtilsSFG {
             if (ServerBootSFG.missingAgent) {
                 Iris.safeguard(C.RED + "Java Agent");
                 Iris.safeguard(C.RED + "- Please enable dynamic agent loading by adding -XX:+EnableDynamicAgentLoading to your jvm arguments.");
-                Iris.safeguard(C.RED + "- or add the jvm argument -javaagent:plugins/" + Iris.instance.getJarFile().getName());
+                Iris.safeguard(C.RED + "- or add the jvm argument -javaagent:" + Agent.AGENT_JAR.getPath());
             }
             if (!ServerBootSFG.passedserversoftware) {
                 Iris.safeguard(C.YELLOW + "Unsupported Server Software");

@@ -70,6 +70,32 @@ public interface IRare {
         }
 
         if (possibilities.size() == 1) {
+            return possibilities.getFirst();
+        }
+
+        double total = 0;
+        for (T i : possibilities) {
+            total += 1d / i.getRarity();
+        }
+
+        double threshold = total * noiseValue;
+        double buffer = 0;
+        for (T i : possibilities) {
+            buffer += 1d / i.getRarity();
+            if (buffer >= threshold) {
+                return i;
+            }
+        }
+
+        return possibilities.getLast();
+    }
+
+    static <T extends IRare> T pickLegacy(List<T> possibilities, double noiseValue) {
+        if (possibilities.isEmpty()) {
+            return null;
+        }
+
+        if (possibilities.size() == 1) {
             return possibilities.get(0);
         }
         int totalWeight = 0; // This is he baseline

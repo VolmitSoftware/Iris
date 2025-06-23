@@ -470,7 +470,7 @@ public class Iris extends VolmitPlugin implements Listener {
         ServerConfigurator.configure();
         IrisSafeguard.IrisSafeguardSystem();
         getSender().setTag(getTag());
-        IrisSafeguard.earlySplash();
+        IrisSafeguard.splash(true);
         linkMultiverseCore = new MultiverseCoreLink();
         linkMythicMobs = new MythicMobsLink();
         configWatcher = new FileWatcher(getDataFile("settings.json"));
@@ -485,8 +485,7 @@ public class Iris extends VolmitPlugin implements Listener {
             J.sr(this::tickQueue, 0);
             J.s(this::setupPapi);
             J.a(ServerConfigurator::configure, 20);
-            splash();
-            UtilsSFG.splash();
+            IrisSafeguard.splash(false);
 
             autoStartStudio();
             checkForBukkitWorlds();

@@ -19,9 +19,9 @@
 package com.volmit.iris.engine.platform;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisWorlds;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.IrisEngine;
 import com.volmit.iris.engine.data.cache.AtomicCache;
@@ -62,7 +62,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
@@ -115,35 +114,35 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onWorldInit(WorldInitEvent event) {
-        try {
-            if (initialized || !world.name().equals(event.getWorld().getName()))
-                return;
-            AutoClosing.closeContext();
-            world.setRawWorldSeed(event.getWorld().getSeed());
-            Engine engine = getEngine(event.getWorld());
-            if (engine == null) {
-                Iris.warn("Failed to get Engine!");
-                J.s(() -> {
-                    Engine engine1 = getEngine(event.getWorld());
-                    if (engine1 != null) {
-                        try {
-                            INMS.get().inject(event.getWorld().getSeed(), engine1, event.getWorld());
-                            Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
-                            initialized = true;
-                        } catch (Throwable e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }, 10);
-            } else {
-                INMS.get().inject(event.getWorld().getSeed(), engine, event.getWorld());
-                Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
-                spawnChunks.complete(INMS.get().getSpawnChunkCount(event.getWorld()));
-                initialized = true;
+        if (initialized || !world.name().equals(event.getWorld().getName()))
+            return;
+        world.setRawWorldSeed(event.getWorld().getSeed());
+        if (initialize(event.getWorld())) return;
+
+        Iris.warn("Failed to get Engine for " + event.getWorld().getName() + " re-trying...");
+        J.s(() -> {
+            if (!initialize(event.getWorld())) {
+                Iris.error("Failed to get Engine for " + event.getWorld().getName() + "!");
             }
+        }, 10);
+    }
+
+    private boolean initialize(World world) {
+        Engine engine = getEngine(world);
+        if (engine == null) return false;
+        try {
+            INMS.get().inject(world.getSeed(), engine, world);
+            Iris.info("Injected Iris Biome Source into " + world.getName());
         } catch (Throwable e) {
+            Iris.reportError(e);
+            Iris.error("Failed to inject biome source into " + world.getName());
             e.printStackTrace();
         }
+        spawnChunks.complete(INMS.get().getSpawnChunkCount(world));
+        Iris.instance.unregisterListener(this);
+        initialized = true;
+        IrisWorlds.get().put(world.getName(), dimensionKey);
+        return true;
     }
 
     @Nullable

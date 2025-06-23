@@ -226,8 +226,8 @@ public class ServerConfigurator {
     }
 
     public static Stream<IrisData> allPacks() {
-        return Stream.concat(listFiles(new File("plugins/Iris/packs")),
-                        listFiles(Bukkit.getWorldContainer()).map(w -> new File(w, "iris/pack")))
+        return Stream.concat(listFiles(Iris.instance.getDataFolder("packs")),
+                        IrisWorlds.get().getFolders().map(w -> new File(w, "iris/pack")))
                 .filter(File::isDirectory)
                 .filter( base -> {
                     var content = new File(base, "dimensions").listFiles();

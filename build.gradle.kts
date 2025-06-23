@@ -90,7 +90,7 @@ nmsBindings.forEach { key, value ->
 
         dependencies {
             compileOnly(project(":core"))
-            compileOnly("com.github.CrazyDev05:PlatformUtils:4bac4f6e75") {
+            compileOnly("com.github.CrazyDev05:PlatformUtils:e396f93d56") {
                 isTransitive = false
             }
             compileOnly("org.jetbrains:annotations:26.0.2")

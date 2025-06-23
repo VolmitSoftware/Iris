@@ -69,7 +69,7 @@ dependencies {
     implementation("net.kyori:adventure-platform-bukkit:4.3.4")
     implementation("net.kyori:adventure-api:4.17.0")
     implementation("org.bstats:bstats-bukkit:3.1.0")
-    implementation("com.github.CrazyDev05:PlatformUtils:4bac4f6e75") {
+    implementation("com.github.CrazyDev05:PlatformUtils:e396f93d56") {
         isTransitive = false
     }
 

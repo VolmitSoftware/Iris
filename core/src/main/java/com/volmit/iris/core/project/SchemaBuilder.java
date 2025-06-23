@@ -140,6 +140,8 @@ public class SchemaBuilder {
 
             JSONObject property = buildProperty(k, c);
 
+            if (property.getBoolean("!required"))
+                required.put(k.getName());
             property.remove("!required");
             properties.put(k.getName(), property);
         }
@@ -512,8 +514,9 @@ public class SchemaBuilder {
         d.add(fancyType);
         d.add(getDescription(k.getType()));
 
-        if (k.getType().isAnnotationPresent(Snippet.class)) {
-            String sm = k.getType().getDeclaredAnnotation(Snippet.class).value();
+        Snippet snippet = k.getType().getDeclaredAnnotation(Snippet.class);
+        if (snippet != null) {
+            String sm = snippet.value();
             d.add("    ");
             d.add("You can instead specify \"snippet/" + sm + "/some-name.json\" to use a snippet file instead of specifying it here.");
         }

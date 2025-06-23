@@ -36,7 +36,12 @@ public interface NoiseGenerator {
         return false;
     }
 
+    default boolean isLegacyRarity() {
+        return false;
+    }
+
     default ProceduralStream<Double> stream() {
-        return ProceduralStream.of(this::noise, this::noise, Interpolated.DOUBLE);
+        return ProceduralStream.of(this::noise, this::noise, Interpolated.DOUBLE)
+                .setLegacyRarity(isLegacyRarity());
     }
 }

@@ -45,7 +45,7 @@ import java.util.function.Function;
 
 @SuppressWarnings("ALL")
 public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
-    static ProceduralStream<Double> ofDouble(Function2<Double, Double, Double> f) {
+    static FunctionStream<Double> ofDouble(Function2<Double, Double, Double> f) {
         try {
             return of(f, Interpolated.DOUBLE);
         } catch (IncompatibleClassChangeError e) {
@@ -56,27 +56,27 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         }
     }
 
-    static ProceduralStream<Double> ofDouble(Function3<Double, Double, Double, Double> f) {
+    static FunctionStream<Double> ofDouble(Function3<Double, Double, Double, Double> f) {
         return of(f, Interpolated.DOUBLE);
     }
 
-    static <T> ProceduralStream<T> of(Function2<Double, Double, T> f, Interpolated<T> helper) {
+    static <T> FunctionStream<T> of(Function2<Double, Double, T> f, Interpolated<T> helper) {
         return of(f, (x, y, z) -> f.apply(x, z), helper);
     }
 
-    static <T> ProceduralStream<T> of(Function3<Double, Double, Double, T> f, Interpolated<T> helper) {
+    static <T> FunctionStream<T> of(Function3<Double, Double, Double, T> f, Interpolated<T> helper) {
         return of((x, z) -> f.apply(x, 0D, z), f, helper);
     }
 
-    static <T> ProceduralStream<T> of(Function2<Double, Double, T> f, Function3<Double, Double, Double, T> f2, Interpolated<T> helper) {
+    static <T> FunctionStream<T> of(Function2<Double, Double, T> f, Function3<Double, Double, Double, T> f2, Interpolated<T> helper) {
         return new FunctionStream<>(f, f2, helper);
     }
 
-    default ProceduralStream<Boolean> chance(double chance) {
+    default FunctionStream<Boolean> chance(double chance) {
         return of((x, z) -> getDouble(x, z) < chance, Interpolated.BOOLEAN);
     }
 
-    default ProceduralStream<Boolean> seededChance(RNG brng, long rootSeed, double chance) {
+    default FunctionStream<Boolean> seededChance(RNG brng, long rootSeed, double chance) {
         RNG rng = brng.nextParallelRNG(rootSeed - 3995L);
         return of((x, z) -> {
             double ch = getDouble(x, z);
@@ -388,7 +388,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         return ProceduralStream.of((x, z) -> {
             double d = getDouble(x, z);
             return range.get(rng, d, -d, data);
-        }, Interpolated.DOUBLE);
+        }, Interpolated.DOUBLE).setLegacyRarity(range.getStyle().create(rng, data).isLegacyRarity());
     }
 
     default Hunk<T> fastFill2DParallel(int x, int z) {
@@ -577,4 +577,8 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     T get(double x, double z);
 
     T get(double x, double y, double z);
+
+    default boolean isLegacyRarity() {
+        return false;
+    }
 }

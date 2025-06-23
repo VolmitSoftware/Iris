@@ -66,4 +66,9 @@ public class SelectionStream<T> extends BasicStream<T> {
         return options[stream.get(x, y, z)];
     }
 
+    @Override
+    public boolean isLegacyRarity() {
+        return stream.isLegacyRarity();
+    }
+
 }

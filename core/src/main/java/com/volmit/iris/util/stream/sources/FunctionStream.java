@@ -27,6 +27,7 @@ public class FunctionStream<T> extends BasicStream<T> {
     private final Function2<Double, Double, T> f2;
     private final Function3<Double, Double, Double, T> f3;
     private final Interpolated<T> helper;
+    private volatile boolean legacyRarity = false;
 
     public FunctionStream(Function2<Double, Double, T> f2, Function3<Double, Double, Double, T> f3, Interpolated<T> helper) {
         super();
@@ -53,5 +54,15 @@ public class FunctionStream<T> extends BasicStream<T> {
     @Override
     public T get(double x, double y, double z) {
         return f3.apply(x, y, z);
+    }
+
+    @Override
+    public boolean isLegacyRarity() {
+        return legacyRarity;
+    }
+
+    public FunctionStream<T> setLegacyRarity(boolean legacyRarity) {
+        this.legacyRarity = legacyRarity;
+        return this;
     }
 }

@@ -62,4 +62,9 @@ public class NullSafeStream<T> extends BasicStream<T> implements ProceduralStrea
 
         return t;
     }
+
+    @Override
+    public boolean isLegacyRarity() {
+        return stream.isLegacyRarity();
+    }
 }

@@ -53,4 +53,8 @@ public class RoundingDoubleStream extends BasicStream<Double> {
         return round(stream.getDouble(x, y, z));
     }
 
+    @Override
+    public boolean isLegacyRarity() {
+        return stream.isLegacyRarity();
+    }
 }

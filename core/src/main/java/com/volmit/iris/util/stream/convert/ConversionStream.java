@@ -66,4 +66,9 @@ public class ConversionStream<T, V> extends BasicLayer implements ProceduralStre
     public V get(double x, double y, double z) {
         return converter.apply(stream.get(x, y, z));
     }
+
+    @Override
+    public boolean isLegacyRarity() {
+        return stream.isLegacyRarity();
+    }
 }

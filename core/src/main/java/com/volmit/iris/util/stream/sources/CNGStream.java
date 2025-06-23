@@ -69,4 +69,8 @@ public class CNGStream extends BasicLayer implements ProceduralStream<Double> {
         return cng.noise((x + getOffsetX()) / getZoom(), (y + getOffsetY()) / getZoom(), (z + getOffsetZ()) * getZoom());
     }
 
+    @Override
+    public boolean isLegacyRarity() {
+        return cng.isLegacyRarity();
+    }
 }

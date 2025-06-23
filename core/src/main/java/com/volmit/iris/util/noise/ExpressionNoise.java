@@ -44,4 +44,9 @@ public class ExpressionNoise implements NoiseGenerator {
     public double noise(double x, double y, double z) {
         return expression.evaluate(rng, x, y, z);
     }
+
+    @Override
+    public boolean isLegacyRarity() {
+        return expression.isLegacyRarity();
+    }
 }

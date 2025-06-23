@@ -524,4 +524,8 @@ public class CNG {
     public boolean isStatic() {
         return generator != null && generator.isStatic();
     }
+
+    public boolean isLegacyRarity() {
+        return generator != null && generator.isLegacyRarity();
+    }
 }

@@ -59,6 +59,9 @@ public class IrisExpression extends IrisRegistrant {
     @Desc("The expression. Inherited variables are x, y and z. Avoid using those variable names.")
     private String expression;
 
+    @Desc("Use legacy rarity calculation")
+    private boolean legacyRarity = true;
+
     private transient AtomicCache<Expression> expressionCache = new AtomicCache<>();
     private transient AtomicCache<ProceduralStream<Double>> streamCache = new AtomicCache<>();
 
@@ -99,7 +102,8 @@ public class IrisExpression extends IrisRegistrant {
 
     public ProceduralStream<Double> stream(RNG rng) {
         return streamCache.aquire(() -> ProceduralStream.of((x, z) -> evaluate(rng, x, z),
-                (x, y, z) -> evaluate(rng, x, y, z), Interpolated.DOUBLE));
+                (x, y, z) -> evaluate(rng, x, y, z), Interpolated.DOUBLE)
+                .setLegacyRarity(legacyRarity));
     }
 
     public double evaluate(RNG rng, double x, double z) {

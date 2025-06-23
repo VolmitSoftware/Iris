@@ -52,4 +52,9 @@ public abstract class BasicStream<T> extends BasicLayer implements ProceduralStr
 
     @Override
     public abstract T fromDouble(double d);
+
+    @Override
+    public boolean isLegacyRarity() {
+        return source != null && source.isLegacyRarity();
+    }
 }

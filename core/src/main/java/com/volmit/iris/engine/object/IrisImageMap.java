@@ -62,6 +62,9 @@ public class IrisImageMap {
     @Desc("Center 0,0 to the center of the image instead of the top left.")
     private boolean centered = true;
 
+    @Desc("Use legacy rarity calculation")
+    private boolean legacyRarity = true;
+
     private transient AtomicCache<IrisImage> imageCache = new AtomicCache<IrisImage>();
 
     public double getNoise(IrisData data, int x, int z) {

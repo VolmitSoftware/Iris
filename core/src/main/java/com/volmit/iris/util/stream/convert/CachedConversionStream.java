@@ -65,4 +65,9 @@ public class CachedConversionStream<T, V> extends BasicLayer implements Procedur
     public V get(double x, double y, double z) {
         return cache.computeIfAbsent(stream.get(x, y, z), converter);
     }
+
+    @Override
+    public boolean isLegacyRarity() {
+        return stream.isLegacyRarity();
+    }
 }

@@ -49,4 +49,8 @@ public class ForceDoubleStream extends BasicStream<Double> {
         return stream.getDouble(x, y, z);
     }
 
+    @Override
+    public boolean isLegacyRarity() {
+        return stream.isLegacyRarity();
+    }
 }

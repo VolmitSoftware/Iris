@@ -81,4 +81,9 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
     public boolean isClosed() {
         return engine.isClosed();
     }
+
+    @Override
+    public boolean isLegacyRarity() {
+        return stream.isLegacyRarity();
+    }
 }

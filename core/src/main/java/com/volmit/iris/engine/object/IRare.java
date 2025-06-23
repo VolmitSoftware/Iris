@@ -26,8 +26,8 @@ import java.util.List;
 
 public interface IRare {
     static <T extends IRare> ProceduralStream<T> stream(ProceduralStream<Double> noise, List<T> possibilities) {
-        return ProceduralStream.of((x, z) -> pick(possibilities, noise.get(x, z)),
-                (x, y, z) -> pick(possibilities, noise.get(x, y, z)),
+        return ProceduralStream.of(noise.isLegacyRarity() ? (x, z) -> pickLegacy(possibilities, noise.get(x, z)) : (x, z) -> pick(possibilities, noise.get(x, z)),
+                noise.isLegacyRarity() ? (x, y, z) -> pickLegacy(possibilities, noise.get(x, y, z)) : (x, y, z) -> pick(possibilities, noise.get(x, y, z)),
                 new Interpolated<T>() {
                     @Override
                     public double toDouble(T t) {
@@ -38,7 +38,7 @@ public interface IRare {
                     public T fromDouble(double d) {
                         return null;
                     }
-                });
+                }).setLegacyRarity(noise.isLegacyRarity());
     }
 
 

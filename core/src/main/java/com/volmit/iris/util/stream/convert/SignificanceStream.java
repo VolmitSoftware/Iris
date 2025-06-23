@@ -82,4 +82,9 @@ public class SignificanceStream<K extends Significance<T>, T> extends BasicStrea
     public K get(double x, double y, double z) {
         return get(x, z);
     }
+
+    @Override
+    public boolean isLegacyRarity() {
+        return stream.isLegacyRarity();
+    }
 }

@@ -44,4 +44,9 @@ public class ImageNoise implements NoiseGenerator {
     public double noise(double x, double y, double z) {
         return noise(x, z + y);
     }
+
+    @Override
+    public boolean isLegacyRarity() {
+        return expression.isLegacyRarity();
+    }
 }

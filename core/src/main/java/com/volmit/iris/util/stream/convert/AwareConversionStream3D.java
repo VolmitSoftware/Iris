@@ -62,4 +62,9 @@ public class AwareConversionStream3D<T, V> extends BasicStream<V> {
     public V get(double x, double y, double z) {
         return converter.apply(stream.get(x, y, z), x, y, z);
     }
+
+    @Override
+    public boolean isLegacyRarity() {
+        return stream.isLegacyRarity();
+    }
 }

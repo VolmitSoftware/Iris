@@ -59,7 +59,8 @@ public class IrisStyledRange {
     }
 
     public ProceduralStream<Double> stream(RNG rng, IrisData data) {
-        return ProceduralStream.of((x, z) -> get(rng, x, z, data), Interpolated.DOUBLE);
+        return ProceduralStream.of((x, z) -> get(rng, x, z, data), Interpolated.DOUBLE)
+                .setLegacyRarity(style.create(rng, data).isLegacyRarity());
     }
 
     public boolean isFlat() {

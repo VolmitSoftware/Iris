@@ -25,9 +25,11 @@ import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterCavern;
+import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -54,6 +56,9 @@ public class IrisCave extends IrisRegistrant {
 
     @Desc("Limit the worm from ever getting higher or lower than this range")
     private IrisRange verticalRange = new IrisRange(3, 255);
+
+    @Desc("Shape of the caves")
+    private IrisCaveShape shape = new IrisCaveShape();
 
     @Override
     public String getFolderName() {
@@ -96,8 +101,10 @@ public class IrisCave extends IrisRegistrant {
         MatterCavern c = new MatterCavern(true, customBiome, (byte) 0);
         MatterCavern w = new MatterCavern(true, customBiome, (byte) 1);
 
-        writer.setLineConsumer(points,
-                girth, true,
+        CNG cng = shape.getNoise(rng, engine);
+        KSet<IrisPosition> mask = shape.getMasked(rng, engine);
+        writer.setNoiseMasked(points,
+                girth, cng.noise(x, y, z), cng, mask, true,
                 (xf, yf, zf) -> yf <= h ? w : c);
     }
 

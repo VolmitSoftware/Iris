@@ -56,6 +56,9 @@ dependencies {
     compileOnly("com.willfp:EcoItems:5.44.0")
     compileOnly("io.lumine:Mythic-Dist:5.2.1")
     compileOnly("io.lumine:MythicCrucible-Dist:2.0.0")
+    compileOnly("me.kryniowesegryderiusz:kgenerators-core:7.3") {
+        isTransitive = false
+    }
     //implementation files("libs/CustomItems.jar")
 
     // Shaded

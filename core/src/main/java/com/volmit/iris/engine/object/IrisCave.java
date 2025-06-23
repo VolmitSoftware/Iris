@@ -66,14 +66,12 @@ public class IrisCave extends IrisRegistrant {
     }
 
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
-        generate(writer, rng, engine, x, y, z, 0, -1);
+        generate(writer, rng, engine, x, y, z, 0, -1, true);
     }
 
-    public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int recursion, int waterHint) {
-
+    public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int recursion, int waterHint, boolean breakSurface) {
         double girth = getWorm().getGirth().get(rng, x, z, engine.getData());
-        KList<IrisPosition> points = getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z, (at) -> {
-        });
+        KList<IrisPosition> points = getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z, breakSurface, girth + 9);
         int highestWater = Math.max(waterHint, -1);
 
         if (highestWater == -1) {

@@ -253,12 +253,14 @@ public class IrisDimension extends IrisRegistrant {
         return (int) getDimensionHeight().getMin();
     }
 
-    public BlockData generateOres(int x, int y, int z, RNG rng, IrisData data) {
+    public BlockData generateOres(int x, int y, int z, RNG rng, IrisData data, boolean surface) {
         if (ores.isEmpty()) {
             return null;
         }
         BlockData b = null;
         for (IrisOreGenerator i : ores) {
+            if (i.isGenerateSurface() != surface)
+                continue;
 
             b = i.generate(x, y, z, rng, data);
             if (b != null) {

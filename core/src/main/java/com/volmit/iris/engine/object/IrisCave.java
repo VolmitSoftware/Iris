@@ -71,12 +71,12 @@ public class IrisCave extends IrisRegistrant {
     }
 
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
-        generate(writer, rng, engine, x, y, z, 0, -1, true);
+        generate(writer, rng, new RNG(engine.getSeedManager().getCarve()), engine, x, y, z, 0, -1, true);
     }
 
-    public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int recursion, int waterHint, boolean breakSurface) {
-        double girth = getWorm().getGirth().get(rng, x, z, engine.getData());
-        KList<IrisPosition> points = getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z, breakSurface, girth + 9);
+    public void generate(MantleWriter writer, RNG rng, RNG base, Engine engine, int x, int y, int z, int recursion, int waterHint, boolean breakSurface) {
+        double girth = getWorm().getGirth().get(base.nextParallelRNG(465156), x, z, engine.getData());
+        KList<IrisPosition> points = getWorm().generate(base.nextParallelRNG(784684), engine.getData(), writer, verticalRange, x, y, z, breakSurface, girth + 9);
         int highestWater = Math.max(waterHint, -1);
 
         if (highestWater == -1) {
@@ -92,16 +92,16 @@ public class IrisCave extends IrisRegistrant {
         }
 
 
-        int h = Math.min(Math.max(highestWater, waterHint), engine.getDimension().getFluidHeight());
+        int h = Math.min(highestWater, engine.getDimension().getFluidHeight());
 
         for (IrisPosition i : points) {
-            fork.doCarving(writer, rng, engine, i.getX(), i.getY(), i.getZ(), recursion, h);
+            fork.doCarving(writer, rng, base, engine, i.getX(), i.getY(), i.getZ(), recursion, h);
         }
 
         MatterCavern c = new MatterCavern(true, customBiome, (byte) 0);
         MatterCavern w = new MatterCavern(true, customBiome, (byte) 1);
 
-        CNG cng = shape.getNoise(rng, engine);
+        CNG cng = shape.getNoise(base.nextParallelRNG(8131545), engine);
         KSet<IrisPosition> mask = shape.getMasked(rng, engine);
         writer.setNoiseMasked(points,
                 girth, cng.noise(x, y, z), cng, mask, true,

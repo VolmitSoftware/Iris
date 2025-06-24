@@ -114,6 +114,6 @@ public class IrisCave extends IrisRegistrant {
     }
 
     public int getMaxSize(IrisData data, int depth) {
-        return getWorm().getMaxDistance() + fork.getMaxRange(data, depth);
+        return (int) (Math.ceil(getWorm().getGirth().getMax() * 2) + getWorm().getMaxDistance() + fork.getMaxRange(data, depth));
     }
 }

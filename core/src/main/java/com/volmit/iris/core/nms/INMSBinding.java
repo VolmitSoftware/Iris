@@ -18,6 +18,7 @@
 
 package com.volmit.iris.core.nms;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.datapack.DataVersion;
@@ -95,6 +96,9 @@ public interface INMSBinding {
         try (var ignored = injectLevelStems()) {
             ignored.storeContext();
             return c.createWorld();
+        } catch (UnsupportedOperationException e) {
+            Iris.error("Failed to create world", e);
+            return null;
         }
     }
 

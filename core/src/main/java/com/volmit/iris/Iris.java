@@ -69,7 +69,8 @@ import com.volmit.iris.util.scheduling.ShurikenQueue;
 import com.volmit.iris.util.sentry.Attachments;
 import com.volmit.iris.util.sentry.IrisLogger;
 import com.volmit.iris.util.sentry.ServerID;
-import io.papermc.lib.PaperLib;
+import de.crazydev22.platformutils.Platform;
+import de.crazydev22.platformutils.PlatformUtils;
 import io.sentry.Sentry;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
@@ -100,6 +101,7 @@ import java.math.RoundingMode;
 import java.net.URL;
 import java.text.NumberFormat;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -117,6 +119,7 @@ public class Iris extends VolmitPlugin implements Listener {
     public static MythicMobsLink linkMythicMobs;
     public static IrisCompat compat;
     public static FileWatcher configWatcher;
+    public static Platform platform;
     private static VolmitSender sender;
 
     static {
@@ -335,15 +338,14 @@ public class Iris extends VolmitPlugin implements Listener {
     @SuppressWarnings("deprecation")
     public static void later(NastyRunnable object) {
         try {
-            Bukkit.getScheduler().scheduleAsyncDelayedTask(instance, () ->
-            {
+            platform.getAsyncScheduler().runDelayed(task -> {
                 try {
                     object.run();
                 } catch (Throwable e) {
                     e.printStackTrace();
                     Iris.reportError(e);
                 }
-            }, RNG.r.i(100, 1200));
+            }, RNG.r.i(5, 60), TimeUnit.SECONDS);
         } catch (IllegalPluginAccessException ignored) {
 
         }
@@ -461,6 +463,7 @@ public class Iris extends VolmitPlugin implements Listener {
     }
     private void enable() {
         instance = this;
+        platform = PlatformUtils.createPlatform(this);
         services = new KMap<>();
         setupAudience();
         setupSentry();
@@ -479,7 +482,7 @@ public class Iris extends VolmitPlugin implements Listener {
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
         J.s(() -> {
-            J.a(() -> PaperLib.suggestPaper(this));
+            //J.a(() -> PaperLib.suggestPaper(this)); //TODO reimplement this
             J.a(() -> IO.delete(getTemp()));
             J.a(LazyPregenerator::loadLazyGenerators, 100);
             J.a(this::bstats);
@@ -548,7 +551,7 @@ public class Iris extends VolmitPlugin implements Listener {
                     J.s(() -> {
                         for (Player i : getServer().getOnlinePlayers()) {
                             i.setGameMode(GameMode.SPECTATOR);
-                            i.teleport(new Location(w, 0, 200, 0));
+                            platform.teleportAsync(i, new Location(w, 0, 200, 0));
                         }
                     });
                 });
@@ -582,7 +585,6 @@ public class Iris extends VolmitPlugin implements Listener {
 
     public void onDisable() {
         services.values().forEach(IrisService::onDisable);
-        Bukkit.getScheduler().cancelTasks(this);
         HandlerList.unregisterAll((Plugin) this);
         postShutdown.forEach(Runnable::run);
         super.onDisable();

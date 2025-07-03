@@ -221,6 +221,11 @@ public class ServerConfigurator {
             }
         }
 
+        if (INMS.get().missingDimensionTypes(dimension.getDimensionTypeKey())) {
+            Iris.warn("The Dimension Type for " + dimension.getLoadFile() + " is not registered on the server.");
+            warn = true;
+        }
+
         if (warn) {
             Iris.error("The Pack " + key + " is INCAPABLE of generating custom biomes");
             Iris.error("If not done automatically, restart your server before generating with this pack!");

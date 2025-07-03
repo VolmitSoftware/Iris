@@ -22,7 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
-import com.volmit.iris.core.nms.container.Pair;
+import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -222,6 +222,11 @@ public class NMSBinding1X implements INMSBinding {
     @Override
     public boolean isBukkit() {
         return true;
+    }
+
+    @Override
+    public DataVersion getDataVersion() {
+        return DataVersion.UNSUPPORTED;
     }
 
     @Override

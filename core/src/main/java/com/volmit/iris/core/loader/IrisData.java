@@ -363,6 +363,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         for (ResourceLoader<?> i : loaders.values()) {
             i.clearList();
         }
+        possibleSnippets.clear();
     }
 
     public String toLoadKey(File f) {

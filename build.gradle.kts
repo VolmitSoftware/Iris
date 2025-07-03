@@ -90,6 +90,7 @@ nmsBindings.forEach { key, value ->
         dependencies {
             compileOnly(project(":core"))
             compileOnly("org.jetbrains:annotations:26.0.2")
+            compileOnly("net.bytebuddy:byte-buddy:1.17.5")
         }
     }
 
@@ -105,6 +106,7 @@ nmsBindings.forEach { key, value ->
         systemProperty("net.kyori.ansi.colorLevel", color)
         systemProperty("com.mojang.eula.agree", true)
         systemProperty("iris.suppressReporting", !errorReporting)
+        jvmArgs("-javaagent:${project(":core:agent").tasks.jar.flatMap { it.archiveFile }.get().asFile.absolutePath}")
     }
 }
 
@@ -115,6 +117,7 @@ tasks {
             from(project(":nms:$key").tasks.named("remap").map { zipTree(it.outputs.files.singleFile) })
         }
         from(project(":core").tasks.shadowJar.flatMap { it.archiveFile }.map { zipTree(it) })
+        from(project(":core:agent").tasks.jar.flatMap { it.archiveFile })
         archiveFileName.set("Iris-${project.version}.jar")
     }
 
@@ -168,10 +171,6 @@ fun exec(vararg command: Any) {
     p.waitFor()
 }
 
-dependencies {
-    implementation(project(":core"))
-}
-
 configurations.configureEach {
     resolutionStrategy.cacheChangingModulesFor(60, "minutes")
     resolutionStrategy.cacheDynamicVersionsFor(60, "minutes")
@@ -193,6 +192,7 @@ allprojects {
         maven("https://repo.mineinabyss.com/releases")
         maven("https://hub.jeff-media.com/nexus/repository/jeff-media-public/")
         maven("https://repo.nexomc.com/releases/")
+        maven("https://nexus.phoenixdevt.fr/repository/maven-public/")
     }
 
     dependencies {

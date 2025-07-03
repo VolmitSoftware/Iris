@@ -3,7 +3,10 @@ package com.volmit.iris.core.safeguard;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class IrisSafeguard {
+    private static final AtomicBoolean sfg = new AtomicBoolean(false);
     public static boolean unstablemode = false;
     public static boolean warningmode = false;
     public static boolean stablemode = false;
@@ -13,12 +16,14 @@ public class IrisSafeguard {
         ServerBootSFG.BootCheck();
     }
 
-    public static void earlySplash() {
-        if (ServerBootSFG.safeguardPassed || IrisSettings.get().getGeneral().DoomsdayAnnihilationSelfDestructMode)
+    public static void splash(boolean early) {
+        if (early && (ServerBootSFG.safeguardPassed || IrisSettings.get().getGeneral().DoomsdayAnnihilationSelfDestructMode))
             return;
 
-        Iris.instance.splash();
-        UtilsSFG.splash();
+        if (!sfg.getAndSet(true)) {
+            Iris.instance.splash();
+            UtilsSFG.splash();
+        }
     }
 
     public static String mode() {

@@ -108,10 +108,17 @@ public class IrisComplex implements DataProvider {
         }
 
         //@builder
-        engine.getDimension().getRegions().forEach((i) -> data.getRegionLoader().load(i)
-                .getAllBiomes(this).forEach((b) -> b
-                        .getGenerators()
-                        .forEach((c) -> registerGenerator(c.getCachedGenerator(this)))));
+        if (focusRegion != null) {
+            focusRegion.getAllBiomes(this).forEach(this::registerGenerators);
+        } else if (focusBiome != null) {
+            registerGenerators(focusBiome);
+        } else {
+            engine.getDimension()
+                    .getRegions()
+                    .forEach(i -> data.getRegionLoader().load(i)
+                            .getAllBiomes(this)
+                            .forEach(this::registerGenerators));
+        }
         overlayStream = ProceduralStream.ofDouble((x, z) -> 0.0D).waste("Overlay Stream");
         engine.getDimension().getOverlayNoise().forEach(i -> overlayStream = overlayStream.add((x, z) -> i.get(rng, getData(), x, z)));
         rockStream = engine.getDimension().getRockPalette().getLayerGenerator(rng.nextParallelRNG(45), data).stream()
@@ -358,6 +365,10 @@ public class IrisComplex implements DataProvider {
 
     private double getHeight(Engine engine, IrisBiome b, double x, double z, long seed) {
         return Math.max(Math.min(getInterpolatedHeight(engine, x, z, seed) + fluidHeight + overlayStream.get(x, z), engine.getHeight()), 0);
+    }
+
+    private void registerGenerators(IrisBiome biome) {
+        biome.getGenerators().forEach(c -> registerGenerator(c.getCachedGenerator(this)));
     }
 
     private void registerGenerator(IrisGenerator cachedGenerator) {

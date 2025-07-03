@@ -20,7 +20,6 @@ package com.volmit.iris.core.nms.v1X;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
-import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.engine.framework.Engine;
@@ -121,23 +120,8 @@ public class NMSBinding1X implements INMSBinding {
     }
 
     @Override
-    public AutoClosing injectLevelStems() {
-        return new AutoClosing(() -> {});
-    }
-
-    @Override
-    public AutoClosing injectUncached(boolean overworld, boolean nether, boolean end) {
-        return injectLevelStems();
-    }
-
-    @Override
-    public boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end) {
+    public boolean missingDimensionTypes(String... keys) {
         return false;
-    }
-
-    @Override
-    public void removeCustomDimensions(World world) {
-
     }
 
     @Override

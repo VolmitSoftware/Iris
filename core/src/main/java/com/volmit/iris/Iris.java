@@ -35,7 +35,6 @@ import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.engine.object.IrisCompat;
-import com.volmit.iris.engine.object.IrisContextInjector;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
@@ -71,6 +70,7 @@ import com.volmit.iris.util.sentry.IrisLogger;
 import com.volmit.iris.util.sentry.ServerID;
 import io.papermc.lib.PaperLib;
 import io.sentry.Sentry;
+import lombok.NonNull;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
 import org.bstats.bukkit.Metrics;
@@ -465,14 +465,12 @@ public class Iris extends VolmitPlugin implements Listener {
         setupAudience();
         setupSentry();
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
-        INMS.get();
         IO.delete(new File("iris"));
         compat = IrisCompat.configured(getDataFile("compat.json"));
         ServerConfigurator.configure();
-        new IrisContextInjector();
         IrisSafeguard.IrisSafeguardSystem();
         getSender().setTag(getTag());
-        IrisSafeguard.earlySplash();
+        IrisSafeguard.splash(true);
         linkMultiverseCore = new MultiverseCoreLink();
         linkMythicMobs = new MythicMobsLink();
         configWatcher = new FileWatcher(getDataFile("settings.json"));
@@ -487,8 +485,7 @@ public class Iris extends VolmitPlugin implements Listener {
             J.sr(this::tickQueue, 0);
             J.s(this::setupPapi);
             J.a(ServerConfigurator::configure, 20);
-            splash();
-            UtilsSFG.splash();
+            IrisSafeguard.splash(false);
 
             autoStartStudio();
             checkForBukkitWorlds();
@@ -771,25 +768,11 @@ public class Iris extends VolmitPlugin implements Listener {
             }
         }
 
-        IrisDimension dim;
-        if (id == null || id.isEmpty()) {
-            dim = IrisData.loadAnyDimension(IrisSettings.get().getGenerator().getDefaultWorldType());
-        } else {
-            dim = IrisData.loadAnyDimension(id);
-        }
+        if (id == null || id.isEmpty()) id = IrisSettings.get().getGenerator().getDefaultWorldType();
         Iris.debug("Generator ID: " + id + " requested by bukkit/plugin");
-
+        IrisDimension dim = loadDimension(worldName, id);
         if (dim == null) {
-            Iris.warn("Unable to find dimension type " + id + " Looking for online packs...");
-
-            service(StudioSVC.class).downloadSearch(new VolmitSender(Bukkit.getConsoleSender()), id, false);
-            dim = IrisData.loadAnyDimension(id);
-
-            if (dim == null) {
-                throw new RuntimeException("Can't find dimension " + id + "!");
-            } else {
-                Iris.info("Resolved missing dimension, proceeding with generation.");
-            }
+            throw new RuntimeException("Can't find dimension " + id + "!");
         }
 
         Iris.debug("Assuming IrisDimension: " + dim.getName());
@@ -812,6 +795,24 @@ public class Iris extends VolmitPlugin implements Listener {
         }
 
         return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey());
+    }
+
+    @Nullable
+    public static IrisDimension loadDimension(@NonNull String worldName, @NonNull String id) {
+        var data = IrisData.get(new File(Bukkit.getWorldContainer(), String.join(File.separator, worldName, "iris", "pack")));
+        var dimension = data.getDimensionLoader().load(id);
+        if (dimension == null) dimension = IrisData.loadAnyDimension(id);
+        if (dimension == null) {
+            Iris.warn("Unable to find dimension type " + id + " Looking for online packs...");
+            Iris.service(StudioSVC.class).downloadSearch(new VolmitSender(Bukkit.getConsoleSender()), id, false);
+            dimension = IrisData.loadAnyDimension(id);
+
+            if (dimension != null) {
+                Iris.info("Resolved missing dimension, proceeding.");
+            }
+        }
+
+        return dimension;
     }
 
     public void splash() {

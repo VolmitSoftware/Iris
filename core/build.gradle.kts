@@ -26,10 +26,8 @@ plugins {
 val apiVersion = "1.19"
 val main = "com.volmit.iris.Iris"
 
-repositories {
-    maven("https://nexus.phoenixdevt.fr/repository/maven-public/")
-    maven("https://repo.auxilor.io/repository/maven-public/")
-}
+val dynamic: Configuration by configurations.creating
+configurations.compileOnly { extendsFrom(dynamic) }
 
 /**
  * Dependencies.
@@ -48,10 +46,6 @@ dependencies {
     compileOnly("org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT")
     compileOnly("org.apache.logging.log4j:log4j-api:2.19.0")
     compileOnly("org.apache.logging.log4j:log4j-core:2.19.0")
-    compileOnly("commons-io:commons-io:2.13.0")
-    compileOnly("commons-lang:commons-lang:2.6")
-    compileOnly("com.github.oshi:oshi-core:5.8.5")
-    compileOnly("org.lz4:lz4-java:1.8.0")
 
     // Third Party Integrations
     compileOnly("com.nexomc:nexo:1.6.0")
@@ -60,11 +54,12 @@ dependencies {
     compileOnly("com.github.Ssomar-Developement:SCore:4.23.10.8")
     compileOnly("net.Indyuce:MMOItems-API:6.9.5-SNAPSHOT")
     compileOnly("com.willfp:EcoItems:5.44.0")
+    compileOnly("io.lumine:Mythic-Dist:5.2.1")
+    compileOnly("io.lumine:MythicCrucible-Dist:2.0.0")
     compileOnly("me.kryniowesegryderiusz:kgenerators-core:7.3") {
         isTransitive = false
     }
     //implementation files("libs/CustomItems.jar")
-
 
     // Shaded
     implementation("com.dfsek:paralithic:0.8.1")
@@ -74,24 +69,22 @@ dependencies {
     implementation("net.kyori:adventure-api:4.17.0")
     implementation("org.bstats:bstats-bukkit:3.1.0")
 
-    //implementation("org.bytedeco:javacpp:1.5.10")
-    //implementation("org.bytedeco:cuda-platform:12.3-8.9-1.5.10")
-    compileOnly("io.lumine:Mythic-Dist:5.2.1")
-    compileOnly("io.lumine:MythicCrucible-Dist:2.0.0")
-
     // Dynamically Loaded
-    compileOnly("io.timeandspace:smoothie-map:2.0.2")
-    compileOnly("it.unimi.dsi:fastutil:8.5.8")
-    compileOnly("com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2")
-    compileOnly("org.zeroturnaround:zt-zip:1.14")
-    compileOnly("com.google.code.gson:gson:2.10.1")
-    compileOnly("org.ow2.asm:asm:9.2")
-    compileOnly("com.google.guava:guava:33.0.0-jre")
-    compileOnly("bsf:bsf:2.4.0")
-    compileOnly("rhino:js:1.7R2")
-    compileOnly("com.github.ben-manes.caffeine:caffeine:3.0.6")
-    compileOnly("org.apache.commons:commons-lang3:3.12.0")
-    compileOnly("com.github.oshi:oshi-core:6.6.5")
+    dynamic("commons-io:commons-io:2.13.0")
+    dynamic("commons-lang:commons-lang:2.6")
+    dynamic("com.github.oshi:oshi-core:6.6.5")
+    dynamic("org.lz4:lz4-java:1.8.0")
+    dynamic("it.unimi.dsi:fastutil:8.5.8")
+    dynamic("com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2")
+    dynamic("org.zeroturnaround:zt-zip:1.14")
+    dynamic("com.google.code.gson:gson:2.10.1")
+    dynamic("org.ow2.asm:asm:9.8")
+    dynamic("bsf:bsf:2.4.0")
+    dynamic("rhino:js:1.7R2")
+    dynamic("com.github.ben-manes.caffeine:caffeine:3.0.6")
+    dynamic("org.apache.commons:commons-lang3:3.12.0")
+    dynamic("net.bytebuddy:byte-buddy:1.17.5")
+    dynamic("net.bytebuddy:byte-buddy-agent:1.17.5")
 }
 
 java {
@@ -123,7 +116,8 @@ tasks {
             "name" to rootProject.name,
             "version" to rootProject.version,
             "apiVersion" to apiVersion,
-            "main" to main
+            "main" to main,
+            "libraries" to dynamic.allDependencies.map { "\n  - $it" }.sorted().joinToString("")
         )
         filesMatching("**/plugin.yml") {
             expand(inputs.properties)

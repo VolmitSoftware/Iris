@@ -153,19 +153,7 @@ public class SchemaBuilder {
         o.put("properties", properties);
 
 
-        if (c.isAnnotationPresent(Snippet.class)) {
-            JSONObject anyOf = new JSONObject();
-            JSONArray arr = new JSONArray();
-            JSONObject str = new JSONObject();
-            str.put("type", "string");
-            arr.put(o);
-            arr.put(str);
-            anyOf.put("anyOf", arr);
-
-            return anyOf;
-        }
-
-        return o;
+        return buildSnippet(o, c);
     }
 
     private JSONObject buildProperty(Field k, Class<?> cl) {
@@ -515,6 +503,13 @@ public class SchemaBuilder {
         d.add(getDescription(k.getType()));
 
         Snippet snippet = k.getType().getDeclaredAnnotation(Snippet.class);
+        if (snippet == null) {
+            ArrayType array = k.getType().getDeclaredAnnotation(ArrayType.class);
+            if (array != null) {
+                snippet = array.type().getDeclaredAnnotation(Snippet.class);
+            }
+        }
+
         if (snippet != null) {
             String sm = snippet.value();
             d.add("    ");
@@ -544,35 +539,36 @@ public class SchemaBuilder {
         description.forEach((g) -> d.add(g.trim()));
         prop.put("type", type);
         prop.put("description", d.toString("\n"));
+        return buildSnippet(prop, k.getType());
+    }
 
-        if (k.getType().isAnnotationPresent(Snippet.class)) {
-            JSONObject anyOf = new JSONObject();
-            JSONArray arr = new JSONArray();
-            JSONObject str = new JSONObject();
-            str.put("type", "string");
-            String key = "enum-snippet-" + k.getType().getDeclaredAnnotation(Snippet.class).value();
-            str.put("$ref", "#/definitions/" + key);
+    private JSONObject buildSnippet(JSONObject prop, Class<?> type) {
+        Snippet snippet = type.getDeclaredAnnotation(Snippet.class);
+        if (snippet == null) return prop;
 
-            if (!definitions.containsKey(key)) {
-                JSONObject j = new JSONObject();
-                JSONArray snl = new JSONArray();
-                data.getPossibleSnippets(k.getType().getDeclaredAnnotation(Snippet.class).value()).forEach(snl::put);
-                j.put("enum", snl);
-                definitions.put(key, j);
-            }
+        JSONObject anyOf = new JSONObject();
+        JSONArray arr = new JSONArray();
+        JSONObject str = new JSONObject();
+        str.put("type", "string");
+        String key = "enum-snippet-" + snippet.value();
+        str.put("$ref", "#/definitions/" + key);
 
-            arr.put(prop);
-            arr.put(str);
-            prop.put("description", d.toString("\n"));
-            str.put("description", d.toString("\n"));
-            anyOf.put("anyOf", arr);
-            anyOf.put("description", d.toString("\n"));
-            anyOf.put("!required", k.isAnnotationPresent(Required.class));
-
-            return anyOf;
+        if (!definitions.containsKey(key)) {
+            JSONObject j = new JSONObject();
+            JSONArray snl = new JSONArray();
+            data.getPossibleSnippets(snippet.value()).forEach(snl::put);
+            j.put("enum", snl);
+            definitions.put(key, j);
         }
 
-        return prop;
+        arr.put(prop);
+        arr.put(str);
+        str.put("description", prop.getString("description"));
+        anyOf.put("anyOf", arr);
+        anyOf.put("description", prop.getString("description"));
+        anyOf.put("!required", type.isAnnotationPresent(Required.class));
+
+        return anyOf;
     }
 
     @NotNull

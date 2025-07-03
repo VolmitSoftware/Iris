@@ -63,6 +63,7 @@ val color = "truecolor"
 val errorReporting = false
 
 val nmsBindings = mapOf(
+        "v1_21_R5" to "1.21.7-R0.1-SNAPSHOT",
         "v1_21_R4" to "1.21.5-R0.1-SNAPSHOT",
         "v1_21_R3" to "1.21.4-R0.1-SNAPSHOT",
         "v1_21_R2" to "1.21.3-R0.1-SNAPSHOT",

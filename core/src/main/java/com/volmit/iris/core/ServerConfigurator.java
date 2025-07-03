@@ -107,6 +107,10 @@ public class ServerConfigurator {
     }
 
     public static void installDataPacks(IDataFixer fixer, boolean fullInstall) {
+        if (fixer == null) {
+            Iris.error("Unable to install datapacks, fixer is null!");
+            return;
+        }
         Iris.info("Checking Data Packs...");
         DimensionHeight height = new DimensionHeight(fixer);
         KList<File> folders = getDatapacksFolder();

@@ -976,7 +976,7 @@ public class Iris extends VolmitPlugin implements Listener {
                 event.setTag("iris.nms", INMS.get().getClass().getCanonicalName());
                 var context = IrisContext.get();
                 if (context != null) event.getContexts().set("engine", context.asContext());
-                event.getContexts().set("safeguard", ServerBootSFG.allIncompatibilities);
+                event.getContexts().set("safeguard", IrisSafeguard.asContext());
                 return event;
             });
         });

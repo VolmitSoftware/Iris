@@ -2,6 +2,8 @@ package com.volmit.iris.core.safeguard;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -34,6 +36,24 @@ public class IrisSafeguard {
         } else {
             return "stable";
         }
+    }
+
+    public static KMap<String, Object> asContext() {
+        KMap<String, Object> m = new KMap<>();
+        m.put("diskSpace", !ServerBootSFG.hasEnoughDiskSpace);
+        m.put("javaVersion", !ServerBootSFG.isCorrectJDK);
+        m.put("jre", ServerBootSFG.isJRE);
+        m.put("missingAgent", ServerBootSFG.missingAgent);
+        m.put("missingDimensionTypes", ServerBootSFG.missingDimensionTypes);
+        m.put("failedInjection", ServerBootSFG.failedInjection);
+        m.put("unsupportedVersion", ServerBootSFG.unsuportedversion);
+        m.put("serverSoftware", !ServerBootSFG.passedserversoftware);
+        KList<String> incompatiblePlugins = new KList<>();
+        ServerBootSFG.incompatibilities.forEach((plugin, present) -> {
+            if (present) incompatiblePlugins.add(plugin);
+        });
+        m.put("plugins", incompatiblePlugins);
+        return m;
     }
 }
 

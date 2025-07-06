@@ -264,7 +264,7 @@ public class VolmitSender implements CommandSender {
     private Component createNoPrefixComponent(String message) {
         if (!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
             String t = C.translateAlternateColorCodes('&', MiniMessage.miniMessage().stripTags(message));
-            return MiniMessage.miniMessage().deserialize(t);
+            return MiniMessage.miniMessage().deserialize(C.mini(t));
         }
 
         String t = C.translateAlternateColorCodes('&', message);
@@ -273,13 +273,13 @@ public class VolmitSender implements CommandSender {
     }
 
     private Component createNoPrefixComponentNoProcessing(String message) {
-        return MiniMessage.builder().postProcessor(c -> c).build().deserialize(message);
+        return MiniMessage.builder().postProcessor(c -> c).build().deserialize(C.mini(message));
     }
 
     private Component createComponent(String message) {
         if (!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
             String t = C.translateAlternateColorCodes('&', MiniMessage.miniMessage().stripTags(getTag() + message));
-            return MiniMessage.miniMessage().deserialize(t);
+            return MiniMessage.miniMessage().deserialize(C.mini(t));
         }
 
         String t = C.translateAlternateColorCodes('&', getTag() + message);
@@ -290,11 +290,11 @@ public class VolmitSender implements CommandSender {
     private Component createComponentRaw(String message) {
         if (!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
             String t = C.translateAlternateColorCodes('&', MiniMessage.miniMessage().stripTags(getTag() + message));
-            return MiniMessage.miniMessage().deserialize(t);
+            return MiniMessage.miniMessage().deserialize(C.mini(t));
         }
 
         String t = C.translateAlternateColorCodes('&', getTag() + message);
-        return MiniMessage.miniMessage().deserialize(t);
+        return MiniMessage.miniMessage().deserialize(C.mini(t));
     }
 
     public <T> void showWaiting(String passive, CompletableFuture<T> f) {

@@ -96,7 +96,6 @@ public class IrisEngine implements Engine {
     private EngineExecutionEnvironment execution;
     private EngineWorldManager worldManager;
     private volatile int parallelism;
-    private volatile int minHeight;
     private boolean failing;
     private boolean closed;
     private int cacheId;
@@ -129,7 +128,6 @@ public class IrisEngine implements Engine {
         getData().setEngine(this);
         getData().loadPrefetch(this);
         Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + target.getDimension().getDimensionHeight() + " height) Seed: " + getSeedManager().getSeed());
-        minHeight = 0;
         failing = false;
         closed = false;
         art = J.ar(this::tickRandomPlayer, 0);
@@ -475,7 +473,7 @@ public class IrisEngine implements Engine {
         getEngineData().getStatistics().generatedChunk();
         try {
             PrecisionStopwatch p = PrecisionStopwatch.start();
-            Hunk<BlockData> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y + getMinHeight(), z + zz, t));
+            Hunk<BlockData> blocks = vblocks.listen((xx, y, zz, t) -> catchBlockUpdates(x + xx, y, z + zz, t));
 
             if (getDimension().isDebugChunkCrossSections() && ((x >> 4) % getDimension().getDebugCrossSectionsMod() == 0 || (z >> 4) % getDimension().getDebugCrossSectionsMod() == 0)) {
                 for (int i = 0; i < 16; i++) {

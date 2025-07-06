@@ -109,6 +109,7 @@ public class ChunkUpdater {
                         }
                     }
                 } catch (Exception e) {
+                    Iris.reportError(e);
                     e.printStackTrace();
                 }
             }, 0, 3, TimeUnit.SECONDS);
@@ -314,6 +315,7 @@ public class ChunkUpdater {
                 world.save();
             }).get();
         } catch (Throwable e) {
+            Iris.reportError(e);
             e.printStackTrace();
         }
     }

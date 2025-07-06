@@ -19,6 +19,7 @@
 package com.volmit.iris.util.mantle;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.io.CountingDataInputStream;
@@ -30,7 +31,8 @@ import lombok.Getter;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
@@ -45,7 +47,8 @@ public class MantleChunk {
     private final int z;
     private final AtomicIntegerArray flags;
     private final AtomicReferenceArray<Matter> sections;
-    private final AtomicInteger ref = new AtomicInteger();
+    private final Semaphore ref = new Semaphore(Integer.MAX_VALUE, true);
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     /**
      * Create a mantle chunk
@@ -72,11 +75,12 @@ public class MantleChunk {
      * @throws IOException            shit happens
      * @throws ClassNotFoundException shit happens
      */
-    public MantleChunk(int sectionHeight, CountingDataInputStream din) throws IOException {
+    public MantleChunk(int version, int sectionHeight, CountingDataInputStream din) throws IOException {
         this(sectionHeight, din.readByte(), din.readByte());
         int s = din.readByte();
+        int l = version < 0 ? flags.length() : Varint.readUnsignedVarInt(din);
 
-        for (int i = 0; i < flags.length(); i++) {
+        for (int i = 0; i < flags.length() && i < l; i++) {
             flags.set(i, din.readBoolean() ? 1 : 0);
         }
 
@@ -85,6 +89,10 @@ public class MantleChunk {
             long size = din.readInt();
             if (size == 0) continue;
             long start = din.count();
+            if (i >= sectionHeight) {
+                din.skipTo(start + size);
+                continue;
+            }
 
             try {
                 sections.set(i, Matter.readDin(din));
@@ -103,20 +111,27 @@ public class MantleChunk {
         }
     }
 
+    public void close() throws InterruptedException {
+        closed.set(true);
+        ref.acquire(Integer.MAX_VALUE);
+    }
+
     public boolean inUse() {
-        return ref.get() > 0;
+        return ref.availablePermits() < Integer.MAX_VALUE;
     }
 
     public MantleChunk use() {
-        ref.incrementAndGet();
+        if (closed.get()) throw new IllegalStateException("Chunk is closed!");
+        ref.acquireUninterruptibly();
         return this;
     }
 
     public void release() {
-        ref.decrementAndGet();
+        ref.release();
     }
 
     public void flag(MantleFlag flag, boolean f) {
+        if (closed.get()) throw new IllegalStateException("Chunk is closed!");
         flags.set(flag.ordinal(), f ? 1 : 0);
     }
 
@@ -201,6 +216,7 @@ public class MantleChunk {
         dos.writeByte(x);
         dos.writeByte(z);
         dos.writeByte(sections.length());
+        Varint.writeUnsignedVarInt(flags.length(), dos);
 
         for (int i = 0; i < flags.length(); i++) {
             dos.writeBoolean(flags.get(i) == 1);

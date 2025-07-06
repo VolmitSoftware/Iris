@@ -19,11 +19,12 @@
 package com.volmit.iris.engine.platform;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisWorlds;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.IrisEngine;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
@@ -40,6 +41,7 @@ import com.volmit.iris.util.io.ReactiveFolder;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
+import io.papermc.lib.PaperLib;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Setter;
@@ -60,7 +62,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
@@ -86,12 +87,13 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final boolean studio;
     private final AtomicInteger a = new AtomicInteger(0);
     private final CompletableFuture<Integer> spawnChunks = new CompletableFuture<>();
-    private Engine engine;
-    private Looper hotloader;
-    private StudioMode lastMode;
-    private DummyBiomeProvider dummyBiomeProvider;
+    private final AtomicCache<EngineTarget> targetCache = new AtomicCache<>();
+    private volatile Engine engine;
+    private volatile Looper hotloader;
+    private volatile StudioMode lastMode;
+    private volatile DummyBiomeProvider dummyBiomeProvider;
     @Setter
-    private StudioGenerator studioGenerator;
+    private volatile StudioGenerator studioGenerator;
 
     private boolean initialized = false;
 
@@ -110,86 +112,96 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         Bukkit.getServer().getPluginManager().registerEvents(this, Iris.instance);
     }
 
-    private static Field getField(Class clazz, String fieldName)
-            throws NoSuchFieldException {
-        try {
-            return clazz.getDeclaredField(fieldName);
-        } catch (NoSuchFieldException e) {
-            Class superClass = clazz.getSuperclass();
-            if (superClass == null) {
-                throw e;
-            } else {
-                return getField(superClass, fieldName);
-            }
-        }
-    }
-
     @EventHandler(priority = EventPriority.LOWEST)
     public void onWorldInit(WorldInitEvent event) {
-        try {
-            if (initialized || !world.name().equals(event.getWorld().getName()))
-                return;
-            AutoClosing.closeContext();
-            INMS.get().removeCustomDimensions(event.getWorld());
-            world.setRawWorldSeed(event.getWorld().getSeed());
-            Engine engine = getEngine(event.getWorld());
-            if (engine == null) {
-                Iris.warn("Failed to get Engine!");
-                J.s(() -> {
-                    Engine engine1 = getEngine(event.getWorld());
-                    if (engine1 != null) {
-                        try {
-                            INMS.get().inject(event.getWorld().getSeed(), engine1, event.getWorld());
-                            Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
-                            initialized = true;
-                        } catch (Throwable e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }, 10);
-            } else {
-                INMS.get().inject(event.getWorld().getSeed(), engine, event.getWorld());
-                Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
-                spawnChunks.complete(INMS.get().getSpawnChunkCount(event.getWorld()));
-                initialized = true;
+        if (initialized || !world.name().equals(event.getWorld().getName()))
+            return;
+        world.setRawWorldSeed(event.getWorld().getSeed());
+        if (initialize(event.getWorld())) return;
+
+        Iris.warn("Failed to get Engine for " + event.getWorld().getName() + " re-trying...");
+        J.s(() -> {
+            if (!initialize(event.getWorld())) {
+                Iris.error("Failed to get Engine for " + event.getWorld().getName() + "!");
             }
+        }, 10);
+    }
+
+    private boolean initialize(World world) {
+        Engine engine = getEngine(world);
+        if (engine == null) return false;
+        try {
+            INMS.get().inject(world.getSeed(), engine, world);
+            Iris.info("Injected Iris Biome Source into " + world.getName());
         } catch (Throwable e) {
+            Iris.reportError(e);
+            Iris.error("Failed to inject biome source into " + world.getName());
             e.printStackTrace();
         }
+        spawnChunks.complete(INMS.get().getSpawnChunkCount(world));
+        Iris.instance.unregisterListener(this);
+        initialized = true;
+        IrisWorlds.get().put(world.getName(), dimensionKey);
+        return true;
+    }
+
+    @Nullable
+    @Override
+    public Location getFixedSpawnLocation(@NotNull World world, @NotNull Random random) {
+        Location location = new Location(world, 0, 64, 0);
+        PaperLib.getChunkAtAsync(location)
+                .thenAccept(c -> {
+                    World w = c.getWorld();
+                    if (!w.getSpawnLocation().equals(location))
+                        return;
+                    w.setSpawnLocation(location.add(0, w.getHighestBlockYAt(location) - 64, 0));
+                });
+        return location;
     }
 
     private void setupEngine() {
-        IrisData data = IrisData.get(dataLocation);
-        IrisDimension dimension = data.getDimensionLoader().load(dimensionKey);
+        lastMode = StudioMode.NORMAL;
+        engine = new IrisEngine(getTarget(), studio);
+        populators.clear();
+        targetCache.reset();
+    }
 
-        if (dimension == null) {
-            Iris.error("Oh No! There's no pack in " + data.getDataFolder().getPath() + " or... there's no dimension for the key " + dimensionKey);
-            IrisDimension test = IrisData.loadAnyDimension(dimensionKey);
+    @NotNull
+    @Override
+    public EngineTarget getTarget() {
+        if (engine != null) return engine.getTarget();
 
-            if (test != null) {
-                Iris.warn("Looks like " + dimensionKey + " exists in " + test.getLoadFile().getPath() + " ");
-                Iris.service(StudioSVC.class).installIntoWorld(Iris.getSender(), dimensionKey, dataLocation.getParentFile().getParentFile());
-                Iris.warn("Attempted to install into " + data.getDataFolder().getPath());
-                data.dump();
-                data.clearLists();
-                test = data.getDimensionLoader().load(dimensionKey);
+        return targetCache.aquire(() -> {
+            IrisData data = IrisData.get(dataLocation);
+            IrisDimension dimension = data.getDimensionLoader().load(dimensionKey);
+
+            if (dimension == null) {
+                Iris.error("Oh No! There's no pack in " + data.getDataFolder().getPath() + " or... there's no dimension for the key " + dimensionKey);
+                IrisDimension test = IrisData.loadAnyDimension(dimensionKey);
 
                 if (test != null) {
-                    Iris.success("Woo! Patched the Engine!");
-                    dimension = test;
+                    Iris.warn("Looks like " + dimensionKey + " exists in " + test.getLoadFile().getPath() + " ");
+                    Iris.service(StudioSVC.class).installIntoWorld(Iris.getSender(), dimensionKey, dataLocation.getParentFile().getParentFile());
+                    Iris.warn("Attempted to install into " + data.getDataFolder().getPath());
+                    data.dump();
+                    data.clearLists();
+                    test = data.getDimensionLoader().load(dimensionKey);
+
+                    if (test != null) {
+                        Iris.success("Woo! Patched the Engine!");
+                        dimension = test;
+                    } else {
+                        Iris.error("Failed to patch dimension!");
+                        throw new RuntimeException("Missing Dimension: " + dimensionKey);
+                    }
                 } else {
-                    Iris.error("Failed to patch dimension!");
+                    Iris.error("Nope, you don't have an installation containing " + dimensionKey + " try downloading it?");
                     throw new RuntimeException("Missing Dimension: " + dimensionKey);
                 }
-            } else {
-                Iris.error("Nope, you don't have an installation containing " + dimensionKey + " try downloading it?");
-                throw new RuntimeException("Missing Dimension: " + dimensionKey);
             }
-        }
 
-        lastMode = StudioMode.NORMAL;
-        engine = new IrisEngine(new EngineTarget(world, dimension, data), studio);
-        populators.clear();
+            return new EngineTarget(world, dimension, data);
+        });
     }
 
     @Override
@@ -301,7 +313,9 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                 hotloader.interrupt();
             }
 
-            getEngine().close();
+            final Engine engine = getEngine();
+            if (engine != null && !engine.isClosed())
+                engine.close();
             folder.clear();
             populators.clear();
 

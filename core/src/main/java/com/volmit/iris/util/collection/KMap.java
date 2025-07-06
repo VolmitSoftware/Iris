@@ -23,11 +23,9 @@ import com.volmit.iris.util.function.Consumer2;
 import com.volmit.iris.util.function.Consumer3;
 import com.volmit.iris.util.scheduling.Queue;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Enumeration;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 @SuppressWarnings("ALL")
@@ -371,6 +369,20 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
         KList<KeyPair<K, V>> g = new KList<>();
         each((k, v) -> g.add(new KeyPair<K, V>(k, v)));
         return g;
+    }
+
+    public KMap<K, V> qclear(BiConsumer<K, V> action) {
+        final Iterator<Map.Entry<K, V>> it = entrySet().iterator();
+        while (it.hasNext()) {
+            final Map.Entry<K, V> entry = it.next();
+            it.remove();
+            try {
+                action.accept(entry.getKey(), entry.getValue());
+            } catch (Throwable e) {
+                Iris.reportError(e);
+            }
+        }
+        return this;
     }
 
     /**

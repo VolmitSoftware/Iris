@@ -30,11 +30,11 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
+import com.volmit.iris.core.safeguard.ServerBootSFG;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.engine.object.IrisCompat;
-import com.volmit.iris.engine.object.IrisContextInjector;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
@@ -43,6 +43,7 @@ import com.volmit.iris.core.safeguard.UtilsSFG;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
@@ -51,6 +52,7 @@ import com.volmit.iris.util.io.FileWatcher;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.io.InstanceState;
 import com.volmit.iris.util.io.JarScanner;
+import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.misc.getHardware;
@@ -62,7 +64,12 @@ import com.volmit.iris.util.reflect.ShadeFix;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
+import com.volmit.iris.util.sentry.Attachments;
+import com.volmit.iris.util.sentry.IrisLogger;
+import com.volmit.iris.util.sentry.ServerID;
 import io.papermc.lib.PaperLib;
+import io.sentry.Sentry;
+import lombok.NonNull;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
 import org.bstats.bukkit.Metrics;
@@ -390,6 +397,7 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public static void reportError(Throwable e) {
+        Sentry.captureException(e);
         if (IrisSettings.get().getGeneral().isDebug()) {
             String n = e.getClass().getCanonicalName() + "-" + e.getStackTrace()[0].getClassName() + "-" + e.getStackTrace()[0].getLineNumber();
 
@@ -454,15 +462,14 @@ public class Iris extends VolmitPlugin implements Listener {
         instance = this;
         services = new KMap<>();
         setupAudience();
+        setupSentry();
         initialize("com.volmit.iris.core.service").forEach((i) -> services.put((Class<? extends IrisService>) i.getClass(), (IrisService) i));
-        INMS.get();
         IO.delete(new File("iris"));
         compat = IrisCompat.configured(getDataFile("compat.json"));
         ServerConfigurator.configure();
-        new IrisContextInjector();
         IrisSafeguard.IrisSafeguardSystem();
         getSender().setTag(getTag());
-        IrisSafeguard.earlySplash();
+        IrisSafeguard.splash(true);
         linkMultiverseCore = new MultiverseCoreLink();
         linkMythicMobs = new MythicMobsLink();
         configWatcher = new FileWatcher(getDataFile("settings.json"));
@@ -477,8 +484,7 @@ public class Iris extends VolmitPlugin implements Listener {
             J.sr(this::tickQueue, 0);
             J.s(this::setupPapi);
             J.a(ServerConfigurator::configure, 20);
-            splash();
-            UtilsSFG.splash();
+            IrisSafeguard.splash(false);
 
             autoStartStudio();
             checkForBukkitWorlds();
@@ -525,6 +531,7 @@ public class Iris extends VolmitPlugin implements Listener {
             }
         } catch (Throwable e) {
             e.printStackTrace();
+            reportError(e);
         }
     }
 
@@ -542,7 +549,7 @@ public class Iris extends VolmitPlugin implements Listener {
                     });
                 });
             } catch (IrisException e) {
-                e.printStackTrace();
+                reportError(e);
             }
         }
     }
@@ -574,9 +581,19 @@ public class Iris extends VolmitPlugin implements Listener {
         Bukkit.getScheduler().cancelTasks(this);
         HandlerList.unregisterAll((Plugin) this);
         postShutdown.forEach(Runnable::run);
-        services.clear();
-        MultiBurst.burst.close();
         super.onDisable();
+
+        J.attempt(new JarScanner(instance.getJarFile(), "", false)::scan);
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            Bukkit.getWorlds()
+                    .stream()
+                    .map(IrisToolbelt::access)
+                    .filter(Objects::nonNull)
+                    .forEach(PlatformChunkGenerator::close);
+
+            MultiBurst.burst.close();
+            services.clear();
+        }));
     }
 
     private void setupPapi() {
@@ -738,25 +755,11 @@ public class Iris extends VolmitPlugin implements Listener {
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
         Iris.debug("Default World Generator Called for " + worldName + " using ID: " + id);
-        IrisDimension dim;
-        if (id == null || id.isEmpty()) {
-            dim = IrisData.loadAnyDimension(IrisSettings.get().getGenerator().getDefaultWorldType());
-        } else {
-            dim = IrisData.loadAnyDimension(id);
-        }
+        if (id == null || id.isEmpty()) id = IrisSettings.get().getGenerator().getDefaultWorldType();
         Iris.debug("Generator ID: " + id + " requested by bukkit/plugin");
-
+        IrisDimension dim = loadDimension(worldName, id);
         if (dim == null) {
-            Iris.warn("Unable to find dimension type " + id + " Looking for online packs...");
-
-            service(StudioSVC.class).downloadSearch(new VolmitSender(Bukkit.getConsoleSender()), id, true);
-            dim = IrisData.loadAnyDimension(id);
-
-            if (dim == null) {
-                throw new RuntimeException("Can't find dimension " + id + "!");
-            } else {
-                Iris.info("Resolved missing dimension, proceeding with generation.");
-            }
+            throw new RuntimeException("Can't find dimension " + id + "!");
         }
 
         Iris.debug("Assuming IrisDimension: " + dim.getName());
@@ -779,6 +782,24 @@ public class Iris extends VolmitPlugin implements Listener {
         }
 
         return new BukkitChunkGenerator(w, false, ff, dim.getLoadKey());
+    }
+
+    @Nullable
+    public static IrisDimension loadDimension(@NonNull String worldName, @NonNull String id) {
+        var data = IrisData.get(new File(Bukkit.getWorldContainer(), String.join(File.separator, worldName, "iris", "pack")));
+        var dimension = data.getDimensionLoader().load(id);
+        if (dimension == null) dimension = IrisData.loadAnyDimension(id);
+        if (dimension == null) {
+            Iris.warn("Unable to find dimension type " + id + " Looking for online packs...");
+            Iris.service(StudioSVC.class).downloadSearch(new VolmitSender(Bukkit.getConsoleSender()), id, false);
+            dimension = IrisData.loadAnyDimension(id);
+
+            if (dimension != null) {
+                Iris.info("Resolved missing dimension, proceeding.");
+            }
+        }
+
+        return dimension;
     }
 
     public void splash() {
@@ -915,5 +936,44 @@ public class Iris extends VolmitPlugin implements Listener {
         } catch (Exception e) {
             return -1;
         }
+    }
+
+    private static boolean suppress(Throwable e) {
+        return (e instanceof IllegalStateException ex && "zip file closed".equals(ex.getMessage())) || e instanceof JSONException;
+    }
+
+    private static void setupSentry() {
+        var settings = IrisSettings.get().getSentry();
+        if (settings.disableAutoReporting || Sentry.isEnabled() || Boolean.getBoolean("iris.suppressReporting")) return;
+        Iris.info("Enabling Sentry for anonymous error reporting. You can disable this in the settings.");
+        Iris.info("Your server ID is: " + ServerID.ID);
+        Sentry.init(options -> {
+            options.setDsn("https://b16ecc222e9c1e0c48faecacb906fd89@o4509451052646400.ingest.de.sentry.io/4509452722765904");
+            if (settings.debug) {
+                options.setLogger(new IrisLogger());
+                options.setDebug(true);
+            }
+
+            options.setAttachServerName(false);
+            options.setEnableUncaughtExceptionHandler(false);
+            options.setRelease(Iris.instance.getDescription().getVersion());
+            options.setBeforeSend((event, hint) -> {
+                if (suppress(event.getThrowable())) return null;
+                event.setTag("iris.safeguard", IrisSafeguard.mode());
+                event.setTag("iris.nms", INMS.get().getClass().getCanonicalName());
+                var context = IrisContext.get();
+                if (context != null) event.getContexts().set("engine", context.asContext());
+                event.getContexts().set("safeguard", IrisSafeguard.asContext());
+                return event;
+            });
+        });
+        Sentry.configureScope(scope -> {
+            if (settings.includeServerId) scope.setUser(ServerID.asUser());
+            scope.addAttachment(Attachments.PLUGINS);
+            scope.setTag("server", Bukkit.getVersion());
+            scope.setTag("server.type", Bukkit.getName());
+            scope.setTag("server.api", Bukkit.getBukkitVersion());
+        });
+        Runtime.getRuntime().addShutdownHook(new Thread(Sentry::close));
     }
 }

@@ -1,6 +1,7 @@
 package com.volmit.iris.core.safeguard;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.agent.Agent;
 import com.volmit.iris.util.format.C;
 
 public class UtilsSFG {
@@ -43,6 +44,11 @@ public class UtilsSFG {
                 Iris.safeguard(C.RED + "Dimension Types");
                 Iris.safeguard(C.RED + "- Required Iris dimension types were not loaded.");
                 Iris.safeguard(C.RED + "- If this still happens after a restart please contact support.");
+            }
+            if (ServerBootSFG.missingAgent) {
+                Iris.safeguard(C.RED + "Java Agent");
+                Iris.safeguard(C.RED + "- Please enable dynamic agent loading by adding -XX:+EnableDynamicAgentLoading to your jvm arguments.");
+                Iris.safeguard(C.RED + "- or add the jvm argument -javaagent:" + Agent.AGENT_JAR.getPath());
             }
             if (!ServerBootSFG.passedserversoftware) {
                 Iris.safeguard(C.YELLOW + "Unsupported Server Software");

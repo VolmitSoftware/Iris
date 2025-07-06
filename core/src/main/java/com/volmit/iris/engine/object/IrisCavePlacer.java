@@ -50,6 +50,10 @@ public class IrisCavePlacer implements IRare {
     @Desc("The cave to place")
     @RegistryListResource(IrisCave.class)
     private String cave;
+    @MinNumber(1)
+    @MaxNumber(256)
+    @Desc("The maximum recursion depth")
+    private int maxRecursion = 16;
     @Desc("If set to true, this cave is allowed to break the surface")
     private boolean breakSurface = true;
     @Desc("The height range this cave can spawn at. If breakSurface is false, the output of this range will be clamped by the current world height to prevent surface breaking.")
@@ -60,10 +64,10 @@ public class IrisCavePlacer implements IRare {
     }
 
     public void generateCave(MantleWriter mantle, RNG rng, Engine engine, int x, int y, int z) {
-        generateCave(mantle, rng, engine, x, y, z, -1);
+        generateCave(mantle, rng, engine, x, y, z, 0, -1);
     }
 
-    public void generateCave(MantleWriter mantle, RNG rng, Engine engine, int x, int y, int z, int waterHint) {
+    public void generateCave(MantleWriter mantle, RNG rng, Engine engine, int x, int y, int z, int recursion, int waterHint) {
         if (fail.get()) {
             return;
         }
@@ -82,28 +86,24 @@ public class IrisCavePlacer implements IRare {
         }
 
         if (y == -1) {
-            if(!breakSurface) {
-                int eH = engine.getHeight(x, z);
-                if (caveStartHeight.getMax() > eH) {
-                    caveStartHeight.setMax(eH);
-                }
-            }
-            y = (int) caveStartHeight.get(rng, x, z, data);
+            int h = (int) caveStartHeight.get(rng, x, z, data);
+            int ma = breakSurface ? h : (int) (engine.getComplex().getHeightStream().get(x, z) - 9);
+            y = Math.min(h, ma);
         }
 
         try {
-             cave.generate(mantle, rng, engine, x + rng.nextInt(15), y, z + rng.nextInt(15), waterHint);
+             cave.generate(mantle, rng, engine, x + rng.nextInt(15), y, z + rng.nextInt(15), recursion, waterHint, breakSurface);
         } catch (Throwable e) {
             e.printStackTrace();
             fail.set(true);
         }
     }
 
-    public int getSize(IrisData data) {
+    public int getSize(IrisData data, int depth) {
         IrisCave cave = getRealCave(data);
 
         if (cave != null) {
-            return cave.getMaxSize(data);
+            return cave.getMaxSize(data, depth);
         }
 
         return 32;

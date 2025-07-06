@@ -55,6 +55,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -422,9 +423,16 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             return;
         }
 
-        energy += 0.3;
-        fixEnergy();
-        getEngine().cleanupMantleChunk(e.getX(), e.getZ());
+        var ref = new WeakReference<>(e.getWorld());
+        int x = e.getX(), z = e.getZ();
+        J.s(() -> {
+            World world = ref.get();
+            if (world == null || !world.isChunkLoaded(x, z))
+                return;
+            energy += 0.3;
+            fixEnergy();
+            getEngine().cleanupMantleChunk(x, z);
+        }, IrisSettings.get().getPerformance().mantleCleanupDelay);
 
         if (generated) {
             //INMS.get().injectBiomesFromMantle(e, getMantle());

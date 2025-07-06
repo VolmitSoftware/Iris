@@ -20,6 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
@@ -87,10 +88,10 @@ public class IrisDepositGenerator {
     @Desc("Ore varience is how many different objects clumps iris will create")
     private int varience = 3;
 
-    public IrisObject getClump(RNG rng, IrisData rdata) {
+    public IrisObject getClump(Engine engine, RNG rng, IrisData rdata) {
         KList<IrisObject> objects = this.objects.aquire(() ->
         {
-            RNG rngv = rng.nextParallelRNG(3957778);
+            RNG rngv = new RNG(engine.getSeedManager().getDeposit() + hashCode());
             KList<IrisObject> objectsf = new KList<>();
 
             for (int i = 0; i < varience; i++) {

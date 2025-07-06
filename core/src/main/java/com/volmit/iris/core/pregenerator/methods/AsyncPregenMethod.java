@@ -157,7 +157,10 @@ public class AsyncPregenMethod implements PregeneratorMethod {
             } catch (Throwable e) {
                 Iris.warn("Failed to increase worker threads, if you are on paper or a fork of it please increase it manually to " + adjusted);
                 Iris.warn("For more information see https://docs.papermc.io/paper/reference/global-configuration#chunk_system_worker_threads");
-                if (e instanceof InvocationTargetException) e.printStackTrace();
+                if (e instanceof InvocationTargetException) {
+                    Iris.reportError(e);
+                    e.printStackTrace();
+                }
             }
             return 0;
         });
@@ -173,6 +176,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                 method.invoke(pool, i);
                 return 0;
             } catch (Throwable e) {
+                Iris.reportError(e);
                 Iris.error("Failed to reset worker threads");
                 e.printStackTrace();
             }
@@ -201,6 +205,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
                     }).get();
                 } catch (InterruptedException ignored) {
                 } catch (Throwable e) {
+                    Iris.reportError(e);
                     e.printStackTrace();
                 } finally {
                     semaphore.release();
@@ -219,6 +224,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
         public void generate(int x, int z, PregenListener listener) {
             PaperLib.getChunkAtAsync(world, x, z, true, urgent)
                     .exceptionally(e -> {
+                        Iris.reportError(e);
                         e.printStackTrace();
                         return null;
                     })

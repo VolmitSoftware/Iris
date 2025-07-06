@@ -52,16 +52,20 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
         BurstExecutor burst = burst().burst(multicore);
 
         long seed = x * 341873128712L + z * 132897987541L;
+        long mask = 0;
         for (IrisDepositGenerator k : getDimension().getDeposits()) {
-            burst.queue(() -> generate(k, terrain, rng.nextParallelRNG(seed), x, z, false, context));
+            long finalSeed = seed * ++mask;
+            burst.queue(() -> generate(k, terrain, rng.nextParallelRNG(finalSeed), x, z, false, context));
         }
 
         for (IrisDepositGenerator k : region.getDeposits()) {
-            burst.queue(() -> generate(k, terrain, rng.nextParallelRNG(seed), x, z, false, context));
+            long finalSeed = seed * ++mask;
+            burst.queue(() -> generate(k, terrain, rng.nextParallelRNG(finalSeed), x, z, false, context));
         }
 
         for (IrisDepositGenerator k : biome.getDeposits()) {
-            burst.queue(() -> generate(k, terrain, rng.nextParallelRNG(seed), x, z, false, context));
+            long finalSeed = seed * ++mask;
+            burst.queue(() -> generate(k, terrain, rng.nextParallelRNG(finalSeed), x, z, false, context));
         }
         burst.complete();
     }
@@ -78,7 +82,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
             if (k.getPerClumpSpawnChance() < rng.d())
                 continue;
 
-            IrisObject clump = k.getClump(rng, getData());
+            IrisObject clump = k.getClump(getEngine(), rng, getData());
 
             int dim = clump.getW();
             int min = dim / 2;

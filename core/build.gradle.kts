@@ -59,6 +59,7 @@ dependencies {
     compileOnly("me.kryniowesegryderiusz:kgenerators-core:7.3") {
         isTransitive = false
     }
+    compileOnly("org.mvplugins.multiverse.core:multiverse-core:5.1.0")
     //implementation files("libs/CustomItems.jar")
 
     // Shaded

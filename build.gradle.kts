@@ -194,6 +194,7 @@ allprojects {
         maven("https://hub.jeff-media.com/nexus/repository/jeff-media-public/")
         maven("https://repo.nexomc.com/releases/")
         maven("https://nexus.phoenixdevt.fr/repository/maven-public/")
+        maven("https://repo.onarandombox.com/content/groups/public/")
     }
 
     dependencies {

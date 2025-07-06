@@ -38,7 +38,6 @@ import com.volmit.iris.engine.object.IrisCompat;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
-import com.volmit.iris.engine.platform.DummyChunkGenerator;
 import com.volmit.iris.core.safeguard.IrisSafeguard;
 import com.volmit.iris.core.safeguard.UtilsSFG;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
@@ -756,18 +755,6 @@ public class Iris extends VolmitPlugin implements Listener {
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
         Iris.debug("Default World Generator Called for " + worldName + " using ID: " + id);
-        if (worldName.equals("test")) {
-            try {
-                throw new RuntimeException();
-            } catch (Throwable e) {
-                Iris.info(e.getStackTrace()[1].getClassName());
-                if (e.getStackTrace()[1].getClassName().contains("com.onarandombox.MultiverseCore")) {
-                    Iris.debug("MVC Test detected, Quick! Send them the dummy!");
-                    return new DummyChunkGenerator();
-                }
-            }
-        }
-
         if (id == null || id.isEmpty()) id = IrisSettings.get().getGenerator().getDefaultWorldType();
         Iris.debug("Generator ID: " + id + " requested by bukkit/plugin");
         IrisDimension dim = loadDimension(worldName, id);

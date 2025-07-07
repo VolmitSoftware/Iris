@@ -35,9 +35,11 @@ plugins {
     id("xyz.jpenilla.run-paper") version "2.3.1"
     id("io.sentry.jvm.gradle") version "5.7.0"
 }
-apply<ApiGenerator>()
 
+group = "com.volmit"
 version = "3.6.11-1.20.1-1.21.5"
+
+apply<ApiGenerator>()
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================

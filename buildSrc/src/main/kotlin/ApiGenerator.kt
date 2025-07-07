@@ -1,7 +1,9 @@
 import org.gradle.api.DefaultTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.provider.Provider
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
@@ -12,8 +14,17 @@ import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
 
 class ApiGenerator : Plugin<Project> {
-    override fun apply(target: Project) {
-        target.tasks.register("generateApi", GenerateApiTask::class.java)
+    override fun apply(target: Project): Unit = with(target) {
+        plugins.apply(MavenPublishPlugin::class.java)
+        val task = tasks.register("irisApi", GenerateApiTask::class.java)
+        extensions.findByType(PublishingExtension::class.java)!!
+            .publications
+            .create("maven", MavenPublication::class.java) {
+                it.groupId = group.toString()
+                it.artifactId = name
+                it.version = version.toString()
+                it.artifact(task)
+            }
     }
 }
 
@@ -21,21 +32,27 @@ abstract class GenerateApiTask : DefaultTask() {
     init {
         group = "iris"
         dependsOn("jar")
+        finalizedBy("publishToMavenLocal")
+        doLast {
+            logger.lifecycle("The API is located at ${outputFile.absolutePath}")
+        }
     }
 
     @InputFile
-    val inputFile: Provider<File> = project.tasks
+    val inputFile: File = project.tasks
         .named("jar", Jar::class.java)
-        .flatMap { it.archiveFile }
-        .map { it.asFile }
+        .get()
+        .archiveFile
+        .get()
+        .asFile
 
     @OutputFile
-    val outputFile: Provider<File> = inputFile.map { targetDirectory().resolve(it.name) }
+    val outputFile: File = targetDirectory().resolve(inputFile.name)
 
     @TaskAction
     fun generate() {
-        JarFile(inputFile.get()).use { jar ->
-            JarOutputStream(outputFile.get().outputStream()).use { out ->
+        JarFile(inputFile.apply { mkdirs() }).use { jar ->
+            JarOutputStream(outputFile.apply { mkdirs() }.outputStream()).use { out ->
                 jar.stream()
                     .parallel()
                     .filter { !it.isDirectory }

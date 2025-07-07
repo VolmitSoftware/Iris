@@ -51,8 +51,8 @@ abstract class GenerateApiTask : DefaultTask() {
 
     @TaskAction
     fun generate() {
-        JarFile(inputFile.apply { mkdirs() }).use { jar ->
-            JarOutputStream(outputFile.apply { mkdirs() }.outputStream()).use { out ->
+        JarFile(inputFile).use { jar ->
+            JarOutputStream(outputFile.apply { parentFile?.mkdirs() }.outputStream()).use { out ->
                 jar.stream()
                     .parallel()
                     .filter { !it.isDirectory }

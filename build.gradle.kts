@@ -35,6 +35,7 @@ plugins {
     id("xyz.jpenilla.run-paper") version "2.3.1"
     id("io.sentry.jvm.gradle") version "5.7.0"
 }
+apply<ApiGenerator>()
 
 version = "3.6.11-1.20.1-1.21.5"
 

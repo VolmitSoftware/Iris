@@ -30,6 +30,7 @@ buildscript {
 plugins {
     java
     `java-library`
+    `maven-publish`
     id("com.gradleup.shadow") version "8.3.6"
     id("de.undercouch.download") version "5.0.1"
     id("xyz.jpenilla.run-paper") version "2.3.1"

@@ -3,7 +3,6 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
-import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
@@ -15,7 +14,6 @@ import java.util.jar.JarOutputStream
 
 class ApiGenerator : Plugin<Project> {
     override fun apply(target: Project): Unit = with(target) {
-        plugins.apply(MavenPublishPlugin::class.java)
         val task = tasks.register("irisApi", GenerateApiTask::class.java)
         extensions.findByType(PublishingExtension::class.java)!!
             .publications

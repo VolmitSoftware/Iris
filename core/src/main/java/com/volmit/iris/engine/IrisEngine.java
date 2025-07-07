@@ -173,6 +173,7 @@ public class IrisEngine implements Engine {
             effects = new IrisEngineEffects(this);
             hash32 = new CompletableFuture<>();
             setupMode();
+            getDimension().getSetupScripts().forEach(execution::execute);
             J.a(this::computeBiomeMaxes);
             J.a(() -> {
                 File[] roots = getData().getLoaders()

@@ -250,6 +250,10 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("A list of globally applied pre-processors")
     @ArrayType(type = IrisPreProcessors.class)
     private KList<IrisPreProcessors> globalPreProcessors = new KList<>();
+    @Desc("A list of scripts executed on engine setup")
+    @RegistryListResource(IrisScript.class)
+    @ArrayType(type = String.class, min = 1)
+    private KList<String> setupScripts = new KList<>();
 
     public int getMaxHeight() {
         return (int) getDimensionHeight().getMax();

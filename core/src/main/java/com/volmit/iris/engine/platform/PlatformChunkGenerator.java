@@ -24,21 +24,23 @@ import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.framework.Hotloadable;
 import com.volmit.iris.util.data.DataProvider;
 import org.bukkit.World;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
+    @Nullable
     Engine getEngine();
 
     @Override
     default IrisData getData() {
-        return getEngine().getData();
+        return getTarget().getData();
     }
 
-    default EngineTarget getTarget() {
-        return getEngine().getTarget();
-    }
+    @NotNull
+    EngineTarget getTarget();
 
     void injectChunkReplacement(World world, int x, int z, Consumer<Runnable> jobs);
 

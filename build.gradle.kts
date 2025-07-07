@@ -36,7 +36,10 @@ plugins {
     id("io.sentry.jvm.gradle") version "5.7.0"
 }
 
+group = "com.volmit"
 version = "3.6.11-1.20.1-1.21.5"
+
+apply<ApiGenerator>()
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================
@@ -63,6 +66,7 @@ val color = "truecolor"
 val errorReporting = false
 
 val nmsBindings = mapOf(
+        "v1_21_R5" to "1.21.7-R0.1-SNAPSHOT",
         "v1_21_R4" to "1.21.5-R0.1-SNAPSHOT",
         "v1_21_R3" to "1.21.4-R0.1-SNAPSHOT",
         "v1_21_R2" to "1.21.3-R0.1-SNAPSHOT",
@@ -90,6 +94,7 @@ nmsBindings.forEach { key, value ->
         dependencies {
             compileOnly(project(":core"))
             compileOnly("org.jetbrains:annotations:26.0.2")
+            compileOnly("net.bytebuddy:byte-buddy:1.17.5")
         }
     }
 
@@ -104,7 +109,8 @@ nmsBindings.forEach { key, value ->
         systemProperty("disable.watchdog", "")
         systemProperty("net.kyori.ansi.colorLevel", color)
         systemProperty("com.mojang.eula.agree", true)
-        systemProperty("iris.errorReporting", errorReporting)
+        systemProperty("iris.suppressReporting", !errorReporting)
+        jvmArgs("-javaagent:${project(":core:agent").tasks.jar.flatMap { it.archiveFile }.get().asFile.absolutePath}")
     }
 }
 
@@ -115,6 +121,7 @@ tasks {
             from(project(":nms:$key").tasks.named("remap").map { zipTree(it.outputs.files.singleFile) })
         }
         from(project(":core").tasks.shadowJar.flatMap { it.archiveFile }.map { zipTree(it) })
+        from(project(":core:agent").tasks.jar.flatMap { it.archiveFile })
         archiveFileName.set("Iris-${project.version}.jar")
     }
 
@@ -168,10 +175,6 @@ fun exec(vararg command: Any) {
     p.waitFor()
 }
 
-dependencies {
-    implementation(project(":core"))
-}
-
 configurations.configureEach {
     resolutionStrategy.cacheChangingModulesFor(60, "minutes")
     resolutionStrategy.cacheDynamicVersionsFor(60, "minutes")
@@ -193,6 +196,8 @@ allprojects {
         maven("https://repo.mineinabyss.com/releases")
         maven("https://hub.jeff-media.com/nexus/repository/jeff-media-public/")
         maven("https://repo.nexomc.com/releases/")
+        maven("https://nexus.phoenixdevt.fr/repository/maven-public/")
+        maven("https://repo.onarandombox.com/content/groups/public/")
     }
 
     dependencies {

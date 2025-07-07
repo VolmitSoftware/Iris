@@ -447,17 +447,17 @@ public class IrisProject {
         KSet<IrisLootTable> loot = new KSet<>();
         KSet<IrisBlockData> blocks = new KSet<>();
 
-        for (String i : dm.getDimensionLoader().getPossibleKeys()) {
+        for (String i : dm.getBlockLoader().getPossibleKeys()) {
             blocks.add(dm.getBlockLoader().load(i));
         }
 
         dimension.getRegions().forEach((i) -> regions.add(dm.getRegionLoader().load(i)));
         dimension.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i)));
-        regions.forEach((i) -> biomes.addAll(i.getAllBiomes(null)));
+        regions.forEach((i) -> biomes.addAll(i.getAllBiomes(() -> dm)));
         regions.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i))));
         regions.forEach((r) -> r.getEntitySpawners().forEach((sp) -> spawners.add(dm.getSpawnerLoader().load(sp))));
         dimension.getEntitySpawners().forEach((sp) -> spawners.add(dm.getSpawnerLoader().load(sp)));
-        biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator(null))));
+        biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator(() -> dm))));
         biomes.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i))));
         biomes.forEach((r) -> r.getEntitySpawners().forEach((sp) -> spawners.add(dm.getSpawnerLoader().load(sp))));
         spawners.forEach((i) -> i.getSpawns().forEach((j) -> entities.add(dm.getEntityLoader().load(j.getEntity()))));

@@ -2,8 +2,13 @@ package com.volmit.iris.core.safeguard;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class IrisSafeguard {
+    private static final AtomicBoolean sfg = new AtomicBoolean(false);
     public static boolean unstablemode = false;
     public static boolean warningmode = false;
     public static boolean stablemode = false;
@@ -13,12 +18,14 @@ public class IrisSafeguard {
         ServerBootSFG.BootCheck();
     }
 
-    public static void earlySplash() {
-        if (ServerBootSFG.safeguardPassed || IrisSettings.get().getGeneral().DoomsdayAnnihilationSelfDestructMode)
+    public static void splash(boolean early) {
+        if (early && (ServerBootSFG.safeguardPassed || IrisSettings.get().getGeneral().DoomsdayAnnihilationSelfDestructMode))
             return;
 
-        Iris.instance.splash();
-        UtilsSFG.splash();
+        if (!sfg.getAndSet(true)) {
+            Iris.instance.splash();
+            UtilsSFG.splash();
+        }
     }
 
     public static String mode() {
@@ -29,6 +36,24 @@ public class IrisSafeguard {
         } else {
             return "stable";
         }
+    }
+
+    public static KMap<String, Object> asContext() {
+        KMap<String, Object> m = new KMap<>();
+        m.put("diskSpace", !ServerBootSFG.hasEnoughDiskSpace);
+        m.put("javaVersion", !ServerBootSFG.isCorrectJDK);
+        m.put("jre", ServerBootSFG.isJRE);
+        m.put("missingAgent", ServerBootSFG.missingAgent);
+        m.put("missingDimensionTypes", ServerBootSFG.missingDimensionTypes);
+        m.put("failedInjection", ServerBootSFG.failedInjection);
+        m.put("unsupportedVersion", ServerBootSFG.unsuportedversion);
+        m.put("serverSoftware", !ServerBootSFG.passedserversoftware);
+        KList<String> incompatiblePlugins = new KList<>();
+        ServerBootSFG.incompatibilities.forEach((plugin, present) -> {
+            if (present) incompatiblePlugins.add(plugin);
+        });
+        m.put("plugins", incompatiblePlugins);
+        return m;
     }
 }
 

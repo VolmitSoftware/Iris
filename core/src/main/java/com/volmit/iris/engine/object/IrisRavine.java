@@ -97,8 +97,7 @@ public class IrisRavine extends IrisRegistrant {
     }
 
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int recursion, int waterHint) {
-        KList<IrisPosition> pos = getWorm().generate(rng, engine.getData(), writer, null, x, y, z, (at) -> {
-        });
+        KList<IrisPosition> pos = getWorm().generate(rng, engine.getData(), writer, null, x, y, z, true, 0);
         CNG dg = depthStyle.getGenerator().createNoCache(rng, engine.getData());
         CNG bw = baseWidthStyle.getGenerator().createNoCache(rng, engine.getData());
         int highestWater = Math.max(waterHint, -1);

@@ -1667,7 +1667,7 @@ public class IO {
         return doc;
     }
 
-    public static <T extends OutputStream> void write(File file, IOFunction<FileOutputStream, T> builder, IOConsumer<T> action) throws IOException {
+    public static <T extends Closeable> void write(File file, IOFunction<FileOutputStream, T> builder, IOConsumer<T> action) throws IOException {
         File dir = new File(file.getParentFile(), ".tmp");
         dir.mkdirs();
         dir.deleteOnExit();

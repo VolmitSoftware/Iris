@@ -142,6 +142,8 @@ public class SchemaBuilder {
 
             JSONObject property = buildProperty(k, c);
 
+            if (property.getBoolean("!required"))
+                required.put(k.getName());
             property.remove("!required");
             properties.put(k.getName(), property);
         }
@@ -153,19 +155,7 @@ public class SchemaBuilder {
         o.put("properties", properties);
 
 
-        if (c.isAnnotationPresent(Snippet.class)) {
-            JSONObject anyOf = new JSONObject();
-            JSONArray arr = new JSONArray();
-            JSONObject str = new JSONObject();
-            str.put("type", "string");
-            arr.put(o);
-            arr.put(str);
-            anyOf.put("anyOf", arr);
-
-            return anyOf;
-        }
-
-        return o;
+        return buildSnippet(o, c);
     }
 
     private JSONObject buildProperty(Field k, Class<?> cl) {
@@ -515,8 +505,16 @@ public class SchemaBuilder {
         boolean present = !typeDesc.isBlank();
         if (present) d.add(typeDesc);
 
-        if (k.getType().isAnnotationPresent(Snippet.class)) {
-            String sm = k.getType().getDeclaredAnnotation(Snippet.class).value();
+        Snippet snippet = k.getType().getDeclaredAnnotation(Snippet.class);
+        if (snippet == null) {
+            ArrayType array = k.getType().getDeclaredAnnotation(ArrayType.class);
+            if (array != null) {
+                snippet = array.type().getDeclaredAnnotation(Snippet.class);
+            }
+        }
+
+        if (snippet != null) {
+            String sm = snippet.value();
             if (present) d.add("    ");
             d.add("You can instead specify \"snippet/" + sm + "/some-name.json\" to use a snippet file instead of specifying it here.");
             present = false;
@@ -547,40 +545,40 @@ public class SchemaBuilder {
                 .replace("</h>", "");
         String hDesc = d.toString("<br>");
         prop.put("type", type);
-        prop.put("description", desc);
+        prop.put("description", d.toString("\n"));
         prop.put("x-intellij-html-description", hDesc);
+        return buildSnippet(prop, k.getType());
+    }
 
-        if (k.getType().isAnnotationPresent(Snippet.class)) {
-            JSONObject anyOf = new JSONObject();
-            JSONArray arr = new JSONArray();
-            JSONObject str = new JSONObject();
-            str.put("type", "string");
-            String key = "enum-snippet-" + k.getType().getDeclaredAnnotation(Snippet.class).value();
-            str.put("$ref", "#/definitions/" + key);
+    private JSONObject buildSnippet(JSONObject prop, Class<?> type) {
+        Snippet snippet = type.getDeclaredAnnotation(Snippet.class);
+        if (snippet == null) return prop;
 
-            if (!definitions.containsKey(key)) {
-                JSONObject j = new JSONObject();
-                JSONArray snl = new JSONArray();
-                data.getPossibleSnippets(k.getType().getDeclaredAnnotation(Snippet.class).value()).forEach(snl::put);
-                j.put("enum", snl);
-                definitions.put(key, j);
-            }
+        JSONObject anyOf = new JSONObject();
+        JSONArray arr = new JSONArray();
+        JSONObject str = new JSONObject();
+        str.put("type", "string");
+        String key = "enum-snippet-" + snippet.value();
+        str.put("$ref", "#/definitions/" + key);
 
-            arr.put(prop);
-            arr.put(str);
-            prop.put("description", desc);
-            prop.put("x-intellij-html-description", hDesc);
-            str.put("description", desc);
-            str.put("x-intellij-html-description", hDesc);
-            anyOf.put("anyOf", arr);
-            anyOf.put("description", desc);
-            anyOf.put("x-intellij-html-description", hDesc);
-            anyOf.put("!required", k.isAnnotationPresent(Required.class));
-
-            return anyOf;
+        if (!definitions.containsKey(key)) {
+            JSONObject j = new JSONObject();
+            JSONArray snl = new JSONArray();
+            data.getPossibleSnippets(snippet.value()).forEach(snl::put);
+            j.put("enum", snl);
+            definitions.put(key, j);
         }
 
-        return prop;
+        arr.put(prop);
+        arr.put(str);
+        str.put("description", prop.getString("description"));
+        str.put("x-intellij-html-description", prop.getString("x-intellij-html-description"));
+        anyOf.put("anyOf", arr);
+        anyOf.put("description", prop.getString("description"));
+        anyOf.put("x-intellij-html-description", prop.getString("x-intellij-html-description"));
+        anyOf.put("!required", type.isAnnotationPresent(Required.class));
+
+        return anyOf;
     }
 
     @NotNull

@@ -14,15 +14,20 @@ import java.util.jar.JarOutputStream
 
 class ApiGenerator : Plugin<Project> {
     override fun apply(target: Project): Unit = with(target) {
+        plugins.apply("maven-publish")
         val task = tasks.register("irisApi", GenerateApiTask::class.java)
-        extensions.findByType(PublishingExtension::class.java)!!
-            .publications
-            .create("maven", MavenPublication::class.java) {
-                it.groupId = group.toString()
-                it.artifactId = name
+        extensions.findByType(PublishingExtension::class.java)!!.apply {
+            repositories.maven {
+                it.name = "deployDir"
+                it.url = targetDirectory.toURI()
+            }
+
+            publications.create("maven", MavenPublication::class.java) {
+                it.groupId = name
                 it.version = version.toString()
                 it.artifact(task)
             }
+        }
     }
 }
 
@@ -45,7 +50,7 @@ abstract class GenerateApiTask : DefaultTask() {
         .asFile
 
     @OutputFile
-    val outputFile: File = targetDirectory().resolve(inputFile.name)
+    val outputFile: File = project.targetDirectory.resolve(inputFile.name)
 
     @TaskAction
     fun generate() {
@@ -72,11 +77,11 @@ abstract class GenerateApiTask : DefaultTask() {
             }
         }
     }
+}
 
-    fun targetDirectory(): File {
-        val dir = System.getenv("DEPLOY_DIR") ?: return project.layout.buildDirectory.dir("api").get().asFile
-        return File(dir)
-    }
+val Project.targetDirectory: File get() {
+    val dir = System.getenv("DEPLOY_DIR") ?: return project.layout.buildDirectory.dir("api").get().asFile
+    return File(dir)
 }
 
 private class MethodClearingVisitor(

@@ -35,7 +35,7 @@ abstract class GenerateApiTask : DefaultTask() {
     init {
         group = "iris"
         dependsOn("jar")
-        finalizedBy("publishToMavenLocal")
+        finalizedBy("publishMavenPublicationToDeployDirRepository")
         doLast {
             logger.lifecycle("The API is located at ${outputFile.absolutePath}")
         }

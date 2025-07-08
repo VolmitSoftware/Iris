@@ -30,6 +30,7 @@ plugins {
 
 val apiVersion = "1.19"
 val main = "com.volmit.iris.Iris"
+val libs = "com.volmit.iris.util"
 
 /**
  * Dependencies.
@@ -112,7 +113,6 @@ slimJar {
         URI.create("https://repo.maven.apache.org/maven2/").toURL()
     ))
 
-    val libs = "com.volmit.iris.util"
     relocate("com.dfsek.paralithic", "$libs.paralithic")
     relocate("io.papermc.lib", "$libs.paper")
     relocate("net.kyori", "$libs.kyori")
@@ -147,6 +147,7 @@ tasks {
     shadowJar {
         mergeServiceFiles()
         //minimize()
+        relocate("io.github.slimjar", "$libs.slimjar")
     }
 }
 

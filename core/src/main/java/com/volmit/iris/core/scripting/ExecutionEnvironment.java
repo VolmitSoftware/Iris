@@ -15,15 +15,20 @@ import java.io.File;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.file.Files;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.file.Path;
 import java.util.*;
 
 @UtilityClass
 public class ExecutionEnvironment {
-    private static final String BASE_URL = "https://jitpack.io/com/github/VolmitSoftware/Iris-Scripts/%s/Iris-Scripts-%s-all.jar";
+    private static final String VERSION = System.getProperty("iris.scriptVersion", "e08b6f893e");
+    private static final String BASE_URL = "https://jitpack.io/com/github/VolmitSoftware/Iris-Scripts/" + VERSION + "/Iris-Scripts-" + VERSION + "-all.jar";
     private static final Provider PROVIDER = ServiceLoader.load(Provider.class, buildLoader())
             .findFirst()
-            .orElseThrow();
+            .orElseThrow()
+            .init(Iris.instance.getDataFolder("cache", "libraries").toPath());
 
     @NonNull
     public static Engine createEngine(@NonNull com.volmit.iris.engine.framework.Engine engine) {
@@ -42,21 +47,24 @@ public class ExecutionEnvironment {
 
     @SneakyThrows
     private static URLClassLoader buildLoader() {
-        String version = "e08b6f893e";
-        String url = BASE_URL.formatted(version, version);
-        String hash = IO.hash("Iris-Scripts.jar@" + version);
-        var file = Iris.instance.getDataFile("cache", hash.substring(0, 2), hash.substring(3, 5), hash + ".jar");
-        if (!file.exists()) {
-            Iris.info("Downloading Script Engine...");
-            try (var stream = URI.create(url).toURL().openStream()) {
-                Files.copy(stream, file.toPath());
+        try (HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build()) {
+            var resolved = client.send(HttpRequest.newBuilder(URI.create(BASE_URL)).build(), HttpResponse.BodyHandlers.discarding())
+                    .request();
+            String hash = IO.hash(resolved.uri().getPath());
+            File file = Iris.instance.getDataFile("cache", hash.substring(0, 2), hash.substring(3, 5), hash + ".jar");
+            if (!file.exists()) {
+                file.getParentFile().mkdirs();
+                Iris.info("Downloading Script Engine...");
+                client.send(resolved, HttpResponse.BodyHandlers.ofFile(file.toPath()));
+                Iris.info("Downloaded Script Engine!");
             }
-            Iris.info("Downloaded Script Engine!");
+            return new URLClassLoader(new URL[]{file.toURI().toURL()}, Provider.class.getClassLoader());
         }
-        return new URLClassLoader(new URL[]{file.toURI().toURL()}, Provider.class.getClassLoader());
     }
 
     public interface Provider {
+        Provider init(Path localRepository);
+
         @NonNull
         Engine createEngine(@NonNull com.volmit.iris.engine.framework.Engine engine);
 

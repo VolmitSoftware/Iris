@@ -23,14 +23,14 @@ import java.net.URI
 plugins {
     java
     `java-library`
-    id("com.gradleup.shadow")
-    id("io.sentry.jvm.gradle")
-    id("de.crazydev22.slimjar") version "2.0.6"
+    alias(libs.plugins.shadow)
+    alias(libs.plugins.sentry)
+    alias(libs.plugins.slimjar)
 }
 
 val apiVersion = "1.19"
 val main = "com.volmit.iris.Iris"
-val libs = "com.volmit.iris.util"
+val lib = "com.volmit.iris.util"
 
 /**
  * Dependencies.
@@ -46,52 +46,51 @@ val libs = "com.volmit.iris.util"
  */
 dependencies {
     // Provided or Classpath
-    compileOnly("org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT")
-    compileOnly("org.apache.logging.log4j:log4j-api:2.19.0")
-    compileOnly("org.apache.logging.log4j:log4j-core:2.19.0")
+    compileOnly(libs.spigot)
+    compileOnly(libs.log4j.api)
+    compileOnly(libs.log4j.core)
 
     // Third Party Integrations
-    compileOnly("com.nexomc:nexo:1.6.0")
-    compileOnly("com.github.LoneDev6:api-itemsadder:3.4.1-r4")
-    compileOnly("com.github.PlaceholderAPI:placeholderapi:2.11.3")
-    compileOnly("com.github.Ssomar-Developement:SCore:4.23.10.8")
-    compileOnly("net.Indyuce:MMOItems-API:6.9.5-SNAPSHOT")
-    compileOnly("com.willfp:EcoItems:5.44.0")
-    compileOnly("io.lumine:Mythic-Dist:5.2.1")
-    compileOnly("io.lumine:MythicCrucible-Dist:2.0.0")
-    compileOnly("me.kryniowesegryderiusz:kgenerators-core:7.3") {
+    compileOnly(libs.nexo)
+    compileOnly(libs.itemsadder)
+    compileOnly(libs.placeholderApi)
+    compileOnly(libs.score)
+    compileOnly(libs.mmoitems)
+    compileOnly(libs.ecoitems)
+    compileOnly(libs.mythic)
+    compileOnly(libs.mythicChrucible)
+    compileOnly(libs.kgenerators) {
         isTransitive = false
     }
-    compileOnly("org.mvplugins.multiverse.core:multiverse-core:5.1.0")
-    //implementation files("libs/CustomItems.jar")
+    compileOnly(libs.multiverseCore)
 
     // Shaded
     implementation(slimjar())
 
     // Dynamically Loaded
-    slim("com.dfsek:paralithic:0.8.1")
-    slim("io.papermc:paperlib:1.0.5")
-    slim("net.kyori:adventure-text-minimessage:4.17.0")
-    slim("net.kyori:adventure-platform-bukkit:4.3.4")
-    slim("net.kyori:adventure-api:4.17.0")
-    slim("org.bstats:bstats-bukkit:3.1.0")
-    slim("io.sentry:sentry:8.12.0")
+    slim(libs.paralithic)
+    slim(libs.paperlib)
+    slim(libs.adventure.api)
+    slim(libs.adventure.minimessage)
+    slim(libs.adventure.platform)
+    slim(libs.bstats)
+    slim(libs.sentry)
 
-    slim("commons-io:commons-io:2.13.0")
-    slim("commons-lang:commons-lang:2.6")
-    slim("com.github.oshi:oshi-core:6.6.5")
-    slim("org.lz4:lz4-java:1.8.0")
-    slim("it.unimi.dsi:fastutil:8.5.8")
-    slim("com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2")
-    slim("org.zeroturnaround:zt-zip:1.14")
-    slim("com.google.code.gson:gson:2.10.1")
-    slim("org.ow2.asm:asm:9.8")
-    slim("bsf:bsf:2.4.0")
-    slim("rhino:js:1.7R2")
-    slim("com.github.ben-manes.caffeine:caffeine:3.0.6")
-    slim("org.apache.commons:commons-lang3:3.12.0")
-    slim("net.bytebuddy:byte-buddy:1.17.5")
-    slim("net.bytebuddy:byte-buddy-agent:1.17.5")
+    slim(libs.commons.io)
+    slim(libs.commons.lang)
+    slim(libs.commons.lang3)
+    slim(libs.oshi)
+    slim(libs.lz4)
+    slim(libs.fastutil)
+    slim(libs.lru)
+    slim(libs.zip)
+    slim(libs.gson)
+    slim(libs.asm)
+    slim(libs.bsf)
+    slim(libs.rhino)
+    slim(libs.caffeine)
+    slim(libs.byteBuddy.core)
+    slim(libs.byteBuddy.agent)
 }
 
 java {
@@ -113,11 +112,11 @@ slimJar {
         URI.create("https://repo.maven.apache.org/maven2/").toURL()
     ))
 
-    relocate("com.dfsek.paralithic", "$libs.paralithic")
-    relocate("io.papermc.lib", "$libs.paper")
-    relocate("net.kyori", "$libs.kyori")
-    relocate("org.bstats", "$libs.metrics")
-    relocate("io.sentry", "$libs.sentry")
+    relocate("com.dfsek.paralithic", "$lib.paralithic")
+    relocate("io.papermc.lib", "$lib.paper")
+    relocate("net.kyori", "$lib.kyori")
+    relocate("org.bstats", "$lib.metrics")
+    relocate("io.sentry", "$lib.sentry")
 }
 
 tasks {
@@ -147,7 +146,7 @@ tasks {
     shadowJar {
         mergeServiceFiles()
         //minimize()
-        relocate("io.github.slimjar", "$libs.slimjar")
+        relocate("io.github.slimjar", "$lib.slimjar")
     }
 }
 

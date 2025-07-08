@@ -21,7 +21,7 @@ plugins {
 
 rootProject.name = "Iris"
 
-include(":core", ":core:agent")
+include(":core", ":core:agent", ":core:paper-loader")
 include(
         ":nms:v1_21_R5",
         ":nms:v1_21_R4",

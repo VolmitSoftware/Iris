@@ -25,6 +25,7 @@ plugins {
 
 val apiVersion = "1.19"
 val main = "com.volmit.iris.Iris"
+val loader = "com.volmit.iris.IrisPluginLoader"
 
 val dynamic: Configuration by configurations.creating
 configurations.compileOnly { extendsFrom(dynamic) }
@@ -69,6 +70,7 @@ dependencies {
     implementation("net.kyori:adventure-platform-bukkit:4.3.4")
     implementation("net.kyori:adventure-api:4.17.0")
     implementation("org.bstats:bstats-bukkit:3.1.0")
+    implementation(project(":core:paper-loader"))
 
     // Dynamically Loaded
     dynamic("commons-io:commons-io:2.13.0")
@@ -118,6 +120,7 @@ tasks {
             "version" to rootProject.version,
             "apiVersion" to apiVersion,
             "main" to main,
+            "loader" to loader,
             "libraries" to dynamic.allDependencies.map { "\n  - $it" }.sorted().joinToString("")
         )
         filesMatching("**/plugin.yml") {

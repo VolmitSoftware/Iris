@@ -1,3 +1,7 @@
+import io.github.slimjar.func.slimjar
+import io.github.slimjar.resolver.data.Mirror
+import java.net.URI
+
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
  * Copyright (c) 2021 Arcane Arts (Volmit Software)
@@ -21,14 +25,11 @@ plugins {
     `java-library`
     id("com.gradleup.shadow")
     id("io.sentry.jvm.gradle")
+    id("de.crazydev22.slimjar") version "2.0.6"
 }
 
 val apiVersion = "1.19"
 val main = "com.volmit.iris.Iris"
-val loader = "com.volmit.iris.IrisPluginLoader"
-
-val dynamic: Configuration by configurations.creating
-configurations.compileOnly { extendsFrom(dynamic) }
 
 /**
  * Dependencies.
@@ -64,30 +65,32 @@ dependencies {
     //implementation files("libs/CustomItems.jar")
 
     // Shaded
-    implementation("com.dfsek:paralithic:0.8.1")
-    implementation("io.papermc:paperlib:1.0.5")
-    implementation("net.kyori:adventure-text-minimessage:4.17.0")
-    implementation("net.kyori:adventure-platform-bukkit:4.3.4")
-    implementation("net.kyori:adventure-api:4.17.0")
-    implementation("org.bstats:bstats-bukkit:3.1.0")
-    implementation(project(":core:paper-loader"))
+    implementation(slimjar())
 
     // Dynamically Loaded
-    dynamic("commons-io:commons-io:2.13.0")
-    dynamic("commons-lang:commons-lang:2.6")
-    dynamic("com.github.oshi:oshi-core:6.6.5")
-    dynamic("org.lz4:lz4-java:1.8.0")
-    dynamic("it.unimi.dsi:fastutil:8.5.8")
-    dynamic("com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2")
-    dynamic("org.zeroturnaround:zt-zip:1.14")
-    dynamic("com.google.code.gson:gson:2.10.1")
-    dynamic("org.ow2.asm:asm:9.8")
-    dynamic("bsf:bsf:2.4.0")
-    dynamic("rhino:js:1.7R2")
-    dynamic("com.github.ben-manes.caffeine:caffeine:3.0.6")
-    dynamic("org.apache.commons:commons-lang3:3.12.0")
-    dynamic("net.bytebuddy:byte-buddy:1.17.5")
-    dynamic("net.bytebuddy:byte-buddy-agent:1.17.5")
+    slim("com.dfsek:paralithic:0.8.1")
+    slim("io.papermc:paperlib:1.0.5")
+    slim("net.kyori:adventure-text-minimessage:4.17.0")
+    slim("net.kyori:adventure-platform-bukkit:4.3.4")
+    slim("net.kyori:adventure-api:4.17.0")
+    slim("org.bstats:bstats-bukkit:3.1.0")
+    slim("io.sentry:sentry:8.12.0")
+
+    slim("commons-io:commons-io:2.13.0")
+    slim("commons-lang:commons-lang:2.6")
+    slim("com.github.oshi:oshi-core:6.6.5")
+    slim("org.lz4:lz4-java:1.8.0")
+    slim("it.unimi.dsi:fastutil:8.5.8")
+    slim("com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2")
+    slim("org.zeroturnaround:zt-zip:1.14")
+    slim("com.google.code.gson:gson:2.10.1")
+    slim("org.ow2.asm:asm:9.8")
+    slim("bsf:bsf:2.4.0")
+    slim("rhino:js:1.7R2")
+    slim("com.github.ben-manes.caffeine:caffeine:3.0.6")
+    slim("org.apache.commons:commons-lang3:3.12.0")
+    slim("net.bytebuddy:byte-buddy:1.17.5")
+    slim("net.bytebuddy:byte-buddy-agent:1.17.5")
 }
 
 java {
@@ -95,11 +98,26 @@ java {
 }
 
 sentry {
+    autoInstallation.enabled = false
     includeSourceContext = true
 
     org = "volmit-software"
     projectName = "iris"
     authToken = findProperty("sentry.auth.token") as String? ?: System.getenv("SENTRY_AUTH_TOKEN")
+}
+
+slimJar {
+    mirrors = listOf(Mirror(
+        URI.create("https://maven-central.storage-download.googleapis.com/maven2").toURL(),
+        URI.create("https://repo.maven.apache.org/maven2/").toURL()
+    ))
+
+    val libs = "com.volmit.iris.util"
+    relocate("com.dfsek.paralithic", "$libs.paralithic")
+    relocate("io.papermc.lib", "$libs.paper")
+    relocate("net.kyori", "$libs.kyori")
+    relocate("org.bstats", "$libs.metrics")
+    relocate("io.sentry", "$libs.sentry")
 }
 
 tasks {
@@ -120,8 +138,6 @@ tasks {
             "version" to rootProject.version,
             "apiVersion" to apiVersion,
             "main" to main,
-            "loader" to loader,
-            "libraries" to dynamic.allDependencies.map { "\n  - $it" }.sorted().joinToString("")
         )
         filesMatching("**/plugin.yml") {
             expand(inputs.properties)
@@ -130,17 +146,7 @@ tasks {
 
     shadowJar {
         mergeServiceFiles()
-        relocate("com.dfsek.paralithic", "com.volmit.iris.util.paralithic")
-        relocate("io.papermc.lib", "com.volmit.iris.util.paper")
-        relocate("net.kyori", "com.volmit.iris.util.kyori")
-        relocate("org.bstats", "com.volmit.iris.util.metrics")
-        relocate("io.sentry", "com.volmit.iris.util.sentry")
-
         //minimize()
-        dependencies {
-            exclude(dependency("org.ow2.asm:asm:"))
-            exclude(dependency("org.jetbrains:"))
-        }
     }
 }
 

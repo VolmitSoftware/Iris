@@ -30,7 +30,7 @@ buildscript {
 plugins {
     java
     `java-library`
-    id("com.gradleup.shadow") version "8.3.6"
+    id("com.gradleup.shadow") version "9.0.0-rc1"
     id("de.undercouch.download") version "5.0.1"
     id("xyz.jpenilla.run-paper") version "2.3.1"
     id("io.sentry.jvm.gradle") version "5.7.0"

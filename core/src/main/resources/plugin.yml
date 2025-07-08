@@ -5,12 +5,7 @@ load: STARTUP
 authors: [ cyberpwn, NextdoorPsycho, Vatuu ]
 website: volmit.com
 description: More than a Dimension!
-libraries: ${libraries}
 commands:
   iris:
     aliases: [ ir, irs ]
 api-version: '${apiVersion}'
-hotload-dependencies: false
-
-paper-plugin-loader: ${loader}
-paper-skip-libraries: true

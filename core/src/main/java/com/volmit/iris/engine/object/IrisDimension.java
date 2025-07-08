@@ -247,7 +247,11 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("A list of scripts executed on engine setup")
     @RegistryListResource(IrisScript.class)
     @ArrayType(type = String.class, min = 1)
-    private KList<String> setupScripts = new KList<>();
+    private KList<String> engineScripts = new KList<>();
+    @Desc("A list of scripts executed on data setup")
+    @RegistryListResource(IrisScript.class)
+    @ArrayType(type = String.class, min = 1)
+    private KList<String> dataScripts = new KList<>();
 
     public int getMaxHeight() {
         return (int) getDimensionHeight().getMax();

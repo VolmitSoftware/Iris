@@ -23,7 +23,7 @@ import java.util.*;
 
 @UtilityClass
 public class ExecutionEnvironment {
-    private static final String VERSION = System.getProperty("iris.scriptVersion", "e08b6f893e");
+    private static final String VERSION = System.getProperty("iris.scriptVersion", "master-ffbf167eba-1");
     private static final String BASE_URL = "https://jitpack.io/com/github/VolmitSoftware/Iris-Scripts/" + VERSION + "/Iris-Scripts-" + VERSION + "-all.jar";
     private static final Provider PROVIDER = ServiceLoader.load(Provider.class, buildLoader())
             .findFirst()

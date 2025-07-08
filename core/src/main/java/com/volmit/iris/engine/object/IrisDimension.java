@@ -28,11 +28,13 @@ import com.volmit.iris.core.nms.datapack.IDataFixer;
 import com.volmit.iris.core.nms.datapack.IDataFixer.Dimension;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.functions.ComponentFlagFunction;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
@@ -238,6 +240,10 @@ public class IrisDimension extends IrisRegistrant {
     @MaxNumber(318)
     @Desc("The Subterrain Fluid Layer Height")
     private int caveLavaHeight = 8;
+    @RegistryListFunction(ComponentFlagFunction.class)
+    @ArrayType(type = MantleFlag.class)
+    @Desc("Collection of disabled components")
+    private KList<MantleFlag> disabledComponents = new KList<>();
 
     public int getMaxHeight() {
         return (int) getDimensionHeight().getMax();

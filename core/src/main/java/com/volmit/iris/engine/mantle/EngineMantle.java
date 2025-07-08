@@ -65,6 +65,8 @@ public interface EngineMantle extends IObjectPlacer {
 
     void registerComponent(MantleComponent c);
 
+    KList<MantleFlag> getComponentFlags();
+
     default int getHighest(int x, int z) {
         return getHighest(x, z, getData());
     }
@@ -227,7 +229,9 @@ public interface EngineMantle extends IObjectPlacer {
     }
 
     default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, MantleChunk mc, ChunkContext context) {
-        mc.raiseFlag(c.getFlag(), () -> c.generateLayer(writer, x, z, context));
+        mc.raiseFlag(c.getFlag(), () -> {
+            if (c.isEnabled()) c.generateLayer(writer, x, z, context);
+        });
     }
 
     @ChunkCoordinates

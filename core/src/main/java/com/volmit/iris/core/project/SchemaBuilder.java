@@ -466,6 +466,26 @@ public class SchemaBuilder {
                                 items.put("$ref", "#/definitions/" + key);
                                 prop.put("items", items);
                                 description.add(SYMBOL_TYPE__N + "  Must be a valid Enchantment Type (use ctrl+space for auto complete!)");
+                            } else if (k.isAnnotationPresent(RegistryListFunction.class)) {
+                                var functionClass = k.getDeclaredAnnotation(RegistryListFunction.class).value();
+                                try {
+                                    var instance = functionClass.getDeclaredConstructor().newInstance();
+                                    String key = instance.key();
+                                    fancyType = instance.fancyName();
+
+                                    if (!definitions.containsKey(key)) {
+                                        JSONObject j = new JSONObject();
+                                        j.put("enum", instance.apply(data));
+                                        definitions.put(key, j);
+                                    }
+
+                                    JSONObject items = new JSONObject();
+                                    items.put("$ref", "#/definitions/" + key);
+                                    prop.put("items", items);
+                                    description.add(SYMBOL_TYPE__N + "  Must be a valid " + fancyType + " (use ctrl+space for auto complete!)");
+                                } catch (Throwable e) {
+                                    Iris.error("Could not execute apply method in " + functionClass.getName());
+                                }
                             } else if (t.type().equals(PotionEffectType.class)) {
                                 fancyType = "List of Potion Effect Types";
                                 String key = "enum-potion-effect-type";

@@ -20,6 +20,7 @@ package com.volmit.iris.engine.mantle.components;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.engine.mantle.ComponentFlag;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.IrisMantleComponent;
 import com.volmit.iris.engine.mantle.MantleWriter;
@@ -47,6 +48,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Getter
+@ComponentFlag(MantleFlag.OBJECT)
 public class MantleObjectComponent extends IrisMantleComponent {
     private final int radius = computeRadius();
 

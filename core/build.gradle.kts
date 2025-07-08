@@ -85,6 +85,7 @@ dependencies {
     dynamic("net.bytebuddy:byte-buddy:1.17.5")
     dynamic("net.bytebuddy:byte-buddy-agent:1.17.5")
     dynamic("org.dom4j:dom4j:2.1.4")
+    dynamic("jaxen:jaxen:1.1.6")
 }
 
 java {

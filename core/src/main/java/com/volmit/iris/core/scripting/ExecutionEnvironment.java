@@ -5,6 +5,7 @@ import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.scripting.kotlin.environment.IrisExecutionEnvironment;
 import com.volmit.iris.core.scripting.kotlin.environment.IrisPackExecutionEnvironment;
 import com.volmit.iris.core.scripting.kotlin.environment.IrisSimpleExecutionEnvironment;
+import com.volmit.iris.util.math.RNG;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import org.bukkit.Location;
@@ -53,6 +54,9 @@ public class ExecutionEnvironment {
     public interface Pack extends Simple {
         @NonNull
         IrisData getData();
+
+        @Nullable
+        Object createNoise(@NonNull String script, @NonNull RNG rng);
     }
 
     public interface Engine extends Pack {

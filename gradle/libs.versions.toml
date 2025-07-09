@@ -37,6 +37,10 @@ byte-buddy = "1.17.6" # https://central.sonatype.com/artifact/net.bytebuddy/byte
 dom4j = "2.2.0" # https://central.sonatype.com/artifact/org.dom4j/dom4j
 jaxen = "2.0.0" # https://central.sonatype.com/artifact/jaxen/jaxen
 
+# Script Engine
+kotlin = "2.2.0"
+kotlin-coroutines = "1.10.2"
+
 # Third Party Integrations
 nexo = "1.8.0" # https://repo.nexomc.com/#/releases/com/nexomc/nexo
 itemsadder = "4.0.10" # https://github.com/LoneDev6/API-ItemsAdder
@@ -82,6 +86,14 @@ byteBuddy-agent = { module = "net.bytebuddy:byte-buddy-agent", version.ref = "by
 dom4j = { module = "org.dom4j:dom4j", version.ref = "dom4j" }
 jaxen = { module = "jaxen:jaxen", version.ref = "jaxen" }
 
+# Script Engine
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
+kotlin-scripting-common = { module = "org.jetbrains.kotlin:kotlin-scripting-common", version.ref = "kotlin" }
+kotlin-scripting-jvm = { module = "org.jetbrains.kotlin:kotlin-scripting-jvm", version.ref = "kotlin" }
+kotlin-scripting-jvm-host = { module = "org.jetbrains.kotlin:kotlin-scripting-jvm-host", version.ref = "kotlin" }
+kotlin-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlin-coroutines"}
+kotlin-scripting-dependencies-maven = { module = "org.jetbrains.kotlin:kotlin-scripting-dependencies-maven", version.ref = "kotlin"}
+
 # Third Party Integrations
 nexo = { module = "com.nexomc:nexo", version.ref = "nexo" }
 itemsadder = { module = "dev.lone:api-itemsadder", version.ref = "itemsadder" }
@@ -100,3 +112,5 @@ slimjar = { id = "de.crazydev22.slimjar", version.ref = "slimjar" }
 download = { id = "de.undercouch.download", version.ref = "download" }
 runPaper = { id = "xyz.jpenilla.run-paper", version.ref = "runPaper" }
 sentry = { id = "io.sentry.jvm.gradle", version.ref = "sentryPlugin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-lombok = { id = "org.jetbrains.kotlin.plugin.lombok", version.ref = "kotlin" }

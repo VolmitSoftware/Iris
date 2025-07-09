@@ -26,6 +26,8 @@ plugins {
     alias(libs.plugins.shadow)
     alias(libs.plugins.sentry)
     alias(libs.plugins.slimjar)
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.lombok)
 }
 
 val apiVersion = "1.19"
@@ -91,6 +93,14 @@ dependencies {
     slim(libs.byteBuddy.agent)
     slim(libs.dom4j)
     slim(libs.jaxen)
+
+    // Script Engine
+    slim(libs.kotlin.stdlib)
+    slim(libs.kotlin.coroutines)
+    slim(libs.kotlin.scripting.common)
+    slim(libs.kotlin.scripting.jvm)
+    slim(libs.kotlin.scripting.jvm.host)
+    slim(libs.kotlin.scripting.dependencies.maven)
 }
 
 java {
@@ -117,6 +127,9 @@ slimJar {
     relocate("net.kyori", "$lib.kyori")
     relocate("org.bstats", "$lib.metrics")
     relocate("io.sentry", "$lib.sentry")
+    relocate("org.apache.maven", "$lib.maven")
+    relocate("org.codehaus.plexus", "$lib.plexus")
+    relocate("org.eclipse.sisu", "$lib.sisu")
 }
 
 tasks {

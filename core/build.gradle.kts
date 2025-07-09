@@ -1,3 +1,7 @@
+import io.github.slimjar.func.slimjar
+import io.github.slimjar.resolver.data.Mirror
+import java.net.URI
+
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
  * Copyright (c) 2021 Arcane Arts (Volmit Software)
@@ -19,15 +23,14 @@
 plugins {
     java
     `java-library`
-    id("com.gradleup.shadow")
-    id("io.sentry.jvm.gradle")
+    alias(libs.plugins.shadow)
+    alias(libs.plugins.sentry)
+    alias(libs.plugins.slimjar)
 }
 
 val apiVersion = "1.19"
 val main = "com.volmit.iris.Iris"
-
-val dynamic: Configuration by configurations.creating
-configurations.compileOnly { extendsFrom(dynamic) }
+val lib = "com.volmit.iris.util"
 
 /**
  * Dependencies.
@@ -43,49 +46,51 @@ configurations.compileOnly { extendsFrom(dynamic) }
  */
 dependencies {
     // Provided or Classpath
-    compileOnly("org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT")
-    compileOnly("org.apache.logging.log4j:log4j-api:2.19.0")
-    compileOnly("org.apache.logging.log4j:log4j-core:2.19.0")
+    compileOnly(libs.spigot)
+    compileOnly(libs.log4j.api)
+    compileOnly(libs.log4j.core)
 
     // Third Party Integrations
-    compileOnly("com.nexomc:nexo:1.6.0")
-    compileOnly("com.github.LoneDev6:api-itemsadder:3.4.1-r4")
-    compileOnly("com.github.PlaceholderAPI:placeholderapi:2.11.3")
-    compileOnly("com.github.Ssomar-Developement:SCore:4.23.10.8")
-    compileOnly("net.Indyuce:MMOItems-API:6.9.5-SNAPSHOT")
-    compileOnly("com.willfp:EcoItems:5.44.0")
-    compileOnly("io.lumine:Mythic-Dist:5.2.1")
-    compileOnly("io.lumine:MythicCrucible-Dist:2.0.0")
-    compileOnly("me.kryniowesegryderiusz:kgenerators-core:7.3") {
+    compileOnly(libs.nexo)
+    compileOnly(libs.itemsadder)
+    compileOnly(libs.placeholderApi)
+    compileOnly(libs.score)
+    compileOnly(libs.mmoitems)
+    compileOnly(libs.ecoitems)
+    compileOnly(libs.mythic)
+    compileOnly(libs.mythicChrucible)
+    compileOnly(libs.kgenerators) {
         isTransitive = false
     }
-    compileOnly("org.mvplugins.multiverse.core:multiverse-core:5.1.0")
-    //implementation files("libs/CustomItems.jar")
+    compileOnly(libs.multiverseCore)
 
     // Shaded
-    implementation("com.dfsek:paralithic:0.8.1")
-    implementation("io.papermc:paperlib:1.0.5")
-    implementation("net.kyori:adventure-text-minimessage:4.17.0")
-    implementation("net.kyori:adventure-platform-bukkit:4.3.4")
-    implementation("net.kyori:adventure-api:4.17.0")
-    implementation("org.bstats:bstats-bukkit:3.1.0")
+    implementation(slimjar())
 
     // Dynamically Loaded
-    dynamic("commons-io:commons-io:2.13.0")
-    dynamic("commons-lang:commons-lang:2.6")
-    dynamic("com.github.oshi:oshi-core:6.6.5")
-    dynamic("org.lz4:lz4-java:1.8.0")
-    dynamic("it.unimi.dsi:fastutil:8.5.8")
-    dynamic("com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2")
-    dynamic("org.zeroturnaround:zt-zip:1.14")
-    dynamic("com.google.code.gson:gson:2.10.1")
-    dynamic("org.ow2.asm:asm:9.8")
-    dynamic("com.github.ben-manes.caffeine:caffeine:3.0.6")
-    dynamic("org.apache.commons:commons-lang3:3.12.0")
-    dynamic("net.bytebuddy:byte-buddy:1.17.5")
-    dynamic("net.bytebuddy:byte-buddy-agent:1.17.5")
-    dynamic("org.dom4j:dom4j:2.1.4")
-    dynamic("jaxen:jaxen:1.1.6")
+    slim(libs.paralithic)
+    slim(libs.paperlib)
+    slim(libs.adventure.api)
+    slim(libs.adventure.minimessage)
+    slim(libs.adventure.platform)
+    slim(libs.bstats)
+    slim(libs.sentry)
+
+    slim(libs.commons.io)
+    slim(libs.commons.lang)
+    slim(libs.commons.lang3)
+    slim(libs.oshi)
+    slim(libs.lz4)
+    slim(libs.fastutil)
+    slim(libs.lru)
+    slim(libs.zip)
+    slim(libs.gson)
+    slim(libs.asm)
+    slim(libs.caffeine)
+    slim(libs.byteBuddy.core)
+    slim(libs.byteBuddy.agent)
+    slim(libs.dom4j)
+    slim(libs.jaxen)
 }
 
 java {
@@ -93,11 +98,25 @@ java {
 }
 
 sentry {
+    autoInstallation.enabled = false
     includeSourceContext = true
 
     org = "volmit-software"
     projectName = "iris"
     authToken = findProperty("sentry.auth.token") as String? ?: System.getenv("SENTRY_AUTH_TOKEN")
+}
+
+slimJar {
+    mirrors = listOf(Mirror(
+        URI.create("https://maven-central.storage-download.googleapis.com/maven2").toURL(),
+        URI.create("https://repo.maven.apache.org/maven2/").toURL()
+    ))
+
+    relocate("com.dfsek.paralithic", "$lib.paralithic")
+    relocate("io.papermc.lib", "$lib.paper")
+    relocate("net.kyori", "$lib.kyori")
+    relocate("org.bstats", "$lib.metrics")
+    relocate("io.sentry", "$lib.sentry")
 }
 
 tasks {
@@ -118,7 +137,6 @@ tasks {
             "version" to rootProject.version,
             "apiVersion" to apiVersion,
             "main" to main,
-            "libraries" to dynamic.allDependencies.map { "\n  - $it" }.sorted().joinToString("")
         )
         filesMatching("**/plugin.yml") {
             expand(inputs.properties)
@@ -127,17 +145,8 @@ tasks {
 
     shadowJar {
         mergeServiceFiles()
-        relocate("com.dfsek.paralithic", "com.volmit.iris.util.paralithic")
-        relocate("io.papermc.lib", "com.volmit.iris.util.paper")
-        relocate("net.kyori", "com.volmit.iris.util.kyori")
-        relocate("org.bstats", "com.volmit.iris.util.metrics")
-        relocate("io.sentry", "com.volmit.iris.util.sentry")
-
         //minimize()
-        dependencies {
-            exclude(dependency("org.ow2.asm:asm:"))
-            exclude(dependency("org.jetbrains:"))
-        }
+        relocate("io.github.slimjar", "$lib.slimjar")
     }
 }
 

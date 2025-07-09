@@ -4,6 +4,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import io.papermc.lib.PaperLib;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -36,6 +37,10 @@ public class IrisSafeguard {
         } else {
             return "stable";
         }
+    }
+
+    public static void suggestPaper() {
+        PaperLib.suggestPaper(Iris.instance);
     }
 
     public static KMap<String, Object> asContext() {

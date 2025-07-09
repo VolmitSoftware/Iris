@@ -29,7 +29,9 @@ import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
 import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.mantle.Mantle;
+import com.volmit.iris.util.mantle.MantleFlag;
 import lombok.*;
 
 import java.io.File;
@@ -44,7 +46,7 @@ public class IrisEngineMantle implements EngineMantle {
     @Getter(AccessLevel.NONE)
     private final KMap<Integer, KList<MantleComponent>> components;
     private final AtomicCache<KList<Pair<KList<MantleComponent>, Integer>>> componentsCache = new AtomicCache<>();
-    private final AtomicCache<Integer> radCache = new AtomicCache<>();
+    private final AtomicCache<KSet<MantleFlag>> disabledFlags = new AtomicCache<>();
     private final MantleObjectComponent object;
     private final MantleJigsawComponent jigsaw;
 
@@ -101,8 +103,18 @@ public class IrisEngineMantle implements EngineMantle {
 
     @Override
     public void registerComponent(MantleComponent c) {
+        c.setEnabled(!getDimension().getDisabledComponents().contains(c.getFlag()));
         components.computeIfAbsent(c.getPriority(), k -> new KList<>()).add(c);
         componentsCache.reset();
+    }
+
+    @Override
+    public KList<MantleFlag> getComponentFlags() {
+        return components.values()
+                .stream()
+                .flatMap(KList::stream)
+                .map(MantleComponent::getFlag)
+                .collect(KList.collector());
     }
 
     @Override

@@ -42,6 +42,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
+import java.io.File;
 import java.util.UUID;
 
 @Data
@@ -110,8 +111,6 @@ public class IrisComplex implements DataProvider {
         //@builder
         if (focusRegion != null) {
             focusRegion.getAllBiomes(this).forEach(this::registerGenerators);
-        } else if (focusBiome != null) {
-            registerGenerators(focusBiome);
         } else {
             engine.getDimension()
                     .getRegions()
@@ -252,7 +251,15 @@ public class IrisComplex implements DataProvider {
             }
         }
 
-        return null;
+        String key = UUID.randomUUID().toString();
+        IrisRegion region = new IrisRegion();
+        region.getLandBiomes().add(focus.getLoadKey());
+        region.getSeaBiomes().add(focus.getLoadKey());
+        region.getShoreBiomes().add(focus.getLoadKey());
+        region.setLoadKey(key);
+        region.setLoader(data);
+        region.setLoadFile(new File(data.getDataFolder(), data.getRegionLoader().getFolderName() + "/" + key + ".json"));
+        return region;
     }
 
     private IrisDecorator decorateFor(IrisBiome b, double x, double z, IrisDecorationPart part) {

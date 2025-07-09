@@ -30,10 +30,10 @@ buildscript {
 plugins {
     java
     `java-library`
-    id("com.gradleup.shadow") version "8.3.6"
-    id("de.undercouch.download") version "5.0.1"
-    id("xyz.jpenilla.run-paper") version "2.3.1"
-    id("io.sentry.jvm.gradle") version "5.7.0"
+    alias(libs.plugins.shadow)
+    alias(libs.plugins.sentry)
+    alias(libs.plugins.download)
+    alias(libs.plugins.runPaper)
 }
 
 group = "com.volmit"
@@ -94,8 +94,8 @@ nmsBindings.forEach { key, value ->
 
         dependencies {
             compileOnly(project(":core"))
-            compileOnly("org.jetbrains:annotations:26.0.2")
-            compileOnly("net.bytebuddy:byte-buddy:1.17.5")
+            compileOnly(rootProject.libs.annotations)
+            compileOnly(rootProject.libs.byteBuddy.core)
         }
     }
 
@@ -189,23 +189,20 @@ allprojects {
         mavenCentral()
         maven("https://repo.papermc.io/repository/maven-public/")
         maven("https://repo.codemc.org/repository/maven-public/")
-        maven("https://mvn.lumine.io/repository/maven-public/")
-        maven("https://jitpack.io")
 
-        maven("https://s01.oss.sonatype.org/content/repositories/snapshots")
-        maven("https://mvn.lumine.io/repository/maven/")
-        maven("https://repo.triumphteam.dev/snapshots")
-        maven("https://repo.mineinabyss.com/releases")
-        maven("https://hub.jeff-media.com/nexus/repository/jeff-media-public/")
-        maven("https://repo.nexomc.com/releases/")
-        maven("https://nexus.phoenixdevt.fr/repository/maven-public/")
-        maven("https://repo.onarandombox.com/content/groups/public/")
+        maven("https://jitpack.io") // EcoItems, score
+        maven("https://repo.nexomc.com/releases/") // nexo
+        maven("https://maven.devs.beer/") // itemsadder
+        maven("https://repo.extendedclip.com/releases/") // placeholderapi
+        maven("https://mvn.lumine.io/repository/maven-public/") // mythic
+        maven("https://nexus.phoenixdevt.fr/repository/maven-public/") //MMOItems
+        maven("https://repo.onarandombox.com/content/groups/public/") //Multiverse Core
     }
 
     dependencies {
         // Provided or Classpath
-        compileOnly("org.projectlombok:lombok:1.18.36")
-        annotationProcessor("org.projectlombok:lombok:1.18.36")
+        compileOnly(rootProject.libs.lombok)
+        annotationProcessor(rootProject.libs.lombok)
     }
 
     /**

@@ -8,7 +8,7 @@ import com.google.gson.stream.JsonWriter;
 import java.io.IOException;
 
 public class MantleFlagAdapter extends TypeAdapter<MantleFlag> {
-    private static final String CUSTOM = "custom:";
+    private static final String CUSTOM = "CUSTOM:";
     private static final int CUSTOM_LENGTH = CUSTOM.length();
 
     @Override

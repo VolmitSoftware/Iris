@@ -52,6 +52,6 @@ public sealed interface MantleFlag permits CustomFlag, ReservedFlag {
     static MantleFlag of(int ordinal) {
         if (ordinal < MIN_ORDINAL || ordinal > MAX_ORDINAL)
             throw new IllegalArgumentException("Ordinal must be between " + MIN_ORDINAL + " and " + MAX_ORDINAL);
-        return new CustomFlag("custom:"+ordinal, ordinal);
+        return new CustomFlag("CUSTOM:"+ordinal, ordinal);
     }
 }

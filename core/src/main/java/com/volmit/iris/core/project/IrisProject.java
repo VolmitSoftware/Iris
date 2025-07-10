@@ -220,24 +220,15 @@ public class IrisProject {
             close();
         }
 
-        boolean hasError = false;
-
-        if (hasError) {
-            return;
-        }
-
-        IrisDimension d = IrisData.loadAnyDimension(getName());
-        if (d == null) {
-            sender.sendMessage("Can't find dimension: " + getName());
-            return;
-        } else if (sender.isPlayer()) {
-            sender.player().setGameMode(GameMode.SPECTATOR);
-        }
-
-        openVSCode(sender);
-
-
         J.a(() -> {
+            IrisDimension d = IrisData.loadAnyDimension(getName());
+            if (d == null) {
+                sender.sendMessage("Can't find dimension: " + getName());
+                return;
+            } else if (sender.isPlayer()) {
+                sender.player().setGameMode(GameMode.SPECTATOR);
+            }
+
             try {
                 activeProvider = (PlatformChunkGenerator) IrisToolbelt.createWorld()
                         .seed(seed)
@@ -250,6 +241,8 @@ public class IrisProject {
             } catch (IrisException e) {
                 e.printStackTrace();
             }
+
+            openVSCode(sender);
         });
     }
 

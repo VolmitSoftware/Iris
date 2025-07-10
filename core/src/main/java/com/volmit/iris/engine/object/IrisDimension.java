@@ -35,7 +35,8 @@ import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONObject;
-import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.mantle.flag.MantleFlag;
+import com.volmit.iris.util.mantle.flag.ReservedFlag;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
@@ -243,9 +244,9 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("The Subterrain Fluid Layer Height")
     private int caveLavaHeight = 8;
     @RegistryListFunction(ComponentFlagFunction.class)
-    @ArrayType(type = MantleFlag.class)
+    @ArrayType(type = ReservedFlag.class)
     @Desc("Collection of disabled components")
-    private KList<MantleFlag> disabledComponents = new KList<>();
+    private KList<ReservedFlag> disabledComponents = new KList<>();
     @Desc("A list of globally applied pre-processors")
     @ArrayType(type = IrisPreProcessors.class)
     private KList<IrisPreProcessors> globalPreProcessors = new KList<>();

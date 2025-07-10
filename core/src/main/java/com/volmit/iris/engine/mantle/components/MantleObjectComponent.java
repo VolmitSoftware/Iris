@@ -33,7 +33,7 @@ import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.Form;
-import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.mantle.flag.ReservedFlag;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterStructurePOI;
 import com.volmit.iris.util.noise.CNG;
@@ -48,12 +48,12 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Getter
-@ComponentFlag(MantleFlag.OBJECT)
+@ComponentFlag(ReservedFlag.OBJECT)
 public class MantleObjectComponent extends IrisMantleComponent {
     private final int radius = computeRadius();
 
     public MantleObjectComponent(EngineMantle engineMantle) {
-        super(engineMantle, MantleFlag.OBJECT, 1);
+        super(engineMantle, ReservedFlag.OBJECT, 1);
     }
 
     @Override

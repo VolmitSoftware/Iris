@@ -34,6 +34,8 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.mantle.flag.MantleFlagAdapter;
+import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -329,6 +331,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                 .addSerializationExclusionStrategy(this)
                 .setLenient()
                 .registerTypeAdapterFactory(this)
+                .registerTypeAdapter(MantleFlag.class, new MantleFlagAdapter())
                 .setPrettyPrinting();
         loaders.clear();
         File packs = dataFolder;

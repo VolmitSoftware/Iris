@@ -44,6 +44,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.stream.Stream;
@@ -140,6 +141,7 @@ public class ServerConfigurator {
                         var loader = data.getDimensionLoader();
                         return loader.loadAll(loader.getPossibleKeys())
                                 .stream()
+                                .filter(Objects::nonNull)
                                 .map(ServerConfigurator::verifyDataPackInstalled)
                                 .toList()
                                 .contains(false);
@@ -280,6 +282,7 @@ public class ServerConfigurator {
             var loader = data.getDimensionLoader();
             return loader.loadAll(loader.getPossibleKeys())
                     .stream()
+                    .filter(Objects::nonNull)
                     .peek(this::merge);
         }
 

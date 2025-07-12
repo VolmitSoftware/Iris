@@ -100,7 +100,11 @@ dependencies {
     slim(libs.kotlin.scripting.common)
     slim(libs.kotlin.scripting.jvm)
     slim(libs.kotlin.scripting.jvm.host)
-    slim(libs.kotlin.scripting.dependencies.maven)
+    slim(libs.kotlin.scripting.dependencies.maven) {
+        constraints {
+            slim(libs.mavenCore)
+        }
+    }
 }
 
 java {

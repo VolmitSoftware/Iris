@@ -76,11 +76,9 @@ open class IrisSimpleExecutionEnvironment : ExecutionEnvironment.Simple {
 
     override fun configureProject(projectDir: File) {
         projectDir.mkdirs()
-        val libs = javaClass.classLoader.parent.classpath
+        val libs = javaClass.classLoader.classpath
             .sortedBy { it.absolutePath }
             .toMutableList()
-        libs.add(codeSource)
-        libs.removeIf { libs.count { f -> f.name == it.name } > 1 }
 
         File(projectDir, "build.gradle.kts")
             .updateClasspath(libs)
@@ -88,7 +86,6 @@ open class IrisSimpleExecutionEnvironment : ExecutionEnvironment.Simple {
 
     companion object {
         private const val CLASSPATH = "val classpath = files("
-        private val codeSource = File(IrisSimpleExecutionEnvironment::class.java.protectionDomain.codeSource.location.toURI())
 
         private fun File.updateClasspath(classpath: List<File>) {
             val test = if (exists()) readLines() else BASE_GRADLE
@@ -129,7 +126,7 @@ open class IrisSimpleExecutionEnvironment : ExecutionEnvironment.Simple {
             configurations.kotlinCompilerPluginClasspath { extendsFrom(script) }
 
             dependencies {
-                add("script", classpath)
+                script(classpath)
             }""".trimIndent().split("\n")
     }
 }

@@ -40,6 +40,7 @@ jaxen = "2.0.0" # https://central.sonatype.com/artifact/jaxen/jaxen
 # Script Engine
 kotlin = "2.2.0"
 kotlin-coroutines = "1.10.2"
+maven-core = "3.9.10"
 
 # Third Party Integrations
 nexo = "1.8.0" # https://repo.nexomc.com/#/releases/com/nexomc/nexo
@@ -91,8 +92,9 @@ kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.re
 kotlin-scripting-common = { module = "org.jetbrains.kotlin:kotlin-scripting-common", version.ref = "kotlin" }
 kotlin-scripting-jvm = { module = "org.jetbrains.kotlin:kotlin-scripting-jvm", version.ref = "kotlin" }
 kotlin-scripting-jvm-host = { module = "org.jetbrains.kotlin:kotlin-scripting-jvm-host", version.ref = "kotlin" }
-kotlin-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlin-coroutines"}
-kotlin-scripting-dependencies-maven = { module = "org.jetbrains.kotlin:kotlin-scripting-dependencies-maven", version.ref = "kotlin"}
+kotlin-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlin-coroutines" }
+kotlin-scripting-dependencies-maven = { module = "org.jetbrains.kotlin:kotlin-scripting-dependencies-maven", version.ref = "kotlin" }
+mavenCore = { module = "org.apache.maven:maven-core", version.ref = "maven-core" }
 
 # Third Party Integrations
 nexo = { module = "com.nexomc:nexo", version.ref = "nexo" }

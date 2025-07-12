@@ -1,7 +1,6 @@
 package com.volmit.iris.core.scripting.kotlin.base
 
 import com.volmit.iris.core.scripting.kotlin.runner.configureMavenDepsOnAnnotations
-import com.volmit.iris.util.misc.SlimJar
 import kotlin.script.experimental.annotations.KotlinScript
 import kotlin.script.experimental.api.ScriptCompilationConfiguration
 import kotlin.script.experimental.api.defaultImports
@@ -16,8 +15,6 @@ import kotlin.script.experimental.jvm.jvm
 abstract class SimpleScript
 
 object SimpleScriptDefinition : ScriptCompilationConfiguration({
-    SlimJar.load(null)
-
     isStandalone(false)
     defaultImports(
         "kotlin.script.experimental.dependencies.DependsOn",

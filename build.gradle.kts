@@ -30,13 +30,16 @@ buildscript {
 plugins {
     java
     `java-library`
-    id("com.gradleup.shadow") version "8.3.6"
-    id("de.undercouch.download") version "5.0.1"
-    id("xyz.jpenilla.run-paper") version "2.3.1"
-    id("io.sentry.jvm.gradle") version "5.7.0"
+    alias(libs.plugins.shadow)
+    alias(libs.plugins.sentry)
+    alias(libs.plugins.download)
+    alias(libs.plugins.runPaper)
 }
 
-version = "3.6.11-1.20.1-1.21.5"
+group = "com.volmit"
+version = "3.6.11-1.20.1-1.21.7"
+
+apply<ApiGenerator>()
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================
@@ -63,6 +66,7 @@ val color = "truecolor"
 val errorReporting = false
 
 val nmsBindings = mapOf(
+        "v1_21_R5" to "1.21.7-R0.1-SNAPSHOT",
         "v1_21_R4" to "1.21.5-R0.1-SNAPSHOT",
         "v1_21_R3" to "1.21.4-R0.1-SNAPSHOT",
         "v1_21_R2" to "1.21.3-R0.1-SNAPSHOT",
@@ -89,7 +93,8 @@ nmsBindings.forEach { key, value ->
 
         dependencies {
             compileOnly(project(":core"))
-            compileOnly("org.jetbrains:annotations:26.0.2")
+            compileOnly(rootProject.libs.annotations)
+            compileOnly(rootProject.libs.byteBuddy.core)
         }
     }
 
@@ -104,7 +109,8 @@ nmsBindings.forEach { key, value ->
         systemProperty("disable.watchdog", "")
         systemProperty("net.kyori.ansi.colorLevel", color)
         systemProperty("com.mojang.eula.agree", true)
-        systemProperty("iris.errorReporting", errorReporting)
+        systemProperty("iris.suppressReporting", !errorReporting)
+        jvmArgs("-javaagent:${project(":core:agent").tasks.jar.flatMap { it.archiveFile }.get().asFile.absolutePath}")
     }
 }
 
@@ -115,6 +121,7 @@ tasks {
             from(project(":nms:$key").tasks.named("remap").map { zipTree(it.outputs.files.singleFile) })
         }
         from(project(":core").tasks.shadowJar.flatMap { it.archiveFile }.map { zipTree(it) })
+        from(project(":core:agent").tasks.jar.flatMap { it.archiveFile })
         archiveFileName.set("Iris-${project.version}.jar")
     }
 
@@ -168,10 +175,6 @@ fun exec(vararg command: Any) {
     p.waitFor()
 }
 
-dependencies {
-    implementation(project(":core"))
-}
-
 configurations.configureEach {
     resolutionStrategy.cacheChangingModulesFor(60, "minutes")
     resolutionStrategy.cacheDynamicVersionsFor(60, "minutes")
@@ -184,21 +187,20 @@ allprojects {
         mavenCentral()
         maven("https://repo.papermc.io/repository/maven-public/")
         maven("https://repo.codemc.org/repository/maven-public/")
-        maven("https://mvn.lumine.io/repository/maven-public/")
-        maven("https://jitpack.io")
 
-        maven("https://s01.oss.sonatype.org/content/repositories/snapshots")
-        maven("https://mvn.lumine.io/repository/maven/")
-        maven("https://repo.triumphteam.dev/snapshots")
-        maven("https://repo.mineinabyss.com/releases")
-        maven("https://hub.jeff-media.com/nexus/repository/jeff-media-public/")
-        maven("https://repo.nexomc.com/releases/")
+        maven("https://jitpack.io") // EcoItems, score
+        maven("https://repo.nexomc.com/releases/") // nexo
+        maven("https://maven.devs.beer/") // itemsadder
+        maven("https://repo.extendedclip.com/releases/") // placeholderapi
+        maven("https://mvn.lumine.io/repository/maven-public/") // mythic
+        maven("https://nexus.phoenixdevt.fr/repository/maven-public/") //MMOItems
+        maven("https://repo.onarandombox.com/content/groups/public/") //Multiverse Core
     }
 
     dependencies {
         // Provided or Classpath
-        compileOnly("org.projectlombok:lombok:1.18.36")
-        annotationProcessor("org.projectlombok:lombok:1.18.36")
+        compileOnly(rootProject.libs.lombok)
+        annotationProcessor(rootProject.libs.lombok)
     }
 
     /**

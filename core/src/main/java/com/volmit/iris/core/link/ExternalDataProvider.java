@@ -1,24 +1,33 @@
 package com.volmit.iris.core.link;
 
+import com.volmit.iris.core.link.data.DataType;
+import com.volmit.iris.core.nms.container.Pair;
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.IrisCustomData;
+import com.volmit.iris.util.math.RNG;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
+import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
 import java.util.MissingResourceException;
 
 @Getter
 @RequiredArgsConstructor
-public abstract class ExternalDataProvider {
+public abstract class ExternalDataProvider implements Listener {
 
     @NonNull
     private final String pluginId;
@@ -53,7 +62,9 @@ public abstract class ExternalDataProvider {
      * @throws MissingResourceException when the blockId is invalid
      */
     @NotNull
-    public abstract BlockData getBlockData(@NotNull Identifier blockId, @NotNull KMap<String, String> state) throws MissingResourceException;
+    public BlockData getBlockData(@NotNull Identifier blockId, @NotNull KMap<String, String> state) throws MissingResourceException {
+        throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
+    }
 
     /**
      * @see ExternalDataProvider#getItemStack(Identifier)
@@ -73,7 +84,9 @@ public abstract class ExternalDataProvider {
      * @throws MissingResourceException when the itemId is invalid
      */
     @NotNull
-    public abstract ItemStack getItemStack(@NotNull Identifier itemId, @NotNull KMap<String, Object> customNbt) throws MissingResourceException;
+    public ItemStack getItemStack(@NotNull Identifier itemId, @NotNull KMap<String, Object> customNbt) throws MissingResourceException {
+        throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());
+    }
 
     /**
      * This method is used for placing blocks that need to use the plugins api
@@ -85,9 +98,43 @@ public abstract class ExternalDataProvider {
      */
     public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {}
 
-    public abstract @NotNull Identifier[] getBlockTypes();
+    /**
+     * Spawns a mob in the specified location using the given engine and entity identifier.
+     *
+     * @param location The location in the world where the mob should spawn. Must not be null.
+     * @param entityId The identifier of the mob entity to spawn. Must not be null.
+     * @return The spawned {@link Entity} if successful, or null if the mob could not be spawned.
+     */
+    @Nullable
+    public Entity spawnMob(@NotNull Location location, @NotNull Identifier entityId) throws MissingResourceException {
+        throw new MissingResourceException("Failed to find Entity!", entityId.namespace(), entityId.key());
+    }
 
-    public abstract @NotNull Identifier[] getItemTypes();
+    public abstract @NotNull Collection<@NotNull Identifier> getTypes(@NotNull DataType dataType);
 
-    public abstract boolean isValidProvider(@NotNull Identifier id, boolean isItem);
+    public abstract boolean isValidProvider(@NotNull Identifier id, DataType dataType);
+
+    protected static Pair<Float, BlockFace> parseYawAndFace(@NotNull Engine engine, @NotNull Block block, @NotNull KMap<@NotNull String, @NotNull String> state) {
+        float yaw = 0;
+        BlockFace face = BlockFace.NORTH;
+
+        long seed = engine.getSeedManager().getSeed() + Cache.key(block.getX(), block.getZ()) + block.getY();
+        RNG rng = new RNG(seed);
+        if ("true".equals(state.get("randomYaw"))) {
+            yaw = rng.f(0, 360);
+        } else if (state.containsKey("yaw")) {
+            yaw = Float.parseFloat(state.get("yaw"));
+        }
+        if ("true".equals(state.get("randomFace"))) {
+            BlockFace[] faces = BlockFace.values();
+            face = faces[rng.i(0, faces.length - 1)];
+        } else if (state.containsKey("face")) {
+            face = BlockFace.valueOf(state.get("face").toUpperCase());
+        }
+        if (face == BlockFace.SELF) {
+            face = BlockFace.NORTH;
+        }
+
+        return new Pair<>(yaw, face);
+    }
 }

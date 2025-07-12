@@ -1,5 +1,7 @@
-package com.volmit.iris.core.link;
+package com.volmit.iris.core.link.data;
 
+import com.volmit.iris.core.link.ExternalDataProvider;
+import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KMap;
@@ -14,6 +16,8 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.MissingResourceException;
 
 public class KGeneratorsDataProvider extends ExternalDataProvider {
@@ -54,35 +58,17 @@ public class KGeneratorsDataProvider extends ExternalDataProvider {
     }
 
     @Override
-    public @NotNull Identifier[] getBlockTypes() {
+    public @NotNull Collection<@NotNull Identifier> getTypes(@NotNull DataType dataType) {
+        if (dataType == DataType.ENTITY) return List.of();
         return Main.getGenerators().getAll().stream()
                 .map(gen -> new Identifier("kgenerators", gen.getId()))
-                .filter(i -> {
-                    try {
-                        return getBlockData(i) != null;
-                    } catch (MissingResourceException e) {
-                        return false;
-                    }
-                })
-                .toArray(Identifier[]::new);
+                .filter(dataType.asPredicate(this))
+                .toList();
     }
 
     @Override
-    public @NotNull Identifier[] getItemTypes() {
-        return Main.getGenerators().getAll().stream()
-                .map(gen -> new Identifier("kgenerators", gen.getId()))
-                .filter(i -> {
-                    try {
-                        return getItemStack(i) != null;
-                    } catch (MissingResourceException e) {
-                        return false;
-                    }
-                })
-                .toArray(Identifier[]::new);
-    }
-
-    @Override
-    public boolean isValidProvider(@NotNull Identifier id, boolean isItem) {
+    public boolean isValidProvider(@NotNull Identifier id, DataType dataType) {
+        if (dataType == DataType.ENTITY) return false;
         return "kgenerators".equalsIgnoreCase(id.namespace());
     }
 }

@@ -174,7 +174,7 @@ public class ExternalDataSVC implements IrisService {
     }
 
     private static KList<ExternalDataProvider> createProviders() {
-        JarScanner jar = new JarScanner(Iris.instance.getJarFile(), "com.volmit.iris.core.link.data");
+        JarScanner jar = new JarScanner(Iris.instance.getJarFile(), "com.volmit.iris.core.link.data", false);
         J.attempt(jar::scan);
         KList<ExternalDataProvider> providers = new KList<>();
 

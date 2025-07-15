@@ -1,15 +1,22 @@
 package com.volmit.iris.core.safeguard;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisEngineData;
 import com.volmit.iris.util.agent.Agent;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.format.Versions;
+import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.misc.ServerProperties;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import javax.tools.JavaCompiler;
@@ -27,11 +34,13 @@ import static com.volmit.iris.core.safeguard.IrisSafeguard.*;
 
 public class ServerBootSFG {
     public static final Map<String, Boolean> incompatibilities = new HashMap<>();
+    public static KMap<File, int[]> unsafeWorldUpdate = new KMap<>();
     public static boolean isCorrectJDK = true;
     public static boolean hasEnoughDiskSpace = true;
     public static boolean isJRE = false;
     public static boolean hasPrivileges = true;
     public static boolean unsuportedversion = false;
+    public static boolean unsafeUpdate = false;
     public static boolean missingDimensionTypes = false;
     public static boolean missingAgent = false;
     public static boolean failedInjection = false;
@@ -88,6 +97,15 @@ public class ServerBootSFG {
             unsuportedversion = true;
             joiner.add("Unsupported Minecraft Version");
             severityHigh++;
+        }
+
+        var maybeBroken = checkUpdateConflicts();
+        if (!maybeBroken.isEmpty()) {
+            unsafeUpdate = true;
+            joiner.add("Unsafe Update");
+            unsafeWorldUpdate.putAll(maybeBroken);
+            // Keeping them separate ^
+            severityMedium++;
         }
 
         if (!List.of(21).contains(getJavaVersion())) {
@@ -209,5 +227,37 @@ public class ServerBootSFG {
         }
 
         return types;
+    }
+
+    private static KMap<File, int[]> checkUpdateConflicts() {
+        try {
+            KMap<File, int[]> worlds = new KMap<>();
+            Iris.info(Bukkit.getWorlds().toString());
+            for (var world : Arrays.stream(Bukkit.getWorldContainer().listFiles()).filter(File::isDirectory).toList()) {
+                try {
+                    var file = new File(world, "iris/engine-data").listFiles()[0];
+                    if (!file.exists()) {
+                        continue;
+                    }
+                    var data = new Gson().fromJson(IO.readAll(file), IrisEngineData.class).getStatistics();
+                    if (Arrays.equals(new int[2], data.getUpgradedToIrisVersion())) {
+                        continue;
+                    }
+                    if ((Versions.getIrisVersion()[1] != data.getUpgradedToIrisVersion()[1]) || (Versions.getIrisVersion()[0] != data.getUpgradedToIrisVersion()[0])) {
+                        worlds.put(world, data.getUpgradedToIrisVersion());
+                    }
+                } catch (NullPointerException ignored) {
+                    //meh
+                } catch (JsonSyntaxException e) {
+                    // Ignore will get handled by the engine later on.
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            return worlds;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new KMap<>();
+        }
     }
 }

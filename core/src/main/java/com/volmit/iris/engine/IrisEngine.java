@@ -20,6 +20,7 @@ package com.volmit.iris.engine;
 
 import com.google.common.util.concurrent.AtomicDouble;
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
@@ -41,6 +42,7 @@ import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.format.Versions;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.mantle.MantleFlag;
@@ -60,12 +62,15 @@ import org.bukkit.command.CommandSender;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Data
 @EqualsAndHashCode(exclude = "context")
@@ -108,6 +113,7 @@ public class IrisEngine implements Engine {
         this.studio = studio;
         this.target = target;
         getEngineData();
+        ensureSafeUpdate();
         verifySeed();
         this.seedManager = new SeedManager(target.getWorld().getRawWorldSeed());
         bud = new AtomicInteger(0);
@@ -264,28 +270,51 @@ public class IrisEngine implements Engine {
             //TODO: Method this file
             File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + ".json");
             IrisEngineData data = null;
+            boolean dirty = false;
 
             if (f.exists()) {
                 try {
                     data = new Gson().fromJson(IO.readAll(f), IrisEngineData.class);
-                    if (data == null) {
-                        Iris.error("Failed to read Engine Data! Corrupted File? recreating...");
+                } catch (JsonSyntaxException e) {
+                    Iris.error("Engine data is incompatible with current version. This may occur after an Iris update.");
+                } catch (Exception e) {
+                    //ignore
+                }
+                if (data == null) {
+                    Iris.error("Failed to read Engine Data! recreating...");
+                } else {
+                    if ((!Arrays.equals(Versions.getIrisVersion(), new int[2])) && (Arrays.equals(data.getStatistics().getUpgradedToIrisVersion(), new int[2]))) {
+                        data.getStatistics().setUpgradedToIrisVersion(Versions.getIrisVersion());
+                        dirty = true;
                     }
-                } catch (IOException e) {
-                    e.printStackTrace();
+                    if ((!Arrays.equals(Versions.getIrisVersion(), new int[2])) && Arrays.equals(data.getStatistics().getCreatedOnIrisVersion(), new int[2])) {
+                        data.getStatistics().setCreatedOnIrisVersion(Versions.getIrisVersion());
+                        dirty = true;
+                    }
+                    if ((!Arrays.equals( Versions.getMCVersion(), new int[2])) && Arrays.equals(data.getStatistics().getCreatedOnMCVersion(), new int[2])) {
+                        data.getStatistics().setCreatedOnMCVersion( Versions.getMCVersion());
+                        dirty = true;
+                    }
+                    if (dirty) {
+                        Iris.warn("Repairing Versioning Data for: " + getWorld().name());
+                    }
                 }
             }
 
             if (data == null) {
                 data = new IrisEngineData();
-                data.getStatistics().setVersion(Iris.instance.getIrisVersion());
-                data.getStatistics().setMCVersion(Iris.instance.getMCVersion());
-                data.getStatistics().setUpgradedVersion(Iris.instance.getIrisVersion());
-                if (data.getStatistics().getVersion() == -1 || data.getStatistics().getMCVersion() == -1 ) {
-                    Iris.error("Failed to setup Engine Data!");
+                try {
+                    data.getStatistics().setCreatedOnIrisVersion(Versions.getIrisVersion());
+                    data.getStatistics().setCreatedOnMCVersion( Versions.getMCVersion());
+                    data.getStatistics().setUpgradedToIrisVersion(Versions.getIrisVersion());
+                    dirty = true;
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
+            }
 
-                if (f.getParentFile().exists() || f.getParentFile().mkdirs()) {
+            if (dirty) {
+                if ((f.getParentFile().exists() || f.getParentFile().mkdirs())) {
                     try {
                         IO.writeAll(f, new Gson().toJson(data));
                     } catch (IOException e) {
@@ -295,7 +324,6 @@ public class IrisEngine implements Engine {
                     Iris.error("Failed to setup Engine Data!");
                 }
             }
-
             return data;
         });
     }
@@ -512,6 +540,29 @@ public class IrisEngine implements Engine {
         }
     }
 
+    public void ensureSafeUpdate() {
+        // Should be extended later when needed
+        boolean dirty = false;
+        Function<int[], String> regex = ii -> Arrays.stream(ii)
+                .mapToObj(String::valueOf)
+                .collect(Collectors.joining("."));
+
+        if((!Arrays.equals(Versions.getIrisVersion(), new int[2])) && getEngineData().getStatistics().getUpgradedToIrisVersion()[0] != Versions.getIrisVersion()[0]) {
+            if(getEngineData().getStatistics().getUpgradedToIrisVersion()[0] < Versions.getIrisVersion()[0]) {
+                Iris.error("Impossible world update! Old: " + regex.apply(getEngineData().getStatistics().getUpgradedToIrisVersion()) + ", New: " + regex.apply(Versions.getIrisVersion()));
+            } else Iris.error("Impossible world downgrade! Old: " + regex.apply(getEngineData().getStatistics().getUpgradedToIrisVersion()) + ", New: " + regex.apply(Versions.getIrisVersion()));
+            getEngineData().getStatistics().setUpgradedToIrisVersion(Versions.getIrisVersion());
+            dirty = true;
+        } else if((!Arrays.equals(Versions.getIrisVersion(), new int[2])) && getEngineData().getStatistics().getUpgradedToIrisVersion()[1] != Versions.getIrisVersion()[1]) {
+            if(getEngineData().getStatistics().getUpgradedToIrisVersion()[1] < Versions.getIrisVersion()[1]) {
+                Iris.warn("Risky world update! Old: " + regex.apply(getEngineData().getStatistics().getUpgradedToIrisVersion()) + ", New: " + regex.apply(Versions.getIrisVersion()));
+            } else Iris.warn("Risky world downgrade! Old: " + regex.apply(getEngineData().getStatistics().getUpgradedToIrisVersion()) + ", New: " + regex.apply(Versions.getIrisVersion()));
+            getEngineData().getStatistics().setUpgradedToIrisVersion(Versions.getIrisVersion());
+            dirty = true;
+        }
+        if (dirty) saveEngineData();
+    }
+
     @Override
     public void blockUpdatedMetric() {
         bud.incrementAndGet();
@@ -552,18 +603,4 @@ public class IrisEngine implements Engine {
         return cacheId;
     }
 
-    private boolean EngineSafe() {
-        // Todo: this has potential if done right
-        int EngineMCVersion = getEngineData().getStatistics().getMCVersion();
-        int EngineIrisVersion = getEngineData().getStatistics().getVersion();
-        int MinecraftVersion = Iris.instance.getMCVersion();
-        int IrisVersion = Iris.instance.getIrisVersion();
-        if (EngineIrisVersion != IrisVersion) {
-            return false;
-        }
-        if (EngineMCVersion != MinecraftVersion) {
-            return false;
-        }
-        return true;
-    }
 }

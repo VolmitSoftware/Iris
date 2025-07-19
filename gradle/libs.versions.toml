@@ -16,6 +16,7 @@ spigot = "1.20.1-R0.1-SNAPSHOT" # https://hub.spigotmc.org/nexus/repository/snap
 log4j = "2.19.0" # https://central.sonatype.com/artifact/org.apache.logging.log4j/log4j-api
 adventure-api = "4.23.0" # https://github.com/KyoriPowered/adventure
 adventure-platform = "4.4.0" # https://github.com/KyoriPowered/adventure-platform
+platform-utils = "e396f93d56" # https://github.com/CrazyDev05/PlatformUtils
 
 annotations = "26.0.2" # https://central.sonatype.com/artifact/org.jetbrains/annotations
 paralithic = "0.8.1" # https://github.com/PolyhedralDev/Paralithic/
@@ -56,6 +57,7 @@ spigot = { module = "org.spigotmc:spigot-api", version.ref = "spigot" }
 log4j-api = { module = "org.apache.logging.log4j:log4j-api", version.ref = "log4j" }
 log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
 annotations = { module = "org.jetbrains:annotations", version.ref = "annotations" }
+platformUtils = { module = "com.github.CrazyDev05:PlatformUtils", version.ref = "platform-utils" }
 
 # Dynamically Loaded
 adventure-api = { module = "net.kyori:adventure-api", version.ref = "adventure-api" }

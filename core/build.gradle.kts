@@ -66,7 +66,7 @@ dependencies {
 
     // Shaded
     implementation(slimjar())
-    implementation("com.github.CrazyDev05:PlatformUtils:e396f93d56") {
+    implementation(rootProject.libs.platformUtils) {
         isTransitive = false
     }
 

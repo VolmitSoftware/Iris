@@ -96,7 +96,7 @@ nmsBindings.forEach { key, value ->
             compileOnly(project(":core"))
             compileOnly(rootProject.libs.annotations)
             compileOnly(rootProject.libs.byteBuddy.core)
-            compileOnly("com.github.CrazyDev05:PlatformUtils:e396f93d56") {
+            compileOnly(rootProject.libs.platformUtils) {
                 isTransitive = false
             }
         }

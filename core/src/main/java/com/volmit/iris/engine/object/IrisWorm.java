@@ -71,9 +71,9 @@ public class IrisWorm {
         IrisPosition start = new IrisPosition(x, y, z);
         KList<IrisPosition> pos = new KList<>();
         KSet<IrisPosition> check = allowLoops ? null : new KSet<>();
-        CNG gx = xStyle.getGenerator().createNoCache(new RNG(rng.lmax()), data);
-        CNG gy = yStyle.getGenerator().createNoCache(new RNG(rng.lmax()), data);
-        CNG gz = zStyle.getGenerator().createNoCache(new RNG(rng.lmax()), data);
+        CNG gx = xStyle.getGenerator().create(rng.nextParallelRNG(14567), data);
+        CNG gy = yStyle.getGenerator().create(rng.nextParallelRNG(64789), data);
+        CNG gz = zStyle.getGenerator().create(rng.nextParallelRNG(34790), data);
 
         while (itr-- > 0) {
             IrisPosition current = new IrisPosition(Math.round(cx), Math.round(cy), Math.round(cz));

@@ -30,6 +30,7 @@ import org.apache.commons.io.function.IOFunction;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
@@ -590,6 +591,25 @@ public class IO {
         if (preserveFileDate) {
             destFile.setLastModified(srcFile.lastModified());
         }
+    }
+
+    public static void copyDirectory(Path source, Path target) throws IOException {
+        Files.walk(source).forEach(sourcePath -> {
+            Path targetPath = target.resolve(source.relativize(sourcePath));
+
+            try {
+                if (Files.isDirectory(sourcePath)) {
+                    if (!Files.exists(targetPath)) {
+                        Files.createDirectories(targetPath);
+                    }
+                } else {
+                    Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
+                }
+            } catch (IOException e) {
+                Iris.error("Failed to copy " + targetPath);
+                e.printStackTrace();
+            }
+        });
     }
 
     /**
@@ -1643,7 +1663,7 @@ public class IO {
         return (ch2 == -1);
     }
 
-    public static <T extends OutputStream> void write(File file, IOFunction<FileOutputStream, T> builder, IOConsumer<T> action) throws IOException {
+    public static <T extends Closeable> void write(File file, IOFunction<FileOutputStream, T> builder, IOConsumer<T> action) throws IOException {
         File dir = new File(file.getParentFile(), ".tmp");
         dir.mkdirs();
         dir.deleteOnExit();

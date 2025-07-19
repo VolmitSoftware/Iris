@@ -21,6 +21,7 @@ package com.volmit.iris.util.data;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.link.Identifier;
+import com.volmit.iris.core.link.data.DataType;
 import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -105,7 +106,15 @@ public class B {
                 DEEPSLATE_TILES,
                 DEEPSLATE_TILE_STAIRS,
                 DEEPSLATE_TILE_WALL,
-                CRACKED_DEEPSLATE_TILES
+                CRACKED_DEEPSLATE_TILES,
+                DEEPSLATE_COAL_ORE,
+                DEEPSLATE_IRON_ORE,
+                DEEPSLATE_COPPER_ORE,
+                DEEPSLATE_DIAMOND_ORE,
+                DEEPSLATE_EMERALD_ORE,
+                DEEPSLATE_GOLD_ORE,
+                DEEPSLATE_LAPIS_ORE,
+                DEEPSLATE_REDSTONE_ORE,
         }).forEach((i) -> b.add(i.ordinal()));
 
         return IntSets.unmodifiable(b);
@@ -665,7 +674,7 @@ public class B {
             }
         }
 
-        for (Identifier id : Iris.service(ExternalDataSVC.class).getAllBlockIdentifiers())
+        for (Identifier id : Iris.service(ExternalDataSVC.class).getAllIdentifiers(DataType.BLOCK))
             bt.add(id.toString());
         bt.addAll(custom.k());
 
@@ -680,7 +689,7 @@ public class B {
             bt.add(v);
         }
 
-        for (Identifier id : Iris.service(ExternalDataSVC.class).getAllItemIdentifiers())
+        for (Identifier id : Iris.service(ExternalDataSVC.class).getAllIdentifiers(DataType.ITEM))
             bt.add(id.toString());
 
         return bt.toArray(new String[0]);

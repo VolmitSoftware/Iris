@@ -197,8 +197,10 @@ public class IrisCreator {
                     world.get().setTime(6000);
                 }
             });
-        } else
+        } else {
             addToBukkitYml();
+            J.s(() -> Iris.linkMultiverseCore.updateWorld(world.get(), dimension));
+        }
 
         if (pregen != null) {
             CompletableFuture<Boolean> ff = new CompletableFuture<>();

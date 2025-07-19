@@ -240,6 +240,21 @@ public class J {
         }).getResult();
     }
 
+    public static <T> CompletableFuture<T> sfut(Supplier<T> r) {
+        CompletableFuture<T> f = new CompletableFuture<>();
+        if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
+            return null;
+        }
+        Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
+            try {
+                f.complete(r.get());
+            } catch (Throwable e) {
+                f.completeExceptionally(e);
+            }
+        });
+        return f;
+    }
+
     public static CompletableFuture sfut(Runnable r, int delay) {
         if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
             return null;

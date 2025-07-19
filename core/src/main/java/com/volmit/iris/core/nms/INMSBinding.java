@@ -18,11 +18,10 @@
 
 package com.volmit.iris.core.nms;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.mantle.Mantle;
@@ -37,6 +36,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
 
@@ -90,16 +90,10 @@ public interface INMSBinding {
     MCABiomeContainer newBiomeContainer(int min, int max);
 
     default World createWorld(WorldCreator c) {
-        if (missingDimensionTypes(true, true, true))
-            throw new IllegalStateException("Missing dimenstion types to create world");
-
-        try (var ignored = injectLevelStems()) {
-            ignored.storeContext();
-            return c.createWorld();
-        } catch (UnsupportedOperationException e) {
-            Iris.error("Failed to create world", e);
-            return null;
-        }
+        if (c.generator() instanceof PlatformChunkGenerator gen
+                && missingDimensionTypes(gen.getTarget().getDimension().getDimensionTypeKey()))
+            throw new IllegalStateException("Missing dimension types to create world");
+        return c.createWorld();
     }
 
     int countCustomBiomes();
@@ -134,13 +128,9 @@ public interface INMSBinding {
 
     KList<String> getStructureKeys();
 
-    AutoClosing injectLevelStems();
+    boolean missingDimensionTypes(String... keys);
 
-    default AutoClosing injectUncached(boolean overworld, boolean nether, boolean end) {
-        return null;
+    default boolean injectBukkit() {
+        return true;
     }
-
-    boolean missingDimensionTypes(boolean overworld, boolean nether, boolean end);
-
-    void removeCustomDimensions(World world);
 }

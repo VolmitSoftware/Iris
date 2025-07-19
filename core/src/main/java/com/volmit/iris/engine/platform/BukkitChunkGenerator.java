@@ -19,11 +19,12 @@
 package com.volmit.iris.engine.platform;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisWorlds;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.IrisEngine;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
@@ -60,15 +61,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Consumer;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -86,14 +84,13 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     private final boolean studio;
     private final AtomicInteger a = new AtomicInteger(0);
     private final CompletableFuture<Integer> spawnChunks = new CompletableFuture<>();
+    private final AtomicCache<EngineTarget> targetCache = new AtomicCache<>();
     private volatile Engine engine;
     private volatile Looper hotloader;
     private volatile StudioMode lastMode;
     private volatile DummyBiomeProvider dummyBiomeProvider;
     @Setter
     private volatile StudioGenerator studioGenerator;
-
-    private boolean initialized = false;
 
     public BukkitChunkGenerator(IrisWorld world, boolean studio, File dataLocation, String dimensionKey) {
         setup = new AtomicBoolean(false);
@@ -112,36 +109,34 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onWorldInit(WorldInitEvent event) {
-        try {
-            if (initialized || !world.name().equals(event.getWorld().getName()))
-                return;
-            AutoClosing.closeContext();
-            INMS.get().removeCustomDimensions(event.getWorld());
-            world.setRawWorldSeed(event.getWorld().getSeed());
-            Engine engine = getEngine(event.getWorld());
-            if (engine == null) {
-                Iris.warn("Failed to get Engine!");
-                J.s(() -> {
-                    Engine engine1 = getEngine(event.getWorld());
-                    if (engine1 != null) {
-                        try {
-                            INMS.get().inject(event.getWorld().getSeed(), engine1, event.getWorld());
-                            Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
-                            initialized = true;
-                        } catch (Throwable e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }, 10);
-            } else {
-                INMS.get().inject(event.getWorld().getSeed(), engine, event.getWorld());
-                Iris.info("Injected Iris Biome Source into " + event.getWorld().getName());
-                spawnChunks.complete(INMS.get().getSpawnChunkCount(event.getWorld()));
-                initialized = true;
+        if (!world.name().equals(event.getWorld().getName())) return;
+        Iris.instance.unregisterListener(this);
+        world.setRawWorldSeed(event.getWorld().getSeed());
+        if (initialize(event.getWorld())) return;
+
+        Iris.warn("Failed to get Engine for " + event.getWorld().getName() + " re-trying...");
+        J.s(() -> {
+            if (!initialize(event.getWorld())) {
+                Iris.error("Failed to get Engine for " + event.getWorld().getName() + "!");
             }
+        }, 10);
+    }
+
+    private boolean initialize(World world) {
+        Engine engine = getEngine(world);
+        if (engine == null) return false;
+        try {
+            INMS.get().inject(world.getSeed(), engine, world);
+            Iris.info("Injected Iris Biome Source into " + world.getName());
         } catch (Throwable e) {
+            Iris.reportError(e);
+            Iris.error("Failed to inject biome source into " + world.getName());
             e.printStackTrace();
         }
+        spawnChunks.complete(INMS.get().getSpawnChunkCount(world));
+        Iris.instance.unregisterListener(this);
+        IrisWorlds.get().put(world.getName(), dimensionKey);
+        return true;
     }
 
     @Nullable
@@ -159,83 +154,101 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     private void setupEngine() {
-        IrisData data = IrisData.get(dataLocation);
-        IrisDimension dimension = data.getDimensionLoader().load(dimensionKey);
+        lastMode = StudioMode.NORMAL;
+        engine = new IrisEngine(getTarget(), studio);
+        populators.clear();
+        targetCache.reset();
+    }
 
-        if (dimension == null) {
-            Iris.error("Oh No! There's no pack in " + data.getDataFolder().getPath() + " or... there's no dimension for the key " + dimensionKey);
-            IrisDimension test = IrisData.loadAnyDimension(dimensionKey);
+    @NotNull
+    @Override
+    public EngineTarget getTarget() {
+        if (engine != null) return engine.getTarget();
 
-            if (test != null) {
-                Iris.warn("Looks like " + dimensionKey + " exists in " + test.getLoadFile().getPath() + " ");
-                Iris.service(StudioSVC.class).installIntoWorld(Iris.getSender(), dimensionKey, dataLocation.getParentFile().getParentFile());
-                Iris.warn("Attempted to install into " + data.getDataFolder().getPath());
-                data.dump();
-                data.clearLists();
-                test = data.getDimensionLoader().load(dimensionKey);
+        return targetCache.aquire(() -> {
+            IrisData data = IrisData.get(dataLocation);
+            IrisDimension dimension = data.getDimensionLoader().load(dimensionKey);
+
+            if (dimension == null) {
+                Iris.error("Oh No! There's no pack in " + data.getDataFolder().getPath() + " or... there's no dimension for the key " + dimensionKey);
+                IrisDimension test = IrisData.loadAnyDimension(dimensionKey);
 
                 if (test != null) {
-                    Iris.success("Woo! Patched the Engine!");
-                    dimension = test;
+                    Iris.warn("Looks like " + dimensionKey + " exists in " + test.getLoadFile().getPath() + " ");
+                    Iris.service(StudioSVC.class).installIntoWorld(Iris.getSender(), dimensionKey, dataLocation.getParentFile().getParentFile());
+                    Iris.warn("Attempted to install into " + data.getDataFolder().getPath());
+                    data.dump();
+                    data.clearLists();
+                    test = data.getDimensionLoader().load(dimensionKey);
+
+                    if (test != null) {
+                        Iris.success("Woo! Patched the Engine!");
+                        dimension = test;
+                    } else {
+                        Iris.error("Failed to patch dimension!");
+                        throw new RuntimeException("Missing Dimension: " + dimensionKey);
+                    }
                 } else {
-                    Iris.error("Failed to patch dimension!");
+                    Iris.error("Nope, you don't have an installation containing " + dimensionKey + " try downloading it?");
                     throw new RuntimeException("Missing Dimension: " + dimensionKey);
                 }
-            } else {
-                Iris.error("Nope, you don't have an installation containing " + dimensionKey + " try downloading it?");
-                throw new RuntimeException("Missing Dimension: " + dimensionKey);
             }
-        }
 
-        lastMode = StudioMode.NORMAL;
-        engine = new IrisEngine(new EngineTarget(world, dimension, data), studio);
-        populators.clear();
+            return new EngineTarget(world, dimension, data);
+        });
     }
 
     @Override
-    public void injectChunkReplacement(World world, int x, int z, Consumer<Runnable> jobs) {
+    public void injectChunkReplacement(World world, int x, int z, Executor syncExecutor) {
         try {
             loadLock.acquire();
             IrisBiomeStorage st = new IrisBiomeStorage();
             TerrainChunk tc = TerrainChunk.createUnsafe(world, st);
-            Hunk<BlockData> blocks = Hunk.view(tc);
-            Hunk<Biome> biomes = Hunk.view(tc, tc.getMinHeight(), tc.getMaxHeight());
             this.world.bind(world);
-            getEngine().generate(x << 4, z << 4, blocks, biomes, true);
-            Iris.debug("Regenerated " + x + " " + z);
-            int t = 0;
+            getEngine().generate(x << 4, z << 4, tc, false);
+
+            Chunk c = PaperLib.getChunkAtAsync(world, x, z)
+                    .thenApply(d -> {
+                        d.addPluginChunkTicket(Iris.instance);
+
+                        for (Entity ee : d.getEntities()) {
+                            if (ee instanceof Player) {
+                                continue;
+                            }
+
+                            ee.remove();
+                        }
+
+                        engine.getWorldManager().onChunkLoad(d, false);
+                        return d;
+                    }).get();
+
+
+            KList<CompletableFuture<?>> futures = new KList<>(1 + getEngine().getHeight() >> 4);
             for (int i = getEngine().getHeight() >> 4; i >= 0; i--) {
-                if (!world.isChunkLoaded(x, z)) {
-                    continue;
-                }
-
-                Chunk c = world.getChunkAt(x, z);
-                for (Entity ee : c.getEntities()) {
-                    if (ee instanceof Player) {
-                        continue;
-                    }
-
-                    J.s(ee::remove);
-                }
-
-                J.s(() -> engine.getWorldManager().onChunkLoad(c, false));
-
-                int finalI = i;
-                jobs.accept(() -> {
-
+                int finalI = i << 4;
+                futures.add(CompletableFuture.runAsync(() -> {
                     for (int xx = 0; xx < 16; xx++) {
                         for (int yy = 0; yy < 16; yy++) {
                             for (int zz = 0; zz < 16; zz++) {
-                                if (yy + (finalI << 4) >= engine.getHeight() || yy + (finalI << 4) < 0) {
+                                if (yy + finalI >= engine.getHeight() || yy + finalI < 0) {
                                     continue;
                                 }
-                                c.getBlock(xx, yy + (finalI << 4) + world.getMinHeight(), zz)
-                                        .setBlockData(tc.getBlockData(xx, yy + (finalI << 4) + world.getMinHeight(), zz), false);
+                                int y = yy + finalI + world.getMinHeight();
+                                c.getBlock(xx, y, zz).setBlockData(tc.getBlockData(xx, y, zz), false);
                             }
                         }
                     }
-                });
+                }, syncExecutor));
             }
+
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .thenRunAsync(() -> {
+                        c.removePluginChunkTicket(Iris.instance);
+                        c.unload();
+                    }, syncExecutor)
+                    .get();
+            Iris.debug("Regenerated " + x + " " + z);
 
             loadLock.release();
         } catch (Throwable e) {

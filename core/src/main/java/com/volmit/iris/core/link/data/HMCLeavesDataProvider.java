@@ -1,10 +1,11 @@
-package com.volmit.iris.core.link;
+package com.volmit.iris.core.link.data;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.link.ExternalDataProvider;
+import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.reflect.WrappedField;
@@ -18,6 +19,8 @@ import org.bukkit.block.data.type.Leaves;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.function.Supplier;
@@ -89,41 +92,20 @@ public class HMCLeavesDataProvider extends ExternalDataProvider {
 		}
 	}
 
-	@NotNull
 	@Override
-	public Identifier[] getBlockTypes() {
-		KList<Identifier> names = new KList<>();
-		for (String name : blockDataMap.keySet()) {
-			try {
-				Identifier key = new Identifier("hmcleaves", name);
-				if (getBlockData(key) != null)
-					names.add(key);
-			} catch (MissingResourceException ignored) {
-			}
-		}
-
-		return names.toArray(new Identifier[0]);
-	}
-
-	@NotNull
-	@Override
-	public Identifier[] getItemTypes() {
-		KList<Identifier> names = new KList<>();
-		for (String name : itemDataField.keySet()) {
-			try {
-				Identifier key = new Identifier("hmcleaves", name);
-				if (getItemStack(key) != null)
-					names.add(key);
-			} catch (MissingResourceException ignored) {
-			}
-		}
-
-		return names.toArray(new Identifier[0]);
+	public @NotNull Collection<@NotNull Identifier> getTypes(@NotNull DataType dataType) {
+		if (dataType == DataType.ENTITY) return List.of();
+		return (dataType == DataType.BLOCK ? blockDataMap.keySet() : itemDataField.keySet())
+				.stream()
+				.map(x -> new Identifier("hmcleaves", x))
+				.filter(dataType.asPredicate(this))
+				.toList();
 	}
 
 	@Override
-	public boolean isValidProvider(@NotNull Identifier id, boolean isItem) {
-		return (isItem ? itemDataField.keySet() : blockDataMap.keySet()).contains(id.key());
+	public boolean isValidProvider(@NotNull Identifier id, DataType dataType) {
+		if (dataType == DataType.ENTITY) return false;
+		return (dataType == DataType.ITEM ? itemDataField.keySet() : blockDataMap.keySet()).contains(id.key());
 	}
 
 	private <C, T> Map<String, T> getMap(C config, String name) {

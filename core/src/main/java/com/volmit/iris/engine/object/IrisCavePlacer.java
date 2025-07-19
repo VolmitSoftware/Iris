@@ -64,10 +64,10 @@ public class IrisCavePlacer implements IRare {
     }
 
     public void generateCave(MantleWriter mantle, RNG rng, Engine engine, int x, int y, int z) {
-        generateCave(mantle, rng, engine, x, y, z, 0, -1);
+        generateCave(mantle, rng, new RNG(engine.getSeedManager().getCarve()), engine, x, y, z, 0, -1);
     }
 
-    public void generateCave(MantleWriter mantle, RNG rng, Engine engine, int x, int y, int z, int recursion, int waterHint) {
+    public void generateCave(MantleWriter mantle, RNG rng, RNG base, Engine engine, int x, int y, int z, int recursion, int waterHint) {
         if (fail.get()) {
             return;
         }
@@ -86,17 +86,13 @@ public class IrisCavePlacer implements IRare {
         }
 
         if (y == -1) {
-            if(!breakSurface) {
-                int eH = engine.getHeight(x, z);
-                if (caveStartHeight.getMax() > eH) {
-                    caveStartHeight.setMax(eH);
-                }
-            }
-            y = (int) caveStartHeight.get(rng, x, z, data);
+            int h = (int) caveStartHeight.get(base, x, z, data);
+            int ma = breakSurface ? h : (int) (engine.getComplex().getHeightStream().get(x, z) - 9);
+            y = Math.min(h, ma);
         }
 
         try {
-             cave.generate(mantle, rng, engine, x + rng.nextInt(15), y, z + rng.nextInt(15), recursion, waterHint);
+             cave.generate(mantle, rng, base, engine, x + rng.nextInt(15), y, z + rng.nextInt(15), recursion, waterHint, breakSurface);
         } catch (Throwable e) {
             e.printStackTrace();
             fail.set(true);

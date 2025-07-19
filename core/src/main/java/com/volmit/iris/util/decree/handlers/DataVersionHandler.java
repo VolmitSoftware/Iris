@@ -8,7 +8,7 @@ import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 public class DataVersionHandler implements DecreeParameterHandler<DataVersion> {
     @Override
     public KList<DataVersion> getPossibilities() {
-        return new KList<>(DataVersion.values());
+        return new KList<>(DataVersion.values()).qdel(DataVersion.UNSUPPORTED);
     }
 
     @Override

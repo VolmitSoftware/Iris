@@ -61,6 +61,10 @@ public interface MantleComponent extends Comparable<MantleComponent> {
 
     MantleFlag getFlag();
 
+    boolean isEnabled();
+
+    void setEnabled(boolean b);
+
     @ChunkCoordinates
     void generateLayer(MantleWriter writer, int x, int z, ChunkContext context);
 

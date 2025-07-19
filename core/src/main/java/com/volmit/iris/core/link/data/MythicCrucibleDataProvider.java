@@ -16,19 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.link;
+package com.volmit.iris.core.link.data;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.link.ExternalDataProvider;
+import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.service.ExternalDataSVC;
-import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.IrisCustomData;
-import com.volmit.iris.util.math.RNG;
 import io.lumine.mythic.bukkit.BukkitAdapter;
 import io.lumine.mythic.bukkit.utils.serialize.Chroma;
 import io.lumine.mythiccrucible.MythicCrucible;
@@ -37,11 +36,11 @@ import io.lumine.mythiccrucible.items.ItemManager;
 import io.lumine.mythiccrucible.items.blocks.CustomBlockItemContext;
 import io.lumine.mythiccrucible.items.furniture.FurnitureItemContext;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
 import java.util.MissingResourceException;
 import java.util.Optional;
 
@@ -88,69 +87,27 @@ public class MythicCrucibleDataProvider extends ExternalDataProvider {
                 .generateItemStack(1));
     }
 
-    @NotNull
     @Override
-    public Identifier[] getBlockTypes() {
-        KList<Identifier> names = new KList<>();
-        for (CrucibleItem item : this.itemManager.getItems()) {
-            if (item.getBlockData() == null) continue;
-            try {
-                Identifier key = new Identifier("crucible", item.getInternalName());
-                if (getBlockData(key) != null) {
-                    Iris.info("getBlockTypes: Block loaded '" + item.getInternalName() + "'");
-                    names.add(key);
-                }
-            } catch (MissingResourceException ignored) {}
-        }
-        return names.toArray(new Identifier[0]);
-    }
-
-    @NotNull
-    @Override
-    public Identifier[] getItemTypes() {
-        KList<Identifier> names = new KList<>();
-        for (CrucibleItem item : this.itemManager.getItems()) {
-            try {
-                Identifier key = new Identifier("crucible", item.getInternalName());
-                if (getItemStack(key) != null) {
-                    Iris.info("getItemTypes: Item loaded '" + item.getInternalName() + "'");
-                    names.add(key);
-                }
-            } catch (MissingResourceException ignored) {}
-        }
-        return names.toArray(new Identifier[0]);
+    public @NotNull Collection<@NotNull Identifier> getTypes(@NotNull DataType dataType) {
+        return itemManager.getItems()
+                .stream()
+                .map(i -> new Identifier("crucible", i.getInternalName()))
+                .filter(dataType.asPredicate(this))
+                .toList();
     }
 
     @Override
     public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
-        var pair = ExternalDataSVC.parseState(blockId);
-        var state = pair.getB();
-        blockId = pair.getA();
+        var parsedState = ExternalDataSVC.parseState(blockId);
+        var state = parsedState.getB();
+        blockId = parsedState.getA();
 
         Optional<CrucibleItem> item = itemManager.getItem(blockId.key());
         if (item.isEmpty()) return;
         FurnitureItemContext furniture = item.get().getFurnitureData();
         if (furniture == null) return;
 
-        float yaw = 0;
-        BlockFace face = BlockFace.NORTH;
-        long seed = engine.getSeedManager().getSeed() + Cache.key(block.getX(), block.getZ()) + block.getY();
-        RNG rng = new RNG(seed);
-        if ("true".equals(state.get("randomYaw"))) {
-            yaw = rng.f(0, 360);
-        } else if (state.containsKey("yaw")) {
-            yaw = Float.parseFloat(state.get("yaw"));
-        }
-        if ("true".equals(state.get("randomFace"))) {
-            BlockFace[] faces = BlockFace.values();
-            face = faces[rng.i(0, faces.length - 1)];
-        } else if (state.containsKey("face")) {
-            face = BlockFace.valueOf(state.get("face").toUpperCase());
-        }
-        if (face == BlockFace.SELF) {
-            face = BlockFace.NORTH;
-        }
-
+        var pair = parseYawAndFace(engine, block, state);
         BiomeColor type = null;
         Chroma color = null;
         try {
@@ -161,11 +118,12 @@ public class MythicCrucibleDataProvider extends ExternalDataProvider {
             if (biomeColor == null) return;
             color = Chroma.of(biomeColor.getRGB());
         }
-        furniture.place(block, face, yaw, color);
+        furniture.place(block, pair.getB(), pair.getA(), color);
     }
 
     @Override
-    public boolean isValidProvider(@NotNull Identifier key, boolean isItem) {
+    public boolean isValidProvider(@NotNull Identifier key, DataType dataType) {
+        if (dataType == DataType.ENTITY) return false;
         return key.namespace().equalsIgnoreCase("crucible");
     }
 }

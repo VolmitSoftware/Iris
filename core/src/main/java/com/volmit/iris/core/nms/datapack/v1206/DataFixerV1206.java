@@ -45,13 +45,12 @@ public class DataFixerV1206 extends DataFixerV1192 {
     }
 
     @Override
-    public JSONObject rawDimension(Dimension dimension) {
-        JSONObject json = super.rawDimension(dimension);
+    public void fixDimension(Dimension dimension, JSONObject json) {
+        super.fixDimension(dimension, json);
         if (!(json.get("monster_spawn_light_level") instanceof JSONObject lightLevel))
-            return json;
+            return;
         var value = (JSONObject) lightLevel.remove("value");
         lightLevel.put("max_inclusive", value.get("max_inclusive"));
         lightLevel.put("min_inclusive", value.get("min_inclusive"));
-        return json;
     }
 }

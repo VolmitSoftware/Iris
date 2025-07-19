@@ -1,0 +1,102 @@
+# Version catalog is a central place for you to declare and version dependencies
+# https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
+# https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
+
+[versions]
+# Plugins
+shadow = "9.0.0-rc1" # https://plugins.gradle.org/plugin/com.gradleup.shadow
+slimjar = "2.0.8" # https://plugins.gradle.org/plugin/de.crazydev22.slimjar
+download = "5.6.0" # https://plugins.gradle.org/plugin/de.undercouch.download
+runPaper = "2.3.1" # https://plugins.gradle.org/plugin/xyz.jpenilla.run-paper
+sentryPlugin = "5.8.0" # https://github.com/getsentry/sentry-android-gradle-plugin
+
+# Core Libraries
+lombok = "1.18.38"
+spigot = "1.20.1-R0.1-SNAPSHOT" # https://hub.spigotmc.org/nexus/repository/snapshots/org/spigotmc/spigot-api/maven-metadata.xml
+log4j = "2.19.0" # https://central.sonatype.com/artifact/org.apache.logging.log4j/log4j-api
+adventure-api = "4.23.0" # https://github.com/KyoriPowered/adventure
+adventure-platform = "4.4.0" # https://github.com/KyoriPowered/adventure-platform
+
+annotations = "26.0.2" # https://central.sonatype.com/artifact/org.jetbrains/annotations
+paralithic = "0.8.1" # https://github.com/PolyhedralDev/Paralithic/
+paperlib = "1.0.8" # https://github.com/PaperMC/PaperLib/
+bstats = "3.1.0" # https://github.com/Bastian/bstats-metrics/tree/master
+sentry = "8.14.0" # https://github.com/getsentry/sentry-java
+commons-io = "2.19.0" # https://central.sonatype.com/artifact/commons-io/commons-io
+commons-lang = "2.6" # https://central.sonatype.com/artifact/commons-lang/commons-lang
+commons-lang3 = "3.17.0" # https://central.sonatype.com/artifact/org.apache.commons/commons-lang3
+oshi = "6.8.2" # https://central.sonatype.com/artifact/com.github.oshi/oshi-core
+fastutil = "8.5.16" # https://central.sonatype.com/artifact/it.unimi.dsi/fastutil
+lz4 = "1.8.0" # https://central.sonatype.com/artifact/org.lz4/lz4-java
+lru = "1.4.2" # https://central.sonatype.com/artifact/com.googlecode.concurrentlinkedhashmap/concurrentlinkedhashmap-lru
+zip = "1.17" # https://central.sonatype.com/artifact/org.zeroturnaround/zt-zip
+gson = "2.13.1" # https://central.sonatype.com/artifact/com.google.code.gson/gson
+asm = "9.8" # https://central.sonatype.com/artifact/org.ow2.asm/asm
+bsf = "2.4.0" # https://central.sonatype.com/artifact/bsf/bsf
+rhino = "1.7R2" # https://central.sonatype.com/artifact/rhino/js
+caffeine = "3.2.1" # https://central.sonatype.com/artifact/com.github.ben-manes.caffeine/caffeine
+byte-buddy = "1.17.6" # https://central.sonatype.com/artifact/net.bytebuddy/byte-buddy
+
+# Third Party Integrations
+nexo = "1.8.0" # https://repo.nexomc.com/#/releases/com/nexomc/nexo
+itemsadder = "4.0.10" # https://github.com/LoneDev6/API-ItemsAdder
+placeholderApi = "2.11.6" # https://repo.extendedclip.com/#/releases/me/clip/placeholderapi
+score = "5.25.3.9" # https://github.com/Ssomar-Developement/SCore
+mmoitems = "6.9.5-SNAPSHOT" # https://nexus.phoenixdevt.fr/repository/maven-public/net/Indyuce/MMOItems-API/maven-metadata.xml
+ecoitems = "5.63.1" # https://github.com/Auxilor/EcoItems/tags
+mythic = "5.9.5"
+mythic-chrucible = "2.1.0"
+kgenerators = "7.3" # https://repo.codemc.io/repository/maven-public/me/kryniowesegryderiusz/kgenerators-core/maven-metadata.xml
+multiverseCore = "5.1.0"
+
+[libraries]
+# Core Libraries
+lombok = { module = "org.projectlombok:lombok", version.ref ="lombok" }
+spigot = { module = "org.spigotmc:spigot-api", version.ref = "spigot" }
+log4j-api = { module = "org.apache.logging.log4j:log4j-api", version.ref = "log4j" }
+log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
+annotations = { module = "org.jetbrains:annotations", version.ref = "annotations" }
+
+# Dynamically Loaded
+adventure-api = { module = "net.kyori:adventure-api", version.ref = "adventure-api" }
+adventure-minimessage = { module = "net.kyori:adventure-text-minimessage", version.ref = "adventure-api" }
+adventure-platform = { module = "net.kyori:adventure-platform-bukkit", version.ref = "adventure-platform" }
+
+paralithic = { module = "com.dfsek:paralithic", version.ref = "paralithic" }
+paperlib = { module = "io.papermc:paperlib", version.ref = "paperlib" }
+bstats = { module = "org.bstats:bstats-bukkit", version.ref = "bstats" }
+sentry = { module = "io.sentry:sentry", version.ref = "sentry" }
+commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
+commons-lang = { module = "commons-lang:commons-lang", version.ref = "commons-lang" }
+commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
+oshi = { module = "com.github.oshi:oshi-core", version.ref = "oshi" }
+lz4 = { module = "org.lz4:lz4-java", version.ref = "lz4" }
+fastutil = { module = "it.unimi.dsi:fastutil", version.ref = "fastutil" }
+lru = { module = "com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru", version.ref = "lru" }
+zip = { module = "org.zeroturnaround:zt-zip", version.ref = "zip" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
+bsf = { module = "bsf:bsf", version.ref = "bsf" }
+rhino = { module = "rhino:js", version.ref = "rhino" }
+caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
+byteBuddy-core = { module = "net.bytebuddy:byte-buddy", version.ref = "byte-buddy" }
+byteBuddy-agent = { module = "net.bytebuddy:byte-buddy-agent", version.ref = "byte-buddy" }
+
+# Third Party Integrations
+nexo = { module = "com.nexomc:nexo", version.ref = "nexo" }
+itemsadder = { module = "dev.lone:api-itemsadder", version.ref = "itemsadder" }
+placeholderApi = { module = "me.clip:placeholderapi", version.ref = "placeholderApi" }
+score = { module = "com.github.Ssomar-Developement:SCore", version.ref = "score" }
+mmoitems = { module = "net.Indyuce:MMOItems-API", version.ref = "mmoitems" }
+ecoitems = { module = "com.willfp:EcoItems", version.ref = "ecoitems" }
+mythic = { module = "io.lumine:Mythic-Dist", version.ref = "mythic" }
+mythicChrucible = { module = "io.lumine:MythicCrucible-Dist", version.ref = "mythic-chrucible" }
+kgenerators = { module = "me.kryniowesegryderiusz:kgenerators-core", version.ref = "kgenerators" }
+multiverseCore = { module = "org.mvplugins.multiverse.core:multiverse-core", version.ref = "multiverseCore" }
+
+[plugins]
+shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
+slimjar = { id = "de.crazydev22.slimjar", version.ref = "slimjar" }
+download = { id = "de.undercouch.download", version.ref = "download" }
+runPaper = { id = "xyz.jpenilla.run-paper", version.ref = "runPaper" }
+sentry = { id = "io.sentry.jvm.gradle", version.ref = "sentryPlugin" }

@@ -25,7 +25,6 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.link.IrisPapiExpansion;
 import com.volmit.iris.core.link.MultiverseCoreLink;
-import com.volmit.iris.core.link.MythicMobsLink;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
@@ -95,7 +94,6 @@ public class Iris extends VolmitPlugin implements Listener {
     public static Iris instance;
     public static Bindings.Adventure audiences;
     public static MultiverseCoreLink linkMultiverseCore;
-    public static MythicMobsLink linkMythicMobs;
     public static IrisCompat compat;
     public static FileWatcher configWatcher;
     private static VolmitSender sender;
@@ -454,7 +452,6 @@ public class Iris extends VolmitPlugin implements Listener {
         getSender().setTag(getTag());
         IrisSafeguard.splash(true);
         linkMultiverseCore = new MultiverseCoreLink();
-        linkMythicMobs = new MythicMobsLink();
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);

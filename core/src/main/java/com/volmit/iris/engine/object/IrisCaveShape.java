@@ -6,6 +6,7 @@ import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import lombok.AllArgsConstructor;
@@ -36,17 +37,40 @@ public class IrisCaveShape {
 
     public KSet<IrisPosition> getMasked(RNG rng, Engine engine) {
         if (object == null) return null;
-        return cache.computeIfAbsent(new IrisPosition(
-                        rng.i(0, 360),
-                        rng.i(0, 360),
-                        rng.i(0, 360)),
-                pos -> {
-                    var rotated = new KSet<IrisPosition>();
-                    engine.getData().getObjectLoader().load(object).getBlocks().forEach((vector, data) -> {
-                        if (data.getMaterial().isAir()) return;
-                        rotated.add(new IrisPosition(objectRotation.rotate(vector, pos.getX(), pos.getY(), pos.getZ())));
-                    });
-                    return rotated;
-                });
+        return cache.computeIfAbsent(randomRotation(rng), pos -> {
+            var rotated = new KSet<IrisPosition>();
+            engine.getData().getObjectLoader().load(object).getBlocks().forEach((vector, data) -> {
+                if (data.getMaterial().isAir()) return;
+                rotated.add(new IrisPosition(objectRotation.rotate(vector, pos.getX(), pos.getY(), pos.getZ())));
+            });
+            return rotated;
+        });
+    }
+
+    private IrisPosition randomRotation(RNG rng) {
+        if (objectRotation == null || !objectRotation.canRotate())
+            return new IrisPosition(0,0,0);
+        return new IrisPosition(
+                randomDegree(rng, objectRotation.getXAxis()),
+                randomDegree(rng, objectRotation.getYAxis()),
+                randomDegree(rng, objectRotation.getZAxis())
+        );
+    }
+
+    private int randomDegree(RNG rng, IrisAxisRotationClamp clamp) {
+        if (!clamp.isEnabled()) return 0;
+        if (clamp.isLocked()) return (int) clamp.getMax();
+        double interval = clamp.getInterval();
+        if (interval < 1) interval = 1;
+
+        double min = clamp.getMin(), max = clamp.getMax();
+        double value = (interval * (Math.ceil(Math.abs(rng.d(0, 360) / interval)))) % 360D;
+        if (clamp.isUnlimited()) return (int) value;
+
+        if (min > max) {
+            max = clamp.getMin();
+            min = clamp.getMax();
+        }
+        return (int) (double) M.clip(value, min, max);
     }
 }

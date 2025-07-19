@@ -207,8 +207,9 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             this.world.bind(world);
             getEngine().generate(x << 4, z << 4, tc, false);
 
-            Chunk c = PaperLib.getChunkAtAsync(world, x, z)
+            Chunk c = Iris.platform.getChunkAtAsync(world, x, z)
                     .thenApply(d -> {
+                        if (d == null) throw new IllegalStateException("Chunk is null!");
                         d.addPluginChunkTicket(Iris.instance);
 
                         for (Entity ee : d.getEntities()) {

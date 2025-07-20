@@ -24,9 +24,11 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.WorldGenRegion;
+import net.minecraft.tags.StructureTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.random.WeightedRandomList;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.item.EnderEyeItem;
 import net.minecraft.world.level.*;
 import net.minecraft.world.level.biome.*;
 import net.minecraft.world.level.block.Blocks;
@@ -36,6 +38,7 @@ import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
 import net.minecraft.world.level.levelgen.*;
 import net.minecraft.world.level.levelgen.blending.Blender;
+import net.minecraft.world.level.levelgen.structure.BuiltinStructures;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
@@ -128,6 +131,11 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
 
     @Override
     public @Nullable Pair<BlockPos, Holder<Structure>> findNearestMapStructure(ServerLevel level, HolderSet<Structure> holders, BlockPos pos, int radius, boolean findUnexplored) {
+        if (holders.size() == 0) return null;
+        if (holders.unwrapKey().orElse(null) == StructureTags.EYE_OF_ENDER_LOCATED) {
+            var next = engine.getNearestStronghold(new Position2(pos.getX(), pos.getZ()));
+            return next == null ? null : new Pair<>(new BlockPos(next.getX(), 0, next.getZ()), holders.get(0));
+        }
         if (engine.getDimension().isDisableExplorerMaps())
             return null;
 

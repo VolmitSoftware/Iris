@@ -30,6 +30,7 @@ import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.decree.DecreeExecutor;
@@ -42,6 +43,7 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.CountingDataInputStream;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.mantle.TectonicPlate;
+import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.nbt.mca.MCAFile;
 import com.volmit.iris.util.nbt.mca.MCAUtil;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -71,57 +73,56 @@ import java.util.zip.GZIPOutputStream;
 @Decree(name = "Developer", origin = DecreeOrigin.BOTH, description = "Iris World Manager", aliases = {"dev"})
 public class CommandDeveloper implements DecreeExecutor {
     private CommandTurboPregen turboPregen;
+    private CommandLazyPregen lazyPregen;
     private CommandUpdater updater;
 
     @Decree(description = "Get Loaded TectonicPlates Count", origin = DecreeOrigin.BOTH, sync = true)
     public void EngineStatus() {
-        List<World> IrisWorlds = new ArrayList<>();
-        int TotalLoadedChunks = 0;
-        int TotalQueuedTectonicPlates = 0;
-        int TotalNotQueuedTectonicPlates = 0;
-        int TotalTectonicPlates = 0;
+        Iris.service(IrisEngineSVC.class)
+                .engineStatus(sender());
+    }
 
-        long lowestUnloadDuration = 0;
-        long highestUnloadDuration = 0;
+    @Decree(description = "Send a test exception to sentry")
+    public void Sentry() {
+        Engine engine = engine();
+        if (engine != null) IrisContext.getOr(engine);
+        Iris.reportError(new Exception("This is a test"));
+    }
 
-        for (World world : Bukkit.getWorlds()) {
-            try {
-                if (IrisToolbelt.access(world).getEngine() != null) {
-                    IrisWorlds.add(world);
+    @Decree(description = "Test")
+    public void dumpThreads() {
+        try {
+            File fi = Iris.instance.getDataFile("dump", "td-" + new java.sql.Date(M.ms()) + ".txt");
+            FileOutputStream fos = new FileOutputStream(fi);
+            Map<Thread, StackTraceElement[]> f = Thread.getAllStackTraces();
+            PrintWriter pw = new PrintWriter(fos);
+
+            pw.println(Thread.activeCount() + "/" + f.size());
+            var run = Runtime.getRuntime();
+            pw.println("Memory:");
+            pw.println("\tMax: " + run.maxMemory());
+            pw.println("\tTotal: " + run.totalMemory());
+            pw.println("\tFree: " + run.freeMemory());
+            pw.println("\tUsed: " + (run.totalMemory() - run.freeMemory()));
+
+            for (Thread i : f.keySet()) {
+                pw.println("========================================");
+                pw.println("Thread: '" + i.getName() + "' ID: " + i.getId() + " STATUS: " + i.getState().name());
+
+                for (StackTraceElement j : f.get(i)) {
+                    pw.println("    @ " + j.toString());
                 }
-            } catch (Exception e) {
-                // no
-            }
-        }
 
-        for (World world : IrisWorlds) {
-            Engine engine = IrisToolbelt.access(world).getEngine();
-            TotalQueuedTectonicPlates += (int) engine.getMantle().getToUnload();
-            TotalNotQueuedTectonicPlates += (int) engine.getMantle().getNotQueuedLoadedRegions();
-            TotalTectonicPlates += engine.getMantle().getLoadedRegionCount();
-            if (highestUnloadDuration <= (long) engine.getMantle().getTectonicDuration()) {
-                highestUnloadDuration = (long) engine.getMantle().getTectonicDuration();
+                pw.println("========================================");
+                pw.println();
+                pw.println();
             }
-            if (lowestUnloadDuration >= (long) engine.getMantle().getTectonicDuration()) {
-                lowestUnloadDuration = (long) engine.getMantle().getTectonicDuration();
-            }
-            for (Chunk chunk : world.getLoadedChunks()) {
-                if (chunk.isLoaded()) {
-                    TotalLoadedChunks++;
-                }
-            }
+
+            pw.close();
+            Iris.info("DUMPED! See " + fi.getAbsolutePath());
+        } catch (Throwable e) {
+            e.printStackTrace();
         }
-        Iris.info("-------------------------");
-        Iris.info(C.DARK_PURPLE + "Engine Status");
-        Iris.info(C.DARK_PURPLE + "Total Loaded Chunks: " + C.LIGHT_PURPLE + TotalLoadedChunks);
-        Iris.info(C.DARK_PURPLE + "Tectonic Limit: " + C.LIGHT_PURPLE + IrisEngineSVC.getTectonicLimit());
-        Iris.info(C.DARK_PURPLE + "Tectonic Total Plates: " + C.LIGHT_PURPLE + TotalTectonicPlates);
-        Iris.info(C.DARK_PURPLE + "Tectonic Active Plates: " + C.LIGHT_PURPLE + TotalNotQueuedTectonicPlates);
-        Iris.info(C.DARK_PURPLE + "Tectonic ToUnload: " + C.LIGHT_PURPLE + TotalQueuedTectonicPlates);
-        Iris.info(C.DARK_PURPLE + "Lowest Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration(lowestUnloadDuration));
-        Iris.info(C.DARK_PURPLE + "Highest Tectonic Unload Duration: " + C.LIGHT_PURPLE + Form.duration(highestUnloadDuration));
-        Iris.info(C.DARK_PURPLE + "Cache Size: " + C.LIGHT_PURPLE + Form.f(IrisData.cacheSize()));
-        Iris.info("-------------------------");
     }
 
     @Decree(description = "Test")
@@ -137,7 +138,7 @@ public class CommandDeveloper implements DecreeExecutor {
 
         File tectonicplates = new File(folder, "mantle");
         for (File i : Objects.requireNonNull(tectonicplates.listFiles())) {
-            TectonicPlate.read(maxHeight, i);
+            TectonicPlate.read(maxHeight, i, true);
             c++;
             Iris.info("Loaded count: " + c );
 
@@ -345,7 +346,8 @@ public class CommandDeveloper implements DecreeExecutor {
             @Param(description = "base IrisWorld") World world,
             @Param(description = "raw TectonicPlate File") String path,
             @Param(description = "Algorithm to Test") String algorithm,
-            @Param(description = "Amount of Tests") int amount) {
+            @Param(description = "Amount of Tests") int amount,
+            @Param(description = "Is versioned", defaultValue = "false") boolean versioned) {
         if (!IrisToolbelt.isIrisWorld(world)) {
             sender().sendMessage(C.RED + "This is not an Iris world. Iris worlds: " + String.join(", ", Bukkit.getServer().getWorlds().stream().filter(IrisToolbelt::isIrisWorld).map(World::getName).toList()));
             return;
@@ -362,7 +364,7 @@ public class CommandDeveloper implements DecreeExecutor {
             service.submit(() -> {
                 try {
                     CountingDataInputStream raw = CountingDataInputStream.wrap(new FileInputStream(file));
-                    TectonicPlate plate = new TectonicPlate(height, raw);
+                    TectonicPlate plate = new TectonicPlate(height, raw, versioned);
                     raw.close();
 
                     double d1 = 0;
@@ -381,7 +383,7 @@ public class CommandDeveloper implements DecreeExecutor {
                             size = tmp.length();
                         start = System.currentTimeMillis();
                         CountingDataInputStream din = createInput(tmp, algorithm);
-                        new TectonicPlate(height, din);
+                        new TectonicPlate(height, din, true);
                         din.close();
                         d2 += System.currentTimeMillis() - start;
                         tmp.delete();

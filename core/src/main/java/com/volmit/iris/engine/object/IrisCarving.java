@@ -61,28 +61,32 @@ public class IrisCarving {
 
 
     @BlockCoordinates
-    public void doCarving(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
-        doCarving(writer, rng, engine, x, y, z, -1);
+    public void doCarving(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int depth) {
+        doCarving(writer, rng, new RNG(engine.getSeedManager().getCarve()), engine, x, y, z, depth, -1);
     }
 
     @BlockCoordinates
-    public void doCarving(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int waterHint) {
+    public void doCarving(MantleWriter writer, RNG rng, RNG base, Engine engine, int x, int y, int z, int recursion, int waterHint) {
+        int nextRecursion = recursion + 1;
+
         if (caves.isNotEmpty()) {
             for (IrisCavePlacer i : caves) {
-                i.generateCave(writer, rng, engine, x, y, z, waterHint);
+                if (recursion > i.getMaxRecursion()) continue;
+                i.generateCave(writer, rng, base, engine, x, y, z, nextRecursion, waterHint);
             }
         }
 
         if (ravines.isNotEmpty()) {
             for (IrisRavinePlacer i : ravines) {
-                i.generateRavine(writer, rng, engine, x, y, z, waterHint);
+                if (recursion > i.getMaxRecursion()) continue;
+                i.generateRavine(writer, rng, base, engine, x, y, z, nextRecursion, waterHint);
             }
         }
 
         if (spheres.isNotEmpty()) {
             for (IrisSphere i : spheres) {
                 if (rng.nextInt(i.getRarity()) == 0) {
-                    i.generate(rng, engine, writer, x, y, z);
+                    i.generate(base, engine, writer, x, y, z);
                 }
             }
         }
@@ -90,7 +94,7 @@ public class IrisCarving {
         if (elipsoids.isNotEmpty()) {
             for (IrisElipsoid i : elipsoids) {
                 if (rng.nextInt(i.getRarity()) == 0) {
-                    i.generate(rng, engine, writer, x, y, z);
+                    i.generate(base, engine, writer, x, y, z);
                 }
             }
         }
@@ -98,21 +102,24 @@ public class IrisCarving {
         if (pyramids.isNotEmpty()) {
             for (IrisPyramid i : pyramids) {
                 if (rng.nextInt(i.getRarity()) == 0) {
-                    i.generate(rng, engine, writer, x, y, z);
+                    i.generate(base, engine, writer, x, y, z);
                 }
             }
         }
     }
 
-    public int getMaxRange(IrisData data) {
+    public int getMaxRange(IrisData data, int recursion) {
         int max = 0;
+        int nextRecursion = recursion + 1;
 
         for (IrisCavePlacer i : caves) {
-            max = Math.max(max, i.getSize(data));
+            if (recursion > i.getMaxRecursion()) continue;
+            max = Math.max(max, i.getSize(data, nextRecursion));
         }
 
         for (IrisRavinePlacer i : ravines) {
-            max = Math.max(max, i.getSize(data));
+            if (recursion > i.getMaxRecursion()) continue;
+            max = Math.max(max, i.getSize(data, nextRecursion));
         }
 
         if (elipsoids.isNotEmpty()) {

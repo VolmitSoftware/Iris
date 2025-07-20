@@ -25,9 +25,11 @@ import com.volmit.iris.engine.mantle.MantleWriter;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterCavern;
+import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -55,6 +57,9 @@ public class IrisCave extends IrisRegistrant {
     @Desc("Limit the worm from ever getting higher or lower than this range")
     private IrisRange verticalRange = new IrisRange(3, 255);
 
+    @Desc("Shape of the caves")
+    private IrisCaveShape shape = new IrisCaveShape();
+
     @Override
     public String getFolderName() {
         return "caves";
@@ -66,14 +71,12 @@ public class IrisCave extends IrisRegistrant {
     }
 
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
-        generate(writer, rng, engine, x, y, z, -1);
+        generate(writer, rng, new RNG(engine.getSeedManager().getCarve()), engine, x, y, z, 0, -1, true);
     }
 
-    public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int waterHint) {
-
-        double girth = getWorm().getGirth().get(rng, x, z, engine.getData());
-        KList<IrisPosition> points = getWorm().generate(rng, engine.getData(), writer, verticalRange, x, y, z, (at) -> {
-        });
+    public void generate(MantleWriter writer, RNG rng, RNG base, Engine engine, int x, int y, int z, int recursion, int waterHint, boolean breakSurface) {
+        double girth = getWorm().getGirth().get(base.nextParallelRNG(465156), x, z, engine.getData());
+        KList<IrisPosition> points = getWorm().generate(base.nextParallelRNG(784684), engine.getData(), writer, verticalRange, x, y, z, breakSurface, girth + 9);
         int highestWater = Math.max(waterHint, -1);
 
         if (highestWater == -1) {
@@ -89,17 +92,19 @@ public class IrisCave extends IrisRegistrant {
         }
 
 
-        int h = Math.min(Math.max(highestWater, waterHint), engine.getDimension().getFluidHeight());
+        int h = Math.min(highestWater, engine.getDimension().getFluidHeight());
 
         for (IrisPosition i : points) {
-            fork.doCarving(writer, rng, engine, i.getX(), i.getY(), i.getZ(), h);
+            fork.doCarving(writer, rng, base, engine, i.getX(), i.getY(), i.getZ(), recursion, h);
         }
 
         MatterCavern c = new MatterCavern(true, customBiome, (byte) 0);
         MatterCavern w = new MatterCavern(true, customBiome, (byte) 1);
 
-        writer.setLineConsumer(points,
-                girth, true,
+        CNG cng = shape.getNoise(base.nextParallelRNG(8131545), engine);
+        KSet<IrisPosition> mask = shape.getMasked(rng, engine);
+        writer.setNoiseMasked(points,
+                girth, cng.noise(x, y, z), cng, mask, true,
                 (xf, yf, zf) -> yf <= h ? w : c);
     }
 
@@ -108,7 +113,7 @@ public class IrisCave extends IrisRegistrant {
 
     }
 
-    public int getMaxSize(IrisData data) {
-        return getWorm().getMaxDistance() + fork.getMaxRange(data);
+    public int getMaxSize(IrisData data, int depth) {
+        return (int) (Math.ceil(getWorm().getGirth().getMax() * 2) + getWorm().getMaxDistance() + fork.getMaxRange(data, depth));
     }
 }

@@ -18,11 +18,20 @@
 
 package com.volmit.iris.util.io;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.format.Form;
+import org.apache.commons.io.function.IOConsumer;
+import org.apache.commons.io.function.IOFunction;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -134,8 +143,7 @@ public class IO {
                     continue;
                 }
 
-                try (var fin = new FileInputStream(file)) {
-                    var din = new CheckedInputStream(fin, crc);
+                try (var din = new CheckedInputStream(readDeterministic(file), crc)) {
                     fullTransfer(din, new VoidOutputStream(), 8192);
                 } catch (IOException e) {
                     Iris.reportError(e);
@@ -152,10 +160,43 @@ public class IO {
         return 0;
     }
 
+    public static InputStream readDeterministic(File file) throws IOException {
+        if (!file.getName().endsWith(".json"))
+            return new FileInputStream(file);
+
+        JsonElement json;
+        try (FileReader reader = new FileReader(file)) {
+            json = JsonParser.parseReader(reader);
+        }
+
+        var queue = new LinkedList<JsonElement>();
+        queue.add(json);
+
+        while (!queue.isEmpty()) {
+            var element = queue.pop();
+            Collection<JsonElement> add = List.of();
+
+            if (element instanceof JsonObject obj) {
+                var map = obj.asMap();
+                var sorted = new TreeMap<>(map);
+                map.clear();
+                map.putAll(sorted);
+
+                add = sorted.values();
+            } else if (element instanceof JsonArray array) {
+                add = array.asList();
+            }
+
+            add.stream().filter(e -> e.isJsonObject() || e.isJsonArray()).forEach(queue::add);
+        }
+
+        return toInputStream(json.toString());
+    }
+
     public static String hash(File b) {
         try {
             MessageDigest d = MessageDigest.getInstance("SHA-256");
-            DigestInputStream din = new DigestInputStream(new FileInputStream(b), d);
+            DigestInputStream din = new DigestInputStream(readDeterministic(b), d);
             fullTransfer(din, new VoidOutputStream(), 8192);
             din.close();
             return bytesToHex(din.getMessageDigest().digest());
@@ -550,6 +591,25 @@ public class IO {
         if (preserveFileDate) {
             destFile.setLastModified(srcFile.lastModified());
         }
+    }
+
+    public static void copyDirectory(Path source, Path target) throws IOException {
+        Files.walk(source).forEach(sourcePath -> {
+            Path targetPath = target.resolve(source.relativize(sourcePath));
+
+            try {
+                if (Files.isDirectory(sourcePath)) {
+                    if (!Files.exists(targetPath)) {
+                        Files.createDirectories(targetPath);
+                    }
+                } else {
+                    Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
+                }
+            } catch (IOException e) {
+                Iris.error("Failed to copy " + targetPath);
+                e.printStackTrace();
+            }
+        });
     }
 
     /**
@@ -1601,5 +1661,20 @@ public class IO {
 
         int ch2 = input2.read();
         return (ch2 == -1);
+    }
+
+    public static <T extends Closeable> void write(File file, IOFunction<FileOutputStream, T> builder, IOConsumer<T> action) throws IOException {
+        File dir = new File(file.getParentFile(), ".tmp");
+        dir.mkdirs();
+        dir.deleteOnExit();
+        File temp = File.createTempFile("iris",".bin", dir);
+        try {
+            try (var out = builder.apply(new FileOutputStream(temp))) {
+                action.accept(out);
+            }
+            Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } finally {
+            temp.delete();
+        }
     }
 }

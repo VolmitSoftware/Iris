@@ -75,9 +75,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
-import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -140,7 +140,9 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return getTarget().getWorld().minHeight();
     }
 
-    void setMinHeight(int min);
+    default void setMinHeight(int min) {
+        getTarget().getWorld().minHeight(min);
+    }
 
     @BlockCoordinates
     default void generate(int x, int z, TerrainChunk tc, boolean multicore) throws WrongEngineBroException {
@@ -287,76 +289,79 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             return;
         }
 
-        var chunk = mantle.getChunk(c);
-        if (chunk.isFlagged(MantleFlag.ETCHED)) return;
-        chunk.flag(MantleFlag.ETCHED, true);
+        var chunk = mantle.getChunk(c).use();
+        try {
+            Semaphore semaphore = new Semaphore(3);
+            chunk.raiseFlag(MantleFlag.ETCHED, () -> {
+                chunk.raiseFlag(MantleFlag.TILE, run(semaphore, () -> J.s(() -> {
+                    mantle.iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, v) -> {
+                        int betterY = y + getWorld().minHeight();
+                        if (!TileData.setTileState(c.getBlock(x, betterY, z), v.getData()))
+                            Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), v.getData().getMaterial().name());
+                    });
+                })));
+                chunk.raiseFlag(MantleFlag.CUSTOM, run(semaphore, () -> J.s(() -> {
+                    mantle.iterateChunk(c.getX(), c.getZ(), Identifier.class, (x, y, z, v) -> {
+                        Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
+                    });
+                })));
 
-        Semaphore semaphore = new Semaphore(3);
-        chunk.raiseFlag(MantleFlag.TILE, run(semaphore, () -> J.s(() -> {
-            mantle.iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, v) -> {
-                int betterY = y + getWorld().minHeight();
-                if (!TileData.setTileState(c.getBlock(x, betterY, z), v.getData()))
-                    Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), v.getData().getMaterial().name());
-            });
-        })));
-        chunk.raiseFlag(MantleFlag.CUSTOM, run(semaphore, () -> J.s(() -> {
-            mantle.iterateChunk(c.getX(), c.getZ(), Identifier.class, (x, y, z, v) -> {
-                Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
-            });
-        })));
-
-        chunk.raiseFlag(MantleFlag.UPDATE, run(semaphore, () -> J.s(() -> {
-            PrecisionStopwatch p = PrecisionStopwatch.start();
-            KMap<Long, Integer> updates = new KMap<>();
-            RNG r = new RNG(Cache.key(c.getX(), c.getZ()));
-            mantle.iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, yf, z, v) -> {
-                int y = yf + getWorld().minHeight();
-                if (!B.isFluid(c.getBlock(x & 15, y, z & 15).getBlockData())) {
-                    return;
-                }
-                boolean u = false;
-                if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.DOWN).getBlockData())) {
-                    u = true;
-                } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.WEST).getBlockData())) {
-                    u = true;
-                } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.EAST).getBlockData())) {
-                    u = true;
-                } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.SOUTH).getBlockData())) {
-                    u = true;
-                } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.NORTH).getBlockData())) {
-                    u = true;
-                }
-
-                if (u) {
-                    updates.compute(Cache.key(x & 15, z & 15), (k, vv) -> {
-                        if (vv != null) {
-                            return Math.max(vv, y);
+                chunk.raiseFlag(MantleFlag.UPDATE, run(semaphore, () -> J.s(() -> {
+                    PrecisionStopwatch p = PrecisionStopwatch.start();
+                    KMap<Long, Integer> updates = new KMap<>();
+                    RNG r = new RNG(Cache.key(c.getX(), c.getZ()));
+                    mantle.iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, yf, z, v) -> {
+                        int y = yf + getWorld().minHeight();
+                        if (!B.isFluid(c.getBlock(x & 15, y, z & 15).getBlockData())) {
+                            return;
+                        }
+                        boolean u = false;
+                        if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.DOWN).getBlockData())) {
+                            u = true;
+                        } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.WEST).getBlockData())) {
+                            u = true;
+                        } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.EAST).getBlockData())) {
+                            u = true;
+                        } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.SOUTH).getBlockData())) {
+                            u = true;
+                        } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.NORTH).getBlockData())) {
+                            u = true;
                         }
 
-                        return y;
+                        if (u) {
+                            updates.compute(Cache.key(x & 15, z & 15), (k, vv) -> {
+                                if (vv != null) {
+                                    return Math.max(vv, y);
+                                }
+
+                                return y;
+                            });
+                        }
                     });
-                }
+
+                    updates.forEach((k, v) -> update(Cache.keyX(k), v, Cache.keyZ(k), c, r));
+                    mantle.iterateChunk(c.getX(), c.getZ(), MatterUpdate.class, (x, yf, z, v) -> {
+                        int y = yf + getWorld().minHeight();
+                        if (v != null && v.isUpdate()) {
+                            int vx = x & 15;
+                            int vz = z & 15;
+                            update(x, y, z, c, new RNG(Cache.key(c.getX(), c.getZ())));
+                            if (vx > 0 && vx < 15 && vz > 0 && vz < 15) {
+                                updateLighting(x, y, z, c);
+                            }
+                        }
+                    });
+                    mantle.deleteChunkSlice(c.getX(), c.getZ(), MatterUpdate.class);
+                    getMetrics().getUpdates().put(p.getMilliseconds());
+                }, RNG.r.i(0, 20))));
             });
 
-            updates.forEach((k, v) -> update(Cache.keyX(k), v, Cache.keyZ(k), c, r));
-            mantle.iterateChunk(c.getX(), c.getZ(), MatterUpdate.class, (x, yf, z, v) -> {
-                int y = yf + getWorld().minHeight();
-                if (v != null && v.isUpdate()) {
-                    int vx = x & 15;
-                    int vz = z & 15;
-                    update(x, y, z, c, new RNG(Cache.key(c.getX(), c.getZ())));
-                    if (vx > 0 && vx < 15 && vz > 0 && vz < 15) {
-                        updateLighting(x, y, z, c);
-                    }
-                }
-            });
-            mantle.deleteChunkSlice(c.getX(), c.getZ(), MatterUpdate.class);
-            getMetrics().getUpdates().put(p.getMilliseconds());
-        }, RNG.r.i(0, 20))));
-
-        try {
-            semaphore.acquire(3);
-        } catch (InterruptedException ignored) {}
+            try {
+                semaphore.acquire(3);
+            } catch (InterruptedException ignored) {}
+        } finally {
+            chunk.release();
+        }
     }
 
     private static Runnable run(Semaphore semaphore, Runnable runnable) {
@@ -453,14 +458,11 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             }
         }
 
-        for (int i = 0; i < 4; i++) {
-            try {
-                Arrays.parallelSort(nitems, (a, b) -> rng.nextInt());
-                break;
-            } catch (Throwable e) {
-                Iris.reportError(e);
-
-            }
+        for (int i = nitems.length; i > 1; i--) {
+            int j = rng.nextInt(i);
+            ItemStack tmp = nitems[i - 1];
+            nitems[i - 1] = nitems[j];
+            nitems[j] = tmp;
         }
 
         inventory.setContents(nitems);
@@ -852,6 +854,25 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return getBiomeOrMantle(l.getBlockX(), l.getBlockY(), l.getBlockZ());
     }
 
+    @Nullable
+    @BlockCoordinates
+    default Position2 getNearestStronghold(Position2 pos) {
+        KList<Position2> p = getDimension().getStrongholds(getSeedManager().getMantle());
+        if (p.isEmpty()) return null;
+
+        Position2 pr = null;
+        double d = Double.MAX_VALUE;
+
+        for (Position2 i : p) {
+            double dx = i.distance(pos);
+            if (dx < d) {
+                d = dx;
+                pr = i;
+            }
+        }
+        return pr;
+    }
+
     default void gotoBiome(IrisBiome biome, Player player, boolean teleport) {
         Set<String> regionKeys = getDimension()
                 .getAllRegions(this).stream()
@@ -872,31 +893,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     default void gotoJigsaw(IrisJigsawStructure s, Player player, boolean teleport) {
         if (s.getLoadKey().equals(getDimension().getStronghold())) {
-            KList<Position2> p = getDimension().getStrongholds(getSeedManager().getMantle());
-
-            if (p.isEmpty()) {
+            Position2 pr = getNearestStronghold(new Position2(player.getLocation().getBlockX(), player.getLocation().getBlockZ()));
+            if (pr == null) {
                 player.sendMessage(C.GOLD + "No strongholds in world.");
-            }
-
-            Position2 px = new Position2(player.getLocation().getBlockX(), player.getLocation().getBlockZ());
-            Position2 pr = null;
-            double d = Double.MAX_VALUE;
-
-            Iris.debug("Ps: " + p.size());
-
-            for (Position2 i : p) {
-                Iris.debug("- " + i.getX() + " " + i.getZ());
-            }
-
-            for (Position2 i : p) {
-                double dx = i.distance(px);
-                if (dx < d) {
-                    d = dx;
-                    pr = i;
-                }
-            }
-
-            if (pr != null) {
+            } else {
                 Location ll = new Location(player.getWorld(), pr.getX(), 40, pr.getZ());
                 J.s(() -> player.teleport(ll));
             }

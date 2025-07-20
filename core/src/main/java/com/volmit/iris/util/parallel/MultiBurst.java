@@ -24,12 +24,15 @@ import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class MultiBurst {
+public class MultiBurst implements ExecutorService {
+    private static final long TIMEOUT = Long.getLong("iris.burst.timeout", 15000);
     public static final MultiBurst burst = new MultiBurst();
     private final AtomicLong last;
     private final String name;
@@ -144,29 +147,106 @@ public class MultiBurst {
         return getService().submit(o);
     }
 
+    @Override
+    public void shutdown() {
+        close();
+    }
+
+    @NotNull
+    @Override
+    public List<Runnable> shutdownNow() {
+        close();
+        return List.of();
+    }
+
+    @Override
+    public boolean isShutdown() {
+        return service == null || service.isShutdown();
+    }
+
+    @Override
+    public boolean isTerminated() {
+        return service == null || service.isTerminated();
+    }
+
+    @Override
+    public boolean awaitTermination(long timeout, @NotNull TimeUnit unit) throws InterruptedException {
+        return service == null || service.awaitTermination(timeout, unit);
+    }
+
+    @Override
+    public void execute(@NotNull Runnable command) {
+        getService().execute(command);
+    }
+
+    @NotNull
+    @Override
+    public <T> Future<T> submit(@NotNull Callable<T> task) {
+        return getService().submit(task);
+    }
+
+    @NotNull
+    @Override
+    public <T> Future<T> submit(@NotNull Runnable task, T result) {
+        return getService().submit(task, result);
+    }
+
+    @NotNull
+    @Override
+    public Future<?> submit(@NotNull Runnable task) {
+        return getService().submit(task);
+    }
+
+    @NotNull
+    @Override
+    public <T> List<Future<T>> invokeAll(@NotNull Collection<? extends Callable<T>> tasks) throws InterruptedException {
+        return getService().invokeAll(tasks);
+    }
+
+    @NotNull
+    @Override
+    public <T> List<Future<T>> invokeAll(@NotNull Collection<? extends Callable<T>> tasks, long timeout, @NotNull TimeUnit unit) throws InterruptedException {
+        return getService().invokeAll(tasks, timeout, unit);
+    }
+
+    @NotNull
+    @Override
+    public <T> T invokeAny(@NotNull Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
+        return getService().invokeAny(tasks);
+    }
+
+    @Override
+    public <T> T invokeAny(@NotNull Collection<? extends Callable<T>> tasks, long timeout, @NotNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+        return getService().invokeAny(tasks, timeout, unit);
+    }
+
     public void close() {
         if (service != null) {
-            service.shutdown();
-            PrecisionStopwatch p = PrecisionStopwatch.start();
-            try {
-                while (!service.awaitTermination(1, TimeUnit.SECONDS)) {
-                    Iris.info("Still waiting to shutdown burster...");
-                    if (p.getMilliseconds() > 7000) {
-                        Iris.warn("Forcing Shutdown...");
+            close(service);
+        }
+    }
 
-                        try {
-                            service.shutdownNow();
-                        } catch (Throwable e) {
+    public static void close(ExecutorService service) {
+        service.shutdown();
+        PrecisionStopwatch p = PrecisionStopwatch.start();
+        try {
+            while (!service.awaitTermination(1, TimeUnit.SECONDS)) {
+                Iris.info("Still waiting to shutdown burster...");
+                if (p.getMilliseconds() > TIMEOUT) {
+                    Iris.warn("Forcing Shutdown...");
 
-                        }
+                    try {
+                        service.shutdownNow();
+                    } catch (Throwable e) {
 
-                        break;
                     }
+
+                    break;
                 }
-            } catch (Throwable e) {
-                e.printStackTrace();
-                Iris.reportError(e);
             }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Iris.reportError(e);
         }
     }
 }

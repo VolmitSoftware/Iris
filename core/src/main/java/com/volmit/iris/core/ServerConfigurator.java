@@ -23,10 +23,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.core.nms.datapack.IDataFixer;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBiomeCustom;
-import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisRange;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -34,8 +31,8 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.misc.ServerProperties;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
-import lombok.Data;
 import lombok.NonNull;
+import lombok.SneakyThrows;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -45,11 +42,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.stream.Stream;
-
-import static com.volmit.iris.core.nms.datapack.IDataFixer.Dimension.*;
 
 public class ServerConfigurator {
     public static void configure() {
@@ -71,10 +69,12 @@ public class ServerConfigurator {
         f.load(spigotConfig);
         long tt = f.getLong("settings.timeout-time");
 
-        if (tt < TimeUnit.MINUTES.toSeconds(5)) {
-            Iris.warn("Updating spigot.yml timeout-time: " + tt + " -> " + TimeUnit.MINUTES.toSeconds(20) + " (5 minutes)");
+        long spigotTimeout = TimeUnit.MINUTES.toSeconds(5);
+
+        if (tt < spigotTimeout) {
+            Iris.warn("Updating spigot.yml timeout-time: " + tt + " -> " + spigotTimeout + " (5 minutes)");
             Iris.warn("You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
-            f.set("settings.timeout-time", TimeUnit.MINUTES.toSeconds(5));
+            f.set("settings.timeout-time", spigotTimeout);
             f.save(spigotConfig);
         }
     }
@@ -84,10 +84,11 @@ public class ServerConfigurator {
         f.load(spigotConfig);
         long tt = f.getLong("watchdog.early-warning-delay");
 
-        if (tt < TimeUnit.MINUTES.toMillis(3)) {
-            Iris.warn("Updating paper.yml watchdog early-warning-delay: " + tt + " -> " + TimeUnit.MINUTES.toMillis(15) + " (3 minutes)");
+        long watchdog = TimeUnit.MINUTES.toMillis(3);
+        if (tt < watchdog) {
+            Iris.warn("Updating paper.yml watchdog early-warning-delay: " + tt + " -> " + watchdog + " (3 minutes)");
             Iris.warn("You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
-            f.set("watchdog.early-warning-delay", TimeUnit.MINUTES.toMillis(3));
+            f.set("watchdog.early-warning-delay", watchdog);
             f.save(spigotConfig);
         }
     }
@@ -107,19 +108,25 @@ public class ServerConfigurator {
     }
 
     public static void installDataPacks(IDataFixer fixer, boolean fullInstall) {
+        if (fixer == null) {
+            Iris.error("Unable to install datapacks, fixer is null!");
+            return;
+        }
         Iris.info("Checking Data Packs...");
         DimensionHeight height = new DimensionHeight(fixer);
         KList<File> folders = getDatapacksFolder();
         KMap<String, KSet<String>> biomes = new KMap<>();
 
-        allPacks().flatMap(height::merge)
-                .parallel()
-                .forEach(dim -> {
-                    Iris.verbose("  Checking Dimension " + dim.getLoadFile().getPath());
-                    dim.installBiomes(fixer, dim::getLoader, folders, biomes.computeIfAbsent(dim.getLoadKey(), k -> new KSet<>()));
-                });
+        try (Stream<IrisData> stream = allPacks()) {
+            stream.flatMap(height::merge)
+                    .parallel()
+                    .forEach(dim -> {
+                        Iris.verbose("  Checking Dimension " + dim.getLoadFile().getPath());
+                        dim.installBiomes(fixer, dim::getLoader, folders, biomes.computeIfAbsent(dim.getLoadKey(), k -> new KSet<>()));
+                        dim.installDimensionType(fixer, folders);
+                    });
+        }
         IrisDimension.writeShared(folders, height);
-
         Iris.info("Data Packs Setup!");
 
         if (fullInstall)
@@ -127,19 +134,22 @@ public class ServerConfigurator {
     }
 
     private static void verifyDataPacksPost(boolean allowRestarting) {
-        boolean bad = allPacks()
-                .map(data -> {
-                    Iris.verbose("Checking Pack: " + data.getDataFolder().getPath());
-                    var loader = data.getDimensionLoader();
-                    return loader.loadAll(loader.getPossibleKeys())
-                            .stream()
-                            .map(ServerConfigurator::verifyDataPackInstalled)
-                            .toList()
-                            .contains(false);
-                })
-                .toList()
-                .contains(true);
-        if (!bad) return;
+        try (Stream<IrisData> stream = allPacks()) {
+            boolean bad = stream
+                    .map(data -> {
+                        Iris.verbose("Checking Pack: " + data.getDataFolder().getPath());
+                        var loader = data.getDimensionLoader();
+                        return loader.loadAll(loader.getPossibleKeys())
+                                .stream()
+                                .filter(Objects::nonNull)
+                                .map(ServerConfigurator::verifyDataPackInstalled)
+                                .toList()
+                                .contains(false);
+                    })
+                    .toList()
+                    .contains(true);
+            if (!bad) return;
+        }
 
 
         if (allowRestarting) {
@@ -213,6 +223,11 @@ public class ServerConfigurator {
             }
         }
 
+        if (INMS.get().missingDimensionTypes(dimension.getDimensionTypeKey())) {
+            Iris.warn("The Dimension Type for " + dimension.getLoadFile() + " is not registered on the server.");
+            warn = true;
+        }
+
         if (warn) {
             Iris.error("The Pack " + key + " is INCAPABLE of generating custom biomes");
             Iris.error("If not done automatically, restart your server before generating with this pack!");
@@ -222,9 +237,13 @@ public class ServerConfigurator {
     }
 
     public static Stream<IrisData> allPacks() {
-        return Stream.concat(listFiles(new File("plugins/Iris/packs")),
-                        listFiles(Bukkit.getWorldContainer()).map(w -> new File(w, "iris/pack")))
+        return Stream.concat(listFiles(Iris.instance.getDataFolder("packs")),
+                        IrisWorlds.get().getFolders().map(w -> new File(w, "iris/pack")))
                 .filter(File::isDirectory)
+                .filter( base -> {
+                    var content = new File(base, "dimensions").listFiles();
+                    return content != null && content.length > 0;
+                })
                 .map(IrisData::get);
     }
 
@@ -239,49 +258,58 @@ public class ServerConfigurator {
         return path.substring(worldContainer.length(), path.length() - l);
     }
 
+    @SneakyThrows
     private static Stream<File> listFiles(File parent) {
-        var files = parent.listFiles();
-        return files == null ? Stream.empty() : Arrays.stream(files);
+        if (!parent.isDirectory()) return Stream.empty();
+        return Files.walk(parent.toPath()).map(Path::toFile);
     }
 
-    @Data
     public static class DimensionHeight {
         private final IDataFixer fixer;
-        private IrisRange overworld = new IrisRange();
-        private IrisRange nether = new IrisRange();
-        private IrisRange end = new IrisRange();
-        private int logicalOverworld = 0;
-        private int logicalNether = 0;
-        private int logicalEnd = 0;
+        private final AtomicIntegerArray[] dimensions = new AtomicIntegerArray[3];
+
+        public DimensionHeight(IDataFixer fixer) {
+            this.fixer = fixer;
+            for (int i = 0; i < 3; i++) {
+                dimensions[i] = new AtomicIntegerArray(new int[]{
+                        Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE
+                });
+            }
+        }
 
         public Stream<IrisDimension> merge(IrisData data) {
             Iris.verbose("Checking Pack: " + data.getDataFolder().getPath());
             var loader = data.getDimensionLoader();
             return loader.loadAll(loader.getPossibleKeys())
                     .stream()
+                    .filter(Objects::nonNull)
                     .peek(this::merge);
         }
 
         public void merge(IrisDimension dimension) {
-            overworld.merge(dimension.getDimensionHeight());
-            nether.merge(dimension.getDimensionHeight());
-            end.merge(dimension.getDimensionHeight());
-
-            logicalOverworld = Math.max(logicalOverworld, dimension.getLogicalHeight());
-            logicalNether = Math.max(logicalNether, dimension.getLogicalHeightNether());
-            logicalEnd = Math.max(logicalEnd, dimension.getLogicalHeightEnd());
+            AtomicIntegerArray array = dimensions[dimension.getBaseDimension().ordinal()];
+            array.updateAndGet(0, min -> Math.min(min, dimension.getMinHeight()));
+            array.updateAndGet(1, max -> Math.max(max, dimension.getMaxHeight()));
+            array.updateAndGet(2, logical -> Math.max(logical, dimension.getLogicalHeight()));
         }
 
-        public String overworldType() {
-            return fixer.createDimension(OVERRWORLD, overworld, logicalOverworld).toString(4);
+        public String[] jsonStrings() {
+            var dims = IDataFixer.Dimension.values();
+            var arr = new String[3];
+            for (int i = 0; i < 3; i++) {
+                arr[i] = jsonString(dims[i]);
+            }
+            return arr;
         }
 
-        public String netherType() {
-            return fixer.createDimension(NETHER, nether, logicalNether).toString(4);
-        }
-
-        public String endType() {
-            return fixer.createDimension(THE_END, end, logicalEnd).toString(4);
+        public String jsonString(IDataFixer.Dimension dimension) {
+            var data = dimensions[dimension.ordinal()];
+            int minY = data.get(0);
+            int maxY = data.get(1);
+            int logicalHeight = data.get(2);
+            if (minY == Integer.MAX_VALUE || maxY == Integer.MIN_VALUE || Integer.MIN_VALUE == logicalHeight)
+                return null;
+            return fixer.createDimension(dimension, minY, maxY - minY, logicalHeight, null).toString(4);
         }
     }
 }

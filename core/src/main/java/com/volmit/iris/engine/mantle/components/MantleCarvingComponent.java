@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.mantle.components;
 
 import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.engine.mantle.ComponentFlag;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.IrisMantleComponent;
 import com.volmit.iris.engine.mantle.MantleWriter;
@@ -32,6 +33,7 @@ import com.volmit.iris.util.math.RNG;
 import lombok.Getter;
 
 @Getter
+@ComponentFlag(MantleFlag.CARVED)
 public class MantleCarvingComponent extends IrisMantleComponent {
     private final int radius = computeRadius();
 
@@ -58,21 +60,21 @@ public class MantleCarvingComponent extends IrisMantleComponent {
 
     @ChunkCoordinates
     private void carve(IrisCarving carving, MantleWriter writer, RNG rng, int cx, int cz) {
-        carving.doCarving(writer, rng, getEngineMantle().getEngine(), cx << 4, -1, cz << 4);
+        carving.doCarving(writer, rng, getEngineMantle().getEngine(), cx << 4, -1, cz << 4, 0);
     }
 
     private int computeRadius() {
         var dimension = getDimension();
         int max = 0;
 
-        max = Math.max(max, dimension.getCarving().getMaxRange(getData()));
+        max = Math.max(max, dimension.getCarving().getMaxRange(getData(), 0));
 
         for (var i : dimension.getAllRegions(this::getData)) {
-            max = Math.max(max, i.getCarving().getMaxRange(getData()));
+            max = Math.max(max, i.getCarving().getMaxRange(getData(), 0));
         }
 
         for (var i : dimension.getAllBiomes(this::getData)) {
-            max = Math.max(max, i.getCarving().getMaxRange(getData()));
+            max = Math.max(max, i.getCarving().getMaxRange(getData(), 0));
         }
 
         return max;

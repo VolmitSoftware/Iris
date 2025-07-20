@@ -106,6 +106,14 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                     }
                 }
 
+                BlockData ore = biome.generateOres(realX, i, realZ, rng, getData(), true);
+                ore = ore == null ? region.generateOres(realX, i, realZ, rng, getData(), true) : ore;
+                ore = ore == null ? getDimension().generateOres(realX, i, realZ, rng, getData(), true) : ore;
+                if (ore != null) {
+                    h.set(xf, i, zf, ore);
+                    continue;
+                }
+
                 if (i > he && i <= hf) {
                     fdepth = hf - i;
 
@@ -138,9 +146,9 @@ public class IrisTerrainNormalActuator extends EngineAssignedActuator<BlockData>
                         continue;
                     }
 
-                    BlockData ore = biome.generateOres(realX, i, realZ, rng, getData());
-                    ore = ore == null ? region.generateOres(realX, i, realZ, rng, getData()) : ore;
-                    ore = ore == null ? getDimension().generateOres(realX, i, realZ, rng, getData()) : ore;
+                    ore = biome.generateOres(realX, i, realZ, rng, getData(), false);
+                    ore = ore == null ? region.generateOres(realX, i, realZ, rng, getData(), false) : ore;
+                    ore = ore == null ? getDimension().generateOres(realX, i, realZ, rng, getData(), false) : ore;
 
                     if (ore != null) {
                         h.set(xf, i, zf, ore);

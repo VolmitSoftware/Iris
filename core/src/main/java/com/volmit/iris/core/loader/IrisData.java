@@ -44,6 +44,8 @@ import lombok.Data;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -300,6 +302,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
             return r;
         } catch (Throwable e) {
+            Iris.reportError(e);
             e.printStackTrace();
             Iris.error("Failed to create loader! " + registrant.getCanonicalName());
         }
@@ -360,6 +363,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         for (ResourceLoader<?> i : loaders.values()) {
             i.clearList();
         }
+        possibleSnippets.clear();
     }
 
     public String toLoadKey(File f) {
@@ -426,8 +430,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                         File f = new File(getDataFolder(), r + ".json");
 
                         if (f.exists()) {
-                            try {
-                                JsonReader snippetReader = new JsonReader(new FileReader(f));
+                            try (JsonReader snippetReader = new JsonReader(new FileReader(f))){
                                 return adapter.read(snippetReader);
                             } catch (Throwable e) {
                                 Iris.error("Couldn't read snippet " + r + " in " + reader.getPath() + " (" + e.getMessage() + ")");
@@ -461,11 +464,20 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
             KList<String> l = new KList<>();
 
             File snippetFolder = new File(getDataFolder(), "snippet/" + f);
+            if (!snippetFolder.exists()) return l;
 
-            if (snippetFolder.exists() && snippetFolder.isDirectory()) {
-                for (File i : snippetFolder.listFiles()) {
-                    l.add("snippet/" + f + "/" + i.getName().split("\\Q.\\E")[0]);
-                }
+            String absPath = snippetFolder.getAbsolutePath();
+            try (var stream = Files.walk(snippetFolder.toPath())) {
+                stream.filter(Files::isRegularFile)
+                        .map(Path::toAbsolutePath)
+                        .map(Path::toString)
+                        .filter(s -> s.endsWith(".json"))
+                        .map(s -> s.substring(absPath.length() + 1))
+                        .map(s -> s.replace("\\", "/"))
+                        .map(s -> s.split("\\Q.\\E")[0])
+                        .forEach(s -> l.add("snippet/" + f + "/" + s));
+            } catch (Throwable e) {
+                e.printStackTrace();
             }
 
             return l;

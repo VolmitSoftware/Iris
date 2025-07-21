@@ -421,19 +421,19 @@ public class Mantle {
             throw new RuntimeException("The Mantle is closed");
         }
 
-        adjustedIdleDuration.set(baseIdleDuration);
+        double idleDuration = baseIdleDuration;
         if (loadedRegions.size() > tectonicLimit) {
             // todo update this correctly and maybe do something when its above a 100%
-            adjustedIdleDuration.set(Math.max(adjustedIdleDuration.get() - (1000 * (((loadedRegions.size() - tectonicLimit) / (double) tectonicLimit) * 100) * 0.4), 4000));
+            idleDuration = Math.max(idleDuration - (1000 * (((loadedRegions.size() - tectonicLimit) / (double) tectonicLimit) * 100) * 0.4), 4000);
         }
+        adjustedIdleDuration.set(idleDuration);
 
         ioTrim.set(true);
         try {
-            double adjustedIdleDuration = this.adjustedIdleDuration.get();
-            Iris.debug("Trimming Tectonic Plates older than " + Form.duration(adjustedIdleDuration, 0));
+            Iris.debug("Trimming Tectonic Plates older than " + Form.duration(idleDuration, 0));
 
             if (lastUse.isEmpty()) return;
-            double unloadTime = M.ms() - adjustedIdleDuration;
+            double unloadTime = M.ms() - idleDuration;
             for (long id : lastUse.keySet()) {
                 hyperLock.withLong(id, () -> {
                     Long lastUseTime = lastUse.get(id);
@@ -462,11 +462,17 @@ public class Mantle {
         ioTectonicUnload.set(true);
         try {
             for (long id : toUnload) {
+                double unloadTime = M.ms() - adjustedIdleDuration.get();
                 burst.queue(() -> hyperLock.withLong(id, () -> {
                     TectonicPlate m = loadedRegions.get(id);
                     if (m == null) {
                         Iris.debug("Tectonic Plate was added to unload while not loaded " + C.DARK_GREEN + Cache.keyX(id) + " " + Cache.keyZ(id));
                         toUnload.remove(id);
+                        return;
+                    }
+
+                    var used = lastUse.getOrDefault(id, 0L);
+                    if (!toUnload.contains(id) || used >= unloadTime) {
                         return;
                     }
 
@@ -522,9 +528,11 @@ public class Mantle {
             }
         }
 
-        TectonicPlate p = loadedRegions.get(key(x, z));
+        Long key = key(x, z);
+        TectonicPlate p = loadedRegions.get(key);
 
         if (p != null) {
+            use(key);
             return p;
         }
 
@@ -556,12 +564,12 @@ public class Mantle {
         TectonicPlate p = loadedRegions.get(k);
 
         if (p != null) {
-            lastUse.put(k, M.ms());
+            use(k);
             return CompletableFuture.completedFuture(p);
         }
 
         return ioBurst.completeValue(() -> hyperLock.withResult(x, z, () -> {
-            lastUse.put(k, M.ms());
+            use(k);
             TectonicPlate region = loadedRegions.get(k);
 
             if (region != null) {
@@ -600,6 +608,11 @@ public class Mantle {
             Iris.debug("Created new Tectonic Plate " + C.DARK_GREEN + x + " " + z);
             return region;
         }));
+    }
+
+    private void use(Long key) {
+        lastUse.put(key, M.ms());
+        toUnload.remove(key);
     }
 
     public void saveAll() {

@@ -262,7 +262,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             getMantle().updateBlock(x, y, z);
         }
         if (data instanceof IrisCustomData) {
-            getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.CUSTOM, true);
+            getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.CUSTOM_ACTIVE, true);
         }
     }
 

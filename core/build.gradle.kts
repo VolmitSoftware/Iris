@@ -26,6 +26,7 @@ plugins {
     alias(libs.plugins.shadow)
     alias(libs.plugins.sentry)
     alias(libs.plugins.slimjar)
+    alias(libs.plugins.grgit)
 }
 
 val apiVersion = "1.19"
@@ -139,11 +140,9 @@ tasks {
             "main" to main,
             "environment" to if (project.hasProperty("release")) "production" else "development",
             "commit" to provider {
-                ProcessBuilder("git", "rev-parse", "HEAD")
-                   .redirectOutput(ProcessBuilder.Redirect.PIPE)
-                   .start()
-                   .inputStream.bufferedReader().readText().trim()
-                   .takeIf { it.length == 40 } ?: "unknown"
+                runCatching { grgit.head().id }
+                    .getOrDefault("")
+                    .takeIf { it.length == 40 } ?: "unknown"
             }
         )
         filesMatching("**/plugin.yml") {

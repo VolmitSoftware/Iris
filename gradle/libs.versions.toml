@@ -9,6 +9,7 @@ slimjar = "2.0.8" # https://plugins.gradle.org/plugin/de.crazydev22.slimjar
 download = "5.6.0" # https://plugins.gradle.org/plugin/de.undercouch.download
 runPaper = "2.3.1" # https://plugins.gradle.org/plugin/xyz.jpenilla.run-paper
 sentryPlugin = "5.8.0" # https://github.com/getsentry/sentry-android-gradle-plugin
+grgit = "5.3.2" # https://github.com/ajoberstar/grgit
 
 # Core Libraries
 lombok = "1.18.38"
@@ -100,3 +101,4 @@ slimjar = { id = "de.crazydev22.slimjar", version.ref = "slimjar" }
 download = { id = "de.undercouch.download", version.ref = "download" }
 runPaper = { id = "xyz.jpenilla.run-paper", version.ref = "runPaper" }
 sentry = { id = "io.sentry.jvm.gradle", version.ref = "sentryPlugin" }
+grgit = { id = "org.ajoberstar.grgit", version.ref = "grgit" }

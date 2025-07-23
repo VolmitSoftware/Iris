@@ -137,6 +137,14 @@ tasks {
             "version" to rootProject.version,
             "apiVersion" to apiVersion,
             "main" to main,
+            "environment" to if (project.hasProperty("release")) "production" else "development",
+            "commit" to provider {
+                ProcessBuilder("git", "rev-parse", "HEAD")
+                   .redirectOutput(ProcessBuilder.Redirect.PIPE)
+                   .start()
+                   .inputStream.bufferedReader().readText().trim()
+                   .takeIf { it.length == 40 } ?: "unknown"
+            }
         )
         filesMatching("**/plugin.yml") {
             expand(inputs.properties)

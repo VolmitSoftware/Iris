@@ -141,10 +141,10 @@ tasks {
             "main" to main,
             "environment" to if (project.hasProperty("release")) "production" else "development",
             "commit" to provider {
-                runCatching { extensions.getByType<Grgit>().head().id }
-                    .getOrDefault("")
+                val res = runCatching { project.extensions.getByType<Grgit>().head().id }
+                res.getOrDefault("")
                     .takeIf { it.length == 40 } ?: {
-                    project.logger.error("Git commit hash not found")
+                    logger.error("Git commit hash not found", res.exceptionOrNull())
                     "unknown"
                 }()
             },

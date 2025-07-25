@@ -150,7 +150,6 @@ tasks {
         mergeServiceFiles()
         //minimize()
         relocate("io.github.slimjar", "$lib.slimjar")
-        relocate("de.crazydev22.platformutils", "$lib.platform")
     }
 }
 

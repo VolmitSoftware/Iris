@@ -3,10 +3,14 @@ package com.volmit.iris.core.link.data;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.link.ExternalDataProvider;
 import com.volmit.iris.core.link.Identifier;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.data.IrisCustomData;
 import dev.lone.itemsadder.api.CustomBlock;
 import dev.lone.itemsadder.api.CustomStack;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -40,7 +44,11 @@ public class ItemAdderDataProvider extends ExternalDataProvider {
     @NotNull
     @Override
     public BlockData getBlockData(@NotNull Identifier blockId, @NotNull KMap<String, String> state) throws MissingResourceException {
-        return CustomBlock.getBaseBlockData(blockId.toString());
+        CustomBlock block = CustomBlock.getInstance(blockId.toString());
+        if (block == null) {
+            throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
+        }
+        return new IrisCustomData(B.getAir(), blockId);
     }
 
     @NotNull
@@ -51,6 +59,11 @@ public class ItemAdderDataProvider extends ExternalDataProvider {
             throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());
         }
         return stack.getItemStack();
+    }
+
+    @Override
+    public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
+        CustomBlock.place(blockId.toString(), block.getLocation());
     }
 
     @Override

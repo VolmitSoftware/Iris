@@ -1,5 +1,6 @@
 import io.github.slimjar.func.slimjar
 import io.github.slimjar.resolver.data.Mirror
+import org.ajoberstar.grgit.Grgit
 import java.net.URI
 
 /*
@@ -140,10 +141,13 @@ tasks {
             "main" to main,
             "environment" to if (project.hasProperty("release")) "production" else "development",
             "commit" to provider {
-                runCatching { grgit.head().id }
+                runCatching { extensions.getByType<Grgit>().head().id }
                     .getOrDefault("")
-                    .takeIf { it.length == 40 } ?: "unknown"
-            }
+                    .takeIf { it.length == 40 } ?: {
+                    project.logger.error("Git commit hash not found")
+                    "unknown"
+                }()
+            },
         )
         filesMatching("**/plugin.yml") {
             expand(inputs.properties)

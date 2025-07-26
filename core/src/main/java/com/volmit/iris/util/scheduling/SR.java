@@ -19,24 +19,23 @@
 package com.volmit.iris.util.scheduling;
 
 import com.volmit.iris.util.plugin.CancellableTask;
+import de.crazydev22.platformutils.scheduler.task.Task;
 
 public abstract class SR implements Runnable, CancellableTask {
-    private int id = 0;
+    private final Task id;
 
     public SR() {
         this(0);
     }
 
     public SR(int interval) {
-        id = J.sr(this, interval);
+        this.id = J.sr(this, interval);
     }
 
     @Override
     public void cancel() {
-        J.csr(id);
-    }
-
-    public int getId() {
-        return id;
+        if (id != null) {
+            id.cancel();
+        }
     }
 }

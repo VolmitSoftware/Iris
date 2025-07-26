@@ -14,7 +14,6 @@ import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.profile.LoadBalancer;
 import com.volmit.iris.util.scheduling.J;
-import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -223,7 +222,7 @@ public class ChunkUpdater {
 
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
-                if (!PaperLib.isChunkGenerated(world, x + dx, z + dz)) {
+                if (!Iris.platform.isChunkGenerated(world, x + dx, z + dz)) {
                     return false;
                 }
             }
@@ -239,7 +238,7 @@ public class ChunkUpdater {
                     try {
                         Chunk c;
                         try {
-                            c = PaperLib.getChunkAtAsync(world, xx, zz, false, true)
+                            c = Iris.platform.getChunkAtAsync(world, xx, zz, false, true)
                                     .thenApply(chunk -> {
                                         if (chunk != null)
                                             chunk.addPluginChunkTicket(Iris.instance);
@@ -260,7 +259,7 @@ public class ChunkUpdater {
                             if (future != null) future.join();
                         }
 
-                        if (!PaperLib.isChunkGenerated(c.getWorld(), xx, zz))
+                        if (!Iris.platform.isChunkGenerated(c.getWorld(), xx, zz))
                             generated.set(false);
 
                         var pair = lastUse.computeIfAbsent(Cache.key(c), k -> new Pair<>(0L, new AtomicInteger(-1)));

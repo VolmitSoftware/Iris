@@ -24,8 +24,8 @@ import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
+import com.volmit.iris.core.pregenerator.methods.AsyncPregenMethod;
 import com.volmit.iris.core.pregenerator.methods.CachedPregenMethod;
-import com.volmit.iris.core.pregenerator.methods.HybridPregenMethod;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -165,8 +165,7 @@ public class IrisToolbelt {
      * @return the pregenerator job (already started)
      */
     public static PregeneratorJob pregenerate(PregenTask task, PlatformChunkGenerator gen) {
-        return pregenerate(task, new HybridPregenMethod(gen.getEngine().getWorld().realWorld(),
-                IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())), gen.getEngine());
+        return pregenerate(task, new AsyncPregenMethod(gen.getEngine().getWorld().realWorld()), gen.getEngine());
     }
 
     /**
@@ -182,7 +181,7 @@ public class IrisToolbelt {
             return pregenerate(task, access(world));
         }
 
-        return pregenerate(task, new HybridPregenMethod(world, IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())), null);
+        return pregenerate(task, new AsyncPregenMethod(world), null);
     }
 
     /**
@@ -196,7 +195,7 @@ public class IrisToolbelt {
             if (!i.getName().equals(world.getName())) {
                 for (Player j : world.getPlayers()) {
                     new VolmitSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world.");
-                    j.teleport(i.getSpawnLocation());
+                    Iris.platform.teleportAsync(j, i.getSpawnLocation());
                 }
 
                 return true;
@@ -218,7 +217,7 @@ public class IrisToolbelt {
             if (!i.getName().equals(world.getName())) {
                 for (Player j : world.getPlayers()) {
                     new VolmitSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world. " + m);
-                    j.teleport(i.getSpawnLocation());
+                    Iris.platform.teleportAsync(j, i.getSpawnLocation());
                 }
                 return true;
             }

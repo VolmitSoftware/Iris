@@ -23,9 +23,11 @@ import org.bstats.charts.SimplePie;
 import org.bstats.charts.SingleLineChart;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import oshi.SystemInfo;
 
+import java.io.InputStreamReader;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.util.HashMap;
@@ -45,6 +47,9 @@ public class Bindings {
         if (settings.disableAutoReporting || Sentry.isEnabled() || Boolean.getBoolean("iris.suppressReporting")) return;
         Iris.info("Enabling Sentry for anonymous error reporting. You can disable this in the settings.");
         Iris.info("Your server ID is: " + ServerID.ID);
+        var resource = Iris.instance.getResource("plugin.yml");
+        YamlConfiguration desc = resource != null ? YamlConfiguration.loadConfiguration(new InputStreamReader(resource)) : new YamlConfiguration();
+
         Sentry.init(options -> {
             options.setDsn("https://b16ecc222e9c1e0c48faecacb906fd89@o4509451052646400.ingest.de.sentry.io/4509452722765904");
             if (settings.debug) {
@@ -55,6 +60,7 @@ public class Bindings {
             options.setAttachServerName(false);
             options.setEnableUncaughtExceptionHandler(false);
             options.setRelease(Iris.instance.getDescription().getVersion());
+            options.setEnvironment(desc.getString("environment", "production"));
             options.setBeforeSend((event, hint) -> {
                 if (suppress(event.getThrowable())) return null;
                 event.setTag("iris.safeguard", IrisSafeguard.mode());
@@ -71,6 +77,7 @@ public class Bindings {
             scope.setTag("server", Bukkit.getVersion());
             scope.setTag("server.type", Bukkit.getName());
             scope.setTag("server.api", Bukkit.getBukkitVersion());
+            scope.setTag("iris.commit", desc.getString("commit", "unknown"));
         });
         Runtime.getRuntime().addShutdownHook(new Thread(Sentry::close));
     }

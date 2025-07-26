@@ -540,8 +540,9 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         if (IrisLootEvent.callLootEvent(items, inv, world, x, y, z))
             return;
 
-        if (getWorld().hasRealWorld()) {
-            Iris.platform.getChunkAtAsync(getWorld().realWorld(), x >> 4, z >> 4, true, false).thenAccept((c) -> {
+        if (world != null) {
+            final int cX = x >> 4, cZ = z >> 4;
+            Iris.platform.getChunkAtAsync(world, cX, cZ, true, false).thenAccept((c) -> {
                 Runnable r = () -> {
                     for (ItemStack i : items) {
                         inv.addItem(i);
@@ -550,10 +551,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     scramble(inv, rng);
                 };
 
-                if (Bukkit.isPrimaryThread()) {
+                if (Iris.platform.isOwnedByCurrentRegion(world, cX, cZ)) {
                     r.run();
                 } else {
-                    J.s(r);
+                    Iris.platform.getRegionScheduler().run(world, cX, cZ, r);
                 }
             });
         } else {

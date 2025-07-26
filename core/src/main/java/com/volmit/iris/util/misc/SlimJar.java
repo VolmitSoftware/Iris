@@ -21,19 +21,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class SlimJar {
     private static final String NAME = "Iris";
     private static final Logger LOGGER = Logger.getLogger(NAME);
-    private static final ReentrantLock lock = new ReentrantLock();
-    private static final AtomicBoolean loaded = new AtomicBoolean();
+    private static final boolean DEBUG = Boolean.getBoolean("iris.debug-slimjar");
     private static final boolean DISABLE_REMAPPER = Boolean.getBoolean("iris.disable-remapper");
 
-    public static void debug(boolean debug) {
-        LOGGER.setLevel(debug ? Level.FINE : Level.INFO);
-    }
+    private static final ReentrantLock lock = new ReentrantLock();
+    private static final AtomicBoolean loaded = new AtomicBoolean();
 
     public static void load(@Nullable File localRepository) {
         if (loaded.get()) return;
@@ -49,7 +46,8 @@ public class SlimJar {
             load(localRepository.toPath(), new ProcessLogger() {
                 @Override
                 public void info(@NotNull String message, @Nullable Object... args) {
-                    LOGGER.fine(message.formatted(args));
+                    if (!DEBUG) return;
+                    LOGGER.info(message.formatted(args));
                 }
 
                 @Override
@@ -59,7 +57,8 @@ public class SlimJar {
 
                 @Override
                 public void debug(@NotNull String message, @Nullable Object... args) {
-                    LOGGER.fine(message.formatted(args));
+                    if (!DEBUG) return;
+                    LOGGER.info(message.formatted(args));
                 }
             });
             LOGGER.info("Libraries loaded successfully!");
@@ -82,15 +81,16 @@ public class SlimJar {
 
     private static void loadSpigot(Path downloadPath, ProcessLogger logger) throws Throwable {
         var current = SlimJar.class.getClassLoader();
-        var libraryLoader = current.getClass().getDeclaredField("libraryLoader");
-        libraryLoader.setAccessible(true);
-        if (!ClassLoader.class.isAssignableFrom(libraryLoader.getType())) throw new IllegalStateException("Failed to find library loader");
+        var libraryLoaderField = current.getClass().getDeclaredField("libraryLoader");
+        libraryLoaderField.setAccessible(true);
+        if (!ClassLoader.class.isAssignableFrom(libraryLoaderField.getType())) throw new IllegalStateException("Failed to find library loader");
+        final var libraryLoader = (ClassLoader) libraryLoaderField.get(current);
 
         final var pair = findRemapper();
         final var remapper = pair.getA();
         final var factory = pair.getB();
 
-        final var libraries = factory.apply(new URL[0], current.getParent());
+        final var libraries = factory.apply(new URL[0], libraryLoader == null ? current.getParent() : libraryLoader);
         final var injecting = InjectableFactory.create(downloadPath, List.of(Repository.central()), libraries);
 
         ApplicationBuilder.injecting(NAME, new Injectable() {
@@ -119,7 +119,7 @@ public class SlimJar {
                 .logger(logger)
                 .build();
 
-        libraryLoader.set(current, libraries);
+        libraryLoaderField.set(current, libraries);
     }
 
     private static Pair<Function<List<Path>, List<Path>>, BiFunction<URL[], ClassLoader, URLClassLoader>> findRemapper() {

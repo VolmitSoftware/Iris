@@ -5,8 +5,8 @@ import com.volmit.iris.core.nms.container.Pair;
 import io.github.slimjar.app.builder.ApplicationBuilder;
 import io.github.slimjar.exceptions.InjectorException;
 import io.github.slimjar.injector.loader.Injectable;
-import io.github.slimjar.injector.loader.InjectableFactory;
 import io.github.slimjar.injector.loader.IsolatedInjectableClassLoader;
+import io.github.slimjar.injector.loader.factory.InjectableFactory;
 import io.github.slimjar.logging.ProcessLogger;
 import io.github.slimjar.resolver.data.Repository;
 import org.jetbrains.annotations.NotNull;
@@ -31,6 +31,7 @@ public class SlimJar {
 
     private static final ReentrantLock lock = new ReentrantLock();
     private static final AtomicBoolean loaded = new AtomicBoolean();
+    private static final InjectableFactory FACTORY = InjectableFactory.selecting(InjectableFactory.ERROR, InjectableFactory.INJECTABLE, InjectableFactory.WRAPPED, InjectableFactory.UNSAFE);
 
     public static void load(@Nullable File localRepository) {
         if (loaded.get()) return;
@@ -73,6 +74,7 @@ public class SlimJar {
         } catch (Throwable e) {
             Iris.warn("Failed to inject the library loader, falling back to application builder");
             ApplicationBuilder.appending(NAME)
+                    .injectableFactory(FACTORY)
                     .downloadDirectoryPath(downloadPath)
                     .logger(logger)
                     .build();
@@ -91,7 +93,7 @@ public class SlimJar {
         final var factory = pair.getB();
 
         final var libraries = factory.apply(new URL[0], libraryLoader == null ? current.getParent() : libraryLoader);
-        final var injecting = InjectableFactory.create(downloadPath, List.of(Repository.central()), libraries);
+        final var injecting = FACTORY.create(downloadPath, List.of(Repository.central()), libraries);
 
         ApplicationBuilder.injecting(NAME, new Injectable() {
                     @Override

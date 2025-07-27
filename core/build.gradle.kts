@@ -158,6 +158,7 @@ tasks {
         mergeServiceFiles()
         //minimize()
         relocate("io.github.slimjar", "$lib.slimjar")
+        exclude("modules/loader-agent.isolated-jar")
     }
 }
 

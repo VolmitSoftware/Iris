@@ -18,126 +18,60 @@
 
 package com.volmit.iris.core.link;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.util.collection.KMap;
+import lombok.SneakyThrows;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.WorldType;
-import org.bukkit.plugin.Plugin;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.Map;
+import org.mvplugins.multiverse.core.MultiverseCoreApi;
+import org.mvplugins.multiverse.core.world.MultiverseWorld;
+import org.mvplugins.multiverse.core.world.WorldManager;
+import org.mvplugins.multiverse.core.world.options.ImportWorldOptions;
 
 public class MultiverseCoreLink {
-    private final KMap<String, String> worldNameTypes = new KMap<>();
+    private final boolean active;
 
     public MultiverseCoreLink() {
-
-    }
-
-    public boolean addWorld(String worldName, IrisDimension dim, String seed) {
-        if (!isSupported()) {
-            return false;
-        }
-
-        try {
-            Plugin p = getMultiverse();
-            Object mvWorldManager = p.getClass().getDeclaredMethod("getMVWorldManager").invoke(p);
-            Method m = mvWorldManager.getClass().getDeclaredMethod("addWorld",
-
-                    String.class, World.Environment.class, String.class, WorldType.class, Boolean.class, String.class, boolean.class);
-            boolean b = (boolean) m.invoke(mvWorldManager, worldName, dim.getEnvironment(), seed, WorldType.NORMAL, false, "Iris", false);
-            saveConfig();
-            return b;
-        } catch (Throwable e) {
-            Iris.reportError(e);
-            e.printStackTrace();
-        }
-
-        return false;
-    }
-
-    @SuppressWarnings("unchecked")
-    public Map<String, ?> getList() {
-        try {
-            Plugin p = getMultiverse();
-            Object mvWorldManager = p.getClass().getDeclaredMethod("getMVWorldManager").invoke(p);
-            Field f = mvWorldManager.getClass().getDeclaredField("worldsFromTheConfig");
-            f.setAccessible(true);
-            return (Map<String, ?>) f.get(mvWorldManager);
-        } catch (Throwable e) {
-            Iris.reportError(e);
-            e.printStackTrace();
-        }
-
-        return null;
+        active = Bukkit.getPluginManager().getPlugin("Multiverse-Core") != null;
     }
 
     public void removeFromConfig(World world) {
-        if (!isSupported()) {
-            return;
-        }
-
-        getList().remove(world.getName());
-        saveConfig();
+        removeFromConfig(world.getName());
     }
 
     public void removeFromConfig(String world) {
-        if (!isSupported()) {
-            return;
+        if (!active) return;
+        var manager = worldManager();
+        manager.removeWorld(world).onSuccess(manager::saveWorldsConfig);
+    }
+
+    @SneakyThrows
+    public void updateWorld(World bukkitWorld, String pack) {
+        if (!active) return;
+        var generator = "Iris:" + pack;
+        var manager = worldManager();
+        var world = manager.getWorld(bukkitWorld).getOrElse(() -> {
+            var options = ImportWorldOptions.worldName(bukkitWorld.getName())
+                    .generator(generator)
+                    .environment(bukkitWorld.getEnvironment())
+                    .useSpawnAdjust(false);
+            return manager.importWorld(options).get();
+        });
+
+        world.setAutoLoad(false);
+        if (!generator.equals(world.getGenerator())) {
+            var field = MultiverseWorld.class.getDeclaredField("worldConfig");
+            field.setAccessible(true);
+
+            var config = field.get(world);
+            config.getClass()
+                    .getDeclaredMethod("setGenerator", String.class)
+                    .invoke(config, generator);
         }
 
-        getList().remove(world);
-        saveConfig();
+        manager.saveWorldsConfig();
     }
 
-    public void saveConfig() {
-        try {
-            Plugin p = getMultiverse();
-            Object mvWorldManager = p.getClass().getDeclaredMethod("getMVWorldManager").invoke(p);
-            mvWorldManager.getClass().getDeclaredMethod("saveWorldsConfig").invoke(mvWorldManager);
-        } catch (Throwable e) {
-            Iris.reportError(e);
-            e.printStackTrace();
-        }
-    }
-
-    public void assignWorldType(String worldName, String type) {
-        worldNameTypes.put(worldName, type);
-    }
-
-    public String getWorldNameType(String worldName, String defaultType) {
-        try {
-            String t = worldNameTypes.get(worldName);
-            return t == null ? defaultType : t;
-        } catch (Throwable e) {
-            Iris.reportError(e);
-            return defaultType;
-        }
-    }
-
-    public boolean isSupported() {
-        return getMultiverse() != null;
-    }
-
-    public Plugin getMultiverse() {
-
-        return Bukkit.getPluginManager().getPlugin("Multiverse-Core");
-    }
-
-    public String envName(World.Environment environment) {
-        if (environment == null) {
-            return "normal";
-        }
-
-        return switch (environment) {
-            case NORMAL -> "normal";
-            case NETHER -> "nether";
-            case THE_END -> "end";
-            default -> environment.toString().toLowerCase();
-        };
-
+    private WorldManager worldManager() {
+        var api = MultiverseCoreApi.get();
+        return api.getWorldManager();
     }
 }

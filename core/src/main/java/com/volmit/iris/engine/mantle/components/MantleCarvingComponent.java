@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.mantle.components;
 
 import com.volmit.iris.engine.data.cache.Cache;
+import com.volmit.iris.engine.mantle.ComponentFlag;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.IrisMantleComponent;
 import com.volmit.iris.engine.mantle.MantleWriter;
@@ -32,6 +33,7 @@ import com.volmit.iris.util.math.RNG;
 import lombok.Getter;
 
 @Getter
+@ComponentFlag(MantleFlag.CARVED)
 public class MantleCarvingComponent extends IrisMantleComponent {
     private final int radius = computeRadius();
 

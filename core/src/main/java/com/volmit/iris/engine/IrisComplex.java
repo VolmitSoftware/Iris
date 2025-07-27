@@ -42,6 +42,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
+import java.io.File;
 import java.util.UUID;
 
 @Data
@@ -108,10 +109,15 @@ public class IrisComplex implements DataProvider {
         }
 
         //@builder
-        engine.getDimension().getRegions().forEach((i) -> data.getRegionLoader().load(i)
-                .getAllBiomes(this).forEach((b) -> b
-                        .getGenerators()
-                        .forEach((c) -> registerGenerator(c.getCachedGenerator(this)))));
+        if (focusRegion != null) {
+            focusRegion.getAllBiomes(this).forEach(this::registerGenerators);
+        } else {
+            engine.getDimension()
+                    .getRegions()
+                    .forEach(i -> data.getRegionLoader().load(i)
+                            .getAllBiomes(this)
+                            .forEach(this::registerGenerators));
+        }
         overlayStream = ProceduralStream.ofDouble((x, z) -> 0.0D).waste("Overlay Stream");
         engine.getDimension().getOverlayNoise().forEach(i -> overlayStream = overlayStream.add((x, z) -> i.get(rng, getData(), x, z)));
         rockStream = engine.getDimension().getRockPalette().getLayerGenerator(rng.nextParallelRNG(45), data).stream()
@@ -245,7 +251,15 @@ public class IrisComplex implements DataProvider {
             }
         }
 
-        return null;
+        String key = UUID.randomUUID().toString();
+        IrisRegion region = new IrisRegion();
+        region.getLandBiomes().add(focus.getLoadKey());
+        region.getSeaBiomes().add(focus.getLoadKey());
+        region.getShoreBiomes().add(focus.getLoadKey());
+        region.setLoadKey(key);
+        region.setLoader(data);
+        region.setLoadFile(new File(data.getDataFolder(), data.getRegionLoader().getFolderName() + "/" + key + ".json"));
+        return region;
     }
 
     private IrisDecorator decorateFor(IrisBiome b, double x, double z, IrisDecorationPart part) {
@@ -358,6 +372,10 @@ public class IrisComplex implements DataProvider {
 
     private double getHeight(Engine engine, IrisBiome b, double x, double z, long seed) {
         return Math.max(Math.min(getInterpolatedHeight(engine, x, z, seed) + fluidHeight + overlayStream.get(x, z), engine.getHeight()), 0);
+    }
+
+    private void registerGenerators(IrisBiome biome) {
+        biome.getGenerators().forEach(c -> registerGenerator(c.getCachedGenerator(this)));
     }
 
     private void registerGenerator(IrisGenerator cachedGenerator) {

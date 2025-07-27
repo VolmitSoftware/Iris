@@ -15,21 +15,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-pluginManagement {
-    repositories {
-        mavenLocal()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
 plugins {
     id ("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
 rootProject.name = "Iris"
 
-include(":core")
+include(":core", ":core:agent")
 include(
+        ":nms:v1_21_R5",
         ":nms:v1_21_R4",
         ":nms:v1_21_R3",
         ":nms:v1_21_R2",

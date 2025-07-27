@@ -13,6 +13,7 @@ import java.util.function.Supplier;
 //https://minecraft.wiki/w/Pack_format
 @Getter
 public enum DataVersion {
+    UNSUPPORTED("0.0.0", 0, () -> null),
     V1192("1.19.2", 10, DataFixerV1192::new),
     V1205("1.20.6", 41, DataFixerV1206::new),
     V1213("1.21.3", 57, DataFixerV1213::new);

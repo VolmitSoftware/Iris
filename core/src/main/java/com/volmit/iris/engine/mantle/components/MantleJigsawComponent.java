@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.mantle.components;
 
 import com.volmit.iris.engine.jigsaw.PlannedStructure;
+import com.volmit.iris.engine.mantle.ComponentFlag;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.mantle.IrisMantleComponent;
 import com.volmit.iris.engine.mantle.MantleWriter;
@@ -39,6 +40,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
+@ComponentFlag(MantleFlag.JIGSAW)
 public class MantleJigsawComponent extends IrisMantleComponent {
     @Getter
     private final int radius = computeRadius();

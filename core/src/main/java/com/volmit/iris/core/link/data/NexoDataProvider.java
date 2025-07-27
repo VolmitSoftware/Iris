@@ -1,28 +1,30 @@
-package com.volmit.iris.core.link;
+package com.volmit.iris.core.link.data;
 
 import com.nexomc.nexo.api.NexoBlocks;
 import com.nexomc.nexo.api.NexoFurniture;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
+import com.volmit.iris.core.link.ExternalDataProvider;
+import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.service.ExternalDataSVC;
-import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.IrisCustomData;
-import com.volmit.iris.util.math.RNG;
 import org.bukkit.Color;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
+import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.MissingResourceException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -69,9 +71,9 @@ public class NexoDataProvider extends ExternalDataProvider {
 
     @Override
     public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
-        var pair = ExternalDataSVC.parseState(blockId);
-        var state = pair.getB();
-        blockId = pair.getA();
+        var statePair = ExternalDataSVC.parseState(blockId);
+        var state = statePair.getB();
+        blockId = statePair.getA();
 
         if (NexoBlocks.isCustomBlock(blockId.key())) {
             NexoBlocks.place(blockId.key(), block.getLocation());
@@ -81,26 +83,8 @@ public class NexoDataProvider extends ExternalDataProvider {
         if (!NexoFurniture.isFurniture(blockId.key()))
             return;
 
-        float yaw = 0;
-        BlockFace face = BlockFace.NORTH;
-
-        long seed = engine.getSeedManager().getSeed() + Cache.key(block.getX(), block.getZ()) + block.getY();
-        RNG rng = new RNG(seed);
-        if ("true".equals(state.get("randomYaw"))) {
-            yaw = rng.f(0, 360);
-        } else if (state.containsKey("yaw")) {
-            yaw = Float.parseFloat(state.get("yaw"));
-        }
-        if ("true".equals(state.get("randomFace"))) {
-            BlockFace[] faces = BlockFace.values();
-            face = faces[rng.i(0, faces.length - 1)];
-        } else if (state.containsKey("face")) {
-            face = BlockFace.valueOf(state.get("face").toUpperCase());
-        }
-        if (face == BlockFace.SELF) {
-            face = BlockFace.NORTH;
-        }
-        ItemDisplay display = NexoFurniture.place(blockId.key(), block.getLocation(), yaw, face);
+        var pair = parseYawAndFace(engine, block, state);
+        ItemDisplay display = NexoFurniture.place(blockId.key(), block.getLocation(), pair.getA(), pair.getB());
         if (display == null) return;
         ItemStack itemStack = display.getItemStack();
         if (itemStack == null) return;
@@ -114,46 +98,31 @@ public class NexoDataProvider extends ExternalDataProvider {
             var biomeColor = INMS.get().getBiomeColor(block.getLocation(), type);
             if (biomeColor == null) return;
             var potionColor = Color.fromARGB(biomeColor.getAlpha(), biomeColor.getRed(), biomeColor.getGreen(), biomeColor.getBlue());
-            if (itemStack.getItemMeta() instanceof PotionMeta meta) {
-                meta.setColor(potionColor);
-                itemStack.setItemMeta(meta);
+            var meta = itemStack.getItemMeta();
+            switch (meta) {
+                case LeatherArmorMeta armor -> armor.setColor(potionColor);
+                case PotionMeta potion -> potion.setColor(potionColor);
+                case MapMeta map -> map.setColor(potionColor);
+                case null, default -> {}
             }
+            itemStack.setItemMeta(meta);
         }
         display.setItemStack(itemStack);
     }
 
-    @NotNull
     @Override
-    public Identifier[] getBlockTypes() {
-        return NexoItems.itemNames().stream()
+    public @NotNull Collection<@NotNull Identifier> getTypes(@NotNull DataType dataType) {
+        if (dataType == DataType.ENTITY) return List.of();
+        return NexoItems.itemNames()
+                .stream()
                 .map(i -> new Identifier("nexo", i))
-                .filter(i -> {
-                    try {
-                        return getBlockData(i) != null;
-                    } catch (MissingResourceException e) {
-                        return false;
-                    }
-                })
-                .toArray(Identifier[]::new);
-    }
-
-    @NotNull
-    @Override
-    public Identifier[] getItemTypes() {
-        return NexoItems.itemNames().stream()
-                .map(i -> new Identifier("nexo", i))
-                .filter(i -> {
-                    try {
-                        return getItemStack(i) != null;
-                    } catch (MissingResourceException e) {
-                        return false;
-                    }
-                })
-                .toArray(Identifier[]::new);
+                .filter(dataType.asPredicate(this))
+                .toList();
     }
 
     @Override
-    public boolean isValidProvider(@NotNull Identifier id, boolean isItem) {
+    public boolean isValidProvider(@NotNull Identifier id, DataType dataType) {
+        if (dataType == DataType.ENTITY) return false;
         return "nexo".equalsIgnoreCase(id.namespace());
     }
 

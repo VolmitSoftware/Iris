@@ -1,6 +1,7 @@
 package com.volmit.iris.core.safeguard;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.agent.Agent;
 import com.volmit.iris.util.format.C;
 
 public class UtilsSFG {
@@ -9,7 +10,9 @@ public class UtilsSFG {
     }
 
     public static void printIncompatibleWarnings() {
-        // String SupportedIrisVersion = getDescription().getVersion(); //todo Automatic version
+        String[] parts = Iris.instance.getDescription().getVersion().split("-");
+        String minVersion = parts[1];
+        String maxVersion = parts[2];
 
         if (ServerBootSFG.safeguardPassed) {
             Iris.safeguard(C.BLUE + "0 Conflicts found");
@@ -21,28 +24,28 @@ public class UtilsSFG {
                 Iris.safeguard(C.YELLOW + "" + ServerBootSFG.count + " Conflicts found");
             }
 
-            if (ServerBootSFG.incompatibilities.get("Multiverse-Core")) {
-                Iris.safeguard(C.RED + "Multiverse");
-                Iris.safeguard(C.RED + "- The plugin Multiverse is not compatible with the server.");
-                Iris.safeguard(C.RED + "- If you want to have a world manager, consider using PhantomWorlds or MyWorlds instead.");
-            }
             if (ServerBootSFG.incompatibilities.get("dynmap")) {
                 Iris.safeguard(C.RED + "Dynmap");
                 Iris.safeguard(C.RED + "- The plugin Dynmap is not compatible with the server.");
                 Iris.safeguard(C.RED + "- If you want to have a map plugin like Dynmap, consider Bluemap.");
             }
-            if (ServerBootSFG.incompatibilities.get("TerraformGenerator") || ServerBootSFG.incompatibilities.get("Stratos")) {
-                Iris.safeguard(C.YELLOW + "Terraform Generator / Stratos");
+            if (ServerBootSFG.incompatibilities.get("Stratos")) {
+                Iris.safeguard(C.YELLOW + "Stratos");
                 Iris.safeguard(C.YELLOW + "- Iris is not compatible with other worldgen plugins.");
             }
             if (ServerBootSFG.unsuportedversion) {
                 Iris.safeguard(C.RED + "Server Version");
-                Iris.safeguard(C.RED + "- Iris only supports 1.20.1 > 1.21.4");
+                Iris.safeguard(C.RED + "- Iris only supports " + minVersion + " > " + maxVersion);
             }
             if (ServerBootSFG.missingDimensionTypes) {
                 Iris.safeguard(C.RED + "Dimension Types");
                 Iris.safeguard(C.RED + "- Required Iris dimension types were not loaded.");
                 Iris.safeguard(C.RED + "- If this still happens after a restart please contact support.");
+            }
+            if (ServerBootSFG.missingAgent) {
+                Iris.safeguard(C.RED + "Java Agent");
+                Iris.safeguard(C.RED + "- Please enable dynamic agent loading by adding -XX:+EnableDynamicAgentLoading to your jvm arguments.");
+                Iris.safeguard(C.RED + "- or add the jvm argument -javaagent:" + Agent.AGENT_JAR.getPath());
             }
             if (!ServerBootSFG.passedserversoftware) {
                 Iris.safeguard(C.YELLOW + "Unsupported Server Software");

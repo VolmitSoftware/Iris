@@ -19,9 +19,12 @@
 package com.volmit.iris.core.project;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.link.Identifier;
+import com.volmit.iris.core.link.data.DataType;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.loader.ResourceLoader;
+import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -39,7 +42,6 @@ import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class SchemaBuilder {
     private static final String SYMBOL_LIMIT__N = "*";
@@ -140,6 +142,8 @@ public class SchemaBuilder {
 
             JSONObject property = buildProperty(k, c);
 
+            if (property.getBoolean("!required"))
+                required.put(k.getName());
             property.remove("!required");
             properties.put(k.getName(), property);
         }
@@ -151,19 +155,7 @@ public class SchemaBuilder {
         o.put("properties", properties);
 
 
-        if (c.isAnnotationPresent(Snippet.class)) {
-            JSONObject anyOf = new JSONObject();
-            JSONArray arr = new JSONArray();
-            JSONObject str = new JSONObject();
-            str.put("type", "string");
-            arr.put(o);
-            arr.put(str);
-            anyOf.put("anyOf", arr);
-
-            return anyOf;
-        }
-
-        return o;
+        return buildSnippet(o, c);
     }
 
     private JSONObject buildProperty(Field k, Class<?> cl) {
@@ -276,16 +268,18 @@ public class SchemaBuilder {
 
                     if (!definitions.containsKey(key)) {
                         JSONObject j = new JSONObject();
-                        KList<String> list = new KList<>();
-                        list.addAll(Iris.linkMythicMobs.getMythicMobTypes().stream().map(s -> "MythicMobs:" + s).collect(Collectors.toList()));
-                        //TODO add Citizens stuff here too
+                        KList<String> list = Iris.service(ExternalDataSVC.class)
+                                .getAllIdentifiers(DataType.ENTITY)
+                                .stream()
+                                .map(Identifier::toString)
+                                .collect(KList.collector());
                         j.put("enum", list.toJSONStringArray());
                         definitions.put(key, j);
                     }
 
-                    fancyType = "Mythic Mob Type";
+                    fancyType = "Custom Mob Type";
                     prop.put("$ref", "#/definitions/" + key);
-                    description.add(SYMBOL_TYPE__N + "  Must be a valid Mythic Mob Type (use ctrl+space for auto complete!) Define mythic mobs with the mythic mobs plugin configuration files.");
+                    description.add(SYMBOL_TYPE__N + "  Must be a valid Custom Mob Type (use ctrl+space for auto complete!)");
                 } else if (k.isAnnotationPresent(RegistryListFont.class)) {
                     String key = "enum-font";
 
@@ -476,6 +470,26 @@ public class SchemaBuilder {
                                 items.put("$ref", "#/definitions/" + key);
                                 prop.put("items", items);
                                 description.add(SYMBOL_TYPE__N + "  Must be a valid Enchantment Type (use ctrl+space for auto complete!)");
+                            } else if (k.isAnnotationPresent(RegistryListFunction.class)) {
+                                var functionClass = k.getDeclaredAnnotation(RegistryListFunction.class).value();
+                                try {
+                                    var instance = functionClass.getDeclaredConstructor().newInstance();
+                                    String key = instance.key();
+                                    fancyType = instance.fancyName();
+
+                                    if (!definitions.containsKey(key)) {
+                                        JSONObject j = new JSONObject();
+                                        j.put("enum", instance.apply(data));
+                                        definitions.put(key, j);
+                                    }
+
+                                    JSONObject items = new JSONObject();
+                                    items.put("$ref", "#/definitions/" + key);
+                                    prop.put("items", items);
+                                    description.add(SYMBOL_TYPE__N + "  Must be a valid " + fancyType + " (use ctrl+space for auto complete!)");
+                                } catch (Throwable e) {
+                                    Iris.error("Could not execute apply method in " + functionClass.getName());
+                                }
                             } else if (t.type().equals(PotionEffectType.class)) {
                                 fancyType = "List of Potion Effect Types";
                                 String key = "enum-potion-effect-type";
@@ -512,8 +526,16 @@ public class SchemaBuilder {
         d.add(fancyType);
         d.add(getDescription(k.getType()));
 
-        if (k.getType().isAnnotationPresent(Snippet.class)) {
-            String sm = k.getType().getDeclaredAnnotation(Snippet.class).value();
+        Snippet snippet = k.getType().getDeclaredAnnotation(Snippet.class);
+        if (snippet == null) {
+            ArrayType array = k.getType().getDeclaredAnnotation(ArrayType.class);
+            if (array != null) {
+                snippet = array.type().getDeclaredAnnotation(Snippet.class);
+            }
+        }
+
+        if (snippet != null) {
+            String sm = snippet.value();
             d.add("    ");
             d.add("You can instead specify \"snippet/" + sm + "/some-name.json\" to use a snippet file instead of specifying it here.");
         }
@@ -541,35 +563,36 @@ public class SchemaBuilder {
         description.forEach((g) -> d.add(g.trim()));
         prop.put("type", type);
         prop.put("description", d.toString("\n"));
+        return buildSnippet(prop, k.getType());
+    }
 
-        if (k.getType().isAnnotationPresent(Snippet.class)) {
-            JSONObject anyOf = new JSONObject();
-            JSONArray arr = new JSONArray();
-            JSONObject str = new JSONObject();
-            str.put("type", "string");
-            String key = "enum-snippet-" + k.getType().getDeclaredAnnotation(Snippet.class).value();
-            str.put("$ref", "#/definitions/" + key);
+    private JSONObject buildSnippet(JSONObject prop, Class<?> type) {
+        Snippet snippet = type.getDeclaredAnnotation(Snippet.class);
+        if (snippet == null) return prop;
 
-            if (!definitions.containsKey(key)) {
-                JSONObject j = new JSONObject();
-                JSONArray snl = new JSONArray();
-                data.getPossibleSnippets(k.getType().getDeclaredAnnotation(Snippet.class).value()).forEach(snl::put);
-                j.put("enum", snl);
-                definitions.put(key, j);
-            }
+        JSONObject anyOf = new JSONObject();
+        JSONArray arr = new JSONArray();
+        JSONObject str = new JSONObject();
+        str.put("type", "string");
+        String key = "enum-snippet-" + snippet.value();
+        str.put("$ref", "#/definitions/" + key);
 
-            arr.put(prop);
-            arr.put(str);
-            prop.put("description", d.toString("\n"));
-            str.put("description", d.toString("\n"));
-            anyOf.put("anyOf", arr);
-            anyOf.put("description", d.toString("\n"));
-            anyOf.put("!required", k.isAnnotationPresent(Required.class));
-
-            return anyOf;
+        if (!definitions.containsKey(key)) {
+            JSONObject j = new JSONObject();
+            JSONArray snl = new JSONArray();
+            data.getPossibleSnippets(snippet.value()).forEach(snl::put);
+            j.put("enum", snl);
+            definitions.put(key, j);
         }
 
-        return prop;
+        arr.put(prop);
+        arr.put(str);
+        str.put("description", prop.getString("description"));
+        anyOf.put("anyOf", arr);
+        anyOf.put("description", prop.getString("description"));
+        anyOf.put("!required", type.isAnnotationPresent(Required.class));
+
+        return anyOf;
     }
 
     @NotNull

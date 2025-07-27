@@ -150,7 +150,7 @@ public class IrisSettings {
         public boolean useCacheByDefault = true;
         public boolean useHighPriority = false;
         public boolean useVirtualThreads = false;
-        public boolean useTicketQueue = false;
+        public boolean useTicketQueue = true;
         public int maxConcurrency = 256;
     }
 

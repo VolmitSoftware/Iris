@@ -30,4 +30,5 @@ public abstract class IrisMantleComponent implements MantleComponent {
     private final EngineMantle engineMantle;
     private final MantleFlag flag;
     private final int priority;
+    private boolean enabled = true;
 }

@@ -153,12 +153,11 @@ public class IrisPregenerator {
     }
 
     private long computeETA() {
-        double d = (long) (totalChunks.get() > 1024 ? // Generated chunks exceed 1/8th of total?
+        double d = (long) (generated.get() > 1024 ? // Generated chunks exceed 1/8th of total?
                 // If yes, use smooth function (which gets more accurate over time since its less sensitive to outliers)
-                ((totalChunks.get() - generated.get() - cached.get()) * ((double) (M.ms() - startTime.get()) / ((double) generated.get() - cached.get()))) :
+                ((totalChunks.get() - generated.get()) * ((double) (M.ms() - startTime.get()) / (double) generated.get())) :
                 // If no, use quick function (which is less accurate over time but responds better to the initial delay)
-                ((totalChunks.get() - generated.get() - cached.get()) / chunksPerSecond.getAverage()) * 1000
-        );
+                ((totalChunks.get() - generated.get()) / chunksPerSecond.getAverage()) * 1000);
         return Double.isFinite(d) && d != INVALID ? (long) d : 0;
     }
 

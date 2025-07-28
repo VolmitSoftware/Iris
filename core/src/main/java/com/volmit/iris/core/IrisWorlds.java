@@ -101,7 +101,7 @@ public class IrisWorlds {
         }
     }
 
-    private static KMap<String, String> readBukkitWorlds() {
+    public static KMap<String, String> readBukkitWorlds() {
         var bukkit = YamlConfiguration.loadConfiguration(ServerProperties.BUKKIT_YML);
         var worlds = bukkit.getConfigurationSection("worlds");
         if (worlds == null) return new KMap<>();

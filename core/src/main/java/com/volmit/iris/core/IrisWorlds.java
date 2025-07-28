@@ -29,7 +29,7 @@ public class IrisWorlds {
 
     private IrisWorlds(KMap<String, String> worlds) {
         this.worlds = worlds;
-        readBukkitWorlds().forEach(this::put);
+        readBukkitWorlds().forEach(this::put0);
         save();
     }
 
@@ -55,10 +55,18 @@ public class IrisWorlds {
     }
 
     public void put(String name, String type) {
+        put0(name, type);
+        save();
+    }
+
+    private void put0(String name, String type) {
         String old = worlds.put(name, type);
         if (!type.equals(old))
             dirty = true;
-        save();
+    }
+
+    public KMap<String, String> getWorlds() {
+        return readBukkitWorlds().put(worlds);
     }
 
     public Stream<IrisData> getPacks() {

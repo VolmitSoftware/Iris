@@ -123,6 +123,7 @@ public class CommandIris implements DecreeExecutor {
         }
         worldCreation = false;
         sender().sendMessage(C.GREEN + "Successfully created your world!");
+        if (main) sender().sendMessage(C.GREEN + "Your world will automatically be set as the main world when the server restarts.");
     }
 
     @SneakyThrows

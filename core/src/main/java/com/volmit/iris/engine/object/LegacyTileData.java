@@ -1,10 +1,10 @@
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.scheduling.J;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
@@ -80,7 +80,7 @@ public class LegacyTileData extends TileData {
 
     @Override
     public void toBukkit(Block block) {
-        J.s(() -> handler.toBukkit(block));
+        Iris.platform.getRegionScheduler().run(block.getLocation(), () -> handler.toBukkit(block));
     }
 
     @Override

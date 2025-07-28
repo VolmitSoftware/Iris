@@ -64,7 +64,6 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.stream.ProceduralStream;
-import io.papermc.lib.PaperLib;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
@@ -293,20 +292,21 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         try {
             Semaphore semaphore = new Semaphore(3);
             chunk.raiseFlag(MantleFlag.ETCHED, () -> {
-                chunk.raiseFlag(MantleFlag.TILE, run(semaphore, () -> J.s(() -> {
+                var region = Iris.platform.getRegionScheduler();
+                chunk.raiseFlag(MantleFlag.TILE, run(semaphore, () -> region.run(c.getWorld(), c.getX(), c.getZ(), () -> {
                     mantle.iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, v) -> {
-                        int betterY = y + getWorld().minHeight();
-                        if (!TileData.setTileState(c.getBlock(x, betterY, z), v.getData()))
-                            Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), v.getData().getMaterial().name());
+                        Block block = c.getBlock(x, y + getWorld().minHeight(), z);
+                        if (!TileData.setTileState(block, v.getData()))
+                            Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", block.getX(), block.getY(), block.getZ(), block.getType().getKey(), v.getData().getMaterial().getKey());
                     });
                 })));
-                chunk.raiseFlag(MantleFlag.CUSTOM, run(semaphore, () -> J.s(() -> {
+                chunk.raiseFlag(MantleFlag.CUSTOM, run(semaphore, () -> region.run(c.getWorld(), c.getX(), c.getZ(), () -> {
                     mantle.iterateChunk(c.getX(), c.getZ(), Identifier.class, (x, y, z, v) -> {
                         Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
                     });
                 })));
 
-                chunk.raiseFlag(MantleFlag.UPDATE, run(semaphore, () -> J.s(() -> {
+                chunk.raiseFlag(MantleFlag.UPDATE, run(semaphore, () -> region.runDelayed(c.getWorld(), c.getX(), c.getZ(), () -> {
                     PrecisionStopwatch p = PrecisionStopwatch.start();
                     KMap<Long, Integer> updates = new KMap<>();
                     RNG r = new RNG(Cache.key(c.getX(), c.getZ()));
@@ -353,7 +353,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     });
                     mantle.deleteChunkSlice(c.getX(), c.getZ(), MatterUpdate.class);
                     getMetrics().getUpdates().put(p.getMilliseconds());
-                }, RNG.r.i(0, 20))));
+                }, RNG.r.i(1, 20))));
             });
 
             try {
@@ -540,8 +540,9 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         if (IrisLootEvent.callLootEvent(items, inv, world, x, y, z))
             return;
 
-        if (PaperLib.isPaper() && getWorld().hasRealWorld()) {
-            PaperLib.getChunkAtAsync(getWorld().realWorld(), x >> 4, z >> 4).thenAccept((c) -> {
+        if (world != null) {
+            final int cX = x >> 4, cZ = z >> 4;
+            Iris.platform.getChunkAtAsync(world, cX, cZ, true, false).thenAccept((c) -> {
                 Runnable r = () -> {
                     for (ItemStack i : items) {
                         inv.addItem(i);
@@ -550,10 +551,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     scramble(inv, rng);
                 };
 
-                if (Bukkit.isPrimaryThread()) {
+                if (Iris.platform.isOwnedByCurrentRegion(world, cX, cZ)) {
                     r.run();
                 } else {
-                    J.s(r);
+                    Iris.platform.getRegionScheduler().run(world, cX, cZ, r);
                 }
             });
         } else {
@@ -898,7 +899,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 player.sendMessage(C.GOLD + "No strongholds in world.");
             } else {
                 Location ll = new Location(player.getWorld(), pr.getX(), 40, pr.getZ());
-                J.s(() -> player.teleport(ll));
+                Iris.platform.teleportAsync(player, ll);
             }
 
             return;

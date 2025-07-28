@@ -20,39 +20,34 @@ package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.plugin.VolmitSender;
+import de.crazydev22.platformutils.scheduler.task.Task;
 import org.bukkit.*;
-import org.bukkit.entity.EnderSignal;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
-import org.bukkit.inventory.EquipmentSlot;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class EngineAssignedWorldManager extends EngineAssignedComponent implements EngineWorldManager, Listener {
-    private final int taskId;
+    private final Task task;
     protected AtomicBoolean ignoreTP = new AtomicBoolean(false);
 
     public EngineAssignedWorldManager() {
         super(null, null);
-        taskId = -1;
+        task = null;
     }
 
     public EngineAssignedWorldManager(Engine engine) {
         super(engine, "World");
         Iris.instance.registerListener(this);
-        taskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::onTick, 0, 0);
+        task = Iris.platform.getGlobalScheduler().runAtFixedRate(this::onTick, 1, 1);
     }
 
     @EventHandler
@@ -129,6 +124,6 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
     public void close() {
         super.close();
         Iris.instance.unregisterListener(this);
-        Bukkit.getScheduler().cancelTask(taskId);
+        if (task != null) task.cancel();
     }
 }

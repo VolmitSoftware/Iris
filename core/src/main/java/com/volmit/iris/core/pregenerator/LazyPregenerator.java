@@ -11,7 +11,6 @@ import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
-import io.papermc.lib.PaperLib;
 import lombok.Data;
 import lombok.Getter;
 import org.bukkit.Bukkit;
@@ -19,7 +18,6 @@ import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldUnloadEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
@@ -149,23 +147,9 @@ public class LazyPregenerator extends Thread implements Listener {
 
     private void tickGenerate(Position2 chunk) {
         executorService.submit(() -> {
-            CountDownLatch latch = new CountDownLatch(1);
-            if (PaperLib.isPaper()) {
-                PaperLib.getChunkAtAsync(world, chunk.getX(), chunk.getZ(), true)
-                        .thenAccept((i) -> {
-                            Iris.verbose("Generated Async " + chunk);
-                            latch.countDown();
-                        });
-            } else {
-                J.s(() -> {
-                    world.getChunkAt(chunk.getX(), chunk.getZ());
-                    Iris.verbose("Generated " + chunk);
-                    latch.countDown();
-                });
-            }
-            try {
-                latch.await();
-            } catch (InterruptedException ignored) {}
+            Iris.platform.getChunkAtAsync(world, chunk.getX(), chunk.getZ(), true).thenAccept((i) -> {
+                Iris.verbose("Generated Async " + chunk);
+            }).join();
             lazyGeneratedChunks.addAndGet(1);
         });
     }
@@ -238,16 +222,13 @@ public class LazyPregenerator extends Thread implements Listener {
             }
             save();
             jobs.remove(world.getName());
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    while (lazyFile.exists()){
-                        lazyFile.delete();
-                        J.sleep(1000);
-                    }
-                    Iris.info("LazyGen: " + C.IRIS + world.getName() + C.BLUE + " File deleted and instance closed.");
+            J.a(() -> {
+                while (lazyFile.exists()){
+                    lazyFile.delete();
+                    J.sleep(1000);
                 }
-            }.runTaskLater(Iris.instance, 20L);
+                Iris.info("LazyGen: " + C.IRIS + world.getName() + C.BLUE + " File deleted and instance closed.");
+            }, 20);
         } catch (Exception e) {
             Iris.error("Failed to shutdown Lazygen for " + world.getName());
             e.printStackTrace();

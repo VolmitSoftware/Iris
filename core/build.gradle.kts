@@ -68,6 +68,9 @@ dependencies {
 
     // Shaded
     implementation(slimjar())
+    implementation(rootProject.libs.platformUtils) {
+        isTransitive = false
+    }
 
     // Dynamically Loaded
     slim(libs.paralithic)

@@ -652,7 +652,7 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
         return new CuboidIterator(getWorld(), x1, y1, z1, x2, y2, z2);
     }
 
-    public Iterator<Block> chunkedIterator() {
+    public Iterator<Location> chunkedIterator() {
         return new ChunkedCuboidIterator(getWorld(), x1, y1, z1, x2, y2, z2);
     }
 
@@ -751,7 +751,7 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
         }
     }
 
-    public static class ChunkedCuboidIterator implements Iterator<Block> {
+    public static class ChunkedCuboidIterator implements Iterator<Location> {
         private final World w;
         private final int minRX, minY, minRZ, maxRX, maxY, maxRZ;
         private final int minCX, minCZ, maxCX, maxCZ;
@@ -795,7 +795,7 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
         }
 
         @Override
-        public Block next() {
+        public Location next() {
             if (chunk == null) {
                 chunk = new Position2(cX, cZ);
                 if (++cX > maxCX) {
@@ -809,7 +809,7 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
                 rZ = chunk.getZ() == minCZ ? minRZ : 0;
             }
 
-            var b = w.getBlockAt((chunk.getX() << 4) + rX, y, (chunk.getZ() << 4) + rZ);
+            var b = new Location(w, (chunk.getX() << 4) + rX, y, (chunk.getZ() << 4) + rZ);
             if (++y > maxY) {
                 y = minY;
                 if (++rX > mX) {

@@ -394,17 +394,19 @@ public class CommandIris implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Set debug to: " + to);
     }
 
+    //TODO fix pack trimming
     @Decree(description = "Download a project.", aliases = "dl")
     public void download(
             @Param(name = "pack", description = "The pack to download", defaultValue = "overworld", aliases = "project")
             String pack,
             @Param(name = "branch", description = "The branch to download from", defaultValue = "main")
             String branch,
-            @Param(name = "trim", description = "Whether or not to download a trimmed version (do not enable when editing)", defaultValue = "false")
-            boolean trim,
+            //@Param(name = "trim", description = "Whether or not to download a trimmed version (do not enable when editing)", defaultValue = "false")
+            //boolean trim,
             @Param(name = "overwrite", description = "Whether or not to overwrite the pack with the downloaded one", aliases = "force", defaultValue = "false")
             boolean overwrite
     ) {
+        boolean trim = false;
         sender().sendMessage(C.GREEN + "Downloading pack: " + pack + "/" + branch + (trim ? " trimmed" : "") + (overwrite ? " overwriting" : ""));
         if (pack.equals("overworld")) {
             String url = "https://github.com/IrisDimensions/overworld/releases/download/" + INMS.OVERWORLD_TAG + "/overworld.zip";

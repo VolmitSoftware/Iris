@@ -92,18 +92,19 @@ public class CommandStudio implements DecreeExecutor {
         return duration.toString().substring(2).replaceAll("(\\d[HMS])(?!$)", "$1 ").toLowerCase();
     }
 
+    //TODO fix pack trimming
     @Decree(description = "Download a project.", aliases = "dl")
     public void download(
             @Param(name = "pack", description = "The pack to download", defaultValue = "overworld", aliases = "project")
             String pack,
             @Param(name = "branch", description = "The branch to download from", defaultValue = "master")
             String branch,
-            @Param(name = "trim", description = "Whether or not to download a trimmed version (do not enable when editing)", defaultValue = "false")
-            boolean trim,
+            //@Param(name = "trim", description = "Whether or not to download a trimmed version (do not enable when editing)", defaultValue = "false")
+            //boolean trim,
             @Param(name = "overwrite", description = "Whether or not to overwrite the pack with the downloaded one", aliases = "force", defaultValue = "false")
             boolean overwrite
     ) {
-        new CommandIris().download(pack, branch, trim, overwrite);
+        new CommandIris().download(pack, branch, overwrite);
     }
 
     @Decree(description = "Open a new studio world", aliases = "o", sync = true)

@@ -232,6 +232,9 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     IrisJigsawStructure getStructureAt(int x, int z);
 
     @BlockCoordinates
+    IrisJigsawStructure getStructureAt(int x, int y, int z);
+
+    @BlockCoordinates
     default IrisBiome getCaveBiome(int x, int z) {
         return getComplex().getCaveBiomeStream().get(x, z);
     }

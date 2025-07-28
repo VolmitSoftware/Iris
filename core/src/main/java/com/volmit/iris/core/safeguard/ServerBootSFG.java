@@ -3,7 +3,7 @@ package com.volmit.iris.core.safeguard;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.IrisWorlds;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.engine.object.IrisDimension;
@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.volmit.iris.Iris.getJavaVersion;
 import static com.volmit.iris.core.safeguard.IrisSafeguard.*;
@@ -205,28 +206,10 @@ public class ServerBootSFG {
     }
 
     private static KSet<String> getDimensionTypes() {
-        var bukkit = YamlConfiguration.loadConfiguration(ServerProperties.BUKKIT_YML);
-        var worlds = bukkit.getConfigurationSection("worlds");
-        if (worlds == null) return new KSet<>();
-
-        var types = new KSet<String>();
-        for (String world : worlds.getKeys(false)) {
-            var gen = worlds.getString(world + ".generator");
-            if (gen == null) continue;
-
-            String loadKey;
-            if (gen.equalsIgnoreCase("iris")) {
-                loadKey = IrisSettings.get().getGenerator().getDefaultWorldType();
-            } else if (gen.startsWith("Iris:")) {
-                loadKey = gen.substring(5);
-            } else continue;
-
-            IrisDimension dimension = Iris.loadDimension(world, loadKey);
-            if (dimension == null) continue;
-            types.add(dimension.getDimensionTypeKey());
-        }
-
-        return types;
+        return IrisWorlds.get()
+                .getDimensions()
+                .map(IrisDimension::getDimensionTypeKey)
+                .collect(Collectors.toCollection(KSet::new));
     }
 
     private static KMap<File, int[]> checkUpdateConflicts() {

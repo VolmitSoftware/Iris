@@ -1,5 +1,6 @@
 import io.github.slimjar.func.slimjar
 import io.github.slimjar.resolver.data.Mirror
+import org.ajoberstar.grgit.Grgit
 import java.net.URI
 
 /*
@@ -26,6 +27,7 @@ plugins {
     alias(libs.plugins.shadow)
     alias(libs.plugins.sentry)
     alias(libs.plugins.slimjar)
+    alias(libs.plugins.grgit)
 }
 
 val apiVersion = "1.19"
@@ -137,6 +139,15 @@ tasks {
             "version" to rootProject.version,
             "apiVersion" to apiVersion,
             "main" to main,
+            "environment" to if (project.hasProperty("release")) "production" else "development",
+            "commit" to provider {
+                val res = runCatching { project.extensions.getByType<Grgit>().head().id }
+                res.getOrDefault("")
+                    .takeIf { it.length == 40 } ?: {
+                    logger.error("Git commit hash not found", res.exceptionOrNull())
+                    "unknown"
+                }()
+            },
         )
         filesMatching("**/plugin.yml") {
             expand(inputs.properties)
@@ -147,6 +158,7 @@ tasks {
         mergeServiceFiles()
         //minimize()
         relocate("io.github.slimjar", "$lib.slimjar")
+        exclude("modules/loader-agent.isolated-jar")
     }
 }
 

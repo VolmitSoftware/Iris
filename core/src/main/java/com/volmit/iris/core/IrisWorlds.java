@@ -4,10 +4,14 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.misc.ServerProperties;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,6 +29,7 @@ public class IrisWorlds {
 
     private IrisWorlds(KMap<String, String> worlds) {
         this.worlds = worlds;
+        readBukkitWorlds().forEach(this::put);
         save();
     }
 
@@ -56,8 +61,19 @@ public class IrisWorlds {
         save();
     }
 
-    public Stream<File> getFolders() {
-        return worlds.keySet().stream().map(k -> new File(Bukkit.getWorldContainer(), k));
+    public Stream<IrisData> getPacks() {
+        return getDimensions()
+                .map(IrisDimension::getLoader)
+                .filter(Objects::nonNull);
+    }
+
+    public Stream<IrisDimension> getDimensions() {
+        return readBukkitWorlds()
+                .put(worlds)
+                .entrySet()
+                .stream()
+                .map(entry -> Iris.loadDimension(entry.getKey(), entry.getValue()))
+                .filter(Objects::nonNull);
     }
 
     public void clean() {
@@ -75,5 +91,28 @@ public class IrisWorlds {
             e.printStackTrace();
             Iris.reportError(e);
         }
+    }
+
+    private static KMap<String, String> readBukkitWorlds() {
+        var bukkit = YamlConfiguration.loadConfiguration(ServerProperties.BUKKIT_YML);
+        var worlds = bukkit.getConfigurationSection("worlds");
+        if (worlds == null) return new KMap<>();
+
+        var result = new KMap<String, String>();
+        for (String world : worlds.getKeys(false)) {
+            var gen = worlds.getString(world + ".generator");
+            if (gen == null) continue;
+
+            String loadKey;
+            if (gen.equalsIgnoreCase("iris")) {
+                loadKey = IrisSettings.get().getGenerator().getDefaultWorldType();
+            } else if (gen.startsWith("Iris:")) {
+                loadKey = gen.substring(5);
+            } else continue;
+
+            result.put(world, loadKey);
+        }
+
+        return result;
     }
 }

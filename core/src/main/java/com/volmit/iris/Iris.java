@@ -437,7 +437,6 @@ public class Iris extends VolmitPlugin implements Listener {
 
     public Iris() {
         instance = this;
-        SlimJar.debug(IrisSettings.get().getSentry().isDebug());
         SlimJar.load(getDataFolder("cache", "libraries"));
     }
 
@@ -503,12 +502,21 @@ public class Iris extends VolmitPlugin implements Listener {
 
                 Iris.info("Loading World: %s | Generator: %s", s, generator);
 
-                Iris.info(C.LIGHT_PURPLE + "Preparing Spawn for " + s + "' using Iris:" + generator + "...");
-                WorldCreator c = new WorldCreator(s)
-                        .generator(getDefaultWorldGenerator(s, generator))
-                        .environment(IrisData.loadAnyDimension(generator).getEnvironment());
-                INMS.get().createWorld(c);
-                Iris.info(C.LIGHT_PURPLE + "Loaded " + s + "!");
+                try {
+                    var gen = getDefaultWorldGenerator(s, generator);
+                    var dim = loadDimension(s, generator);
+                    assert dim != null && gen != null;
+
+                    Iris.info(C.LIGHT_PURPLE + "Preparing Spawn for " + s + "' using Iris:" + generator + "...");
+                    WorldCreator c = new WorldCreator(s)
+                            .generator(gen)
+                            .environment(dim.getEnvironment());
+                    INMS.get().createWorld(c);
+                    Iris.info(C.LIGHT_PURPLE + "Loaded " + s + "!");
+                } catch (Throwable e) {
+                    Iris.error("Failed to load world " + s + "!");
+                    e.printStackTrace();
+                }
             }
         } catch (Throwable e) {
             e.printStackTrace();

@@ -28,7 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
+import java.util.concurrent.Executor;
 
 public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
     @Nullable
@@ -42,7 +42,7 @@ public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
     @NotNull
     EngineTarget getTarget();
 
-    void injectChunkReplacement(World world, int x, int z, Consumer<Runnable> jobs);
+    void injectChunkReplacement(World world, int x, int z, Executor syncExecutor);
 
     void close();
 

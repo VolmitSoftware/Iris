@@ -22,6 +22,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.IrisWorlds;
 import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.link.IrisPapiExpansion;
 import com.volmit.iris.core.link.MultiverseCoreLink;
@@ -65,9 +66,6 @@ import org.bukkit.*;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.*;
 import org.bukkit.generator.BiomeProvider;
@@ -82,6 +80,7 @@ import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.text.ParseException;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -467,42 +466,19 @@ public class Iris extends VolmitPlugin implements Listener {
             IrisSafeguard.splash(false);
 
             autoStartStudio();
-            checkForBukkitWorlds();
+            checkForBukkitWorlds(s -> true);
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
             IrisToolbelt.retainMantleDataForSlice(BlockData.class.getCanonicalName());
         });
     }
 
-    private void checkForBukkitWorlds() {
-        FileConfiguration fc = new YamlConfiguration();
+    public void checkForBukkitWorlds(Predicate<String> filter) {
         try {
-            fc.load(new File("bukkit.yml"));
-            ConfigurationSection section = fc.getConfigurationSection("worlds");
-            if (section == null) {
-                return;
-            }
-
-            for (String s : section.getKeys(false)) {
-                ConfigurationSection entry = section.getConfigurationSection(s);
-                if (!entry.contains("generator", true)) {
-                    continue;
-                }
-
-                String generator = entry.getString("generator");
-                if (generator.startsWith("Iris:")) {
-                    generator = generator.split("\\Q:\\E")[1];
-                } else if (generator.equalsIgnoreCase("Iris")) {
-                    generator = IrisSettings.get().getGenerator().getDefaultWorldType();
-                } else {
-                    continue;
-                }
-
-                if (Bukkit.getWorld(s) != null)
-                    continue;
-
-                Iris.info("Loading World: %s | Generator: %s", s, generator);
-
+            IrisWorlds.readBukkitWorlds().forEach((s, generator) -> {
                 try {
+                    if (Bukkit.getWorld(s) != null || !filter.test(s)) return;
+
+                    Iris.info("Loading World: %s | Generator: %s", s, generator);
                     var gen = getDefaultWorldGenerator(s, generator);
                     var dim = loadDimension(s, generator);
                     assert dim != null && gen != null;
@@ -517,7 +493,7 @@ public class Iris extends VolmitPlugin implements Listener {
                     Iris.error("Failed to load world " + s + "!");
                     e.printStackTrace();
                 }
-            }
+            });
         } catch (Throwable e) {
             e.printStackTrace();
             reportError(e);

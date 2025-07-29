@@ -2,13 +2,11 @@ package com.volmit.iris.util.misc;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.container.Pair;
+import com.volmit.iris.util.collection.KList;
 import io.github.slimjar.app.builder.ApplicationBuilder;
-import io.github.slimjar.exceptions.InjectorException;
-import io.github.slimjar.injector.loader.Injectable;
 import io.github.slimjar.injector.loader.IsolatedInjectableClassLoader;
 import io.github.slimjar.injector.loader.factory.InjectableFactory;
 import io.github.slimjar.logging.ProcessLogger;
-import io.github.slimjar.resolver.data.Repository;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,7 +29,6 @@ public class SlimJar {
 
     private static final ReentrantLock lock = new ReentrantLock();
     private static final AtomicBoolean loaded = new AtomicBoolean();
-    private static final InjectableFactory FACTORY = InjectableFactory.selecting(InjectableFactory.ERROR, InjectableFactory.INJECTABLE, InjectableFactory.WRAPPED, InjectableFactory.UNSAFE);
 
     public static void load(@Nullable File localRepository) {
         if (loaded.get()) return;
@@ -74,7 +71,7 @@ public class SlimJar {
         } catch (Throwable e) {
             Iris.warn("Failed to inject the library loader, falling back to application builder");
             ApplicationBuilder.appending(NAME)
-                    .injectableFactory(FACTORY)
+                    .injectableFactory(InjectableFactory.selecting(InjectableFactory.ERROR, InjectableFactory.INJECTABLE, InjectableFactory.WRAPPED, InjectableFactory.UNSAFE))
                     .downloadDirectoryPath(downloadPath)
                     .logger(logger)
                     .build();
@@ -91,37 +88,18 @@ public class SlimJar {
         final var pair = findRemapper();
         final var remapper = pair.getA();
         final var factory = pair.getB();
+        final var classpath = new KList<URL>();
 
-        final var libraries = factory.apply(new URL[0], libraryLoader == null ? current.getParent() : libraryLoader);
-        final var injecting = FACTORY.create(downloadPath, List.of(Repository.central()), libraries);
-
-        ApplicationBuilder.injecting(NAME, new Injectable() {
-                    @Override
-                    public void inject(@NotNull URL url) throws InjectorException {
-                        try {
-                            final List<Path> mapped;
-                            synchronized (remapper) {
-                                mapped = remapper.apply(List.of(Path.of(url.toURI())));
-                            }
-
-                            for (final Path path : mapped) {
-                                injecting.inject(path.toUri().toURL());
-                            }
-                        } catch (Throwable e) {
-                            throw new InjectorException("Failed to inject " + url, e);
-                        }
-                    }
-
-                    @Override
-                    public boolean isThreadSafe() {
-                        return injecting.isThreadSafe();
-                    }
-                })
+        ApplicationBuilder.injecting(NAME, classpath::add)
                 .downloadDirectoryPath(downloadPath)
                 .logger(logger)
                 .build();
 
-        libraryLoaderField.set(current, libraries);
+        final var urls = remapper.andThen(KList::new)
+                .apply(classpath.convertNasty(url -> Path.of(url.toURI())))
+                .convertNasty(path -> path.toUri().toURL())
+                .toArray(URL[]::new);
+        libraryLoaderField.set(current, factory.apply(urls, libraryLoader == null ? current.getParent() : libraryLoader));
     }
 
     private static Pair<Function<List<Path>, List<Path>>, BiFunction<URL[], ClassLoader, URLClassLoader>> findRemapper() {

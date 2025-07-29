@@ -60,10 +60,10 @@ public class IrisRavinePlacer implements IRare {
     }
 
     public void generateRavine(MantleWriter mantle, RNG rng, Engine engine, int x, int y, int z) {
-        generateRavine(mantle, rng, engine, x, y, z, 0, -1);
+        generateRavine(mantle, rng, new RNG(engine.getSeedManager().getCarve()), engine, x, y, z, 0, -1);
     }
 
-    public void generateRavine(MantleWriter mantle, RNG rng, Engine engine, int x, int y, int z, int recursion, int waterHint) {
+    public void generateRavine(MantleWriter mantle, RNG rng, RNG base, Engine engine, int x, int y, int z, int recursion, int waterHint) {
         if (fail.get()) {
             return;
         }
@@ -84,7 +84,7 @@ public class IrisRavinePlacer implements IRare {
         try {
             int xx = x + rng.nextInt(15);
             int zz = z + rng.nextInt(15);
-            ravine.generate(mantle, rng, engine, xx, y, zz, recursion, waterHint);
+            ravine.generate(mantle, rng, base, engine, xx, y, zz, recursion, waterHint);
         } catch (Throwable e) {
             e.printStackTrace();
             fail.set(true);

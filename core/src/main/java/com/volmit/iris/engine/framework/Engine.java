@@ -232,6 +232,9 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     IrisJigsawStructure getStructureAt(int x, int z);
 
     @BlockCoordinates
+    IrisJigsawStructure getStructureAt(int x, int y, int z);
+
+    @BlockCoordinates
     default IrisBiome getCaveBiome(int x, int z) {
         return getComplex().getCaveBiomeStream().get(x, z);
     }
@@ -262,7 +265,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             getMantle().updateBlock(x, y, z);
         }
         if (data instanceof IrisCustomData) {
-            getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.CUSTOM, true);
+            getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.CUSTOM_ACTIVE, true);
         }
     }
 

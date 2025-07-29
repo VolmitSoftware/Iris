@@ -20,8 +20,10 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
@@ -451,22 +453,11 @@ public class IrisEntity extends IrisRegistrant {
         }
 
         if (isSpecialType()) {
-            if (specialType.toLowerCase().startsWith("mythicmobs:")) {
-                return Iris.linkMythicMobs.spawnMob(specialType.substring(11), at);
-            } else {
-                Iris.warn("Invalid mob type to spawn: '" + specialType + "'!");
-                return null;
-            }
+            return Iris.service(ExternalDataSVC.class).spawnMob(at, Identifier.fromString(specialType));
         }
 
 
         return INMS.get().spawnEntity(at, getType(), getReason());
-    }
-
-    public boolean isCitizens() {
-        return false;
-
-        // TODO: return Iris.linkCitizens.supported() && someType is not empty;
     }
 
     public boolean isSpecialType() {

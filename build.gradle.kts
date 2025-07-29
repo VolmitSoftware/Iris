@@ -37,7 +37,7 @@ plugins {
 }
 
 group = "com.volmit"
-version = "3.6.11-1.20.1-1.21.5"
+version = "3.7.0-1.20.1-1.21.7"
 
 apply<ApiGenerator>()
 

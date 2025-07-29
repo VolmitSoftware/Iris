@@ -93,13 +93,13 @@ public class IrisRavine extends IrisRegistrant {
     }
 
     public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z) {
-        generate(writer, rng, engine, x, y, z, 0, -1);
+        generate(writer, rng, new RNG(engine.getSeedManager().getCarve()), engine, x, y, z, 0, -1);
     }
 
-    public void generate(MantleWriter writer, RNG rng, Engine engine, int x, int y, int z, int recursion, int waterHint) {
-        KList<IrisPosition> pos = getWorm().generate(rng, engine.getData(), writer, null, x, y, z, true, 0);
-        CNG dg = depthStyle.getGenerator().createNoCache(rng, engine.getData());
-        CNG bw = baseWidthStyle.getGenerator().createNoCache(rng, engine.getData());
+    public void generate(MantleWriter writer, RNG rng, RNG base, Engine engine, int x, int y, int z, int recursion, int waterHint) {
+        KList<IrisPosition> pos = getWorm().generate(base.nextParallelRNG(879615), engine.getData(), writer, null, x, y, z, true, 0);
+        CNG dg = depthStyle.getGenerator().create(base.nextParallelRNG(7894156), engine.getData());
+        CNG bw = baseWidthStyle.getGenerator().create(base.nextParallelRNG(15315456), engine.getData());
         int highestWater = Math.max(waterHint, -1);
         boolean water = false;
 
@@ -134,7 +134,7 @@ public class IrisRavine extends IrisRegistrant {
             int width = (int) Math.round(bw.fitDouble(baseWidthStyle.getMin(), baseWidthStyle.getMax(), p.getX(), p.getZ()));
             int surface = (int) Math.round(rsurface - depth * 0.45);
 
-            fork.doCarving(writer, rng, engine, p.getX(), rng.i(surface - depth, surface), p.getZ(), recursion, Math.max(highestWater, waterHint));
+            fork.doCarving(writer, rng, base, engine, p.getX(), rng.i(surface - depth, surface), p.getZ(), recursion, highestWater);
 
             for (int i = surface + depth; i >= surface; i--) {
                 if (i % ribThickness == 0) {

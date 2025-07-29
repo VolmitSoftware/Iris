@@ -44,6 +44,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.stream.Stream;
@@ -140,6 +141,7 @@ public class ServerConfigurator {
                         var loader = data.getDimensionLoader();
                         return loader.loadAll(loader.getPossibleKeys())
                                 .stream()
+                                .filter(Objects::nonNull)
                                 .map(ServerConfigurator::verifyDataPackInstalled)
                                 .toList()
                                 .contains(false);
@@ -235,14 +237,13 @@ public class ServerConfigurator {
     }
 
     public static Stream<IrisData> allPacks() {
-        return Stream.concat(listFiles(Iris.instance.getDataFolder("packs")),
-                        IrisWorlds.get().getFolders().map(w -> new File(w, "iris/pack")))
+        return Stream.concat(listFiles(Iris.instance.getDataFolder("packs"))
                 .filter(File::isDirectory)
                 .filter( base -> {
                     var content = new File(base, "dimensions").listFiles();
                     return content != null && content.length > 0;
                 })
-                .map(IrisData::get);
+                .map(IrisData::get), IrisWorlds.get().getPacks());
     }
 
     @Nullable
@@ -280,6 +281,7 @@ public class ServerConfigurator {
             var loader = data.getDimensionLoader();
             return loader.loadAll(loader.getPossibleKeys())
                     .stream()
+                    .filter(Objects::nonNull)
                     .peek(this::merge);
         }
 

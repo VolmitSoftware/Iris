@@ -36,6 +36,7 @@ import org.dom4j.io.XMLWriter;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
@@ -596,6 +597,25 @@ public class IO {
         if (preserveFileDate) {
             destFile.setLastModified(srcFile.lastModified());
         }
+    }
+
+    public static void copyDirectory(Path source, Path target) throws IOException {
+        Files.walk(source).forEach(sourcePath -> {
+            Path targetPath = target.resolve(source.relativize(sourcePath));
+
+            try {
+                if (Files.isDirectory(sourcePath)) {
+                    if (!Files.exists(targetPath)) {
+                        Files.createDirectories(targetPath);
+                    }
+                } else {
+                    Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
+                }
+            } catch (IOException e) {
+                Iris.error("Failed to copy " + targetPath);
+                e.printStackTrace();
+            }
+        });
     }
 
     /**

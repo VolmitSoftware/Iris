@@ -39,6 +39,7 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
 /**
@@ -52,6 +53,7 @@ public class TectonicPlate {
 
     private final int sectionHeight;
     private final AtomicReferenceArray<MantleChunk> chunks;
+    private final AtomicBoolean closed;
 
     @Getter
     private final int x;
@@ -67,6 +69,7 @@ public class TectonicPlate {
     public TectonicPlate(int worldHeight, int x, int z) {
         this.sectionHeight = worldHeight >> 4;
         this.chunks = new AtomicReferenceArray<>(1024);
+        this.closed = new AtomicBoolean(false);
         this.x = x;
         this.z = z;
     }
@@ -143,12 +146,17 @@ public class TectonicPlate {
     }
 
     public void close() throws InterruptedException {
+        closed.set(true);
         for (int i = 0; i < chunks.length(); i++) {
             MantleChunk chunk = chunks.get(i);
             if (chunk != null) {
                 chunk.close();
             }
         }
+    }
+
+    public boolean isClosed() {
+        return closed.get();
     }
 
     /**

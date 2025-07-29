@@ -29,6 +29,7 @@ import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterSlice;
 import com.volmit.iris.util.parallel.AtomicBooleanArray;
 import lombok.Getter;
+import lombok.SneakyThrows;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -118,9 +119,11 @@ public class MantleChunk {
         }
     }
 
-    public void close() throws InterruptedException {
+    @SneakyThrows
+    public void close() {
         closed.set(true);
         ref.acquire(Integer.MAX_VALUE);
+        ref.release(Integer.MAX_VALUE);
     }
 
     public boolean inUse() {
@@ -130,6 +133,10 @@ public class MantleChunk {
     public MantleChunk use() {
         if (closed.get()) throw new IllegalStateException("Chunk is closed!");
         ref.acquireUninterruptibly();
+        if (closed.get()) {
+            ref.release();
+            throw new IllegalStateException("Chunk is closed!");
+        }
         return this;
     }
 
@@ -220,6 +227,7 @@ public class MantleChunk {
      * @throws IOException shit happens
      */
     public void write(DataOutputStream dos) throws IOException {
+        close();
         dos.writeByte(x);
         dos.writeByte(z);
         dos.writeByte(sections.length());

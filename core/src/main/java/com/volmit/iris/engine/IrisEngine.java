@@ -47,6 +47,7 @@ import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterStructurePOI;
+import com.volmit.iris.util.matter.slices.container.JigsawStructureContainer;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -222,6 +223,12 @@ public class IrisEngine implements Engine {
     @Override
     public IrisJigsawStructure getStructureAt(int x, int z) {
         return getMantle().getJigsawComponent().guess(x, z);
+    }
+
+    @Override
+    public IrisJigsawStructure getStructureAt(int x, int y, int z) {
+        var container = getMantle().getMantle().get(x, y, z, JigsawStructureContainer.class);
+        return container == null ? null : container.load(getData());
     }
 
     private void warmupChunk(int x, int z) {

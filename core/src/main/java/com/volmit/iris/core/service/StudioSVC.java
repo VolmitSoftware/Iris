@@ -18,7 +18,6 @@
 
 package com.volmit.iris.core.service;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
@@ -250,30 +249,25 @@ public class StudioSVC implements IrisService {
             return;
         }
 
-        File dimensions = new File(dir, "dimensions");
+        IrisData data = IrisData.get(dir);
+        String[] dimensions = data.getDimensionLoader().getPossibleKeys();
 
-        if (!(dimensions.exists() && dimensions.isDirectory())) {
-            sender.sendMessage("Invalid Format. Missing dimensions folder");
-            return;
-        }
-
-        if (dimensions.listFiles() == null) {
+        if (dimensions == null || dimensions.length == 0) {
             sender.sendMessage("No dimension file found in the extracted zip file.");
             sender.sendMessage("Check it is there on GitHub and report this to staff!");
-        } else if (dimensions.listFiles().length != 1) {
+        } else if (dimensions.length != 1) {
             sender.sendMessage("Dimensions folder must have 1 file in it");
             return;
         }
 
-        File dim = dimensions.listFiles()[0];
+        IrisDimension d = data.getDimensionLoader().load(dimensions[0]);
 
-        if (!dim.isFile()) {
+        if (d == null) {
             sender.sendMessage("Invalid dimension (folder) in dimensions folder");
             return;
         }
 
-        String key = dim.getName().split("\\Q.\\E")[0];
-        IrisDimension d = new Gson().fromJson(IO.readAll(dim), IrisDimension.class);
+        String key = d.getLoadKey();
         sender.sendMessage("Importing " + d.getName() + " (" + key + ")");
         File packEntry = new File(packs, key);
 

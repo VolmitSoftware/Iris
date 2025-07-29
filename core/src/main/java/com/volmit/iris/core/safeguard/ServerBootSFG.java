@@ -215,8 +215,7 @@ public class ServerBootSFG {
     private static KMap<File, int[]> checkUpdateConflicts() {
         try {
             KMap<File, int[]> worlds = new KMap<>();
-            Iris.info(Bukkit.getWorlds().toString());
-            for (var world : Arrays.stream(Bukkit.getWorldContainer().listFiles()).filter(File::isDirectory).toList()) {
+            for (var world : IrisWorlds.get().getWorlds().keySet()) {
                 try {
                     var file = new File(world, "iris/engine-data").listFiles()[0];
                     if (!file.exists()) {
@@ -227,7 +226,7 @@ public class ServerBootSFG {
                         continue;
                     }
                     if ((Versions.getIrisVersion()[1] != data.getUpgradedToIrisVersion()[1]) || (Versions.getIrisVersion()[0] != data.getUpgradedToIrisVersion()[0])) {
-                        worlds.put(world, data.getUpgradedToIrisVersion());
+                        worlds.put(new File(Bukkit.getServer().getWorldContainer(), world), data.getUpgradedToIrisVersion());
                     }
                 } catch (NullPointerException ignored) {
                     //meh

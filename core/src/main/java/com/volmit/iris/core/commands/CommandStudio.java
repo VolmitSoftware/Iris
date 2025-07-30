@@ -47,7 +47,6 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.mantle.MantleChunk;
-import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
@@ -218,9 +217,7 @@ public class CommandStudio implements DecreeExecutor {
                 int sections = mantle.getWorldHeight() >> 4;
                 chunkMap.forEach((pos, chunk) -> {
                     var c = mantle.getChunk(pos.getX(), pos.getZ());
-                    for (MantleFlag flag : MantleFlag.values()) {
-                        c.flag(flag, chunk.isFlagged(flag));
-                    }
+                    c.copyFlags(chunk);
                     c.clear();
                     for (int y = 0; y < sections; y++) {
                         var slice = chunk.get(y);

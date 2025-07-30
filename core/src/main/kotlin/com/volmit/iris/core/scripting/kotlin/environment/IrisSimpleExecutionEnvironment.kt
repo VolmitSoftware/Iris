@@ -8,13 +8,14 @@ import com.volmit.iris.core.scripting.kotlin.runner.Script
 import com.volmit.iris.core.scripting.kotlin.runner.ScriptRunner
 import com.volmit.iris.core.scripting.kotlin.runner.classpath
 import com.volmit.iris.core.scripting.kotlin.runner.valueOrNull
+import com.volmit.iris.core.scripting.kotlin.runner.valueOrThrow
 import com.volmit.iris.util.collection.KMap
 import com.volmit.iris.util.data.KCache
 import com.volmit.iris.util.format.C
 import java.io.File
 import kotlin.reflect.KClass
+import kotlin.script.experimental.annotations.KotlinScript
 import kotlin.script.experimental.api.ResultWithDiagnostics
-import kotlin.script.experimental.api.valueOrThrow
 import kotlin.text.split
 
 open class IrisSimpleExecutionEnvironment : ExecutionEnvironment.Simple {
@@ -55,7 +56,7 @@ open class IrisSimpleExecutionEnvironment : ExecutionEnvironment.Simple {
     protected open fun compile(script: String, type: KClass<*>) =
         compileCache.get(script)
             .computeIfAbsent(type) { _ -> runner.compileText(type, script) }
-            .valueOrThrow()
+            .valueOrThrow("Failed to compile script")
 
     private fun evaluate0(name: String, type: KClass<*>, properties: Map<String, Any?>? = null): Any? {
         val current = Thread.currentThread()
@@ -64,7 +65,7 @@ open class IrisSimpleExecutionEnvironment : ExecutionEnvironment.Simple {
         try {
             return compile(name, type)
                 .evaluate(properties)
-                .valueOrThrow()
+                .valueOrThrow("Failed to evaluate script")
                 .valueOrNull()
         } catch (e: Throwable) {
             e.printStackTrace()
@@ -76,7 +77,8 @@ open class IrisSimpleExecutionEnvironment : ExecutionEnvironment.Simple {
 
     override fun configureProject(projectDir: File) {
         projectDir.mkdirs()
-        val libs = javaClass.classLoader.classpath
+        val libs = listOf(javaClass.classLoader.classpath, KotlinScript::class.java.classLoader.classpath)
+            .flatMap { it }
             .sortedBy { it.absolutePath }
             .toMutableList()
 
@@ -111,7 +113,7 @@ open class IrisSimpleExecutionEnvironment : ExecutionEnvironment.Simple {
             val classpath = files()
             
             plugins {
-                kotlin("jvm") version("2.1.20")
+                kotlin("jvm") version("2.2.0")
             }
 
             repositories {

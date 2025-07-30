@@ -2,6 +2,7 @@ package com.volmit.iris.core.scripting.kotlin.runner
 
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import java.lang.RuntimeException
 import kotlin.script.experimental.api.*
 import kotlin.script.experimental.dependencies.CompoundDependenciesResolver
 import kotlin.script.experimental.dependencies.FileSystemDependenciesResolver
@@ -51,4 +52,8 @@ private fun format(file: File, projectDir: String, home: String): String {
         path.startsWith(home) -> $$"$USER_HOME$/$${path.substring(home.length + 1)}"
         else -> path
     }
+}
+
+fun <R> ResultWithDiagnostics<R>.valueOrThrow(message: CharSequence): R = valueOr {
+    throw RuntimeException(it.reports.joinToString("\n", "$message\n") { r -> r.render(withStackTrace = true) })
 }

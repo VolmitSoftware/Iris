@@ -26,6 +26,7 @@ object SimpleScriptDefinition : ScriptCompilationConfiguration({
     )
 
     jvm {
+        dependenciesFromClassContext(KotlinScript::class, wholeClasspath = true)
         dependenciesFromClassContext(SimpleScript::class, wholeClasspath = true)
     }
 

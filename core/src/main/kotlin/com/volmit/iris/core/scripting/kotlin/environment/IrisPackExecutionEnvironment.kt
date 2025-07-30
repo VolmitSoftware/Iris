@@ -5,9 +5,9 @@ import com.volmit.iris.core.scripting.ExecutionEnvironment
 import com.volmit.iris.core.scripting.kotlin.base.DataScript
 import com.volmit.iris.core.scripting.kotlin.base.NoiseScript
 import com.volmit.iris.core.scripting.kotlin.runner.Script
+import com.volmit.iris.core.scripting.kotlin.runner.valueOrThrow
 import com.volmit.iris.util.math.RNG
 import kotlin.reflect.KClass
-import kotlin.script.experimental.api.valueOrThrow
 
 open class IrisPackExecutionEnvironment(
     private val data: IrisData
@@ -19,7 +19,7 @@ open class IrisPackExecutionEnvironment(
         val loaded = data.scriptLoader.load(script)
         return compileCache.get(script)
             .computeIfAbsent(type) { _ -> runner.compileText(type, loaded.source, script) }
-            .valueOrThrow()
+            .valueOrThrow("Failed to compile script $script")
     }
 
     override fun execute(script: String) =

@@ -136,6 +136,8 @@ slimJar {
     relocate("org.apache.maven", "$lib.maven")
     relocate("org.codehaus.plexus", "$lib.plexus")
     relocate("org.eclipse.sisu", "$lib.sisu")
+    relocate("org.eclipse.aether", "$lib.aether")
+    relocate("com.google.inject", "$lib.guice")
 }
 
 tasks {

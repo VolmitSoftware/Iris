@@ -144,6 +144,14 @@ public class MantleChunk {
         ref.release();
     }
 
+    public void copyFlags(MantleChunk chunk) {
+        use();
+        for (int i = 0; i < flags.length(); i++) {
+            flags.set(i, chunk.flags.get(i));
+        }
+        release();
+    }
+
     public void flag(MantleFlag flag, boolean f) {
         if (closed.get()) throw new IllegalStateException("Chunk is closed!");
         flags.set(flag.ordinal(), f);

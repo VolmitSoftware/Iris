@@ -1,7 +1,7 @@
 package com.volmit.iris.core.scripting.kotlin.environment
 
 import com.volmit.iris.core.loader.IrisData
-import com.volmit.iris.core.scripting.ExecutionEnvironment
+import com.volmit.iris.core.scripting.environment.PackEnvironment
 import com.volmit.iris.core.scripting.kotlin.base.DataScript
 import com.volmit.iris.core.scripting.kotlin.base.NoiseScript
 import com.volmit.iris.core.scripting.kotlin.runner.Script
@@ -11,14 +11,14 @@ import kotlin.reflect.KClass
 
 open class IrisPackExecutionEnvironment(
     private val data: IrisData
-) : IrisSimpleExecutionEnvironment(), ExecutionEnvironment.Pack {
+) : IrisSimpleExecutionEnvironment(data.dataFolder), PackEnvironment {
 
     override fun getData() = data
 
     override fun compile(script: String, type: KClass<*>): Script {
         val loaded = data.scriptLoader.load(script)
         return compileCache.get(script)
-            .computeIfAbsent(type) { _ -> runner.compileText(type, loaded.source, script) }
+            .computeIfAbsent(type) { _ -> runner.compile(type, loaded.loadFile, loaded.source) }
             .valueOrThrow("Failed to compile script $script")
     }
 

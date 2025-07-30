@@ -2,7 +2,7 @@ package com.volmit.iris.core.scripting.kotlin.environment
 
 import com.volmit.iris.Iris
 import com.volmit.iris.core.IrisSettings
-import com.volmit.iris.core.scripting.ExecutionEnvironment
+import com.volmit.iris.core.scripting.environment.SimpleEnvironment
 import com.volmit.iris.core.scripting.kotlin.base.*
 import com.volmit.iris.core.scripting.kotlin.runner.Script
 import com.volmit.iris.core.scripting.kotlin.runner.ScriptRunner
@@ -18,9 +18,11 @@ import kotlin.script.experimental.annotations.KotlinScript
 import kotlin.script.experimental.api.ResultWithDiagnostics
 import kotlin.text.split
 
-open class IrisSimpleExecutionEnvironment : ExecutionEnvironment.Simple {
+open class IrisSimpleExecutionEnvironment(
+    baseDir: File = File(".").absoluteFile
+) : SimpleEnvironment {
     protected val compileCache = KCache<String, KMap<KClass<*>, ResultWithDiagnostics<Script>>>({ _ -> KMap() }, IrisSettings.get().performance.cacheSize.toLong())
-    protected val runner = ScriptRunner()
+    protected val runner = ScriptRunner(baseDir)
 
     override fun execute(
         script: String
@@ -50,12 +52,12 @@ open class IrisSimpleExecutionEnvironment : ExecutionEnvironment.Simple {
 
     override fun close() {
         compileCache.invalidate()
-        runner.clearConfigurations()
+        runner.clear()
     }
 
     protected open fun compile(script: String, type: KClass<*>) =
         compileCache.get(script)
-            .computeIfAbsent(type) { _ -> runner.compileText(type, script) }
+            .computeIfAbsent(type) { _ -> runner.compile(type, script) }
             .valueOrThrow("Failed to compile script")
 
     private fun evaluate0(name: String, type: KClass<*>, properties: Map<String, Any?>? = null): Any? {

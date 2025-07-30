@@ -24,7 +24,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.loader.ResourceLoader;
-import com.volmit.iris.core.scripting.ExecutionEnvironment;
+import com.volmit.iris.core.scripting.environment.SimpleEnvironment;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.object.annotations.Snippet;
@@ -355,7 +355,7 @@ public class IrisProject {
         settings.put("json.schemas", schemas);
         ws.put("settings", settings);
 
-        ExecutionEnvironment.createSimple().configureProject(path);
+        SimpleEnvironment.create().configureProject(path);
         File schemasFile = new File(path, ".idea" + File.separator + "jsonSchemas.xml");
         Document doc = IO.read(schemasFile);
         Element mappings = (Element) doc.selectSingleNode("//component[@name='JsonSchemaMappingsProjectConfiguration']");

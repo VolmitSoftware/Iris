@@ -1,11 +1,14 @@
 package com.volmit.iris.core.scripting.kotlin.runner
 
-import com.volmit.iris.core.scripting.kotlin.base.EngineScript
+import com.volmit.iris.core.scripting.kotlin.base.SimpleScript
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
+import kotlin.script.experimental.annotations.KotlinScript
 import kotlin.script.experimental.api.*
 import kotlin.script.experimental.dependencies.DependsOn
 import kotlin.script.experimental.dependencies.Repository
+import kotlin.script.experimental.host.FileScriptSource
 import kotlin.script.experimental.host.createCompilationConfigurationFromTemplate
 import kotlin.script.experimental.host.toScriptSource
 import kotlin.script.experimental.host.withDefaultsFrom
@@ -15,16 +18,22 @@ import kotlin.script.experimental.jvm.jvm
 import kotlin.script.experimental.jvmhost.BasicJvmScriptingHost
 
 class ScriptRunner(
-    private val host: BasicJvmScriptingHost
+    private val host: BasicJvmScriptingHost,
+    private val baseDir: File
 ) {
-    constructor() : this(BasicJvmScriptingHost())
+    constructor(baseDir: File) : this(BasicJvmScriptingHost(), baseDir)
 
     private val configs = ConcurrentHashMap<KClass<*>, ScriptCompilationConfiguration>()
     private val hostConfig = host.baseHostConfiguration.withDefaultsFrom(defaultJvmScriptingHostConfiguration)
+    private var resolver = createResolver(baseDir)
 
-    fun compileText(type: KClass<*>, raw: String, name: String? = null) = compile(type, raw.toScriptSource(name))
+    fun compile(type: KClass<*>, raw: String, name: String? = null) = compile(type, raw.toScriptSource(name))
+    fun compile(type: KClass<*>, file: File, preloaded: String? = null) = compile(type, FileScriptSource(file, preloaded))
 
-    fun clearConfigurations() = configs.clear()
+    fun clear() {
+        configs.clear()
+        resolver = createResolver(baseDir)
+    }
 
     private fun compile(
         type: KClass<*>,
@@ -39,11 +48,15 @@ class ScriptRunner(
         hostConfig,
         type
     ) {
-        if (EngineScript::class.java.isAssignableFrom(type.java))
+        dependencyResolver(resolver)
+        
+        if (SimpleScript::class.java.isAssignableFrom(type.java))
             return@createCompilationConfigurationFromTemplate
 
         jvm {
             dependenciesFromClassContext(type, wholeClasspath = true)
+            dependenciesFromClassContext(this::class, wholeClasspath = true)
+            dependenciesFromClassContext(KotlinScript::class, wholeClasspath = true)
         }
 
         refineConfiguration {

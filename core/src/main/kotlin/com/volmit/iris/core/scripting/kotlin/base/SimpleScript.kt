@@ -17,8 +17,8 @@ abstract class SimpleScript
 object SimpleScriptDefinition : ScriptCompilationConfiguration({
     isStandalone(false)
     defaultImports(
-        "kotlin.script.experimental.dependencies.DependsOn",
-        "kotlin.script.experimental.dependencies.Repository",
+        DependsOn::class.qualifiedName!!,
+        Repository::class.qualifiedName!!,
         "com.volmit.iris.Iris.info",
         "com.volmit.iris.Iris.debug",
         "com.volmit.iris.Iris.warn",

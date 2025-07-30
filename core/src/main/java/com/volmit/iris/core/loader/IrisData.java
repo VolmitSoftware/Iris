@@ -24,7 +24,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.scripting.ExecutionEnvironment;
+import com.volmit.iris.core.scripting.environment.PackEnvironment;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.*;
@@ -57,7 +57,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private static final KMap<File, IrisData> dataLoaders = new KMap<>();
     private final File dataFolder;
     private final int id;
-    private final ExecutionEnvironment.Pack environment;
+    private final PackEnvironment environment;
     private boolean closed = false;
     private ResourceLoader<IrisBiome> biomeLoader;
     private ResourceLoader<IrisLootTable> lootLoader;
@@ -91,7 +91,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.engine = null;
         this.dataFolder = dataFolder;
         this.id = RNG.r.imax();
-        this.environment = ExecutionEnvironment.createPack(this);
+        this.environment = PackEnvironment.create(this);
         hotloaded();
     }
 

@@ -1,7 +1,7 @@
 package com.volmit.iris.core.scripting.kotlin.environment
 
 import com.volmit.iris.core.loader.IrisRegistrant
-import com.volmit.iris.core.scripting.ExecutionEnvironment
+import com.volmit.iris.core.scripting.environment.EngineEnvironment
 import com.volmit.iris.core.scripting.func.BiomeLookup
 import com.volmit.iris.core.scripting.kotlin.base.EngineScript
 import com.volmit.iris.core.scripting.kotlin.base.MobSpawningScript
@@ -13,7 +13,7 @@ import org.bukkit.entity.Entity
 
 data class IrisExecutionEnvironment(
     private val engine: Engine
-) : IrisPackExecutionEnvironment(engine.data), ExecutionEnvironment.Engine {
+) : IrisPackExecutionEnvironment(engine.data), EngineEnvironment {
     override fun getEngine() = engine
 
     override fun execute(script: String) =
@@ -26,7 +26,7 @@ data class IrisExecutionEnvironment(
         evaluate(script, MobSpawningScript::class.java, engine.parameters("location" to location))
 
     override fun postSpawnMob(script: String, location: Location, mob: Entity) =
-        execute(script, PostMobSpawningScript::class.java, engine.parameters("location" to location, "entity" to mob,))
+        execute(script, PostMobSpawningScript::class.java, engine.parameters("location" to location, "entity" to mob))
 
     override fun preprocessObject(script: String, `object`: IrisRegistrant) =
         execute(script, PreprocessorScript::class.java, engine.parameters("object" to `object`))

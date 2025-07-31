@@ -1,7 +1,7 @@
 package com.volmit.iris.core.scripting.kotlin.runner
 
 import java.io.File
-import java.util.Collections.synchronizedList
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.script.experimental.api.ResultWithDiagnostics
 import kotlin.script.experimental.api.SourceCode
 import kotlin.script.experimental.api.asSuccess
@@ -13,7 +13,7 @@ import kotlin.script.experimental.dependencies.impl.toRepositoryUrlOrNull
 class FileDependenciesResolver(
     private val baseDir: File,
 ) : ExternalDependenciesResolver {
-    private val localRepos = synchronizedList(arrayListOf(baseDir))
+    private val localRepos = ConcurrentHashMap.newKeySet<File>(1).also { it.add(baseDir) }
 
     private fun String.toRepositoryFileOrNull(): File? =
         File(baseDir, this).takeIf { it.exists() && it.isDirectory }

@@ -4,7 +4,7 @@ import kotlinx.coroutines.runBlocking
 import java.io.File
 import kotlin.script.experimental.api.*
 import kotlin.script.experimental.dependencies.CompoundDependenciesResolver
-import kotlin.script.experimental.dependencies.FileSystemDependenciesResolver
+import kotlin.script.experimental.dependencies.addRepository
 import kotlin.script.experimental.dependencies.maven.MavenDependenciesResolver
 import kotlin.script.experimental.dependencies.resolveFromScriptSourceAnnotations
 import kotlin.script.experimental.jvm.updateClasspath
@@ -23,7 +23,8 @@ internal fun ResultValue.valueOrNull(): Any? =
         else -> null
     }
 
-internal fun createResolver(baseDir: File = File(".").normalize()) = CompoundDependenciesResolver(FileDependenciesResolver(baseDir), MavenDependenciesResolver())
+private val workDir = File(".").normalize()
+internal fun createResolver(baseDir: File = workDir) = CompoundDependenciesResolver(FileDependenciesResolver(baseDir), MavenDependenciesResolver())
 
 private val resolver = createResolver()
 internal fun configureMavenDepsOnAnnotations(context: ScriptConfigurationRefinementContext): ResultWithDiagnostics<ScriptCompilationConfiguration> {
@@ -31,7 +32,23 @@ internal fun configureMavenDepsOnAnnotations(context: ScriptConfigurationRefinem
         ?: return context.compilationConfiguration.asSuccess()
 
     val resolver = context.compilationConfiguration[ScriptCompilationConfiguration.dependencyResolver] ?: resolver
+    val packDirectory = context.compilationConfiguration[ScriptCompilationConfiguration.packDirectory] ?: context.script.locationId?.let(::File)?.takeIf { it.exists() }?.run {
+        val parts = normalize().absolutePath.split(File.separatorChar)
+
+        var packDir: File? = null
+        for (i in parts.size - 1 downTo 1) {
+            if (parts[i] != "scripts") continue
+            val pack = File(parts.subList(0, i).joinToString(File.separator))
+            if (!File(pack, "dimensions${File.separator}${parts[i - 1]}.json").exists())
+                continue
+            packDir = pack
+            break
+        }
+        packDir
+    } ?: workDir
+
     return runBlocking {
+        resolver.addRepository(packDirectory.toURI().toURL().toString())
         resolver.resolveFromScriptSourceAnnotations(annotations)
     }.onSuccess {
         context.compilationConfiguration.with {
@@ -47,3 +64,4 @@ fun <R> ResultWithDiagnostics<R>.valueOrThrow(message: CharSequence): R = valueO
 }
 
 val ScriptCompilationConfigurationKeys.dependencyResolver by PropertiesCollection.key(resolver)
+val ScriptCompilationConfigurationKeys.packDirectory by PropertiesCollection.key<File>()

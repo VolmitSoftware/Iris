@@ -49,6 +49,7 @@ class ScriptRunner(
         type
     ) {
         dependencyResolver(resolver)
+        packDirectory(baseDir)
         
         if (SimpleScript::class.java.isAssignableFrom(type.java))
             return@createCompilationConfigurationFromTemplate

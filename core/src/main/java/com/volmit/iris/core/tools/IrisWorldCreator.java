@@ -21,13 +21,10 @@ package com.volmit.iris.core.tools;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
-import com.volmit.iris.util.reflect.WrappedField;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
-import org.bukkit.WorldType;
 import org.bukkit.generator.ChunkGenerator;
-import sun.misc.Unsafe;
 
 import java.io.File;
 

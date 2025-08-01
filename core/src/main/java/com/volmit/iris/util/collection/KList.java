@@ -19,6 +19,7 @@
 package com.volmit.iris.util.collection;
 
 import com.google.common.util.concurrent.AtomicDoubleArray;
+import com.volmit.iris.util.function.NastyFunction;
 import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
@@ -303,6 +304,18 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     public <V> KList<V> convert(Function<T, V> converter) {
         KList<V> v = new KList<V>();
         forEach((t) -> v.addNonNull(converter.apply(t)));
+        return v;
+    }
+
+    /**
+     * Convert this list into another list type. Such as GList<Integer> to
+     * GList<String>. list.convertNasty((i) -> "" + i);
+     */
+    public <V> KList<V> convertNasty(NastyFunction<T, V> converter) throws Throwable {
+        KList<V> v = new KList<V>(size());
+        for (final var t : this) {
+            v.addNonNull(converter.run(t));
+        }
         return v;
     }
 

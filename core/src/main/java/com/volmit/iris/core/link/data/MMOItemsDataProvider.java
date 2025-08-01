@@ -1,21 +1,24 @@
-package com.volmit.iris.core.link;
+package com.volmit.iris.core.link.data;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.core.link.ExternalDataProvider;
+import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.scheduling.J;
 import net.Indyuce.mmoitems.MMOItems;
 import net.Indyuce.mmoitems.api.ItemTier;
-import net.Indyuce.mmoitems.api.Type;
 import net.Indyuce.mmoitems.api.block.CustomBlock;
 import org.bukkit.Bukkit;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.MissingResourceException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Supplier;
 
 public class MMOItemsDataProvider extends ExternalDataProvider {
 
@@ -85,52 +88,35 @@ public class MMOItemsDataProvider extends ExternalDataProvider {
         return item;
     }
 
-    @NotNull
     @Override
-    public Identifier[] getBlockTypes() {
-        KList<Identifier> names = new KList<>();
-        for (Integer id : api().getCustomBlocks().getBlockIds()) {
-            try {
-                Identifier key = new Identifier("mmoitems", String.valueOf(id));
-                if (getBlockData(key) != null)
-                    names.add(key);
-            } catch (MissingResourceException ignored) {
-            }
-        }
-        return names.toArray(new Identifier[0]);
-    }
+    public @NotNull Collection<@NotNull Identifier> getTypes(@NotNull DataType dataType) {
+        return switch (dataType) {
+            case ENTITY -> List.of();
+            case BLOCK -> api().getCustomBlocks().getBlockIds().stream().map(id -> new Identifier("mmoitems", String.valueOf(id)))
+                    .filter(dataType.asPredicate(this))
+                    .toList();
+            case ITEM -> {
+                Supplier<Collection<Identifier>> supplier = () -> api().getTypes()
+                        .getAll()
+                        .stream()
+                        .flatMap(type -> api()
+                                .getTemplates()
+                                .getTemplateNames(type)
+                                .stream()
+                                .map(name -> new Identifier("mmoitems_" + type.getId(), name)))
+                        .filter(dataType.asPredicate(this))
+                        .toList();
 
-    @NotNull
-    @Override
-    public Identifier[] getItemTypes() {
-        KList<Identifier> names = new KList<>();
-        Runnable run = () -> {
-            for (Type type : api().getTypes().getAll()) {
-                for (String name : api().getTemplates().getTemplateNames(type)) {
-                    try {
-                        Identifier key = new Identifier("mmoitems_" + type.getId(), name);
-                        if (getItemStack(key) != null)
-                            names.add(key);
-                    } catch (MissingResourceException ignored) {
-                    }
-                }
+                if (Bukkit.isPrimaryThread()) yield supplier.get();
+                else yield J.sfut(supplier).join();
             }
         };
-        if (Bukkit.isPrimaryThread()) run.run();
-        else {
-            try {
-                J.sfut(run).get();
-            } catch (InterruptedException | ExecutionException e) {
-                Iris.error("Failed getting MMOItems item types!");
-                Iris.reportError(e);
-            }
-        }
-        return names.toArray(new Identifier[0]);
     }
 
     @Override
-    public boolean isValidProvider(@NotNull Identifier id, boolean isItem) {
-        return isItem ? id.namespace().split("_", 2).length == 2 : id.namespace().equals("mmoitems");
+    public boolean isValidProvider(@NotNull Identifier id, DataType dataType) {
+        if (dataType == DataType.ENTITY) return false;
+        return dataType == DataType.ITEM ? id.namespace().split("_", 2).length == 2 : id.namespace().equals("mmoitems");
     }
 
     private MMOItems api() {

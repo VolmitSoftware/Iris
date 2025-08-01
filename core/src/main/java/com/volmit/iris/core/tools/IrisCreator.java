@@ -46,13 +46,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+import static com.volmit.iris.util.misc.ServerProperties.BUKKIT_YML;
+
 /**
  * Makes it a lot easier to setup an engine, world, studio or whatever
  */
 @Data
 @Accessors(fluent = true, chain = true)
 public class IrisCreator {
-    private static final File BUKKIT_YML = new File("bukkit.yml");
     /**
      * Specify an area to pregenerate during creation
      */

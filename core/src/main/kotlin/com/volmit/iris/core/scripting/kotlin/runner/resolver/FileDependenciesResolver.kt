@@ -1,4 +1,4 @@
-package com.volmit.iris.core.scripting.kotlin.runner
+package com.volmit.iris.core.scripting.kotlin.runner.resolver
 
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -12,7 +12,7 @@ import kotlin.script.experimental.dependencies.impl.toRepositoryUrlOrNull
 
 class FileDependenciesResolver(
     private val baseDir: File,
-) : ExternalDependenciesResolver {
+) : DependenciesResolver {
     private val localRepos = ConcurrentHashMap.newKeySet<File>(1).also { it.add(baseDir) }
 
     private fun String.toRepositoryFileOrNull(): File? =
@@ -61,5 +61,9 @@ class FileDependenciesResolver(
         !artifactCoordinates.isBlank() // TODO: make check stronger, e.g. using NIO's Path
 
     override fun acceptsRepository(repositoryCoordinates: RepositoryCoordinates): Boolean = repositoryCoordinates.toFilePath() != null
+
+    override fun addPack(directory: File) {
+        localRepos.add(directory)
+    }
 
 }

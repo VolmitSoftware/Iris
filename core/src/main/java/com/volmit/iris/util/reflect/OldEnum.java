@@ -11,6 +11,7 @@ import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Objects;
 
+//TODO improve this
 public class OldEnum {
 
     private static final Class<?> oldEnum;
@@ -25,11 +26,16 @@ public class OldEnum {
     }
 
     public static <T> T valueOf(Class<? extends T> c, String name) {
-        try {
-            return (T) c.getDeclaredField(name).get(null);
-        } catch (Throwable e) {
-            return null;
+        return valueOf(c, name, name.replace(".", "_"));
+    }
+
+    public static <T> T valueOf(Class<? extends T> c, String... names) {
+        for (final String name : names) {
+            try {
+                return (T) c.getDeclaredField(name).get(null);
+            } catch (Throwable ignored) {}
         }
+        return null;
     }
 
     public static String name(Object o) {

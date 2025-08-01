@@ -79,7 +79,7 @@ class LocalMavenDependenciesResolver : DependenciesResolver {
 
     override fun addPack(directory: File) {
         if (!::localRepo.isInitialized) {
-            localRepo = directory.resolve(".libs")
+            localRepo = directory.resolve(".iris/m2")
         }
     }
 }

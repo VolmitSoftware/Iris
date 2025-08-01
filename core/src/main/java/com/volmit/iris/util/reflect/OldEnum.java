@@ -1,21 +1,22 @@
 package com.volmit.iris.util.reflect;
 
 import com.google.gson.TypeAdapter;
-import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Objects;
 
-//TODO improve this
+@Deprecated(since = "3.7.1")
 public class OldEnum {
 
     private static final Class<?> oldEnum;
-    private static final Method name;
+    private static final MethodHandle name;
 
     public static boolean exists() {
         return oldEnum != null;
@@ -46,20 +47,20 @@ public class OldEnum {
         }
     }
 
-    public static Object[] values(Class<?> clazz) {
-        if (!isOldEnum(clazz)) return new Object[0];
+    public static String[] values(Class<?> clazz) {
+        if (!isOldEnum(clazz)) return new String[0];
         return Arrays.stream(clazz.getDeclaredFields())
                 .filter(f -> Modifier.isStatic(f.getModifiers()))
                 .filter(f -> Modifier.isFinal(f.getModifiers()))
                 .map(f -> {
                     try {
-                        return f.get(null);
+                        return name(f.get(null));
                     } catch (Throwable ignored) {
                         return null;
                     }
                 })
                 .filter(Objects::nonNull)
-                .toArray();
+                .toArray(String[]::new);
     }
 
     public static <T> TypeAdapter<T> create(Class<? extends T> type) {
@@ -82,10 +83,10 @@ public class OldEnum {
 
     static {
         Class<?> clazz = null;
-        Method method = null;
+        MethodHandle method = null;
         try {
             clazz = Class.forName("org.bukkit.util.OldEnum");
-            method = clazz.getDeclaredMethod("name");
+            method = MethodHandles.lookup().findVirtual(clazz, "name", MethodType.methodType(String.class));
         } catch (Throwable ignored) {}
 
         if (clazz == null || method == null) {

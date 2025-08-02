@@ -32,7 +32,6 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.O;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.bukkit.*;
@@ -41,12 +40,11 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
-import java.util.function.Supplier;
 
 import static com.volmit.iris.util.misc.ServerProperties.BUKKIT_YML;
 
@@ -183,9 +181,9 @@ public class IrisCreator {
         }
 
         if (sender.isPlayer() && !benchmark) {
-            Iris.platform.getRegionScheduler()
-                    .run(world, 0, 0, () -> world.getHighestBlockYAt(0, 0) + 1)
-                    .getResult()
+            Iris.platform.getChunkAtAsync(world, 0, 0, true, true)
+                    .thenApply(Objects::requireNonNull)
+                    .thenApply(c -> c.getChunkSnapshot(true, false, false).getHighestBlockYAt(0, 0) + 1)
                     .thenAccept(y -> Iris.platform.teleportAsync(sender.player(), new Location(world, 0, y, 0)))
                     .exceptionally(err -> {
                         sender.sendMessage(C.RED + "Failed to teleport you to the world!");

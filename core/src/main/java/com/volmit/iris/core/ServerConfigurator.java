@@ -240,14 +240,13 @@ public class ServerConfigurator {
     }
 
     public static Stream<IrisData> allPacks() {
-        return Stream.concat(listFiles(Iris.instance.getDataFolder("packs")),
-                        IrisWorlds.get().getFolders().map(w -> new File(w, "iris/pack")))
+        return Stream.concat(listFiles(Iris.instance.getDataFolder("packs"))
                 .filter(File::isDirectory)
                 .filter( base -> {
                     var content = new File(base, "dimensions").listFiles();
                     return content != null && content.length > 0;
                 })
-                .map(IrisData::get);
+                .map(IrisData::get), IrisWorlds.get().getPacks());
     }
 
     @Nullable

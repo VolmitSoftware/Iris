@@ -1,4 +1,4 @@
-import io.github.slimjar.func.slimjar
+import io.github.slimjar.func.slimjarHelper
 import io.github.slimjar.resolver.data.Mirror
 import org.ajoberstar.grgit.Grgit
 import java.net.URI
@@ -67,7 +67,7 @@ dependencies {
     compileOnly(libs.multiverseCore)
 
     // Shaded
-    implementation(slimjar())
+    implementation(slimjarHelper("spigot"))
     implementation(rootProject.libs.platformUtils) {
         isTransitive = false
     }
@@ -161,6 +161,7 @@ tasks {
         mergeServiceFiles()
         //minimize()
         relocate("io.github.slimjar", "$lib.slimjar")
+        exclude("modules/loader-agent.isolated-jar")
     }
 }
 

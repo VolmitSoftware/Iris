@@ -29,6 +29,7 @@ import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.slices.container.JigsawPieceContainer;
+import com.volmit.iris.util.matter.slices.container.JigsawStructureContainer;
 import com.volmit.iris.util.matter.slices.container.JigsawStructuresContainer;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
@@ -149,11 +150,13 @@ public class PlannedStructure {
         }
 
         int id = rng.i(0, Integer.MAX_VALUE);
-        JigsawPieceContainer container = JigsawPieceContainer.toContainer(i.getPiece());
+        JigsawPieceContainer piece = JigsawPieceContainer.toContainer(i.getPiece());
+        JigsawStructureContainer structure = JigsawStructureContainer.toContainer(getStructure());
         i.setRealPositions(xx, height, zz, placer);
         return v.place(xx, height, zz, placer, options, rng, (b, data) -> {
             e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);
-            e.set(b.getX(), b.getY(), b.getZ(), container);
+            e.set(b.getX(), b.getY(), b.getZ(), structure);
+            e.set(b.getX(), b.getY(), b.getZ(), piece);
         }, null, getData().getEngine() != null ? getData() : eng.getData()) != -1;
     }
 

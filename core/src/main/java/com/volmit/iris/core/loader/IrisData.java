@@ -39,7 +39,7 @@ import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
-import com.volmit.iris.util.reflect.OldEnum;
+import com.volmit.iris.util.reflect.KeyedType;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
@@ -356,14 +356,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.imageLoader = registerLoader(IrisImage.class);
         this.scriptLoader = registerLoader(IrisScript.class);
         this.matterObjectLoader = registerLoader(IrisMatterObject.class);
-        if (OldEnum.exists()) {
-            builder.registerTypeAdapterFactory(new TypeAdapterFactory() {
-                @Override
-                public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
-                    return (TypeAdapter<T>) OldEnum.create(type.getRawType());
-                }
-            });
-        }
+        builder.registerTypeAdapterFactory(KeyedType::createTypeAdapter);
 
         gson = builder.create();
         dimensionLoader.streamAll()

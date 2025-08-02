@@ -435,7 +435,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
     public Iris() {
         instance = this;
-        SlimJar.load(getDataFolder("cache", "libraries"));
+        SlimJar.load();
     }
 
     private void enable() {

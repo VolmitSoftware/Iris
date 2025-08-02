@@ -5,7 +5,7 @@
 [versions]
 # Plugins
 shadow = "9.0.0-rc1" # https://plugins.gradle.org/plugin/com.gradleup.shadow
-slimjar = "2.1.2" # https://plugins.gradle.org/plugin/de.crazydev22.slimjar
+slimjar = "2.1.5" # https://plugins.gradle.org/plugin/de.crazydev22.slimjar
 download = "5.6.0" # https://plugins.gradle.org/plugin/de.undercouch.download
 runPaper = "2.3.1" # https://plugins.gradle.org/plugin/xyz.jpenilla.run-paper
 sentryPlugin = "5.8.0" # https://github.com/getsentry/sentry-android-gradle-plugin

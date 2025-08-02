@@ -183,7 +183,15 @@ public class IrisCreator {
         }
 
         if (sender.isPlayer() && !benchmark) {
-            J.s(() -> Iris.platform.teleportAsync(sender.player(), new Location(world, 0, world.getHighestBlockYAt(0, 0), 0)));
+            Iris.platform.getRegionScheduler()
+                    .run(world, 0, 0, () -> world.getHighestBlockYAt(0, 0) + 1)
+                    .getResult()
+                    .thenAccept(y -> Iris.platform.teleportAsync(sender.player(), new Location(world, 0, y, 0)))
+                    .exceptionally(err -> {
+                        sender.sendMessage(C.RED + "Failed to teleport you to the world!");
+                        err.printStackTrace();
+                        return null;
+                    });
         }
 
         if (studio || benchmark) {

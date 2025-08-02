@@ -490,8 +490,13 @@ public class Iris extends VolmitPlugin implements Listener {
                     WorldCreator c = new WorldCreator(s)
                             .generator(gen)
                             .environment(dim.getEnvironment());
-                    INMS.get().createWorld(c);
-                    Iris.info(C.LIGHT_PURPLE + "Loaded " + s + "!");
+                    INMS.get().createWorldAsync(c)
+                            .thenAccept(w -> Iris.info(C.LIGHT_PURPLE + "Loaded " + s + "!"))
+                            .exceptionally(e -> {
+                                Iris.error("Failed to load world " + s + "!");
+                                e.printStackTrace();
+                                return null;
+                            });
                 } catch (Throwable e) {
                     Iris.error("Failed to load world " + s + "!");
                     e.printStackTrace();

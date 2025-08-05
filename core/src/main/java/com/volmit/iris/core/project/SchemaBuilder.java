@@ -31,7 +31,7 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.json.JSONObject;
-import com.volmit.iris.util.reflect.OldEnum;
+import com.volmit.iris.util.reflect.KeyedType;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.potion.PotionEffectType;
 import org.jetbrains.annotations.NotNull;
@@ -336,10 +336,10 @@ public class SchemaBuilder {
                     prop.put("$ref", "#/definitions/" + key);
                     description.add(SYMBOL_TYPE__N + "  Must be a valid Potion Effect Type (use ctrl+space for auto complete!)");
 
+                } else if (KeyedType.isKeyed(k.getType())) {
+                    fancyType = addEnum(k.getType(), prop, description, KeyedType.values(k.getType()), Function.identity());
                 } else if (k.getType().isEnum()) {
                     fancyType = addEnum(k.getType(), prop, description, k.getType().getEnumConstants(), o -> ((Enum<?>) o).name());
-                } else if (OldEnum.isOldEnum(k.getType())) {
-                    fancyType = addEnum(k.getType(), prop, description, OldEnum.values(k.getType()), OldEnum::name);
                 }
             }
             case "object" -> {
@@ -504,10 +504,10 @@ public class SchemaBuilder {
                                 items.put("$ref", "#/definitions/" + key);
                                 prop.put("items", items);
                                 description.add(SYMBOL_TYPE__N + "  Must be a valid Potion Effect Type (use ctrl+space for auto complete!)");
+                            } else if (KeyedType.isKeyed(t.type())) {
+                                fancyType = addEnumList(prop, description, t, KeyedType.values(t.type()), Function.identity());
                             } else if (t.type().isEnum()) {
                                 fancyType = addEnumList(prop, description, t, t.type().getEnumConstants(), o -> ((Enum<?>) o).name());
-                            } else if (OldEnum.isOldEnum(t.type())) {
-                                fancyType = addEnumList(prop, description, t, OldEnum.values(t.type()), OldEnum::name);
                             }
                         }
                     }
@@ -548,7 +548,7 @@ public class SchemaBuilder {
                 if (value instanceof List) {
                     d.add("    ");
                     d.add("* Default Value is an empty list");
-                } else if (!cl.isPrimitive() && !(value instanceof Number) && !(value instanceof String) && !(cl.isEnum()) && !OldEnum.isOldEnum(cl)) {
+                } else if (!cl.isPrimitive() && !(value instanceof Number) && !(value instanceof String) && !(cl.isEnum()) && !KeyedType.isKeyed(cl)) {
                     d.add("    ");
                     d.add("* Default Value is a default object (create this object to see default properties)");
                 } else {
@@ -596,7 +596,7 @@ public class SchemaBuilder {
     }
 
     @NotNull
-    private String addEnumList(JSONObject prop, KList<String> description, ArrayType t, Object[] values, Function<Object, String> function) {
+    private <T> String addEnumList(JSONObject prop, KList<String> description, ArrayType t, T[] values, Function<T, String> function) {
         JSONObject items = new JSONObject();
         var s = addEnum(t.type(), items, description, values, function);
         prop.put("items", items);
@@ -605,10 +605,10 @@ public class SchemaBuilder {
     }
 
     @NotNull
-    private String addEnum(Class<?> type, JSONObject prop, KList<String> description, Object[] values, Function<Object, String> function) {
+    private <T> String addEnum(Class<?> type, JSONObject prop, KList<String> description, T[] values, Function<T, String> function) {
         JSONArray a = new JSONArray();
         boolean advanced = type.isAnnotationPresent(Desc.class);
-        for (Object gg : values) {
+        for (T gg : values) {
             if (advanced) {
                 try {
                     JSONObject j = new JSONObject();
@@ -652,7 +652,7 @@ public class SchemaBuilder {
             return "boolean";
         }
 
-        if (c.equals(String.class) || c.isEnum() || OldEnum.isOldEnum(c) || c.equals(Enchantment.class) || c.equals(PotionEffectType.class)) {
+        if (c.equals(String.class) || c.isEnum() || KeyedType.isKeyed(c)) {
             return "string";
         }
 

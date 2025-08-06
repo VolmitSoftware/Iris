@@ -123,6 +123,10 @@ public class IrisJigsawStructure extends IrisRegistrant {
 
     public int getMaxDimension() {
         return maxDimension.aquire(() -> {
+            if (datapackStructures.isNotEmpty()) {
+                return 0;
+            }
+
             if (useMaxPieceSizeForParallaxRadius) {
                 int max = 0;
                 KList<String> pools = new KList<>();

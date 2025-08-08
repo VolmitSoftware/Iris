@@ -1,6 +1,6 @@
 package com.volmit.iris.core.scripting.kotlin.runner
 
-import java.util.concurrent.atomic.AtomicReferenceFieldUpdater
+import java.util.concurrent.locks.ReentrantLock
 import kotlin.reflect.KClass
 import kotlin.script.experimental.api.*
 import kotlin.script.experimental.host.ScriptingHostConfiguration
@@ -14,6 +14,7 @@ data class CachedScript(
 ) : Script, CompiledScript {
     private val scripts = base.otherScripts.map { CachedScript(it, host, hostConfig) }
     private val evalConfig = createEvaluationConfiguration()
+    private val lock = ReentrantLock()
 
     @Volatile
     private var value: ResultWithDiagnostics<KClass<*>>? = null
@@ -32,13 +33,16 @@ data class CachedScript(
 
 
     override suspend fun getClass(scriptEvaluationConfiguration: ScriptEvaluationConfiguration?) = value ?: run {
-        val cached = base.getClass(scriptEvaluationConfiguration)
-        updater.set(this, cached)
-        return cached
+        lock.lock()
+        try {
+            value ?: base.getClass(scriptEvaluationConfiguration).also { value = it }
+        } finally {
+            lock.unlock()
+        }
     }
 
     override fun evaluate(properties: Map<String, Any?>?) = host.runInCoroutineContext {
-        host.evaluator.invoke(this, createEvaluationConfiguration(properties))
+        host.evaluator(this, createEvaluationConfiguration(properties))
     }
 
     private fun createEvaluationConfiguration(properties: Map<String, Any?>?): ScriptEvaluationConfiguration {
@@ -56,9 +60,5 @@ data class CachedScript(
             KotlinType(type),
             hostConfig,
             type)
-    }
-
-    companion object {
-        private val updater = AtomicReferenceFieldUpdater.newUpdater(CachedScript::class.java, ResultWithDiagnostics::class.java, "value")
     }
 }

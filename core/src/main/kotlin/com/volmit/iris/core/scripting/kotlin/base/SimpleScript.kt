@@ -4,7 +4,6 @@ import com.volmit.iris.core.scripting.kotlin.runner.configureMavenDepsOnAnnotati
 import kotlin.script.experimental.annotations.KotlinScript
 import kotlin.script.experimental.api.ScriptCompilationConfiguration
 import kotlin.script.experimental.api.defaultImports
-import kotlin.script.experimental.api.isStandalone
 import kotlin.script.experimental.api.refineConfiguration
 import kotlin.script.experimental.dependencies.DependsOn
 import kotlin.script.experimental.dependencies.Repository
@@ -15,7 +14,6 @@ import kotlin.script.experimental.jvm.jvm
 abstract class SimpleScript
 
 object SimpleScriptDefinition : ScriptCompilationConfiguration({
-    isStandalone(false)
     defaultImports(
         DependsOn::class.qualifiedName!!,
         Repository::class.qualifiedName!!,

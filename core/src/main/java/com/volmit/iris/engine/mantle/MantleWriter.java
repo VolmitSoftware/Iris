@@ -35,6 +35,7 @@ import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.Matter;
+import com.volmit.iris.util.noise.CNG;
 import lombok.Data;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.Vector;
@@ -71,6 +72,7 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
     private static Set<IrisPosition> getBallooned(Set<IrisPosition> vset, double radius) {
         Set<IrisPosition> returnset = new HashSet<>();
         int ceilrad = (int) Math.ceil(radius);
+        double r2 = Math.pow(radius, 2);
 
         for (IrisPosition v : vset) {
             int tipx = v.getX();
@@ -80,7 +82,7 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
             for (int loopx = tipx - ceilrad; loopx <= tipx + ceilrad; loopx++) {
                 for (int loopy = tipy - ceilrad; loopy <= tipy + ceilrad; loopy++) {
                     for (int loopz = tipz - ceilrad; loopz <= tipz + ceilrad; loopz++) {
-                        if (hypot(loopx - tipx, loopy - tipy, loopz - tipz) <= radius) {
+                        if (hypot(loopx - tipx, loopy - tipy, loopz - tipz) <= r2) {
                             returnset.add(new IrisPosition(loopx, loopy, loopz));
                         }
                     }
@@ -113,7 +115,7 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
         for (double d : pars) {
             sum += Math.pow(d, 2);
         }
-        return Math.sqrt(sum);
+        return sum;
     }
 
     private static double lengthSq(double x, double y, double z) {
@@ -453,6 +455,62 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
      * @param <T>     the type of data to apply to the mantle
      */
     public <T> void setLineConsumer(List<IrisPosition> vectors, double radius, boolean filled, Function3<Integer, Integer, Integer, T> data) {
+        Set<IrisPosition> vset = cleanup(vectors);
+        vset = getBallooned(vset, radius);
+
+        if (!filled) {
+            vset = getHollowed(vset);
+        }
+
+        setConsumer(vset, data);
+    }
+
+    /**
+     * Set lines for points
+     *
+     * @param vectors the points
+     * @param radius  the radius
+     * @param filled  hollow or filled?
+     * @param data    the data to set
+     * @param <T>     the type of data to apply to the mantle
+     */
+    public <T> void setNoiseMasked(List<IrisPosition> vectors, double radius, double threshold, CNG shape, Set<IrisPosition> masks, boolean filled, Function3<Integer, Integer, Integer, T> data) {
+        Set<IrisPosition> vset = cleanup(vectors);
+        vset = masks == null ? getBallooned(vset, radius) : getMasked(vset, masks, radius);
+        vset.removeIf(p -> shape.noise(p.getX(), p.getY(), p.getZ()) < threshold);
+
+        if (!filled) {
+            vset = getHollowed(vset);
+        }
+
+        setConsumer(vset, data);
+    }
+
+    private static Set<IrisPosition> getMasked(Set<IrisPosition> vectors, Set<IrisPosition> masks, double radius) {
+        Set<IrisPosition> vset = new KSet<>();
+        int ceil = (int) Math.ceil(radius);
+        double r2 = Math.pow(radius, 2);
+
+        for (IrisPosition v : vectors) {
+            int tipX = v.getX();
+            int tipY = v.getY();
+            int tipZ = v.getZ();
+
+            for (int x = -ceil; x <= ceil; x++) {
+                for (int y = -ceil; y <= ceil; y++) {
+                    for (int z = -ceil; z <= ceil; z++) {
+                        if (hypot(x, y, z) > r2 || !masks.contains(new IrisPosition(x, y, z)))
+                            continue;
+                        vset.add(new IrisPosition(tipX + x, tipY + y, tipZ + z));
+                    }
+                }
+            }
+        }
+
+        return vset;
+    }
+
+    private static Set<IrisPosition> cleanup(List<IrisPosition> vectors) {
         Set<IrisPosition> vset = new KSet<>();
 
         for (int i = 0; vectors.size() != 0 && i < vectors.size() - 1; i++) {
@@ -504,13 +562,7 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
             }
         }
 
-        vset = getBallooned(vset, radius);
-
-        if (!filled) {
-            vset = getHollowed(vset);
-        }
-
-        setConsumer(vset, data);
+        return vset;
     }
 
     /**

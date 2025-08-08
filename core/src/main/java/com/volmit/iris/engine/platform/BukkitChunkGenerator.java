@@ -64,12 +64,10 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Consumer;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -95,8 +93,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @Setter
     private volatile StudioGenerator studioGenerator;
 
-    private boolean initialized = false;
-
     public BukkitChunkGenerator(IrisWorld world, boolean studio, File dataLocation, String dimensionKey) {
         setup = new AtomicBoolean(false);
         studioGenerator = null;
@@ -114,8 +110,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onWorldInit(WorldInitEvent event) {
-        if (initialized || !world.name().equals(event.getWorld().getName()))
-            return;
+        if (!world.name().equals(event.getWorld().getName())) return;
+        Iris.instance.unregisterListener(this);
         world.setRawWorldSeed(event.getWorld().getSeed());
         if (initialize(event.getWorld())) return;
 
@@ -140,7 +136,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
         }
         spawnChunks.complete(INMS.get().getSpawnChunkCount(world));
         Iris.instance.unregisterListener(this);
-        initialized = true;
         IrisWorlds.get().put(world.getName(), dimensionKey);
         return true;
     }
@@ -205,49 +200,56 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     @Override
-    public void injectChunkReplacement(World world, int x, int z, Consumer<Runnable> jobs) {
+    public void injectChunkReplacement(World world, int x, int z, Executor syncExecutor) {
         try {
             loadLock.acquire();
             IrisBiomeStorage st = new IrisBiomeStorage();
             TerrainChunk tc = TerrainChunk.createUnsafe(world, st);
-            Hunk<BlockData> blocks = Hunk.view(tc);
-            Hunk<Biome> biomes = Hunk.view(tc, tc.getMinHeight(), tc.getMaxHeight());
             this.world.bind(world);
-            getEngine().generate(x << 4, z << 4, blocks, biomes, true);
-            Iris.debug("Regenerated " + x + " " + z);
-            int t = 0;
+            getEngine().generate(x << 4, z << 4, tc, false);
+
+            Chunk c = PaperLib.getChunkAtAsync(world, x, z)
+                    .thenApply(d -> {
+                        d.addPluginChunkTicket(Iris.instance);
+
+                        for (Entity ee : d.getEntities()) {
+                            if (ee instanceof Player) {
+                                continue;
+                            }
+
+                            ee.remove();
+                        }
+
+                        engine.getWorldManager().onChunkLoad(d, false);
+                        return d;
+                    }).get();
+
+
+            KList<CompletableFuture<?>> futures = new KList<>(1 + getEngine().getHeight() >> 4);
             for (int i = getEngine().getHeight() >> 4; i >= 0; i--) {
-                if (!world.isChunkLoaded(x, z)) {
-                    continue;
-                }
-
-                Chunk c = world.getChunkAt(x, z);
-                for (Entity ee : c.getEntities()) {
-                    if (ee instanceof Player) {
-                        continue;
-                    }
-
-                    J.s(ee::remove);
-                }
-
-                J.s(() -> engine.getWorldManager().onChunkLoad(c, false));
-
-                int finalI = i;
-                jobs.accept(() -> {
-
+                int finalI = i << 4;
+                futures.add(CompletableFuture.runAsync(() -> {
                     for (int xx = 0; xx < 16; xx++) {
                         for (int yy = 0; yy < 16; yy++) {
                             for (int zz = 0; zz < 16; zz++) {
-                                if (yy + (finalI << 4) >= engine.getHeight() || yy + (finalI << 4) < 0) {
+                                if (yy + finalI >= engine.getHeight() || yy + finalI < 0) {
                                     continue;
                                 }
-                                c.getBlock(xx, yy + (finalI << 4) + world.getMinHeight(), zz)
-                                        .setBlockData(tc.getBlockData(xx, yy + (finalI << 4) + world.getMinHeight(), zz), false);
+                                int y = yy + finalI + world.getMinHeight();
+                                c.getBlock(xx, y, zz).setBlockData(tc.getBlockData(xx, y, zz), false);
                             }
                         }
                     }
-                });
+                }, syncExecutor));
             }
+
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .thenRunAsync(() -> {
+                        c.removePluginChunkTicket(Iris.instance);
+                        c.unload();
+                    }, syncExecutor)
+                    .get();
+            Iris.debug("Regenerated " + x + " " + z);
 
             loadLock.release();
         } catch (Throwable e) {

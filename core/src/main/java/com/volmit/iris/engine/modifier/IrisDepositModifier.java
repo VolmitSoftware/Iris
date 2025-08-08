@@ -28,6 +28,7 @@ import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 
@@ -120,6 +121,9 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
                 int nz = j.getBlockZ() + z;
 
                 if (ny > height || nx > 15 || nx < 0 || ny > getEngine().getHeight() || ny < 0 || nz < 0 || nz > 15) {
+                    continue;
+                }
+                if (!k.isReplaceBedrock() && data.get(nx, ny, nz).getMaterial() == Material.BEDROCK) {
                     continue;
                 }
 

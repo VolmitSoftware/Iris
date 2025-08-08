@@ -1,5 +1,8 @@
 package com.volmit.iris.util.misc;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -22,12 +25,13 @@ public class ServerProperties {
         String bukkitYml = "bukkit.yml";
         String levelName = null;
 
-        for (int i = 0; i < args.length - 1; i++) {
-            switch (args[i]) {
-                case "-c", "--config" -> propertiesPath = args[i + 1];
-                case "-b", "--bukkit-settings" -> bukkitYml = args[i + 1];
-                case "-w", "--level-name", "--world" -> levelName = args[i + 1];
-            }
+        for (int i = 0; i < args.length; i++) {
+            String arg = args[i];
+            String next = i < args.length - 1 ? args[i + 1] : null;
+
+            propertiesPath = parse(arg, next, propertiesPath, "-c", "--config");
+            bukkitYml = parse(arg, next, bukkitYml, "-b", "--bukkit-settings");
+            levelName = parse(arg, next, levelName, "-w", "--level-name", "--world");
         }
 
         SERVER_PROPERTIES = new File(propertiesPath);
@@ -40,5 +44,20 @@ public class ServerProperties {
 
         if (levelName != null) LEVEL_NAME = levelName;
         else LEVEL_NAME = DATA.getProperty("level-name", "world");
+    }
+
+    private static String parse(
+            @NotNull String current,
+            @Nullable String next,
+            String fallback,
+            @NotNull String @NotNull ... keys
+    ) {
+        for (String k : keys) {
+            if (current.equals(k) && next != null)
+                return next;
+            if (current.startsWith(k + "=") && current.length() > k.length() + 1)
+                return current.substring(k.length() + 1);
+        }
+        return fallback;
     }
 }

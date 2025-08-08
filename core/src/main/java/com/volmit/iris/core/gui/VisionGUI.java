@@ -815,11 +815,28 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
             return;
         }
 
-        //Iris.info("Blocks/Pixel: " + (mscale) + ", Blocks Wide: " + (w * mscale));
+        double m0 = mscale;
+        double m1 = m0 + ((0.25 * m0) * notches);
+        m1 = Math.max(m1, 0.00001);
+        if (m1 == m0) {
+            return;
+        }
+
         positions.clear();
         fastpositions.clear();
-        mscale = mscale + ((0.25 * mscale) * notches);
-        mscale = Math.max(mscale, 0.00001);
+
+        Point p = e.getPoint();
+        double sx = p.getX();
+        double sz = p.getY();
+
+        double newOxp = scale * ((m0 / m1) * (sx + (oxp / scale)) - sx);
+        double newOzp = scale * ((m0 / m1) * (sz + (ozp / scale)) - sz);
+
+        mscale = m1;
+        oxp = newOxp;
+        ozp = newOzp;
+        ox = oxp;
+        oz = ozp;
     }
 
     @Override

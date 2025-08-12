@@ -1,25 +1,7 @@
-/*
- * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2022 Arcane Arts (Volmit Software)
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
+package com.volmit.iris.core.link.data;
 
-package com.volmit.iris.core.link;
-
-import com.google.common.collect.Sets;
-import com.volmit.iris.Iris;
+import com.volmit.iris.core.link.ExternalDataProvider;
+import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import io.lumine.mythic.api.adapters.AbstractLocation;
 import io.lumine.mythic.api.config.MythicLineConfig;
@@ -30,60 +12,59 @@ import io.lumine.mythic.bukkit.events.MythicConditionLoadEvent;
 import io.lumine.mythic.core.skills.SkillCondition;
 import io.lumine.mythic.core.utils.annotations.MythicCondition;
 import io.lumine.mythic.core.utils.annotations.MythicField;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class MythicMobsLink {
-
-    public MythicMobsLink() {
-        if (getPlugin() == null) return;
-        Iris.instance.registerListener(new ConditionListener());
+public class MythicMobsDataProvider extends ExternalDataProvider {
+    public MythicMobsDataProvider() {
+        super("MythicMobs");
     }
 
-    public boolean isEnabled() {
-        return getPlugin() != null;
+    @Override
+    public void init() {
     }
 
-    public Plugin getPlugin() {
-        return Bukkit.getPluginManager().getPlugin("MythicMobs");
+    @Override
+    public @Nullable Entity spawnMob(@NotNull Location location, @NotNull Identifier entityId) throws MissingResourceException {
+        var mm = MythicBukkit.inst().getMobManager().spawnMob(entityId.key(), location);
+        if (mm == null) throw new MissingResourceException("Failed to find mob!", entityId.namespace(), entityId.key());
+        return mm.getEntity().getBukkitEntity();
     }
 
-    /**
-     * Spawn a mythic mob at this location
-     *
-     * @param mob      The mob
-     * @param location The location
-     * @return The mob, or null if it can't be spawned
-     */
-    public @Nullable Entity spawnMob(String mob, Location location) {
-        return isEnabled() ? MythicBukkit.inst().getMobManager().spawnMob(mob, location).getEntity().getBukkitEntity() : null;
+    @Override
+    public @NotNull Collection<@NotNull Identifier> getTypes(@NotNull DataType dataType) {
+        if (dataType != DataType.ENTITY) return List.of();
+        return MythicBukkit.inst()
+                .getMobManager()
+                .getMobNames()
+                .stream()
+                .map(name -> new Identifier("mythicmobs", name))
+                .toList();
     }
 
-    public Collection<String> getMythicMobTypes() {
-        return isEnabled() ? MythicBukkit.inst().getMobManager().getMobNames() : List.of();
+    @Override
+    public boolean isValidProvider(@NotNull Identifier id, DataType dataType) {
+        return id.namespace().equalsIgnoreCase("mythicmobs") && dataType == DataType.ENTITY;
     }
 
-    private static class ConditionListener implements Listener {
-        @EventHandler
-        public void on(MythicConditionLoadEvent event) {
-            switch (event.getConditionName()) {
-                case "irisbiome" -> event.register(new IrisBiomeCondition(event.getConditionName(), event.getConfig()));
-                case "irisregion" -> event.register(new IrisRegionCondition(event.getConditionName(), event.getConfig()));
-            }
+    @EventHandler
+    public void on(MythicConditionLoadEvent event) {
+        switch (event.getConditionName()) {
+            case "irisbiome" -> event.register(new IrisBiomeCondition(event.getConditionName(), event.getConfig()));
+            case "irisregion" -> event.register(new IrisRegionCondition(event.getConditionName(), event.getConfig()));
         }
     }
 
     @MythicCondition(author = "CrazyDev22", name = "irisbiome", description = "Tests if the target is within the given list of biomes")
     public static class IrisBiomeCondition extends SkillCondition implements ILocationCondition {
         @MythicField(name = "biome", aliases = {"b"}, description = "A list of biomes to check")
-        private Set<String> biomes = Sets.newConcurrentHashSet();
+        private Set<String> biomes = ConcurrentHashMap.newKeySet();
         @MythicField(name = "surface", aliases = {"s"}, description = "If the biome check should only be performed on the surface")
         private boolean surface;
 
@@ -107,10 +88,10 @@ public class MythicMobsLink {
         }
     }
 
-    @MythicCondition(author = "CrazyDev22", name = "irisbiome", description = "Tests if the target is within the given list of biomes")
+    @MythicCondition(author = "CrazyDev22", name = "irisregion", description = "Tests if the target is within the given list of biomes")
     public static class IrisRegionCondition extends SkillCondition implements ILocationCondition {
         @MythicField(name = "region", aliases = {"r"}, description = "A list of regions to check")
-        private Set<String> regions = Sets.newConcurrentHashSet();
+        private Set<String> regions = ConcurrentHashMap.newKeySet();
 
         public IrisRegionCondition(String line, MythicLineConfig mlc) {
             super(line);

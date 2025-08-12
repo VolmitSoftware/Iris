@@ -4,10 +4,10 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.link.ExternalDataProvider;
 import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.IrisCustomData;
+import com.volmit.iris.util.scheduling.J;
 import dev.lone.itemsadder.api.CustomBlock;
 import dev.lone.itemsadder.api.CustomStack;
 import org.bukkit.block.Block;
@@ -18,10 +18,12 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.List;
 import java.util.MissingResourceException;
+import java.util.stream.Collectors;
 
 public class ItemAdderDataProvider extends ExternalDataProvider {
 
-    private KList<String> itemNamespaces, blockNamespaces;
+    private final KSet<String> itemNamespaces = new KSet<>();
+    private final KSet<String> blockNamespaces = new KSet<>();
 
     public ItemAdderDataProvider() {
         super("ItemsAdder");
@@ -29,15 +31,11 @@ public class ItemAdderDataProvider extends ExternalDataProvider {
 
     @Override
     public void init() {
-        this.itemNamespaces = new KList<>();
-        this.blockNamespaces = new KList<>();
-
-        for (Identifier i : getTypes(DataType.ITEM)) {
-            itemNamespaces.addIfMissing(i.namespace());
-        }
-        for (Identifier i : getTypes(DataType.BLOCK)) {
-            blockNamespaces.addIfMissing(i.namespace());
-            Iris.info("Found ItemAdder Block: " + i);
+        try {
+            updateNamespaces();
+        } catch (Throwable e) {
+            Iris.warn("Failed to update ItemAdder namespaces: " + e.getMessage());
+            J.s(this::updateNamespaces, 20);
         }
     }
 
@@ -48,7 +46,7 @@ public class ItemAdderDataProvider extends ExternalDataProvider {
         if (block == null) {
             throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
         }
-        return new IrisCustomData(B.getAir(), blockId);
+        return new IrisCustomData(block.getBaseBlockData(), blockId);
     }
 
     @NotNull
@@ -70,15 +68,28 @@ public class ItemAdderDataProvider extends ExternalDataProvider {
     public @NotNull Collection<@NotNull Identifier> getTypes(@NotNull DataType dataType) {
         return switch (dataType) {
             case ENTITY -> List.of();
-            case ITEM -> CustomStack.getNamespacedIdsInRegistry()
+            case ITEM -> updateNamespaces(dataType, CustomStack.getNamespacedIdsInRegistry()
                     .stream()
                     .map(Identifier::fromString)
-                    .toList();
-            case BLOCK -> CustomBlock.getNamespacedIdsInRegistry()
+                    .toList());
+            case BLOCK -> updateNamespaces(dataType, CustomBlock.getNamespacedIdsInRegistry()
                     .stream()
                     .map(Identifier::fromString)
-                    .toList();
+                    .toList());
         };
+    }
+
+    private void updateNamespaces() {
+        getTypes(DataType.ITEM);
+        getTypes(DataType.BLOCK);
+    }
+
+    private Collection<Identifier> updateNamespaces(DataType dataType, Collection<Identifier> ids) {
+        var namespaces = ids.stream().map(Identifier::namespace).collect(Collectors.toSet());
+        var currentNamespaces = dataType == DataType.ITEM ? itemNamespaces : blockNamespaces;
+        currentNamespaces.removeIf(n -> !namespaces.contains(n));
+        currentNamespaces.addAll(namespaces);
+        return ids;
     }
 
     @Override

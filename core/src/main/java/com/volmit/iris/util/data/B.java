@@ -22,6 +22,8 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.link.data.DataType;
+import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.core.nms.container.BlockProperty;
 import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -35,10 +37,7 @@ import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.block.data.type.PointedDripstone;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.bukkit.Material.*;
@@ -679,6 +678,26 @@ public class B {
         bt.addAll(custom.k());
 
         return bt.toArray(new String[0]);
+    }
+
+    public synchronized static KMap<List<String>, List<BlockProperty>> getBlockStates() {
+        KMap<List<BlockProperty>, List<String>> flipped = new KMap<>();
+        INMS.get().getBlockProperties().forEach((k, v) -> {
+            flipped.computeIfAbsent(v, $ -> new KList<>()).add(k.getKey().toString());
+        });
+
+        var emptyStates = flipped.computeIfAbsent(new KList<>(0), $ -> new KList<>());
+        for (Identifier id : Iris.service(ExternalDataSVC.class).getAllIdentifiers(DataType.BLOCK))
+            emptyStates.add(id.toString());
+        emptyStates.addAll(custom.k());
+
+        KMap<List<String>, List<BlockProperty>> states = new KMap<>();
+        flipped.forEach((k, v) -> {
+            var old = states.put(v, k);
+            if (old != null) Iris.error("Duplicate block state: " + v + " (" + old + " and " + k + ")");
+        });
+
+        return states;
     }
 
     public static String[] getItemTypes() {

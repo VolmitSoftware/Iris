@@ -39,8 +39,10 @@ import org.jetbrains.annotations.NotNull;
 import java.awt.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class SchemaBuilder {
@@ -113,6 +115,7 @@ public class SchemaBuilder {
         o.put("description", getDescription(c));
         o.put("type", getType(c));
         JSONArray required = new JSONArray();
+        JSONArray extended = new JSONArray();
 
         if (c.isAssignableFrom(IrisRegistrant.class) || IrisRegistrant.class.isAssignableFrom(c)) {
             for (Field k : IrisRegistrant.class.getDeclaredFields()) {
@@ -124,11 +127,15 @@ public class SchemaBuilder {
 
                 JSONObject property = buildProperty(k, c);
 
-                if (property.getBoolean("!required")) {
+                if (Boolean.TRUE == property.remove("!required")) {
                     required.put(k.getName());
                 }
 
-                property.remove("!required");
+                if (Boolean.TRUE == property.remove("!top")) {
+                    extended.put(property);
+                    continue;
+                }
+
                 properties.put(k.getName(), property);
             }
         }
@@ -142,14 +149,23 @@ public class SchemaBuilder {
 
             JSONObject property = buildProperty(k, c);
 
-            if (property.getBoolean("!required"))
+            if (Boolean.TRUE == property.remove("!required")) {
                 required.put(k.getName());
-            property.remove("!required");
+            }
+
+            if (Boolean.TRUE == property.remove("!top")) {
+                extended.put(property);
+                continue;
+            }
+
             properties.put(k.getName(), property);
         }
 
         if (required.length() > 0) {
             o.put("required", required);
+        }
+        if (extended.length() > 0) {
+            o.put("allOf", extended);
         }
 
         o.put("properties", properties);
@@ -343,13 +359,65 @@ public class SchemaBuilder {
                 }
             }
             case "object" -> {
-                fancyType = k.getType().getSimpleName().replaceAll("\\QIris\\E", "") + " (Object)";
-                String key = "obj-" + k.getType().getCanonicalName().replaceAll("\\Q.\\E", "-").toLowerCase();
-                if (!definitions.containsKey(key)) {
-                    definitions.put(key, new JSONObject());
-                    definitions.put(key, buildProperties(k.getType()));
+                //TODO add back descriptions
+                if (k.isAnnotationPresent(RegistryMapBlockState.class)) {
+                    String blockType = k.getDeclaredAnnotation(RegistryMapBlockState.class).value();
+                    fancyType = "Block State";
+                    prop.put("!top", true);
+                    JSONArray any = new JSONArray();
+                    prop.put("anyOf", any);
+
+                    B.getBlockStates().forEach((blocks, properties) -> {
+                        if (blocks.isEmpty()) return;
+
+                        String raw = blocks.getFirst().replace(':', '_');
+                        String enumKey = "enum-block-state-" + raw;
+                        String propertiesKey = "obj-block-state-" + raw;
+
+                        any.put(new JSONObject()
+                                .put("if", new JSONObject()
+                                        .put("properties", new JSONObject()
+                                                .put(blockType, new JSONObject()
+                                                        .put("type", "string")
+                                                        .put("$ref", "#/definitions/" + enumKey))))
+                                .put("then", new JSONObject()
+                                        .put("properties", new JSONObject()
+                                                .put(k.getName(), new JSONObject()
+                                                        .put("type", "object")
+                                                        .put("$ref", "#/definitions/" + propertiesKey))))
+                                .put("else", false));
+
+                        if (!definitions.containsKey(enumKey)) {
+                            JSONArray filters = new JSONArray();
+                            blocks.forEach(filters::put);
+
+                            definitions.put(enumKey, new JSONObject()
+                                    .put("type", "string")
+                                    .put("enum", filters));
+                        }
+
+                        if (!definitions.containsKey(propertiesKey)) {
+                            JSONObject props = new JSONObject();
+                            properties.forEach(property -> {
+                                JSONArray values = new JSONArray();
+                                property.value().forEach(values::put);
+                                props.put(property.name(), new JSONObject().put("enum", values));
+                            });
+
+                            definitions.put(propertiesKey, new JSONObject()
+                                    .put("type", "object")
+                                    .put("properties", props));
+                        }
+                    });
+                } else {
+                    fancyType = k.getType().getSimpleName().replaceAll("\\QIris\\E", "") + " (Object)";
+                    String key = "obj-" + k.getType().getCanonicalName().replaceAll("\\Q.\\E", "-").toLowerCase();
+                    if (!definitions.containsKey(key)) {
+                        definitions.put(key, new JSONObject());
+                        definitions.put(key, buildProperties(k.getType()));
+                    }
+                    prop.put("$ref", "#/definitions/" + key);
                 }
-                prop.put("$ref", "#/definitions/" + key);
             }
             case "array" -> {
                 fancyType = "List of Something...?";

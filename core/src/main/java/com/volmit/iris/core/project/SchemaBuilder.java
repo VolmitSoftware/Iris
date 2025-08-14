@@ -399,9 +399,9 @@ public class SchemaBuilder {
                         if (!definitions.containsKey(propertiesKey)) {
                             JSONObject props = new JSONObject();
                             properties.forEach(property -> {
-                                JSONArray values = new JSONArray();
-                                property.value().forEach(values::put);
-                                props.put(property.name(), new JSONObject().put("enum", values));
+                                props.put(property.name(), new JSONObject()
+                                        .put("type", property.jsonType())
+                                        .put("enum", property.valuesAsJson()));
                             });
 
                             definitions.put(propertiesKey, new JSONObject()

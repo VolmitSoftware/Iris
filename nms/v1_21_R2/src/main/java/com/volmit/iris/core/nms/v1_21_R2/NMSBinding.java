@@ -731,7 +731,7 @@ public class NMSBinding implements INMSBinding {
     }
 
     private <T extends Comparable<T>> BlockProperty createProperty(Property<T> property, BlockState state) {
-        return BlockProperty.of(property.getName(), state.getValue(property), property.getPossibleValues(), property::getName);
+        return new BlockProperty(property.getName(), property.getValueClass(), state.getValue(property), property.getPossibleValues(), property::getName);
     }
 
     public LevelStem levelStem(RegistryAccess access, ChunkGenerator raw) {

@@ -64,10 +64,6 @@ public class IrisBlockData extends IrisRegistrant {
     @RegistryMapBlockState("block")
     @Desc("Optional properties for this block data such as 'waterlogged': true")
     private KMap<String, Object> data = new KMap<>();
-    @RegistryMapBlockState("block")
-    @ArrayType(type = KMap.class)
-    @Desc("Optional properties for this block data such as 'waterlogged': true")
-    private KList<KMap<String, Object>> altData = new KList<>();
     @Desc("Optional tile data for this block data")
     private KMap<String, Object> tileData = new KMap<>();
 

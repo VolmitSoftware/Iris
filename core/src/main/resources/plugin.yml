@@ -11,3 +11,5 @@ commands:
   iris:
     aliases: [ ir, irs ]
 api-version: '${apiVersion}'
+hotload-dependencies: false
+folia-supported: true

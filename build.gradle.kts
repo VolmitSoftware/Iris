@@ -2,6 +2,7 @@ import com.volmit.nmstools.NMSToolsExtension
 import com.volmit.nmstools.NMSToolsPlugin
 import de.undercouch.gradle.tasks.download.Download
 import xyz.jpenilla.runpaper.task.RunServer
+import xyz.jpenilla.runtask.service.DownloadsAPIService
 import kotlin.system.exitProcess
 
 /*
@@ -95,11 +96,30 @@ nmsBindings.forEach { key, value ->
             compileOnly(project(":core"))
             compileOnly(rootProject.libs.annotations)
             compileOnly(rootProject.libs.byteBuddy.core)
+            compileOnly(rootProject.libs.platformUtils) {
+                isTransitive = false
+            }
         }
     }
 
     tasks.register<RunServer>("runServer-$key") {
         group = "servers"
+        minecraftVersion(value.split("-")[0])
+        minHeapSize = serverMinHeap
+        maxHeapSize = serverMaxHeap
+        pluginJars(tasks.jar.flatMap { it.archiveFile })
+        javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(jvmVersion.getOrDefault(key, 21))}
+        runDirectory.convention(layout.buildDirectory.dir("run/$key"))
+        systemProperty("disable.watchdog", "")
+        systemProperty("net.kyori.ansi.colorLevel", color)
+        systemProperty("com.mojang.eula.agree", true)
+        systemProperty("iris.suppressReporting", !errorReporting)
+        jvmArgs("-javaagent:${project(":core:agent").tasks.jar.flatMap { it.archiveFile }.get().asFile.absolutePath}")
+    }
+
+    tasks.register<RunServer>("runFolia-$key") {
+        group = "servers"
+        downloadsApiService = DownloadsAPIService.folia(project)
         minecraftVersion(value.split("-")[0])
         minHeapSize = serverMinHeap
         maxHeapSize = serverMaxHeap
@@ -195,6 +215,7 @@ allprojects {
         maven("https://mvn.lumine.io/repository/maven-public/") // mythic
         maven("https://nexus.phoenixdevt.fr/repository/maven-public/") //MMOItems
         maven("https://repo.onarandombox.com/content/groups/public/") //Multiverse Core
+        maven("https://repo.thenextlvl.net/releases") //Worlds
     }
 
     dependencies {

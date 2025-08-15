@@ -11,6 +11,7 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.reflect.V;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import de.crazydev22.platformutils.scheduler.task.Task;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
@@ -58,7 +59,7 @@ public class IrisConverter {
                     int objW = ((ShortTag) compound.get("Width")).getValue();
                     int objH = ((ShortTag) compound.get("Height")).getValue();
                     int objD = ((ShortTag) compound.get("Length")).getValue();
-                    int i = -1;
+                    Task i = null;
                     int mv = objW * objH * objD;
                     AtomicInteger v = new AtomicInteger(0);
                     if (mv > 500_000) {
@@ -66,9 +67,7 @@ public class IrisConverter {
                         Iris.info(C.GRAY + "Converting.. "+ schem.getName() + " -> " + schem.getName().replace(".schem", ".iob"));
                         Iris.info(C.GRAY + "- It may take a while");
                         if (sender.isPlayer()) {
-                            i = J.ar(() -> {
-                                sender.sendProgress((double) v.get() / mv, "Converting");
-                            }, 0);
+                            i = J.ar(() -> sender.sendProgress((double) v.get() / mv, "Converting"), 0);
                         }
                     }
 
@@ -97,7 +96,7 @@ public class IrisConverter {
                             }
                         }
                     }
-                    if (i != -1) J.car(i);
+                    if (i != null) i.cancel();
                     try {
                         object.shrinkwrap();
                         object.write(new File(folder, schem.getName().replace(".schem", ".iob")));

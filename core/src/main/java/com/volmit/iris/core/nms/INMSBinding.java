@@ -18,6 +18,7 @@
 
 package com.volmit.iris.core.nms;
 
+import com.volmit.iris.core.link.FoliaWorldsLink;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.engine.framework.Engine;
@@ -39,6 +40,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
+import java.util.concurrent.CompletableFuture;
 
 public interface INMSBinding {
     boolean hasTile(Material material);
@@ -94,6 +96,15 @@ public interface INMSBinding {
                 && missingDimensionTypes(gen.getTarget().getDimension().getDimensionTypeKey()))
             throw new IllegalStateException("Missing dimension types to create world");
         return c.createWorld();
+    }
+
+    default CompletableFuture<World> createWorldAsync(WorldCreator c) {
+        try {
+            var link = FoliaWorldsLink.get();
+            return link.isActive() ? link.createWorld(c) : CompletableFuture.completedFuture(createWorld(c));
+        } catch (Throwable e) {
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
     int countCustomBiomes();

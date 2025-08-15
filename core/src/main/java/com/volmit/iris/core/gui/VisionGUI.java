@@ -763,7 +763,7 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
                 int xx = (int) getWorldX(hx);
                 int zz = (int) getWorldZ(hz);
                 int h = engine.getComplex().getRoundedHeighteightStream().get(xx, zz);
-                player.teleport(new Location(player.getWorld(), xx, h, zz));
+                Iris.platform.teleportAsync(player, new Location(player.getWorld(), xx, h, zz));
                 notify("Teleporting to " + xx + ", " + h + ", " + zz);
             } else {
                 notify("No player in world, can't teleport.");

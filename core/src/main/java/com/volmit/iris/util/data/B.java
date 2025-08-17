@@ -687,8 +687,10 @@ public class B {
         });
 
         var emptyStates = flipped.computeIfAbsent(new KList<>(0), $ -> new KList<>());
-        for (Identifier id : Iris.service(ExternalDataSVC.class).getAllIdentifiers(DataType.BLOCK))
-            emptyStates.add(id.toString());
+        for (var pair : Iris.service(ExternalDataSVC.class).getAllBlockProperties()) {
+            if (pair.getB().isEmpty()) emptyStates.add(pair.getA().toString());
+            else flipped.computeIfAbsent(pair.getB(), $ -> new KList<>()).add(pair.getA().toString());
+        }
         emptyStates.addAll(custom.k());
 
         KMap<List<String>, List<BlockProperty>> states = new KMap<>();

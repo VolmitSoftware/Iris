@@ -1,12 +1,14 @@
 package com.volmit.iris.core.nms.container;
 
 import com.volmit.iris.util.json.JSONArray;
+import com.volmit.iris.util.json.JSONObject;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.function.Function;
 
-public final class BlockProperty {
+public class BlockProperty {
+    private static final Set<Class<?>> NATIVES = Set.of(Byte.class, Short.class, Integer.class, Long.class, Float.class, Double.class, Boolean.class, String.class);
     private final String name;
     private final Class<?> type;
 
@@ -27,9 +29,39 @@ public final class BlockProperty {
         this.defaultValue = defaultValue;
         this.values = Collections.unmodifiableSet(new TreeSet<>(values));
         this.nameFunction = (Function<Object, String>) (Object) nameFunction;
-        jsonFunction = type == Boolean.class || type == Integer.class ?
-                Function.identity() :
-                this.nameFunction::apply;
+        jsonFunction = NATIVES.contains(type) ? Function.identity() : this.nameFunction::apply;
+    }
+
+    public static <T extends Enum<T>> BlockProperty ofEnum(Class<T> type, String name, T defaultValue) {
+        return new BlockProperty(
+                name,
+                type,
+                defaultValue,
+                Arrays.asList(type.getEnumConstants()),
+                val -> val == null ? "null" : val.name()
+        );
+    }
+
+    public static BlockProperty ofFloat(String name, float defaultValue, float min, float max, boolean exclusiveMin, boolean exclusiveMax) {
+        return new BoundedDouble(
+                name,
+                defaultValue,
+                min,
+                max,
+                exclusiveMin,
+                exclusiveMax,
+                (f) -> String.format("%.2f", f)
+        );
+    }
+
+    public static BlockProperty ofBoolean(String name, boolean defaultValue) {
+        return new BlockProperty(
+                name,
+                Boolean.class,
+                defaultValue,
+                List.of(true, false),
+                (b) -> b ? "true" : "false"
+        );
     }
 
     @Override
@@ -57,11 +89,21 @@ public final class BlockProperty {
         return new JSONArray(values.stream().map(jsonFunction).toList());
     }
 
+    public JSONObject buildJson() {
+        var json = new JSONObject();
+        json.put("type", jsonType());
+        json.put("default", defaultValueAsJson());
+        if (!values.isEmpty()) json.put("enum", valuesAsJson());
+        return json;
+    }
+
     public String jsonType() {
         if (type == Boolean.class)
             return "boolean";
-        if (type == Integer.class)
+        if (type == Byte.class || type == Short.class || type == Integer.class || type == Long.class)
             return "integer";
+        if (type == Float.class || type == Double.class)
+            return "number";
         return "string";
     }
 
@@ -78,5 +120,35 @@ public final class BlockProperty {
     @Override
     public int hashCode() {
         return Objects.hash(name, values, type);
+    }
+
+    private static class BoundedDouble extends BlockProperty {
+        private final double min, max;
+        private final boolean exclusiveMin, exclusiveMax;
+
+        public BoundedDouble(
+                String name,
+                double defaultValue,
+                double min,
+                double max,
+                boolean exclusiveMin,
+                boolean exclusiveMax,
+                Function<Double, String> nameFunction
+        ) {
+            super(name, Double.class, defaultValue, List.of(), nameFunction);
+            this.min = min;
+            this.max = max;
+            this.exclusiveMin = exclusiveMin;
+            this.exclusiveMax = exclusiveMax;
+        }
+
+        @Override
+        public JSONObject buildJson() {
+            return super.buildJson()
+                    .put("minimum", min)
+                    .put("maximum", max)
+                    .put("exclusiveMinimum", exclusiveMin)
+                    .put("exclusiveMaximum", exclusiveMax);
+        }
     }
 }

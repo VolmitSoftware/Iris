@@ -39,10 +39,8 @@ import org.jetbrains.annotations.NotNull;
 import java.awt.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class SchemaBuilder {
@@ -399,9 +397,7 @@ public class SchemaBuilder {
                         if (!definitions.containsKey(propertiesKey)) {
                             JSONObject props = new JSONObject();
                             properties.forEach(property -> {
-                                props.put(property.name(), new JSONObject()
-                                        .put("type", property.jsonType())
-                                        .put("enum", property.valuesAsJson()));
+                                props.put(property.name(), property.buildJson());
                             });
 
                             definitions.put(propertiesKey, new JSONObject()

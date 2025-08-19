@@ -100,10 +100,11 @@ java {
 }
 
 sentry {
+    url = "http://sentry.volmit.com:8080/"
     autoInstallation.enabled = false
     includeSourceContext = true
 
-    org = "volmit-software"
+    org = "sentry"
     projectName = "iris"
     authToken = findProperty("sentry.auth.token") as String? ?: System.getenv("SENTRY_AUTH_TOKEN")
 }

@@ -65,9 +65,13 @@ dependencies {
         isTransitive = false
     }
     compileOnly(libs.multiverseCore)
+    compileOnly(libs.worlds)
 
     // Shaded
     implementation(slimjarHelper("spigot"))
+    implementation(rootProject.libs.platformUtils) {
+        isTransitive = false
+    }
 
     // Dynamically Loaded
     slim(libs.paralithic)

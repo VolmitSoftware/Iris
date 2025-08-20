@@ -35,6 +35,7 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.SR;
 import com.volmit.iris.util.scheduling.jobs.Job;
+import com.volmit.iris.util.scheduling.jobs.ScanJob;
 import org.bukkit.*;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -86,80 +87,10 @@ public class WandSVC implements IrisService {
             Cuboid c = new Cuboid(f[0], f[1]);
             IrisObject s = new IrisObject(c.getSizeX(), c.getSizeY(), c.getSizeZ());
 
-            var it = c.chunkedIterator();
-
-            int total = c.getSizeX() * c.getSizeY() * c.getSizeZ();
-            var latch = new CountDownLatch(1);
-            new Job() {
-                private int i;
-                private Chunk chunk;
-
-                @Override
-                public String getName() {
-                    return "Scanning Selection";
-                }
-
-                @Override
-                public void execute() {
-                    new SR() {
-                        @Override
-                        public void run() {
-                            var time = M.ms() + MS_PER_TICK;
-                            while (time > M.ms()) {
-                                if (!it.hasNext()) {
-                                    if (chunk != null) {
-                                        chunk.removePluginChunkTicket(Iris.instance);
-                                        chunk = null;
-                                    }
-
-                                    cancel();
-                                    latch.countDown();
-                                    return;
-                                }
-
-                                try {
-                                    var b = it.next();
-                                    var bChunk = b.getChunk();
-                                    if (chunk == null) {
-                                        chunk = bChunk;
-                                        chunk.addPluginChunkTicket(Iris.instance);
-                                    } else if (chunk != bChunk) {
-                                        chunk.removePluginChunkTicket(Iris.instance);
-                                        chunk = bChunk;
-                                    }
-
-                                    if (b.getType().equals(Material.AIR))
-                                        continue;
-
-                                    BlockVector bv = b.getLocation().subtract(c.getLowerNE().toVector()).toVector().toBlockVector();
-                                    s.setUnsigned(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(), b, legacy);
-                                } finally {
-                                    i++;
-                                }
-                            }
-                        }
-                    };
-                    try {
-                        latch.await();
-                    } catch (InterruptedException ignored) {}
-                }
-
-                @Override
-                public void completeWork() {}
-
-                @Override
-                public int getTotalWork() {
-                    return total;
-                }
-
-                @Override
-                public int getWorkCompleted() {
-                    return i;
-                }
-            }.execute(new VolmitSender(p), true, () -> {});
-            try {
-                latch.await();
-            } catch (InterruptedException ignored) {}
+            new ScanJob("Scanning Selection", c, MS_PER_TICK, (bv, b) -> {
+                if (b.getType().equals(Material.AIR)) return;
+                s.setUnsigned(bv.getBlockX(), bv.getBlockY(), bv.getBlockZ(), b, legacy);
+            }).execute(new VolmitSender(p), true, () -> {});
 
             return s;
         } catch (Throwable e) {

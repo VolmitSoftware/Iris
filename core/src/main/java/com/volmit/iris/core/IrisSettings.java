@@ -23,7 +23,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONException;
 import com.volmit.iris.util.json.JSONObject;
-import com.volmit.iris.util.misc.SlimJar;
 import com.volmit.iris.util.misc.getHardware;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
@@ -87,7 +86,6 @@ public class IrisSettings {
                 Iris.error("Configuration Error in settings.json! " + ee.getClass().getSimpleName() + ": " + ee.getMessage());
             }
         }
-        SlimJar.debug(settings.general.debug);
 
         return settings;
     }

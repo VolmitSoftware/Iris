@@ -31,13 +31,12 @@ plugins {
     java
     `java-library`
     alias(libs.plugins.shadow)
-    alias(libs.plugins.sentry)
     alias(libs.plugins.download)
     alias(libs.plugins.runPaper)
 }
 
 group = "com.volmit"
-version = "3.7.0-1.20.1-1.21.7"
+version = "3.7.0-1.20.1-1.21.8"
 
 apply<ApiGenerator>()
 
@@ -156,12 +155,13 @@ tasks {
         group = "io.sentry"
         dependsOn("downloadCli")
         doLast {
+            val url = "http://sentry.volmit.com:8080"
             val authToken = project.findProperty("sentry.auth.token") ?: System.getenv("SENTRY_AUTH_TOKEN")
-            val org = "volmit-software"
+            val org = "sentry"
             val projectName = "iris"
-            exec(cli, "releases", "new", "--auth-token", authToken, "-o", org, "-p", projectName, version)
-            exec(cli, "releases", "set-commits", "--auth-token", authToken, "-o", org, "-p", projectName, version, "--auto", "--ignore-missing")
-            exec(cli, "releases", "finalize", "--auth-token", authToken, "-o", org, "-p", projectName, version)
+            exec(cli, "--url", url , "--auth-token", authToken, "releases", "new", "-o", org, "-p", projectName, version)
+            exec(cli, "--url", url , "--auth-token", authToken, "releases", "set-commits", "-o", org, "-p", projectName, version, "--auto", "--ignore-missing")
+            //exec(cli, "--url", url, "--auth-token", authToken, "releases", "finalize", "-o", org, "-p", projectName, version)
             cli.delete()
         }
     }

@@ -21,6 +21,7 @@ package com.volmit.iris.util.data;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.link.Identifier;
+import com.volmit.iris.core.link.data.DataType;
 import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -673,7 +674,7 @@ public class B {
             }
         }
 
-        for (Identifier id : Iris.service(ExternalDataSVC.class).getAllBlockIdentifiers())
+        for (Identifier id : Iris.service(ExternalDataSVC.class).getAllIdentifiers(DataType.BLOCK))
             bt.add(id.toString());
         bt.addAll(custom.k());
 
@@ -688,7 +689,7 @@ public class B {
             bt.add(v);
         }
 
-        for (Identifier id : Iris.service(ExternalDataSVC.class).getAllItemIdentifiers())
+        for (Identifier id : Iris.service(ExternalDataSVC.class).getAllIdentifiers(DataType.ITEM))
             bt.add(id.toString());
 
         return bt.toArray(new String[0]);

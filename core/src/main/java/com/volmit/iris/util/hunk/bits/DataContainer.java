@@ -141,11 +141,13 @@ public class DataContainer<T> {
     }
 
     public void writeDos(DataOutputStream dos) throws IOException {
-        Varint.writeUnsignedVarInt(length, dos);
-        Varint.writeUnsignedVarInt(palette.get().size(), dos);
-        palette.get().iterateIO((data, __) -> writer.writeNodeData(dos, data));
-        data.get().write(dos);
-        dos.flush();
+        synchronized (this) {
+            Varint.writeUnsignedVarInt(length, dos);
+            Varint.writeUnsignedVarInt(palette.get().size(), dos);
+            palette.get().iterateIO((data, __) -> writer.writeNodeData(dos, data));
+            data.get().write(dos);
+            dos.flush();
+        }
     }
 
     private Palette<T> newPalette(DataInputStream din) throws IOException {
@@ -163,51 +165,41 @@ public class DataContainer<T> {
         return new HashPalette<>();
     }
 
-    public void ensurePaletted(T t) {
-        if (palette.get().id(t) == -1) {
-            expandOne();
-        }
-    }
-
     public void set(int position, T t) {
         synchronized (this) {
             int id = palette.get().id(t);
 
             if (id == -1) {
-                expandOne();
                 id = palette.get().add(t);
+                updateBits();
             }
 
             data.get().set(position, id);
         }
     }
 
-    private void expandOne() {
-        if (palette.get().size() + 1 >= BIT[bits.get()]) {
-            setBits(bits.get() + 1);
+    private void updateBits() {
+        if (palette.get().bits() == bits.get())
+            return;
+
+        int bits = palette.get().bits();
+        if (this.bits.get() <= LINEAR_BITS_LIMIT != bits <= LINEAR_BITS_LIMIT) {
+            palette.updateAndGet(p -> newPalette(bits).from(p));
         }
+
+        data.updateAndGet(d -> d.setBits(bits));
+        this.bits.set(bits);
     }
 
     public T get(int position) {
         synchronized (this) {
-            int id = data.get().get(position) + 1;
+            int id = data.get().get(position);
 
             if (id <= 0) {
                 return null;
             }
 
-            return palette.get().get(id - 1);
-        }
-    }
-
-    public void setBits(int bits) {
-        if (this.bits.get() != bits) {
-            if (this.bits.get() <= LINEAR_BITS_LIMIT != bits <= LINEAR_BITS_LIMIT) {
-                palette.set(newPalette(bits).from(palette.get()));
-            }
-
-            this.bits.set(bits);
-            data.set(data.get().setBits(bits));
+            return palette.get().get(id);
         }
     }
 

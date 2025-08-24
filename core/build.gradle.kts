@@ -1,4 +1,4 @@
-import io.github.slimjar.func.slimjar
+import io.github.slimjar.func.slimjarHelper
 import io.github.slimjar.resolver.data.Mirror
 import org.ajoberstar.grgit.Grgit
 import java.net.URI
@@ -67,7 +67,7 @@ dependencies {
     compileOnly(libs.multiverseCore)
 
     // Shaded
-    implementation(slimjar())
+    implementation(slimjarHelper("spigot"))
 
     // Dynamically Loaded
     slim(libs.paralithic)
@@ -100,10 +100,11 @@ java {
 }
 
 sentry {
+    url = "http://sentry.volmit.com:8080/"
     autoInstallation.enabled = false
     includeSourceContext = true
 
-    org = "volmit-software"
+    org = "sentry"
     projectName = "iris"
     authToken = findProperty("sentry.auth.token") as String? ?: System.getenv("SENTRY_AUTH_TOKEN")
 }

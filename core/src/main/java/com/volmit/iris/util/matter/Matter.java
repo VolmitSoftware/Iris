@@ -99,10 +99,9 @@ public interface Matter {
     }
 
     static Matter read(File f) throws IOException {
-        FileInputStream in = new FileInputStream(f);
-        Matter m = read(in);
-        in.close();
-        return m;
+        try (var in = new FileInputStream(f)) {
+            return read(in);
+        }
     }
 
     static Matter read(InputStream in) throws IOException {
@@ -164,6 +163,10 @@ public interface Matter {
                     TectonicPlate.addError();
                 }
                 din.skipTo(end);
+            }
+
+            if (din.count() != start + size) {
+                throw new IOException("Matter slice read size mismatch!");
             }
         }
 

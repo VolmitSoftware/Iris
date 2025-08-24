@@ -109,6 +109,9 @@ public class MantleChunk {
                 din.skipTo(end);
                 TectonicPlate.addError();
             }
+            if (din.count() != start + size) {
+                throw new IOException("Chunk section read size mismatch!");
+            }
         }
     }
 

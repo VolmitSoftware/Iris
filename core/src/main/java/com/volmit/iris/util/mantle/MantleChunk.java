@@ -21,6 +21,7 @@ package com.volmit.iris.util.mantle;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
+import com.volmit.iris.util.documentation.ChunkRelativeBlockCoordinates;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.io.CountingDataInputStream;
 import com.volmit.iris.util.matter.IrisMatter;
@@ -28,6 +29,7 @@ import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterSlice;
 import lombok.Getter;
 import lombok.SneakyThrows;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -146,11 +148,10 @@ public class MantleChunk {
     }
 
     public void raiseFlag(MantleFlag flag, Runnable r) {
-        synchronized (this) {
-            if (!isFlagged(flag)) flag(flag, true);
-            else return;
+        if (closed.get()) throw new IllegalStateException("Chunk is closed!");
+        if (flags.getAndSet(flag.ordinal(), 1) == 0) {
+            r.run();
         }
-        r.run();
     }
 
     public boolean isFlagged(MantleFlag flag) {
@@ -177,6 +178,15 @@ public class MantleChunk {
     @ChunkCoordinates
     public Matter get(int section) {
         return sections.get(section);
+    }
+
+    @Nullable
+    @ChunkRelativeBlockCoordinates
+    @SuppressWarnings("unchecked")
+    public <T> T get(int x, int y, int z, Class<T> type) {
+        return (T) getOrCreate(y >> 4)
+                .slice(type)
+                .get(x & 15, y & 15, z & 15);
     }
 
     /**

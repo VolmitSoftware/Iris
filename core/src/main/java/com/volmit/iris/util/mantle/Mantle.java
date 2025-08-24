@@ -529,29 +529,30 @@ public class Mantle {
         try {
             if (!trim || !unload) {
                 try {
-                    return getSafe(x, z).get();
-                } catch (InterruptedException e) {
+                    return getSafe(x, z);
+                } catch (Throwable e) {
                     e.printStackTrace();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
+                }
+            } else {
+                Long key = key(x, z);
+                TectonicPlate p = loadedRegions.get(key);
+
+                if (p != null && !p.isClosed()) {
+                    use(key);
+                    return p;
                 }
             }
 
-            Long key = key(x, z);
-            TectonicPlate p = loadedRegions.get(key);
-
-            if (p != null && !p.isClosed()) {
-                use(key);
-                return p;
-            }
-
             try {
-                return getSafe(x, z).get();
+                return getSafe(x, z);
             } catch (InterruptedException e) {
                 Iris.warn("Failed to get Tectonic Plate " + x + " " + z + " Due to a thread intterruption (hotload?)");
                 Iris.reportError(e);
             } catch (ExecutionException e) {
                 Iris.warn("Failed to get Tectonic Plate " + x + " " + z + " Due to a thread execution exception (engine close?)");
+                Iris.reportError(e);
+            } catch (Throwable e) {
+                Iris.warn("Failed to get Tectonic Plate " + x + " " + z + " Due to a unknown exception");
                 Iris.reportError(e);
             }
         } finally {
@@ -572,50 +573,52 @@ public class Mantle {
      * @return the future of a tectonic plate.
      */
     @RegionCoordinates
-    private Future<TectonicPlate> getSafe(int x, int z) {
-        return ioBurst.completeValue(() -> hyperLock.withResult(x, z, () -> {
+    private TectonicPlate getSafe(int x, int z) throws Throwable {
+        return hyperLock.withNastyResult(x, z, () -> {
             Long k = key(x, z);
             use(k);
-            TectonicPlate region = loadedRegions.get(k);
-
-            if (region != null && !region.isClosed()) {
-                return region;
+            TectonicPlate r = loadedRegions.get(k);
+            if (r != null && !r.isClosed()) {
+                return r;
             }
 
-            File file = fileForRegion(dataFolder, x, z);
-            if (file.exists()) {
-                try {
-                    Iris.addPanic("reading.tectonic-plate", file.getAbsolutePath());
-                    region = worker.read(file.getName());
+            return ioBurst.completeValue(() -> {
+                TectonicPlate region;
+                File file = fileForRegion(dataFolder, x, z);
+                if (file.exists()) {
+                    try {
+                        Iris.addPanic("reading.tectonic-plate", file.getAbsolutePath());
+                        region = worker.read(file.getName());
 
-                    if (region.getX() != x || region.getZ() != z) {
-                        Iris.warn("Loaded Tectonic Plate " + x + "," + z + " but read it as " + region.getX() + "," + region.getZ() + "... Assuming " + x + "," + z);
+                        if (region.getX() != x || region.getZ() != z) {
+                            Iris.warn("Loaded Tectonic Plate " + x + "," + z + " but read it as " + region.getX() + "," + region.getZ() + "... Assuming " + x + "," + z);
+                        }
+
+                        loadedRegions.put(k, region);
+                        Iris.debug("Loaded Tectonic Plate " + C.DARK_GREEN + x + " " + z + C.DARK_AQUA + " " + file.getName());
+                    } catch (Throwable e) {
+                        Iris.error("Failed to read Tectonic Plate " + file.getAbsolutePath() + " creating a new chunk instead.");
+                        Iris.reportError(e);
+                        if (!(e instanceof EOFException)) {
+                            e.printStackTrace();
+                        }
+                        Iris.panic();
+                        region = new TectonicPlate(worldHeight, x, z);
+                        loadedRegions.put(k, region);
+                        Iris.debug("Created new Tectonic Plate (Due to Load Failure) " + C.DARK_GREEN + x + " " + z);
                     }
 
-                    loadedRegions.put(k, region);
-                    Iris.debug("Loaded Tectonic Plate " + C.DARK_GREEN + x + " " + z + C.DARK_AQUA + " " + file.getName());
-                } catch (Throwable e) {
-                    Iris.error("Failed to read Tectonic Plate " + file.getAbsolutePath() + " creating a new chunk instead.");
-                    Iris.reportError(e);
-                    if (!(e instanceof EOFException)) {
-                        e.printStackTrace();
-                    }
-                    Iris.panic();
-                    region = new TectonicPlate(worldHeight, x, z);
-                    loadedRegions.put(k, region);
-                    Iris.debug("Created new Tectonic Plate (Due to Load Failure) " + C.DARK_GREEN + x + " " + z);
+                    use(k);
+                    return region;
                 }
 
+                region = new TectonicPlate(worldHeight, x, z);
+                loadedRegions.put(k, region);
+                Iris.debug("Created new Tectonic Plate " + C.DARK_GREEN + x + " " + z);
                 use(k);
                 return region;
-            }
-
-            region = new TectonicPlate(worldHeight, x, z);
-            loadedRegions.put(k, region);
-            Iris.debug("Created new Tectonic Plate " + C.DARK_GREEN + x + " " + z);
-            use(k);
-            return region;
-        }));
+            }).get();
+        });
     }
 
     private void use(Long key) {

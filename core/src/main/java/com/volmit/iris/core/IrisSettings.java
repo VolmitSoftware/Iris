@@ -242,6 +242,7 @@ public class IrisSettings {
         public String defaultWorldType = "overworld";
         public int maxBiomeChildDepth = 4;
         public boolean preventLeafDecay = true;
+        public boolean useMulticore = false;
     }
 
     @Data
@@ -255,6 +256,7 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsEngineSVC {
         public boolean useVirtualThreads = true;
+        public boolean forceMulticoreWrite = false;
         public int priority = Thread.NORM_PRIORITY;
 
         public int getPriority() {

@@ -35,6 +35,7 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.mantle.io.IOWorker;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterSlice;
@@ -44,9 +45,7 @@ import com.volmit.iris.util.parallel.MultiBurst;
 import lombok.Getter;
 import org.bukkit.Chunk;
 
-import java.io.EOFException;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -69,6 +68,7 @@ public class Mantle {
     private final MultiBurst ioBurst;
     private final Semaphore ioTrim;
     private final Semaphore ioTectonicUnload;
+    private final IOWorker worker;
     private final AtomicDouble adjustedIdleDuration;
     private final KSet<Long> toUnload;
 
@@ -91,6 +91,7 @@ public class Mantle {
         ioBurst = MultiBurst.burst;
         adjustedIdleDuration = new AtomicDouble(0);
         toUnload = new KSet<>();
+        worker = new IOWorker(dataFolder, worldHeight);
         Iris.debug("Opened The Mantle " + C.DARK_AQUA + dataFolder.getAbsolutePath());
     }
 
@@ -379,7 +380,7 @@ public class Mantle {
         loadedRegions.forEach((i, plate) -> b.queue(() -> {
             try {
                 plate.close();
-                plate.write(fileForRegion(dataFolder, i, false));
+                worker.write(fileForRegion(dataFolder, i, false).getName(), plate);
                 oldFileForRegion(dataFolder, i).delete();
             } catch (Throwable e) {
                 Iris.error("Failed to write Tectonic Plate " + C.DARK_GREEN + Cache.keyX(i) + " " + Cache.keyZ(i));
@@ -391,6 +392,11 @@ public class Mantle {
 
         try {
             b.complete();
+        } catch (Throwable e) {
+            Iris.reportError(e);
+        }
+        try {
+            worker.close();
         } catch (Throwable e) {
             Iris.reportError(e);
         }
@@ -484,7 +490,7 @@ public class Mantle {
                     }
 
                     try {
-                        m.write(fileForRegion(dataFolder, id, false));
+                        worker.write(fileForRegion(dataFolder, id, false).getName(), m);
                         oldFileForRegion(dataFolder, id).delete();
                         loadedRegions.remove(id, m);
                         lastUse.remove(id);
@@ -580,7 +586,7 @@ public class Mantle {
             if (file.exists()) {
                 try {
                     Iris.addPanic("reading.tectonic-plate", file.getAbsolutePath());
-                    region = TectonicPlate.read(worldHeight, file, file.getName().startsWith("pv."));
+                    region = worker.read(file.getName());
 
                     if (region.getX() != x || region.getZ() != z) {
                         Iris.warn("Loaded Tectonic Plate " + x + "," + z + " but read it as " + region.getX() + "," + region.getZ() + "... Assuming " + x + "," + z);

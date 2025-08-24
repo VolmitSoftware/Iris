@@ -116,27 +116,6 @@ public class CommandDeveloper implements DecreeExecutor {
     }
 
     @Decree(description = "Test")
-    public void benchmarkMantle(
-            @Param(description = "The world to bench", aliases = {"world"})
-            World world
-    ) throws IOException, ClassNotFoundException {
-        Engine engine = IrisToolbelt.access(world).getEngine();
-        int maxHeight = engine.getTarget().getHeight();
-        File folder = new File(Bukkit.getWorldContainer(), world.getName());
-        int c = 0;
-        //MCAUtil.read()
-
-        File tectonicplates = new File(folder, "mantle");
-        for (File i : Objects.requireNonNull(tectonicplates.listFiles())) {
-            TectonicPlate.read(maxHeight, i, true);
-            c++;
-            Iris.info("Loaded count: " + c );
-
-        }
-
-    }
-
-    @Decree(description = "Test")
     public void packBenchmark(
             @Param(description = "The pack to bench", aliases = {"pack"}, defaultValue = "overworld")
             IrisDimension dimension,

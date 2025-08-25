@@ -64,7 +64,6 @@ import java.util.zip.GZIPOutputStream;
 public class CommandDeveloper implements DecreeExecutor {
     private CommandTurboPregen turboPregen;
     private CommandLazyPregen lazyPregen;
-    private CommandUpdater updater;
 
     @Decree(description = "Get Loaded TectonicPlates Count", origin = DecreeOrigin.BOTH, sync = true)
     public void EngineStatus() {

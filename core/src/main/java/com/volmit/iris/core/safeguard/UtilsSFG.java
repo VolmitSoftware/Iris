@@ -4,6 +4,10 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.util.agent.Agent;
 import com.volmit.iris.util.format.C;
 
+import java.util.Arrays;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 public class UtilsSFG {
     public static void splash() {
         ModesSFG.selectMode();
@@ -36,6 +40,18 @@ public class UtilsSFG {
             if (ServerBootSFG.unsuportedversion) {
                 Iris.safeguard(C.RED + "Server Version");
                 Iris.safeguard(C.RED + "- Iris only supports " + minVersion + " > " + maxVersion);
+            }
+            if (ServerBootSFG.unsafeUpdate) {
+                Iris.safeguard(C.RED + "Unsafe Update");
+                Function<int[], String> regex = ii -> Arrays.stream(ii)
+                        .mapToObj(String::valueOf)
+                        .collect(Collectors.joining("."));
+
+                for (var world : ServerBootSFG.unsafeWorldUpdate.entrySet()) {
+                    String version = regex.apply(world.getValue());
+                    String worldName = world.getKey().getName();
+                    Iris.safeguard(C.RED + "- World: " + C.WHITE + worldName + C.GRAY + " (v" + version + ")");
+                }
             }
             if (ServerBootSFG.missingDimensionTypes) {
                 Iris.safeguard(C.RED + "Dimension Types");

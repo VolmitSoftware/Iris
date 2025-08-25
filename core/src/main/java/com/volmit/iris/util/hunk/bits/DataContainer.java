@@ -19,78 +19,32 @@
 package com.volmit.iris.util.hunk.bits;
 
 import com.volmit.iris.util.data.Varint;
+import lombok.Synchronized;
 
 import java.io.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class DataContainer<T> {
     protected static final int INITIAL_BITS = 3;
     protected static final int LINEAR_BITS_LIMIT = 4;
     protected static final int LINEAR_INITIAL_LENGTH = (int) Math.pow(2, LINEAR_BITS_LIMIT) + 1;
     protected static final int[] BIT = computeBitLimits();
-    private final AtomicReference<Palette<T>> palette;
-    private final AtomicReference<DataBits> data;
-    private final AtomicInteger bits;
+    private volatile Palette<T> palette;
+    private volatile DataBits data;
     private final int length;
     private final Writable<T> writer;
 
     public DataContainer(Writable<T> writer, int length) {
         this.writer = writer;
         this.length = length;
-        this.bits = new AtomicInteger(INITIAL_BITS);
-        this.data = new AtomicReference<>(new DataBits(INITIAL_BITS, length));
-        this.palette = new AtomicReference<>(newPalette(INITIAL_BITS));
+        this.data = new DataBits(INITIAL_BITS, length);
+        this.palette = newPalette(INITIAL_BITS);
     }
 
     public DataContainer(DataInputStream din, Writable<T> writer) throws IOException {
         this.writer = writer;
         this.length = Varint.readUnsignedVarInt(din);
-        this.palette = new AtomicReference<>(newPalette(din));
-        this.data = new AtomicReference<>(new DataBits(palette.get().bits(), length, din));
-        this.bits = new AtomicInteger(palette.get().bits());
-    }
-
-    public static String readBitString(DataInputStream din) throws IOException {
-        DataContainer<Character> c = new DataContainer<>(din, new Writable<Character>() {
-            @Override
-            public Character readNodeData(DataInputStream din) throws IOException {
-                return din.readChar();
-            }
-
-            @Override
-            public void writeNodeData(DataOutputStream dos, Character character) throws IOException {
-                dos.writeChar(character);
-            }
-        });
-
-        StringBuilder sb = new StringBuilder();
-
-        for (int i = c.size() - 1; i >= 0; i--) {
-            sb.setCharAt(i, c.get(i));
-        }
-
-        return sb.toString();
-    }
-
-    public static void writeBitString(String s, DataOutputStream dos) throws IOException {
-        DataContainer<Character> c = new DataContainer<>(new Writable<Character>() {
-            @Override
-            public Character readNodeData(DataInputStream din) throws IOException {
-                return din.readChar();
-            }
-
-            @Override
-            public void writeNodeData(DataOutputStream dos, Character character) throws IOException {
-                dos.writeChar(character);
-            }
-        }, s.length());
-
-        for (int i = 0; i < s.length(); i++) {
-            c.set(i, s.charAt(i));
-        }
-
-        c.writeDos(dos);
+        this.palette = newPalette(din);
+        this.data = new DataBits(palette.bits(), length, din);
     }
 
     private static int[] computeBitLimits() {
@@ -117,17 +71,9 @@ public class DataContainer<T> {
         return DataContainer.BIT.length - 1;
     }
 
-    public DataBits getData() {
-        return data.get();
-    }
-
-    public Palette<T> getPalette() {
-        return palette.get();
-    }
-
     public String toString() {
-        return "DataContainer <" + length + " x " + bits + " bits> -> Palette<" + palette.get().getClass().getSimpleName().replaceAll("\\QPalette\\E", "") + ">: " + palette.get().size() +
-                " " + data.get().toString() + " PalBit: " + palette.get().bits();
+        return "DataContainer <" + length + " x " + data.getBits() + " bits> -> Palette<" + palette.getClass().getSimpleName().replaceAll("\\QPalette\\E", "") + ">: " + palette.size() +
+                " " + data.toString() + " PalBit: " + palette.bits();
     }
 
     public byte[] write() throws IOException {
@@ -140,14 +86,13 @@ public class DataContainer<T> {
         writeDos(new DataOutputStream(out));
     }
 
+    @Synchronized
     public void writeDos(DataOutputStream dos) throws IOException {
-        synchronized (this) {
-            Varint.writeUnsignedVarInt(length, dos);
-            Varint.writeUnsignedVarInt(palette.get().size(), dos);
-            palette.get().iterateIO((data, __) -> writer.writeNodeData(dos, data));
-            data.get().write(dos);
-            dos.flush();
-        }
+        Varint.writeUnsignedVarInt(length, dos);
+        Varint.writeUnsignedVarInt(palette.size(), dos);
+        palette.iterateIO((data, __) -> writer.writeNodeData(dos, data));
+        data.write(dos);
+        dos.flush();
     }
 
     private Palette<T> newPalette(DataInputStream din) throws IOException {
@@ -165,45 +110,44 @@ public class DataContainer<T> {
         return new HashPalette<>();
     }
 
+    @Synchronized
     public void set(int position, T t) {
-        synchronized (this) {
-            int id = palette.get().id(t);
+        int id = palette.id(t);
 
-            if (id == -1) {
-                id = palette.get().add(t);
-                updateBits();
-            }
-
-            data.get().set(position, id);
+        if (id == -1) {
+            id = palette.add(t);
+            updateBits();
         }
+
+        data.set(position, id);
     }
 
+    @Synchronized
+    @SuppressWarnings("NonAtomicOperationOnVolatileField")
     private void updateBits() {
-        if (palette.get().bits() == bits.get())
+        if (palette.bits() == data.getBits())
             return;
 
-        int bits = palette.get().bits();
-        if (this.bits.get() <= LINEAR_BITS_LIMIT != bits <= LINEAR_BITS_LIMIT) {
-            palette.updateAndGet(p -> newPalette(bits).from(p));
+        int bits = palette.bits();
+        if (data.getBits() <= LINEAR_BITS_LIMIT != bits <= LINEAR_BITS_LIMIT) {
+            palette = newPalette(bits).from(palette);
         }
 
-        data.updateAndGet(d -> d.setBits(bits));
-        this.bits.set(bits);
+        data = data.setBits(bits);
     }
 
+    @Synchronized
     public T get(int position) {
-        synchronized (this) {
-            int id = data.get().get(position);
+        int id = data.get(position);
 
-            if (id <= 0) {
-                return null;
-            }
-
-            return palette.get().get(id);
+        if (id <= 0) {
+            return null;
         }
+
+        return palette.get(id);
     }
 
     public int size() {
-        return getData().getSize();
+        return data.getSize();
     }
 }

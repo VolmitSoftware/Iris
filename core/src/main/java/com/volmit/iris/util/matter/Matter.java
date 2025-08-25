@@ -141,6 +141,7 @@ public interface Matter {
             long size = din.readInt();
             if (size == 0) continue;
             long start = din.count();
+            long end = start + size;
 
             Iris.addPanic("read.matter.slice", i + "");
             try {
@@ -150,9 +151,9 @@ public interface Matter {
                 Class<?> type = Class.forName(cn);
                 MatterSlice<?> slice = matter.createSlice(type, matter);
                 slice.read(din);
+                if (din.count() < end) throw new IOException("Matter slice read size mismatch!");
                 matter.putSlice(type, slice);
             } catch (Throwable e) {
-                long end = start + size;
                 if (!(e instanceof ClassNotFoundException)) {
                     Iris.error("Failed to read matter slice, skipping it.");
                     Iris.addPanic("read.byte.range", start + " " + end);
@@ -165,7 +166,7 @@ public interface Matter {
                 din.skipTo(end);
             }
 
-            if (din.count() != start + size) {
+            if (din.count() != end) {
                 throw new IOException("Matter slice read size mismatch!");
             }
         }

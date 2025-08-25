@@ -468,8 +468,8 @@ public class Mantle {
 
         ioTectonicUnload.acquireUninterruptibly(LOCK_SIZE);
         try {
+            double unloadTime = M.ms() - adjustedIdleDuration.get();
             for (long id : toUnload) {
-                double unloadTime = M.ms() - adjustedIdleDuration.get();
                 burst.queue(() -> hyperLock.withLong(id, () -> {
                     TectonicPlate m = loadedRegions.get(id);
                     if (m == null) {
@@ -490,6 +490,7 @@ public class Mantle {
                     }
 
                     try {
+                        m.close();
                         worker.write(fileForRegion(dataFolder, id, false).getName(), m);
                         oldFileForRegion(dataFolder, id).delete();
                         loadedRegions.remove(id, m);
@@ -497,7 +498,7 @@ public class Mantle {
                         toUnload.remove(id);
                         i.incrementAndGet();
                         Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(id) + " " + Cache.keyZ(id));
-                    } catch (IOException e) {
+                    } catch (IOException | InterruptedException e) {
                         Iris.reportError(e);
                     }
                 }));

@@ -18,6 +18,7 @@
 
 package com.volmit.iris.core.commands;
 
+import lombok.Synchronized;
 import org.bukkit.World;
 
 import com.volmit.iris.Iris;
@@ -32,7 +33,8 @@ import com.volmit.iris.util.format.Form;
 
 @Decree(name = "updater", origin = DecreeOrigin.BOTH, description = "Iris World Updater")
 public class CommandUpdater implements DecreeExecutor {
-    private ChunkUpdater chunkUpdater;
+    private final Object lock = new Object();
+    private transient ChunkUpdater chunkUpdater;
 
     @Decree(description = "Updates all chunk in the specified world")
     public void start(
@@ -43,19 +45,22 @@ public class CommandUpdater implements DecreeExecutor {
             sender().sendMessage(C.GOLD + "This is not an Iris world");
             return;
         }
-        if (chunkUpdater != null) {
-            chunkUpdater.stop();
-        }
+        synchronized (lock) {
+            if (chunkUpdater != null) {
+                chunkUpdater.stop();
+            }
 
-        chunkUpdater = new ChunkUpdater(world);
-        if (sender().isPlayer()) {
-            sender().sendMessage(C.GREEN + "Updating " + world.getName()  + C.GRAY + " Total chunks: " + Form.f(chunkUpdater.getChunks()));
-        } else {
-            Iris.info(C.GREEN + "Updating " + world.getName() + C.GRAY + " Total chunks: " + Form.f(chunkUpdater.getChunks()));
+            chunkUpdater = new ChunkUpdater(world);
+            if (sender().isPlayer()) {
+                sender().sendMessage(C.GREEN + "Updating " + world.getName()  + C.GRAY + " Total chunks: " + Form.f(chunkUpdater.getChunks()));
+            } else {
+                Iris.info(C.GREEN + "Updating " + world.getName() + C.GRAY + " Total chunks: " + Form.f(chunkUpdater.getChunks()));
+            }
+            chunkUpdater.start();
         }
-        chunkUpdater.start();
     }
 
+    @Synchronized("lock")
     @Decree(description = "Pause the updater")
     public void pause( ) {
         if (chunkUpdater == null) {
@@ -78,6 +83,7 @@ public class CommandUpdater implements DecreeExecutor {
         }
     }
 
+    @Synchronized("lock")
     @Decree(description = "Stops the updater")
     public void stop() {
         if (chunkUpdater == null) {

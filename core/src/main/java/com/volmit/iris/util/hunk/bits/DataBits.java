@@ -19,12 +19,12 @@
 package com.volmit.iris.util.hunk.bits;
 
 import com.volmit.iris.util.data.Varint;
+import lombok.Getter;
 import org.apache.commons.lang3.Validate;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLongArray;
 import java.util.function.IntConsumer;
 
@@ -52,8 +52,10 @@ public class DataBits {
             0, 5};
 
     private final AtomicLongArray data;
+    @Getter
     private final int bits;
     private final long mask;
+    @Getter
     private final int size;
     private final int valuesPerLong;
     private final int divideMul;
@@ -149,18 +151,9 @@ public class DataBits {
         return data;
     }
 
-    public int getSize() {
-        return size;
-    }
-
-    public int getBits() {
-        return bits;
-    }
-
     public DataBits setBits(int newBits) {
         if (bits != newBits) {
             DataBits newData = new DataBits(newBits, size);
-            AtomicInteger c = new AtomicInteger(0);
 
             for (int i = 0; i < size; i++) {
                 newData.set(i, get(i));

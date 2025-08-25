@@ -69,8 +69,8 @@ public class ExternalDataSVC implements IrisService {
 
     @EventHandler
     public void onPluginEnable(PluginEnableEvent e) {
-        if (activeProviders.stream().noneMatch(p -> p.getPlugin().equals(e.getPlugin()))) {
-            providers.stream().filter(p -> p.isReady() && p.getPlugin().equals(e.getPlugin())).findFirst().ifPresent(edp -> {
+        if (activeProviders.stream().noneMatch(p -> e.getPlugin().equals(p.getPlugin()))) {
+            providers.stream().filter(p -> p.isReady() && e.getPlugin().equals(p.getPlugin())).findFirst().ifPresent(edp -> {
                 activeProviders.add(edp);
                 edp.init();
                 Iris.instance.registerListener(edp);

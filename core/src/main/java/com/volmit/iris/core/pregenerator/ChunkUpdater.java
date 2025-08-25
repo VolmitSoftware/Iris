@@ -39,14 +39,14 @@ public class ChunkUpdater {
     private final AtomicInteger chunksUpdated = new AtomicInteger();
     private final AtomicBoolean serverEmpty = new AtomicBoolean(true);
     private final AtomicLong lastCpsTime = new AtomicLong(M.ms());
-    private final int coreLimit = (int) Math.max(Runtime.getRuntime().availableProcessors() * IrisSettings.get().getUpdater().getThreadMultiplier(), 1);
-    private final Semaphore semaphore = new Semaphore(256);
-    private final LoadBalancer loadBalancer = new LoadBalancer(semaphore, 256, IrisSettings.get().getUpdater().emptyMsRange);
+    private final int maxConcurrency = IrisSettings.get().getUpdater().getMaxConcurrency();
+    private final Semaphore semaphore = new Semaphore(maxConcurrency);
+    private final LoadBalancer loadBalancer = new LoadBalancer(semaphore, maxConcurrency, IrisSettings.get().getUpdater().emptyMsRange);
     private final AtomicLong startTime = new AtomicLong();
     private final Dimensions dimensions;
     private final PregenTask task;
-    private final ExecutorService executor = Executors.newFixedThreadPool(coreLimit);
-    private final ExecutorService chunkExecutor = Executors.newFixedThreadPool(coreLimit);
+    private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    private final ExecutorService chunkExecutor = Executors.newVirtualThreadPerTaskExecutor();
     private final ScheduledExecutorService scheduler  = Executors.newScheduledThreadPool(1);
     private final CountDownLatch latch;
     private final Engine engine;
@@ -138,10 +138,10 @@ public class ChunkUpdater {
             loadBalancer.close();
             semaphore.acquire(256);
 
-            executor.shutdown();
-            executor.awaitTermination(5, TimeUnit.SECONDS);
             chunkExecutor.shutdown();
             chunkExecutor.awaitTermination(5, TimeUnit.SECONDS);
+            executor.shutdown();
+            executor.awaitTermination(5, TimeUnit.SECONDS);
             scheduler.shutdownNow();
             unloadAndSaveAllChunks();
         } catch (Exception ignored) {}

@@ -19,26 +19,14 @@
 package com.volmit.iris.util.mantle;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
-import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.CountingDataInputStream;
-import com.volmit.iris.util.io.IO;
-import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Getter;
-import net.jpountz.lz4.LZ4BlockInputStream;
-import net.jpountz.lz4.LZ4BlockOutputStream;
 
 import java.io.*;
-import java.nio.channels.Channels;
-import java.nio.channels.FileChannel;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
@@ -108,31 +96,6 @@ public class TectonicPlate {
                 din.skipTo(end);
                 TectonicPlate.addError();
             }
-        }
-    }
-
-    public static TectonicPlate read(int worldHeight, File file, boolean versioned) throws IOException {
-        try (FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.SYNC)) {
-            fc.lock();
-
-            InputStream fin = Channels.newInputStream(fc);
-            LZ4BlockInputStream lz4 = new LZ4BlockInputStream(fin);
-            BufferedInputStream bis = new BufferedInputStream(lz4);
-            try (CountingDataInputStream din = CountingDataInputStream.wrap(bis)) {
-                return new TectonicPlate(worldHeight, din, versioned);
-            }
-        } finally {
-            if (IrisSettings.get().getGeneral().isDumpMantleOnError() && errors.get()) {
-                File dump = Iris.instance.getDataFolder("dump", file.getName() + ".bin");
-                try (FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.SYNC)) {
-                    fc.lock();
-
-                    InputStream fin = Channels.newInputStream(fc);
-                    LZ4BlockInputStream lz4 = new LZ4BlockInputStream(fin);
-                    Files.copy(lz4, dump.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                }
-            }
-            errors.remove();
         }
     }
 
@@ -224,18 +187,6 @@ public class TectonicPlate {
     }
 
     /**
-     * Write this tectonic plate to file
-     *
-     * @param file the file to writeNodeData it to
-     * @throws IOException shit happens
-     */
-    public void write(File file) throws IOException {
-        PrecisionStopwatch p = PrecisionStopwatch.start();
-        IO.write(file, out -> new DataOutputStream(new LZ4BlockOutputStream(out)), this::write);
-        Iris.debug("Saved Tectonic Plate " + C.DARK_GREEN + file.getName() + C.RED + " in " + Form.duration(p.getMilliseconds(), 2));
-    }
-
-    /**
      * Write this tectonic plate to a data stream
      *
      * @param dos the data output
@@ -267,5 +218,13 @@ public class TectonicPlate {
 
     public static void addError() {
         errors.set(true);
+    }
+
+    public static boolean hasError() {
+        try {
+            return errors.get();
+        } finally {
+            errors.remove();
+        }
     }
 }

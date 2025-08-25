@@ -213,12 +213,16 @@ public interface EngineMantle extends IObjectPlacer {
                     for (int j = -radius; j <= radius; j++) {
                         int xx = x + i;
                         int zz = z + j;
-                        MantleChunk mc = getMantle().getChunk(xx, zz);
+                        MantleChunk mc = getMantle().getChunk(xx, zz).use();
 
                         burst.queue(() -> {
-                            IrisContext.touch(getEngine().getContext());
-                            pair.getA().forEach(k -> generateMantleComponent(writer, xx, zz, k, mc, context));
-                            if (last) mc.flag(MantleFlag.PLANNED, true);
+                            try {
+                                IrisContext.touch(getEngine().getContext());
+                                pair.getA().forEach(k -> generateMantleComponent(writer, xx, zz, k, mc, context));
+                                if (last) mc.flag(MantleFlag.PLANNED, true);
+                            } finally {
+                                mc.release();
+                            }
                         });
                     }
                 }

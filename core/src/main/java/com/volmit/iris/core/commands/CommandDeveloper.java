@@ -64,7 +64,6 @@ import java.util.zip.GZIPOutputStream;
 public class CommandDeveloper implements DecreeExecutor {
     private CommandTurboPregen turboPregen;
     private CommandLazyPregen lazyPregen;
-    private CommandUpdater updater;
 
     @Decree(description = "Get Loaded TectonicPlates Count", origin = DecreeOrigin.BOTH, sync = true)
     public void EngineStatus() {
@@ -113,27 +112,6 @@ public class CommandDeveloper implements DecreeExecutor {
         } catch (Throwable e) {
             e.printStackTrace();
         }
-    }
-
-    @Decree(description = "Test")
-    public void benchmarkMantle(
-            @Param(description = "The world to bench", aliases = {"world"})
-            World world
-    ) throws IOException, ClassNotFoundException {
-        Engine engine = IrisToolbelt.access(world).getEngine();
-        int maxHeight = engine.getTarget().getHeight();
-        File folder = new File(Bukkit.getWorldContainer(), world.getName());
-        int c = 0;
-        //MCAUtil.read()
-
-        File tectonicplates = new File(folder, "mantle");
-        for (File i : Objects.requireNonNull(tectonicplates.listFiles())) {
-            TectonicPlate.read(maxHeight, i, true);
-            c++;
-            Iris.info("Loaded count: " + c );
-
-        }
-
     }
 
     @Decree(description = "Test")

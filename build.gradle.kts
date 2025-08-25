@@ -105,7 +105,7 @@ nmsBindings.forEach { key, value ->
         pluginJars(tasks.jar.flatMap { it.archiveFile })
         javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(jvmVersion.getOrDefault(key, 21))}
         runDirectory.convention(layout.buildDirectory.dir("run/$key"))
-        systemProperty("disable.watchdog", "")
+        systemProperty("disable.watchdog", "true")
         systemProperty("net.kyori.ansi.colorLevel", color)
         systemProperty("com.mojang.eula.agree", true)
         systemProperty("iris.suppressReporting", !errorReporting)

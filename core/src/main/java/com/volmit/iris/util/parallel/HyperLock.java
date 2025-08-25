@@ -22,6 +22,7 @@ import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.util.function.NastyRunnable;
+import com.volmit.iris.util.function.NastySupplier;
 import com.volmit.iris.util.io.IORunnable;
 
 import java.io.IOException;
@@ -105,6 +106,15 @@ public class HyperLock {
         T t = r.get();
         unlock(x, z);
         return t;
+    }
+
+    public <T> T withNastyResult(int x, int z, NastySupplier<T> r) throws Throwable {
+        lock(x, z);
+        try {
+            return r.get();
+        } finally {
+            unlock(x, z);
+        }
     }
 
     public boolean tryLock(int x, int z) {

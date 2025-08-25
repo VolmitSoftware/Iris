@@ -26,11 +26,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.List;
 import java.util.MissingResourceException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class NexoDataProvider extends ExternalDataProvider {
-    private final AtomicBoolean failed = new AtomicBoolean(false);
-
     public NexoDataProvider() {
         super("Nexo");
     }
@@ -124,10 +121,5 @@ public class NexoDataProvider extends ExternalDataProvider {
     public boolean isValidProvider(@NotNull Identifier id, DataType dataType) {
         if (dataType == DataType.ENTITY) return false;
         return "nexo".equalsIgnoreCase(id.namespace());
-    }
-
-    @Override
-    public boolean isReady() {
-        return super.isReady() && !failed.get();
     }
 }

@@ -206,7 +206,7 @@ public interface EngineMantle extends IObjectPlacer {
                 var pair = iterator.next();
                 int radius = pair.getB();
                 boolean last = !iterator.hasNext();
-                BurstExecutor burst = burst().burst(radius * 2 + 1);
+                BurstExecutor burst = burst().burst((radius * 2 + 1) * pair.getA().size());
                 burst.setMulticore(multicore);
 
                 for (int i = -radius; i <= radius; i++) {
@@ -214,26 +214,30 @@ public interface EngineMantle extends IObjectPlacer {
                         int xx = x + i;
                         int zz = z + j;
                         MantleChunk mc = getMantle().getChunk(xx, zz).use();
-
-                        burst.queue(() -> {
-                            try {
-                                IrisContext.touch(getEngine().getContext());
-                                pair.getA().forEach(k -> generateMantleComponent(writer, xx, zz, k, mc, context));
-                                if (last) mc.flag(MantleFlag.PLANNED, true);
-                            } finally {
-                                mc.release();
-                            }
-                        });
+                        for (MantleComponent c : pair.getA()) {
+                            burst.queue(() -> {
+                                IrisContext.getOr(getEngine()).setChunkContext(context);
+                                generateMantleComponent(writer, xx, zz, c, mc, context);
+                            });
+                        }
                     }
                 }
 
                 burst.complete();
+
+                for (int i = -radius; i <= radius; i++) {
+                    for (int j = -radius; j <= radius; j++) {
+                        var chunk = getMantle().getChunk(x + i, z + j);
+                        if (last) chunk.flag(MantleFlag.PLANNED, true);
+                        chunk.release();
+                    }
+                }
             }
         }
     }
 
     default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, MantleChunk mc, ChunkContext context) {
-        mc.raiseFlag(c.getFlag(), () -> {
+        mc.raiseFlag(MantleFlag.PLANNED, c.getFlag(), () -> {
             if (c.isEnabled()) c.generateLayer(writer, x, z, context);
         });
     }

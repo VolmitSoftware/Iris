@@ -49,6 +49,7 @@ public class MantleChunk {
     @Getter
     private final int z;
     private final AtomicIntegerArray flags;
+    private final Object[] flagLocks;
     private final AtomicReferenceArray<Matter> sections;
     private final Semaphore ref = new Semaphore(Integer.MAX_VALUE, true);
     private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -62,11 +63,13 @@ public class MantleChunk {
     public MantleChunk(int sectionHeight, int x, int z) {
         sections = new AtomicReferenceArray<>(sectionHeight);
         flags = new AtomicIntegerArray(MantleFlag.values().length);
+        flagLocks = new Object[MantleFlag.values().length];
         this.x = x;
         this.z = z;
 
         for (int i = 0; i < flags.length(); i++) {
             flags.set(i, 0);
+            flagLocks[i] = new Object();
         }
     }
 
@@ -148,9 +151,16 @@ public class MantleChunk {
     }
 
     public void raiseFlag(MantleFlag flag, Runnable r) {
+        raiseFlag(null, flag, r);
+    }
+
+    public void raiseFlag(@Nullable MantleFlag guard, MantleFlag flag, Runnable r) {
         if (closed.get()) throw new IllegalStateException("Chunk is closed!");
-        if (flags.getAndSet(flag.ordinal(), 1) == 0) {
-            r.run();
+        if (guard != null && isFlagged(guard)) return;
+        synchronized (flagLocks[flag.ordinal()]) {
+            if (flags.getAndSet(flag.ordinal(), 1) == 0) {
+                r.run();
+            }
         }
     }
 

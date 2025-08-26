@@ -21,6 +21,8 @@ package com.volmit.iris.util.hunk.bits;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.function.Consumer2;
 
+import java.io.DataInputStream;
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -33,7 +35,6 @@ public class HashPalette<T> implements Palette<T> {
         this.size = new AtomicInteger(1);
         this.palette = new LinkedHashMap<>();
         this.lookup = new KMap<>();
-        palette.put(null, 0);
     }
 
     @Override
@@ -78,13 +79,32 @@ public class HashPalette<T> implements Palette<T> {
     @Override
     public void iterate(Consumer2<T, Integer> c) {
         synchronized (palette) {
-            for (T i : palette.keySet()) {
-                if (i == null) {
-                    continue;
-                }
-
-                c.accept(i, id(i));
+            for (int i = 1; i < size.get(); i++) {
+                c.accept(lookup.get(i), i);
             }
         }
+    }
+
+    @Override
+    public Palette<T> from(Palette<T> oldPalette) {
+        oldPalette.iterate((t, i) -> {
+            if (t == null) throw new NullPointerException("Null palette entries are not allowed!");
+            lookup.put(i, t);
+            palette.put(t, i);
+        });
+        size.set(oldPalette.size() + 1);
+        return this;
+    }
+
+    @Override
+    public Palette<T> from(int size, Writable<T> writable, DataInputStream in) throws IOException {
+        for (int i = 1; i <= size; i++) {
+            T t = writable.readNodeData(in);
+            if (t == null) throw new NullPointerException("Null palette entries are not allowed!");
+            lookup.put(i, t);
+            palette.put(t, i);
+        }
+        this.size.set(size + 1);
+        return this;
     }
 }

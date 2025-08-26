@@ -19,6 +19,7 @@
 package com.volmit.iris.util.hunk.bits;
 
 import com.volmit.iris.util.function.Consumer2;
+import lombok.Synchronized;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
@@ -87,7 +88,7 @@ public class LinearPalette<T> implements Palette<T> {
 
     @Override
     public void iterate(Consumer2<T, Integer> c) {
-        for (int i = 1; i < size() + 1; i++) {
+        for (int i = 1; i <= size(); i++) {
             c.accept(palette.get(i), i);
         }
     }

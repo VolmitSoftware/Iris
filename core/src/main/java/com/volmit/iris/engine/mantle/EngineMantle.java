@@ -244,7 +244,12 @@ public interface EngineMantle extends IObjectPlacer {
             return;
         }
 
-        getMantle().iterateChunk(x, z, t, blocks::set);
+        var chunk = getMantle().getChunk(x, z).use();
+        try {
+            chunk.iterate(t, blocks::set);
+        } finally {
+            chunk.release();
+        }
     }
 
     @BlockCoordinates

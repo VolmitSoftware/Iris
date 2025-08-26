@@ -204,7 +204,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             IrisBiomeStorage st = new IrisBiomeStorage();
             TerrainChunk tc = TerrainChunk.createUnsafe(world, st);
             this.world.bind(world);
-            getEngine().generate(x << 4, z << 4, tc, false);
+            getEngine().generate(x << 4, z << 4, tc, IrisSettings.get().getGenerator().useMulticore);
 
             Chunk c = PaperLib.getChunkAtAsync(world, x, z)
                     .thenApply(d -> {

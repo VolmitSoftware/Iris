@@ -180,6 +180,10 @@ public class MantleJigsawComponent extends IrisMantleComponent {
         var dimension = getDimension();
 
         KSet<String> structures = new KSet<>();
+        if (dimension.getStronghold() != null) {
+            structures.add(dimension.getStronghold());
+        }
+
         for (var placement : dimension.getJigsawStructures()) {
             structures.add(placement.getStructure());
         }

@@ -220,7 +220,9 @@ public class MantleChunk {
 
         if (matter == null) {
             matter = new IrisMatter(16, 16, 16);
-            sections.set(section, matter);
+            if (!sections.compareAndSet(section, null, matter)) {
+                matter = get(section);
+            }
         }
 
         return matter;

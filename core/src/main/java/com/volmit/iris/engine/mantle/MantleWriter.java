@@ -29,12 +29,15 @@ import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.function.Function3;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.Matter;
+import com.volmit.iris.util.matter.MatterCavern;
+import com.volmit.iris.util.matter.TileWrapper;
 import com.volmit.iris.util.noise.CNG;
 import lombok.Data;
 import org.bukkit.block.data.BlockData;
@@ -43,6 +46,8 @@ import org.bukkit.util.Vector;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static com.volmit.iris.engine.mantle.EngineMantle.AIR;
 
 @Data
 public class MantleWriter implements IObjectPlacer, AutoCloseable {
@@ -160,6 +165,31 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
         }
     }
 
+    public <T> T getData(int x, int y, int z, Class<T> type) {
+        int cx = x >> 4;
+        int cz = z >> 4;
+
+        if (y < 0 || y >= mantle.getWorldHeight()) {
+            return null;
+        }
+
+        if (cx < this.x - radius || cx > this.x + radius
+                || cz < this.z - radius || cz > this.z + radius) {
+            Iris.error("Mantle Writer Accessed chunk out of bounds" + cx + "," + cz);
+            return null;
+        }
+        MantleChunk chunk = cachedChunks.computeIfAbsent(Cache.key(cx, cz), k -> mantle.getChunk(cx, cz).use());
+
+        if (chunk == null) {
+            Iris.error("Mantle Writer Accessed " + cx + "," + cz + " and came up null (and yet within bounds!)");
+            return null;
+        }
+
+        return chunk.getOrCreate(y >> 4)
+                .<T>slice(type)
+                .get(x & 15, y & 15, z & 15);
+    }
+
     @Override
     public int getHighest(int x, int z, IrisData data) {
         return engineMantle.getHighest(x, z, data);
@@ -180,7 +210,10 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
 
     @Override
     public BlockData get(int x, int y, int z) {
-        return getEngineMantle().get(x, y, z);
+        BlockData block = getData(x, y, z, BlockData.class);
+        if (block == null)
+            return AIR;
+        return block;
     }
 
     @Override
@@ -190,12 +223,12 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
 
     @Override
     public boolean isCarved(int x, int y, int z) {
-        return getEngineMantle().isCarved(x, y, z);
+        return getData(x, y, z, MatterCavern.class) != null;
     }
 
     @Override
     public boolean isSolid(int x, int y, int z) {
-        return getEngineMantle().isSolid(x, y, z);
+        return B.isSolid(get(x, y, z));
     }
 
     @Override
@@ -215,7 +248,7 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
 
     @Override
     public void setTile(int xx, int yy, int zz, TileData tile) {
-        getEngineMantle().setTile(xx, yy, zz, tile);
+        setData(xx, yy, zz, new TileWrapper(tile));
     }
 
     @Override

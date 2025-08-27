@@ -26,31 +26,30 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.mantle.components.MantleJigsawComponent;
 import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
-import com.volmit.iris.engine.object.IObjectPlacer;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisPosition;
-import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
-import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
 import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.matter.*;
 import com.volmit.iris.util.matter.slices.UpdateMatter;
-import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import org.bukkit.block.data.BlockData;
 
 import java.util.concurrent.TimeUnit;
 
-// TODO: MOVE PLACER OUT OF MATTER INTO ITS OWN THING
-public interface EngineMantle extends IObjectPlacer {
+import static com.volmit.iris.util.parallel.StreamUtils.forEach;
+import static com.volmit.iris.util.parallel.StreamUtils.streamRadius;
+
+public interface EngineMantle {
     BlockData AIR = B.get("AIR");
 
     Mantle getMantle();
@@ -87,12 +86,10 @@ public interface EngineMantle extends IObjectPlacer {
         return getHighest(x, z, getData(), ignoreFluid);
     }
 
-    @Override
     default int getHighest(int x, int z, IrisData data) {
         return getHighest(x, z, data, false);
     }
 
-    @Override
     default int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
         return ignoreFluid ? trueHeight(x, z) : Math.max(trueHeight(x, z), getEngine().getDimension().getFluidHeight());
     }
@@ -101,24 +98,12 @@ public interface EngineMantle extends IObjectPlacer {
         return getComplex().getRoundedHeighteightStream().get(x, z);
     }
 
+    @Deprecated(forRemoval = true)
     default boolean isCarved(int x, int h, int z) {
         return getMantle().get(x, h, z, MatterCavern.class) != null;
     }
 
-    @Override
-    default void set(int x, int y, int z, BlockData d) {
-        if (d instanceof IrisCustomData data) {
-            getMantle().set(x, y, z, data.getBase());
-            getMantle().set(x, y, z, data.getCustom());
-        } else getMantle().set(x, y, z, d == null ? AIR : d);
-    }
-
-    @Override
-    default void setTile(int x, int y, int z, TileData d) {
-        getMantle().set(x, y, z, new TileWrapper(d));
-    }
-
-    @Override
+    @Deprecated(forRemoval = true)
     default BlockData get(int x, int y, int z) {
         BlockData block = getMantle().get(x, y, z, BlockData.class);
         if (block == null)
@@ -126,27 +111,18 @@ public interface EngineMantle extends IObjectPlacer {
         return block;
     }
 
-    @Override
     default boolean isPreventingDecay() {
         return getEngine().getDimension().isPreventLeafDecay();
     }
 
-    @Override
-    default boolean isSolid(int x, int y, int z) {
-        return B.isSolid(get(x, y, z));
-    }
-
-    @Override
     default boolean isUnderwater(int x, int z) {
         return getHighest(x, z, true) <= getFluidHeight();
     }
 
-    @Override
     default int getFluidHeight() {
         return getEngine().getDimension().getFluidHeight();
     }
 
-    @Override
     default boolean isDebugSmartBore() {
         return getEngine().getDimension().isDebugSmartBore();
     }
@@ -206,32 +182,31 @@ public interface EngineMantle extends IObjectPlacer {
                 var pair = iterator.next();
                 int radius = pair.getB();
                 boolean last = !iterator.hasNext();
-                BurstExecutor burst = burst().burst((radius * 2 + 1) * pair.getA().size());
-                burst.setMulticore(multicore);
-
-                for (int i = -radius; i <= radius; i++) {
-                    for (int j = -radius; j <= radius; j++) {
-                        int xx = x + i;
-                        int zz = z + j;
-                        MantleChunk mc = getMantle().getChunk(xx, zz).use();
-                        for (MantleComponent c : pair.getA()) {
-                            burst.queue(() -> {
+                forEach(streamRadius(x, z, radius),
+                        pos -> pair.getA()
+                                .stream()
+                                .map(c -> new Pair<>(c, pos)),
+                        p -> {
+                            MantleComponent c = p.getA();
+                            Position2 pos = p.getB();
+                            int xx = pos.getX();
+                            int zz = pos.getZ();
+                            MantleChunk mc = getMantle().getChunk(xx, zz).use();
+                            try {
                                 IrisContext.getOr(getEngine()).setChunkContext(context);
                                 generateMantleComponent(writer, xx, zz, c, mc, context);
-                            });
-                        }
-                    }
-                }
+                            } finally {
+                                mc.release();
+                            }
+                        },
+                        multicore ? burst() : null
+                );
 
-                burst.complete();
-
-                for (int i = -radius; i <= radius; i++) {
-                    for (int j = -radius; j <= radius; j++) {
-                        var chunk = getMantle().getChunk(x + i, z + j);
-                        if (last) chunk.flag(MantleFlag.PLANNED, true);
-                        chunk.release();
-                    }
-                }
+                if (!last) continue;
+                forEach(streamRadius(x, z, radius),
+                        p -> getMantle().flag(p.getX(), p.getZ(), MantleFlag.PLANNED, true),
+                        multicore ? burst() : null
+                );
             }
         }
     }

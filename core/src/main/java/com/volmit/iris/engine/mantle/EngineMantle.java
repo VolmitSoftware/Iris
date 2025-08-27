@@ -172,7 +172,7 @@ public interface EngineMantle {
 
     @ChunkCoordinates
     default void generateMatter(int x, int z, boolean multicore, ChunkContext context) {
-        if (!getEngine().getDimension().isUseMantle()) {
+        if (!getEngine().getDimension().isUseMantle() || getMantle().hasFlag(x, z, MantleFlag.PLANNED)) {
             return;
         }
 
@@ -191,20 +191,15 @@ public interface EngineMantle {
                             Position2 pos = p.getB();
                             int xx = pos.getX();
                             int zz = pos.getZ();
-                            MantleChunk mc = getMantle().getChunk(xx, zz).use();
-                            try {
-                                IrisContext.getOr(getEngine()).setChunkContext(context);
-                                generateMantleComponent(writer, xx, zz, c, mc, context);
-                            } finally {
-                                mc.release();
-                            }
+                            IrisContext.getOr(getEngine()).setChunkContext(context);
+                            generateMantleComponent(writer, xx, zz, c, writer.acquireChunk(xx, zz), context);
                         },
                         multicore ? burst() : null
                 );
 
                 if (!last) continue;
                 forEach(streamRadius(x, z, radius),
-                        p -> getMantle().flag(p.getX(), p.getZ(), MantleFlag.PLANNED, true),
+                        p -> writer.acquireChunk(x, z).flag(MantleFlag.PLANNED, true),
                         multicore ? burst() : null
                 );
             }

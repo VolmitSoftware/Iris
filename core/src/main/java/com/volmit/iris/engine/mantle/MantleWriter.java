@@ -31,6 +31,7 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.IrisCustomData;
+import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.function.Function3;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
@@ -149,20 +150,11 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
             return;
         }
 
-        if (cx >= this.x - radius && cx <= this.x + radius
-                && cz >= this.z - radius && cz <= this.z + radius) {
-            MantleChunk chunk = cachedChunks.computeIfAbsent(Cache.key(cx, cz), k -> mantle.getChunk(cx, cz).use());
+        MantleChunk chunk = acquireChunk(cx, cz);
+        if (chunk == null) return;
 
-            if (chunk == null) {
-                Iris.error("Mantle Writer Accessed " + cx + "," + cz + " and came up null (and yet within bounds!)");
-                return;
-            }
-
-            Matter matter = chunk.getOrCreate(y >> 4);
-            matter.slice(matter.getClass(t)).set(x & 15, y & 15, z & 15, t);
-        } else {
-            Iris.error("Mantle Writer Accessed chunk out of bounds" + cx + "," + cz);
-        }
+        Matter matter = chunk.getOrCreate(y >> 4);
+        matter.slice(matter.getClass(t)).set(x & 15, y & 15, z & 15, t);
     }
 
     public <T> T getData(int x, int y, int z, Class<T> type) {
@@ -173,21 +165,26 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
             return null;
         }
 
-        if (cx < this.x - radius || cx > this.x + radius
-                || cz < this.z - radius || cz > this.z + radius) {
-            Iris.error("Mantle Writer Accessed chunk out of bounds" + cx + "," + cz);
-            return null;
-        }
-        MantleChunk chunk = cachedChunks.computeIfAbsent(Cache.key(cx, cz), k -> mantle.getChunk(cx, cz).use());
-
+        MantleChunk chunk = acquireChunk(cx, cz);
         if (chunk == null) {
-            Iris.error("Mantle Writer Accessed " + cx + "," + cz + " and came up null (and yet within bounds!)");
             return null;
         }
 
         return chunk.getOrCreate(y >> 4)
                 .<T>slice(type)
                 .get(x & 15, y & 15, z & 15);
+    }
+
+    @ChunkCoordinates
+    public MantleChunk acquireChunk(int cx, int cz) {
+        if (cx < this.x - radius || cx > this.x + radius
+                || cz < this.z - radius || cz > this.z + radius) {
+            Iris.error("Mantle Writer Accessed chunk out of bounds" + cx + "," + cz);
+            return null;
+        }
+        MantleChunk chunk = cachedChunks.computeIfAbsent(Cache.key(cx, cz), k -> mantle.getChunk(cx, cz).use());
+        if (chunk == null) Iris.error("Mantle Writer Accessed " + cx + "," + cz + " and came up null (and yet within bounds!)");
+        return chunk;
     }
 
     @Override

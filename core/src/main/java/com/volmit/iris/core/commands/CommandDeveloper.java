@@ -19,6 +19,7 @@
 package com.volmit.iris.core.commands;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.ServerConfigurator;
@@ -30,6 +31,8 @@ import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
 import com.volmit.iris.util.collection.KList;
@@ -162,31 +165,44 @@ public class CommandDeveloper implements DecreeExecutor {
 
         sender().sendMessage(C.IRIS + "Found " + map.size() + " structures");
 
-        IrisData data;
-        Set<String> existingStructures;
-        File dimensionFile;
-        File structuresFolder;
+        final File dataDir;
+        final IrisData data;
+        final Set<String> existingStructures;
+        final Map<String, Set<String>> snippets;
+        final File dimensionFile;
+        final File structuresFolder;
+        final File snippetsFolder;
 
         var dimensionObj = new JsonObject();
 
         if (dimension == null) {
-            File dataDir = Iris.instance.getDataFolder("structures");
+            dataDir = Iris.instance.getDataFolder("structures");
             IO.delete(dataDir);
             data = IrisData.get(dataDir);
-            structuresFolder = new File(dataDir, "jigsaw-structures");
             existingStructures = Set.of();
+            snippets = Map.of();
             dimensionFile = new File(dataDir, "structures.json");
         } else {
             data = dimension.getLoader();
-            existingStructures = Stream.concat(
-                            dimension.getJigsawStructures().stream().map(IrisJigsawStructurePlacement::getStructure),
-                            Arrays.stream(data.getJigsawStructureLoader().getPossibleKeys()))
-                    .collect(Collectors.toSet());
+            dataDir = data.getDataFolder();
+            existingStructures = new KSet<>(data.getJigsawStructureLoader().getPossibleKeys());
 
             dimensionObj = data.getGson().fromJson(IO.readAll(dimension.getLoadFile()), JsonObject.class);
+            snippets = Optional.ofNullable(dimensionObj.getAsJsonArray("jigsawStructures"))
+                    .map(array -> array.asList()
+                            .stream()
+                            .filter(JsonElement::isJsonPrimitive)
+                            .collect(Collectors.toMap(element -> data.getGson()
+                                            .fromJson(element, IrisJigsawStructurePlacement.class)
+                                            .getStructure(),
+                                    element -> Set.of(element.getAsString()),
+                                    KSet::merge)))
+                    .orElse(Map.of());
+
             dimensionFile = dimension.getLoadFile();
-            structuresFolder = new File(data.getDataFolder(), "jigsaw-structures");
         }
+        structuresFolder = new File(dataDir, "jigsaw-structures");
+        snippetsFolder = new File(dataDir, "snippet" + "/" + IrisJigsawStructurePlacement.class.getAnnotation(Snippet.class).value());
 
         var gson = data.getGson();
         var jigsawStructures = Optional.ofNullable(dimensionObj.getAsJsonArray("jigsawStructures"))
@@ -203,6 +219,18 @@ public class CommandDeveloper implements DecreeExecutor {
                 sender().sendMessage(C.RED + "Failed to generate hook for " + key);
                 return;
             }
+            File snippetFile = new File(snippetsFolder, loadKey + ".json");
+            try {
+                IO.writeAll(snippetFile, gson.toJson(obj));
+            } catch (IOException e) {
+                sender().sendMessage(C.RED + "Failed to generate snippet for " + key);
+                e.printStackTrace();
+                return;
+            }
+
+            Set<String> loadKeys = snippets.getOrDefault(loadKey, Set.of(loadKey));
+            jigsawStructures.asList().removeIf(e -> loadKeys.contains((e.isJsonObject() ? e.getAsJsonObject().get("structure") : e).getAsString()));
+            jigsawStructures.add("snippet/" + loadKey);
 
             String structureKey;
             if (structures.size() > 1) {
@@ -212,7 +240,7 @@ public class CommandDeveloper implements DecreeExecutor {
                     if (i == 0) common.addAll(tags);
                     else common.removeIf(tag -> !tags.contains(tag));
                 }
-                structureKey = common.isNotEmpty() ? common.getFirst() : structures.getFirst().key();
+                structureKey = common.isNotEmpty() ? "#" + common.getFirst() : structures.getFirst().key();
             } else structureKey = structures.getFirst().key();
 
             JsonArray array = new JsonArray();
@@ -225,9 +253,6 @@ public class CommandDeveloper implements DecreeExecutor {
                         })
                         .forEach(array::add);
             } else array.add(structureKey);
-
-            jigsawStructures.asList().removeIf(e -> e.getAsJsonObject().get("structure").getAsString().equals(loadKey));
-            jigsawStructures.add(obj);
 
             obj = new JsonObject();
             obj.addProperty("structureKey", structureKey);

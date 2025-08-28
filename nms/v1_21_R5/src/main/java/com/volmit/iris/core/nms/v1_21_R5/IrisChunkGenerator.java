@@ -323,10 +323,10 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
 
                 int noAir = engine.getHeight(wX, wZ, false) + engine.getMinHeight() + 1;
                 int noFluid = engine.getHeight(wX, wZ, true) + engine.getMinHeight() + 1;
-                SET_HEIGHT.invoke(ocean, x, z, noFluid);
-                SET_HEIGHT.invoke(surface, x, z, noAir);
-                SET_HEIGHT.invoke(motion, x, z, noAir);
-                SET_HEIGHT.invoke(motionNoLeaves, x, z, noAir);
+                SET_HEIGHT.invoke(ocean, x, z, Math.min(noFluid, ocean.getFirstAvailable(x, z)));
+                SET_HEIGHT.invoke(surface, x, z, Math.min(noAir, surface.getFirstAvailable(x, z)));
+                SET_HEIGHT.invoke(motion, x, z, Math.min(noAir, motion.getFirstAvailable(x, z)));
+                SET_HEIGHT.invoke(motionNoLeaves, x, z, Math.min(noAir, motionNoLeaves.getFirstAvailable(x, z)));
             }
         }
 

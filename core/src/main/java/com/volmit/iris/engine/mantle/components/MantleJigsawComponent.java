@@ -47,7 +47,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
     private final CNG cng;
 
     public MantleJigsawComponent(EngineMantle engineMantle) {
-        super(engineMantle, MantleFlag.JIGSAW, 1);
+        super(engineMantle, MantleFlag.JIGSAW, 2);
         cng = NoiseStyle.STATIC.create(new RNG(jigsaw()));
     }
 
@@ -180,6 +180,10 @@ public class MantleJigsawComponent extends IrisMantleComponent {
         var dimension = getDimension();
 
         KSet<String> structures = new KSet<>();
+        if (dimension.getStronghold() != null) {
+            structures.add(dimension.getStronghold());
+        }
+
         for (var placement : dimension.getJigsawStructures()) {
             structures.add(placement.getStructure());
         }

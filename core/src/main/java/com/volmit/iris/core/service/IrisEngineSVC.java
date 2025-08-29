@@ -157,6 +157,7 @@ public class IrisEngineSVC implements IrisService {
     private final class Registered {
         private final String name;
         private final PlatformChunkGenerator access;
+        private final int offset = RNG.r.nextInt(1000);
         private transient ScheduledFuture<?> trimmer;
         private transient ScheduledFuture<?> unloader;
         private transient boolean closed;
@@ -193,7 +194,7 @@ public class IrisEngineSVC implements IrisService {
                         Iris.error("EngineSVC: Failed to trim for " + name);
                         e.printStackTrace();
                     }
-                }, RNG.r.nextInt(1000), 1000, TimeUnit.MILLISECONDS);
+                }, offset, 2000, TimeUnit.MILLISECONDS);
             }
 
             if (unloader == null || unloader.isDone() || unloader.isCancelled()) {
@@ -204,7 +205,7 @@ public class IrisEngineSVC implements IrisService {
 
                     try {
                         long unloadStart = System.currentTimeMillis();
-                        int count = engine.getMantle().unloadTectonicPlate(tectonicLimit());
+                        int count = engine.getMantle().unloadTectonicPlate(IrisSettings.get().getPerformance().getEngineSVC().forceMulticoreWrite ? 0 : tectonicLimit());
                         if (count > 0) {
                             Iris.debug(C.GOLD + "Unloaded " + C.YELLOW + count + " TectonicPlates in " + C.RED + Form.duration(System.currentTimeMillis() - unloadStart, 2));
                         }
@@ -213,7 +214,7 @@ public class IrisEngineSVC implements IrisService {
                         Iris.error("EngineSVC: Failed to unload for " + name);
                         e.printStackTrace();
                     }
-                }, RNG.r.nextInt(1000), 1000, TimeUnit.MILLISECONDS);
+                }, offset + 1000, 2000, TimeUnit.MILLISECONDS);
             }
         }
 

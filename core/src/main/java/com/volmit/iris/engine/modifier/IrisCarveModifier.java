@@ -27,6 +27,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
@@ -53,10 +54,11 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     }
 
     @Override
+    @ChunkCoordinates
     public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         Mantle mantle = getEngine().getMantle().getMantle();
-        MantleChunk mc = getEngine().getMantle().getMantle().getChunk(x, z).use();
+        MantleChunk mc = mantle.getChunk(x, z).use();
         KMap<Long, KList<Integer>> positions = new KMap<>();
         KMap<IrisPosition, MatterCavern> walls = new KMap<>();
         Consumer4<Integer, Integer, Integer, MatterCavern> iterator = (xx, yy, zz, c) -> {
@@ -81,19 +83,19 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
 
             //todo: Fix chunk decoration not working on chunk's border
 
-            if (rz < 15 && mantle.get(xx, yy, zz + 1, MatterCavern.class) == null) {
+            if (rz < 15 && mc.get(xx, yy, zz + 1, MatterCavern.class) == null) {
                 walls.put(new IrisPosition(rx, yy, rz + 1), c);
             }
 
-            if (rx < 15 && mantle.get(xx + 1, yy, zz, MatterCavern.class) == null) {
+            if (rx < 15 && mc.get(xx + 1, yy, zz, MatterCavern.class) == null) {
                 walls.put(new IrisPosition(rx + 1, yy, rz), c);
             }
 
-            if (rz > 0 && mantle.get(xx, yy, zz - 1, MatterCavern.class) == null) {
+            if (rz > 0 && mc.get(xx, yy, zz - 1, MatterCavern.class) == null) {
                 walls.put(new IrisPosition(rx, yy, rz - 1), c);
             }
 
-            if (rx > 0 && mantle.get(xx - 1, yy, zz, MatterCavern.class) == null) {
+            if (rx > 0 && mc.get(xx - 1, yy, zz, MatterCavern.class) == null) {
                 walls.put(new IrisPosition(rx - 1, yy, rz), c);
             }
 

@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.platform;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.IrisWorlds;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
@@ -34,7 +35,6 @@ import com.volmit.iris.engine.object.StudioMode;
 import com.volmit.iris.engine.platform.studio.StudioGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.IrisBiomeStorage;
-import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.hunk.view.BiomeGridHunkHolder;
 import com.volmit.iris.util.hunk.view.ChunkDataHunkHolder;
 import com.volmit.iris.util.io.ReactiveFolder;
@@ -46,8 +46,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Setter;
 import org.bukkit.*;
-import org.bukkit.block.Biome;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -206,7 +204,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             IrisBiomeStorage st = new IrisBiomeStorage();
             TerrainChunk tc = TerrainChunk.createUnsafe(world, st);
             this.world.bind(world);
-            getEngine().generate(x << 4, z << 4, tc, false);
+            getEngine().generate(x << 4, z << 4, tc, IrisSettings.get().getGenerator().useMulticore);
 
             Chunk c = PaperLib.getChunkAtAsync(world, x, z)
                     .thenApply(d -> {
@@ -367,7 +365,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             } else {
                 ChunkDataHunkHolder blocks = new ChunkDataHunkHolder(tc);
                 BiomeGridHunkHolder biomes = new BiomeGridHunkHolder(tc, tc.getMinHeight(), tc.getMaxHeight());
-                getEngine().generate(x << 4, z << 4, blocks, biomes, false);
+                getEngine().generate(x << 4, z << 4, blocks, biomes, IrisSettings.get().getGenerator().useMulticore);
                 blocks.apply();
                 biomes.apply();
             }

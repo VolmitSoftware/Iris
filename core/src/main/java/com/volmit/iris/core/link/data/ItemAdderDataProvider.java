@@ -7,11 +7,12 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.IrisCustomData;
-import com.volmit.iris.util.scheduling.J;
 import dev.lone.itemsadder.api.CustomBlock;
 import dev.lone.itemsadder.api.CustomStack;
+import dev.lone.itemsadder.api.Events.ItemsAdderLoadDataEvent;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.event.EventHandler;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,12 +32,12 @@ public class ItemAdderDataProvider extends ExternalDataProvider {
 
     @Override
     public void init() {
-        try {
-            updateNamespaces();
-        } catch (Throwable e) {
-            Iris.warn("Failed to update ItemAdder namespaces: " + e.getMessage());
-            J.s(this::updateNamespaces, 20);
-        }
+        updateNamespaces();
+    }
+
+    @EventHandler
+    public void onLoadData(ItemsAdderLoadDataEvent event) {
+        updateNamespaces();
     }
 
     @NotNull
@@ -68,33 +69,36 @@ public class ItemAdderDataProvider extends ExternalDataProvider {
     public @NotNull Collection<@NotNull Identifier> getTypes(@NotNull DataType dataType) {
         return switch (dataType) {
             case ENTITY -> List.of();
-            case ITEM -> updateNamespaces(dataType, CustomStack.getNamespacedIdsInRegistry()
+            case ITEM -> CustomStack.getNamespacedIdsInRegistry()
                     .stream()
                     .map(Identifier::fromString)
-                    .toList());
-            case BLOCK -> updateNamespaces(dataType, CustomBlock.getNamespacedIdsInRegistry()
+                    .toList();
+            case BLOCK -> CustomBlock.getNamespacedIdsInRegistry()
                     .stream()
                     .map(Identifier::fromString)
-                    .toList());
+                    .toList();
         };
     }
 
     private void updateNamespaces() {
-        getTypes(DataType.ITEM);
-        getTypes(DataType.BLOCK);
+        try {
+            updateNamespaces(DataType.ITEM);
+            updateNamespaces(DataType.BLOCK);
+        } catch (Throwable e) {
+            Iris.warn("Failed to update ItemAdder namespaces: " + e.getMessage());
+        }
     }
 
-    private Collection<Identifier> updateNamespaces(DataType dataType, Collection<Identifier> ids) {
-        var namespaces = ids.stream().map(Identifier::namespace).collect(Collectors.toSet());
+    private void updateNamespaces(DataType dataType) {
+        var namespaces = getTypes(dataType).stream().map(Identifier::namespace).collect(Collectors.toSet());
         var currentNamespaces = dataType == DataType.ITEM ? itemNamespaces : blockNamespaces;
         currentNamespaces.removeIf(n -> !namespaces.contains(n));
         currentNamespaces.addAll(namespaces);
-        return ids;
     }
 
     @Override
     public boolean isValidProvider(@NotNull Identifier id, DataType dataType) {
         if (dataType == DataType.ENTITY) return false;
-        return dataType == DataType.ITEM ? this.itemNamespaces.contains(id.namespace()) : this.blockNamespaces.contains(id.namespace());
+        return dataType == DataType.ITEM ? itemNamespaces.contains(id.namespace()) : blockNamespaces.contains(id.namespace());
     }
 }

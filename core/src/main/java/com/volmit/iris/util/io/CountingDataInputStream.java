@@ -44,14 +44,14 @@ public class CountingDataInputStream extends DataInputStream {
         }
 
         @Override
-        public int read(@NotNull byte[] b, int off, int len) throws IOException {
+        public int read(byte @NotNull [] b, int off, int len) throws IOException {
             int i = in.read(b, off, len);
-            count(i);
+            if (i != -1) count(i);
             return i;
         }
 
         private void count(int i) {
-            count += i;
+            count = Math.addExact(count, i);
             if (mark == -1)
                 return;
 
@@ -69,6 +69,12 @@ public class CountingDataInputStream extends DataInputStream {
         public synchronized void mark(int readlimit) {
             if (!in.markSupported()) return;
             in.mark(readlimit);
+            if (readlimit <= 0) {
+                mark = -1;
+                markLimit = 0;
+                return;
+            }
+
             mark = count;
             markLimit = readlimit;
         }

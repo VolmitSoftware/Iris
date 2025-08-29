@@ -96,6 +96,7 @@ public class Iris extends VolmitPlugin implements Listener {
     public static IrisCompat compat;
     public static FileWatcher configWatcher;
     private static VolmitSender sender;
+    private static Thread shutdownHook;
 
     static {
         try {
@@ -453,6 +454,7 @@ public class Iris extends VolmitPlugin implements Listener {
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
+        addShutdownHook();
         J.s(() -> {
             J.a(IrisSafeguard::suggestPaper);
             J.a(() -> IO.delete(getTemp()));
@@ -469,6 +471,23 @@ public class Iris extends VolmitPlugin implements Listener {
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
             IrisToolbelt.retainMantleDataForSlice(BlockData.class.getCanonicalName());
         });
+    }
+
+    public void addShutdownHook() {
+        if (shutdownHook != null) {
+            Runtime.getRuntime().removeShutdownHook(shutdownHook);
+        }
+        shutdownHook = new Thread(() -> {
+            Bukkit.getWorlds()
+                    .stream()
+                    .map(IrisToolbelt::access)
+                    .filter(Objects::nonNull)
+                    .forEach(PlatformChunkGenerator::close);
+
+            MultiBurst.burst.close();
+            services.clear();
+        });
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
     }
 
     public void checkForBukkitWorlds(Predicate<String> filter) {
@@ -548,16 +567,6 @@ public class Iris extends VolmitPlugin implements Listener {
         super.onDisable();
 
         J.attempt(new JarScanner(instance.getJarFile(), "", false)::scan);
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            Bukkit.getWorlds()
-                    .stream()
-                    .map(IrisToolbelt::access)
-                    .filter(Objects::nonNull)
-                    .forEach(PlatformChunkGenerator::close);
-
-            MultiBurst.burst.close();
-            services.clear();
-        }));
     }
 
     private void setupPapi() {

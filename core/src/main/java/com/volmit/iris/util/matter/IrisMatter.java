@@ -25,6 +25,8 @@ import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.Getter;
 
+import java.util.Objects;
+
 public class IrisMatter extends IrisRegistrant implements Matter {
     protected static final KMap<Class<?>, MatterSlice<?>> slicers = buildSlicers();
 
@@ -63,6 +65,12 @@ public class IrisMatter extends IrisRegistrant implements Matter {
         }
 
         return c;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T> MatterSlice<T> slice(Class<?> c) {
+        return (MatterSlice<T>) sliceMap.computeIfAbsent(c, $ -> Objects.requireNonNull(createSlice(c, this), "Bad slice " + c.getCanonicalName()));
     }
 
     @Override

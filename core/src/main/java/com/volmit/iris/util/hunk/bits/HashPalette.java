@@ -21,26 +21,25 @@ package com.volmit.iris.util.hunk.bits;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.function.Consumer2;
 
+import java.io.DataInputStream;
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class HashPalette<T> implements Palette<T> {
-    private final ReentrantLock lock = new ReentrantLock();
     private final LinkedHashMap<T, Integer> palette;
     private final KMap<Integer, T> lookup;
     private final AtomicInteger size;
 
     public HashPalette() {
-        this.size = new AtomicInteger(0);
+        this.size = new AtomicInteger(1);
         this.palette = new LinkedHashMap<>();
         this.lookup = new KMap<>();
-        add(null);
     }
 
     @Override
     public T get(int id) {
-        if (id < 0 || id >= size.get()) {
+        if (id <= 0 || id >= size.get()) {
             return null;
         }
 
@@ -49,17 +48,16 @@ public class HashPalette<T> implements Palette<T> {
 
     @Override
     public int add(T t) {
-        lock.lock();
-        try {
-            int index = size.getAndIncrement();
-            palette.put(t, index);
+        if (t == null) {
+            return 0;
+        }
 
-            if (t != null) {
+        synchronized (palette) {
+            return palette.computeIfAbsent(t, $ -> {
+                int index = size.getAndIncrement();
                 lookup.put(index, t);
-            }
-            return index;
-        } finally {
-            lock.unlock();
+                return index;
+            });
         }
     }
 
@@ -80,17 +78,33 @@ public class HashPalette<T> implements Palette<T> {
 
     @Override
     public void iterate(Consumer2<T, Integer> c) {
-        lock.lock();
-        try {
-            for (T i : palette.keySet()) {
-                if (i == null) {
-                    continue;
-                }
-
-                c.accept(i, id(i));
+        synchronized (palette) {
+            for (int i = 1; i < size.get(); i++) {
+                c.accept(lookup.get(i), i);
             }
-        } finally {
-            lock.unlock();
         }
+    }
+
+    @Override
+    public Palette<T> from(Palette<T> oldPalette) {
+        oldPalette.iterate((t, i) -> {
+            if (t == null) throw new NullPointerException("Null palette entries are not allowed!");
+            lookup.put(i, t);
+            palette.put(t, i);
+        });
+        size.set(oldPalette.size() + 1);
+        return this;
+    }
+
+    @Override
+    public Palette<T> from(int size, Writable<T> writable, DataInputStream in) throws IOException {
+        for (int i = 1; i <= size; i++) {
+            T t = writable.readNodeData(in);
+            if (t == null) throw new NullPointerException("Null palette entries are not allowed!");
+            lookup.put(i, t);
+            palette.put(t, i);
+        }
+        this.size.set(size + 1);
+        return this;
     }
 }

@@ -482,7 +482,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public void savePrefetch(Engine engine) {
-        BurstExecutor b = MultiBurst.burst.burst(loaders.size());
+        BurstExecutor b = MultiBurst.ioBurst.burst(loaders.size());
 
         for (ResourceLoader<?> i : loaders.values()) {
             b.queue(() -> {
@@ -499,7 +499,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public void loadPrefetch(Engine engine) {
-        BurstExecutor b = MultiBurst.burst.burst(loaders.size());
+        BurstExecutor b = MultiBurst.ioBurst.burst(loaders.size());
 
         for (ResourceLoader<?> i : loaders.values()) {
             b.queue(() -> {

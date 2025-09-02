@@ -485,6 +485,7 @@ public class Iris extends VolmitPlugin implements Listener {
                     .forEach(PlatformChunkGenerator::close);
 
             MultiBurst.burst.close();
+            MultiBurst.ioBurst.close();
             services.clear();
         });
         Runtime.getRuntime().addShutdownHook(shutdownHook);

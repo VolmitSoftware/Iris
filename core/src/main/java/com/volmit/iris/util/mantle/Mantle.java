@@ -88,7 +88,7 @@ public class Mantle {
         this.ioTectonicUnload = new Semaphore(LOCK_SIZE, true);
         loadedRegions = new KMap<>();
         lastUse = new KMap<>();
-        ioBurst = MultiBurst.burst;
+        ioBurst = MultiBurst.ioBurst;
         adjustedIdleDuration = new AtomicDouble(0);
         toUnload = new KSet<>();
         worker = new IOWorker(dataFolder, worldHeight);

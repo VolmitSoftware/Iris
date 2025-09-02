@@ -235,7 +235,7 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
 
     public KList<T> loadAllParallel(KList<String> s) {
         KList<T> m = new KList<>();
-        BurstExecutor burst = MultiBurst.burst.burst(s.size());
+        BurstExecutor burst = MultiBurst.ioBurst.burst(s.size());
 
         for (String i : s) {
             burst.queue(() -> {

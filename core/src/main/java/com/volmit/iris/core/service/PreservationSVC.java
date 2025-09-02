@@ -43,10 +43,6 @@ public class PreservationSVC implements IrisService {
         threads.add(t);
     }
 
-    public void register(MultiBurst burst) {
-
-    }
-
     public void register(ExecutorService service) {
         services.add(service);
     }

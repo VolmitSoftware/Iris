@@ -610,8 +610,7 @@ public class B {
     }
 
     public static boolean isUpdatable(BlockData mat) {
-        return isLit(mat)
-                || isStorage(mat)
+        return isStorage(mat)
                 || (mat instanceof PointedDripstone
                 && ((PointedDripstone) mat).getThickness().equals(PointedDripstone.Thickness.TIP));
     }

@@ -24,6 +24,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.scheduling.J;
 import org.apache.commons.io.function.IOConsumer;
 import org.apache.commons.io.function.IOFunction;
 import lombok.SneakyThrows;
@@ -34,10 +35,15 @@ import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
 
 import java.io.*;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -1692,13 +1698,24 @@ public class IO {
         dir.mkdirs();
         dir.deleteOnExit();
         File temp = File.createTempFile("iris",".bin", dir);
-        try {
+        try (var target = FileChannel.open(file.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.SYNC)) {
+            lock(target);
+
             try (var out = builder.apply(new FileOutputStream(temp))) {
                 action.accept(out);
             }
-            Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(temp.toPath(), Channels.newOutputStream(target));
         } finally {
             temp.delete();
+        }
+    }
+
+    public static FileLock lock(FileChannel channel) throws IOException {
+        while (true) {
+            try {
+                return channel.lock();
+            } catch (OverlappingFileLockException e) {}
+            J.sleep(1);
         }
     }
 }

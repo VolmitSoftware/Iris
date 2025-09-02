@@ -181,17 +181,32 @@ public class CommandStudio implements DecreeExecutor {
                 int rad = engine.getMantle().getRadius();
                 var mantle = engine.getMantle().getMantle();
                 var chunkMap = new KMap<Position2, MantleChunk>();
-                for (int i = -(radius + rad); i <= radius + rad; i++) {
-                    for (int j = -(radius + rad); j <= radius + rad; j++) {
-                        int xx = i + x, zz = j + z;
-                        if (Math.abs(i) <= radius && Math.abs(j) <= radius) {
-                            mantle.deleteChunk(xx, zz);
-                            continue;
+                ParallelQueueJob<Position2> prep = new ParallelQueueJob<>() {
+                    @Override
+                    public void execute(Position2 pos) {
+                        var cpos = pos.add(x, z);
+                        if (Math.abs(pos.getX()) <= radius && Math.abs(pos.getZ()) <= radius) {
+                            mantle.deleteChunk(cpos.getX(), cpos.getZ());
+                            return;
                         }
-                        chunkMap.put(new Position2(xx, zz), mantle.getChunk(xx, zz));
-                        mantle.deleteChunk(xx, zz);
+                        chunkMap.put(cpos, mantle.getChunk(cpos.getX(), cpos.getZ()));
+                        mantle.deleteChunk(cpos.getX(), cpos.getZ());
+                    }
+
+                    @Override
+                    public String getName() {
+                        return "Preparing Mantle";
+                    }
+                };
+                for (int xx = -(radius + rad); xx <= radius + rad; xx++) {
+                    for (int zz = -(radius + rad); zz <= radius + rad; zz++) {
+                        prep.queue(new Position2(xx, zz));
                     }
                 }
+                CountDownLatch pLatch = new CountDownLatch(1);
+                prep.execute(sender(), pLatch::countDown);
+                pLatch.await();
+
 
                 ParallelQueueJob<Position2> job = new ParallelQueueJob<>() {
                     @Override
@@ -209,21 +224,24 @@ public class CommandStudio implements DecreeExecutor {
                         job.queue(new Position2(i + x, j + z));
                     }
                 }
-
                 CountDownLatch latch = new CountDownLatch(1);
                 job.execute(sender(), latch::countDown);
                 latch.await();
 
                 int sections = mantle.getWorldHeight() >> 4;
                 chunkMap.forEach((pos, chunk) -> {
-                    var c = mantle.getChunk(pos.getX(), pos.getZ());
-                    c.copyFlags(chunk);
-                    c.clear();
-                    for (int y = 0; y < sections; y++) {
-                        var slice = chunk.get(y);
-                        if (slice == null) continue;
-                        var s = c.getOrCreate(y);
-                        slice.getSliceMap().forEach(s::putSlice);
+                    var c = mantle.getChunk(pos.getX(), pos.getZ()).use();
+                    try {
+                        c.copyFlags(chunk);
+                        c.clear();
+                        for (int y = 0; y < sections; y++) {
+                            var slice = chunk.get(y);
+                            if (slice == null) continue;
+                            var s = c.getOrCreate(y);
+                            slice.getSliceMap().forEach(s::putSlice);
+                        }
+                    } finally {
+                        c.release();
                     }
                 });
             } catch (Throwable e) {

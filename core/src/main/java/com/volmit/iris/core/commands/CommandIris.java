@@ -21,7 +21,6 @@ package com.volmit.iris.core.commands;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.core.pregenerator.ChunkUpdater;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
@@ -33,7 +32,6 @@ import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.annotations.Param;
 import com.volmit.iris.util.decree.specialhandlers.NullablePlayerHandler;
 import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.misc.ServerProperties;
 import com.volmit.iris.util.plugin.VolmitSender;
@@ -56,6 +54,7 @@ import static org.bukkit.Bukkit.getServer;
 
 @Decree(name = "iris", aliases = {"ir", "irs"}, description = "Basic Command")
 public class CommandIris implements DecreeExecutor {
+    private CommandUpdater updater;
     private CommandStudio studio;
     private CommandPregen pregen;
     private CommandSettings settings;
@@ -316,24 +315,6 @@ public class CommandIris implements DecreeExecutor {
             }
         }
         return dir.delete();
-    }
-
-    @Decree(description = "Updates all chunk in the specified world")
-    public void updater(
-            @Param(description = "World to update chunks at")
-            World world
-    ) {
-        if (!IrisToolbelt.isIrisWorld(world)) {
-            sender().sendMessage(C.GOLD + "This is not an Iris world");
-            return;
-        }
-        ChunkUpdater updater = new ChunkUpdater(world);
-        if (sender().isPlayer()) {
-            sender().sendMessage(C.GREEN + "Updating " + world.getName() + " Total chunks: " + Form.f(updater.getChunks()));
-        } else {
-            Iris.info(C.GREEN + "Updating " + world.getName() + " Total chunks: " + Form.f(updater.getChunks()));
-        }
-        updater.start();
     }
 
     @Decree(description = "Set aura spins")

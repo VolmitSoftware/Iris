@@ -42,7 +42,11 @@ public class MultiBurst implements ExecutorService {
     private ExecutorService service;
 
     public MultiBurst() {
-        this("Iris", Thread.MIN_PRIORITY, () -> IrisSettings.get().getConcurrency().getParallelism());
+        this("Iris");
+    }
+
+    public MultiBurst(String name) {
+        this(name, Thread.MIN_PRIORITY, () -> IrisSettings.get().getConcurrency().getParallelism());
     }
 
     public MultiBurst(String name, IntSupplier parallelism) {

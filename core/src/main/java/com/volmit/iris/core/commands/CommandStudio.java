@@ -367,7 +367,7 @@ public class CommandStudio implements DecreeExecutor {
         var sender = sender();
         int d = radius * 2;
         KMap<String, KList<Position2>> data = new KMap<>();
-        var multiBurst = new MultiBurst("Distance Sampler", Thread.MIN_PRIORITY);
+        var multiBurst = new MultiBurst("Distance Sampler");
         var executor = multiBurst.burst(radius * radius);
 
         sender.sendMessage(C.GRAY + "Generating data...");

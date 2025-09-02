@@ -569,7 +569,7 @@ public class SchemaBuilder {
                 .replace("</h>", "");
         String hDesc = d.toString("<br>");
         prop.put("type", type);
-        prop.put("description", d.toString("\n"));
+        prop.put("description", desc);
         prop.put("x-intellij-html-description", hDesc);
         return buildSnippet(prop, k.getType());
     }

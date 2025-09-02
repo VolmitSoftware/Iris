@@ -567,7 +567,7 @@ public class Iris extends VolmitPlugin implements Listener {
         postShutdown.forEach(Runnable::run);
         super.onDisable();
 
-        J.attempt(new JarScanner(instance.getJarFile(), "", false)::scan);
+        J.attempt(new JarScanner(instance.getJarFile(), "", false)::scanAll);
     }
 
     private void setupPapi() {

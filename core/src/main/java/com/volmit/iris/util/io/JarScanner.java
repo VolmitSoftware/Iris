@@ -83,6 +83,28 @@ public class JarScanner {
         zip.close();
     }
 
+    public void scanAll() throws IOException {
+        classes.clear();
+        FileInputStream fin = new FileInputStream(jar);
+        ZipInputStream zip = new ZipInputStream(fin);
+        for (ZipEntry entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
+            if (!entry.isDirectory() && entry.getName().endsWith(".class")) {
+                String c = entry.getName().replaceAll("/", ".").replace(".class", "");
+
+                if (c.startsWith(superPackage)) {
+                    try {
+                        Class<?> clazz = Class.forName(c);
+                        classes.add(clazz);
+                    } catch (Throwable e) {
+                        if (!report) continue;
+                        Iris.reportError(e);
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * Get the scanned clases
      *

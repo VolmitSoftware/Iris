@@ -200,7 +200,7 @@ public class IrisEngine implements Engine {
             mode.close();
         }
 
-        mode = getDimension().getMode().getType().create(this);
+        mode = getDimension().getMode().create(this);
     }
 
     @Override

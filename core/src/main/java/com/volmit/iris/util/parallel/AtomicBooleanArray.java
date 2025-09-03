@@ -28,10 +28,6 @@ public class AtomicBooleanArray implements Serializable {
         return (boolean) AA.compareAndSet(array, index, expectedValue, newValue);
     }
 
-    public final boolean weakCompareAndSet(int index, boolean expectedValue, boolean newValue) {
-        return (boolean) AA.weakCompareAndSetPlain(array, index, expectedValue, newValue);
-    }
-
     @Override
     public String toString() {
         int iMax = array.length - 1;

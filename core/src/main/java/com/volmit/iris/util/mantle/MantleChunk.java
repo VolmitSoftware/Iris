@@ -87,8 +87,7 @@ public class MantleChunk {
         int l = version < 0 ? MantleFlag.RESERVED_FLAGS : Varint.readUnsignedVarInt(din);
 
         if (version >= 1) {
-            int count = Math.ceilDiv(flags.length(), Byte.SIZE);
-            for (int i = 0; i < count;) {
+            for (int i = 0; i < l;) {
                 byte f = din.readByte();
                 for (int j = 0; j < Byte.SIZE && i < flags.length(); j++, i++) {
                     flags.set(i, (f & (1 << j)) != 0);
@@ -267,9 +266,9 @@ public class MantleChunk {
         dos.writeByte(x);
         dos.writeByte(z);
         dos.writeByte(sections.length());
-        Varint.writeUnsignedVarInt(flags.length(), dos);
+        Varint.writeUnsignedVarInt(Math.ceilDiv(flags.length(), Byte.SIZE), dos);
 
-        int count = Math.ceilDiv(flags.length(), Byte.SIZE);
+        int count = flags.length();
         for (int i = 0; i < count;) {
             int f = 0;
             for (int j = 0; j < Byte.SIZE && i < flags.length(); j++, i++) {

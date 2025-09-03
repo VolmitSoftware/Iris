@@ -355,7 +355,7 @@ public class IrisProject {
         settings.put("json.schemas", schemas);
         ws.put("settings", settings);
 
-        SimpleEnvironment.create().configureProject(path);
+        dm.getEnvironment().configureProject();
         File schemasFile = new File(path, ".idea" + File.separator + "jsonSchemas.xml");
         Document doc = IO.read(schemasFile);
         Element mappings = (Element) doc.selectSingleNode("//component[@name='JsonSchemaMappingsProjectConfiguration']");

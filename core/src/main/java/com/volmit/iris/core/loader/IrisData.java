@@ -284,6 +284,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     public void close() {
         closed = true;
         dump();
+        dataLoaders.remove(dataFolder);
     }
 
     public IrisData copy() {

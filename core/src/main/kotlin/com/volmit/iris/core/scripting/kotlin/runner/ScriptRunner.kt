@@ -19,7 +19,7 @@ import kotlin.script.experimental.jvmhost.BasicJvmScriptingHost
 
 class ScriptRunner(
     private val host: BasicJvmScriptingHost,
-    private val baseDir: File
+    val baseDir: File
 ) {
     constructor(baseDir: File) : this(BasicJvmScriptingHost(), baseDir)
 

@@ -12,7 +12,11 @@ public interface SimpleEnvironment {
         return new IrisSimpleExecutionEnvironment();
     }
 
-    void configureProject(@NonNull File projectDir);
+    static SimpleEnvironment create(@NonNull File projectDir) {
+        return new IrisSimpleExecutionEnvironment(projectDir);
+    }
+
+    void configureProject();
 
     void execute(@NonNull String script);
 

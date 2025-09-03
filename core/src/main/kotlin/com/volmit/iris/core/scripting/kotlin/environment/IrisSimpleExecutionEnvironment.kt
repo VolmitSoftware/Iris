@@ -77,14 +77,14 @@ open class IrisSimpleExecutionEnvironment(
         return null
     }
 
-    override fun configureProject(projectDir: File) {
-        projectDir.mkdirs()
+    override fun configureProject() {
+        runner.baseDir.mkdirs()
         val libs = listOf(javaClass.classLoader.classpath, KotlinScript::class.java.classLoader.classpath)
             .flatMap { it }
             .sortedBy { it.absolutePath }
             .toMutableList()
 
-        File(projectDir, "build.gradle.kts")
+        File(runner.baseDir, "build.gradle.kts")
             .updateClasspath(libs)
     }
 

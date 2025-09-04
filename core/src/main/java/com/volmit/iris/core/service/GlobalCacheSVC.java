@@ -2,9 +2,11 @@ package com.volmit.iris.core.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Scheduler;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.cache.PregenCache;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.plugin.IrisService;
 import lombok.NonNull;
 import org.bukkit.Bukkit;
@@ -20,7 +22,11 @@ import java.io.File;
 import java.util.function.Function;
 
 public class GlobalCacheSVC implements IrisService {
-    private static final Cache<String, PregenCache> REFERENCE_CACHE = Caffeine.newBuilder().weakValues().build();
+    private static final Cache<String, PregenCache> REFERENCE_CACHE = Caffeine.newBuilder()
+            .executor(KCache.EXECUTOR)
+            .scheduler(Scheduler.systemScheduler())
+            .weakValues()
+            .build();
     private final KMap<String, PregenCache> globalCache = new KMap<>();
     private transient boolean lastState;
     private static boolean disabled = true;

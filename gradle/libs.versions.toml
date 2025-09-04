@@ -44,7 +44,7 @@ kotlin-coroutines = "1.10.2"
 maven-core = "3.9.10"
 
 # Third Party Integrations
-nexo = "1.8.0" # https://repo.nexomc.com/#/releases/com/nexomc/nexo
+nexo = "1.10.0" # https://repo.nexomc.com/#/releases/com/nexomc/nexo
 itemsadder = "4.0.10" # https://github.com/LoneDev6/API-ItemsAdder
 placeholderApi = "2.11.6" # https://repo.extendedclip.com/#/releases/me/clip/placeholderapi
 score = "5.25.3.9" # https://github.com/Ssomar-Developement/SCore

@@ -25,7 +25,9 @@ import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.HeightMap;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.mantle.MantleChunk;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Material;
@@ -54,28 +56,30 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
 
         long seed = x * 341873128712L + z * 132897987541L;
         long mask = 0;
+        MantleChunk chunk = getEngine().getMantle().getMantle().getChunk(x, z).use();
         for (IrisDepositGenerator k : getDimension().getDeposits()) {
             long finalSeed = seed * ++mask;
-            burst.queue(() -> generate(k, terrain, rng.nextParallelRNG(finalSeed), x, z, false, context));
+            burst.queue(() -> generate(k, chunk, terrain, rng.nextParallelRNG(finalSeed), x, z, false, context));
         }
 
         for (IrisDepositGenerator k : region.getDeposits()) {
             long finalSeed = seed * ++mask;
-            burst.queue(() -> generate(k, terrain, rng.nextParallelRNG(finalSeed), x, z, false, context));
+            burst.queue(() -> generate(k, chunk, terrain, rng.nextParallelRNG(finalSeed), x, z, false, context));
         }
 
         for (IrisDepositGenerator k : biome.getDeposits()) {
             long finalSeed = seed * ++mask;
-            burst.queue(() -> generate(k, terrain, rng.nextParallelRNG(finalSeed), x, z, false, context));
+            burst.queue(() -> generate(k, chunk, terrain, rng.nextParallelRNG(finalSeed), x, z, false, context));
         }
         burst.complete();
+        chunk.release();
     }
 
-    public void generate(IrisDepositGenerator k, Hunk<BlockData> data, RNG rng, int cx, int cz, boolean safe, ChunkContext context) {
-        generate(k, data, rng, cx, cz, safe, null, context);
+    public void generate(IrisDepositGenerator k, MantleChunk chunk, Hunk<BlockData> data, RNG rng, int cx, int cz, boolean safe, ChunkContext context) {
+        generate(k, chunk, data, rng, cx, cz, safe, null, context);
     }
 
-    public void generate(IrisDepositGenerator k, Hunk<BlockData> data, RNG rng, int cx, int cz, boolean safe, HeightMap he, ChunkContext context) {
+    public void generate(IrisDepositGenerator k, MantleChunk chunk, Hunk<BlockData> data, RNG rng, int cx, int cz, boolean safe, HeightMap he, ChunkContext context) {
         if (k.getSpawnChance() < rng.d())
             return;
 
@@ -127,7 +131,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
                     continue;
                 }
 
-                if (!getEngine().getMantle().isCarved((cx << 4) + nx, ny, (cz << 4) + nz)) {
+                if (chunk.get(nx, ny, nz, MatterCavern.class) == null) {
                     data.set(nx, ny, nz, B.toDeepSlateOre(data.get(nx, ny, nz), clump.getBlocks().get(j)));
                 }
             }

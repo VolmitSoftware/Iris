@@ -47,7 +47,6 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.mantle.MantleChunk;
-import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
@@ -233,9 +232,7 @@ public class CommandStudio implements DecreeExecutor {
                 chunkMap.forEach((pos, chunk) -> {
                     var c = mantle.getChunk(pos.getX(), pos.getZ()).use();
                     try {
-                        for (MantleFlag flag : MantleFlag.values()) {
-                            c.flag(flag, chunk.isFlagged(flag));
-                        }
+                        c.copyFlags(chunk);
                         c.clear();
                         for (int y = 0; y < sections; y++) {
                             var slice = chunk.get(y);
@@ -370,7 +367,7 @@ public class CommandStudio implements DecreeExecutor {
         var sender = sender();
         int d = radius * 2;
         KMap<String, KList<Position2>> data = new KMap<>();
-        var multiBurst = new MultiBurst("Distance Sampler", Thread.MIN_PRIORITY);
+        var multiBurst = new MultiBurst("Distance Sampler");
         var executor = multiBurst.burst(radius * radius);
 
         sender.sendMessage(C.GRAY + "Generating data...");

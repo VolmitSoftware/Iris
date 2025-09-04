@@ -14,12 +14,10 @@ import net.jpountz.lz4.LZ4BlockInputStream;
 import net.jpountz.lz4.LZ4BlockOutputStream;
 import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.concurrent.NotThreadSafe;
 import java.io.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-@NotThreadSafe
 @RequiredArgsConstructor
 class PregenCacheImpl implements PregenCache {
     private static final int SIZE = 32;

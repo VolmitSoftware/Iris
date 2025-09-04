@@ -18,7 +18,7 @@
 
 package com.volmit.iris.engine.mantle;
 
-import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.mantle.flag.MantleFlag;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;

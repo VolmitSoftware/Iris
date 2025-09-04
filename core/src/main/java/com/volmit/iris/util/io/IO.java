@@ -27,6 +27,12 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.scheduling.J;
 import org.apache.commons.io.function.IOConsumer;
 import org.apache.commons.io.function.IOFunction;
+import lombok.SneakyThrows;
+import org.dom4j.Document;
+import org.dom4j.DocumentHelper;
+import org.dom4j.io.OutputFormat;
+import org.dom4j.io.SAXReader;
+import org.dom4j.io.XMLWriter;
 
 import java.io.*;
 import java.nio.channels.Channels;
@@ -1667,6 +1673,24 @@ public class IO {
 
         int ch2 = input2.read();
         return (ch2 == -1);
+    }
+
+    @SneakyThrows
+    public static void write(File file, Document doc) {
+        file.getParentFile().mkdirs();
+        try (var writer = new FileWriter(file)) {
+            new XMLWriter(writer, OutputFormat.createPrettyPrint())
+                    .write(doc);
+        }
+    }
+
+    @SneakyThrows
+    public static Document read(File file) {
+        if (file.exists()) return new SAXReader().read(file);
+        var doc = DocumentHelper.createDocument();
+        doc.addElement("project")
+                .addAttribute("version", "4");
+        return doc;
     }
 
     public static <T extends Closeable> void write(File file, IOFunction<FileOutputStream, T> builder, IOConsumer<T> action) throws IOException {

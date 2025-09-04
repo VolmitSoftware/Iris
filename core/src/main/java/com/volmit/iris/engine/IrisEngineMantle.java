@@ -31,7 +31,7 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.mantle.Mantle;
-import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.mantle.flag.MantleFlag;
 import lombok.*;
 
 import java.io.File;

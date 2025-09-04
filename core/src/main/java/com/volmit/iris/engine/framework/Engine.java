@@ -29,13 +29,13 @@ import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.nms.container.BlockPos;
 import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.core.pregenerator.ChunkUpdater;
+import com.volmit.iris.core.scripting.environment.EngineEnvironment;
 import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.object.*;
-import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.ChunkContext;
@@ -48,7 +48,7 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
@@ -110,7 +110,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     IrisContext getContext();
 
-    EngineExecutionEnvironment getExecution();
+    EngineEnvironment getExecution();
 
     double getMaxBiomeObjectDensity();
 

@@ -37,7 +37,7 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
-import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.matter.*;
 import com.volmit.iris.util.matter.slices.UpdateMatter;

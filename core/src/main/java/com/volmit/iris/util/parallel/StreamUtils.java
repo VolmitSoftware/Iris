@@ -29,6 +29,11 @@ public class StreamUtils {
     @SneakyThrows
     public static <T> void forEach(Stream<T> stream, Consumer<T> task, @Nullable MultiBurst burst) {
         if (burst == null) stream.forEach(task);
-        else burst.submit(() -> stream.parallel().forEach(task)).get();
+        else {
+            var list = stream.toList();
+            var exec = burst.burst(list.size());
+            list.forEach(val -> exec.queue(() -> task.accept(val)));
+            exec.complete();
+        }
     }
 }

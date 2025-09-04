@@ -59,14 +59,21 @@ public class HyperLock {
 
     public void with(int x, int z, Runnable r) {
         lock(x, z);
-        r.run();
-        unlock(x, z);
+        try {
+            r.run();
+        } finally {
+            unlock(x, z);
+        }
     }
 
     public void withLong(long k, Runnable r) {
-        lock(Cache.keyX(k), Cache.keyZ(k));
-        r.run();
-        unlock(Cache.keyX(k), Cache.keyZ(k));
+        int x = Cache.keyX(k), z = Cache.keyZ(k);
+        lock(x, z);
+        try {
+            r.run();
+        } finally {
+            unlock(x, z);
+        }
     }
 
     public void withNasty(int x, int z, NastyRunnable r) throws Throwable {
@@ -103,9 +110,11 @@ public class HyperLock {
 
     public <T> T withResult(int x, int z, Supplier<T> r) {
         lock(x, z);
-        T t = r.get();
-        unlock(x, z);
-        return t;
+        try {
+            return r.get();
+        } finally {
+            unlock(x, z);
+        }
     }
 
     public <T> T withNastyResult(int x, int z, NastySupplier<T> r) throws Throwable {

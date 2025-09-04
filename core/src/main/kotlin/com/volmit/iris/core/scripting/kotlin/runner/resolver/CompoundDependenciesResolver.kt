@@ -17,7 +17,7 @@ import kotlin.script.experimental.dependencies.RepositoryCoordinates
 import kotlin.script.experimental.dependencies.impl.makeResolveFailureResult
 
 class CompoundDependenciesResolver(
-    private val baseDir: File
+    baseDir: File
 ) : DependenciesResolver {
     private val resolvers = listOf(FileDependenciesResolver(baseDir), LocalMavenDependenciesResolver())
 
@@ -113,8 +113,6 @@ class CompoundDependenciesResolver(
     }
 
     override fun addPack(directory: File) {
-        if (!directory.normalize().absolutePath.startsWith(baseDir.normalize().absolutePath))
-            return
         resolvers.forEach { it.addPack(directory) }
     }
 }

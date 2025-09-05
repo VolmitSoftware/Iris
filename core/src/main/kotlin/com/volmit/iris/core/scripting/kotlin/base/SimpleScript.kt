@@ -1,10 +1,9 @@
 package com.volmit.iris.core.scripting.kotlin.base
 
-import com.volmit.iris.core.scripting.kotlin.runner.configureMavenDepsOnAnnotations
+import com.volmit.iris.core.scripting.kotlin.runner.configure
 import kotlin.script.experimental.annotations.KotlinScript
 import kotlin.script.experimental.api.ScriptCompilationConfiguration
 import kotlin.script.experimental.api.defaultImports
-import kotlin.script.experimental.api.refineConfiguration
 import kotlin.script.experimental.dependencies.DependsOn
 import kotlin.script.experimental.dependencies.Repository
 import kotlin.script.experimental.jvm.dependenciesFromClassContext
@@ -28,9 +27,7 @@ object SimpleScriptDefinition : ScriptCompilationConfiguration({
         dependenciesFromClassContext(SimpleScript::class, wholeClasspath = true)
     }
 
-    refineConfiguration {
-        onAnnotations(DependsOn::class, Repository::class, handler = ::configureMavenDepsOnAnnotations)
-    }
+    configure()
 }) {
     private fun readResolve(): Any = SimpleScriptDefinition
 }

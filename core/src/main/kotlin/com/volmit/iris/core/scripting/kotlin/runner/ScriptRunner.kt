@@ -5,9 +5,10 @@ import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.script.experimental.annotations.KotlinScript
-import kotlin.script.experimental.api.*
-import kotlin.script.experimental.dependencies.DependsOn
-import kotlin.script.experimental.dependencies.Repository
+import kotlin.script.experimental.api.KotlinType
+import kotlin.script.experimental.api.ResultWithDiagnostics
+import kotlin.script.experimental.api.ScriptCompilationConfiguration
+import kotlin.script.experimental.api.SourceCode
 import kotlin.script.experimental.host.FileScriptSource
 import kotlin.script.experimental.host.createCompilationConfigurationFromTemplate
 import kotlin.script.experimental.host.toScriptSource
@@ -25,6 +26,7 @@ class ScriptRunner(
 
     private val configs = ConcurrentHashMap<KClass<*>, ScriptCompilationConfiguration>()
     private val hostConfig = host.baseHostConfiguration.withDefaultsFrom(defaultJvmScriptingHostConfiguration)
+    private val sharedClassLoader = SharedClassLoader()
     private var resolver = createResolver(baseDir)
 
     fun compile(type: KClass<*>, raw: String, name: String? = null) = compile(type, raw.toScriptSource(name))
@@ -50,7 +52,8 @@ class ScriptRunner(
     ) {
         dependencyResolver(resolver)
         packDirectory(baseDir)
-        
+        sharedClassloader(sharedClassLoader)
+
         if (SimpleScript::class.java.isAssignableFrom(type.java))
             return@createCompilationConfigurationFromTemplate
 
@@ -60,8 +63,6 @@ class ScriptRunner(
             dependenciesFromClassContext(KotlinScript::class, wholeClasspath = true)
         }
 
-        refineConfiguration {
-            onAnnotations(DependsOn::class, Repository::class, handler = ::configureMavenDepsOnAnnotations)
-        }
+        configure()
     }
 }

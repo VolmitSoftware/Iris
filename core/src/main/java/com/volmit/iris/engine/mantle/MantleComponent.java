@@ -65,6 +65,8 @@ public interface MantleComponent extends Comparable<MantleComponent> {
 
     void setEnabled(boolean b);
 
+    void hotload();
+
     @ChunkCoordinates
     void generateLayer(MantleWriter writer, int x, int z, ChunkContext context);
 

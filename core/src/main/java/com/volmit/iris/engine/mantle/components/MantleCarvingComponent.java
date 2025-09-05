@@ -30,13 +30,9 @@ import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.flag.ReservedFlag;
 import com.volmit.iris.util.math.RNG;
-import lombok.Getter;
 
-@Getter
 @ComponentFlag(ReservedFlag.CARVED)
 public class MantleCarvingComponent extends IrisMantleComponent {
-    private final int radius = computeRadius();
-
     public MantleCarvingComponent(EngineMantle engineMantle) {
         super(engineMantle, ReservedFlag.CARVED, 0);
     }
@@ -63,7 +59,7 @@ public class MantleCarvingComponent extends IrisMantleComponent {
         carving.doCarving(writer, rng, getEngineMantle().getEngine(), cx << 4, -1, cz << 4, 0);
     }
 
-    private int computeRadius() {
+    protected int computeRadius() {
         var dimension = getDimension();
         int max = 0;
 

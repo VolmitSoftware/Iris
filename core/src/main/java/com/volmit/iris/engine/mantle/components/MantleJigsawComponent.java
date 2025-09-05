@@ -42,8 +42,6 @@ import java.util.List;
 
 @ComponentFlag(ReservedFlag.JIGSAW)
 public class MantleJigsawComponent extends IrisMantleComponent {
-    @Getter
-    private final int radius = computeRadius();
     private final CNG cng;
 
     public MantleJigsawComponent(EngineMantle engineMantle) {
@@ -176,7 +174,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
         return getEngineMantle().getEngine().getSeedManager().getJigsaw();
     }
 
-    private int computeRadius() {
+    protected int computeRadius() {
         var dimension = getDimension();
 
         KSet<String> structures = new KSet<>();

@@ -219,20 +219,21 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             if (!blocks.hasIndex(i)) {
                 break;
             }
+            int y = zone.floor - i - 1;
 
             BlockData b = blocks.get(i);
-            BlockData down = output.get(rx, zone.ceiling + i - 1, rz);
+            BlockData down = output.get(rx, y, rz);
 
             if (!B.isSolid(down)) {
                 continue;
             }
 
             if (B.isOre(down)) {
-                output.set(rx, zone.ceiling + i - 1, rz, B.toDeepSlateOre(down, b));
+                output.set(rx, y, rz, B.toDeepSlateOre(down, b));
                 continue;
             }
 
-            output.set(rx, zone.floor - i - 1, rz, blocks.get(i));
+            output.set(rx, y, rz, blocks.get(i));
         }
 
         blocks = biome.generateCeilingLayers(getDimension(), xx, zz, rng, 3, zone.ceiling, getData(), getComplex());

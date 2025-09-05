@@ -111,8 +111,10 @@ open class IrisSimpleExecutionEnvironment(
         private val File.escapedPath
             get() = absolutePath.replace("\\", "\\\\").replace("\"", "\\\"")
 
+        private const val ARTIFACT_ID = $$"local:${it.relativeTo(home).path.substringBeforeLast(\".jar\")}:1.0.0"
         private val BASE_GRADLE = """
             val classpath = files()
+            val home = file(System.getProperty("user.home"))
             
             plugins {
                 kotlin("jvm") version("2.2.0")
@@ -120,6 +122,9 @@ open class IrisSimpleExecutionEnvironment(
 
             repositories {
                 mavenCentral()
+                flatDir {
+                    dirs(home)
+                }
             }
 
             val script by configurations.creating
@@ -130,7 +135,7 @@ open class IrisSimpleExecutionEnvironment(
             configurations.kotlinCompilerPluginClasspath { extendsFrom(script) }
 
             dependencies {
-                script(classpath)
+                classpath.forEach { script("$ARTIFACT_ID") }
             }""".trimIndent().split("\n")
     }
 }

@@ -514,9 +514,9 @@ public class IrisObject extends IrisRegistrant {
             max.setZ(Math.max(max.getZ(), i.getZ()));
         }
 
-        w = max.getBlockX() - min.getBlockX() + (min.getBlockX() <= 0 && max.getBlockX() >= 0 && min.getBlockX() != max.getBlockX() ? 1 : 0);
-        h = max.getBlockY() - min.getBlockY() + (min.getBlockY() <= 0 && max.getBlockY() >= 0 && min.getBlockY() != max.getBlockY() ? 1 : 0);
-        d = max.getBlockZ() - min.getBlockZ() + (min.getBlockZ() <= 0 && max.getBlockZ() >= 0 && min.getBlockZ() != max.getBlockZ() ? 1 : 0);
+        w = max.getBlockX() - min.getBlockX() + 1;
+        h = max.getBlockY() - min.getBlockY() + 1;
+        d = max.getBlockZ() - min.getBlockZ() + 1;
         center = new BlockVector(w / 2, h / 2, d / 2);
     }
 

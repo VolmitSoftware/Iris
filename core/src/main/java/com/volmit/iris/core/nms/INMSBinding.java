@@ -20,6 +20,7 @@ package com.volmit.iris.core.nms;
 
 import com.volmit.iris.core.link.FoliaWorldsLink;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.container.BlockProperty;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
@@ -37,10 +38,10 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.Nullable;
 
 import java.awt.Color;
 import java.util.concurrent.CompletableFuture;
+import java.util.List;
 
 public interface INMSBinding {
     boolean hasTile(Material material);
@@ -144,4 +145,6 @@ public interface INMSBinding {
     default boolean injectBukkit() {
         return true;
     }
+
+    KMap<Material, List<BlockProperty>> getBlockProperties();
 }

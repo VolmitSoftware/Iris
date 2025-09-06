@@ -50,8 +50,7 @@ public class IrisJigsawPiece extends IrisRegistrant {
     @Desc("The object this piece represents")
     private String object = "";
 
-    @Required
-    @ArrayType(type = IrisJigsawPieceConnector.class, min = 1)
+    @ArrayType(type = IrisJigsawPieceConnector.class)
     @Desc("The connectors this object contains")
     private KList<IrisJigsawPieceConnector> connectors = new KList<>();
 

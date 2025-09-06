@@ -29,7 +29,7 @@ import lombok.Data;
 @Data
 public class IrisContext {
     private static final KMap<Thread, IrisContext> context = new KMap<>();
-    private static ChronoLatch cl = new ChronoLatch(60000);
+    private static final ChronoLatch cl = new ChronoLatch(60000);
     private final Engine engine;
     private ChunkContext chunkContext;
 
@@ -53,9 +53,10 @@ public class IrisContext {
     }
 
     public static void touch(IrisContext c) {
-        synchronized (context) {
-            context.put(Thread.currentThread(), c);
+        context.put(Thread.currentThread(), c);
 
+        if (!cl.couldFlip()) return;
+        synchronized (cl) {
             if (cl.flip()) {
                 dereference();
             }
@@ -63,15 +64,13 @@ public class IrisContext {
     }
 
     public static void dereference() {
-        synchronized (context) {
-            for (Thread i : context.k()) {
-                if (!i.isAlive() || context.get(i).engine.isClosed()) {
-                    if (context.get(i).engine.isClosed()) {
-                        Iris.debug("Dereferenced Context<Engine> " + i.getName() + " " + i.getId());
-                    }
-
-                    context.remove(i);
+        for (Thread i : context.k()) {
+            if (!i.isAlive() || context.get(i).engine.isClosed()) {
+                if (context.get(i).engine.isClosed()) {
+                    Iris.debug("Dereferenced Context<Engine> " + i.getName() + " " + i.threadId());
                 }
+
+                context.remove(i);
             }
         }
     }

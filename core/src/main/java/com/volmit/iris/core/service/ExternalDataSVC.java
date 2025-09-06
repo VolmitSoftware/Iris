@@ -21,6 +21,7 @@ package com.volmit.iris.core.service;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.link.*;
 import com.volmit.iris.core.link.data.DataType;
+import com.volmit.iris.core.nms.container.BlockProperty;
 import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KList;
@@ -69,8 +70,8 @@ public class ExternalDataSVC implements IrisService {
 
     @EventHandler
     public void onPluginEnable(PluginEnableEvent e) {
-        if (activeProviders.stream().noneMatch(p -> p.getPlugin().equals(e.getPlugin()))) {
-            providers.stream().filter(p -> p.isReady() && p.getPlugin().equals(e.getPlugin())).findFirst().ifPresent(edp -> {
+        if (activeProviders.stream().noneMatch(p -> e.getPlugin().equals(p.getPlugin()))) {
+            providers.stream().filter(p -> p.isReady() && e.getPlugin().equals(p.getPlugin())).findFirst().ifPresent(edp -> {
                 activeProviders.add(edp);
                 edp.init();
                 Iris.instance.registerListener(edp);
@@ -101,6 +102,18 @@ public class ExternalDataSVC implements IrisService {
             return Optional.empty();
         try {
             return Optional.of(provider.get().getBlockData(mod, pair.getB()));
+        } catch (MissingResourceException e) {
+            Iris.error(e.getMessage() + " - [" + e.getClassName() + ":" + e.getKey() + "]");
+            return Optional.empty();
+        }
+    }
+
+    public Optional<List<BlockProperty>> getBlockProperties(final Identifier key) {
+        Optional<ExternalDataProvider> provider = activeProviders.stream().filter(p -> p.isValidProvider(key, DataType.BLOCK)).findFirst();
+        if (provider.isEmpty())
+            return Optional.empty();
+        try {
+            return Optional.of(provider.get().getBlockProperties(key));
         } catch (MissingResourceException e) {
             Iris.error(e.getMessage() + " - [" + e.getClassName() + ":" + e.getKey() + "]");
             return Optional.empty();
@@ -147,6 +160,14 @@ public class ExternalDataSVC implements IrisService {
     public Collection<Identifier> getAllIdentifiers(DataType dataType) {
         return activeProviders.stream()
                 .flatMap(p -> p.getTypes(dataType).stream())
+                .toList();
+    }
+
+    public Collection<Pair<Identifier, List<BlockProperty>>> getAllBlockProperties() {
+        return activeProviders.stream()
+                .flatMap(p -> p.getTypes(DataType.BLOCK)
+                        .stream()
+                        .map(id -> new Pair<>(id, p.getBlockProperties(id))))
                 .toList();
     }
 

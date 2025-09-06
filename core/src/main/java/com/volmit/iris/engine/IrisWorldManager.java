@@ -29,7 +29,7 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.mantle.Mantle;
-import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;

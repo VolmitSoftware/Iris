@@ -37,6 +37,7 @@ import com.volmit.iris.util.io.CountingDataInputStream;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.mantle.TectonicPlate;
 import com.volmit.iris.util.math.M;
+import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.nbt.mca.MCAFile;
 import com.volmit.iris.util.nbt.mca.MCAUtil;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -53,6 +54,7 @@ import org.bukkit.World;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -64,7 +66,6 @@ import java.util.zip.GZIPOutputStream;
 public class CommandDeveloper implements DecreeExecutor {
     private CommandTurboPregen turboPregen;
     private CommandLazyPregen lazyPregen;
-    private CommandUpdater updater;
 
     @Decree(description = "Get Loaded TectonicPlates Count", origin = DecreeOrigin.BOTH, sync = true)
     public void EngineStatus() {
@@ -77,6 +78,33 @@ public class CommandDeveloper implements DecreeExecutor {
         Engine engine = engine();
         if (engine != null) IrisContext.getOr(engine);
         Iris.reportError(new Exception("This is a test"));
+    }
+
+    @Decree(description = "Test")
+    public void mantle(@Param(defaultValue = "false") boolean plate, @Param(defaultValue = "21474836474") String name) throws Throwable {
+        var base = Iris.instance.getDataFile("dump", "pv." + name + ".ttp.lz4b.bin");
+        var section = Iris.instance.getDataFile("dump", "pv." + name + ".section.bin");
+
+        //extractSection(base, section, 5604930, 4397);
+
+        if (plate) {
+            try (var in = CountingDataInputStream.wrap(new BufferedInputStream(new FileInputStream(base)))) {
+                new TectonicPlate(1088, in, true);
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
+        } else Matter.read(section);
+        if (!TectonicPlate.hasError())
+            Iris.info("Read " + (plate ? base : section).length() + " bytes from " + (plate ? base : section).getAbsolutePath());
+    }
+
+    private void extractSection(File source, File target, long offset, int length) throws IOException {
+        var raf = new RandomAccessFile(source, "r");
+        var bytes = new byte[length];
+        raf.seek(offset);
+        raf.readFully(bytes);
+        raf.close();
+        Files.write(target.toPath(), bytes);
     }
 
     @Decree(description = "Test")
@@ -113,27 +141,6 @@ public class CommandDeveloper implements DecreeExecutor {
         } catch (Throwable e) {
             e.printStackTrace();
         }
-    }
-
-    @Decree(description = "Test")
-    public void benchmarkMantle(
-            @Param(description = "The world to bench", aliases = {"world"})
-            World world
-    ) throws IOException, ClassNotFoundException {
-        Engine engine = IrisToolbelt.access(world).getEngine();
-        int maxHeight = engine.getTarget().getHeight();
-        File folder = new File(Bukkit.getWorldContainer(), world.getName());
-        int c = 0;
-        //MCAUtil.read()
-
-        File tectonicplates = new File(folder, "mantle");
-        for (File i : Objects.requireNonNull(tectonicplates.listFiles())) {
-            TectonicPlate.read(maxHeight, i, true);
-            c++;
-            Iris.info("Loaded count: " + c );
-
-        }
-
     }
 
     @Decree(description = "Test")

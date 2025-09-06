@@ -51,7 +51,7 @@ public class Bindings {
         YamlConfiguration desc = resource != null ? YamlConfiguration.loadConfiguration(new InputStreamReader(resource)) : new YamlConfiguration();
 
         Sentry.init(options -> {
-            options.setDsn("https://b16ecc222e9c1e0c48faecacb906fd89@o4509451052646400.ingest.de.sentry.io/4509452722765904");
+            options.setDsn("http://4cdbb9ac953306529947f4ca1e8e6b26@sentry.volmit.com:8080/2");
             if (settings.debug) {
                 options.setLogger(new IrisLogger());
                 options.setDebug(true);
@@ -79,7 +79,6 @@ public class Bindings {
             scope.setTag("server.api", Bukkit.getBukkitVersion());
             scope.setTag("iris.commit", desc.getString("commit", "unknown"));
         });
-        Runtime.getRuntime().addShutdownHook(new Thread(Sentry::close));
     }
 
     private static boolean suppress(Throwable e) {

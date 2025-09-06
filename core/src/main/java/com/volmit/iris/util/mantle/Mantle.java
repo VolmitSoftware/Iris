@@ -35,6 +35,8 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.mantle.io.IOWorker;
+import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterSlice;
@@ -44,9 +46,7 @@ import com.volmit.iris.util.parallel.MultiBurst;
 import lombok.Getter;
 import org.bukkit.Chunk;
 
-import java.io.EOFException;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -69,6 +69,7 @@ public class Mantle {
     private final MultiBurst ioBurst;
     private final Semaphore ioTrim;
     private final Semaphore ioTectonicUnload;
+    private final IOWorker worker;
     private final AtomicDouble adjustedIdleDuration;
     private final KSet<Long> toUnload;
 
@@ -88,9 +89,10 @@ public class Mantle {
         this.ioTectonicUnload = new Semaphore(LOCK_SIZE, true);
         loadedRegions = new KMap<>();
         lastUse = new KMap<>();
-        ioBurst = MultiBurst.burst;
+        ioBurst = MultiBurst.ioBurst;
         adjustedIdleDuration = new AtomicDouble(0);
         toUnload = new KSet<>();
+        worker = new IOWorker(dataFolder, worldHeight);
         Iris.debug("Opened The Mantle " + C.DARK_AQUA + dataFolder.getAbsolutePath());
     }
 
@@ -379,7 +381,7 @@ public class Mantle {
         loadedRegions.forEach((i, plate) -> b.queue(() -> {
             try {
                 plate.close();
-                plate.write(fileForRegion(dataFolder, i, false));
+                worker.write(fileForRegion(dataFolder, i, false).getName(), plate);
                 oldFileForRegion(dataFolder, i).delete();
             } catch (Throwable e) {
                 Iris.error("Failed to write Tectonic Plate " + C.DARK_GREEN + Cache.keyX(i) + " " + Cache.keyZ(i));
@@ -391,6 +393,11 @@ public class Mantle {
 
         try {
             b.complete();
+        } catch (Throwable e) {
+            Iris.reportError(e);
+        }
+        try {
+            worker.close();
         } catch (Throwable e) {
             Iris.reportError(e);
         }
@@ -462,8 +469,8 @@ public class Mantle {
 
         ioTectonicUnload.acquireUninterruptibly(LOCK_SIZE);
         try {
+            double unloadTime = M.ms() - adjustedIdleDuration.get();
             for (long id : toUnload) {
-                double unloadTime = M.ms() - adjustedIdleDuration.get();
                 burst.queue(() -> hyperLock.withLong(id, () -> {
                     TectonicPlate m = loadedRegions.get(id);
                     if (m == null) {
@@ -484,14 +491,15 @@ public class Mantle {
                     }
 
                     try {
-                        m.write(fileForRegion(dataFolder, id, false));
+                        m.close();
+                        worker.write(fileForRegion(dataFolder, id, false).getName(), m);
                         oldFileForRegion(dataFolder, id).delete();
                         loadedRegions.remove(id, m);
                         lastUse.remove(id);
                         toUnload.remove(id);
                         i.incrementAndGet();
                         Iris.debug("Unloaded Tectonic Plate " + C.DARK_GREEN + Cache.keyX(id) + " " + Cache.keyZ(id));
-                    } catch (IOException e) {
+                    } catch (IOException | InterruptedException e) {
                         Iris.reportError(e);
                     }
                 }));
@@ -524,19 +532,17 @@ public class Mantle {
             if (!trim || !unload) {
                 try {
                     return getSafe(x, z).get();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
+                } catch (Throwable e) {
                     e.printStackTrace();
                 }
-            }
+            } else {
+                Long key = key(x, z);
+                TectonicPlate p = loadedRegions.get(key);
 
-            Long key = key(x, z);
-            TectonicPlate p = loadedRegions.get(key);
-
-            if (p != null && !p.isClosed()) {
-                use(key);
-                return p;
+                if (p != null && !p.isClosed()) {
+                    use(key);
+                    return p;
+                }
             }
 
             try {
@@ -546,6 +552,9 @@ public class Mantle {
                 Iris.reportError(e);
             } catch (ExecutionException e) {
                 Iris.warn("Failed to get Tectonic Plate " + x + " " + z + " Due to a thread execution exception (engine close?)");
+                Iris.reportError(e);
+            } catch (Throwable e) {
+                Iris.warn("Failed to get Tectonic Plate " + x + " " + z + " Due to a unknown exception");
                 Iris.reportError(e);
             }
         } finally {
@@ -570,17 +579,17 @@ public class Mantle {
         return ioBurst.completeValue(() -> hyperLock.withResult(x, z, () -> {
             Long k = key(x, z);
             use(k);
-            TectonicPlate region = loadedRegions.get(k);
-
-            if (region != null && !region.isClosed()) {
-                return region;
+            TectonicPlate r = loadedRegions.get(k);
+            if (r != null && !r.isClosed()) {
+                return r;
             }
 
+            TectonicPlate region;
             File file = fileForRegion(dataFolder, x, z);
             if (file.exists()) {
                 try {
                     Iris.addPanic("reading.tectonic-plate", file.getAbsolutePath());
-                    region = TectonicPlate.read(worldHeight, file, file.getName().startsWith("pv."));
+                    region = worker.read(file.getName());
 
                     if (region.getX() != x || region.getZ() != z) {
                         Iris.warn("Loaded Tectonic Plate " + x + "," + z + " but read it as " + region.getX() + "," + region.getZ() + "... Assuming " + x + "," + z);

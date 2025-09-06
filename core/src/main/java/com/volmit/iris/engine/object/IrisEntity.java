@@ -205,9 +205,8 @@ public class IrisEntity extends IrisRegistrant {
 
         if (!spawnerScript.isEmpty() && ee == null) {
             synchronized (this) {
-                gen.getExecution().getAPI().setLocation(at.clone());
                 try {
-                    ee = (Entity) gen.getExecution().evaluate(spawnerScript);
+                    ee = (Entity) gen.getExecution().spawnMob(spawnerScript, at.clone());
                 } catch (Throwable ex) {
                     Iris.error("You must return an Entity in your scripts to use entity scripts!");
                     ex.printStackTrace();
@@ -332,11 +331,8 @@ public class IrisEntity extends IrisRegistrant {
 
         if (postSpawnScripts.isNotEmpty()) {
             synchronized (this) {
-                gen.getExecution().getAPI().setLocation(at);
-                gen.getExecution().getAPI().setEntity(ee);
-
                 for (String i : postSpawnScripts) {
-                    gen.getExecution().execute(i);
+                    gen.getExecution().postSpawnMob(i, at, ee);
                 }
             }
         }

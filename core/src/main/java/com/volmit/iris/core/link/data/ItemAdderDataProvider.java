@@ -4,24 +4,27 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.link.ExternalDataProvider;
 import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.IrisCustomData;
 import dev.lone.itemsadder.api.CustomBlock;
 import dev.lone.itemsadder.api.CustomStack;
+import dev.lone.itemsadder.api.Events.ItemsAdderLoadDataEvent;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.event.EventHandler;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.MissingResourceException;
+import java.util.stream.Collectors;
 
 public class ItemAdderDataProvider extends ExternalDataProvider {
 
-    private KList<String> itemNamespaces, blockNamespaces;
+    private final KSet<String> itemNamespaces = new KSet<>();
+    private final KSet<String> blockNamespaces = new KSet<>();
 
     public ItemAdderDataProvider() {
         super("ItemsAdder");
@@ -29,16 +32,12 @@ public class ItemAdderDataProvider extends ExternalDataProvider {
 
     @Override
     public void init() {
-        this.itemNamespaces = new KList<>();
-        this.blockNamespaces = new KList<>();
+        updateNamespaces();
+    }
 
-        for (Identifier i : getTypes(DataType.ITEM)) {
-            itemNamespaces.addIfMissing(i.namespace());
-        }
-        for (Identifier i : getTypes(DataType.BLOCK)) {
-            blockNamespaces.addIfMissing(i.namespace());
-            Iris.info("Found ItemAdder Block: " + i);
-        }
+    @EventHandler
+    public void onLoadData(ItemsAdderLoadDataEvent event) {
+        updateNamespaces();
     }
 
     @NotNull
@@ -48,7 +47,7 @@ public class ItemAdderDataProvider extends ExternalDataProvider {
         if (block == null) {
             throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
         }
-        return new IrisCustomData(B.getAir(), blockId);
+        return new IrisCustomData(block.getBaseBlockData(), blockId);
     }
 
     @NotNull
@@ -81,9 +80,25 @@ public class ItemAdderDataProvider extends ExternalDataProvider {
         };
     }
 
+    private void updateNamespaces() {
+        try {
+            updateNamespaces(DataType.ITEM);
+            updateNamespaces(DataType.BLOCK);
+        } catch (Throwable e) {
+            Iris.warn("Failed to update ItemAdder namespaces: " + e.getMessage());
+        }
+    }
+
+    private void updateNamespaces(DataType dataType) {
+        var namespaces = getTypes(dataType).stream().map(Identifier::namespace).collect(Collectors.toSet());
+        var currentNamespaces = dataType == DataType.ITEM ? itemNamespaces : blockNamespaces;
+        currentNamespaces.removeIf(n -> !namespaces.contains(n));
+        currentNamespaces.addAll(namespaces);
+    }
+
     @Override
     public boolean isValidProvider(@NotNull Identifier id, DataType dataType) {
         if (dataType == DataType.ENTITY) return false;
-        return dataType == DataType.ITEM ? this.itemNamespaces.contains(id.namespace()) : this.blockNamespaces.contains(id.namespace());
+        return dataType == DataType.ITEM ? itemNamespaces.contains(id.namespace()) : blockNamespaces.contains(id.namespace());
     }
 }

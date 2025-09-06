@@ -25,9 +25,9 @@ import com.volmit.iris.util.stream.interpolation.Interpolated;
 import java.util.List;
 
 public interface IRare {
-    static <T extends IRare> ProceduralStream<T> stream(ProceduralStream<Double> noise, List<T> possibilities) {
-        return ProceduralStream.of((x, z) -> pick(possibilities, noise.get(x, z)),
-                (x, y, z) -> pick(possibilities, noise.get(x, y, z)),
+    static <T extends IRare> ProceduralStream<T> stream(ProceduralStream<Double> noise, List<T> possibilities, boolean legacyRarity) {
+        return ProceduralStream.of(legacyRarity ? (x, z) -> pickLegacy(possibilities, noise.get(x, z)) : (x, z) -> pick(possibilities, noise.get(x, z)),
+                legacyRarity ? (x, y, z) -> pickLegacy(possibilities, noise.get(x, y, z)) : (x, y, z) -> pick(possibilities, noise.get(x, y, z)),
                 new Interpolated<T>() {
                     @Override
                     public double toDouble(T t) {

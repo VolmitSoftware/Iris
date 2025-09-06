@@ -370,7 +370,7 @@ public class CommandStudio implements DecreeExecutor {
                     int d = radius * 2;
                     KMap<String, AtomicInteger> data = new KMap<>();
                     engine.getDimension().getRegions().forEach(key -> data.put(key, new AtomicInteger(0)));
-                    var multiBurst = new MultiBurst("Region Sampler", Thread.MIN_PRIORITY);
+                    var multiBurst = new MultiBurst("Region Sampler");
                     var executor = multiBurst.burst(radius * radius);
                     sender.sendMessage(C.GRAY + "Generating data...");
                     var loc = player.getLocation();

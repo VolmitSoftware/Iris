@@ -116,6 +116,7 @@ public class IrisComplex implements DataProvider {
                             .getAllBiomes(this)
                             .forEach(this::registerGenerators));
         }
+        boolean legacy = engine.getDimension().isLegacyRarity();
         overlayStream = ProceduralStream.ofDouble((x, z) -> 0.0D).waste("Overlay Stream");
         engine.getDimension().getOverlayNoise().forEach(i -> overlayStream = overlayStream.add((x, z) -> i.get(rng, getData(), x, z)));
         rockStream = engine.getDimension().getRockPalette().getLayerGenerator(rng.nextParallelRNG(45), data).stream()
@@ -129,7 +130,7 @@ public class IrisComplex implements DataProvider {
                 ProceduralStream.of((x, z) -> focusRegion,
                         Interpolated.of(a -> 0D, a -> focusRegion))
                 : regionStyleStream
-                .selectRarity(data.getRegionLoader().loadAll(engine.getDimension().getRegions()))
+                .selectRarity(data.getRegionLoader().loadAll(engine.getDimension().getRegions()), legacy)
                 .cache2D("regionStream", engine, cacheSize).waste("Region Stream");
         regionIDStream = regionIdentityStream.convertCached((i) -> new UUID(Double.doubleToLongBits(i),
                 String.valueOf(i * 38445).hashCode() * 3245556666L)).waste("Region ID Stream");
@@ -138,7 +139,7 @@ public class IrisComplex implements DataProvider {
                         -> engine.getDimension().getCaveBiomeStyle().create(rng.nextParallelRNG(InferredType.CAVE.ordinal()), getData()).stream()
                         .zoom(engine.getDimension().getBiomeZoom())
                         .zoom(r.getCaveBiomeZoom())
-                        .selectRarity(data.getBiomeLoader().loadAll(r.getCaveBiomes()))
+                        .selectRarity(data.getBiomeLoader().loadAll(r.getCaveBiomes()), legacy)
                         .onNull(emptyBiome)
                 ).convertAware2D(ProceduralStream::get).cache2D("caveBiomeStream", engine, cacheSize).waste("Cave Biome Stream");
         inferredStreams.put(InferredType.CAVE, caveBiomeStream);
@@ -148,7 +149,7 @@ public class IrisComplex implements DataProvider {
                         .zoom(engine.getDimension().getBiomeZoom())
                         .zoom(engine.getDimension().getLandZoom())
                         .zoom(r.getLandBiomeZoom())
-                        .selectRarity(data.getBiomeLoader().loadAll(r.getLandBiomes(), (t) -> t.setInferredType(InferredType.LAND)))
+                        .selectRarity(data.getBiomeLoader().loadAll(r.getLandBiomes(), (t) -> t.setInferredType(InferredType.LAND)), legacy)
                 ).convertAware2D(ProceduralStream::get)
                 .cache2D("landBiomeStream", engine, cacheSize).waste("Land Biome Stream");
         inferredStreams.put(InferredType.LAND, landBiomeStream);
@@ -158,7 +159,7 @@ public class IrisComplex implements DataProvider {
                         .zoom(engine.getDimension().getBiomeZoom())
                         .zoom(engine.getDimension().getSeaZoom())
                         .zoom(r.getSeaBiomeZoom())
-                        .selectRarity(data.getBiomeLoader().loadAll(r.getSeaBiomes(), (t) -> t.setInferredType(InferredType.SEA)))
+                        .selectRarity(data.getBiomeLoader().loadAll(r.getSeaBiomes(), (t) -> t.setInferredType(InferredType.SEA)), legacy)
                 ).convertAware2D(ProceduralStream::get)
                 .cache2D("seaBiomeStream", engine, cacheSize).waste("Sea Biome Stream");
         inferredStreams.put(InferredType.SEA, seaBiomeStream);
@@ -167,7 +168,7 @@ public class IrisComplex implements DataProvider {
                         -> engine.getDimension().getShoreBiomeStyle().create(rng.nextParallelRNG(InferredType.SHORE.ordinal()), getData()).stream()
                         .zoom(engine.getDimension().getBiomeZoom())
                         .zoom(r.getShoreBiomeZoom())
-                        .selectRarity(data.getBiomeLoader().loadAll(r.getShoreBiomes(), (t) -> t.setInferredType(InferredType.SHORE)))
+                        .selectRarity(data.getBiomeLoader().loadAll(r.getShoreBiomes(), (t) -> t.setInferredType(InferredType.SHORE)), legacy)
                 ).convertAware2D(ProceduralStream::get).cache2D("shoreBiomeStream", engine, cacheSize).waste("Shore Biome Stream");
         inferredStreams.put(InferredType.SHORE, shoreBiomeStream);
         bridgeStream = focusBiome != null ? ProceduralStream.of((x, z) -> focusBiome.getInferredType(),

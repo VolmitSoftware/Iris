@@ -5,7 +5,7 @@ import com.volmit.iris.engine.framework.EngineAssignedModifier;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.data.IrisCustomData;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import org.bukkit.block.data.BlockData;

@@ -22,8 +22,7 @@ import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 @Data
 @AllArgsConstructor

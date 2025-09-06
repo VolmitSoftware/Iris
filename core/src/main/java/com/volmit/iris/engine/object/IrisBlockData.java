@@ -61,6 +61,7 @@ public class IrisBlockData extends IrisRegistrant {
     private int weight = 1;
     @Desc("If the block cannot be created on this version, Iris will attempt to use this backup block data instead.")
     private IrisBlockData backup = null;
+    @RegistryMapBlockState("block")
     @Desc("Optional properties for this block data such as 'waterlogged': true")
     private KMap<String, Object> data = new KMap<>();
     @Desc("Optional tile data for this block data")

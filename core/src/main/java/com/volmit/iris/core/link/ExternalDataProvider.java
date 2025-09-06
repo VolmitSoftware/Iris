@@ -1,6 +1,8 @@
 package com.volmit.iris.core.link;
 
 import com.volmit.iris.core.link.data.DataType;
+import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.container.BlockProperty;
 import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
@@ -22,7 +24,9 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.MissingResourceException;
 
 @Getter
@@ -64,6 +68,18 @@ public abstract class ExternalDataProvider implements Listener {
     @NotNull
     public BlockData getBlockData(@NotNull Identifier blockId, @NotNull KMap<String, String> state) throws MissingResourceException {
         throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
+    }
+
+    /**
+     * Retrieves a list of all {@link BlockProperty} objects associated with the specified block identifier.
+     *
+     * @param blockId The identifier of the block whose properties are to be retrieved. Must not be null.
+     * @return A list of {@link BlockProperty} objects representing the properties of the block.
+     * @throws MissingResourceException If the specified block identifier is invalid or cannot be found.
+     */
+    @NotNull
+    public List<BlockProperty> getBlockProperties(@NotNull Identifier blockId) throws MissingResourceException {
+        return List.of();
     }
 
     /**
@@ -137,4 +153,18 @@ public abstract class ExternalDataProvider implements Listener {
 
         return new Pair<>(yaw, face);
     }
+
+    protected static List<BlockProperty> YAW_FACE_BIOME_PROPERTIES = List.of(
+            BlockProperty.ofEnum(BiomeColor.class, "matchBiome", null),
+            BlockProperty.ofBoolean("randomYaw", false),
+            BlockProperty.ofFloat("yaw", 0, 0, 360f, false, true),
+            BlockProperty.ofBoolean("randomFace", true),
+            new BlockProperty(
+                    "face",
+                    BlockFace.class,
+                    BlockFace.NORTH,
+                    Arrays.asList(BlockFace.values()).subList(0, BlockFace.values().length - 1),
+                    BlockFace::name
+            )
+    );
 }

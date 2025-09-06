@@ -192,7 +192,7 @@ public class AsyncPregenMethod implements PregeneratorMethod {
     private class ServiceExecutor implements Executor {
         private final ExecutorService service = IrisSettings.get().getPregen().isUseVirtualThreads() ?
                 Executors.newVirtualThreadPerTaskExecutor() :
-                new MultiBurst("Iris Async Pregen", Thread.MIN_PRIORITY);
+                new MultiBurst("Iris Async Pregen");
 
         public void generate(int x, int z, PregenListener listener) {
             service.submit(() -> {

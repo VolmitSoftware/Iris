@@ -25,9 +25,9 @@ import com.volmit.iris.util.stream.interpolation.Interpolated;
 import java.util.List;
 
 public interface IRare {
-    static <T extends IRare> ProceduralStream<T> stream(ProceduralStream<Double> noise, List<T> possibilities) {
-        return ProceduralStream.of((x, z) -> pick(possibilities, noise.get(x, z)),
-                (x, y, z) -> pick(possibilities, noise.get(x, y, z)),
+    static <T extends IRare> ProceduralStream<T> stream(ProceduralStream<Double> noise, List<T> possibilities, boolean legacyRarity) {
+        return ProceduralStream.of(legacyRarity ? (x, z) -> pickLegacy(possibilities, noise.get(x, z)) : (x, z) -> pick(possibilities, noise.get(x, z)),
+                legacyRarity ? (x, y, z) -> pickLegacy(possibilities, noise.get(x, y, z)) : (x, y, z) -> pick(possibilities, noise.get(x, y, z)),
                 new Interpolated<T>() {
                     @Override
                     public double toDouble(T t) {
@@ -65,6 +65,32 @@ public interface IRare {
     }
 
     static <T extends IRare> T pick(List<T> possibilities, double noiseValue) {
+        if (possibilities.isEmpty()) {
+            return null;
+        }
+
+        if (possibilities.size() == 1) {
+            return possibilities.getFirst();
+        }
+
+        double total = 0;
+        for (T i : possibilities) {
+            total += 1d / i.getRarity();
+        }
+
+        double threshold = total * noiseValue;
+        double buffer = 0;
+        for (T i : possibilities) {
+            buffer += 1d / i.getRarity();
+            if (buffer >= threshold) {
+                return i;
+            }
+        }
+
+        return possibilities.getLast();
+    }
+
+    static <T extends IRare> T pickLegacy(List<T> possibilities, double noiseValue) {
         if (possibilities.isEmpty()) {
             return null;
         }

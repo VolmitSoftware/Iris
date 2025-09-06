@@ -62,7 +62,7 @@ val serverMinHeap = "2G"
 val serverMaxHeap = "8G"
 //Valid values are: none, truecolor, indexed256, indexed16, indexed8
 val color = "truecolor"
-val errorReporting = false
+val errorReporting = findProperty("errorReporting") as Boolean? ?: false
 
 val nmsBindings = mapOf(
         "v1_21_R5" to "1.21.7-R0.1-SNAPSHOT",

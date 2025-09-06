@@ -21,10 +21,16 @@ package com.volmit.iris.util.data;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Scheduler;
 import com.volmit.iris.engine.framework.MeteredCache;
 import com.volmit.iris.util.math.RollingSequence;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class KCache<K, V> implements MeteredCache {
+    public static final ExecutorService EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
+
     private final long max;
     private final LoadingCache<K, V> cache;
     private final boolean fastDump;
@@ -46,6 +52,8 @@ public class KCache<K, V> implements MeteredCache {
         return Caffeine
                 .newBuilder()
                 .maximumSize(max)
+                .scheduler(Scheduler.systemScheduler())
+                .executor(EXECUTOR)
                 .initialCapacity((int) (max))
                 .build((k) -> loader == null ? null : loader.load(k));
     }

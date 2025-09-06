@@ -110,9 +110,12 @@ public class SchemaBuilder {
     private JSONObject buildProperties(Class<?> c) {
         JSONObject o = new JSONObject();
         JSONObject properties = new JSONObject();
-        o.put("description", getDescription(c));
+        String desc = getDescription(c);
+        o.put("description", desc);
+        o.put("x-intellij-html-description", desc.replace("\n", "<br>"));
         o.put("type", getType(c));
         JSONArray required = new JSONArray();
+        JSONArray extended = new JSONArray();
 
         if (c.isAssignableFrom(IrisRegistrant.class) || IrisRegistrant.class.isAssignableFrom(c)) {
             for (Field k : IrisRegistrant.class.getDeclaredFields()) {
@@ -124,11 +127,15 @@ public class SchemaBuilder {
 
                 JSONObject property = buildProperty(k, c);
 
-                if (property.getBoolean("!required")) {
+                if (Boolean.TRUE == property.remove("!required")) {
                     required.put(k.getName());
                 }
 
-                property.remove("!required");
+                if (Boolean.TRUE == property.remove("!top")) {
+                    extended.put(property);
+                    continue;
+                }
+
                 properties.put(k.getName(), property);
             }
         }
@@ -142,14 +149,23 @@ public class SchemaBuilder {
 
             JSONObject property = buildProperty(k, c);
 
-            if (property.getBoolean("!required"))
+            if (Boolean.TRUE == property.remove("!required")) {
                 required.put(k.getName());
-            property.remove("!required");
+            }
+
+            if (Boolean.TRUE == property.remove("!top")) {
+                extended.put(property);
+                continue;
+            }
+
             properties.put(k.getName(), property);
         }
 
         if (required.length() > 0) {
             o.put("required", required);
+        }
+        if (extended.length() > 0) {
+            o.put("allOf", extended);
         }
 
         o.put("properties", properties);
@@ -343,13 +359,63 @@ public class SchemaBuilder {
                 }
             }
             case "object" -> {
-                fancyType = k.getType().getSimpleName().replaceAll("\\QIris\\E", "") + " (Object)";
-                String key = "obj-" + k.getType().getCanonicalName().replaceAll("\\Q.\\E", "-").toLowerCase();
-                if (!definitions.containsKey(key)) {
-                    definitions.put(key, new JSONObject());
-                    definitions.put(key, buildProperties(k.getType()));
+                //TODO add back descriptions
+                if (k.isAnnotationPresent(RegistryMapBlockState.class)) {
+                    String blockType = k.getDeclaredAnnotation(RegistryMapBlockState.class).value();
+                    fancyType = "Block State";
+                    prop.put("!top", true);
+                    JSONArray any = new JSONArray();
+                    prop.put("anyOf", any);
+
+                    B.getBlockStates().forEach((blocks, properties) -> {
+                        if (blocks.isEmpty()) return;
+
+                        String raw = blocks.getFirst().replace(':', '_');
+                        String enumKey = "enum-block-state-" + raw;
+                        String propertiesKey = "obj-block-state-" + raw;
+
+                        any.put(new JSONObject()
+                                .put("if", new JSONObject()
+                                        .put("properties", new JSONObject()
+                                                .put(blockType, new JSONObject()
+                                                        .put("type", "string")
+                                                        .put("$ref", "#/definitions/" + enumKey))))
+                                .put("then", new JSONObject()
+                                        .put("properties", new JSONObject()
+                                                .put(k.getName(), new JSONObject()
+                                                        .put("type", "object")
+                                                        .put("$ref", "#/definitions/" + propertiesKey))))
+                                .put("else", false));
+
+                        if (!definitions.containsKey(enumKey)) {
+                            JSONArray filters = new JSONArray();
+                            blocks.forEach(filters::put);
+
+                            definitions.put(enumKey, new JSONObject()
+                                    .put("type", "string")
+                                    .put("enum", filters));
+                        }
+
+                        if (!definitions.containsKey(propertiesKey)) {
+                            JSONObject props = new JSONObject();
+                            properties.forEach(property -> {
+                                props.put(property.name(), property.buildJson());
+                            });
+
+                            definitions.put(propertiesKey, new JSONObject()
+                                    .put("type", "object")
+                                    .put("properties", props));
+                        }
+                    });
+                } else {
+                    fancyType = k.getType().getSimpleName().replaceAll("\\QIris\\E", "") + " (Object)";
+                    String key = "obj-" + k.getType().getCanonicalName().replaceAll("\\Q.\\E", "-").toLowerCase();
+                    if (!definitions.containsKey(key)) {
+                        definitions.put(key, new JSONObject());
+                        definitions.put(key, buildProperties(k.getType()));
+                    }
+                    prop.put("$ref", "#/definitions/" + key);
                 }
-                prop.put("$ref", "#/definitions/" + key);
             }
             case "array" -> {
                 fancyType = "List of Something...?";
@@ -520,11 +586,12 @@ public class SchemaBuilder {
         }
 
         KList<String> d = new KList<>();
-        d.add(k.getName());
-        d.add(getFieldDescription(k));
-        d.add("   ");
-        d.add(fancyType);
-        d.add(getDescription(k.getType()));
+        d.add("<h>" + k.getName() + "</h>");
+        d.add(getFieldDescription(k) + "<hr></hr>");
+        d.add("<h>" + fancyType + "</h>");
+        String typeDesc = getDescription(k.getType());
+        boolean present = !typeDesc.isBlank();
+        if (present) d.add(typeDesc);
 
         Snippet snippet = k.getType().getDeclaredAnnotation(Snippet.class);
         if (snippet == null) {
@@ -536,8 +603,9 @@ public class SchemaBuilder {
 
         if (snippet != null) {
             String sm = snippet.value();
-            d.add("    ");
+            if (present) d.add("    ");
             d.add("You can instead specify \"snippet/" + sm + "/some-name.json\" to use a snippet file instead of specifying it here.");
+            present = false;
         }
 
         try {
@@ -545,15 +613,13 @@ public class SchemaBuilder {
             Object value = k.get(cl.newInstance());
 
             if (value != null) {
+                if (present) d.add("    ");
                 if (value instanceof List) {
-                    d.add("    ");
-                    d.add("* Default Value is an empty list");
+                    d.add(SYMBOL_LIMIT__N + " Default Value is an empty list");
                 } else if (!cl.isPrimitive() && !(value instanceof Number) && !(value instanceof String) && !(cl.isEnum()) && !KeyedType.isKeyed(cl)) {
-                    d.add("    ");
-                    d.add("* Default Value is a default object (create this object to see default properties)");
+                    d.add(SYMBOL_LIMIT__N + " Default Value is a default object (create this object to see default properties)");
                 } else {
-                    d.add("    ");
-                    d.add("* Default Value is " + value);
+                    d.add(SYMBOL_LIMIT__N + " Default Value is " + value);
                 }
             }
         } catch (Throwable ignored) {
@@ -561,8 +627,14 @@ public class SchemaBuilder {
         }
 
         description.forEach((g) -> d.add(g.trim()));
+        String desc = d.toString("\n")
+                .replace("<hr></hr>", "\n")
+                .replace("<h>", "")
+                .replace("</h>", "");
+        String hDesc = d.toString("<br>");
         prop.put("type", type);
-        prop.put("description", d.toString("\n"));
+        prop.put("description", desc);
+        prop.put("x-intellij-html-description", hDesc);
         return buildSnippet(prop, k.getType());
     }
 
@@ -588,8 +660,10 @@ public class SchemaBuilder {
         arr.put(prop);
         arr.put(str);
         str.put("description", prop.getString("description"));
+        str.put("x-intellij-html-description", prop.getString("x-intellij-html-description"));
         anyOf.put("anyOf", arr);
         anyOf.put("description", prop.getString("description"));
+        anyOf.put("x-intellij-html-description", prop.getString("x-intellij-html-description"));
         anyOf.put("!required", type.isAnnotationPresent(Required.class));
 
         return anyOf;
@@ -615,7 +689,9 @@ public class SchemaBuilder {
                     String name = function.apply(gg);
                     j.put("const", name);
                     Desc dd = type.getField(name).getAnnotation(Desc.class);
-                    j.put("description", dd == null ? ("No Description for " + name) : dd.value());
+                    String desc = dd == null ? ("No Description for " + name) : dd.value();
+                    j.put("description", desc);
+                    j.put("x-intellij-html-description", desc.replace("\n", "<br>"));
                     a.put(j);
                 } catch (Throwable e) {
                     Iris.reportError(e);

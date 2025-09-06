@@ -82,8 +82,8 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
     private Set<String> getKeysInDirectory(File directory) {
         Set<String> keys = new HashSet<>();
         for (File file : directory.listFiles()) {
-            if (file.isFile() && file.getName().endsWith(".js")) {
-                keys.add(file.getName().replaceAll("\\Q.js\\E", ""));
+            if (file.isFile() && file.getName().endsWith(".kts")) {
+                keys.add(file.getName().replaceAll("\\Q.kts\\E", ""));
             } else if (file.isDirectory()) {
                 keys.addAll(getKeysInDirectory(file));
             }
@@ -127,12 +127,12 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
     public File findFile(String name) {
         for (File i : getFolders(name)) {
             for (File j : i.listFiles()) {
-                if (j.isFile() && j.getName().endsWith(".js") && j.getName().split("\\Q.\\E")[0].equals(name)) {
+                if (j.isFile() && j.getName().endsWith(".kts") && j.getName().split("\\Q.\\E")[0].equals(name)) {
                     return j;
                 }
             }
 
-            File file = new File(i, name + ".js");
+            File file = new File(i, name + ".kts");
 
             if (file.exists()) {
                 return file;
@@ -147,12 +147,12 @@ public class ScriptResourceLoader extends ResourceLoader<IrisScript> {
     private IrisScript loadRaw(String name) {
         for (File i : getFolders(name)) {
             for (File j : i.listFiles()) {
-                if (j.isFile() && j.getName().endsWith(".js") && j.getName().split("\\Q.\\E")[0].equals(name)) {
+                if (j.isFile() && j.getName().endsWith(".kts") && j.getName().split("\\Q.\\E")[0].equals(name)) {
                     return loadFile(j, name);
                 }
             }
 
-            File file = new File(i, name + ".js");
+            File file = new File(i, name + ".kts");
 
             if (file.exists()) {
                 return loadFile(file, name);

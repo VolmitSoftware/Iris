@@ -146,7 +146,6 @@ public class IrisEffect {
     @MinNumber(1)
     @Desc("The chance is 1 in CHANCE per interval")
     private int chance = 50;
-    @ArrayType(min = 1, type = IrisCommandRegistry.class)
     @Desc("Run commands, with configurable location parameters")
     private IrisCommandRegistry commandRegistry = null;
 

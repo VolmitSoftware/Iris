@@ -143,14 +143,14 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Desc("The default wall if iris decides to place a wall higher than 2 blocks (steep hills or possibly cliffs)")
     private IrisBiomePaletteLayer wall = new IrisBiomePaletteLayer().zero();
     @Required
-    @ArrayType(min = 1, type = IrisBiomePaletteLayer.class)
+    @ArrayType(type = IrisBiomePaletteLayer.class)
     @Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
     private KList<IrisBiomePaletteLayer> layers = new KList<IrisBiomePaletteLayer>().qadd(new IrisBiomePaletteLayer());
     @Required
-    @ArrayType(min = 1, type = IrisBiomePaletteLayer.class)
+    @ArrayType(type = IrisBiomePaletteLayer.class)
     @Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
     private KList<IrisBiomePaletteLayer> caveCeilingLayers = new KList<IrisBiomePaletteLayer>().qadd(new IrisBiomePaletteLayer());
-    @ArrayType(min = 1, type = IrisBiomePaletteLayer.class)
+    @ArrayType(type = IrisBiomePaletteLayer.class)
     @Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
     private KList<IrisBiomePaletteLayer> seaLayers = new KList<>();
     @ArrayType(min = 1, type = IrisDecorator.class)

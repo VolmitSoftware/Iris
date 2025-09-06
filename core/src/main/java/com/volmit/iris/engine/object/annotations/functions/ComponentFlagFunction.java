@@ -6,7 +6,7 @@ import com.volmit.iris.engine.framework.ListFunction;
 import com.volmit.iris.engine.mantle.ComponentFlag;
 import com.volmit.iris.engine.mantle.MantleComponent;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.mantle.flag.MantleFlag;
 
 import java.util.Objects;
 

@@ -1,9 +1,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.RegistryListResource;
-import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.math.M;
@@ -25,6 +23,11 @@ public class IrisCaveShape {
 
     @Desc("Noise used for the shape of the cave")
     private IrisGeneratorStyle noise = new IrisGeneratorStyle();
+    @MinNumber(0)
+    @MaxNumber(1)
+    @Desc("The threshold for noise mask")
+    private double noiseThreshold = -1;
+
     @RegistryListResource(IrisObject.class)
     @Desc("Object used as mask for the shape of the cave")
     private String object = null;

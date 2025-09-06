@@ -104,7 +104,7 @@ public class IrisCave extends IrisRegistrant {
         CNG cng = shape.getNoise(base.nextParallelRNG(8131545), engine);
         KSet<IrisPosition> mask = shape.getMasked(rng, engine);
         writer.setNoiseMasked(points,
-                girth, cng.noise(x, y, z), cng, mask, true,
+                girth, shape.getNoiseThreshold() < 0 ? cng.noise(x, y, z) : shape.getNoiseThreshold(), cng, mask, true,
                 (xf, yf, zf) -> yf <= h ? w : c);
     }
 

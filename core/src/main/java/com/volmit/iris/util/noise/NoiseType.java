@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.noise;
 
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
 
 public enum NoiseType {
@@ -77,6 +78,7 @@ public enum NoiseType {
     }
 
     public NoiseGenerator create(long seed) {
-        return f.create(seed);
+        if (IrisSettings.get().getGenerator().offsetNoiseTypes) return f.create(seed).offset(seed);
+        else return f.create(seed);
     }
 }

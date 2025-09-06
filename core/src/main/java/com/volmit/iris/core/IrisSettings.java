@@ -243,6 +243,7 @@ public class IrisSettings {
         public int maxBiomeChildDepth = 4;
         public boolean preventLeafDecay = true;
         public boolean useMulticore = false;
+        public boolean offsetNoiseTypes = false;
     }
 
     @Data

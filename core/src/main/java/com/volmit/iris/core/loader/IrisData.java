@@ -425,6 +425,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         }
 
         String snippetType = typeToken.getRawType().getDeclaredAnnotation(Snippet.class).value();
+        String snippedBase = "snippet/" + snippetType + "/";
 
         return new TypeAdapter<>() {
             @Override
@@ -438,19 +439,20 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
                 if (reader.peek().equals(JsonToken.STRING)) {
                     String r = reader.nextString();
+                    if (!r.startsWith("snippet/"))
+                        return null;
+                    if (!r.startsWith(snippedBase))
+                        r = snippedBase + r.substring(8);
 
-                    if (r.startsWith("snippet/" + snippetType + "/")) {
-                        File f = new File(getDataFolder(), r + ".json");
-
-                        if (f.exists()) {
-                            try (JsonReader snippetReader = new JsonReader(new FileReader(f))){
-                                return adapter.read(snippetReader);
-                            } catch (Throwable e) {
-                                Iris.error("Couldn't read snippet " + r + " in " + reader.getPath() + " (" + e.getMessage() + ")");
-                            }
-                        } else {
-                            Iris.error("Couldn't find snippet " + r + " in " + reader.getPath());
+                    File f = new File(getDataFolder(), r + ".json");
+                    if (f.exists()) {
+                        try (JsonReader snippetReader = new JsonReader(new FileReader(f))){
+                            return adapter.read(snippetReader);
+                        } catch (Throwable e) {
+                            Iris.error("Couldn't read snippet " + r + " in " + reader.getPath() + " (" + e.getMessage() + ")");
                         }
+                    } else {
+                        Iris.error("Couldn't find snippet " + r + " in " + reader.getPath());
                     }
 
                     return null;
@@ -488,7 +490,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                         .map(s -> s.substring(absPath.length() + 1))
                         .map(s -> s.replace("\\", "/"))
                         .map(s -> s.split("\\Q.\\E")[0])
-                        .forEach(s -> l.add("snippet/" + f + "/" + s));
+                        .forEach(s -> l.add("snippet/" + s));
             } catch (Throwable e) {
                 e.printStackTrace();
             }

@@ -83,6 +83,7 @@ dependencies {
     slim(libs.commons.io)
     slim(libs.commons.lang)
     slim(libs.commons.lang3)
+    slim(libs.commons.math3)
     slim(libs.oshi)
     slim(libs.lz4)
     slim(libs.fastutil)

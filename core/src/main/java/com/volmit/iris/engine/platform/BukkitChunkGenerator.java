@@ -240,6 +240,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                     }
                 }, syncExecutor));
             }
+            futures.add(CompletableFuture.runAsync(() -> INMS.get().placeStructures(c), syncExecutor));
 
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
                     .thenRunAsync(() -> {

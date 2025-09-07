@@ -15,6 +15,7 @@ import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.reflect.WrappedField;
+import com.volmit.iris.util.reflect.WrappedReturningMethod;
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
@@ -38,6 +39,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.levelgen.*;
 import net.minecraft.world.level.levelgen.blending.Blender;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
@@ -53,6 +55,8 @@ import org.bukkit.event.world.AsyncStructureSpawnEvent;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -61,6 +65,7 @@ import java.util.function.Supplier;
 
 public class IrisChunkGenerator extends CustomChunkGenerator {
     private static final WrappedField<ChunkGenerator, BiomeSource> BIOME_SOURCE;
+    private static final WrappedReturningMethod<Heightmap, Object> SET_HEIGHT;
     private final ChunkGenerator delegate;
     private final Engine engine;
     private final KMap<ResourceKey<Structure>, KSet<String>> structures = new KMap<>();
@@ -287,6 +292,25 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
                 .sorted(Comparator.comparingInt(s -> s.step().ordinal()))
                 .toList();
 
+        var surface = chunkAccess.getOrCreateHeightmapUnprimed(Heightmap.Types.WORLD_SURFACE_WG);
+        var ocean = chunkAccess.getOrCreateHeightmapUnprimed(Heightmap.Types.OCEAN_FLOOR_WG);
+        var motion = chunkAccess.getOrCreateHeightmapUnprimed(Heightmap.Types.MOTION_BLOCKING);
+        var motionNoLeaves = chunkAccess.getOrCreateHeightmapUnprimed(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES);
+
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
+                int wX = x + blockPos.getX();
+                int wZ = z + blockPos.getZ();
+
+                int noAir = engine.getHeight(wX, wZ, false) + engine.getMinHeight() + 1;
+                int noFluid = engine.getHeight(wX, wZ, true) + engine.getMinHeight() + 1;
+                SET_HEIGHT.invoke(ocean, x, z, Math.min(noFluid, ocean.getFirstAvailable(x, z)));
+                SET_HEIGHT.invoke(surface, x, z, Math.min(noAir, surface.getFirstAvailable(x, z)));
+                SET_HEIGHT.invoke(motion, x, z, Math.min(noAir, motion.getFirstAvailable(x, z)));
+                SET_HEIGHT.invoke(motionNoLeaves, x, z, Math.min(noAir, motionNoLeaves.getFirstAvailable(x, z)));
+            }
+        }
+
         for (int j = 0; j < list.size(); j++) {
             Structure structure = list.get(j);
             random.setFeatureSeed(i, j, structure.step().ordinal());
@@ -302,6 +326,8 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
                 throw new ReportedException(crashReport);
             }
         }
+
+        Heightmap.primeHeightmaps(chunkAccess, ChunkStatus.POST_FEATURES);
     }
 
     private static BoundingBox getWritableArea(ChunkAccess ichunkaccess) {
@@ -362,7 +388,21 @@ public class IrisChunkGenerator extends CustomChunkGenerator {
         }
         if (biomeSource == null)
             throw new RuntimeException("Could not find biomeSource field in ChunkGenerator!");
+
+        Method setHeight = null;
+        for (Method method : Heightmap.class.getDeclaredMethods()) {
+            var types = method.getParameterTypes();
+            if (types.length != 3 || !Arrays.equals(types, new Class<?>[]{int.class, int.class, int.class})
+                    || !method.getReturnType().equals(void.class))
+                continue;
+            setHeight = method;
+            break;
+        }
+        if (setHeight == null)
+            throw new RuntimeException("Could not find setHeight method in Heightmap!");
+
         BIOME_SOURCE = new WrappedField<>(ChunkGenerator.class, biomeSource.getName());
+        SET_HEIGHT = new WrappedReturningMethod<>(Heightmap.class, setHeight.getName(), setHeight.getParameterTypes());
     }
 
     private static ChunkGenerator edit(ChunkGenerator generator, BiomeSource source) {

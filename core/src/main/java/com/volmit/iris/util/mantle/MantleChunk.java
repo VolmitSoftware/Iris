@@ -266,7 +266,7 @@ public class MantleChunk {
         dos.writeByte(x);
         dos.writeByte(z);
         dos.writeByte(sections.length());
-        Varint.writeUnsignedVarInt(Math.ceilDiv(flags.length(), Byte.SIZE), dos);
+        Varint.writeUnsignedVarInt(flags.length(), dos);
 
         int count = flags.length();
         for (int i = 0; i < count;) {

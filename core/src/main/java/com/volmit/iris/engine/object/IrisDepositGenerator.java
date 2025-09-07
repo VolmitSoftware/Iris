@@ -87,6 +87,8 @@ public class IrisDepositGenerator {
     @MaxNumber(64)
     @Desc("Ore varience is how many different objects clumps iris will create")
     private int varience = 3;
+    @Desc("If set to true, this deposit will replace bedrock")
+    private boolean replaceBedrock = false;
 
     public IrisObject getClump(Engine engine, RNG rng, IrisData rdata) {
         KList<IrisObject> objects = this.objects.aquire(() ->

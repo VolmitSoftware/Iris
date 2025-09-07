@@ -7,6 +7,7 @@ import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.container.StructurePlacement;
+import com.volmit.iris.core.nms.container.BlockProperty;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
@@ -50,6 +51,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -73,6 +75,7 @@ import org.bukkit.craftbukkit.v1_20_R1.block.CraftBlockState;
 import org.bukkit.craftbukkit.v1_20_R1.block.CraftBlockStates;
 import org.bukkit.craftbukkit.v1_20_R1.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_20_R1.util.CraftMagicNumbers;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.BiomeProvider;
@@ -682,6 +685,28 @@ public class NMSBinding implements INMSBinding {
             e.printStackTrace();
         }
         return false;
+    }
+
+    @Override
+    public KMap<Material, List<BlockProperty>> getBlockProperties() {
+        KMap<Material, List<BlockProperty>> states = new KMap<>();
+
+        for (var block : registry().registryOrThrow(Registries.BLOCK)) {
+            var state = block.defaultBlockState();
+            if (state == null) state = block.getStateDefinition().any();
+            final var finalState = state;
+
+            states.put(CraftMagicNumbers.getMaterial(block), block.getStateDefinition()
+                    .getProperties()
+                    .stream()
+                    .map(p -> createProperty(p, finalState))
+                    .toList());
+        }
+        return states;
+    }
+
+    private <T extends Comparable<T>> BlockProperty createProperty(Property<T> property, BlockState state) {
+        return new BlockProperty(property.getName(), property.getValueClass(), state.getValue(property), property.getPossibleValues(), property::getName);
     }
 
     @Override

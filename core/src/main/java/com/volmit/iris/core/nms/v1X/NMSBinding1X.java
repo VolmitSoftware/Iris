@@ -22,6 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.container.BlockProperty;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.core.nms.container.StructurePlacement;
@@ -43,6 +44,7 @@ import org.bukkit.generator.structure.Structure;
 import org.bukkit.inventory.ItemStack;
 
 import java.awt.Color;
+import java.util.List;
 import java.util.stream.StreamSupport;
 
 public class NMSBinding1X implements INMSBinding {
@@ -125,6 +127,15 @@ public class NMSBinding1X implements INMSBinding {
     @Override
     public boolean missingDimensionTypes(String... keys) {
         return false;
+    }
+
+    @Override
+    public KMap<Material, List<BlockProperty>> getBlockProperties() {
+        KMap<Material, List<BlockProperty>> map = new KMap<>();
+        for (Material m : Material.values()) {
+            if (m.isBlock()) map.put(m, List.of());
+        }
+        return map;
     }
 
     @Override

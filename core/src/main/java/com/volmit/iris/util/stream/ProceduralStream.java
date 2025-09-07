@@ -336,6 +336,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     }
 
     @SuppressWarnings("unchecked")
+    @Deprecated(forRemoval = true)
     default <V> ProceduralStream<V> selectRarity(V... types) {
         KList<V> rarityTypes = new KList<>();
         int totalRarity = 0;
@@ -350,16 +351,16 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         return new SelectionStream<V>(this, rarityTypes);
     }
 
-    default <V extends IRare> ProceduralStream<V> selectRarity(List<V> types) {
-        return IRare.stream(this.forceDouble(), types);
+    default <V extends IRare> ProceduralStream<V> selectRarity(List<V> types, boolean legacy) {
+        return IRare.stream(this.forceDouble(), types, legacy);
     }
 
-    default <V> ProceduralStream<IRare> selectRarity(List<V> types, Function<V, IRare> loader) {
+    default <V> ProceduralStream<IRare> selectRarity(List<V> types, Function<V, IRare> loader, boolean legacy) {
         List<IRare> r = new ArrayList<>();
         for (V f : types) {
             r.add(loader.apply(f));
         }
-        return selectRarity(r);
+        return selectRarity(r, legacy);
     }
 
     default <V> int countPossibilities(List<V> types, Function<V, IRare> loader) {

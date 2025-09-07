@@ -33,6 +33,7 @@ import org.bukkit.entity.Player;
 @Desc("Represents a casting location for a command")
 @Data
 public class IrisCommandRegistry {
+    @Required
     @ArrayType(min = 1, type = IrisCommand.class)
     @Desc("Run commands, at the exact location of the player")
     private KList<IrisCommand> rawCommands = new KList<>();

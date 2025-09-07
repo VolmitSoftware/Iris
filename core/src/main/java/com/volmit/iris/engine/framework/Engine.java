@@ -29,13 +29,13 @@ import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.nms.container.BlockPos;
 import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.core.pregenerator.ChunkUpdater;
+import com.volmit.iris.core.scripting.environment.EngineEnvironment;
 import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.object.*;
-import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.ChunkContext;
@@ -48,7 +48,7 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
@@ -110,7 +110,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     IrisContext getContext();
 
-    EngineExecutionEnvironment getExecution();
+    EngineEnvironment getExecution();
 
     double getMaxBiomeObjectDensity();
 
@@ -296,67 +296,63 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         try {
             Semaphore semaphore = new Semaphore(3);
             chunk.raiseFlag(MantleFlag.ETCHED, () -> {
-                chunk.raiseFlag(MantleFlag.TILE, run(semaphore, () -> J.s(() -> {
-                    mantle.iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, v) -> {
-                        int betterY = y + getWorld().minHeight();
-                        if (!TileData.setTileState(c.getBlock(x, betterY, z), v.getData()))
-                            Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), v.getData().getMaterial().name());
+                chunk.raiseFlag(MantleFlag.TILE, run(semaphore, () -> {
+                    chunk.iterate(TileWrapper.class, (x, y, z, v) -> {
+                        Block block = c.getBlock(x & 15, y + getWorld().minHeight(), z & 15);
+                        if (!TileData.setTileState(block, v.getData()))
+                            Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", block.getX(), block.getY(), block.getZ(), block.getType().getKey(), v.getData().getMaterial().getKey());
                     });
-                })));
-                chunk.raiseFlag(MantleFlag.CUSTOM, run(semaphore, () -> J.s(() -> {
-                    mantle.iterateChunk(c.getX(), c.getZ(), Identifier.class, (x, y, z, v) -> {
+                }, 0));
+                chunk.raiseFlag(MantleFlag.CUSTOM, run(semaphore, () -> {
+                    chunk.iterate(Identifier.class, (x, y, z, v) -> {
                         Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
                     });
-                })));
+                }, 0));
 
-                chunk.raiseFlag(MantleFlag.UPDATE, run(semaphore, () -> J.s(() -> {
+                chunk.raiseFlag(MantleFlag.UPDATE, run(semaphore, () -> {
                     PrecisionStopwatch p = PrecisionStopwatch.start();
-                    KMap<Long, Integer> updates = new KMap<>();
-                    RNG r = new RNG(Cache.key(c.getX(), c.getZ()));
-                    mantle.iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, yf, z, v) -> {
+                    int[][] grid = new int[16][16];
+                    for (int x = 0; x < 16; x++) {
+                        for (int z = 0; z < 16; z++) {
+                            grid[x][z] = Integer.MIN_VALUE;
+                        }
+                    }
+
+                    RNG rng = new RNG(Cache.key(c.getX(), c.getZ()));
+                    chunk.iterate(MatterCavern.class, (x, yf, z, v) -> {
                         int y = yf + getWorld().minHeight();
-                        if (!B.isFluid(c.getBlock(x & 15, y, z & 15).getBlockData())) {
+                        x &= 15;
+                        z &= 15;
+                        Block block = c.getBlock(x, y, z);
+                        if (!B.isFluid(block.getBlockData())) {
                             return;
                         }
-                        boolean u = false;
-                        if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.DOWN).getBlockData())) {
-                            u = true;
-                        } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.WEST).getBlockData())) {
-                            u = true;
-                        } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.EAST).getBlockData())) {
-                            u = true;
-                        } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.SOUTH).getBlockData())) {
-                            u = true;
-                        } else if (B.isAir(c.getBlock(x & 15, y, z & 15).getRelative(BlockFace.NORTH).getBlockData())) {
-                            u = true;
-                        }
+                        boolean u = B.isAir(block.getRelative(BlockFace.DOWN).getBlockData())
+                                || B.isAir(block.getRelative(BlockFace.WEST).getBlockData())
+                                || B.isAir(block.getRelative(BlockFace.EAST).getBlockData())
+                                || B.isAir(block.getRelative(BlockFace.SOUTH).getBlockData())
+                                || B.isAir(block.getRelative(BlockFace.NORTH).getBlockData());
 
-                        if (u) {
-                            updates.compute(Cache.key(x & 15, z & 15), (k, vv) -> {
-                                if (vv != null) {
-                                    return Math.max(vv, y);
-                                }
-
-                                return y;
-                            });
-                        }
+                        if (u) grid[x][z] = Math.max(grid[x][z], y);
                     });
 
-                    updates.forEach((k, v) -> update(Cache.keyX(k), v, Cache.keyZ(k), c, r));
-                    mantle.iterateChunk(c.getX(), c.getZ(), MatterUpdate.class, (x, yf, z, v) -> {
+                    for (int x = 0; x < 16; x++) {
+                        for (int z = 0; z < 16; z++) {
+                            if (grid[x][z] == Integer.MIN_VALUE)
+                                continue;
+                            update(x, grid[x][z], z, c, rng);
+                        }
+                    }
+
+                    chunk.iterate(MatterUpdate.class, (x, yf, z, v) -> {
                         int y = yf + getWorld().minHeight();
                         if (v != null && v.isUpdate()) {
-                            int vx = x & 15;
-                            int vz = z & 15;
-                            update(x, y, z, c, new RNG(Cache.key(c.getX(), c.getZ())));
-                            if (vx > 0 && vx < 15 && vz > 0 && vz < 15) {
-                                updateLighting(x, y, z, c);
-                            }
+                            update(x, y, z, c, rng);
                         }
                     });
-                    mantle.deleteChunkSlice(c.getX(), c.getZ(), MatterUpdate.class);
+                    chunk.deleteSlices(MatterUpdate.class);
                     getMetrics().getUpdates().put(p.getMilliseconds());
-                }, RNG.r.i(0, 20))));
+                }, RNG.r.i(1, 20))); //Why is there a random delay here?
             });
 
             try {
@@ -367,31 +363,19 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         }
     }
 
-    private static Runnable run(Semaphore semaphore, Runnable runnable) {
+    private static Runnable run(Semaphore semaphore, Runnable runnable, int delay) {
         return () -> {
             if (!semaphore.tryAcquire())
                 return;
-            try {
-                runnable.run();
-            } finally {
-                semaphore.release();
-            }
+
+            J.s(() -> {
+                try {
+                    runnable.run();
+                } finally {
+                    semaphore.release();
+                }
+            }, delay);
         };
-    }
-
-    @BlockCoordinates
-    default void updateLighting(int x, int y, int z, Chunk c) {
-        Block block = c.getBlock(x, y, z);
-        BlockData data = block.getBlockData();
-
-        if (B.isLit(data)) {
-            try {
-                block.setType(Material.AIR, false);
-                block.setBlockData(data, true);
-            } catch (Exception e) {
-                Iris.reportError(e);
-            }
-        }
     }
 
     @BlockCoordinates

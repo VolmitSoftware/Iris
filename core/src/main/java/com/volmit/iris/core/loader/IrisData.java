@@ -24,6 +24,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.scripting.environment.PackEnvironment;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.*;
@@ -33,6 +34,8 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.mantle.flag.MantleFlagAdapter;
+import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -54,6 +57,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private static final KMap<File, IrisData> dataLoaders = new KMap<>();
     private final File dataFolder;
     private final int id;
+    private final PackEnvironment environment;
     private boolean closed = false;
     private ResourceLoader<IrisBiome> biomeLoader;
     private ResourceLoader<IrisLootTable> lootLoader;
@@ -87,6 +91,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.engine = null;
         this.dataFolder = dataFolder;
         this.id = RNG.r.imax();
+        this.environment = PackEnvironment.create(this);
         hotloaded();
     }
 
@@ -252,12 +257,20 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                 }
             }
 
-            if (engine != null && t.getPreprocessors().isNotEmpty()) {
+            if (engine == null) return;
+            var global = engine.getDimension().getPreProcessors(t.getFolderName());
+            var local = t.getPreprocessors();
+            if ((global != null && global.isNotEmpty()) || local.isNotEmpty()) {
                 synchronized (this) {
-                    engine.getExecution().getAPI().setPreprocessorObject(t);
+                    if (global != null) {
+                        for (String i : global) {
+                            engine.getExecution().preprocessObject(i, t);
+                            Iris.debug("Loader<" + C.GREEN + t.getTypeName() + C.LIGHT_PURPLE + "> iprocess " + C.YELLOW + t.getLoadKey() + C.LIGHT_PURPLE + " in <rainbow>" + i);
+                        }
+                    }
 
-                    for (String i : t.getPreprocessors()) {
-                        engine.getExecution().execute(i);
+                    for (String i : local) {
+                        engine.getExecution().preprocessObject(i, t);
                         Iris.debug("Loader<" + C.GREEN + t.getTypeName() + C.LIGHT_PURPLE + "> iprocess " + C.YELLOW + t.getLoadKey() + C.LIGHT_PURPLE + " in <rainbow>" + i);
                     }
                 }
@@ -271,6 +284,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     public void close() {
         closed = true;
         dump();
+        dataLoaders.remove(dataFolder);
     }
 
     public IrisData copy() {
@@ -311,12 +325,14 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public synchronized void hotloaded() {
+        environment.close();
         possibleSnippets = new KMap<>();
         builder = new GsonBuilder()
                 .addDeserializationExclusionStrategy(this)
                 .addSerializationExclusionStrategy(this)
                 .setLenient()
                 .registerTypeAdapterFactory(this)
+                .registerTypeAdapter(MantleFlag.class, new MantleFlagAdapter())
                 .setPrettyPrinting();
         loaders.clear();
         File packs = dataFolder;
@@ -344,6 +360,10 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         builder.registerTypeAdapterFactory(KeyedType::createTypeAdapter);
 
         gson = builder.create();
+        dimensionLoader.streamAll()
+                .map(IrisDimension::getDataScripts)
+                .flatMap(KList::stream)
+                .forEach(environment::execute);
     }
 
     public void dump() {
@@ -484,7 +504,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public void savePrefetch(Engine engine) {
-        BurstExecutor b = MultiBurst.burst.burst(loaders.size());
+        BurstExecutor b = MultiBurst.ioBurst.burst(loaders.size());
 
         for (ResourceLoader<?> i : loaders.values()) {
             b.queue(() -> {
@@ -501,7 +521,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public void loadPrefetch(Engine engine) {
-        BurstExecutor b = MultiBurst.burst.burst(loaders.size());
+        BurstExecutor b = MultiBurst.ioBurst.burst(loaders.size());
 
         for (ResourceLoader<?> i : loaders.values()) {
             b.queue(() -> {

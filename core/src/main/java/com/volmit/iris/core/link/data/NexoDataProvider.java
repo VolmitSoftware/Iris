@@ -8,6 +8,7 @@ import com.volmit.iris.core.link.ExternalDataProvider;
 import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.container.BlockProperty;
 import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KMap;
@@ -26,11 +27,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.List;
 import java.util.MissingResourceException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class NexoDataProvider extends ExternalDataProvider {
-    private final AtomicBoolean failed = new AtomicBoolean(false);
-
     public NexoDataProvider() {
         super("Nexo");
     }
@@ -59,6 +57,15 @@ public class NexoDataProvider extends ExternalDataProvider {
         throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
     }
 
+    @Override
+    public @NotNull List<BlockProperty> getBlockProperties(@NotNull Identifier blockId) throws MissingResourceException {
+        if (!NexoItems.exists(blockId.key())) {
+            throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
+        }
+
+        return NexoFurniture.isFurniture(blockId.key()) ? YAW_FACE_BIOME_PROPERTIES : List.of();
+    }
+
     @NotNull
     @Override
     public ItemStack getItemStack(@NotNull Identifier itemId, @NotNull KMap<String, Object> customNbt) throws MissingResourceException {
@@ -66,7 +73,12 @@ public class NexoDataProvider extends ExternalDataProvider {
         if (builder == null) {
             throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());
         }
-        return builder.build();
+        try {
+            return builder.build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new MissingResourceException("Failed to find ItemData!", itemId.namespace(), itemId.key());
+        }
     }
 
     @Override
@@ -124,10 +136,5 @@ public class NexoDataProvider extends ExternalDataProvider {
     public boolean isValidProvider(@NotNull Identifier id, DataType dataType) {
         if (dataType == DataType.ENTITY) return false;
         return "nexo".equalsIgnoreCase(id.namespace());
-    }
-
-    @Override
-    public boolean isReady() {
-        return super.isReady() && !failed.get();
     }
 }

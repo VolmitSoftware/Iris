@@ -28,12 +28,12 @@ import com.volmit.iris.core.loader.ResourceLoader;
 import com.volmit.iris.core.nms.container.BlockPos;
 import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.core.project.IrisProject;
+import com.volmit.iris.core.scripting.environment.EngineEnvironment;
 import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.object.*;
-import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.atomics.AtomicRollingSequence;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.ChunkContext;
@@ -43,7 +43,7 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.io.IO;
-import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterStructurePOI;
@@ -94,7 +94,7 @@ public class IrisEngine implements Engine {
     private CompletableFuture<Long> hash32;
     private EngineMode mode;
     private EngineEffects effects;
-    private EngineExecutionEnvironment execution;
+    private EngineEnvironment execution;
     private EngineWorldManager worldManager;
     private volatile int parallelism;
     private boolean failing;
@@ -170,10 +170,12 @@ public class IrisEngine implements Engine {
             cacheId = RNG.r.nextInt();
             worldManager = new IrisWorldManager(this);
             complex = new IrisComplex(this);
-            execution = new IrisExecutionEnvironment(this);
+            execution = EngineEnvironment.create(this);
             effects = new IrisEngineEffects(this);
             hash32 = new CompletableFuture<>();
+            mantle.hotload();
             setupMode();
+            getDimension().getEngineScripts().forEach(execution::execute);
             J.a(this::computeBiomeMaxes);
             J.a(() -> {
                 File[] roots = getData().getLoaders()
@@ -199,7 +201,7 @@ public class IrisEngine implements Engine {
             mode.close();
         }
 
-        mode = getDimension().getMode().getType().create(this);
+        mode = getDimension().getMode().create(this);
     }
 
     @Override

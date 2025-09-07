@@ -49,11 +49,10 @@ public class IrisSettings {
     private IrisSettingsSentry sentry = new IrisSettingsSentry();
 
     public static int getThreadCount(int c) {
-        return switch (c) {
+        return Math.max(switch (c) {
             case -1, -2, -4 -> Runtime.getRuntime().availableProcessors() / -c;
-            case 0, 1, 2 -> 1;
             default -> Math.max(c, 2);
-        };
+        }, 1);
     }
 
     public static IrisSettings get() {
@@ -138,6 +137,7 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsConcurrency {
         public int parallelism = -1;
+        public int ioParallelism = -2;
         public int worldGenParallelism = -1;
 
         public int getWorldGenThreads() {
@@ -176,13 +176,13 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsUpdater {
-        public double threadMultiplier = 2;
+        public int maxConcurrency = 256;
         public double chunkLoadSensitivity = 0.7;
         public MsRange emptyMsRange = new MsRange(80, 100);
         public MsRange defaultMsRange = new MsRange(20, 40);
 
-        public double getThreadMultiplier() {
-            return Math.min(Math.abs(threadMultiplier), 0.1);
+        public int getMaxConcurrency() {
+            return Math.max(Math.abs(maxConcurrency), 1);
         }
 
         public double getChunkLoadSensitivity() {
@@ -242,6 +242,8 @@ public class IrisSettings {
         public String defaultWorldType = "overworld";
         public int maxBiomeChildDepth = 4;
         public boolean preventLeafDecay = true;
+        public boolean useMulticore = false;
+        public boolean offsetNoiseTypes = false;
     }
 
     @Data
@@ -255,6 +257,7 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsEngineSVC {
         public boolean useVirtualThreads = true;
+        public boolean forceMulticoreWrite = false;
         public int priority = Thread.NORM_PRIORITY;
 
         public int getPriority() {

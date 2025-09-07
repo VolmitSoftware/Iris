@@ -21,20 +21,23 @@ package com.volmit.iris.util.mantle;
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
+import com.volmit.iris.util.documentation.ChunkRelativeBlockCoordinates;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.io.CountingDataInputStream;
+import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterSlice;
+import com.volmit.iris.util.parallel.AtomicBooleanArray;
 import lombok.Getter;
 import lombok.SneakyThrows;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
 /**
@@ -46,7 +49,8 @@ public class MantleChunk {
     private final int x;
     @Getter
     private final int z;
-    private final AtomicIntegerArray flags;
+    private final AtomicBooleanArray flags;
+    private final Object[] flagLocks;
     private final AtomicReferenceArray<Matter> sections;
     private final Semaphore ref = new Semaphore(Integer.MAX_VALUE, true);
     private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -59,12 +63,13 @@ public class MantleChunk {
     @ChunkCoordinates
     public MantleChunk(int sectionHeight, int x, int z) {
         sections = new AtomicReferenceArray<>(sectionHeight);
-        flags = new AtomicIntegerArray(MantleFlag.values().length);
+        flags = new AtomicBooleanArray(MantleFlag.MAX_ORDINAL + 1);
+        flagLocks = new Object[flags.length()];
         this.x = x;
         this.z = z;
 
         for (int i = 0; i < flags.length(); i++) {
-            flags.set(i, 0);
+            flagLocks[i] = new Object();
         }
     }
 
@@ -79,10 +84,19 @@ public class MantleChunk {
     public MantleChunk(int version, int sectionHeight, CountingDataInputStream din) throws IOException {
         this(sectionHeight, din.readByte(), din.readByte());
         int s = din.readByte();
-        int l = version < 0 ? flags.length() : Varint.readUnsignedVarInt(din);
+        int l = version < 0 ? MantleFlag.RESERVED_FLAGS : Varint.readUnsignedVarInt(din);
 
-        for (int i = 0; i < flags.length() && i < l; i++) {
-            flags.set(i, din.readBoolean() ? 1 : 0);
+        if (version >= 1) {
+            for (int i = 0; i < l;) {
+                byte f = din.readByte();
+                for (int j = 0; j < Byte.SIZE && i < flags.length(); j++, i++) {
+                    flags.set(i, (f & (1 << j)) != 0);
+                }
+            }
+        } else {
+            for (int i = 0; i < flags.length() && i < l; i++) {
+                flags.set(i, din.readBoolean());
+            }
         }
 
         for (int i = 0; i < s; i++) {
@@ -108,6 +122,9 @@ public class MantleChunk {
 
                 din.skipTo(end);
                 TectonicPlate.addError();
+            }
+            if (din.count() != start + size) {
+                throw new IOException("Chunk section read size mismatch!");
             }
         }
     }
@@ -137,21 +154,35 @@ public class MantleChunk {
         ref.release();
     }
 
+    public void copyFlags(MantleChunk chunk) {
+        use();
+        for (int i = 0; i < flags.length(); i++) {
+            flags.set(i, chunk.flags.get(i));
+        }
+        release();
+    }
+
     public void flag(MantleFlag flag, boolean f) {
         if (closed.get()) throw new IllegalStateException("Chunk is closed!");
-        flags.set(flag.ordinal(), f ? 1 : 0);
+        flags.set(flag.ordinal(), f);
     }
 
     public void raiseFlag(MantleFlag flag, Runnable r) {
-        synchronized (this) {
-            if (!isFlagged(flag)) flag(flag, true);
-            else return;
+        raiseFlag(null, flag, r);
+    }
+
+    public void raiseFlag(@Nullable MantleFlag guard, MantleFlag flag, Runnable r) {
+        if (closed.get()) throw new IllegalStateException("Chunk is closed!");
+        if (guard != null && isFlagged(guard)) return;
+        synchronized (flagLocks[flag.ordinal()]) {
+            if (flags.compareAndSet(flag.ordinal(), false, true)) {
+                r.run();
+            }
         }
-        r.run();
     }
 
     public boolean isFlagged(MantleFlag flag) {
-        return flags.get(flag.ordinal()) == 1;
+        return flags.get(flag.ordinal());
     }
 
     /**
@@ -174,6 +205,15 @@ public class MantleChunk {
     @ChunkCoordinates
     public Matter get(int section) {
         return sections.get(section);
+    }
+
+    @Nullable
+    @ChunkRelativeBlockCoordinates
+    @SuppressWarnings("unchecked")
+    public <T> T get(int x, int y, int z, Class<T> type) {
+        return (T) getOrCreate(y >> 4)
+                .slice(type)
+                .get(x & 15, y & 15, z & 15);
     }
 
     /**
@@ -207,7 +247,9 @@ public class MantleChunk {
 
         if (matter == null) {
             matter = new IrisMatter(16, 16, 16);
-            sections.set(section, matter);
+            if (!sections.compareAndSet(section, null, matter)) {
+                matter = get(section);
+            }
         }
 
         return matter;
@@ -226,8 +268,13 @@ public class MantleChunk {
         dos.writeByte(sections.length());
         Varint.writeUnsignedVarInt(flags.length(), dos);
 
-        for (int i = 0; i < flags.length(); i++) {
-            dos.writeBoolean(flags.get(i) == 1);
+        int count = flags.length();
+        for (int i = 0; i < count;) {
+            int f = 0;
+            for (int j = 0; j < Byte.SIZE && i < flags.length(); j++, i++) {
+                f |= flags.get(i) ? (1 << j) : 0;
+            }
+            dos.write(f);
         }
 
         var bytes = new ByteArrayOutputStream(8192);

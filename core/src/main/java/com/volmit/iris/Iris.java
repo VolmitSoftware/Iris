@@ -96,6 +96,7 @@ public class Iris extends VolmitPlugin implements Listener {
     public static IrisCompat compat;
     public static FileWatcher configWatcher;
     private static VolmitSender sender;
+    private static Thread shutdownHook;
 
     static {
         try {
@@ -453,6 +454,7 @@ public class Iris extends VolmitPlugin implements Listener {
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
+        addShutdownHook();
         J.s(() -> {
             J.a(IrisSafeguard::suggestPaper);
             J.a(() -> IO.delete(getTemp()));
@@ -469,6 +471,24 @@ public class Iris extends VolmitPlugin implements Listener {
             IrisToolbelt.retainMantleDataForSlice(String.class.getCanonicalName());
             IrisToolbelt.retainMantleDataForSlice(BlockData.class.getCanonicalName());
         });
+    }
+
+    public void addShutdownHook() {
+        if (shutdownHook != null) {
+            Runtime.getRuntime().removeShutdownHook(shutdownHook);
+        }
+        shutdownHook = new Thread(() -> {
+            Bukkit.getWorlds()
+                    .stream()
+                    .map(IrisToolbelt::access)
+                    .filter(Objects::nonNull)
+                    .forEach(PlatformChunkGenerator::close);
+
+            MultiBurst.burst.close();
+            MultiBurst.ioBurst.close();
+            services.clear();
+        });
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
     }
 
     public void checkForBukkitWorlds(Predicate<String> filter) {
@@ -547,17 +567,7 @@ public class Iris extends VolmitPlugin implements Listener {
         postShutdown.forEach(Runnable::run);
         super.onDisable();
 
-        J.attempt(new JarScanner(instance.getJarFile(), "", false)::scan);
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            Bukkit.getWorlds()
-                    .stream()
-                    .map(IrisToolbelt::access)
-                    .filter(Objects::nonNull)
-                    .forEach(PlatformChunkGenerator::close);
-
-            MultiBurst.burst.close();
-            services.clear();
-        }));
+        J.attempt(new JarScanner(instance.getJarFile(), "", false)::scanAll);
     }
 
     private void setupPapi() {
@@ -732,7 +742,7 @@ public class Iris extends VolmitPlugin implements Listener {
         String padd2 = Form.repeat(" ", 4);
         String[] info = {"", "", "", "", "", padd2 + C.IRIS + " Iris", padd2 + C.GRAY + " by " + "<rainbow>Volmit Software", padd2 + C.GRAY + " v" + C.IRIS + getDescription().getVersion()};
         if (unstablemode) {
-             info = new String[]{"", "", "", "", "", padd2 + C.RED + " Iris", padd2 + C.GRAY + " by " + C.DARK_RED + "Volmit Software", padd2 + C.GRAY + " v" + C.RED + getDescription().getVersion()};
+            info = new String[]{"", "", "", "", "", padd2 + C.RED + " Iris", padd2 + C.GRAY + " by " + C.DARK_RED + "Volmit Software", padd2 + C.GRAY + " v" + C.RED + getDescription().getVersion()};
         }
         if (warningmode) {
             info = new String[]{"", "", "", "", "", padd2 + C.GOLD + " Iris", padd2 + C.GRAY + " by " + C.GOLD + "Volmit Software", padd2 + C.GRAY + " v" + C.GOLD + getDescription().getVersion()};

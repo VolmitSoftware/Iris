@@ -12,7 +12,7 @@ import com.volmit.iris.engine.object.IrisStructurePopulator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.reflect.WrappedField;
 import com.volmit.iris.util.reflect.WrappedReturningMethod;

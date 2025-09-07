@@ -28,6 +28,8 @@ plugins {
     alias(libs.plugins.sentry)
     alias(libs.plugins.slimjar)
     alias(libs.plugins.grgit)
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.lombok)
 }
 
 val apiVersion = "1.19"
@@ -89,11 +91,23 @@ dependencies {
     slim(libs.zip)
     slim(libs.gson)
     slim(libs.asm)
-    slim(libs.bsf)
-    slim(libs.rhino)
     slim(libs.caffeine)
     slim(libs.byteBuddy.core)
     slim(libs.byteBuddy.agent)
+    slim(libs.dom4j)
+    slim(libs.jaxen)
+
+    // Script Engine
+    slim(libs.kotlin.stdlib)
+    slim(libs.kotlin.coroutines)
+    slim(libs.kotlin.scripting.common)
+    slim(libs.kotlin.scripting.jvm)
+    slim(libs.kotlin.scripting.jvm.host)
+    slim(libs.kotlin.scripting.dependencies.maven) {
+        constraints {
+            slim(libs.mavenCore)
+        }
+    }
 }
 
 java {
@@ -101,10 +115,11 @@ java {
 }
 
 sentry {
+    url = "http://sentry.volmit.com:8080/"
     autoInstallation.enabled = false
     includeSourceContext = true
 
-    org = "volmit-software"
+    org = "sentry"
     projectName = "iris"
     authToken = findProperty("sentry.auth.token") as String? ?: System.getenv("SENTRY_AUTH_TOKEN")
 }
@@ -120,6 +135,13 @@ slimJar {
     relocate("net.kyori", "$lib.kyori")
     relocate("org.bstats", "$lib.metrics")
     relocate("io.sentry", "$lib.sentry")
+    relocate("org.apache.maven", "$lib.maven")
+    relocate("org.codehaus.plexus", "$lib.plexus")
+    relocate("org.eclipse.sisu", "$lib.sisu")
+    relocate("org.eclipse.aether", "$lib.aether")
+    relocate("com.google.inject", "$lib.guice")
+    relocate("org.dom4j", "$lib.dom4j")
+    relocate("org.jaxen", "$lib.jaxen")
 }
 
 tasks {

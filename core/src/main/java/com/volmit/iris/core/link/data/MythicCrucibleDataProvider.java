@@ -23,6 +23,7 @@ import com.volmit.iris.core.link.ExternalDataProvider;
 import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.container.BlockProperty;
 import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KMap;
@@ -41,6 +42,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.MissingResourceException;
 import java.util.Optional;
 
@@ -73,6 +75,19 @@ public class MythicCrucibleDataProvider extends ExternalDataProvider {
             return new IrisCustomData(B.getAir(), ExternalDataSVC.buildState(blockId, state));
         } else if (blockItemContext != null) {
             return blockItemContext.getBlockData();
+        }
+        throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
+    }
+
+    @Override
+    public @NotNull List<BlockProperty> getBlockProperties(@NotNull Identifier blockId) throws MissingResourceException {
+        CrucibleItem crucibleItem = this.itemManager.getItem(blockId.key())
+                .orElseThrow(() -> new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key()));
+
+        if (crucibleItem.getFurnitureData() != null) {
+            return YAW_FACE_BIOME_PROPERTIES;
+        } else if (crucibleItem.getBlockData() != null) {
+            return List.of();
         }
         throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
     }

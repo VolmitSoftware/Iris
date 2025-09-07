@@ -20,7 +20,6 @@ package com.volmit.iris.util.parallel;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
@@ -30,30 +29,41 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.IntSupplier;
 
 public class MultiBurst implements ExecutorService {
     private static final long TIMEOUT = Long.getLong("iris.burst.timeout", 15000);
     public static final MultiBurst burst = new MultiBurst();
+    public static final MultiBurst ioBurst = new MultiBurst("Iris IO", () -> IrisSettings.get().getConcurrency().getIoParallelism());
     private final AtomicLong last;
     private final String name;
     private final int priority;
+    private final IntSupplier parallelism;
     private ExecutorService service;
 
     public MultiBurst() {
-        this("Iris", Thread.MIN_PRIORITY);
+        this("Iris");
     }
 
-    public MultiBurst(String name, int priority) {
+    public MultiBurst(String name) {
+        this(name, Thread.MIN_PRIORITY, () -> IrisSettings.get().getConcurrency().getParallelism());
+    }
+
+    public MultiBurst(String name, IntSupplier parallelism) {
+        this(name, Thread.MIN_PRIORITY, parallelism);
+    }
+
+    public MultiBurst(String name, int priority, IntSupplier parallelism) {
         this.name = name;
         this.priority = priority;
+        this.parallelism = parallelism;
         last = new AtomicLong(M.ms());
-        Iris.service(PreservationSVC.class).register(this);
     }
 
     private synchronized ExecutorService getService() {
         last.set(M.ms());
         if (service == null || service.isShutdown()) {
-            service = new ForkJoinPool(IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism()),
+            service = new ForkJoinPool(IrisSettings.getThreadCount(parallelism.getAsInt()),
                     new ForkJoinPool.ForkJoinWorkerThreadFactory() {
                         int m = 0;
 

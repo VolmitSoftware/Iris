@@ -62,7 +62,10 @@ public class ItemAdderDataProvider extends ExternalDataProvider {
 
     @Override
     public void processUpdate(@NotNull Engine engine, @NotNull Block block, @NotNull Identifier blockId) {
-        CustomBlock.place(blockId.toString(), block.getLocation());
+        CustomBlock custom;
+        if ((custom = CustomBlock.place(blockId.toString(), block.getLocation())) == null)
+            return;
+        block.setBlockData(custom.getBaseBlockData(), false);
     }
 
     @Override

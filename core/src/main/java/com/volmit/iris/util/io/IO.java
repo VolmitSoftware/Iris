@@ -1705,6 +1705,7 @@ public class IO {
                 action.accept(out);
             }
             Files.copy(temp.toPath(), Channels.newOutputStream(target));
+            target.truncate(temp.length());
         } finally {
             temp.delete();
         }

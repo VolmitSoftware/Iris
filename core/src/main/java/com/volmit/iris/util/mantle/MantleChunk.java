@@ -181,6 +181,11 @@ public class MantleChunk {
         }
     }
 
+    public void raiseFlagUnchecked(MantleFlag flag, Runnable r) {
+        if (closed.get()) throw new IllegalStateException("Chunk is closed!");
+        if (flags.compareAndSet(flag.ordinal(), false, true)) r.run();
+    }
+
     public boolean isFlagged(MantleFlag flag) {
         return flags.get(flag.ordinal());
     }

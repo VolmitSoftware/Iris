@@ -244,6 +244,7 @@ public class IrisSettings {
         public boolean preventLeafDecay = true;
         public boolean useMulticore = false;
         public boolean offsetNoiseTypes = false;
+        public boolean earlyCustomBlocks = false;
     }
 
     @Data

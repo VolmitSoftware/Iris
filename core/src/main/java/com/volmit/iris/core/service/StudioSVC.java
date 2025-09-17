@@ -88,16 +88,18 @@ public class StudioSVC implements IrisService {
     }
 
     public IrisDimension installIntoWorld(VolmitSender sender, String type, File folder) {
+        return installInto(sender, type, new File(folder, "iris/pack"));
+    }
+
+    public IrisDimension installInto(VolmitSender sender, String type, File folder) {
         sender.sendMessage("Looking for Package: " + type);
-        File iris = new File(folder, "iris");
-        File irispack = new File(folder, "iris/pack");
         IrisDimension dim = IrisData.loadAnyDimension(type);
 
         if (dim == null) {
             for (File i : getWorkspaceFolder().listFiles()) {
                 if (i.isFile() && i.getName().equals(type + ".iris")) {
                     sender.sendMessage("Found " + type + ".iris in " + WORKSPACE_NAME + " folder");
-                    ZipUtil.unpack(i, irispack);
+                    ZipUtil.unpack(i, folder);
                     break;
                 }
             }
@@ -106,29 +108,29 @@ public class StudioSVC implements IrisService {
             File f = new IrisProject(new File(getWorkspaceFolder(), type)).getPath();
 
             try {
-                FileUtils.copyDirectory(f, irispack);
+                FileUtils.copyDirectory(f, folder);
             } catch (IOException e) {
                 Iris.reportError(e);
             }
         }
 
-        File dimf = new File(irispack, "dimensions/" + type + ".json");
+        File dimensionFile = new File(folder, "dimensions/" + type + ".json");
 
-        if (!dimf.exists() || !dimf.isFile()) {
+        if (!dimensionFile.exists() || !dimensionFile.isFile()) {
             downloadSearch(sender, type, false);
             File downloaded = getWorkspaceFolder(type);
 
             for (File i : downloaded.listFiles()) {
                 if (i.isFile()) {
                     try {
-                        FileUtils.copyFile(i, new File(irispack, i.getName()));
+                        FileUtils.copyFile(i, new File(folder, i.getName()));
                     } catch (IOException e) {
                         e.printStackTrace();
                         Iris.reportError(e);
                     }
                 } else {
                     try {
-                        FileUtils.copyDirectory(i, new File(irispack, i.getName()));
+                        FileUtils.copyDirectory(i, new File(folder, i.getName()));
                     } catch (IOException e) {
                         e.printStackTrace();
                         Iris.reportError(e);
@@ -139,12 +141,14 @@ public class StudioSVC implements IrisService {
             IO.delete(downloaded);
         }
 
-        if (!dimf.exists() || !dimf.isFile()) {
-            sender.sendMessage("Can't find the " + dimf.getName() + " in the dimensions folder of this pack! Failed!");
+        if (!dimensionFile.exists() || !dimensionFile.isFile()) {
+            sender.sendMessage("Can't find the " + dimensionFile.getName() + " in the dimensions folder of this pack! Failed!");
             return null;
         }
 
-        IrisData dm = IrisData.get(irispack);
+        IrisData dm = IrisData.get(folder);
+        dm.dump();
+        dm.clearLists();
         dim = dm.getDimensionLoader().load(type);
 
         if (dim == null) {

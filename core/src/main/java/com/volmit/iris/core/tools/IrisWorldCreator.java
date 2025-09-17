@@ -80,7 +80,7 @@ public class IrisWorldCreator {
 
 
         return new WorldCreator(name)
-                .environment(findEnvironment())
+                .environment(w.environment())
                 .generateStructures(true)
                 .generator(g).seed(seed);
     }

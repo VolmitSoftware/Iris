@@ -43,8 +43,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
+import java.util.function.IntSupplier;
 
 import static com.volmit.iris.util.misc.ServerProperties.BUKKIT_YML;
 
@@ -128,8 +127,6 @@ public class IrisCreator {
             Iris.service(StudioSVC.class).installIntoWorld(sender, d.getLoadKey(), new File(Bukkit.getWorldContainer(), name()));
         }
 
-        PlatformChunkGenerator access;
-        AtomicReference<World> world = new AtomicReference<>();
         AtomicDouble pp = new AtomicDouble(0);
         O<Boolean> done = new O<>();
         done.set(false);
@@ -139,30 +136,29 @@ public class IrisCreator {
                 .seed(seed)
                 .studio(studio)
                 .create();
-        ServerConfigurator.installDataPacks(false);
+        if (ServerConfigurator.installDataPacks(true)) {
+            throw new IrisException("Datapacks were missing!");
+        }
 
-        access = (PlatformChunkGenerator) wc.generator();
-        PlatformChunkGenerator finalAccess1 = access;
+        PlatformChunkGenerator access = (PlatformChunkGenerator) wc.generator();
+        if (access == null) throw new IrisException("Access is null. Something bad happened.");
 
-        J.a(() ->
-        {
-            Supplier<Integer> g = () -> {
-                if (finalAccess1 == null || finalAccess1.getEngine() == null) {
+        J.a(() -> {
+            IntSupplier g = () -> {
+                if (access.getEngine() == null) {
                     return 0;
                 }
-                return finalAccess1.getEngine().getGenerated();
+                return access.getEngine().getGenerated();
             };
             if(!benchmark) {
-                if (finalAccess1 == null) return;
-                int req = finalAccess1.getSpawnChunks().join();
-
-                while (g.get() < req) {
-                    double v = (double) g.get() / (double) req;
+                int req = access.getSpawnChunks().join();
+                for (int c = 0; c < req && !done.get(); c = g.getAsInt()) {
+                    double v = (double) c / req;
                     if (sender.isPlayer()) {
                         sender.sendProgress(v, "Generating");
                         J.sleep(16);
                     } else {
-                        sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - g.get()) + " Left)")));
+                        sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - c) + " Left)")));
                         J.sleep(1000);
                     }
                 }
@@ -170,39 +166,33 @@ public class IrisCreator {
         });
 
 
+        World world;
         try {
-            J.sfut(() -> {
-                world.set(INMS.get().createWorld(wc));
-            }).get();
+            world = J.sfut(() -> INMS.get().createWorld(wc)).get();
         } catch (Throwable e) {
-            e.printStackTrace();
-        }
-
-        if (access == null) {
-            throw new IrisException("Access is null. Something bad happened.");
+            done.set(true);
+            throw new IrisException("Failed to create world!", e);
         }
 
         done.set(true);
 
         if (sender.isPlayer() && !benchmark) {
-            J.s(() -> {
-                sender.player().teleport(new Location(world.get(), 0, world.get().getHighestBlockYAt(0, 0), 0));
-            });
+            J.s(() -> sender.player().teleport(new Location(world, 0, world.getHighestBlockYAt(0, 0) + 1, 0)));
         }
 
         if (studio || benchmark) {
             J.s(() -> {
-                Iris.linkMultiverseCore.removeFromConfig(world.get());
+                Iris.linkMultiverseCore.removeFromConfig(world);
 
                 if (IrisSettings.get().getStudio().isDisableTimeAndWeather()) {
-                    world.get().setGameRule(GameRule.DO_WEATHER_CYCLE, false);
-                    world.get().setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
-                    world.get().setTime(6000);
+                    world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
+                    world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+                    world.setTime(6000);
                 }
             });
         } else {
             addToBukkitYml();
-            J.s(() -> Iris.linkMultiverseCore.updateWorld(world.get(), dimension));
+            J.s(() -> Iris.linkMultiverseCore.updateWorld(world, dimension));
         }
 
         if (pregen != null) {
@@ -233,7 +223,7 @@ public class IrisCreator {
                 e.printStackTrace();
             }
         }
-        return world.get();
+        return world;
     }
 
     private void addToBukkitYml() {

@@ -103,14 +103,14 @@ public class ServerConfigurator {
         return worlds;
     }
 
-    public static void installDataPacks(boolean fullInstall) {
-        installDataPacks(DataVersion.getDefault(), fullInstall);
+    public static boolean installDataPacks(boolean fullInstall) {
+        return installDataPacks(DataVersion.getDefault(), fullInstall);
     }
 
-    public static void installDataPacks(IDataFixer fixer, boolean fullInstall) {
+    public static boolean installDataPacks(IDataFixer fixer, boolean fullInstall) {
         if (fixer == null) {
             Iris.error("Unable to install datapacks, fixer is null!");
-            return;
+            return false;
         }
         Iris.info("Checking Data Packs...");
         DimensionHeight height = new DimensionHeight(fixer);
@@ -129,11 +129,10 @@ public class ServerConfigurator {
         IrisDimension.writeShared(folders, height);
         Iris.info("Data Packs Setup!");
 
-        if (fullInstall)
-            verifyDataPacksPost(IrisSettings.get().getAutoConfiguration().isAutoRestartOnCustomBiomeInstall());
+        return fullInstall && verifyDataPacksPost(IrisSettings.get().getAutoConfiguration().isAutoRestartOnCustomBiomeInstall());
     }
 
-    private static void verifyDataPacksPost(boolean allowRestarting) {
+    private static boolean verifyDataPacksPost(boolean allowRestarting) {
         try (Stream<IrisData> stream = allPacks()) {
             boolean bad = stream
                     .map(data -> {
@@ -148,7 +147,7 @@ public class ServerConfigurator {
                     })
                     .toList()
                     .contains(true);
-            if (!bad) return;
+            if (!bad) return false;
         }
 
 
@@ -172,6 +171,7 @@ public class ServerConfigurator {
 
             J.sleep(3000);
         }
+        return true;
     }
 
     public static void restart() {

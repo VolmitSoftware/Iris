@@ -707,7 +707,11 @@ public class Iris extends VolmitPlugin implements Listener {
         Iris.debug("Generator Config: " + w.toString());
 
         File ff = new File(w.worldFolder(), "iris/pack");
-        if (!ff.exists() || ff.listFiles().length == 0) {
+        var files = ff.listFiles();
+        if (files == null || files.length == 0)
+            IO.delete(ff);
+
+        if (!ff.exists()) {
             ff.mkdirs();
             service(StudioSVC.class).installIntoWorld(getSender(), dim.getLoadKey(), w.worldFolder());
         }
@@ -717,8 +721,8 @@ public class Iris extends VolmitPlugin implements Listener {
 
     @Nullable
     public static IrisDimension loadDimension(@NonNull String worldName, @NonNull String id) {
-        var data = IrisData.get(new File(Bukkit.getWorldContainer(), String.join(File.separator, worldName, "iris", "pack")));
-        var dimension = data.getDimensionLoader().load(id);
+        File pack = new File(Bukkit.getWorldContainer(), String.join(File.separator, worldName, "iris", "pack"));
+        var dimension = pack.isDirectory() ? IrisData.get(pack).getDimensionLoader().load(id) : null;
         if (dimension == null) dimension = IrisData.loadAnyDimension(id, null);
         if (dimension == null) {
             Iris.warn("Unable to find dimension type " + id + " Looking for online packs...");

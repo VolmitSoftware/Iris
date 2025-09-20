@@ -195,6 +195,7 @@ allprojects {
         maven("https://mvn.lumine.io/repository/maven-public/") // mythic
         maven("https://nexus.phoenixdevt.fr/repository/maven-public/") //MMOItems
         maven("https://repo.onarandombox.com/content/groups/public/") //Multiverse Core
+        maven("https://repo.momirealms.net/releases/") //CraftEngine
     }
 
     dependencies {

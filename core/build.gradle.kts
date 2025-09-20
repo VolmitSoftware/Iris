@@ -197,6 +197,10 @@ val generateTemplates = tasks.register<Copy>("generateTemplates") {
     expand(inputs.properties)
 }
 
+tasks.generateSentryBundleIdJava {
+    dependsOn(generateTemplates)
+}
+
 rootProject.tasks.named("prepareKotlinBuildScriptModel") {
     dependsOn(generateTemplates)
 }

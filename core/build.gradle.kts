@@ -162,15 +162,6 @@ tasks {
             "version" to rootProject.version,
             "apiVersion" to apiVersion,
             "main" to main,
-            "environment" to if (project.hasProperty("release")) "production" else "development",
-            "commit" to provider {
-                val res = runCatching { project.extensions.getByType<Grgit>().head().id }
-                res.getOrDefault("")
-                    .takeIf { it.length == 40 } ?: {
-                    logger.error("Git commit hash not found", res.exceptionOrNull())
-                    "unknown"
-                }()
-            },
         )
         filesMatching("**/plugin.yml") {
             expand(inputs.properties)
@@ -185,9 +176,31 @@ tasks {
     }
 }
 
-/**
- * Gradle is weird sometimes, we need to delete the plugin yml from the build folder to actually filter properly.
- */
-afterEvaluate {
-    layout.buildDirectory.file("resources/main/plugin.yml").get().asFile.delete()
+val templateSource = file("src/main/templates")
+val templateDest = layout.buildDirectory.dir("generated/sources/templates")
+val generateTemplates = tasks.register<Copy>("generateTemplates") {
+    inputs.properties(
+        "environment" to if (project.hasProperty("release")) "production" else "development",
+        "commit" to provider {
+            val res = runCatching { project.extensions.getByType<Grgit>().head().id }
+            res.getOrDefault("")
+                .takeIf { it.length == 40 } ?: {
+                logger.error("Git commit hash not found", res.exceptionOrNull())
+                "unknown"
+            }()
+        },
+    )
+
+    from(templateSource)
+    into(templateDest)
+    rename { "com/volmit/iris/$it" }
+    expand(inputs.properties)
+}
+
+rootProject.tasks.named("prepareKotlinBuildScriptModel") {
+    dependsOn(generateTemplates)
+}
+
+sourceSets.main {
+    java.srcDir(generateTemplates.map { it.outputs })
 }

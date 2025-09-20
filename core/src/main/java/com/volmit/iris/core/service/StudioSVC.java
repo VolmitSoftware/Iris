@@ -93,7 +93,7 @@ public class StudioSVC implements IrisService {
 
     public IrisDimension installInto(VolmitSender sender, String type, File folder) {
         sender.sendMessage("Looking for Package: " + type);
-        IrisDimension dim = IrisData.loadAnyDimension(type);
+        IrisDimension dim = IrisData.loadAnyDimension(type, null);
 
         if (dim == null) {
             for (File i : getWorkspaceFolder().listFiles()) {
@@ -265,6 +265,7 @@ public class StudioSVC implements IrisService {
         }
 
         IrisDimension d = data.getDimensionLoader().load(dimensions[0]);
+        data.close();
 
         if (d == null) {
             sender.sendMessage("Invalid dimension (folder) in dimensions folder");
@@ -279,7 +280,7 @@ public class StudioSVC implements IrisService {
             IO.delete(packEntry);
         }
 
-        if (IrisData.loadAnyDimension(key) != null) {
+        if (IrisData.loadAnyDimension(key, null) != null) {
             sender.sendMessage("Another dimension in the packs folder is already using the key " + key + " IMPORT FAILED!");
             return;
         }
@@ -298,6 +299,7 @@ public class StudioSVC implements IrisService {
             packEntry.mkdirs();
             ZipUtil.unpack(cp, packEntry);
         }
+        IrisData.get(packEntry).hotloaded();
 
         sender.sendMessage("Successfully Aquired " + d.getName());
         ServerConfigurator.installDataPacks(true);

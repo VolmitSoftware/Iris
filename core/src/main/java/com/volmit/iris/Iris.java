@@ -719,11 +719,11 @@ public class Iris extends VolmitPlugin implements Listener {
     public static IrisDimension loadDimension(@NonNull String worldName, @NonNull String id) {
         var data = IrisData.get(new File(Bukkit.getWorldContainer(), String.join(File.separator, worldName, "iris", "pack")));
         var dimension = data.getDimensionLoader().load(id);
-        if (dimension == null) dimension = IrisData.loadAnyDimension(id);
+        if (dimension == null) dimension = IrisData.loadAnyDimension(id, null);
         if (dimension == null) {
             Iris.warn("Unable to find dimension type " + id + " Looking for online packs...");
             Iris.service(StudioSVC.class).downloadSearch(new VolmitSender(Bukkit.getConsoleSender()), id, false);
-            dimension = IrisData.loadAnyDimension(id);
+            dimension = IrisData.loadAnyDimension(id, null);
 
             if (dimension != null) {
                 Iris.info("Resolved missing dimension, proceeding.");

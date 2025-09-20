@@ -355,7 +355,7 @@ public class IrisDimension extends IrisRegistrant {
         KList<IrisRegion> r = new KList<>();
 
         for (String i : getRegions()) {
-            r.add(IrisData.loadAnyRegion(i));
+            r.add(IrisData.loadAnyRegion(i, getLoader()));
         }
 
         return r;

@@ -170,7 +170,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
             if (dimension == null) {
                 Iris.error("Oh No! There's no pack in " + data.getDataFolder().getPath() + " or... there's no dimension for the key " + dimensionKey);
-                IrisDimension test = IrisData.loadAnyDimension(dimensionKey);
+                IrisDimension test = IrisData.loadAnyDimension(dimensionKey, null);
 
                 if (test != null) {
                     Iris.warn("Looks like " + dimensionKey + " exists in " + test.getLoadFile().getPath() + " ");

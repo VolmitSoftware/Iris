@@ -18,63 +18,12 @@
 
 package com.volmit.iris.util.decree.handlers;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.decree.DecreeParameterHandler;
-import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
+import com.volmit.iris.util.decree.specialhandlers.RegistrantHandler;
 
-import java.io.File;
-import java.util.stream.Collectors;
-
-public class BiomeHandler implements DecreeParameterHandler<IrisBiome> {
-    @Override
-    public KList<IrisBiome> getPossibilities() {
-        KMap<String, IrisBiome> p = new KMap<>();
-
-        //noinspection ConstantConditions
-        for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
-            if (i.isDirectory()) {
-                IrisData data = IrisData.get(i);
-                for (IrisBiome j : data.getBiomeLoader().loadAll(data.getBiomeLoader().getPossibleKeys())) {
-                    p.putIfAbsent(j.getLoadKey(), j);
-                }
-
-                data.close();
-            }
-        }
-
-        return p.v();
-    }
-
-    @Override
-    public String toString(IrisBiome dim) {
-        return dim.getLoadKey();
-    }
-
-    @Override
-    public IrisBiome parse(String in, boolean force) throws DecreeParsingException {
-        if (in.equals("null")) {
-            return null;
-        }
-        KList<IrisBiome> options = getPossibilities(in);
-
-        if (options.isEmpty()) {
-            throw new DecreeParsingException("Unable to find Biome \"" + in + "\"");
-        }
-
-        try {
-            return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
-        } catch (Throwable e) {
-            throw new DecreeParsingException("Unable to filter which Biome \"" + in + "\"");
-        }
-    }
-
-    @Override
-    public boolean supports(Class<?> type) {
-        return type.equals(IrisBiome.class);
+public class BiomeHandler extends RegistrantHandler<IrisBiome> {
+    public BiomeHandler() {
+        super(IrisBiome.class, true);
     }
 
     @Override

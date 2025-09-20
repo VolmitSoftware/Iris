@@ -171,9 +171,9 @@ public class CommandStudio implements DecreeExecutor {
         var loc = player().getLocation().clone();
 
         J.a(() -> {
-            DecreeContext.touch(sender);
             PlatformChunkGenerator plat = IrisToolbelt.access(world);
             Engine engine = plat.getEngine();
+            DecreeContext.touch(sender);
             try (SyncExecutor executor = new SyncExecutor(20)) {
                 int x = loc.getBlockX() >> 4;
                 int z = loc.getBlockZ() >> 4;
@@ -247,6 +247,8 @@ public class CommandStudio implements DecreeExecutor {
             } catch (Throwable e) {
                 sender().sendMessage("Error while regenerating chunks");
                 e.printStackTrace();
+            } finally {
+                DecreeContext.remove();
             }
         });
     }

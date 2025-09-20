@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.decree;
 
+import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
@@ -32,6 +33,14 @@ public interface DecreeExecutor {
 
     default Player player() {
         return sender().player();
+    }
+
+    default IrisData data() {
+        var access = access();
+        if (access != null) {
+            return access.getData();
+        }
+        return null;
     }
 
     default Engine engine() {

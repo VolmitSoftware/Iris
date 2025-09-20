@@ -18,67 +18,21 @@
 
 package com.volmit.iris.util.decree.specialhandlers;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 
-import java.io.File;
-
-public class NullableDimensionHandler implements DecreeParameterHandler<IrisDimension> {
-    @Override
-    public KList<IrisDimension> getPossibilities() {
-        KMap<String, IrisDimension> p = new KMap<>();
-
-        //noinspection ConstantConditions
-        for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
-            if (i.isDirectory()) {
-                IrisData data = IrisData.get(i);
-                for (IrisDimension j : data.getDimensionLoader().loadAll(data.getDimensionLoader().getPossibleKeys())) {
-                    p.putIfAbsent(j.getLoadKey(), j);
-                }
-
-                data.close();
-            }
-        }
-
-        return p.v();
-    }
-
-    @Override
-    public String toString(IrisDimension dim) {
-        return dim.getLoadKey();
+public class NullableDimensionHandler extends RegistrantHandler<IrisDimension> {
+    public NullableDimensionHandler() {
+        super(IrisDimension.class, true);
     }
 
     @Override
     public IrisDimension parse(String in, boolean force) throws DecreeParsingException {
-        if (in.equalsIgnoreCase("---"))
-            return null;
-
         if (in.equalsIgnoreCase("default")) {
             return parse(IrisSettings.get().getGenerator().getDefaultWorldType());
         }
-
-        KList<IrisDimension> options = getPossibilities(in);
-
-
-        if (options.isEmpty()) {
-            throw new DecreeParsingException("Unable to find Dimension \"" + in + "\"");
-        }
-        try {
-            return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).toList().get(0);
-        } catch (Throwable e) {
-            throw new DecreeParsingException("Unable to filter which Dimension \"" + in + "\"");
-        }
-    }
-
-    @Override
-    public boolean supports(Class<?> type) {
-        return type.equals(IrisDimension.class);
+        return super.parse(in, force);
     }
 
     @Override

@@ -863,7 +863,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     default void gotoBiome(IrisBiome biome, Player player, boolean teleport) {
         Set<String> regionKeys = getDimension()
                 .getAllRegions(this).stream()
-                .filter((i) -> i.getAllBiomes(this).contains(biome))
+                .filter((i) -> i.getAllBiomeIds().contains(biome.getLoadKey()))
                 .map(IrisRegistrant::getLoadKey)
                 .collect(Collectors.toSet());
         Locator<IrisBiome> lb = Locator.surfaceBiome(biome.getLoadKey());
@@ -959,7 +959,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     default void gotoRegion(IrisRegion r, Player player, boolean teleport) {
-        if (!getDimension().getAllRegions(this).contains(r)) {
+        if (!getDimension().getRegions().contains(r.getLoadKey())) {
             player.sendMessage(C.RED + r.getName() + " is not defined in the dimension!");
             return;
         }

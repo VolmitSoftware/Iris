@@ -71,7 +71,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -159,7 +158,7 @@ public class CommandDeveloper implements DecreeExecutor {
     @SneakyThrows
     @Decree(description = "Generate Iris structures for all loaded datapack structures")
     public void generateStructures(
-            @Param(description = "The pack to add the generated structures to", aliases = "pack", defaultValue = "---", customHandler = NullableDimensionHandler.class)
+            @Param(description = "The pack to add the generated structures to", aliases = "pack", defaultValue = "null", customHandler = NullableDimensionHandler.class)
             IrisDimension dimension,
             @Param(description = "Ignore existing structures", defaultValue = "false")
             boolean force

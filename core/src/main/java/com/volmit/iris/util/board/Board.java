@@ -23,15 +23,11 @@ import lombok.NonNull;
 import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.scoreboard.DisplaySlot;
-import org.bukkit.scoreboard.Objective;
-import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.Team;
+import org.bukkit.scoreboard.*;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.function.UnaryOperator;
 import java.util.stream.IntStream;
 
 /**
@@ -42,7 +38,7 @@ public class Board {
 
     private static final String[] CACHED_ENTRIES = new String[C.values().length];
 
-    private static final Function<String, String> APPLY_COLOR_TRANSLATION = s -> C.translateAlternateColorCodes('&', s);
+    private static final UnaryOperator<String> APPLY_COLOR_TRANSLATION = s -> C.translateAlternateColorCodes('&', s);
 
     static {
         IntStream.range(0, 15).forEach(i -> CACHED_ENTRIES[i] = C.values()[i].toString() + C.RESET);
@@ -54,13 +50,14 @@ public class Board {
     private BoardSettings boardSettings;
     private boolean ready;
 
-    @SuppressWarnings("deprecation")
     public Board(@NonNull final Player player, final BoardSettings boardSettings) {
         this.player = player;
         this.boardSettings = boardSettings;
-        this.objective = this.getScoreboard().getObjective("board") == null ? this.getScoreboard().registerNewObjective("board", "dummy") : this.getScoreboard().getObjective("board");
+        var obj = getScoreboard().getObjective("board");
+        this.objective = obj == null ? this.getScoreboard().registerNewObjective("board", Criteria.DUMMY, "Iris") : obj;
         this.objective.setDisplaySlot(DisplaySlot.SIDEBAR);
-        Team team = this.getScoreboard().getTeam("board") == null ? this.getScoreboard().registerNewTeam("board") : this.getScoreboard().getTeam("board");
+        Team team = getScoreboard().getTeam("board");
+        team = team == null ? getScoreboard().registerNewTeam("board") : team;
         team.setAllowFriendlyFire(true);
         team.setCanSeeFriendlyInvisibles(false);
         team.setPrefix("");
@@ -94,7 +91,8 @@ public class Board {
         }
 
         // Getting their Scoreboard display from the Scoreboard Provider.
-        final List<String> entries = boardSettings.getBoardProvider().getLines(player).stream().map(APPLY_COLOR_TRANSLATION).collect(Collectors.toList());
+        final List<String> entries = boardSettings.getBoardProvider().getLines(player);
+        entries.replaceAll(APPLY_COLOR_TRANSLATION);
 
         if (boardSettings.getScoreDirection() == ScoreDirection.UP) {
             Collections.reverse(entries);

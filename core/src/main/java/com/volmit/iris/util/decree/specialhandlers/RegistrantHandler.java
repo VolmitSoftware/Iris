@@ -28,7 +28,10 @@ public abstract class RegistrantHandler<T extends IrisRegistrant> implements Dec
         Set<String> known = new HashSet<>();
         IrisData data = data();
         if (data != null) {
-            return data.getLoader(type).loadAll(data.getLoader(type).getPossibleKeys()).qadd(null);
+            for (T j : data.getLoader(type).loadAll(data.getLoader(type).getPossibleKeys())) {
+                known.add(j.getLoadKey());
+                p.add(j);
+            }
         }
 
         //noinspection ConstantConditions

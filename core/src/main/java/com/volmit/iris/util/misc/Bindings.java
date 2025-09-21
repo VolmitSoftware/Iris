@@ -1,5 +1,6 @@
 package com.volmit.iris.util.misc;
 
+import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.BuildConstants;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
@@ -74,7 +75,9 @@ public class Bindings {
     }
 
     private static boolean suppress(Throwable e) {
-        return (e instanceof IllegalStateException ex && "zip file closed".equals(ex.getMessage())) || e instanceof JSONException;
+        return (e instanceof IllegalStateException ex && "zip file closed".equals(ex.getMessage()))
+                || e instanceof JSONException
+                || e instanceof JsonSyntaxException;
     }
 
 

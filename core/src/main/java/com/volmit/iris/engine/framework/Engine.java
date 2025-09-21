@@ -294,7 +294,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
         var chunk = mantle.getChunk(c).use();
         try {
-            Semaphore semaphore = new Semaphore(3);
+            Semaphore semaphore = new Semaphore(1024);
             chunk.raiseFlag(MantleFlag.ETCHED, () -> {
                 chunk.raiseFlagUnchecked(MantleFlag.TILE, run(semaphore, () -> {
                     chunk.iterate(TileWrapper.class, (x, y, z, v) -> {
@@ -355,8 +355,18 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 }, RNG.r.i(1, 20))); //Why is there a random delay here?
             });
 
+            chunk.raiseFlagUnchecked(MantleFlag.SCRIPT, () -> {
+                var scripts = getDimension().getChunkUpdateScripts();
+                if (scripts == null || scripts.isEmpty())
+                    return;
+
+                for (var script : scripts) {
+                    getExecution().updateChunk(script, chunk, c, (delay, task) -> run(semaphore, task, delay));
+                }
+            });
+
             try {
-                semaphore.acquire(3);
+                semaphore.acquire(1024);
             } catch (InterruptedException ignored) {}
         } finally {
             chunk.release();
@@ -365,8 +375,11 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     private static Runnable run(Semaphore semaphore, Runnable runnable, int delay) {
         return () -> {
-            if (!semaphore.tryAcquire())
-                return;
+            try {
+                semaphore.acquire();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
 
             J.s(() -> {
                 try {

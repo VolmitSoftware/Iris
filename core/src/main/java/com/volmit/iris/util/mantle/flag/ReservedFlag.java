@@ -16,7 +16,8 @@ public enum ReservedFlag implements MantleFlag {
     TILE,
     CUSTOM,
     DISCOVERED,
-    CUSTOM_ACTIVE;
+    CUSTOM_ACTIVE,
+    SCRIPT;
 
     @Override
     public boolean isCustom() {

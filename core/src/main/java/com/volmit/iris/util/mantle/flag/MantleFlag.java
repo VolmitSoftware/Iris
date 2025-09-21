@@ -40,6 +40,7 @@ public sealed interface MantleFlag permits CustomFlag, ReservedFlag {
     MantleFlag CUSTOM = ReservedFlag.CUSTOM;
     MantleFlag DISCOVERED = ReservedFlag.DISCOVERED;
     MantleFlag CUSTOM_ACTIVE = ReservedFlag.CUSTOM_ACTIVE;
+    MantleFlag SCRIPT = ReservedFlag.SCRIPT;
 
     int RESERVED_FLAGS = ReservedFlag.values().length;
 

@@ -176,14 +176,26 @@ public class MantleChunk {
         if (guard != null && isFlagged(guard)) return;
         synchronized (flagLocks[flag.ordinal()]) {
             if (flags.compareAndSet(flag.ordinal(), false, true)) {
-                r.run();
+                try {
+                    r.run();
+                } catch (RuntimeException | Error e) {
+                    flags.set(flag.ordinal(), false);
+                    throw e;
+                }
             }
         }
     }
 
     public void raiseFlagUnchecked(MantleFlag flag, Runnable r) {
         if (closed.get()) throw new IllegalStateException("Chunk is closed!");
-        if (flags.compareAndSet(flag.ordinal(), false, true)) r.run();
+        if (flags.compareAndSet(flag.ordinal(), false, true)) {
+            try {
+                r.run();
+            } catch (RuntimeException | Error e) {
+                flags.set(flag.ordinal(), false);
+                throw e;
+            }
+        }
     }
 
     public boolean isFlagged(MantleFlag flag) {

@@ -257,6 +257,10 @@ public class IrisDimension extends IrisRegistrant {
     @RegistryListResource(IrisScript.class)
     @ArrayType(type = String.class, min = 1)
     private KList<String> dataScripts = new KList<>();
+    @Desc("A list of scripts executed on chunk update")
+    @RegistryListResource(IrisScript.class)
+    @ArrayType(type = String.class, min = 1)
+    private KList<String> chunkUpdateScripts = new KList<>();
     @Desc("Use legacy rarity instead of modern one\nWARNING: Changing this may break expressions and image maps")
     private boolean legacyRarity = true;
 

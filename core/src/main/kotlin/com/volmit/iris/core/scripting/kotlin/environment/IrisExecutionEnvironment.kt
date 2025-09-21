@@ -3,11 +3,15 @@ package com.volmit.iris.core.scripting.kotlin.environment
 import com.volmit.iris.core.loader.IrisRegistrant
 import com.volmit.iris.core.scripting.environment.EngineEnvironment
 import com.volmit.iris.core.scripting.func.BiomeLookup
+import com.volmit.iris.core.scripting.func.UpdateExecutor
+import com.volmit.iris.core.scripting.kotlin.base.ChunkUpdateScript
 import com.volmit.iris.core.scripting.kotlin.base.EngineScript
 import com.volmit.iris.core.scripting.kotlin.base.MobSpawningScript
 import com.volmit.iris.core.scripting.kotlin.base.PostMobSpawningScript
 import com.volmit.iris.core.scripting.kotlin.base.PreprocessorScript
 import com.volmit.iris.engine.framework.Engine
+import com.volmit.iris.util.mantle.MantleChunk
+import org.bukkit.Chunk
 import org.bukkit.Location
 import org.bukkit.entity.Entity
 
@@ -30,6 +34,9 @@ data class IrisExecutionEnvironment(
 
     override fun preprocessObject(script: String, `object`: IrisRegistrant) =
         execute(script, PreprocessorScript::class.java, engine.parameters("object" to `object`))
+
+    override fun updateChunk(script: String, mantleChunk: MantleChunk, chunk: Chunk, executor: UpdateExecutor) =
+        execute(script, ChunkUpdateScript::class.java, engine.parameters("mantleChunk" to mantleChunk, "chunk" to chunk, "executor" to executor))
 
     private fun Engine.parameters(vararg values: Pair<String, Any?>): Map<String, Any?> {
         return mapOf(

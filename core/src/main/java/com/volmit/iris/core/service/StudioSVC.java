@@ -147,8 +147,7 @@ public class StudioSVC implements IrisService {
         }
 
         IrisData dm = IrisData.get(folder);
-        dm.dump();
-        dm.clearLists();
+        dm.hotloaded();
         dim = dm.getDimensionLoader().load(type);
 
         if (dim == null) {
@@ -299,7 +298,8 @@ public class StudioSVC implements IrisService {
             packEntry.mkdirs();
             ZipUtil.unpack(cp, packEntry);
         }
-        IrisData.get(packEntry).hotloaded();
+        IrisData.getLoaded(packEntry)
+                .ifPresent(IrisData::hotloaded);
 
         sender.sendMessage("Successfully Aquired " + d.getName());
         ServerConfigurator.installDataPacks(true);

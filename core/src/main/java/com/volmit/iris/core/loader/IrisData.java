@@ -51,6 +51,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.Optional;
 
 @Data
 public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
@@ -97,6 +98,10 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     public static IrisData get(File dataFolder) {
         return dataLoaders.computeIfAbsent(dataFolder, IrisData::new);
+    }
+
+    public static Optional<IrisData> getLoaded(File dataFolder) {
+        return Optional.ofNullable(dataLoaders.get(dataFolder));
     }
 
     public static void dereference() {

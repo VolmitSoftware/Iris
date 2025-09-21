@@ -179,6 +179,8 @@ public class IO {
         JsonElement json;
         try (FileReader reader = new FileReader(file)) {
             json = JsonParser.parseReader(reader);
+        } catch (Throwable e) {
+            throw new IOException("Failed to read json file " + file, e);
         }
 
         var queue = new LinkedList<JsonElement>();

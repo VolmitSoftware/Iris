@@ -46,7 +46,7 @@ public class ReactiveFolder {
 
         if (checkCycle % 3 == 0 ? fw.checkModified() : fw.checkModifiedFast()) {
             for (File i : fw.getCreated()) {
-                if (i.getName().endsWith(".iob") || i.getName().endsWith(".json") || i.getName().endsWith(".js")) {
+                if (i.getName().endsWith(".iob") || i.getName().endsWith(".json") || i.getName().endsWith(".kts")) {
                     if (i.getPath().contains(".iris")) {
                         continue;
                     }
@@ -62,7 +62,7 @@ public class ReactiveFolder {
                         continue;
                     }
 
-                    if (i.getName().endsWith(".iob") || i.getName().endsWith(".json") || i.getName().endsWith(".js")) {
+                    if (i.getName().endsWith(".iob") || i.getName().endsWith(".json") || i.getName().endsWith(".kts")) {
                         modified = true;
                         break;
                     }
@@ -75,7 +75,7 @@ public class ReactiveFolder {
                         continue;
                     }
 
-                    if (i.getName().endsWith(".iob") || i.getName().endsWith(".json") || i.getName().endsWith(".js")) {
+                    if (i.getName().endsWith(".iob") || i.getName().endsWith(".json") || i.getName().endsWith(".kts")) {
                         modified = true;
                         break;
                     }

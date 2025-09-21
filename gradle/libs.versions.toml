@@ -27,6 +27,7 @@ sentry = "8.14.0" # https://github.com/getsentry/sentry-java
 commons-io = "2.19.0" # https://central.sonatype.com/artifact/commons-io/commons-io
 commons-lang = "2.6" # https://central.sonatype.com/artifact/commons-lang/commons-lang
 commons-lang3 = "3.17.0" # https://central.sonatype.com/artifact/org.apache.commons/commons-lang3
+commons-math3 = "3.6.1"
 oshi = "6.8.2" # https://central.sonatype.com/artifact/com.github.oshi/oshi-core
 fastutil = "8.5.16" # https://central.sonatype.com/artifact/it.unimi.dsi/fastutil
 lz4 = "1.8.0" # https://central.sonatype.com/artifact/org.lz4/lz4-java
@@ -78,6 +79,7 @@ sentry = { module = "io.sentry:sentry", version.ref = "sentry" }
 commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
 commons-lang = { module = "commons-lang:commons-lang", version.ref = "commons-lang" }
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
+commons-math3 = { module = "org.apache.commons:commons-math3", version.ref = "commons-math3" }
 oshi = { module = "com.github.oshi:oshi-core", version.ref = "oshi" }
 lz4 = { module = "org.lz4:lz4-java", version.ref = "lz4" }
 fastutil = { module = "it.unimi.dsi:fastutil", version.ref = "fastutil" }

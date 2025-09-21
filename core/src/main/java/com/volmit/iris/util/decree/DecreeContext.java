@@ -18,29 +18,20 @@
 
 package com.volmit.iris.util.decree;
 
-import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.plugin.VolmitSender;
-import com.volmit.iris.util.scheduling.ChronoLatch;
 
 public class DecreeContext {
-    private static final ChronoLatch cl = new ChronoLatch(60000);
-    private static final KMap<Thread, VolmitSender> context = new KMap<>();
+    private static final ThreadLocal<VolmitSender> context = new ThreadLocal<>();
 
     public static VolmitSender get() {
-        return context.get(Thread.currentThread());
+        return context.get();
     }
 
     public static void touch(VolmitSender c) {
-        synchronized (context) {
-            context.put(Thread.currentThread(), c);
+        context.set(c);
+    }
 
-            if (cl.flip()) {
-                for (Thread i : context.k()) {
-                    if (!i.isAlive()) {
-                        context.remove(i);
-                    }
-                }
-            }
-        }
+    public static void remove() {
+        context.remove();
     }
 }

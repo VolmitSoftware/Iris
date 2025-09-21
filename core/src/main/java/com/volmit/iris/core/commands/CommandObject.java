@@ -136,7 +136,7 @@ public class CommandObject implements DecreeExecutor {
             @Param(description = "The object to analyze", customHandler = ObjectHandler.class)
             String object
     ) {
-        IrisObject o = IrisData.loadAnyObject(object);
+        IrisObject o = IrisData.loadAnyObject(object, data());
         sender().sendMessage("Object Size: " + o.getW() + " * " + o.getH() + " * " + o.getD() + "");
         sender().sendMessage("Blocks Used: " + NumberFormat.getIntegerInstance().format(o.getBlocks().size()));
 
@@ -201,7 +201,7 @@ public class CommandObject implements DecreeExecutor {
 
     @Decree(description = "Shrink an object to its minimum size")
     public void shrink(@Param(description = "The object to shrink", customHandler = ObjectHandler.class) String object) {
-        IrisObject o = IrisData.loadAnyObject(object);
+        IrisObject o = IrisData.loadAnyObject(object, data());
         sender().sendMessage("Current Object Size: " + o.getW() + " * " + o.getH() + " * " + o.getD());
         o.shrinkwrap();
         sender().sendMessage("New Object Size: " + o.getW() + " * " + o.getH() + " * " + o.getD());
@@ -325,7 +325,7 @@ public class CommandObject implements DecreeExecutor {
 //            @Param(description = "The scale interpolator to use", defaultValue = "none")
 //            IrisObjectPlacementScaleInterpolator interpolator
     ) {
-        IrisObject o = IrisData.loadAnyObject(object);
+        IrisObject o = IrisData.loadAnyObject(object, data());
         double maxScale = Double.max(10 - o.getBlocks().size() / 10000d, 1);
         if (scale > maxScale) {
             sender().sendMessage(C.YELLOW + "Indicated scale exceeds maximum. Downscaled to maximum: " + maxScale);

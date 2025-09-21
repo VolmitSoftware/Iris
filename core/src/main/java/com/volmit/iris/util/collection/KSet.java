@@ -22,6 +22,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 import java.util.AbstractSet;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,13 +31,15 @@ public class KSet<T> extends AbstractSet<T> implements Serializable {
     private static final long serialVersionUID = 1L;
     private final ConcurrentHashMap<T, Boolean> map;
 
-    public KSet() {
-        map = new ConcurrentHashMap<>();
+    public KSet(Collection<? extends T> c) {
+        this(c.size());
+        addAll(c);
     }
 
-    public KSet(Collection<? extends T> c) {
-        this();
-        addAll(c);
+    @SafeVarargs
+    public KSet(T... values) {
+        this(values.length);
+        addAll(Arrays.asList(values));
     }
 
     public KSet(int initialCapacity, float loadFactor) {
@@ -45,6 +48,13 @@ public class KSet<T> extends AbstractSet<T> implements Serializable {
 
     public KSet(int initialCapacity) {
         map = new ConcurrentHashMap<>(initialCapacity);
+    }
+
+    public static <T> KSet<T> merge(Collection<? extends T> first, Collection<? extends T> second) {
+        var set = new KSet<T>();
+        set.addAll(first);
+        set.addAll(second);
+        return set;
     }
 
     @Override

@@ -159,7 +159,7 @@ public class IrisProject {
 
     public void openVSCode(VolmitSender sender) {
 
-        IrisDimension d = IrisData.loadAnyDimension(getName());
+        IrisDimension d = IrisData.loadAnyDimension(getName(), null);
         J.attemptAsync(() ->
         {
             try {
@@ -221,7 +221,7 @@ public class IrisProject {
         }
 
         J.a(() -> {
-            IrisDimension d = IrisData.loadAnyDimension(getName());
+            IrisDimension d = IrisData.loadAnyDimension(getName(), null);
             if (d == null) {
                 sender.sendMessage("Can't find dimension: " + getName());
                 return;

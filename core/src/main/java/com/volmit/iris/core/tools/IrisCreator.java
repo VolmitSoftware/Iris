@@ -135,12 +135,14 @@ public class IrisCreator {
                 .seed(seed)
                 .studio(studio)
                 .create();
-        ServerConfigurator.installDataPacks(false);
+        if (ServerConfigurator.installDataPacks(true)) {
+            throw new IrisException("Datapacks were missing!");
+        }
 
         PlatformChunkGenerator access = (PlatformChunkGenerator) wc.generator();
         if (access == null) throw new IrisException("Access is null. Something bad happened.");
 
-        AtomicBoolean failed = new AtomicBoolean(false);
+        AtomicBoolean done = new AtomicBoolean(false);
         J.a(() -> {
             IntSupplier g = () -> {
                 if (access.getEngine() == null) {
@@ -150,19 +152,13 @@ public class IrisCreator {
             };
             if(!benchmark) {
                 int req = access.getSpawnChunks().join();
-
-                while (g.getAsInt() < req) {
-                    if (failed.get()) {
-                        sender.sendMessage(C.RED + "Failed to create world!");
-                        return;
-                    }
-
-                    double v = (double) g.getAsInt() / (double) req;
+                for (int c = 0; c < req && !done.get(); c = g.getAsInt()) {
+                    double v = (double) c / req;
                     if (sender.isPlayer()) {
                         sender.sendProgress(v, "Generating");
                         J.sleep(16);
                     } else {
-                        sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - g.getAsInt()) + " Left)")));
+                        sender.sendMessage(C.WHITE + "Generating " + Form.pc(v) + ((C.GRAY + " (" + (req - c) + " Left)")));
                         J.sleep(1000);
                     }
                 }
@@ -176,9 +172,11 @@ public class IrisCreator {
                     .thenCompose(Function.identity())
                     .get();
         } catch (Throwable e) {
-            failed.set(true);
+            done.set(true);
             throw new IrisException("Failed to create world!", e);
         }
+
+        done.set(true);
 
         if (sender.isPlayer() && !benchmark) {
             Iris.platform.getChunkAtAsync(world, 0, 0, true, true)

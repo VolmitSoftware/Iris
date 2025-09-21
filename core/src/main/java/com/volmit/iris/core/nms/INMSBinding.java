@@ -18,9 +18,13 @@
 
 package com.volmit.iris.core.nms;
 
+import com.volmit.iris.core.link.Identifier;
+import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.link.FoliaWorldsLink;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.container.BlockProperty;
+import com.volmit.iris.core.nms.container.Pair;
+import com.volmit.iris.core.nms.container.StructurePlacement;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
@@ -147,4 +151,8 @@ public interface INMSBinding {
     }
 
     KMap<Material, List<BlockProperty>> getBlockProperties();
+
+    void placeStructures(Chunk chunk);
+
+    KMap<Identifier, StructurePlacement> collectStructures();
 }

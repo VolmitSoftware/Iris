@@ -1,5 +1,7 @@
 package com.volmit.iris.util.misc;
 
+import com.google.gson.JsonSyntaxException;
+import com.volmit.iris.BuildConstants;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.nms.INMS;
@@ -19,19 +21,12 @@ import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
 import org.bstats.bukkit.Metrics;
 import org.bstats.charts.DrilldownPie;
-import org.bstats.charts.SimplePie;
 import org.bstats.charts.SingleLineChart;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
-import oshi.SystemInfo;
 
-import java.io.InputStreamReader;
-import java.math.RoundingMode;
-import java.text.NumberFormat;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -47,8 +42,6 @@ public class Bindings {
         if (settings.disableAutoReporting || Sentry.isEnabled() || Boolean.getBoolean("iris.suppressReporting")) return;
         Iris.info("Enabling Sentry for anonymous error reporting. You can disable this in the settings.");
         Iris.info("Your server ID is: " + ServerID.ID);
-        var resource = Iris.instance.getResource("plugin.yml");
-        YamlConfiguration desc = resource != null ? YamlConfiguration.loadConfiguration(new InputStreamReader(resource)) : new YamlConfiguration();
 
         Sentry.init(options -> {
             options.setDsn("http://4cdbb9ac953306529947f4ca1e8e6b26@sentry.volmit.com:8080/2");
@@ -60,7 +53,7 @@ public class Bindings {
             options.setAttachServerName(false);
             options.setEnableUncaughtExceptionHandler(false);
             options.setRelease(Iris.instance.getDescription().getVersion());
-            options.setEnvironment(desc.getString("environment", "production"));
+            options.setEnvironment(BuildConstants.ENVIRONMENT);
             options.setBeforeSend((event, hint) -> {
                 if (suppress(event.getThrowable())) return null;
                 event.setTag("iris.safeguard", IrisSafeguard.mode());
@@ -77,12 +70,14 @@ public class Bindings {
             scope.setTag("server", Bukkit.getVersion());
             scope.setTag("server.type", Bukkit.getName());
             scope.setTag("server.api", Bukkit.getBukkitVersion());
-            scope.setTag("iris.commit", desc.getString("commit", "unknown"));
+            scope.setTag("iris.commit", BuildConstants.COMMIT);
         });
     }
 
     private static boolean suppress(Throwable e) {
-        return (e instanceof IllegalStateException ex && "zip file closed".equals(ex.getMessage())) || e instanceof JSONException;
+        return (e instanceof IllegalStateException ex && "zip file closed".equals(ex.getMessage()))
+                || e instanceof JSONException
+                || e instanceof JsonSyntaxException;
     }
 
 
@@ -99,6 +94,7 @@ public class Bindings {
                     .map(IrisToolbelt::access)
                     .filter(Objects::nonNull)
                     .map(PlatformChunkGenerator::getEngine)
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toMap(engine -> engine.getDimension().getLoadKey(), engine -> {
                         var hash32 = engine.getHash32().getNow(null);
                         if (hash32 == null) return Map.of();
@@ -111,23 +107,7 @@ public class Bindings {
                         b.forEach((k, v) -> merged.merge(k, v, Integer::sum));
                         return merged;
                     }))));
-
-
-            var info = new SystemInfo().getHardware();
-            var cpu = info.getProcessor().getProcessorIdentifier();
-            var mem = info.getMemory();
-            metrics.addCustomChart(new SimplePie("cpu_model", cpu::getName));
-
-            var nf = NumberFormat.getInstance(Locale.ENGLISH);
-            nf.setMinimumFractionDigits(0);
-            nf.setMaximumFractionDigits(2);
-            nf.setRoundingMode(RoundingMode.HALF_UP);
-
-            metrics.addCustomChart(new DrilldownPie("memory", () -> {
-                double total = mem.getTotal() * 1E-9;
-                double alloc = Math.min(total, Runtime.getRuntime().maxMemory() * 1E-9);
-                return Map.of(nf.format(alloc), Map.of(nf.format(total), 1));
-            }));
+            metrics.addCustomChart(new DrilldownPie("environment", () -> Map.of(BuildConstants.ENVIRONMENT, Map.of(BuildConstants.COMMIT, 1))));
 
             plugin.postShutdown(metrics::shutdown);
         });

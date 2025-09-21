@@ -181,6 +181,11 @@ public class MantleChunk {
         }
     }
 
+    public void raiseFlagUnchecked(MantleFlag flag, Runnable r) {
+        if (closed.get()) throw new IllegalStateException("Chunk is closed!");
+        if (flags.compareAndSet(flag.ordinal(), false, true)) r.run();
+    }
+
     public boolean isFlagged(MantleFlag flag) {
         return flags.get(flag.ordinal());
     }
@@ -266,7 +271,7 @@ public class MantleChunk {
         dos.writeByte(x);
         dos.writeByte(z);
         dos.writeByte(sections.length());
-        Varint.writeUnsignedVarInt(Math.ceilDiv(flags.length(), Byte.SIZE), dos);
+        Varint.writeUnsignedVarInt(flags.length(), dos);
 
         int count = flags.length();
         for (int i = 0; i < count;) {

@@ -295,20 +295,20 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         try {
             Semaphore semaphore = new Semaphore(3);
             chunk.raiseFlag(MantleFlag.ETCHED, () -> {
-                chunk.raiseFlag(MantleFlag.TILE, run(semaphore, () -> {
+                chunk.raiseFlagUnchecked(MantleFlag.TILE, run(semaphore, () -> {
                     chunk.iterate(TileWrapper.class, (x, y, z, v) -> {
                         Block block = c.getBlock(x & 15, y + getWorld().minHeight(), z & 15);
                         if (!TileData.setTileState(block, v.getData()))
                             Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", block.getX(), block.getY(), block.getZ(), block.getType().getKey(), v.getData().getMaterial().getKey());
                     });
                 }, c, 1));
-                chunk.raiseFlag(MantleFlag.CUSTOM, run(semaphore, () -> {
+                chunk.raiseFlagUnchecked(MantleFlag.CUSTOM, run(semaphore, () -> {
                     chunk.iterate(Identifier.class, (x, y, z, v) -> {
                         Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
                     });
                 }, c, 1));
 
-                chunk.raiseFlag(MantleFlag.UPDATE, run(semaphore, () -> {
+                chunk.raiseFlagUnchecked(MantleFlag.UPDATE, run(semaphore, () -> {
                     PrecisionStopwatch p = PrecisionStopwatch.start();
                     int[][] grid = new int[16][16];
                     for (int x = 0; x < 16; x++) {
@@ -863,7 +863,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     default void gotoBiome(IrisBiome biome, Player player, boolean teleport) {
         Set<String> regionKeys = getDimension()
                 .getAllRegions(this).stream()
-                .filter((i) -> i.getAllBiomes(this).contains(biome))
+                .filter((i) -> i.getAllBiomeIds().contains(biome.getLoadKey()))
                 .map(IrisRegistrant::getLoadKey)
                 .collect(Collectors.toSet());
         Locator<IrisBiome> lb = Locator.surfaceBiome(biome.getLoadKey());
@@ -959,7 +959,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     default void gotoRegion(IrisRegion r, Player player, boolean teleport) {
-        if (!getDimension().getAllRegions(this).contains(r)) {
+        if (!getDimension().getRegions().contains(r.getLoadKey())) {
             player.sendMessage(C.RED + r.getName() + " is not defined in the dimension!");
             return;
         }

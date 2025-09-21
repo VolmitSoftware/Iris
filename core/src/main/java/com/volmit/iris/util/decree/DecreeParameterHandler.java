@@ -23,7 +23,7 @@ import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-public interface DecreeParameterHandler<T> {
+public interface DecreeParameterHandler<T> extends DecreeExecutor {
     /**
      * Should return the possible values for this type
      *

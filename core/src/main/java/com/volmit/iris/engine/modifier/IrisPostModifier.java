@@ -21,6 +21,7 @@ package com.volmit.iris.engine.modifier;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
 import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisSlopeClip;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.hunk.Hunk;
@@ -174,7 +175,8 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
                     || (hd == h + 1 && isSolidNonSlab(x, hd, z - 1, currentPostX, currentPostZ, currentData)))
             //@done
             {
-                BlockData d = biome.getSlab().get(rng, x, h, z, getData());
+                IrisSlopeClip sc = biome.getSlab().getSlopeCondition();
+                BlockData d = sc.isValid(getComplex().getSlopeStream().get(x, z)) ? biome.getSlab().get(rng, x, h, z, getData()) : null;
 
                 if (d != null) {
                     boolean cancel = B.isAir(d);

@@ -18,62 +18,12 @@
 
 package com.volmit.iris.util.decree.handlers;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.object.IrisRegion;
-import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.decree.DecreeParameterHandler;
-import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
+import com.volmit.iris.util.decree.specialhandlers.RegistrantHandler;
 
-import java.io.File;
-import java.util.stream.Collectors;
-
-public class RegionHandler implements DecreeParameterHandler<IrisRegion> {
-    @Override
-    public KList<IrisRegion> getPossibilities() {
-        KMap<String, IrisRegion> p = new KMap<>();
-
-        //noinspection ConstantConditions
-        for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
-            if (i.isDirectory()) {
-                IrisData data = IrisData.get(i);
-                for (IrisRegion j : data.getRegionLoader().loadAll(data.getRegionLoader().getPossibleKeys())) {
-                    p.putIfAbsent(j.getLoadKey(), j);
-                }
-
-                data.close();
-            }
-        }
-
-        return p.v();
-    }
-
-    @Override
-    public String toString(IrisRegion dim) {
-        return dim.getLoadKey();
-    }
-
-    @Override
-    public IrisRegion parse(String in, boolean force) throws DecreeParsingException {
-        if (in.equals("null")) {
-            return null;
-        }
-        KList<IrisRegion> options = getPossibilities(in);
-
-        if (options.isEmpty()) {
-            throw new DecreeParsingException("Unable to find Region \"" + in + "\"");
-        }
-        try {
-            return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
-        } catch (Throwable e) {
-            throw new DecreeParsingException("Unable to filter which Region \"" + in + "\"");
-        }
-    }
-
-    @Override
-    public boolean supports(Class<?> type) {
-        return type.equals(IrisRegion.class);
+public class RegionHandler extends RegistrantHandler<IrisRegion> {
+    public RegionHandler() {
+        super(IrisRegion.class, true);
     }
 
     @Override

@@ -167,6 +167,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
 
     @BlockCoordinates
     private boolean place(MantleWriter writer, IrisPosition position, IrisJigsawStructure structure, RNG rng, boolean forcePlace) {
+        if (structure == null || structure.getDatapackStructures().isNotEmpty()) return false;
         return new PlannedStructure(structure, position, rng, forcePlace).place(writer, getMantle(), writer.getEngine());
     }
 

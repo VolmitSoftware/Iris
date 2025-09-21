@@ -16,28 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.object;
+package com.volmit.iris.util.decree.specialhandlers;
 
-import com.volmit.iris.engine.object.annotations.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
+import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 
-@Snippet("jigsaw-placer")
-@Accessors(chain = true)
-@NoArgsConstructor
-@AllArgsConstructor
-@Desc("Represents a jigsaw placement")
-@Data
-public class IrisJigsawPlacement {
-    @RegistryListResource(IrisJigsawStructure.class)
-    @Required
-    @Desc("The jigsaw structure to use")
-    private String structure = "";
+public class NullableDimensionHandler extends RegistrantHandler<IrisDimension> {
+    public NullableDimensionHandler() {
+        super(IrisDimension.class, true);
+    }
 
-    @Required
-    @MinNumber(1)
-    @Desc("The rarity for this jigsaw structure to place on a per chunk basis")
-    private int rarity = 29;
+    @Override
+    public IrisDimension parse(String in, boolean force) throws DecreeParsingException {
+        if (in.equalsIgnoreCase("default")) {
+            return parse(IrisSettings.get().getGenerator().getDefaultWorldType());
+        }
+        return super.parse(in, force);
+    }
+
+    @Override
+    public String getRandomDefault() {
+        return "dimension";
+    }
 }

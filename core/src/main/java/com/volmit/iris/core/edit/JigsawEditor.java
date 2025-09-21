@@ -107,19 +107,24 @@ public class JigsawEditor implements Listener {
     }
 
     public Location toLocation(IrisPosition i) {
-        return origin.clone()
+        return toBlock(origin.clone()
                 .add(new Vector(i.getX(), i.getY(), i.getZ()))
-                .add(object.getCenter())
-                .getBlock()
-                .getLocation();
+                .add(object.getCenter()));
     }
 
     public IrisPosition toPosition(Location l) {
-        return new IrisPosition(l.clone().getBlock().getLocation()
+        return new IrisPosition(l.clone()
                 .subtract(origin.clone())
                 .subtract(object.getCenter())
                 .add(1, 1, 1)
                 .toVector());
+    }
+
+    private Location toBlock(Location location) {
+        location.setX(Math.floor(location.getX()));
+        location.setY(Math.floor(location.getY()));
+        location.setZ(Math.floor(location.getZ()));
+        return location;
     }
 
     @EventHandler

@@ -160,8 +160,9 @@ public class PlannedStructure {
         }, null, getData().getEngine() != null ? getData() : eng.getData()) != -1;
     }
 
+    //TODO properly fix for folia
     public void place(WorldObjectPlacer placer, Consumer<Boolean> consumer) {
-        J.s(() -> consumer.accept(place(placer, placer.getMantle().getMantle(), placer.getEngine())));
+        Iris.platform.getRegionScheduler().run(placer.getWorld(), position.getX() >> 4, position.getZ() >> 4, () -> consumer.accept(place(placer, placer.getMantle().getMantle(), placer.getEngine())));
     }
 
     private void generateOutwards() {

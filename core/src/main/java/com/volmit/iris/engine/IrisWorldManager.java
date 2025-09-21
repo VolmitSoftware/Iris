@@ -60,9 +60,7 @@ import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -199,21 +197,39 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
     }
 
     private void updateChunks() {
-        for (Player i : getEngine().getWorld().realWorld().getPlayers()) {
-            int r = 1;
+        int radius = 1;
+        int diameter = radius * 2 + 1;
+        int count = (diameter * diameter) + 1;
+
+        var players = new KList<>(getEngine().getWorld().realWorld().getPlayers());
+        var latch = new CountDownLatch(count * players.size());
+
+        for (Player i : players) {
+            if (!i.isOnline() || !i.isValid() || i.isDead()) {
+                for (int j = 0; j < count; j++) {
+                    latch.countDown();
+                }
+                continue;
+            }
 
             Iris.platform.getEntityScheduler(i).run(() -> {
                 Chunk c = i.getLocation().getChunk();
-                for (int x = -r; x <= r; x++) {
-                    for (int z = -r; z <= r; z++) {
+                for (int x = -radius; x <= radius; x++) {
+                    for (int z = -radius; z <= radius; z++) {
                         int cX = c.getX() + x;
                         int cZ = c.getZ() + z;
-                        if (!c.getWorld().isChunkLoaded(cX, cZ) || !Chunks.isSafe(getEngine().getWorld().realWorld(), cX, cZ))
+                        if (!c.getWorld().isChunkLoaded(cX, cZ) || !Chunks.isSafe(getEngine().getWorld().realWorld(), cX, cZ)) {
+                            latch.countDown();
                             continue;
+                        }
 
                         if (IrisSettings.get().getWorld().isPostLoadBlockUpdates()) {
-                            getEngine().updateChunk(c.getWorld().getChunkAt(cX, cZ));
-                        }
+                            Chunk cx = c.getWorld().getChunkAt(cX, cZ);
+                            J.a(() -> {
+                                getEngine().updateChunk(cx);
+                                latch.countDown();
+                            });
+                        } else latch.countDown();
 
                         if (IrisSettings.get().getWorld().isMarkerEntitySpawningSystem()) {
                             Chunk cx = getEngine().getWorld().realWorld().getChunkAt(cX, cZ);
@@ -233,8 +249,17 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                         }
                     }
                 }
-            }, null);
+                latch.countDown();
+            }, () -> {
+                for (int j = 0; j < count; j++) {
+                    latch.countDown();
+                }
+            });
         }
+
+        try {
+            latch.await();
+        } catch (InterruptedException ignored) {}
     }
 
     private boolean onAsyncTick() {

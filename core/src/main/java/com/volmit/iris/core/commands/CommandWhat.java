@@ -98,7 +98,7 @@ public class CommandWhat implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "What block am i looking at?", origin = DecreeOrigin.PLAYER)
+    @Decree(description = "What block am i looking at?", origin = DecreeOrigin.PLAYER, sync = true)
     public void block() {
         BlockData bd;
         try {

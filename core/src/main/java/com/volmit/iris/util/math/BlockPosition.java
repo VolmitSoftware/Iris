@@ -89,6 +89,7 @@ public class BlockPosition {
         return toLong(getX(), getY(), getZ());
     }
 
+    @Deprecated(forRemoval = true)
     public Block toBlock(World world) {
         return world.getBlockAt(x, y, z);
     }

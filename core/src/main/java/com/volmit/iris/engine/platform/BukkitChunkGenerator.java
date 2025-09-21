@@ -38,9 +38,11 @@ import com.volmit.iris.util.data.IrisBiomeStorage;
 import com.volmit.iris.util.hunk.view.BiomeGridHunkHolder;
 import com.volmit.iris.util.hunk.view.ChunkDataHunkHolder;
 import com.volmit.iris.util.io.ReactiveFolder;
+import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
+import de.crazydev22.platformutils.scheduler.IRegionExecutor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Setter;
@@ -194,13 +196,12 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     }
 
     @Override
-    public void injectChunkReplacement(World world, int x, int z, Executor syncExecutor) {
+    public void injectChunkReplacement(World world, int x, int z, IRegionExecutor executor) {
         try {
             loadLock.acquire();
             IrisBiomeStorage st = new IrisBiomeStorage();
             TerrainChunk tc = TerrainChunk.createUnsafe(world, st);
-            this.world.bind(world);
-            getEngine().generate(x << 4, z << 4, tc, IrisSettings.get().getGenerator().useMulticore);
+            generateNoise(world, RNG.r, x, z, tc);
 
             Chunk c = Iris.platform.getChunkAtAsync(world, x, z)
                     .thenApply(d -> {
@@ -223,7 +224,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             KList<CompletableFuture<?>> futures = new KList<>(1 + getEngine().getHeight() >> 4);
             for (int i = getEngine().getHeight() >> 4; i >= 0; i--) {
                 int finalI = i << 4;
-                futures.add(CompletableFuture.runAsync(() -> {
+                futures.add(executor.queue(world, x, z, () -> {
                     for (int xx = 0; xx < 16; xx++) {
                         for (int yy = 0; yy < 16; yy++) {
                             for (int zz = 0; zz < 16; zz++) {
@@ -235,15 +236,15 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                             }
                         }
                     }
-                }, syncExecutor));
+                }));
             }
-            futures.add(CompletableFuture.runAsync(() -> INMS.get().placeStructures(c), syncExecutor));
 
-            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                    .thenRunAsync(() -> {
+            CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
+                    .thenCompose($ -> executor.queue(world, x, z, () -> INMS.get().placeStructures(c)))
+                    .thenCompose($ -> executor.queue(world, x, z, () -> {
                         c.removePluginChunkTicket(Iris.instance);
                         engine.getWorldManager().onChunkLoad(c, true);
-                    }, syncExecutor)
+                    }))
                     .get();
             Iris.debug("Regenerated " + x + " " + z);
 
@@ -254,14 +255,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
             e.printStackTrace();
             Iris.reportErrorChunk(x, z, e, "CHUNK");
             Iris.error("======================================");
-
-            ChunkData d = Bukkit.createChunkData(world);
-
-            for (int i = 0; i < 16; i++) {
-                for (int j = 0; j < 16; j++) {
-                    d.setBlock(i, 0, j, Material.RED_GLAZED_TERRACOTTA.createBlockData());
-                }
-            }
         }
     }
 

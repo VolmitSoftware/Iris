@@ -18,9 +18,12 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.framework.Engine;
-import org.bukkit.block.TileState;
+import com.volmit.iris.engine.framework.placer.SafeObjectPlacer;
+import de.crazydev22.platformutils.Type;
+import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 
 public interface IObjectPlacer {
@@ -47,4 +50,10 @@ public interface IObjectPlacer {
     void setTile(int xx, int yy, int zz, TileData tile);
 
     Engine getEngine();
+
+    default IObjectPlacer sync(World world) {
+        if (Iris.platform.getType() == Type.FOLIA)
+            return new SafeObjectPlacer(world, this);
+        return this;
+    }
 }

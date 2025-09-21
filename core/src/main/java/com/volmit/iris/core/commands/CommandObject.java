@@ -128,7 +128,7 @@ public class CommandObject implements DecreeExecutor {
             public Engine getEngine() {
                 return null;
             }
-        };
+        }.sync(world);
     }
 
     @Decree(description = "Check the composition of an object")

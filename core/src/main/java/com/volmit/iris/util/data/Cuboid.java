@@ -316,17 +316,17 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
      *
      * @return array of Block objects representing the Cuboid corners
      */
-    public Block[] corners() {
-        Block[] res = new Block[8];
+    public Location[] corners() {
+        Location[] res = new Location[8];
         World w = getWorld();
-        res[0] = w.getBlockAt(x1, y1, z1);
-        res[1] = w.getBlockAt(x1, y1, z2);
-        res[2] = w.getBlockAt(x1, y2, z1);
-        res[3] = w.getBlockAt(x1, y2, z2);
-        res[4] = w.getBlockAt(x2, y1, z1);
-        res[5] = w.getBlockAt(x2, y1, z2);
-        res[6] = w.getBlockAt(x2, y2, z1);
-        res[7] = w.getBlockAt(x2, y2, z2);
+        res[0] = new Location(w, x1, y1, z1);
+        res[1] = new Location(w, x1, y1, z2);
+        res[2] = new Location(w, x1, y2, z1);
+        res[3] = new Location(w, x1, y2, z2);
+        res[4] = new Location(w, x2, y1, z1);
+        res[5] = new Location(w, x2, y1, z2);
+        res[6] = new Location(w, x2, y2, z1);
+        res[7] = new Location(w, x2, y2, z2);
         return res;
     }
 
@@ -648,6 +648,7 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
      * @see java.lang.Iterable#iterator()
      */
     @Override
+    @Deprecated(forRemoval = true)
     public Iterator<Block> iterator() {
         return new CuboidIterator(getWorld(), x1, y1, z1, x2, y2, z2);
     }

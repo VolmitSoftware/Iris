@@ -39,7 +39,7 @@ public class IrisDimensionMode {
     private IrisDimensionModeType type = IrisDimensionModeType.OVERWORLD;
 
     @RegistryListResource(IrisScript.class)
-    @Desc("The script to create the dimension mode instead of using provided types")
+    @Desc("The script to create the dimension mode instead of using provided types\nFile extension: .engine.kts")
     private String script;
 
     public EngineMode create(Engine engine) {

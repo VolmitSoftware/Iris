@@ -58,7 +58,7 @@ public class IrisGeneratorStyle {
     private String expression = null;
     @Desc("Use an Image map instead of a generated value")
     private IrisImageMap imageMap = null;
-    @Desc("Instead of using the style property, use a custom noise generator to represent this style.")
+    @Desc("Instead of using the style property, use a custom noise generator to represent this style.\nFile extension: .noise.kts")
     @RegistryListResource(IrisScript.class)
     private String script = null;
     @MinNumber(0.00001)

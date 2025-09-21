@@ -35,7 +35,7 @@ import java.io.File;
 
 @Data
 public abstract class IrisRegistrant {
-    @Desc("Preprocess this object in-memory when it's loaded, run scripts using the variable 'Iris.getPreprocessorObject()' and modify properties about this object before it's used.")
+    @Desc("Preprocess this object in-memory when it's loaded, run scripts using the variable 'object' and modify properties about this object before it's used.\nFile extension: .prox.kts")
     @RegistryListResource(IrisScript.class)
     @ArrayType(min = 1, type = String.class)
     private KList<String> preprocessors = new KList<>();

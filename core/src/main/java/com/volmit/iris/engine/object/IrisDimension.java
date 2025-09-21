@@ -249,15 +249,15 @@ public class IrisDimension extends IrisRegistrant {
     @Desc("A list of globally applied pre-processors")
     @ArrayType(type = IrisPreProcessors.class)
     private KList<IrisPreProcessors> globalPreProcessors = new KList<>();
-    @Desc("A list of scripts executed on engine setup")
+    @Desc("A list of scripts executed on engine setup\nFile extension: .engine.kts")
     @RegistryListResource(IrisScript.class)
     @ArrayType(type = String.class, min = 1)
     private KList<String> engineScripts = new KList<>();
-    @Desc("A list of scripts executed on data setup")
+    @Desc("A list of scripts executed on data setup\nFile extension: .data.kts")
     @RegistryListResource(IrisScript.class)
     @ArrayType(type = String.class, min = 1)
     private KList<String> dataScripts = new KList<>();
-    @Desc("A list of scripts executed on chunk update")
+    @Desc("A list of scripts executed on chunk update\nFile extension: .update.kts")
     @RegistryListResource(IrisScript.class)
     @ArrayType(type = String.class, min = 1)
     private KList<String> chunkUpdateScripts = new KList<>();

@@ -18,7 +18,7 @@ public class IrisPreProcessors {
     private String type = "dimension";
 
     @Required
-    @Desc("The preprocessor scripts")
+    @Desc("The preprocessor scripts\nFile extension: .proc.kts")
     @RegistryListResource(IrisScript.class)
     @ArrayType(type = String.class, min = 1)
     private KList<String> scripts = new KList<>();

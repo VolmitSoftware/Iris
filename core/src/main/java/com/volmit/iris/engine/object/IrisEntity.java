@@ -166,12 +166,12 @@ public class IrisEntity extends IrisRegistrant {
     @Desc("Set to true if you want to apply all of the settings here to the mob, even though an external plugin has already done so. Scripts are always applied.")
     private boolean applySettingsToCustomMobAnyways = false;
 
-    @Desc("Set the entity type to UNKNOWN, then define a script here which ends with the entity variable (the result). You can use Iris.getLocation() to find the target location. You can spawn any entity this way.")
+    @Desc("Set the entity type to UNKNOWN, then define a script here which ends with the entity variable (the result). You can use location to find the target location. You can spawn any entity this way.\nFile extension: .spawn.kts")
     @RegistryListResource(IrisScript.class)
     private String spawnerScript = "";
 
     @ArrayType(min = 1, type = String.class)
-    @Desc("Set the entity type to UNKNOWN, then define a script here. You can use Iris.getLocation() to find the target location. You can spawn any entity this way.")
+    @Desc("Executed post spawn you can modify the entity however you want with it\nFile extension: .postspawn.kts")
     @RegistryListResource(IrisScript.class)
     private KList<String> postSpawnScripts = new KList<>();
 

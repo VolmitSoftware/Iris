@@ -346,7 +346,7 @@ public class IrisRegion extends IrisRegistrant implements IRare {
                     continue;
                 }
 
-                IrisBiome biome = IrisData.loadAnyBiome(i);
+                IrisBiome biome = IrisData.loadAnyBiome(i, getLoader());
 
                 names.remove(i);
                 if (biome == null) {

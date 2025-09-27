@@ -16,23 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.scripting;
+package com.volmit.iris.util.decree.specialhandlers;
 
-import com.volmit.iris.engine.framework.Engine;
-import org.apache.bsf.BSFManager;
+import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 
-public interface EngineExecutionEnvironment {
-    Engine getEngine();
+public class NullableDimensionHandler extends RegistrantHandler<IrisDimension> {
+    public NullableDimensionHandler() {
+        super(IrisDimension.class, true);
+    }
 
-    IrisScriptingAPI getAPI();
+    @Override
+    public IrisDimension parse(String in, boolean force) throws DecreeParsingException {
+        if (in.equalsIgnoreCase("default")) {
+            return parse(IrisSettings.get().getGenerator().getDefaultWorldType());
+        }
+        return super.parse(in, force);
+    }
 
-    BSFManager getManager();
-
-    void execute(String script);
-
-    Object evaluate(String script);
-
-    default void close() {
-
+    @Override
+    public String getRandomDefault() {
+        return "dimension";
     }
 }

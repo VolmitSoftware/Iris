@@ -23,6 +23,7 @@ import com.volmit.iris.core.commands.CommandIris;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.decree.DecreeContext;
 import com.volmit.iris.util.decree.DecreeSystem;
 import com.volmit.iris.util.decree.virtual.VirtualDecreeCommand;
 import com.volmit.iris.util.format.C;
@@ -44,7 +45,14 @@ public class CommandSVC implements IrisService, DecreeSystem {
     @Override
     public void onEnable() {
         Iris.instance.getCommand("iris").setExecutor(this);
-        J.a(() -> getRoot().cacheAll());
+        J.a(() -> {
+            DecreeContext.touch(Iris.getSender());
+            try {
+                getRoot().cacheAll();
+            } finally {
+                DecreeContext.remove();
+            }
+        });
     }
 
     @Override

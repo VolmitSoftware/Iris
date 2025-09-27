@@ -31,11 +31,15 @@ public class ObjectHandler implements DecreeParameterHandler<String> {
     @Override
     public KList<String> getPossibilities() {
         KList<String> p = new KList<>();
+        IrisData data = data();
+        if (data != null) {
+            return new KList<>(data.getObjectLoader().getPossibleKeys());
+        }
 
         //noinspection ConstantConditions
         for (File i : Iris.instance.getDataFolder("packs").listFiles()) {
             if (i.isDirectory()) {
-                IrisData data = IrisData.get(i);
+                data = IrisData.get(i);
                 p.add(data.getObjectLoader().getPossibleKeys());
             }
         }

@@ -170,15 +170,12 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
             if (dimension == null) {
                 Iris.error("Oh No! There's no pack in " + data.getDataFolder().getPath() + " or... there's no dimension for the key " + dimensionKey);
-                IrisDimension test = IrisData.loadAnyDimension(dimensionKey);
+                IrisDimension test = IrisData.loadAnyDimension(dimensionKey, null);
 
                 if (test != null) {
                     Iris.warn("Looks like " + dimensionKey + " exists in " + test.getLoadFile().getPath() + " ");
-                    Iris.service(StudioSVC.class).installIntoWorld(Iris.getSender(), dimensionKey, dataLocation.getParentFile().getParentFile());
+                    test = Iris.service(StudioSVC.class).installInto(Iris.getSender(), dimensionKey, dataLocation);
                     Iris.warn("Attempted to install into " + data.getDataFolder().getPath());
-                    data.dump();
-                    data.clearLists();
-                    test = data.getDimensionLoader().load(dimensionKey);
 
                     if (test != null) {
                         Iris.success("Woo! Patched the Engine!");
@@ -240,11 +237,12 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                     }
                 }, syncExecutor));
             }
+            futures.add(CompletableFuture.runAsync(() -> INMS.get().placeStructures(c), syncExecutor));
 
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
                     .thenRunAsync(() -> {
                         c.removePluginChunkTicket(Iris.instance);
-                        c.unload();
+                        engine.getWorldManager().onChunkLoad(c, true);
                     }, syncExecutor)
                     .get();
             Iris.debug("Regenerated " + x + " " + z);
@@ -356,16 +354,16 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
     @Override
     public void generateNoise(@NotNull WorldInfo world, @NotNull Random random, int x, int z, @NotNull ChunkGenerator.ChunkData d) {
         try {
-            getEngine(world);
+            Engine engine = getEngine(world);
             computeStudioGenerator();
             TerrainChunk tc = TerrainChunk.create(d, new IrisBiomeStorage());
             this.world.bind(world);
             if (studioGenerator != null) {
-                studioGenerator.generateChunk(getEngine(), tc, x, z);
+                studioGenerator.generateChunk(engine, tc, x, z);
             } else {
                 ChunkDataHunkHolder blocks = new ChunkDataHunkHolder(tc);
                 BiomeGridHunkHolder biomes = new BiomeGridHunkHolder(tc, tc.getMinHeight(), tc.getMaxHeight());
-                getEngine().generate(x << 4, z << 4, blocks, biomes, IrisSettings.get().getGenerator().useMulticore);
+                engine.generate(x << 4, z << 4, blocks, biomes, IrisSettings.get().getGenerator().useMulticore);
                 blocks.apply();
                 biomes.apply();
             }

@@ -38,6 +38,12 @@ public class BoardUpdateTask extends BukkitRunnable {
 
     @Override
     public void run() {
-        boardManager.getScoreboards().entrySet().stream().filter(entrySet -> PLAYER_IS_ONLINE.test(entrySet.getKey())).forEach(entrySet -> entrySet.getValue().update());
+        for (var entry : boardManager.getScoreboards().entrySet()) {
+            if (!PLAYER_IS_ONLINE.test(entry.getKey())) {
+                continue;
+            }
+
+            entry.getValue().update();
+        }
     }
 }

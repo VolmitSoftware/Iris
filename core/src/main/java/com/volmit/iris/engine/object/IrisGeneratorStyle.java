@@ -18,6 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.*;
@@ -25,6 +26,7 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.noise.ExpressionNoise;
 import com.volmit.iris.util.noise.ImageNoise;
+import com.volmit.iris.util.noise.NoiseGenerator;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -56,6 +58,9 @@ public class IrisGeneratorStyle {
     private String expression = null;
     @Desc("Use an Image map instead of a generated value")
     private IrisImageMap imageMap = null;
+    @Desc("Instead of using the style property, use a custom noise generator to represent this style.\nFile extension: .noise.kts")
+    @RegistryListResource(IrisScript.class)
+    private String script = null;
     @MinNumber(0.00001)
     @Desc("The Output multiplier. Only used if parent is fracture.")
     private double multiplier = 1;
@@ -93,40 +98,27 @@ public class IrisGeneratorStyle {
     public CNG createNoCache(RNG rng, IrisData data, boolean actuallyCached) {
         String cacheKey = hash() + "";
 
+        CNG cng = null;
         if (getExpression() != null) {
             IrisExpression e = data.getExpressionLoader().load(getExpression());
-
             if (e != null) {
-                CNG cng = new CNG(rng, new ExpressionNoise(rng, e), 1D, 1)
-                        .bake().scale(1D / zoom).pow(exponent).bake();
-                cng.setTrueFracturing(axialFracturing);
-
-                if (fracture != null) {
-                    cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
-                }
-
-                if (cellularFrequency > 0) {
-                    return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D / cellularZoom).bake();
-                }
-
-                return cng;
+                cng = new CNG(rng, new ExpressionNoise(rng, e), 1D, 1).bake();
             }
         } else if (getImageMap() != null) {
-            CNG cng = new CNG(rng, new ImageNoise(data, getImageMap()), 1D, 1).bake().scale(1D / zoom).pow(exponent).bake();
-            cng.setTrueFracturing(axialFracturing);
-
-            if (fracture != null) {
-                cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
+            cng = new CNG(rng, new ImageNoise(data, getImageMap()), 1D, 1).bake();
+        } else if (getScript() != null) {
+            Object result = data.getEnvironment().createNoise(getScript(), rng);
+            if (result == null) Iris.warn("Failed to create noise from script: " + getScript());
+            if (result instanceof NoiseGenerator generator) {
+                cng = new CNG(rng, generator, 1D, 1).bake();
             }
-
-            if (cellularFrequency > 0) {
-                return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D / cellularZoom).bake();
-            }
-
-            return cng;
         }
 
-        CNG cng = style.create(rng).bake().scale(1D / zoom).pow(exponent).bake();
+        if (cng == null) {
+            cng = style.create(rng).bake();
+        }
+
+        cng = cng.scale(1D / zoom).pow(exponent).bake();
         cng.setTrueFracturing(axialFracturing);
 
         if (fracture != null) {

@@ -18,6 +18,6 @@ public class StructureKeyFunction implements ListFunction<KList<String>> {
 
     @Override
     public KList<String> apply(IrisData irisData) {
-        return INMS.get().getStructureKeys();
+        return INMS.get().getStructureKeys().removeWhere(t -> t.startsWith("#"));
     }
 }

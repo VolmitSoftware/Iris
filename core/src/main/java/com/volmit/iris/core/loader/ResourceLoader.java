@@ -45,6 +45,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -215,6 +216,10 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
         return j;
     }
 
+    public Stream<T> streamAll() {
+        return streamAll(Arrays.stream(getPossibleKeys()));
+    }
+
     public Stream<T> streamAll(Stream<String> s) {
         return s.map(this::load);
     }
@@ -235,7 +240,7 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
 
     public KList<T> loadAllParallel(KList<String> s) {
         KList<T> m = new KList<>();
-        BurstExecutor burst = MultiBurst.burst.burst(s.size());
+        BurstExecutor burst = MultiBurst.ioBurst.burst(s.size());
 
         for (String i : s) {
             burst.queue(() -> {

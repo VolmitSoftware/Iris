@@ -3,7 +3,9 @@ package com.volmit.iris.core.pregenerator.cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.Scheduler;
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.documentation.RegionCoordinates;
@@ -14,12 +16,10 @@ import net.jpountz.lz4.LZ4BlockInputStream;
 import net.jpountz.lz4.LZ4BlockOutputStream;
 import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.concurrent.NotThreadSafe;
 import java.io.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-@NotThreadSafe
 @RequiredArgsConstructor
 class PregenCacheImpl implements PregenCache {
     private static final int SIZE = 32;
@@ -27,6 +27,8 @@ class PregenCacheImpl implements PregenCache {
     private final HyperLock hyperLock = new HyperLock(SIZE * 2, true);
     private final LoadingCache<Pos, Plate> cache = Caffeine.newBuilder()
             .expireAfterAccess(10, TimeUnit.SECONDS)
+            .executor(KCache.EXECUTOR)
+            .scheduler(Scheduler.systemScheduler())
             .maximumSize(SIZE)
             .removalListener(this::onRemoval)
             .evictionListener(this::onRemoval)

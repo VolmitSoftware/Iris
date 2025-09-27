@@ -66,6 +66,7 @@ public class IrisWorlds {
     }
 
     public KMap<String, String> getWorlds() {
+        clean();
         return readBukkitWorlds().put(worlds);
     }
 
@@ -76,8 +77,7 @@ public class IrisWorlds {
     }
 
     public Stream<IrisDimension> getDimensions() {
-        return readBukkitWorlds()
-                .put(worlds)
+        return getWorlds()
                 .entrySet()
                 .stream()
                 .map(entry -> Iris.loadDimension(entry.getKey(), entry.getValue()))

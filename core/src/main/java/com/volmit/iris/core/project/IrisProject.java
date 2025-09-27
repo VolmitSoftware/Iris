@@ -24,6 +24,7 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.loader.ResourceLoader;
+import com.volmit.iris.core.scripting.environment.SimpleEnvironment;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.object.annotations.Snippet;
@@ -49,6 +50,8 @@ import lombok.Data;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.World;
+import org.dom4j.Document;
+import org.dom4j.Element;
 import org.zeroturnaround.zip.ZipUtil;
 
 import java.awt.*;
@@ -156,7 +159,7 @@ public class IrisProject {
 
     public void openVSCode(VolmitSender sender) {
 
-        IrisDimension d = IrisData.loadAnyDimension(getName());
+        IrisDimension d = IrisData.loadAnyDimension(getName(), null);
         J.attemptAsync(() ->
         {
             try {
@@ -217,24 +220,15 @@ public class IrisProject {
             close();
         }
 
-        boolean hasError = false;
-
-        if (hasError) {
-            return;
-        }
-
-        IrisDimension d = IrisData.loadAnyDimension(getName());
-        if (d == null) {
-            sender.sendMessage("Can't find dimension: " + getName());
-            return;
-        } else if (sender.isPlayer()) {
-            sender.player().setGameMode(GameMode.SPECTATOR);
-        }
-
-        openVSCode(sender);
-
-
         J.a(() -> {
+            IrisDimension d = IrisData.loadAnyDimension(getName(), null);
+            if (d == null) {
+                sender.sendMessage("Can't find dimension: " + getName());
+                return;
+            } else if (sender.isPlayer()) {
+                sender.player().setGameMode(GameMode.SPECTATOR);
+            }
+
             try {
                 activeProvider = (PlatformChunkGenerator) IrisToolbelt.createWorld()
                         .seed(seed)
@@ -247,6 +241,8 @@ public class IrisProject {
             } catch (IrisException e) {
                 e.printStackTrace();
             }
+
+            openVSCode(sender);
         });
     }
 
@@ -358,6 +354,74 @@ public class IrisProject {
 
         settings.put("json.schemas", schemas);
         ws.put("settings", settings);
+
+        dm.getEnvironment().configureProject();
+        File schemasFile = new File(path, ".idea" + File.separator + "jsonSchemas.xml");
+        Document doc = IO.read(schemasFile);
+        Element mappings = (Element) doc.selectSingleNode("//component[@name='JsonSchemaMappingsProjectConfiguration']");
+        if (mappings == null) {
+            mappings = doc.getRootElement()
+                    .addElement("component")
+                    .addAttribute("name", "JsonSchemaMappingsProjectConfiguration");
+        }
+
+        Element state = (Element) mappings.selectSingleNode("state");
+        if (state == null) state = mappings.addElement("state");
+
+        Element map = (Element) state.selectSingleNode("map");
+        if (map == null) map = state.addElement("map");
+        var schemaMap = new KMap<String, String>();
+        schemas.forEach(element -> {
+            if (!(element instanceof JSONObject obj))
+                return;
+
+            String url = obj.getString("url");
+            String dir = obj.getJSONArray("fileMatch").getString(0);
+            schemaMap.put(url, dir.substring(1, dir.indexOf("/*")));
+        });
+
+        map.selectNodes("entry/value/SchemaInfo/option[@name='relativePathToSchema']")
+                .stream()
+                .map(node -> node.valueOf("@value"))
+                .forEach(schemaMap::remove);
+
+        var ideaSchemas = map;
+        schemaMap.forEach((url, dir) -> {
+            var genName = UUID.randomUUID().toString();
+
+            var info = ideaSchemas.addElement("entry")
+                    .addAttribute("key", genName)
+                    .addElement("value")
+                    .addElement("SchemaInfo");
+            info.addElement("option")
+                    .addAttribute("name", "generatedName")
+                    .addAttribute("value", genName);
+            info.addElement("option")
+                    .addAttribute("name", "name")
+                    .addAttribute("value", dir);
+            info.addElement("option")
+                    .addAttribute("name", "relativePathToSchema")
+                    .addAttribute("value", url);
+
+
+            var item = info.addElement("option")
+                    .addAttribute("name", "patterns")
+                    .addElement("list")
+                    .addElement("Item");
+            item.addElement("option")
+                    .addAttribute("name", "directory")
+                    .addAttribute("value", "true");
+            item.addElement("option")
+                    .addAttribute("name", "path")
+                    .addAttribute("value", dir);
+            item.addElement("option")
+                    .addAttribute("name", "mappingKind")
+                    .addAttribute("value", "Directory");
+        });
+        if (!schemaMap.isEmpty()) {
+            IO.write(schemasFile, doc);
+        }
+        Gradle.wrapper(path);
 
         return ws;
     }

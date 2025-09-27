@@ -478,21 +478,27 @@ public class VirtualDecreeCommand {
         }
 
         DecreeContext.touch(sender);
-        Runnable rx = () -> {
-            try {
+        try {
+            Runnable rx = () -> {
                 DecreeContext.touch(sender);
-                getNode().getMethod().setAccessible(true);
-                getNode().getMethod().invoke(getNode().getInstance(), params);
-            } catch (Throwable e) {
-                e.printStackTrace();
-                throw new RuntimeException("Failed to execute <INSERT REAL NODE HERE>"); // TODO:
-            }
-        };
+                try {
+                    getNode().getMethod().setAccessible(true);
+                    getNode().getMethod().invoke(getNode().getInstance(), params);
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                    throw new RuntimeException("Failed to execute <INSERT REAL NODE HERE>"); // TODO:
+                } finally {
+                    DecreeContext.remove();
+                }
+            };
 
-        if (getNode().isSync()) {
-            J.s(rx);
-        } else {
-            rx.run();
+            if (getNode().isSync()) {
+                J.s(rx);
+            } else {
+                rx.run();
+            }
+        } finally {
+            DecreeContext.remove();
         }
 
         return true;

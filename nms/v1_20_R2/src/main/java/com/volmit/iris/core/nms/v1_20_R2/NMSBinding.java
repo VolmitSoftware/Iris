@@ -1,10 +1,28 @@
 package com.volmit.iris.core.nms.v1_20_R2;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import java.awt.Color;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import com.mojang.datafixers.util.Pair;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
+import com.mojang.serialization.Lifecycle;
+import com.volmit.iris.core.link.Identifier;
+import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
+import com.volmit.iris.core.nms.container.BlockProperty;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
@@ -20,6 +38,8 @@ import com.volmit.iris.util.matter.MatterBiomeInject;
 import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.mca.palette.*;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
+import com.volmit.iris.core.nms.container.StructurePlacement;
+import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
 import com.volmit.iris.util.scheduling.J;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.bytebuddy.ByteBuddy;
@@ -48,6 +68,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -56,6 +77,8 @@ import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.FlatLevelSource;
 import net.minecraft.world.level.levelgen.flat.FlatLayerInfo;
 import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings;
+import net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement;
+import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.PrimaryLevelData;
 import org.bukkit.*;
@@ -68,6 +91,7 @@ import org.bukkit.craftbukkit.v1_20_R2.block.CraftBlockState;
 import org.bukkit.craftbukkit.v1_20_R2.block.CraftBlockStates;
 import org.bukkit.craftbukkit.v1_20_R2.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_20_R2.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_20_R2.util.CraftMagicNumbers;
 import org.bukkit.craftbukkit.v1_20_R2.util.CraftNamespacedKey;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -680,6 +704,93 @@ public class NMSBinding implements INMSBinding {
             e.printStackTrace();
         }
         return false;
+    }
+
+    @Override
+    public KMap<Material, List<BlockProperty>> getBlockProperties() {
+        KMap<Material, List<BlockProperty>> states = new KMap<>();
+
+        for (var block : registry().registryOrThrow(Registries.BLOCK)) {
+            var state = block.defaultBlockState();
+            if (state == null) state = block.getStateDefinition().any();
+            final var finalState = state;
+
+            states.put(CraftMagicNumbers.getMaterial(block), block.getStateDefinition()
+                    .getProperties()
+                    .stream()
+                    .map(p -> createProperty(p, finalState))
+                    .toList());
+        }
+        return states;
+    }
+
+    private <T extends Comparable<T>> BlockProperty createProperty(Property<T> property, BlockState state) {
+        return new BlockProperty(property.getName(), property.getValueClass(), state.getValue(property), property.getPossibleValues(), property::getName);
+    }
+
+    @Override
+    public void placeStructures(Chunk chunk) {
+        var craft = ((CraftChunk) chunk);
+        var level = craft.getCraftWorld().getHandle();
+        var access = ((CraftChunk) chunk).getHandle(ChunkStatus.FULL);
+        level.getChunkSource().getGenerator().applyBiomeDecoration(level, access, level.structureManager());
+    }
+
+    @Override
+    public KMap<Identifier, StructurePlacement> collectStructures() {
+        var structureSets = registry().registryOrThrow(Registries.STRUCTURE_SET);
+        var structurePlacements = registry().registryOrThrow(Registries.STRUCTURE_PLACEMENT);
+        return structureSets.registryKeySet()
+                .stream()
+                .map(structureSets::getHolder)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(holder -> {
+                    var set = holder.value();
+                    var placement = set.placement();
+                    var key = holder.key().location();
+                    StructurePlacement.StructurePlacementBuilder<?, ?> builder;
+                    if (placement instanceof RandomSpreadStructurePlacement random) {
+                        builder = StructurePlacement.RandomSpread.builder()
+                                .separation(random.separation())
+                                .spacing(random.spacing())
+                                .spreadType(switch (random.spreadType()) {
+                                    case LINEAR -> IrisJigsawStructurePlacement.SpreadType.LINEAR;
+                                    case TRIANGULAR -> IrisJigsawStructurePlacement.SpreadType.TRIANGULAR;
+                                });
+                    } else if (placement instanceof ConcentricRingsStructurePlacement rings) {
+                        builder = StructurePlacement.ConcentricRings.builder()
+                                .distance(rings.distance())
+                                .spread(rings.spread())
+                                .count(rings.count());
+                    } else {
+                        Iris.warn("Unsupported structure placement for set " + key + " with type " + structurePlacements.getKey(placement.type()));
+                        return null;
+                    }
+
+                    return new com.volmit.iris.core.nms.container.Pair<>(new Identifier(key.getNamespace(), key.getPath()), builder
+                            .salt(placement.salt)
+                            .frequency(placement.frequency)
+                            .structures(set.structures()
+                                    .stream()
+                                    .map(entry -> new StructurePlacement.Structure(
+                                            entry.weight(),
+                                            entry.structure()
+                                                    .unwrapKey()
+                                                    .map(ResourceKey::location)
+                                                    .map(ResourceLocation::toString)
+                                                    .orElse(null),
+                                            entry.structure().tags()
+                                                    .map(TagKey::location)
+                                                    .map(ResourceLocation::toString)
+                                                    .toList()
+                                    ))
+                                    .filter(StructurePlacement.Structure::isValid)
+                                    .toList())
+                            .build());
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(com.volmit.iris.core.nms.container.Pair::getA, com.volmit.iris.core.nms.container.Pair::getB, (a, b) -> a, KMap::new));
     }
 
     public LevelStem levelStem(RegistryAccess access, ChunkGenerator raw) {

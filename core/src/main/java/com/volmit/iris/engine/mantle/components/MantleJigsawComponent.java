@@ -30,7 +30,7 @@ import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
-import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.mantle.flag.ReservedFlag;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.slices.container.JigsawStructuresContainer;
@@ -40,14 +40,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-@ComponentFlag(MantleFlag.JIGSAW)
+@ComponentFlag(ReservedFlag.JIGSAW)
 public class MantleJigsawComponent extends IrisMantleComponent {
-    @Getter
-    private final int radius = computeRadius();
     private final CNG cng;
 
     public MantleJigsawComponent(EngineMantle engineMantle) {
-        super(engineMantle, MantleFlag.JIGSAW, 2);
+        super(engineMantle, ReservedFlag.JIGSAW, 2);
         cng = NoiseStyle.STATIC.create(new RNG(jigsaw()));
     }
 
@@ -169,6 +167,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
 
     @BlockCoordinates
     private boolean place(MantleWriter writer, IrisPosition position, IrisJigsawStructure structure, RNG rng, boolean forcePlace) {
+        if (structure == null || structure.getDatapackStructures().isNotEmpty()) return false;
         return new PlannedStructure(structure, position, rng, forcePlace).place(writer, getMantle(), writer.getEngine());
     }
 
@@ -176,7 +175,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
         return getEngineMantle().getEngine().getSeedManager().getJigsaw();
     }
 
-    private int computeRadius() {
+    protected int computeRadius() {
         var dimension = getDimension();
 
         KSet<String> structures = new KSet<>();

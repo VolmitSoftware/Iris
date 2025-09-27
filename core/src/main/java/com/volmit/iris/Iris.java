@@ -485,6 +485,7 @@ public class Iris extends VolmitPlugin implements Listener {
                     .forEach(PlatformChunkGenerator::close);
 
             MultiBurst.burst.close();
+            MultiBurst.ioBurst.close();
             services.clear();
         });
         Runtime.getRuntime().addShutdownHook(shutdownHook);
@@ -566,7 +567,7 @@ public class Iris extends VolmitPlugin implements Listener {
         postShutdown.forEach(Runnable::run);
         super.onDisable();
 
-        J.attempt(new JarScanner(instance.getJarFile(), "", false)::scan);
+        J.attempt(new JarScanner(instance.getJarFile(), "", false)::scanAll);
     }
 
     private void setupPapi() {
@@ -706,7 +707,11 @@ public class Iris extends VolmitPlugin implements Listener {
         Iris.debug("Generator Config: " + w.toString());
 
         File ff = new File(w.worldFolder(), "iris/pack");
-        if (!ff.exists() || ff.listFiles().length == 0) {
+        var files = ff.listFiles();
+        if (files == null || files.length == 0)
+            IO.delete(ff);
+
+        if (!ff.exists()) {
             ff.mkdirs();
             service(StudioSVC.class).installIntoWorld(getSender(), dim.getLoadKey(), w.worldFolder());
         }
@@ -716,13 +721,13 @@ public class Iris extends VolmitPlugin implements Listener {
 
     @Nullable
     public static IrisDimension loadDimension(@NonNull String worldName, @NonNull String id) {
-        var data = IrisData.get(new File(Bukkit.getWorldContainer(), String.join(File.separator, worldName, "iris", "pack")));
-        var dimension = data.getDimensionLoader().load(id);
-        if (dimension == null) dimension = IrisData.loadAnyDimension(id);
+        File pack = new File(Bukkit.getWorldContainer(), String.join(File.separator, worldName, "iris", "pack"));
+        var dimension = pack.isDirectory() ? IrisData.get(pack).getDimensionLoader().load(id) : null;
+        if (dimension == null) dimension = IrisData.loadAnyDimension(id, null);
         if (dimension == null) {
             Iris.warn("Unable to find dimension type " + id + " Looking for online packs...");
             Iris.service(StudioSVC.class).downloadSearch(new VolmitSender(Bukkit.getConsoleSender()), id, false);
-            dimension = IrisData.loadAnyDimension(id);
+            dimension = IrisData.loadAnyDimension(id, null);
 
             if (dimension != null) {
                 Iris.info("Resolved missing dimension, proceeding.");
@@ -741,7 +746,7 @@ public class Iris extends VolmitPlugin implements Listener {
         String padd2 = Form.repeat(" ", 4);
         String[] info = {"", "", "", "", "", padd2 + C.IRIS + " Iris", padd2 + C.GRAY + " by " + "<rainbow>Volmit Software", padd2 + C.GRAY + " v" + C.IRIS + getDescription().getVersion()};
         if (unstablemode) {
-             info = new String[]{"", "", "", "", "", padd2 + C.RED + " Iris", padd2 + C.GRAY + " by " + C.DARK_RED + "Volmit Software", padd2 + C.GRAY + " v" + C.RED + getDescription().getVersion()};
+            info = new String[]{"", "", "", "", "", padd2 + C.RED + " Iris", padd2 + C.GRAY + " by " + C.DARK_RED + "Volmit Software", padd2 + C.GRAY + " v" + C.RED + getDescription().getVersion()};
         }
         if (warningmode) {
             info = new String[]{"", "", "", "", "", padd2 + C.GOLD + " Iris", padd2 + C.GRAY + " by " + C.GOLD + "Volmit Software", padd2 + C.GRAY + " v" + C.GOLD + getDescription().getVersion()};

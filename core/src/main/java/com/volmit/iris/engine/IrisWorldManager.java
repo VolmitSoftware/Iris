@@ -20,7 +20,9 @@ package com.volmit.iris.engine;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedWorldManager;
 import com.volmit.iris.engine.object.*;
@@ -29,7 +31,7 @@ import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.mantle.Mantle;
-import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
@@ -424,18 +426,35 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
 
         var ref = new WeakReference<>(e.getWorld());
-        int x = e.getX(), z = e.getZ();
+        int cX = e.getX(), cZ = e.getZ();
         J.s(() -> {
             World world = ref.get();
-            if (world == null || !world.isChunkLoaded(x, z))
+            if (world == null || !world.isChunkLoaded(cX, cZ))
                 return;
             energy += 0.3;
             fixEnergy();
-            getEngine().cleanupMantleChunk(x, z);
+            getEngine().cleanupMantleChunk(cX, cZ);
         }, IrisSettings.get().getPerformance().mantleCleanupDelay);
 
         if (generated) {
             //INMS.get().injectBiomesFromMantle(e, getMantle());
+
+            if (!IrisSettings.get().getGenerator().earlyCustomBlocks) return;
+            e.addPluginChunkTicket(Iris.instance);
+            J.s(() -> {
+                var chunk = getMantle().getChunk(e).use();
+                int minY = getTarget().getWorld().minHeight();
+                try {
+                    chunk.raiseFlagUnchecked(MantleFlag.CUSTOM, () -> {
+                        chunk.iterate(Identifier.class, (x, y, z, v) -> {
+                            Iris.service(ExternalDataSVC.class).processUpdate(getEngine(), e.getBlock(x & 15, y + minY, z & 15), v);
+                        });
+                    });
+                } finally {
+                    chunk.release();
+                    e.removePluginChunkTicket(Iris.instance);
+                }
+            }, RNG.r.i(20, 60));
         }
     }
 

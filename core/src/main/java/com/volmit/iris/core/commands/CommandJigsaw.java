@@ -48,7 +48,7 @@ public class CommandJigsaw implements DecreeExecutor {
             IrisJigsawPiece piece
     ) {
         File dest = piece.getLoadFile();
-        new JigsawEditor(player(), piece, IrisData.loadAnyObject(piece.getObject()), dest);
+        new JigsawEditor(player(), piece, IrisData.loadAnyObject(piece.getObject(), data()), dest);
     }
 
     @Decree(description = "Place a jigsaw structure")
@@ -78,7 +78,7 @@ public class CommandJigsaw implements DecreeExecutor {
             @Param(description = "The object to use for this piece", customHandler = ObjectHandler.class)
             String object
     ) {
-        IrisObject o = IrisData.loadAnyObject(object);
+        IrisObject o = IrisData.loadAnyObject(object, data());
 
         if (object == null) {
             sender().sendMessage(C.RED + "Failed to find existing object");

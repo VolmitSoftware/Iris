@@ -29,13 +29,13 @@ import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.nms.container.BlockPos;
 import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.core.pregenerator.ChunkUpdater;
+import com.volmit.iris.core.scripting.environment.EngineEnvironment;
 import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.mantle.EngineMantle;
 import com.volmit.iris.engine.object.*;
-import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.context.ChunkContext;
@@ -48,7 +48,7 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
@@ -110,7 +110,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     IrisContext getContext();
 
-    EngineExecutionEnvironment getExecution();
+    EngineEnvironment getExecution();
 
     double getMaxBiomeObjectDensity();
 
@@ -294,22 +294,22 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
         var chunk = mantle.getChunk(c).use();
         try {
-            Semaphore semaphore = new Semaphore(3);
+            Semaphore semaphore = new Semaphore(1024);
             chunk.raiseFlag(MantleFlag.ETCHED, () -> {
-                chunk.raiseFlag(MantleFlag.TILE, run(semaphore, () -> {
+                chunk.raiseFlagUnchecked(MantleFlag.TILE, run(semaphore, () -> {
                     chunk.iterate(TileWrapper.class, (x, y, z, v) -> {
                         Block block = c.getBlock(x & 15, y + getWorld().minHeight(), z & 15);
                         if (!TileData.setTileState(block, v.getData()))
                             Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", block.getX(), block.getY(), block.getZ(), block.getType().getKey(), v.getData().getMaterial().getKey());
                     });
                 }, 0));
-                chunk.raiseFlag(MantleFlag.CUSTOM, run(semaphore, () -> {
+                chunk.raiseFlagUnchecked(MantleFlag.CUSTOM, run(semaphore, () -> {
                     chunk.iterate(Identifier.class, (x, y, z, v) -> {
                         Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
                     });
                 }, 0));
 
-                chunk.raiseFlag(MantleFlag.UPDATE, run(semaphore, () -> {
+                chunk.raiseFlagUnchecked(MantleFlag.UPDATE, run(semaphore, () -> {
                     PrecisionStopwatch p = PrecisionStopwatch.start();
                     int[][] grid = new int[16][16];
                     for (int x = 0; x < 16; x++) {
@@ -355,8 +355,18 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 }, RNG.r.i(1, 20))); //Why is there a random delay here?
             });
 
+            chunk.raiseFlagUnchecked(MantleFlag.SCRIPT, () -> {
+                var scripts = getDimension().getChunkUpdateScripts();
+                if (scripts == null || scripts.isEmpty())
+                    return;
+
+                for (var script : scripts) {
+                    getExecution().updateChunk(script, chunk, c, (delay, task) -> run(semaphore, task, delay));
+                }
+            });
+
             try {
-                semaphore.acquire(3);
+                semaphore.acquire(1024);
             } catch (InterruptedException ignored) {}
         } finally {
             chunk.release();
@@ -365,8 +375,11 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     private static Runnable run(Semaphore semaphore, Runnable runnable, int delay) {
         return () -> {
-            if (!semaphore.tryAcquire())
-                return;
+            try {
+                semaphore.acquire();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
 
             J.s(() -> {
                 try {
@@ -863,7 +876,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     default void gotoBiome(IrisBiome biome, Player player, boolean teleport) {
         Set<String> regionKeys = getDimension()
                 .getAllRegions(this).stream()
-                .filter((i) -> i.getAllBiomes(this).contains(biome))
+                .filter((i) -> i.getAllBiomeIds().contains(biome.getLoadKey()))
                 .map(IrisRegistrant::getLoadKey)
                 .collect(Collectors.toSet());
         Locator<IrisBiome> lb = Locator.surfaceBiome(biome.getLoadKey());
@@ -959,7 +972,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     default void gotoRegion(IrisRegion r, Player player, boolean teleport) {
-        if (!getDimension().getAllRegions(this).contains(r)) {
+        if (!getDimension().getRegions().contains(r.getLoadKey())) {
             player.sendMessage(C.RED + r.getName() + " is not defined in the dimension!");
             return;
         }

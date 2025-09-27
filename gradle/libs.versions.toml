@@ -26,6 +26,7 @@ sentry = "8.14.0" # https://github.com/getsentry/sentry-java
 commons-io = "2.19.0" # https://central.sonatype.com/artifact/commons-io/commons-io
 commons-lang = "2.6" # https://central.sonatype.com/artifact/commons-lang/commons-lang
 commons-lang3 = "3.17.0" # https://central.sonatype.com/artifact/org.apache.commons/commons-lang3
+commons-math3 = "3.6.1"
 oshi = "6.8.2" # https://central.sonatype.com/artifact/com.github.oshi/oshi-core
 fastutil = "8.5.16" # https://central.sonatype.com/artifact/it.unimi.dsi/fastutil
 lz4 = "1.8.0" # https://central.sonatype.com/artifact/org.lz4/lz4-java
@@ -33,13 +34,18 @@ lru = "1.4.2" # https://central.sonatype.com/artifact/com.googlecode.concurrentl
 zip = "1.17" # https://central.sonatype.com/artifact/org.zeroturnaround/zt-zip
 gson = "2.13.1" # https://central.sonatype.com/artifact/com.google.code.gson/gson
 asm = "9.8" # https://central.sonatype.com/artifact/org.ow2.asm/asm
-bsf = "2.4.0" # https://central.sonatype.com/artifact/bsf/bsf
-rhino = "1.7R2" # https://central.sonatype.com/artifact/rhino/js
 caffeine = "3.2.1" # https://central.sonatype.com/artifact/com.github.ben-manes.caffeine/caffeine
 byte-buddy = "1.17.6" # https://central.sonatype.com/artifact/net.bytebuddy/byte-buddy
+dom4j = "2.2.0" # https://central.sonatype.com/artifact/org.dom4j/dom4j
+jaxen = "2.0.0" # https://central.sonatype.com/artifact/jaxen/jaxen
+
+# Script Engine
+kotlin = "2.2.0"
+kotlin-coroutines = "1.10.2"
+maven-core = "3.9.10"
 
 # Third Party Integrations
-nexo = "1.8.0" # https://repo.nexomc.com/#/releases/com/nexomc/nexo
+nexo = "1.10.0" # https://repo.nexomc.com/#/releases/com/nexomc/nexo
 itemsadder = "4.0.10" # https://github.com/LoneDev6/API-ItemsAdder
 placeholderApi = "2.11.6" # https://repo.extendedclip.com/#/releases/me/clip/placeholderapi
 score = "5.25.3.9" # https://github.com/Ssomar-Developement/SCore
@@ -70,6 +76,7 @@ sentry = { module = "io.sentry:sentry", version.ref = "sentry" }
 commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
 commons-lang = { module = "commons-lang:commons-lang", version.ref = "commons-lang" }
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
+commons-math3 = { module = "org.apache.commons:commons-math3", version.ref = "commons-math3" }
 oshi = { module = "com.github.oshi:oshi-core", version.ref = "oshi" }
 lz4 = { module = "org.lz4:lz4-java", version.ref = "lz4" }
 fastutil = { module = "it.unimi.dsi:fastutil", version.ref = "fastutil" }
@@ -77,11 +84,20 @@ lru = { module = "com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap
 zip = { module = "org.zeroturnaround:zt-zip", version.ref = "zip" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
-bsf = { module = "bsf:bsf", version.ref = "bsf" }
-rhino = { module = "rhino:js", version.ref = "rhino" }
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
 byteBuddy-core = { module = "net.bytebuddy:byte-buddy", version.ref = "byte-buddy" }
 byteBuddy-agent = { module = "net.bytebuddy:byte-buddy-agent", version.ref = "byte-buddy" }
+dom4j = { module = "org.dom4j:dom4j", version.ref = "dom4j" }
+jaxen = { module = "jaxen:jaxen", version.ref = "jaxen" }
+
+# Script Engine
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
+kotlin-scripting-common = { module = "org.jetbrains.kotlin:kotlin-scripting-common", version.ref = "kotlin" }
+kotlin-scripting-jvm = { module = "org.jetbrains.kotlin:kotlin-scripting-jvm", version.ref = "kotlin" }
+kotlin-scripting-jvm-host = { module = "org.jetbrains.kotlin:kotlin-scripting-jvm-host", version.ref = "kotlin" }
+kotlin-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlin-coroutines" }
+kotlin-scripting-dependencies-maven = { module = "org.jetbrains.kotlin:kotlin-scripting-dependencies-maven", version.ref = "kotlin" }
+mavenCore = { module = "org.apache.maven:maven-core", version.ref = "maven-core" }
 
 # Third Party Integrations
 nexo = { module = "com.nexomc:nexo", version.ref = "nexo" }
@@ -101,4 +117,6 @@ slimjar = { id = "de.crazydev22.slimjar", version.ref = "slimjar" }
 download = { id = "de.undercouch.download", version.ref = "download" }
 runPaper = { id = "xyz.jpenilla.run-paper", version.ref = "runPaper" }
 sentry = { id = "io.sentry.jvm.gradle", version.ref = "sentryPlugin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-lombok = { id = "org.jetbrains.kotlin.plugin.lombok", version.ref = "kotlin" }
 grgit = { id = "org.ajoberstar.grgit", version.ref = "grgit" }

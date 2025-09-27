@@ -49,11 +49,10 @@ public class IrisSettings {
     private IrisSettingsSentry sentry = new IrisSettingsSentry();
 
     public static int getThreadCount(int c) {
-        return switch (c) {
+        return Math.max(switch (c) {
             case -1, -2, -4 -> Runtime.getRuntime().availableProcessors() / -c;
-            case 0, 1, 2 -> 1;
             default -> Math.max(c, 2);
-        };
+        }, 1);
     }
 
     public static IrisSettings get() {
@@ -138,6 +137,7 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsConcurrency {
         public int parallelism = -1;
+        public int ioParallelism = -2;
         public int worldGenParallelism = -1;
 
         public int getWorldGenThreads() {
@@ -243,6 +243,8 @@ public class IrisSettings {
         public int maxBiomeChildDepth = 4;
         public boolean preventLeafDecay = true;
         public boolean useMulticore = false;
+        public boolean offsetNoiseTypes = false;
+        public boolean earlyCustomBlocks = false;
     }
 
     @Data

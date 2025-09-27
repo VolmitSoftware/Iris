@@ -5,8 +5,6 @@ load: STARTUP
 authors: [ cyberpwn, NextdoorPsycho, Vatuu ]
 website: volmit.com
 description: More than a Dimension!
-environment: '${environment}'
-commit: '${commit}'
 commands:
   iris:
     aliases: [ ir, irs ]

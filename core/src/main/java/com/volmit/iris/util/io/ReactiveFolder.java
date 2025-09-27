@@ -46,8 +46,8 @@ public class ReactiveFolder {
 
         if (checkCycle % 3 == 0 ? fw.checkModified() : fw.checkModifiedFast()) {
             for (File i : fw.getCreated()) {
-                if (i.getName().endsWith(".iob") || i.getName().endsWith(".json") || i.getName().endsWith(".js")) {
-                    if (i.getPath().contains(".iris")) {
+                if (i.getName().endsWith(".iob") || i.getName().endsWith(".json") || i.getName().endsWith(".kts")) {
+                    if (i.getPath().contains(".iris") || i.getName().endsWith(".gradle.kts")) {
                         continue;
                     }
 
@@ -58,11 +58,11 @@ public class ReactiveFolder {
 
             if (!modified) {
                 for (File i : fw.getChanged()) {
-                    if (i.getPath().contains(".iris")) {
+                    if (i.getPath().contains(".iris") || i.getName().endsWith(".gradle.kts")) {
                         continue;
                     }
 
-                    if (i.getName().endsWith(".iob") || i.getName().endsWith(".json") || i.getName().endsWith(".js")) {
+                    if (i.getName().endsWith(".iob") || i.getName().endsWith(".json") || i.getName().endsWith(".kts")) {
                         modified = true;
                         break;
                     }
@@ -71,11 +71,11 @@ public class ReactiveFolder {
 
             if (!modified) {
                 for (File i : fw.getDeleted()) {
-                    if (i.getPath().contains(".iris")) {
+                    if (i.getPath().contains(".iris") || i.getName().endsWith(".gradle.kts")) {
                         continue;
                     }
 
-                    if (i.getName().endsWith(".iob") || i.getName().endsWith(".json") || i.getName().endsWith(".js")) {
+                    if (i.getName().endsWith(".iob") || i.getName().endsWith(".json") || i.getName().endsWith(".kts")) {
                         modified = true;
                         break;
                     }

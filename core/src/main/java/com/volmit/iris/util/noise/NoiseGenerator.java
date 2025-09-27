@@ -39,4 +39,8 @@ public interface NoiseGenerator {
     default ProceduralStream<Double> stream() {
         return ProceduralStream.of(this::noise, this::noise, Interpolated.DOUBLE);
     }
+
+    default OffsetNoiseGenerator offset(long seed) {
+        return new OffsetNoiseGenerator(this, seed);
+    }
 }

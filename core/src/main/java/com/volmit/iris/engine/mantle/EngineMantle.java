@@ -37,13 +37,16 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
-import com.volmit.iris.util.mantle.MantleFlag;
+import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.matter.*;
 import com.volmit.iris.util.matter.slices.UpdateMatter;
 import com.volmit.iris.util.parallel.MultiBurst;
 import org.bukkit.block.data.BlockData;
+import org.jetbrains.annotations.UnmodifiableView;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static com.volmit.iris.util.parallel.StreamUtils.forEach;
@@ -60,11 +63,18 @@ public interface EngineMantle {
 
     int getRealRadius();
 
-    KList<Pair<KList<MantleComponent>, Integer>> getComponents();
+    @UnmodifiableView
+    List<Pair<List<MantleComponent>, Integer>> getComponents();
 
-    void registerComponent(MantleComponent c);
+    @UnmodifiableView
+    Map<MantleFlag, MantleComponent> getRegisteredComponents();
 
+    boolean registerComponent(MantleComponent c);
+
+    @UnmodifiableView
     KList<MantleFlag> getComponentFlags();
+
+    void hotload();
 
     default int getHighest(int x, int z) {
         return getHighest(x, z, getData());
@@ -185,6 +195,7 @@ public interface EngineMantle {
                 forEach(streamRadius(x, z, radius),
                         pos -> pair.getA()
                                 .stream()
+                                .filter(MantleComponent::isEnabled)
                                 .map(c -> new Pair<>(c, pos)),
                         p -> {
                             MantleComponent c = p.getA();

@@ -5,10 +5,14 @@ import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import io.lumine.mythic.api.adapters.AbstractLocation;
 import io.lumine.mythic.api.config.MythicLineConfig;
+import io.lumine.mythic.api.mobs.entities.SpawnReason;
 import io.lumine.mythic.api.skills.conditions.ILocationCondition;
+import io.lumine.mythic.bukkit.BukkitAdapter;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.bukkit.adapters.BukkitWorld;
 import io.lumine.mythic.bukkit.events.MythicConditionLoadEvent;
+import io.lumine.mythic.core.mobs.ActiveMob;
+import io.lumine.mythic.core.mobs.MobStack;
 import io.lumine.mythic.core.skills.SkillCondition;
 import io.lumine.mythic.core.utils.annotations.MythicCondition;
 import io.lumine.mythic.core.utils.annotations.MythicField;
@@ -20,6 +24,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
 public class MythicMobsDataProvider extends ExternalDataProvider {
     public MythicMobsDataProvider() {
@@ -32,18 +37,31 @@ public class MythicMobsDataProvider extends ExternalDataProvider {
 
     @Override
     public @Nullable Entity spawnMob(@NotNull Location location, @NotNull Identifier entityId) throws MissingResourceException {
-        var mm = MythicBukkit.inst().getMobManager().spawnMob(entityId.key(), location);
-        if (mm == null) throw new MissingResourceException("Failed to find mob!", entityId.namespace(), entityId.key());
-        return mm.getEntity().getBukkitEntity();
+        var mm = spawnMob(BukkitAdapter.adapt(location), entityId);
+        return mm == null ? null : mm.getEntity().getBukkitEntity();
+    }
+
+    private ActiveMob spawnMob(AbstractLocation location, Identifier entityId) throws MissingResourceException {
+        var manager = MythicBukkit.inst().getMobManager();
+        var mm = manager.getMythicMob(entityId.key()).orElse(null);
+        if (mm == null) {
+            var stack = manager.getMythicMobStack(entityId.key());
+            if (stack == null) throw new MissingResourceException("Failed to find Mob!", entityId.namespace(), entityId.key());
+            return stack.spawn(location, 1d, SpawnReason.OTHER, null);
+        }
+        return mm.spawn(location, 1d, SpawnReason.OTHER, null, null);
     }
 
     @Override
     public @NotNull Collection<@NotNull Identifier> getTypes(@NotNull DataType dataType) {
         if (dataType != DataType.ENTITY) return List.of();
-        return MythicBukkit.inst()
-                .getMobManager()
-                .getMobNames()
-                .stream()
+        var manager = MythicBukkit.inst().getMobManager();
+        return Stream.concat(manager.getMobNames().stream(),
+                        manager.getMobStacks()
+                                .stream()
+                                .map(MobStack::getName)
+                )
+                .distinct()
                 .map(name -> new Identifier("mythicmobs", name))
                 .toList();
     }

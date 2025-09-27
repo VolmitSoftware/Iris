@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 public class TectonicPlate {
     private static final ThreadLocal<Boolean> errors = ThreadLocal.withInitial(() -> false);
     public static final int MISSING = -1;
-    public static final int CURRENT = 0;
+    public static final int CURRENT = 1;
 
     private final int sectionHeight;
     private final AtomicReferenceArray<MantleChunk> chunks;

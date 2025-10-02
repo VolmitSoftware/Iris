@@ -89,7 +89,7 @@ public class IrisConverter {
                     for (int h = 0; h < objH; h++) {
                         for (int d = 0; d < objD; d++) {
                             for (int w = 0; w < objW; w++) {
-                                BlockData bd = blockmap.get((int) originalBlockArray[v.get()]);
+                                BlockData bd = blockmap.get(Byte.toUnsignedInt(originalBlockArray[v.get()]));
                                 if (!bd.getMaterial().isAir()) {
                                     object.setUnsigned(w, h, d, bd);
                                 }

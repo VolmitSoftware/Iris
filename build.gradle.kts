@@ -62,7 +62,7 @@ val serverMinHeap = "2G"
 val serverMaxHeap = "8G"
 //Valid values are: none, truecolor, indexed256, indexed16, indexed8
 val color = "truecolor"
-val errorReporting = findProperty("errorReporting") as Boolean? ?: false
+val errorReporting = "true" == findProperty("errorReporting")
 
 val nmsBindings = mapOf(
         "v1_21_R5" to "1.21.8-R0.1-SNAPSHOT",
@@ -76,7 +76,7 @@ val nmsBindings = mapOf(
         "v1_20_R1" to "1.20.1-R0.1-SNAPSHOT",
 )
 val jvmVersion = mapOf<String, Int>()
-nmsBindings.forEach { key, value ->
+nmsBindings.forEach { (key, value) ->
     project(":nms:$key") {
         apply<JavaPlugin>()
         apply<NMSToolsPlugin>()
@@ -112,7 +112,7 @@ nmsBindings.forEach { key, value ->
 tasks {
     jar {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-        nmsBindings.forEach { key, _ ->
+        nmsBindings.forEach { (key, _) ->
             from(project(":nms:$key").tasks.named("remap").map { zipTree(it.outputs.files.singleFile) })
         }
         from(project(":core").tasks.shadowJar.flatMap { it.archiveFile }.map { zipTree(it) })

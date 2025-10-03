@@ -20,6 +20,7 @@ package com.volmit.iris.util.format;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.util.plugin.VolmitSender;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.apache.commons.lang.Validate;
@@ -493,6 +494,14 @@ public enum C {
         }
 
         return STRIP_COLOR_PATTERN.matcher(input).replaceAll("");
+    }
+
+    public static String strip(final String input) {
+        if (input == null) {
+            return null;
+        }
+
+        return MiniMessage.miniMessage().stripTags(stripColor(input));
     }
 
     /**

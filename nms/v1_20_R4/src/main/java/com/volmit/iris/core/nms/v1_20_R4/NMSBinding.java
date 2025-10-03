@@ -37,7 +37,6 @@ import com.volmit.iris.util.nbt.mca.NBTWorld;
 import com.volmit.iris.util.nbt.mca.palette.*;
 import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
-import com.volmit.iris.util.scheduling.J;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.asm.Advice;
@@ -230,7 +229,7 @@ public class NMSBinding implements INMSBinding {
         net.minecraft.nbt.CompoundTag tag = (net.minecraft.nbt.CompoundTag) convertToTag(map, 0, 64);
         var level = ((CraftWorld) pos.getWorld()).getHandle();
         var blockPos = new BlockPos(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ());
-        J.s(() -> merge(level, blockPos, tag));
+        Iris.platform.getRegionScheduler().run(pos, () -> merge(level, blockPos, tag));
     }
 
     private void merge(ServerLevel level, BlockPos blockPos, net.minecraft.nbt.CompoundTag tag) {

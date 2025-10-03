@@ -67,16 +67,21 @@ dependencies {
         isTransitive = false
     }
     compileOnly(libs.multiverseCore)
+    compileOnly(libs.worlds)
 
     // Shaded
     implementation(slimjarHelper("spigot"))
+    implementation(rootProject.libs.platformUtils) {
+        isTransitive = false
+    }
 
     // Dynamically Loaded
     slim(libs.paralithic)
     slim(libs.paperlib)
-    slim(libs.adventure.api)
     slim(libs.adventure.minimessage)
     slim(libs.adventure.platform)
+    slim(libs.adventure.gson)
+    slim(libs.adventure.legacy)
     slim(libs.bstats)
     slim(libs.sentry)
 
@@ -108,6 +113,11 @@ dependencies {
             slim(libs.mavenCore)
         }
     }
+
+    constraints {
+        slim(libs.gson)
+        compileOnly(libs.gson)
+    }
 }
 
 java {
@@ -131,8 +141,7 @@ slimJar {
     ))
 
     relocate("com.dfsek.paralithic", "$lib.paralithic")
-    relocate("io.papermc.lib", "$lib.paper")
-    relocate("net.kyori", "$lib.kyori")
+    relocate("net.kyori.audience", "$lib.audience")
     relocate("org.bstats", "$lib.metrics")
     relocate("io.sentry", "$lib.sentry")
     relocate("org.apache.maven", "$lib.maven")

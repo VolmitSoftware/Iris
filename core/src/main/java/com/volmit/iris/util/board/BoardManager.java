@@ -18,10 +18,11 @@
 
 package com.volmit.iris.util.board;
 
+import com.volmit.iris.Iris;
+import de.crazydev22.platformutils.scheduler.task.Task;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.Collections;
 import java.util.Map;
@@ -34,7 +35,7 @@ public class BoardManager {
 
     private final JavaPlugin plugin;
     private final Map<UUID, Board> scoreboards;
-    private final BukkitTask updateTask;
+    private final Task updateTask;
     private BoardSettings boardSettings;
 
 
@@ -42,7 +43,7 @@ public class BoardManager {
         this.plugin = plugin;
         this.boardSettings = boardSettings;
         this.scoreboards = new ConcurrentHashMap<>();
-        this.updateTask = new BoardUpdateTask(this).runTaskTimer(plugin, 2L, 20L);
+        this.updateTask = Iris.platform.getGlobalScheduler().runAtFixedRate(new BoardUpdateTask(this), 2L, 20L);
         plugin.getServer().getOnlinePlayers().forEach(this::setup);
     }
 

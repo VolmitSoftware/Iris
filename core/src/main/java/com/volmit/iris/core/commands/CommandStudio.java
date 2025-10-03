@@ -47,20 +47,16 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.mantle.MantleChunk;
-import com.volmit.iris.util.math.M;
-import com.volmit.iris.util.math.Position2;
-import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.math.Spiraler;
+import com.volmit.iris.util.math.*;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.parallel.MultiBurst;
-import com.volmit.iris.util.parallel.SyncExecutor;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.O;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.scheduling.jobs.ParallelQueueJob;
-import io.papermc.lib.PaperLib;
+import de.crazydev22.platformutils.scheduler.task.Task;
 import org.bukkit.*;
+import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.util.BlockVector;
@@ -77,6 +73,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -174,7 +171,7 @@ public class CommandStudio implements DecreeExecutor {
             PlatformChunkGenerator plat = IrisToolbelt.access(world);
             Engine engine = plat.getEngine();
             DecreeContext.touch(sender);
-            try (SyncExecutor executor = new SyncExecutor(20)) {
+            try (var executor = Iris.platform.createRegionExecutor(20)) {
                 int x = loc.getBlockX() >> 4;
                 int z = loc.getBlockZ() >> 4;
 
@@ -335,27 +332,25 @@ public class CommandStudio implements DecreeExecutor {
             return;
         }
 
+        Player player = player();
+        var scheduler = Iris.platform.getEntityScheduler(player);
+        scheduler.run(() -> {
+            sender().sendMessage(C.GREEN + "Opening inventory now!");
+            player.openInventory(inv);
 
-        O<Integer> ta = new O<>();
-        ta.set(-1);
+            scheduler.runAtFixedRate(refresh -> {
+                if (!player.getOpenInventory().getType().equals(InventoryType.CHEST)) {
+                    refresh.cancel();
+                    return;
+                }
 
-        ta.set(Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, () ->
-        {
-            if (!player().getOpenInventory().getType().equals(InventoryType.CHEST)) {
-                Bukkit.getScheduler().cancelTask(ta.get());
-                sender().sendMessage(C.GREEN + "Opened inventory!");
-                return;
-            }
+                if (!add) {
+                    inv.clear();
+                }
 
-            if (!add) {
-                inv.clear();
-            }
-
-            engine().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, player().getWorld(), player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
-        }, 0, fast ? 5 : 35));
-
-        sender().sendMessage(C.GREEN + "Opening inventory now!");
-        player().openInventory(inv);
+                engine().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, player.getWorld(), player.getLocation().getBlockX(), player.getLocation().getBlockY(), player.getLocation().getBlockZ(), 1);
+            }, null, 1, fast ? 5 : 35);
+        }, null);
     }
 
     @Decree(description = "Calculate the chance for each region to generate", origin = DecreeOrigin.PLAYER)
@@ -378,7 +373,7 @@ public class CommandStudio implements DecreeExecutor {
                     var loc = player.getLocation();
                     int totalTasks = d * d;
                     AtomicInteger completedTasks = new AtomicInteger(0);
-                    int c = J.ar(() -> sender.sendProgress((double) completedTasks.get() / totalTasks, "Finding regions"), 0);
+                    Task c = J.ar(() -> sender.sendProgress((double) completedTasks.get() / totalTasks, "Finding regions"), 0);
                     new Spiraler(d, d, (x, z) -> executor.queue(() -> {
                         var region = engine.getRegion((x << 4) + 8, (z << 4) + 8);
                         data.computeIfAbsent(region.getLoadKey(), (k) -> new AtomicInteger(0))
@@ -387,7 +382,7 @@ public class CommandStudio implements DecreeExecutor {
                     })).setOffset(loc.getBlockX(), loc.getBlockZ()).drain();
                     executor.complete();
                     multiBurst.close();
-                    J.car(c);
+                    c.cancel();
 
                     sender.sendMessage(C.GREEN + "Done!");
                     var loader = engine.getData().getRegionLoader();
@@ -412,9 +407,7 @@ public class CommandStudio implements DecreeExecutor {
         var loc = player().getLocation();
         int totalTasks = d * d;
         AtomicInteger completedTasks = new AtomicInteger(0);
-        int c = J.ar(() -> {
-            sender.sendProgress((double) completedTasks.get() / totalTasks, "Finding structures");
-        }, 0);
+        var c = J.ar(() -> sender.sendProgress((double) completedTasks.get() / totalTasks, "Finding structures"), 0);
 
         new Spiraler(d, d, (x, z) -> executor.queue(() -> {
             var struct = engine.getStructureAt(x, z);
@@ -426,7 +419,7 @@ public class CommandStudio implements DecreeExecutor {
 
         executor.complete();
         multiBurst.close();
-        J.car(c);
+        if (c != null) c.cancel();
 
         for (var key : data.keySet()) {
             var list = data.get(key);
@@ -704,8 +697,9 @@ public class CommandStudio implements DecreeExecutor {
         }
 
         sender().sendMessage(C.GREEN + "Sending you to the studio world!");
-        player().teleport(Iris.service(StudioSVC.class).getActiveProject().getActiveProvider().getTarget().getWorld().spawnLocation());
-        player().setGameMode(GameMode.SPECTATOR);
+        Player player = player();
+        Iris.platform.teleportAsync(player, Iris.service(StudioSVC.class).getActiveProject().getActiveProvider().getTarget().getWorld().spawnLocation());
+        Iris.platform.getEntityScheduler(player).run(() -> player.setGameMode(GameMode.SPECTATOR), null);
     }
 
     @Decree(description = "Update your dimension projects VSCode workspace")
@@ -721,7 +715,7 @@ public class CommandStudio implements DecreeExecutor {
         }
     }
 
-    @Decree(aliases = "find-objects", description = "Get information about nearby structures")
+    @Decree(aliases = "find-objects", description = "Get information about nearby structures", origin = DecreeOrigin.PLAYER)
     public void objects() {
         if (!IrisToolbelt.isIrisWorld(player().getWorld())) {
             sender().sendMessage(C.RED + "You must be in an Iris world");
@@ -734,21 +728,29 @@ public class CommandStudio implements DecreeExecutor {
             sender().sendMessage("You must be in an iris world.");
             return;
         }
-        KList<Chunk> chunks = new KList<>();
-        int bx = player().getLocation().getChunk().getX();
-        int bz = player().getLocation().getChunk().getZ();
+        KMap<Position2, CompletableFuture<Chunk>> chunks = new KMap<>();
+        var location = player().getLocation();
+        int bx = location.getBlockX() >> 4;
+        int bz = location.getBlockZ() >> 4;
 
+        Spiraled spiraled = (x, z) -> chunks.putIfAbsent(new Position2(x, z), Iris.platform.getChunkAtAsync(world, x, z));
         try {
-            Location l = player().getTargetBlockExact(48, FluidCollisionMode.NEVER).getLocation();
+            var player = player();
+            var task = Iris.platform.getEntityScheduler(player).run(() -> {
+                var target = player.getTargetBlockExact(48, FluidCollisionMode.NEVER);
+                if (target == null) return;
+                Location l = target.getLocation();
 
-            int cx = l.getChunk().getX();
-            int cz = l.getChunk().getZ();
-            new Spiraler(3, 3, (x, z) -> chunks.addIfMissing(world.getChunkAt(x + cx, z + cz))).drain();
+                int cx = l.getBlockX() >> 4;
+                int cz = l.getBlockZ() >> 4;
+                new Spiraler(3, 3, (x, z) -> spiraled.on(x + cx, z + cz)).drain();
+            }, null);
+            if (task != null) task.getResult().join();
         } catch (Throwable e) {
             Iris.reportError(e);
         }
 
-        new Spiraler(3, 3, (x, z) -> chunks.addIfMissing(world.getChunkAt(x + bx, z + bz))).drain();
+        new Spiraler(3, 3, (x, z) -> spiraled.on(x + bx, z + bz)).drain();
         sender().sendMessage("Capturing IGenData from " + chunks.size() + " nearby chunks.");
         try {
             File ff = Iris.instance.getDataFile("reports/" + M.ms() + ".txt");
@@ -758,11 +760,11 @@ public class CommandStudio implements DecreeExecutor {
             pw.println("Iris Version: " + Iris.instance.getDescription().getVersion());
             pw.println("Bukkit Version: " + Bukkit.getBukkitVersion());
             pw.println("MC Version: " + Bukkit.getVersion());
-            pw.println("PaperSpigot: " + (PaperLib.isPaper() ? "Yup!" : "Nope!"));
+            //pw.println("PaperSpigot: " + (PaperLib.isPaper() ? "Yup!" : "Nope!")); //TODO update this
             pw.println("Report Captured At: " + new Date());
             pw.println("Chunks: (" + chunks.size() + "): ");
 
-            for (Chunk i : chunks) {
+            for (Position2 i : chunks.keySet()) {
                 pw.println("- [" + i.getX() + ", " + i.getZ() + "]");
             }
 
@@ -787,25 +789,31 @@ public class CommandStudio implements DecreeExecutor {
                 Iris.reportError(e);
             }
 
-            KList<String> biomes = new KList<>();
-            KList<String> caveBiomes = new KList<>();
-            KMap<String, KMap<String, KList<String>>> objects = new KMap<>();
+            KSet<String> biomes = new KSet<>();
+            KSet<String> caveBiomes = new KSet<>();
+            KMap<String, KMap<String, KSet<String>>> objects = new KMap<>();
 
-            for (Chunk i : chunks) {
-                for (int j = 0; j < 16; j += 3) {
+            var engine = engine();
+            assert engine != null;
 
-                    for (int k = 0; k < 16; k += 3) {
-
-                        assert engine() != null;
-                        IrisBiome bb = engine().getSurfaceBiome((i.getX() * 16) + j, (i.getZ() * 16) + k);
-                        IrisBiome bxf = engine().getCaveBiome((i.getX() * 16) + j, (i.getZ() * 16) + k);
-                        biomes.addIfMissing(bb.getName() + " [" + Form.capitalize(bb.getInferredType().name().toLowerCase()) + "] " + " (" + bb.getLoadFile().getName() + ")");
-                        caveBiomes.addIfMissing(bxf.getName() + " (" + bxf.getLoadFile().getName() + ")");
-                        exportObjects(bb, pw, engine(), objects);
-                        exportObjects(bxf, pw, engine(), objects);
+            KList<CompletableFuture<?>> futures = new KList<>(chunks.size());
+            for (var future : chunks.values()) {
+                futures.add(future.thenAccept(i -> {
+                    int bX = i.getX() << 4;
+                    int bZ = i.getZ() << 4;
+                    for (int j = 0; j < 16; j += 3) {
+                        for (int k = 0; k < 16; k += 3) {
+                            IrisBiome bb = engine.getSurfaceBiome(bX + j, bZ + k);
+                            IrisBiome bxf = engine.getCaveBiome(bX + j, bZ + k);
+                            biomes.add(bb.getName() + " [" + Form.capitalize(String.valueOf(bb.getInferredType()).toLowerCase()) + "] " + " (" + bb.getLoadFile().getName() + ")");
+                            caveBiomes.add(bxf.getName() + " (" + bxf.getLoadFile().getName() + ")");
+                            exportObjects(bb, pw, engine, objects);
+                            exportObjects(bxf, pw, engine, objects);
+                        }
                     }
-                }
+                }));
             }
+            CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
 
             regions = Objects.requireNonNull(new File(world.getWorldFolder().getPath() + "/region").list()).length;
 
@@ -822,6 +830,13 @@ public class CommandStudio implements DecreeExecutor {
             pw.println("Found " + biomes.size() + " Biome(s): ");
 
             for (String i : biomes) {
+                pw.println("- " + i);
+            }
+            pw.println();
+            pw.println("== Cave Biome Info ==");
+            pw.println("Found " + caveBiomes.size() + " Cave Biome(s): ");
+
+            for (String i : caveBiomes) {
                 pw.println("- " + i);
             }
             pw.println();
@@ -850,8 +865,8 @@ public class CommandStudio implements DecreeExecutor {
         }
     }
 
-    private void exportObjects(IrisBiome bb, PrintWriter pw, Engine g, KMap<String, KMap<String, KList<String>>> objects) {
-        String n1 = bb.getName() + " [" + Form.capitalize(bb.getInferredType().name().toLowerCase()) + "] " + " (" + bb.getLoadFile().getName() + ")";
+    private void exportObjects(IrisBiome bb, PrintWriter pw, Engine g, KMap<String, KMap<String, KSet<String>>> objects) {
+        String n1 = bb.getName() + " [" + Form.capitalize(String.valueOf(bb.getInferredType()).toLowerCase()) + "] " + " (" + bb.getLoadFile().getName() + ")";
         int m = 0;
         KSet<String> stop = new KSet<>();
         for (IrisObjectPlacement f : bb.getObjects()) {
@@ -876,7 +891,7 @@ public class CommandStudio implements DecreeExecutor {
 
                 String n3 = nn3;
                 objects.computeIfAbsent(n1, (k1) -> new KMap<>())
-                        .computeIfAbsent(n2, (k) -> new KList<>()).addIfMissing(n3);
+                        .computeIfAbsent(n2, (k) -> new KSet<>()).add(n3);
             }
         }
     }

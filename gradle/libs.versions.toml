@@ -17,6 +17,7 @@ spigot = "1.20.1-R0.1-SNAPSHOT" # https://hub.spigotmc.org/nexus/repository/snap
 log4j = "2.19.0" # https://central.sonatype.com/artifact/org.apache.logging.log4j/log4j-api
 adventure-api = "4.24.0" # https://github.com/KyoriPowered/adventure
 adventure-platform = "4.4.1" # https://github.com/KyoriPowered/adventure-platform
+platform-utils = "27453094ed" # https://github.com/CrazyDev05/PlatformUtils
 
 annotations = "26.0.2" # https://central.sonatype.com/artifact/org.jetbrains/annotations
 paralithic = "0.8.1" # https://github.com/PolyhedralDev/Paralithic/
@@ -55,6 +56,7 @@ mythic = "5.9.5"
 mythic-chrucible = "2.1.0"
 kgenerators = "7.3" # https://repo.codemc.io/repository/maven-public/me/kryniowesegryderiusz/kgenerators-core/maven-metadata.xml
 multiverseCore = "5.1.0"
+worlds = "3.2.5" # https://modrinth.com/plugin/worlds-1
 
 [libraries]
 # Core Libraries
@@ -63,10 +65,12 @@ spigot = { module = "org.spigotmc:spigot-api", version.ref = "spigot" }
 log4j-api = { module = "org.apache.logging.log4j:log4j-api", version.ref = "log4j" }
 log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
 annotations = { module = "org.jetbrains:annotations", version.ref = "annotations" }
+platformUtils = { module = "com.github.CrazyDev05:PlatformUtils", version.ref = "platform-utils" }
 
 # Dynamically Loaded
-adventure-api = { module = "net.kyori:adventure-api", version.ref = "adventure-api" }
 adventure-minimessage = { module = "net.kyori:adventure-text-minimessage", version.ref = "adventure-api" }
+adventure-gson = { module = "net.kyori:adventure-text-serializer-gson", version.ref = "adventure-api" }
+adventure-legacy = { module = "net.kyori:adventure-text-serializer-legacy", version.ref = "adventure-api" }
 adventure-platform = { module = "net.kyori:adventure-platform-bukkit", version.ref = "adventure-platform" }
 
 paralithic = { module = "com.dfsek:paralithic", version.ref = "paralithic" }
@@ -110,6 +114,7 @@ mythic = { module = "io.lumine:Mythic-Dist", version.ref = "mythic" }
 mythicChrucible = { module = "io.lumine:MythicCrucible-Dist", version.ref = "mythic-chrucible" }
 kgenerators = { module = "me.kryniowesegryderiusz:kgenerators-core", version.ref = "kgenerators" }
 multiverseCore = { module = "org.mvplugins.multiverse.core:multiverse-core", version.ref = "multiverseCore" }
+worlds = { module = "net.thenextlvl:worlds", version.ref = "worlds" }
 
 [plugins]
 shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }

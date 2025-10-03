@@ -142,9 +142,10 @@ public class TreeSVC implements IrisService {
             public void set(int x, int y, int z, BlockData d) {
                 Block b = event.getWorld().getBlockAt(x, y, z);
                 BlockState state = b.getState();
-                if (d instanceof IrisCustomData data)
+                if (d instanceof IrisCustomData data) {
                     state.setBlockData(data.getBase());
-                else state.setBlockData(d);
+                    Iris.service(ExternalDataSVC.class).processUpdate(engine, b, data.getCustom());
+                } else state.setBlockData(d);
                 blockStateList.add(b.getState());
                 dataCache.put(new Location(event.getWorld(), x, y, z), d);
             }
@@ -207,8 +208,7 @@ public class TreeSVC implements IrisService {
 
         event.setCancelled(true);
 
-        J.s(() -> {
-
+        Iris.platform.getRegionScheduler().run(event.getLocation(), () -> {
             StructureGrowEvent iGrow = new StructureGrowEvent(event.getLocation(), event.getSpecies(), event.isFromBonemeal(), event.getPlayer(), blockStateList);
             block = true;
             Bukkit.getServer().getPluginManager().callEvent(iGrow);

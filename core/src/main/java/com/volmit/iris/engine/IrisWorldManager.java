@@ -43,7 +43,6 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Looper;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
-import io.papermc.lib.PaperLib;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.bukkit.Chunk;
@@ -61,10 +60,7 @@ import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -190,32 +186,54 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         for (Player i : getEngine().getWorld().realWorld().getPlayers()) {
             int r = 1;
 
+            int cX = i.getLocation().getBlockX() >> 4;
+            int cZ = i.getLocation().getBlockZ() >> 4;
             for (int x = -r; x <= r; x++) {
                 for (int z = -r; z <= r; z++) {
-                    mantle.getChunk(i.getLocation().getChunk()).flag(MantleFlag.DISCOVERED, true);
+                    mantle.getChunk(cX + x, cZ + z).flag(MantleFlag.DISCOVERED, true);
                 }
             }
         }
     }
 
     private void updateChunks() {
-        for (Player i : getEngine().getWorld().realWorld().getPlayers()) {
-            int r = 1;
+        int radius = 1;
+        int diameter = radius * 2 + 1;
+        int count = (diameter * diameter) + 1;
 
-            Chunk c = i.getLocation().getChunk();
-            for (int x = -r; x <= r; x++) {
-                for (int z = -r; z <= r; z++) {
-                    if (c.getWorld().isChunkLoaded(c.getX() + x, c.getZ() + z) && Chunks.isSafe(getEngine().getWorld().realWorld(), c.getX() + x, c.getZ() + z)) {
+        var players = new KList<>(getEngine().getWorld().realWorld().getPlayers());
+        var latch = new CountDownLatch(count * players.size());
 
-                        if (IrisSettings.get().getWorld().isPostLoadBlockUpdates()) {
-                            getEngine().updateChunk(c.getWorld().getChunkAt(c.getX() + x, c.getZ() + z));
+        for (Player i : players) {
+            if (!i.isOnline() || !i.isValid() || i.isDead()) {
+                for (int j = 0; j < count; j++) {
+                    latch.countDown();
+                }
+                continue;
+            }
+
+            Iris.platform.getEntityScheduler(i).run(() -> {
+                Chunk c = i.getLocation().getChunk();
+                for (int x = -radius; x <= radius; x++) {
+                    for (int z = -radius; z <= radius; z++) {
+                        int cX = c.getX() + x;
+                        int cZ = c.getZ() + z;
+                        if (!c.getWorld().isChunkLoaded(cX, cZ) || !Chunks.isSafe(getEngine().getWorld().realWorld(), cX, cZ)) {
+                            latch.countDown();
+                            continue;
                         }
 
+                        if (IrisSettings.get().getWorld().isPostLoadBlockUpdates()) {
+                            Chunk cx = c.getWorld().getChunkAt(cX, cZ);
+                            J.a(() -> {
+                                getEngine().updateChunk(cx);
+                                latch.countDown();
+                            });
+                        } else latch.countDown();
+
                         if (IrisSettings.get().getWorld().isMarkerEntitySpawningSystem()) {
-                            Chunk cx = getEngine().getWorld().realWorld().getChunkAt(c.getX() + x, c.getZ() + z);
-                            int finalX = c.getX() + x;
-                            int finalZ = c.getZ() + z;
-                            J.a(() -> getMantle().raiseFlag(finalX, finalZ, MantleFlag.INITIAL_SPAWNED_MARKER,
+                            Chunk cx = getEngine().getWorld().realWorld().getChunkAt(cX, cZ);
+                            J.a(() -> getMantle().raiseFlag(cX, cZ, MantleFlag.INITIAL_SPAWNED_MARKER,
                                     () -> {
                                         J.a(() -> spawnIn(cx, true), RNG.r.i(5, 200));
                                         getSpawnersFromMarkers(cx).forEach((blockf, spawners) -> {
@@ -231,8 +249,17 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                         }
                     }
                 }
-            }
+                latch.countDown();
+            }, () -> {
+                for (int j = 0; j < count; j++) {
+                    latch.countDown();
+                }
+            });
         }
+
+        try {
+            latch.await();
+        } catch (InterruptedException ignored) {}
     }
 
     private boolean onAsyncTick() {
@@ -493,8 +520,8 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             e.setCancelled(true);
             warmupAreaAsync(e.getPlayer(), e.getTo(), () -> J.s(() -> {
                 ignoreTP.set(true);
-                e.getPlayer().teleport(e.getTo(), e.getCause());
-                ignoreTP.set(false);
+                Iris.platform.teleportAsync(e.getPlayer(), e.getTo(), e.getCause())
+                        .thenRun(() -> ignoreTP.set(false));
             }));
         }
     }
@@ -514,7 +541,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                     }
 
                     futures.add(MultiBurst.burst.completeValue(()
-                            -> PaperLib.getChunkAtAsync(to.getWorld(),
+                            -> Iris.platform.getChunkAtAsync(to.getWorld(),
                             (to.getBlockX() >> 4) + finalI,
                             (to.getBlockZ() >> 4) + finalJ,
                             true, IrisSettings.get().getWorld().getAsyncTeleport().isUrgent()).get()));
@@ -551,19 +578,17 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             IrisPosition pos = new IrisPosition((c.getX() << 4) + x, y, (c.getZ() << 4) + z);
 
             if (mark.isEmptyAbove()) {
-                AtomicBoolean remove = new AtomicBoolean(false);
+                Boolean remove = Iris.platform.getRegionScheduler()
+                        .run(c.getWorld(), c.getX(), c.getZ(), () -> c.getBlock(x, y + 1, z).getType().isSolid() || c.getBlock(x, y + 2, z).getType().isSolid())
+                        .getResult()
+                        .exceptionally(e -> {
+                            Iris.reportError(e);
+                            e.printStackTrace();
+                            return false;
+                        })
+                        .join();
 
-                try {
-                    J.sfut(() -> {
-                        if (c.getBlock(x, y + 1, z).getBlockData().getMaterial().isSolid() || c.getBlock(x, y + 2, z).getBlockData().getMaterial().isSolid()) {
-                            remove.set(true);
-                        }
-                    }).get();
-                } catch (InterruptedException | ExecutionException e) {
-                    e.printStackTrace();
-                }
-
-                if (remove.get()) {
+                if (remove == Boolean.TRUE) {
                     b.add(pos);
                     return;
                 }

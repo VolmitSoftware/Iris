@@ -245,7 +245,6 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     @Override
     public void onDisable() {
         stop();
-        Bukkit.getScheduler().cancelTasks(this);
         unregisterListener(this);
         unregisterAll();
     }

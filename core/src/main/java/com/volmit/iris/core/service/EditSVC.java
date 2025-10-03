@@ -24,7 +24,6 @@ import com.volmit.iris.core.edit.BukkitBlockEditor;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.plugin.IrisService;
-import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -38,7 +37,7 @@ public class EditSVC implements IrisService {
     @Override
     public void onEnable() {
         this.editors = new KMap<>();
-        Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::update, 1000, 1000);
+        Iris.platform.getGlobalScheduler().runAtFixedRate(this::update, 1000, 1000);
     }
 
     @Override

@@ -32,7 +32,6 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.O;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.bukkit.*;
@@ -41,8 +40,10 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.function.IntSupplier;
 
 import static com.volmit.iris.util.misc.ServerProperties.BUKKIT_YML;
@@ -128,8 +129,6 @@ public class IrisCreator {
         }
 
         AtomicDouble pp = new AtomicDouble(0);
-        O<Boolean> done = new O<>();
-        done.set(false);
         WorldCreator wc = new IrisWorldCreator()
                 .dimension(dimension)
                 .name(name)
@@ -143,6 +142,7 @@ public class IrisCreator {
         PlatformChunkGenerator access = (PlatformChunkGenerator) wc.generator();
         if (access == null) throw new IrisException("Access is null. Something bad happened.");
 
+        AtomicBoolean done = new AtomicBoolean(false);
         J.a(() -> {
             IntSupplier g = () -> {
                 if (access.getEngine() == null) {
@@ -166,9 +166,11 @@ public class IrisCreator {
         });
 
 
-        World world;
+        final World world;
         try {
-            world = J.sfut(() -> INMS.get().createWorld(wc)).get();
+            world = J.sfut(() -> INMS.get().createWorldAsync(wc))
+                    .thenCompose(Function.identity())
+                    .get();
         } catch (Throwable e) {
             done.set(true);
             throw new IrisException("Failed to create world!", e);
@@ -177,7 +179,15 @@ public class IrisCreator {
         done.set(true);
 
         if (sender.isPlayer() && !benchmark) {
-            J.s(() -> sender.player().teleport(new Location(world, 0, world.getHighestBlockYAt(0, 0) + 1, 0)));
+            Iris.platform.getChunkAtAsync(world, 0, 0, true, true)
+                    .thenApply(Objects::requireNonNull)
+                    .thenApply(c -> c.getChunkSnapshot(true, false, false).getHighestBlockYAt(0, 0) + 1)
+                    .thenAccept(y -> Iris.platform.teleportAsync(sender.player(), new Location(world, 0, y, 0)))
+                    .exceptionally(err -> {
+                        sender.sendMessage(C.RED + "Failed to teleport you to the world!");
+                        err.printStackTrace();
+                        return null;
+                    });
         }
 
         if (studio || benchmark) {

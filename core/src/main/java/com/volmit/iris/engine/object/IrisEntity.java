@@ -33,8 +33,6 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.plugin.Chunks;
 import com.volmit.iris.util.plugin.VolmitSender;
-import com.volmit.iris.util.scheduling.J;
-import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -50,13 +48,11 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.loot.LootContext;
 import org.bukkit.loot.LootTable;
 import org.bukkit.loot.Lootable;
-import org.bukkit.util.Vector;
 
 import java.util.Collection;
 import java.util.Random;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static com.volmit.iris.util.data.registry.Particles.ITEM;
 
@@ -183,38 +179,34 @@ public class IrisEntity extends IrisRegistrant {
         return spawn(gen, at, new RNG(at.hashCode()));
     }
 
-    public Entity spawn(Engine gen, Location at, RNG rng) {
+    public Entity spawn(Engine gen, final Location at, RNG rng) {
+        if (!Iris.platform.isOwnedByCurrentRegion(at)) {
+            try {
+                final Location finalAt = at;
+                return Iris.platform.getRegionScheduler().run(at, () -> spawn(gen, finalAt, rng))
+                        .getResult()
+                        .get(500, TimeUnit.MILLISECONDS);
+            } catch (Throwable e) {
+                return null;
+            }
+        }
+
         if (!Chunks.isSafe(at)) {
             return null;
         }
-        if (isSpawnEffectRiseOutOfGround()) {
-            AtomicReference<Location> f = new AtomicReference<>(at);
-            try {
-                J.sfut(() -> {
-                    if (Chunks.hasPlayersNearby(f.get())) {
-                        Location b = f.get().clone();
-                        Location start = new Location(b.getWorld(), b.getX(), b.getY() - 5, b.getZ());
-                        f.set(start);
-                    }
-                }).get();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
-            }
-            at = f.get();
+        if (isSpawnEffectRiseOutOfGround() && Chunks.hasPlayersNearby(at)) {
+            at.add(0, -5, 0);
         }
 
         Entity ee = doSpawn(at);
-
-        if (ee == null && !Chunks.isSafe(at)) {
+        if (ee == null) {
             return null;
         }
 
         if (!spawnerScript.isEmpty() && ee == null) {
             synchronized (this) {
                 try {
-                    ee = (Entity) gen.getExecution().spawnMob(spawnerScript, at);
+                    ee = (Entity) gen.getExecution().spawnMob(spawnerScript, at.clone());
                 } catch (Throwable ex) {
                     Iris.error("You must return an Entity in your scripts to use entity scripts!");
                     ex.printStackTrace();
@@ -241,111 +233,96 @@ public class IrisEntity extends IrisRegistrant {
 
         int gg = 0;
         for (IrisEntity i : passengers) {
-            Entity passenger = i.spawn(gen, at, rng.nextParallelRNG(234858 + gg++));
-            if (!Bukkit.isPrimaryThread()) {
-                J.s(() -> e.addPassenger(passenger));
-            }
+            e.addPassenger(i.spawn(gen, at, rng.nextParallelRNG(234858 + gg++)));
         }
 
-        if (e instanceof Attributable) {
-            Attributable a = (Attributable) e;
-
+        if (e instanceof Attributable attributable) {
             for (IrisAttributeModifier i : getAttributes()) {
-                i.apply(rng, a);
+                i.apply(rng, attributable);
             }
         }
 
-        if (e instanceof Lootable) {
-            Lootable l = (Lootable) e;
+        if (e instanceof Lootable lootable && getLoot().getTables().isNotEmpty()) {
+            lootable.setLootTable(new LootTable() {
+                @Override
+                public NamespacedKey getKey() {
+                    return new NamespacedKey(Iris.instance, "loot-" + IrisEntity.this.hashCode());
+                }
 
-            if (getLoot().getTables().isNotEmpty()) {
-                Location finalAt = at;
-                l.setLootTable(new LootTable() {
-                    @Override
-                    public NamespacedKey getKey() {
-                        return new NamespacedKey(Iris.instance, "loot-" + IrisEntity.this.hashCode());
+                @Override
+                public Collection<ItemStack> populateLoot(Random random, LootContext context) {
+                    KList<ItemStack> items = new KList<>();
+
+                    for (String fi : getLoot().getTables()) {
+                        IrisLootTable i = gen.getData().getLootLoader().load(fi);
+                        items.addAll(i.getLoot(gen.isStudio(), rng.nextParallelRNG(345911), InventorySlotType.STORAGE, at.getWorld(), at.getBlockX(), at.getBlockY(), at.getBlockZ()));
                     }
 
-                    @Override
-                    public Collection<ItemStack> populateLoot(Random random, LootContext context) {
-                        KList<ItemStack> items = new KList<>();
+                    return items;
+                }
 
-                        for (String fi : getLoot().getTables()) {
-                            IrisLootTable i = gen.getData().getLootLoader().load(fi);
-                            items.addAll(i.getLoot(gen.isStudio(), rng.nextParallelRNG(345911), InventorySlotType.STORAGE, finalAt.getWorld(), finalAt.getBlockX(), finalAt.getBlockY(), finalAt.getBlockZ()));
-                        }
-
-                        return items;
+                @Override
+                public void fillInventory(Inventory inventory, Random random, LootContext context) {
+                    for (ItemStack i : populateLoot(random, context)) {
+                        inventory.addItem(i);
                     }
 
-                    @Override
-                    public void fillInventory(Inventory inventory, Random random, LootContext context) {
-                        for (ItemStack i : populateLoot(random, context)) {
-                            inventory.addItem(i);
-                        }
-
-                        gen.scramble(inventory, rng);
-                    }
-                });
-            }
+                    gen.scramble(inventory, rng);
+                }
+            });
         }
 
-        if (e instanceof LivingEntity) {
-            LivingEntity l = (LivingEntity) e;
-            l.setAI(isAi());
-            l.setCanPickupItems(isPickupItems());
+        if (e instanceof LivingEntity living) {
+            living.setAI(isAi());
+            living.setCanPickupItems(isPickupItems());
 
             if (getLeashHolder() != null) {
-                l.setLeashHolder(getLeashHolder().spawn(gen, at, rng.nextParallelRNG(234548)));
+                living.setLeashHolder(getLeashHolder().spawn(gen, at, rng.nextParallelRNG(234548)));
             }
 
-            l.setRemoveWhenFarAway(isRemovable());
+            living.setRemoveWhenFarAway(isRemovable());
 
             if (getHelmet() != null && rng.i(1, getHelmet().getRarity()) == 1) {
-                l.getEquipment().setHelmet(getHelmet().get(gen.isStudio(), rng));
+                living.getEquipment().setHelmet(getHelmet().get(gen.isStudio(), rng));
             }
 
             if (getChestplate() != null && rng.i(1, getChestplate().getRarity()) == 1) {
-                l.getEquipment().setChestplate(getChestplate().get(gen.isStudio(), rng));
+                living.getEquipment().setChestplate(getChestplate().get(gen.isStudio(), rng));
             }
 
             if (getLeggings() != null && rng.i(1, getLeggings().getRarity()) == 1) {
-                l.getEquipment().setLeggings(getLeggings().get(gen.isStudio(), rng));
+                living.getEquipment().setLeggings(getLeggings().get(gen.isStudio(), rng));
             }
 
             if (getBoots() != null && rng.i(1, getBoots().getRarity()) == 1) {
-                l.getEquipment().setBoots(getBoots().get(gen.isStudio(), rng));
+                living.getEquipment().setBoots(getBoots().get(gen.isStudio(), rng));
             }
 
             if (getMainHand() != null && rng.i(1, getMainHand().getRarity()) == 1) {
-                l.getEquipment().setItemInMainHand(getMainHand().get(gen.isStudio(), rng));
+                living.getEquipment().setItemInMainHand(getMainHand().get(gen.isStudio(), rng));
             }
 
             if (getOffHand() != null && rng.i(1, getOffHand().getRarity()) == 1) {
-                l.getEquipment().setItemInOffHand(getOffHand().get(gen.isStudio(), rng));
+                living.getEquipment().setItemInOffHand(getOffHand().get(gen.isStudio(), rng));
             }
         }
 
-        if (e instanceof Ageable && isBaby()) {
-            ((Ageable) e).setBaby();
+        if (e instanceof Ageable ageable && isBaby()) {
+            ageable.setBaby();
         }
 
-        if (e instanceof Panda) {
-            ((Panda) e).setMainGene(getPandaMainGene());
-            ((Panda) e).setMainGene(getPandaHiddenGene());
+        if (e instanceof Panda panda) {
+            panda.setMainGene(getPandaMainGene());
+            panda.setMainGene(getPandaHiddenGene());
         }
 
-        if (e instanceof Villager) {
-            Villager villager = (Villager) e;
+        if (e instanceof Villager villager) {
             villager.setRemoveWhenFarAway(false);
-            Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
-                villager.setPersistent(true);
-            }, 1);
+            villager.setPersistent(true);
         }
 
-        if (e instanceof Mob) {
-            Mob m = (Mob) e;
-            m.setAware(isAware());
+        if (e instanceof Mob mob) {
+            mob.setAware(isAware());
         }
 
         if (spawnEffect != null) {
@@ -365,41 +342,35 @@ public class IrisEntity extends IrisRegistrant {
             rawCommands.forEach(r -> r.run(fat));
         }
 
-        Location finalAt1 = at;
+        if (isSpawnEffectRiseOutOfGround() && e instanceof LivingEntity living && Chunks.hasPlayersNearby(at)) {
+            e.setInvulnerable(true);
+            living.setAI(false);
+            living.setCollidable(false);
+            living.setNoDamageTicks(100000);
+            AtomicInteger t = new AtomicInteger(0);
+            Iris.platform.getRegionScheduler().runAtFixedRate(at, task -> {
+                if (t.get() > 100) {
+                    task.cancel();
+                    return;
+                }
 
-        J.s(() -> {
-            if (isSpawnEffectRiseOutOfGround() && e instanceof LivingEntity && Chunks.hasPlayersNearby(finalAt1)) {
-                Location start = finalAt1.clone();
-                e.setInvulnerable(true);
-                ((LivingEntity) e).setAI(false);
-                ((LivingEntity) e).setCollidable(false);
-                ((LivingEntity) e).setNoDamageTicks(100000);
-                AtomicInteger t = new AtomicInteger(0);
-                AtomicInteger v = new AtomicInteger(0);
-                v.set(J.sr(() -> {
-                    if (t.get() > 100) {
-                        J.csr(v.get());
-                        return;
+                t.incrementAndGet();
+                if (e.getLocation().getBlock().getType().isSolid() || living.getEyeLocation().getBlock().getType().isSolid()) {
+                    Iris.platform.teleportAsync(e, at.add(0, 0.1, 0));
+                    Material material = living.getEyeLocation().subtract(0, 2, 0).getBlock().getType();
+                    if (!material.isAir()) e.getWorld().spawnParticle(ITEM, living.getEyeLocation(), 6, 0.2, 0.4, 0.2, 0.06f, new ItemStack(material));
+                    if (M.r(0.2)) {
+                        e.getWorld().playSound(e.getLocation(), Sound.BLOCK_CHORUS_FLOWER_GROW, 0.8f, 0.1f);
                     }
-
-                    t.incrementAndGet();
-                    if (e.getLocation().getBlock().getType().isSolid() || ((LivingEntity) e).getEyeLocation().getBlock().getType().isSolid()) {
-                        e.teleport(start.add(new Vector(0, 0.1, 0)));
-                        ItemStack itemCrackData = new ItemStack(((LivingEntity) e).getEyeLocation().clone().subtract(0, 2, 0).getBlock().getBlockData().getMaterial());
-                        e.getWorld().spawnParticle(ITEM, ((LivingEntity) e).getEyeLocation(), 6, 0.2, 0.4, 0.2, 0.06f, itemCrackData);
-                        if (M.r(0.2)) {
-                            e.getWorld().playSound(e.getLocation(), Sound.BLOCK_CHORUS_FLOWER_GROW, 0.8f, 0.1f);
-                        }
-                    } else {
-                        J.csr(v.get());
-                        ((LivingEntity) e).setNoDamageTicks(0);
-                        ((LivingEntity) e).setCollidable(true);
-                        ((LivingEntity) e).setAI(true);
-                        e.setInvulnerable(false);
-                    }
-                }, 0));
-            }
-        });
+                } else {
+                    task.cancel();
+                    living.setNoDamageTicks(0);
+                    living.setCollidable(true);
+                    living.setAI(true);
+                    e.setInvulnerable(false);
+                }
+            }, 1, 1);
+        }
 
 
         return e;
@@ -427,29 +398,6 @@ public class IrisEntity extends IrisRegistrant {
 
         if (type.equals(EntityType.UNKNOWN) && !isSpecialType()) {
             return null;
-        }
-
-        if (!Bukkit.isPrimaryThread()) {
-            // Someone called spawn (worldedit maybe?) on a non server thread
-            // Due to the structure of iris, we will call it sync and busy wait until it's done.
-            AtomicReference<Entity> ae = new AtomicReference<>();
-
-            try {
-                J.s(() -> ae.set(doSpawn(at)));
-            } catch (Throwable e) {
-                return null;
-            }
-            PrecisionStopwatch p = PrecisionStopwatch.start();
-
-            while (ae.get() == null) {
-                J.sleep(25);
-
-                if (p.getMilliseconds() > 500) {
-                    return null;
-                }
-            }
-
-            return ae.get();
         }
 
         if (isSpecialType()) {

@@ -23,12 +23,12 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineTarget;
 import com.volmit.iris.engine.framework.Hotloadable;
 import com.volmit.iris.util.data.DataProvider;
+import de.crazydev22.platformutils.scheduler.IRegionExecutor;
 import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 
 public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
     @Nullable
@@ -42,7 +42,7 @@ public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
     @NotNull
     EngineTarget getTarget();
 
-    void injectChunkReplacement(World world, int x, int z, Executor syncExecutor);
+    void injectChunkReplacement(World world, int x, int z, IRegionExecutor executor);
 
     void close();
 

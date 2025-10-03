@@ -24,7 +24,6 @@ import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.ChronoLatch;
-import com.volmit.iris.util.scheduling.J;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -194,7 +193,7 @@ public class IrisEffect {
         if (sound != null) {
             Location part = p.getLocation().clone().add(RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance));
 
-            J.s(() -> p.playSound(part, getSound(), (float) volume, (float) RNG.r.d(minPitch, maxPitch)));
+            schedule(p, () -> p.playSound(part, getSound(), (float) volume, (float) RNG.r.d(minPitch, maxPitch)));
         }
 
         if (particleEffect != null) {
@@ -204,7 +203,7 @@ public class IrisEffect {
             part.add(RNG.r.d(), 0, RNG.r.d());
             int offset = p.getWorld().getMinHeight();
             if (extra != 0) {
-                J.s(() -> p.spawnParticle(particleEffect, part.getX(), part.getY() + offset + RNG.r.i(particleOffset),
+                schedule(p, () -> p.spawnParticle(particleEffect, part.getX(), part.getY() + offset + RNG.r.i(particleOffset),
                         part.getZ(),
                         particleCount,
                         randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
@@ -212,7 +211,7 @@ public class IrisEffect {
                         randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ,
                         extra));
             } else {
-                J.s(() -> p.spawnParticle(particleEffect, part.getX(), part.getY() + offset + RNG.r.i(particleOffset), part.getZ(),
+                schedule(p, () -> p.spawnParticle(particleEffect, part.getX(), part.getY() + offset + RNG.r.i(particleOffset), part.getZ(),
                         particleCount,
                         randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
                         randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY,
@@ -231,10 +230,10 @@ public class IrisEffect {
                     return;
                 }
 
-                J.s(() -> p.removePotionEffect(getRealType()));
+                schedule(p, () -> p.removePotionEffect(getRealType()));
             }
 
-            J.s(() -> p.addPotionEffect(new PotionEffect(getRealType(),
+            schedule(p, () -> p.addPotionEffect(new PotionEffect(getRealType(),
                     RNG.r.i(Math.min(potionTicksMax, potionTicksMin),
                             Math.max(potionTicksMax, potionTicksMin)),
                     getPotionStrength(),
@@ -254,7 +253,7 @@ public class IrisEffect {
         if (sound != null) {
             Location part = p.getLocation().clone().add(RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance), RNG.r.i(-soundDistance, soundDistance));
 
-            J.s(() -> p.getWorld().playSound(part, getSound(), (float) volume, (float) RNG.r.d(minPitch, maxPitch)));
+            schedule(p, () -> p.getWorld().playSound(part, getSound(), (float) volume, (float) RNG.r.d(minPitch, maxPitch)));
         }
 
         if (particleEffect != null) {
@@ -262,7 +261,7 @@ public class IrisEffect {
             part.add(RNG.r.d(), 0, RNG.r.d());
             int offset = p.getWorld().getMinHeight();
             if (extra != 0) {
-                J.s(() -> p.getWorld().spawnParticle(particleEffect, part.getX(), part.getY() + offset + RNG.r.i(particleOffset),
+                schedule(p, () -> p.getWorld().spawnParticle(particleEffect, part.getX(), part.getY() + offset + RNG.r.i(particleOffset),
                         part.getZ(),
                         particleCount,
                         randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
@@ -270,12 +269,16 @@ public class IrisEffect {
                         randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ,
                         extra));
             } else {
-                J.s(() -> p.getWorld().spawnParticle(particleEffect, part.getX(), part.getY() + offset + RNG.r.i(particleOffset), part.getZ(),
+                schedule(p, () -> p.getWorld().spawnParticle(particleEffect, part.getX(), part.getY() + offset + RNG.r.i(particleOffset), part.getZ(),
                         particleCount,
                         randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
                         randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY,
                         randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ));
             }
         }
+    }
+
+    private void schedule(Entity entity, Runnable task) {
+        Iris.platform.getEntityScheduler(entity).run(task, null);
     }
 }

@@ -31,8 +31,8 @@ import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.plugin.CommandDummy;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.ChronoLatch;
-import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
+import org.bukkit.entity.Entity;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -493,7 +493,10 @@ public class VirtualDecreeCommand {
             };
 
             if (getNode().isSync()) {
-                J.s(rx);
+                switch (sender.getS()) {
+                    case Entity entity -> Iris.platform.getEntityScheduler(entity).run(rx, null);
+                    case null, default -> Iris.platform.getGlobalScheduler().run(rx);
+                }
             } else {
                 rx.run();
             }

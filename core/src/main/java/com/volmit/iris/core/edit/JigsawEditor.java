@@ -30,6 +30,7 @@ import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
+import de.crazydev22.platformutils.scheduler.task.Task;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -55,7 +56,7 @@ public class JigsawEditor implements Listener {
     private final IrisJigsawPiece piece;
     private final Location origin;
     private final Cuboid cuboid;
-    private final int ticker;
+    private final Task ticker;
     private final KMap<IrisPosition, Runnable> falling = new KMap<>();
     private final ChronoLatch cl = new ChronoLatch(100);
     private Location target;
@@ -106,19 +107,24 @@ public class JigsawEditor implements Listener {
     }
 
     public Location toLocation(IrisPosition i) {
-        return origin.clone()
+        return toBlock(origin.clone()
                 .add(new Vector(i.getX(), i.getY(), i.getZ()))
-                .add(object.getCenter())
-                .getBlock()
-                .getLocation();
+                .add(object.getCenter()));
     }
 
     public IrisPosition toPosition(Location l) {
-        return new IrisPosition(l.clone().getBlock().getLocation()
+        return new IrisPosition(l.clone()
                 .subtract(origin.clone())
                 .subtract(object.getCenter())
                 .add(1, 1, 1)
                 .toVector());
+    }
+
+    private Location toBlock(Location location) {
+        location.setX(Math.floor(location.getX()));
+        location.setY(Math.floor(location.getY()));
+        location.setZ(Math.floor(location.getZ()));
+        return location;
     }
 
     @EventHandler
@@ -197,7 +203,7 @@ public class JigsawEditor implements Listener {
     }
 
     public void exit() {
-        J.car(ticker);
+        if (ticker != null) ticker.cancel();
         Iris.instance.unregisterListener(this);
         try {
             J.sfut(() -> {

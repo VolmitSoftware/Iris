@@ -64,7 +64,6 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.stream.ProceduralStream;
-import io.papermc.lib.PaperLib;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
@@ -302,12 +301,12 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                         if (!TileData.setTileState(block, v.getData()))
                             Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", block.getX(), block.getY(), block.getZ(), block.getType().getKey(), v.getData().getMaterial().getKey());
                     });
-                }, 0));
+                }, c, 1));
                 chunk.raiseFlagUnchecked(MantleFlag.CUSTOM, run(semaphore, () -> {
                     chunk.iterate(Identifier.class, (x, y, z, v) -> {
                         Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
                     });
-                }, 0));
+                }, c, 1));
 
                 chunk.raiseFlagUnchecked(MantleFlag.UPDATE, run(semaphore, () -> {
                     PrecisionStopwatch p = PrecisionStopwatch.start();
@@ -352,7 +351,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     });
                     chunk.deleteSlices(MatterUpdate.class);
                     getMetrics().getUpdates().put(p.getMilliseconds());
-                }, RNG.r.i(1, 20))); //Why is there a random delay here?
+                }, c, RNG.r.i(2, 20))); //Why is there a random delay here?
             });
 
             chunk.raiseFlagUnchecked(MantleFlag.SCRIPT, () -> {
@@ -373,7 +372,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         }
     }
 
-    private static Runnable run(Semaphore semaphore, Runnable runnable, int delay) {
+    private static Runnable run(Semaphore semaphore, Runnable runnable, Chunk chunk, int delay) {
         return () -> {
             try {
                 semaphore.acquire();
@@ -381,7 +380,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 throw new RuntimeException(e);
             }
 
-            J.s(() -> {
+            Iris.platform.getRegionScheduler().runDelayed(chunk.getWorld(), chunk.getX(), chunk.getZ(), () -> {
                 try {
                     runnable.run();
                 } finally {
@@ -540,8 +539,9 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         if (IrisLootEvent.callLootEvent(items, inv, world, x, y, z))
             return;
 
-        if (PaperLib.isPaper() && getWorld().hasRealWorld()) {
-            PaperLib.getChunkAtAsync(getWorld().realWorld(), x >> 4, z >> 4).thenAccept((c) -> {
+        if (world != null) {
+            final int cX = x >> 4, cZ = z >> 4;
+            Iris.platform.getChunkAtAsync(world, cX, cZ, true, false).thenAccept((c) -> {
                 Runnable r = () -> {
                     for (ItemStack i : items) {
                         inv.addItem(i);
@@ -550,10 +550,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     scramble(inv, rng);
                 };
 
-                if (Bukkit.isPrimaryThread()) {
+                if (Iris.platform.isOwnedByCurrentRegion(world, cX, cZ)) {
                     r.run();
                 } else {
-                    J.s(r);
+                    Iris.platform.getRegionScheduler().run(world, cX, cZ, r);
                 }
             });
         } else {
@@ -898,7 +898,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 player.sendMessage(C.GOLD + "No strongholds in world.");
             } else {
                 Location ll = new Location(player.getWorld(), pr.getX(), 40, pr.getZ());
-                J.s(() -> player.teleport(ll));
+                Iris.platform.teleportAsync(player, ll);
             }
 
             return;

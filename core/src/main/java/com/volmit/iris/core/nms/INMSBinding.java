@@ -20,6 +20,7 @@ package com.volmit.iris.core.nms;
 
 import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.core.nms.container.AutoClosing;
+import com.volmit.iris.core.link.FoliaWorldsLink;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.container.BlockProperty;
 import com.volmit.iris.core.nms.container.Pair;
@@ -43,6 +44,7 @@ import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 
 import java.awt.Color;
+import java.util.concurrent.CompletableFuture;
 import java.util.List;
 
 public interface INMSBinding {
@@ -99,6 +101,15 @@ public interface INMSBinding {
                 && missingDimensionTypes(gen.getTarget().getDimension().getDimensionTypeKey()))
             throw new IllegalStateException("Missing dimension types to create world");
         return c.createWorld();
+    }
+
+    default CompletableFuture<World> createWorldAsync(WorldCreator c) {
+        try {
+            var link = FoliaWorldsLink.get();
+            return link.isActive() ? link.createWorld(c) : CompletableFuture.completedFuture(createWorld(c));
+        } catch (Throwable e) {
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
     int countCustomBiomes();

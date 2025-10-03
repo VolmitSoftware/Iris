@@ -74,22 +74,22 @@ public class CommandWhat implements DecreeExecutor {
         } catch (Throwable e) {
             Iris.reportError(e);
             sender().sendMessage("Non-Iris Biome: " + player().getLocation().getBlock().getBiome().name());
-
-            if (player().getLocation().getBlock().getBiome().equals(Biome.CUSTOM)) {
-                try {
-                    sender().sendMessage("Data Pack Biome: " + INMS.get().getTrueBiomeBaseKey(player().getLocation()) + " (ID: " + INMS.get().getTrueBiomeBaseId(INMS.get().getTrueBiomeBase(player().getLocation())) + ")");
-                } catch (Throwable ee) {
-                    Iris.reportError(ee);
-                }
-            }
+            var loc = player().getLocation();
+            var sender = sender();
+            Iris.platform.getRegionScheduler().run(loc, () -> {
+                var biome = loc.getBlock().getBiome();
+                if (biome != Biome.CUSTOM && biome.getKey().getNamespace().equals("minecraft"))
+                    return;
+                sender.sendMessage("Data Pack Biome: " + INMS.get().getTrueBiomeBaseKey(loc) + " (ID: " + INMS.get().getTrueBiomeBaseId(INMS.get().getTrueBiomeBase(loc)) + ")");
+            });
         }
     }
 
     @Decree(description = "What region am i in?", origin = DecreeOrigin.PLAYER)
     public void region() {
         try {
-            Chunk chunk = world().getChunkAt(player().getLocation().getBlockZ() / 16, player().getLocation().getBlockZ() /  16);
-            IrisRegion r = engine().getRegion(chunk);
+            var loc = player().getLocation();
+            IrisRegion r = engine().getRegion(loc);
             sender().sendMessage("IRegion: " + r.getLoadKey() + " (" + r.getName() + ")");
 
         } catch (Throwable e) {
@@ -98,7 +98,7 @@ public class CommandWhat implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "What block am i looking at?", origin = DecreeOrigin.PLAYER)
+    @Decree(description = "What block am i looking at?", origin = DecreeOrigin.PLAYER, sync = true)
     public void block() {
         BlockData bd;
         try {

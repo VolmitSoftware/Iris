@@ -84,7 +84,7 @@ public class MantleChunk {
     public MantleChunk(int version, int sectionHeight, CountingDataInputStream din) throws IOException {
         this(sectionHeight, din.readByte(), din.readByte());
         int s = din.readByte();
-        int l = version < 0 ? MantleFlag.RESERVED_FLAGS : Varint.readUnsignedVarInt(din);
+        int l = version < 0 ? 16 : Varint.readUnsignedVarInt(din);
 
         if (version >= 1) {
             for (int i = 0; i < l;) {

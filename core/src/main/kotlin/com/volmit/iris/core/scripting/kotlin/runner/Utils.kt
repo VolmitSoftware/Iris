@@ -29,6 +29,33 @@ internal fun ResultValue.value(): Any? =
         else -> null
     }
 
+internal class FileComponents(
+    val segment: String,
+    val root: Boolean = false,
+) {
+    private val children0 = mutableMapOf<String, FileComponents>()
+    val children get() = children0.values
+
+    fun append(segment: String): FileComponents =
+        children0.computeIfAbsent(segment) { FileComponents(segment) }
+
+    override fun hashCode(): Int {
+        var result = segment.hashCode()
+        result = 31 * result + children0.hashCode()
+        return result
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is FileComponents) return false
+
+        if (segment != other.segment) return false
+        if (children0 != other.children0) return false
+
+        return true
+    }
+}
+
 private val workDir = File(".").normalize()
 internal fun createResolver(baseDir: File = workDir) = CompoundDependenciesResolver(baseDir)
 

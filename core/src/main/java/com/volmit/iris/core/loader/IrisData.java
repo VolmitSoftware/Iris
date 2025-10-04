@@ -50,8 +50,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 @Data
 public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
@@ -405,6 +404,33 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
             i.clearList();
         }
         possibleSnippets.clear();
+    }
+
+    public Set<Class<?>> resolveSnippets() {
+        var result = new HashSet<Class<?>>();
+        var processed = new HashSet<Class<?>>();
+        var excluder = gson.excluder();
+
+        var queue = new LinkedList<Class<?>>(loaders.keySet());
+        while (!queue.isEmpty()) {
+            var type = queue.poll();
+            if (excluder.excludeClass(type, false) || !processed.add(type))
+                continue;
+            if (type.isAnnotationPresent(Snippet.class))
+                result.add(type);
+
+            try {
+                for (var field : type.getDeclaredFields()) {
+                    if (excluder.excludeField(field, false))
+                        continue;
+
+                    queue.add(field.getType());
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+
+        return result;
     }
 
     public String toLoadKey(File f) {

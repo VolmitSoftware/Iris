@@ -24,7 +24,6 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.loader.ResourceLoader;
-import com.volmit.iris.core.scripting.environment.SimpleEnvironment;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.object.annotations.Snippet;
@@ -326,7 +325,7 @@ public class IrisProject {
             }
         }
 
-        for (Class<?> i : Iris.getClasses("com.volmit.iris.engine.object.", Snippet.class)) {
+        for (Class<?> i : dm.resolveSnippets()) {
             try {
                 String snipType = i.getDeclaredAnnotation(Snippet.class).value();
                 JSONObject o = new JSONObject();

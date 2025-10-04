@@ -19,23 +19,17 @@ import kotlin.script.experimental.jvm.jvm
 import kotlin.script.experimental.jvmhost.BasicJvmScriptingHost
 
 class ScriptRunner(
-    private val host: BasicJvmScriptingHost,
-    val baseDir: File
+    val baseDir: File,
+    parent: ScriptRunner? = null,
+    private val host: BasicJvmScriptingHost = BasicJvmScriptingHost()
 ) {
-    constructor(baseDir: File) : this(BasicJvmScriptingHost(), baseDir)
-
     private val configs = ConcurrentHashMap<KClass<*>, ScriptCompilationConfiguration>()
     private val hostConfig = host.baseHostConfiguration.withDefaultsFrom(defaultJvmScriptingHostConfiguration)
-    private val sharedClassLoader = SharedClassLoader()
-    private var resolver = createResolver(baseDir)
+    private val sharedClassLoader: SharedClassLoader = parent?.let { SharedClassLoader(it.sharedClassLoader) } ?: SharedClassLoader()
+    private val resolver = createResolver(baseDir)
 
     fun compile(type: KClass<*>, raw: String, name: String? = null) = compile(type, raw.toScriptSource(name))
     fun compile(type: KClass<*>, file: File, preloaded: String? = null) = compile(type, FileScriptSource(file, preloaded))
-
-    fun clear() {
-        configs.clear()
-        resolver = createResolver(baseDir)
-    }
 
     private fun compile(
         type: KClass<*>,

@@ -58,8 +58,8 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private static final KMap<File, IrisData> dataLoaders = new KMap<>();
     private final File dataFolder;
     private final int id;
-    private final PackEnvironment environment;
     private boolean closed = false;
+    private PackEnvironment environment;
     private ResourceLoader<IrisBiome> biomeLoader;
     private ResourceLoader<IrisLootTable> lootLoader;
     private ResourceLoader<IrisRegion> regionLoader;
@@ -92,7 +92,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.engine = null;
         this.dataFolder = dataFolder;
         this.id = RNG.r.imax();
-        this.environment = PackEnvironment.create(this);
         hotloaded();
     }
 
@@ -350,7 +349,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     public synchronized void hotloaded() {
         closed = false;
-        environment.close();
         possibleSnippets = new KMap<>();
         builder = new GsonBuilder()
                 .addDeserializationExclusionStrategy(this)
@@ -382,6 +380,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.imageLoader = registerLoader(IrisImage.class);
         this.scriptLoader = registerLoader(IrisScript.class);
         this.matterObjectLoader = registerLoader(IrisMatterObject.class);
+        this.environment = PackEnvironment.create(this);
         builder.registerTypeAdapterFactory(KeyedType::createTypeAdapter);
 
         gson = builder.create();
@@ -389,6 +388,10 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                 .map(IrisDimension::getDataScripts)
                 .flatMap(KList::stream)
                 .forEach(environment::execute);
+
+        if (engine != null) {
+            engine.hotload();
+        }
     }
 
     public void dump() {

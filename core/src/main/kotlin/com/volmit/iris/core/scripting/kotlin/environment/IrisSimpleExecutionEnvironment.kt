@@ -19,11 +19,14 @@ import kotlin.script.experimental.annotations.KotlinScript
 import kotlin.script.experimental.api.ResultWithDiagnostics
 import kotlin.text.split
 
-open class IrisSimpleExecutionEnvironment(
-    baseDir: File = File(".").absoluteFile
+open class IrisSimpleExecutionEnvironment internal constructor(
+    baseDir: File,
+    parent: ScriptRunner?
 ) : SimpleEnvironment {
+    @JvmOverloads
+    constructor(baseDir: File = File(".").absoluteFile) : this(baseDir, null)
     protected val compileCache = KCache<String, KMap<KClass<*>, ResultWithDiagnostics<Script>>>({ _ -> KMap() }, IrisSettings.get().performance.cacheSize.toLong())
-    protected val runner = ScriptRunner(baseDir)
+    protected val runner = ScriptRunner(baseDir, parent)
 
     override fun execute(
         script: String
@@ -49,11 +52,6 @@ open class IrisSimpleExecutionEnvironment(
     ): Any? {
         Iris.debug("Execute Script (for result) " + C.DARK_GREEN + script)
         return evaluate0(script, type.kotlin, vars)
-    }
-
-    override fun close() {
-        compileCache.invalidate()
-        runner.clear()
     }
 
     protected open fun compile(script: String, type: KClass<*>) =

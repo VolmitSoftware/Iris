@@ -125,7 +125,7 @@ public class IrisEngine implements Engine {
         mantle = new IrisEngineMantle(this);
         context = new IrisContext(this);
         cleaning = new AtomicBoolean(false);
-        execution = EngineEnvironment.create(this);
+        execution = getData().getEnvironment().with(this);
         if (studio) {
             getData().dump();
             getData().clearLists();
@@ -163,10 +163,9 @@ public class IrisEngine implements Engine {
     private void prehotload() {
         worldManager.close();
         complex.close();
-        execution.close();
         effects.close();
         mode.close();
-        execution = EngineEnvironment.create(this);
+        execution = getData().getEnvironment().with(this);
 
         J.a(() -> new IrisProject(getData().getDataFolder()).updateWorkspace());
     }

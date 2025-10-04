@@ -9,15 +9,20 @@ import com.volmit.iris.core.scripting.kotlin.base.EngineScript
 import com.volmit.iris.core.scripting.kotlin.base.MobSpawningScript
 import com.volmit.iris.core.scripting.kotlin.base.PostMobSpawningScript
 import com.volmit.iris.core.scripting.kotlin.base.PreprocessorScript
+import com.volmit.iris.core.scripting.kotlin.environment.IrisSimpleExecutionEnvironment
+import com.volmit.iris.core.scripting.kotlin.runner.ScriptRunner
 import com.volmit.iris.engine.framework.Engine
 import com.volmit.iris.util.mantle.MantleChunk
 import org.bukkit.Chunk
 import org.bukkit.Location
 import org.bukkit.entity.Entity
+import java.io.File
 
-data class IrisExecutionEnvironment(
-    private val engine: Engine
-) : IrisPackExecutionEnvironment(engine.data), EngineEnvironment {
+class IrisExecutionEnvironment internal constructor(
+    private val engine: Engine,
+    parent: ScriptRunner?,
+) : IrisPackExecutionEnvironment(engine.data, parent), EngineEnvironment {
+    constructor(engine: Engine) : this(engine, null)
     override fun getEngine() = engine
 
     override fun execute(script: String) =

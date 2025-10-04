@@ -122,7 +122,7 @@ open class IrisSimpleExecutionEnvironment(
                     }
                     append(current.segment)
                     append(File.separatorChar)
-                }
+                }.escapedPath
 
                 val result = mutableSetOf<String>()
                 val queue = ArrayDeque<Pair<String?, Collection<FileComponents>>>()
@@ -132,7 +132,7 @@ open class IrisSimpleExecutionEnvironment(
                     val path = pair.first?.let { p -> p + File.separatorChar } ?: ""
                     pair.second.forEach { child ->
                         val path = path + child.segment
-                        if (child.children.isEmpty()) result.add(path)
+                        if (child.children.isEmpty()) result.add(path.escapedPath)
                         else queue.add(path to child.children)
                     }
                 }
@@ -157,8 +157,8 @@ open class IrisSimpleExecutionEnvironment(
             return mod.joinToString("\n")
         }
 
-        private val File.escapedPath
-            get() = absolutePath.replace("\\", "\\\\").replace("\"", "\\\"")
+        private val String.escapedPath
+            get() = replace("\\", "\\\\").replace("\"", "\\\"")
 
         private const val ARTIFACT_ID = $$"local:${it.substringBeforeLast(\".jar\")}:1.0.0"
         private val BASE_GRADLE = """

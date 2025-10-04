@@ -167,7 +167,7 @@ internal fun <R> ResultWithDiagnostics<R>.valueOrThrow(message: CharSequence): R
 }
 
 internal val ScriptCompilationConfigurationKeys.dependencyResolver by PropertiesCollection.key(resolver, true)
-internal val ScriptCompilationConfigurationKeys.packDirectory by PropertiesCollection.key(workDir, true)
+internal val ScriptCompilationConfigurationKeys.packDirectory by PropertiesCollection.key<File>(null, true)
 internal val ScriptCompilationConfigurationKeys.sharedClassloader by PropertiesCollection.key(loader, true)
 
 private fun File.addPack(resolver: CompoundDependenciesResolver) = resolver.addPack(this)

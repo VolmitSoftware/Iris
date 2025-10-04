@@ -7,7 +7,7 @@ import com.volmit.iris.core.scripting.kotlin.base.*
 import com.volmit.iris.core.scripting.kotlin.runner.Script
 import com.volmit.iris.core.scripting.kotlin.runner.ScriptRunner
 import com.volmit.iris.core.scripting.kotlin.runner.classpath
-import com.volmit.iris.core.scripting.kotlin.runner.valueOrNull
+import com.volmit.iris.core.scripting.kotlin.runner.value
 import com.volmit.iris.core.scripting.kotlin.runner.valueOrThrow
 import com.volmit.iris.util.collection.KMap
 import com.volmit.iris.util.data.KCache
@@ -68,7 +68,7 @@ open class IrisSimpleExecutionEnvironment(
             return compile(name, type)
                 .evaluate(properties)
                 .valueOrThrow("Failed to evaluate script")
-                .valueOrNull()
+                .value()
         } catch (e: Throwable) {
             e.printStackTrace()
         }

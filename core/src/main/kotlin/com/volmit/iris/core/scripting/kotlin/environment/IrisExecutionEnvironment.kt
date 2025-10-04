@@ -33,18 +33,24 @@ data class IrisExecutionEnvironment(
         execute(script, PostMobSpawningScript::class.java, engine.parameters("location" to location, "entity" to mob))
 
     override fun preprocessObject(script: String, `object`: IrisRegistrant) =
-        execute(script, PreprocessorScript::class.java, engine.parameters("object" to `object`))
+        execute(script, PreprocessorScript::class.java, engine.limitedParameters("object" to `object`))
 
     override fun updateChunk(script: String, mantleChunk: MantleChunk, chunk: Chunk, executor: UpdateExecutor) =
         execute(script, ChunkUpdateScript::class.java, engine.parameters("mantleChunk" to mantleChunk, "chunk" to chunk, "executor" to executor))
 
-    private fun Engine.parameters(vararg values: Pair<String, Any?>): Map<String, Any?> {
+    private fun Engine.limitedParameters(vararg values: Pair<String, Any?>): Map<String, Any?> {
         return mapOf(
             "data" to data,
             "engine" to this,
-            "complex" to complex,
             "seed" to seedManager.seed,
             "dimension" to dimension,
+            *values,
+        )
+    }
+
+    private fun Engine.parameters(vararg values: Pair<String, Any?>): Map<String, Any?> {
+        return limitedParameters(
+            "complex" to complex,
             "biome" to BiomeLookup(::getSurfaceBiome),
             *values,
         )

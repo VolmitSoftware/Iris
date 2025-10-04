@@ -166,6 +166,8 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
         return targetCache.aquire(() -> {
             IrisData data = IrisData.get(dataLocation);
+            data.dump();
+            data.clearLists();
             IrisDimension dimension = data.getDimensionLoader().load(dimensionKey);
 
             if (dimension == null) {

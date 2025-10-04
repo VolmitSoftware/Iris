@@ -21,10 +21,11 @@ internal fun <T, R> ResultWithDiagnostics<T>.map(transformer: (T) -> R): ResultW
     is ResultWithDiagnostics.Failure -> this
 }
 
-internal fun EvaluationResult.valueOrNull() = returnValue.valueOrNull()
-internal fun ResultValue.valueOrNull(): Any? =
+internal fun EvaluationResult.value() = returnValue.value()
+internal fun ResultValue.value(): Any? =
     when (this) {
         is ResultValue.Value -> value
+        is ResultValue.Error -> throw error
         else -> null
     }
 

@@ -21,6 +21,6 @@ public class Vector3i extends BlockVector {
 
     @Override
     public int hashCode() {
-        return (((int) x & 0x3FF) << 2) | (((int) y & 0x3FF) << 1) | ((int) z & 0x3FF);
+        return (int) x ^ ((int) z << 12) ^ ((int) y << 24);
     }
 }

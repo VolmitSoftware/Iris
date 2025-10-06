@@ -59,6 +59,11 @@ public class WorldObjectPlacer implements IObjectPlacer {
             slot = InventorySlotType.STORAGE;
         }
 
+        if (d instanceof IrisCustomData data) {
+            block.setBlockData(data.getBase(), false);
+            Iris.warn("Tried to place custom block at " + x + ", " + y + ", " + z + " which is not supported!");
+        } else block.setBlockData(d, false);
+
         if (slot != null) {
             RNG rx = new RNG(Cache.key(x, z));
             KList<IrisLootTable> tables = engine.getLootTables(rx, block);
@@ -78,12 +83,6 @@ public class WorldObjectPlacer implements IObjectPlacer {
                 Iris.reportError(e);
             }
         }
-
-
-        if (d instanceof IrisCustomData data) {
-            block.setBlockData(data.getBase());
-            Iris.warn("Tried to place custom block at " + x + ", " + y + ", " + z + " which is not supported!");
-        } else block.setBlockData(d);
     }
 
     @Override

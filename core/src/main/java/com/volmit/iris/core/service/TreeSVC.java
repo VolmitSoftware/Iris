@@ -225,7 +225,7 @@ public class TreeSVC implements IrisService {
                     if (d instanceof IrisCustomData data) {
                         block.setBlockData(data.getBase(), false);
                         Iris.service(ExternalDataSVC.class).processUpdate(engine, block, data.getCustom());
-                    } else block.setBlockData(d);
+                    } else block.setBlockData(d, false);
                 }
             }
         });

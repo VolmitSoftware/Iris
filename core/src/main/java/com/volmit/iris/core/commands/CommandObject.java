@@ -79,9 +79,9 @@ public class CommandObject implements DecreeExecutor {
                 futureBlockChanges.put(block, block.getBlockData());
 
                 if (d instanceof IrisCustomData data) {
-                    block.setBlockData(data.getBase());
+                    block.setBlockData(data.getBase(), false);
                     Iris.warn("Tried to place custom block at " + x + ", " + y + ", " + z + " which is not supported!");
-                } else block.setBlockData(d);
+                } else block.setBlockData(d, false);
             }
 
             @Override

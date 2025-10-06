@@ -200,7 +200,7 @@ public class IrisObject extends IrisRegistrant {
                         for (int i = start; i <= end; i++) {
                             Vector3i v = new Vector3i(i, finalRayY, rayZ);
 
-                            if (!B.isAir(getBlocks().get(v))) {
+                            if (!vair.equals(getBlocks().get(v))) {
                                 getBlocks().computeIfAbsent(v, (vv) -> vair);
                                 applied.getAndIncrement();
                             }
@@ -229,7 +229,7 @@ public class IrisObject extends IrisRegistrant {
                         for (int i = start; i <= end; i++) {
                             Vector3i v = new Vector3i(finalRayX, i, rayZ);
 
-                            if (!B.isAir(getBlocks().get(v))) {
+                            if (!vair.equals(getBlocks().get(v))) {
                                 getBlocks().computeIfAbsent(v, (vv) -> vair);
                                 applied.getAndIncrement();
                             }
@@ -258,7 +258,7 @@ public class IrisObject extends IrisRegistrant {
                         for (int i = start; i <= end; i++) {
                             Vector3i v = new Vector3i(finalRayX, rayY, i);
 
-                            if (!B.isAir(getBlocks().get(v))) {
+                            if (!vair.equals(getBlocks().get(v))) {
                                 getBlocks().computeIfAbsent(v, (vv) -> vair);
                                 applied.getAndIncrement();
                             }

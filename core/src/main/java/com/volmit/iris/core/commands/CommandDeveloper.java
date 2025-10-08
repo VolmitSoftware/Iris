@@ -52,11 +52,17 @@ import com.volmit.iris.util.nbt.mca.MCAFile;
 import com.volmit.iris.util.nbt.mca.MCAUtil;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.SneakyThrows;
 import net.jpountz.lz4.LZ4BlockInputStream;
 import net.jpountz.lz4.LZ4BlockOutputStream;
 import net.jpountz.lz4.LZ4FrameInputStream;
 import net.jpountz.lz4.LZ4FrameOutputStream;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOCase;
+import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.io.filefilter.SuffixFileFilter;
+import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.commons.lang.RandomStringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -70,7 +76,9 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -90,6 +98,38 @@ public class CommandDeveloper implements DecreeExecutor {
         Engine engine = engine();
         if (engine != null) IrisContext.getOr(engine);
         Iris.reportError(new Exception("This is a test"));
+    }
+
+    @Decree(description = "Dev cmd to fix all the broken objects caused by faulty shrinkwarp")
+    public void unfuckAllObjects(
+            @Param(aliases = "dimension", description = "The dimension type to create the world with", defaultValue = "default")
+            IrisDimension type
+    ) {
+        IrisData dm = IrisData.get(Iris.instance.getDataFolder("packs", type.getLoadKey()));
+        IOFileFilter iobFilter = new SuffixFileFilter(".iob", IOCase.INSENSITIVE);
+        Collection<File> iobFiles = FileUtils.listFiles(
+                new File("plugins/iris/packs/" +  type.getLoadKey()),
+                iobFilter,
+                TrueFileFilter.INSTANCE
+        );
+        AtomicInteger size = new AtomicInteger(iobFiles.size());
+        var ps = PrecisionStopwatch.start();
+        sender().sendMessage("Found " + size + " objects in " + type.getFolderName());
+        iobFiles.parallelStream().forEach(file -> {
+            try {
+                String p = file.getPath().split(type.getLoadKey() + Pattern.quote(File.separator + "objects" + File.separator))[1].replace(".iob", "");
+                var o = IrisData.loadAnyObject(p, dm);
+                o.shrinkwrap();
+                o.write(o.getLoadFile());
+                size.getAndDecrement();
+                Iris.debug("Processed: " + o.getLoadKey() + ", Left: " + size.get());
+            } catch (Exception e) {
+                Iris.info("Failed to process: " + file.getPath());
+            }
+        });
+        ps.end();
+        Iris.info("Took: " + Form.duration(ps.getMillis()));
+        Iris.info(size + " Failed");
     }
 
     @Decree(description = "Test")

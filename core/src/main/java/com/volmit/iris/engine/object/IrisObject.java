@@ -511,10 +511,28 @@ public class IrisObject extends IrisRegistrant {
             max.setZ(Math.max(max.getZ(), i.getZ()));
         }
 
+        KMap<Vector3i, BlockData> temp = new KMap<>();
+
         w = max.getBlockX() - min.getBlockX() + 1;
         h = max.getBlockY() - min.getBlockY() + 1;
         d = max.getBlockZ() - min.getBlockZ() + 1;
+
+        int dx = -Math.floorDiv(w, 2) - min.getBlockX();
+        int dy = -Math.floorDiv(h, 2) - min.getBlockY();
+        int dz = -Math.floorDiv(d, 2) - min.getBlockZ();
+
+        for (var entry : blocks.entrySet()) {
+            Vector3i oldPos = entry.getKey();
+            Vector3i newPos = new Vector3i(
+                    oldPos.getBlockX() + dx,
+                    oldPos.getBlockY() + dy,
+                    oldPos.getBlockZ() + dz
+            );
+            temp.put(newPos, entry.getValue());
+        }
+
         center = new Vector3i(w / 2, h / 2, d / 2);
+        blocks = temp;
     }
 
     public void clean() {
@@ -1011,6 +1029,8 @@ public class IrisObject extends IrisRegistrant {
                 boolean place = !data.getMaterial().equals(Material.AIR) && !data.getMaterial().equals(Material.CAVE_AIR) && !wouldReplace;
 
                 if (data instanceof IrisCustomData || place) {
+
+
                     placer.set(xx, yy, zz, data);
                     if (tile != null) {
                         placer.setTile(xx, yy, zz, tile);

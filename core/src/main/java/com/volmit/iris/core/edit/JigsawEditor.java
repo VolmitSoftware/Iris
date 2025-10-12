@@ -65,10 +65,10 @@ public class JigsawEditor implements Listener {
             editors.get(player).close();
         }
 
-        editors.put(player, this);
         if (object == null) {
             throw new RuntimeException("Object is null! " + piece.getObject());
         }
+        editors.put(player, this);
         this.object = object;
         this.player = player;
         origin = player.getLocation().clone().add(0, 7, 0);

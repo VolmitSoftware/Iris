@@ -81,7 +81,7 @@ public interface Matter {
 
     static Matter from(IrisObject object) {
         object.clean();
-        object.shrinkwrap();
+        object.shrinkwrap(true);
         BlockVector min = new BlockVector();
         Matter m = new IrisMatter(Math.max(object.getW(), 1) + 1, Math.max(object.getH(), 1) + 1, Math.max(object.getD(), 1) + 1);
 

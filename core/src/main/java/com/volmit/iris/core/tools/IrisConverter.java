@@ -45,7 +45,7 @@ public class IrisConverter {
             try {
                     PrecisionStopwatch p = PrecisionStopwatch.start();
                     boolean largeObject = false;
-                    NamedTag tag = null;
+                    NamedTag tag;
                     try {
                         tag = NBTUtil.read(schem);
                     } catch (IOException e) {
@@ -61,7 +61,7 @@ public class IrisConverter {
                     int i = -1;
                     int mv = objW * objH * objD;
                     AtomicInteger v = new AtomicInteger(0);
-                    if (mv > 500_000) {
+                    if (mv > 2_000_000) {
                         largeObject = true;
                         Iris.info(C.GRAY + "Converting.. "+ schem.getName() + " -> " + schem.getName().replace(".schem", ".iob"));
                         Iris.info(C.GRAY + "- It may take a while");
@@ -82,14 +82,30 @@ public class IrisConverter {
                         blockmap.put(blockId, bd);
                     }
 
+                    boolean isBytes = ((IntTag) compound.get("PaletteMax")).getValue() < 128;
                     ByteArrayTag byteArray = (ByteArrayTag) compound.get("BlockData");
                     byte[] originalBlockArray = byteArray.getValue();
+                    int arrayIndex = 0;
 
                     IrisObject object = new IrisObject(objW, objH, objD);
                     for (int h = 0; h < objH; h++) {
                         for (int d = 0; d < objD; d++) {
                             for (int w = 0; w < objW; w++) {
-                                BlockData bd = blockmap.get(Byte.toUnsignedInt(originalBlockArray[v.get()]));
+                                int blockIndex;
+                                if (isBytes) {
+                                    blockIndex = originalBlockArray[arrayIndex++] & 0xFF;
+                                } else {
+                                    int value = 0;
+                                    int shift = 0;
+                                    byte b;
+                                    do {
+                                        b = originalBlockArray[arrayIndex++];
+                                        value |= (b & 0x7F) << shift;
+                                        shift += 7;
+                                    } while ((b & 0x80) != 0);
+                                    blockIndex = value;
+                                }
+                                BlockData bd = blockmap.get(blockIndex);
                                 if (!bd.getMaterial().isAir()) {
                                     object.setUnsigned(w, h, d, bd);
                                 }

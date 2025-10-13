@@ -84,14 +84,12 @@ public class IrisConverter {
                     boolean isBytes = ((IntTag) compound.get("PaletteMax")).getValue() < 128;
                     ByteArrayTag byteArray = (ByteArrayTag) compound.get("BlockData");
                     byte[] originalBlockArray = byteArray.getValue();
-                    int arrayIndex = 0;
-                    DataInputStream din = null;
-                    if (!isBytes) din = new DataInputStream(new ByteArrayInputStream(originalBlockArray));
+                    var din = new DataInputStream(new ByteArrayInputStream(originalBlockArray));
                     IrisObject object = new IrisObject(objW, objH, objD);
                     for (int h = 0; h < objH; h++) {
                         for (int d = 0; d < objD; d++) {
                             for (int w = 0; w < objW; w++) {
-                                int blockIndex = isBytes ? originalBlockArray[arrayIndex++] & 0xFF : Varint.readUnsignedVarInt(din);
+                                int blockIndex = isBytes ? din.read() & 0xFF : Varint.readUnsignedVarInt(din);
                                 BlockData bd = blockmap.get(blockIndex);
                                 if (!bd.getMaterial().isAir()) {
                                     object.setUnsigned(w, h, d, bd);

@@ -38,6 +38,7 @@ public class IrisConverter {
             sender.sendMessage("No schematic files to convert found in " + folder.getAbsolutePath());
             return;
         }
+        var stopwatch = PrecisionStopwatch.start();
         ExecutorService executorService = Executors.newFixedThreadPool(1);
         executorService.submit(() -> {
         for (File schem : fileList) {
@@ -129,7 +130,8 @@ public class IrisConverter {
                 Iris.reportError(e);
             }
         }
-        sender.sendMessage(C.GRAY + "converted: " + fileList.length);
+        stopwatch.end();
+        sender.sendMessage(C.GRAY + "converted: " + fileList.length + " in " + Form.duration(stopwatch.getMillis()));
         });
     }
 

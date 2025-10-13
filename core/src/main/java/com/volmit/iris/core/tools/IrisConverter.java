@@ -2,6 +2,7 @@ package com.volmit.iris.core.tools;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.*;
+import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.nbt.io.NBTUtil;
@@ -19,9 +20,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.util.FileUtil;
 import org.bukkit.util.Vector;
 
-import java.io.File;
-import java.io.FilenameFilter;
-import java.io.IOException;
+import java.io.*;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -86,25 +85,13 @@ public class IrisConverter {
                     ByteArrayTag byteArray = (ByteArrayTag) compound.get("BlockData");
                     byte[] originalBlockArray = byteArray.getValue();
                     int arrayIndex = 0;
-
+                    DataInputStream din = null;
+                    if (!isBytes) din = new DataInputStream(new ByteArrayInputStream(originalBlockArray));
                     IrisObject object = new IrisObject(objW, objH, objD);
                     for (int h = 0; h < objH; h++) {
                         for (int d = 0; d < objD; d++) {
                             for (int w = 0; w < objW; w++) {
-                                int blockIndex;
-                                if (isBytes) {
-                                    blockIndex = originalBlockArray[arrayIndex++] & 0xFF;
-                                } else {
-                                    int value = 0;
-                                    int shift = 0;
-                                    byte b;
-                                    do {
-                                        b = originalBlockArray[arrayIndex++];
-                                        value |= (b & 0x7F) << shift;
-                                        shift += 7;
-                                    } while ((b & 0x80) != 0);
-                                    blockIndex = value;
-                                }
+                                int blockIndex = isBytes ? originalBlockArray[arrayIndex++] & 0xFF : Varint.readUnsignedVarInt(din);
                                 BlockData bd = blockmap.get(blockIndex);
                                 if (!bd.getMaterial().isAir()) {
                                     object.setUnsigned(w, h, d, bd);

@@ -516,8 +516,8 @@ public class IrisObject extends IrisRegistrant {
      * @param legacy If true, preserves old behavior where blocks are not recentered
      */
     public void shrinkwrap(boolean legacy) {
-        BlockVector min = new BlockVector();
-        BlockVector max = new BlockVector();
+        BlockVector min = new BlockVector(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
+        BlockVector max = new BlockVector(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
 
         for (BlockVector i : getBlocks().keySet()) {
             min.setX(Math.min(min.getX(), i.getX()));

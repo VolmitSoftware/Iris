@@ -82,6 +82,7 @@ public class IrisObject extends IrisRegistrant {
     protected transient IrisLock lock = new IrisLock("Preloadcache");
     @Setter
     protected transient AtomicCache<AxisAlignedBB> aabb = new AtomicCache<>();
+    private Vector3i shrinkOffset;
     private KMap<Vector3i, BlockData> blocks;
     private KMap<Vector3i, TileData> states;
     @Getter
@@ -103,6 +104,7 @@ public class IrisObject extends IrisRegistrant {
         this.w = w;
         this.h = h;
         this.d = d;
+        shrinkOffset = new Vector3i(0, 0, 0);
         center = new Vector3i(w / 2, h / 2, d / 2);
     }
 
@@ -531,25 +533,42 @@ public class IrisObject extends IrisRegistrant {
         d = max.getBlockZ() - min.getBlockZ() + 1;
 
         if (!legacy || IrisSettings.get().getGenerator().useShrinkWrapFix) {
-            KMap<Vector3i, BlockData> temp = new KMap<>();
+            KMap<Vector3i, BlockData> tb = new KMap<>();
+            KMap<Vector3i, TileData> tt = new KMap<>();
 
             int dx = -Math.floorDiv(w, 2) - min.getBlockX();
             int dy = -Math.floorDiv(h, 2) - min.getBlockY();
             int dz = -Math.floorDiv(d, 2) - min.getBlockZ();
+            shrinkOffset = new Vector3i(dx, dy, dz);
 
             for (var entry : blocks.entrySet()) {
-                Vector3i oldPos = entry.getKey();
-                Vector3i newPos = new Vector3i(
-                        oldPos.getBlockX() + dx,
-                        oldPos.getBlockY() + dy,
-                        oldPos.getBlockZ() + dz
-                );
-                temp.put(newPos, entry.getValue());
+                tb.put(applyRecentering(entry.getKey()), entry.getValue());
             }
-            blocks = temp;
+            for (var entry : states.entrySet()) {
+                tt.put(applyRecentering(entry.getKey()), entry.getValue());
+            }
+
+            blocks = tb;
+            states = tt;
         }
 
         center = new Vector3i(w / 2, h / 2, d / 2);
+    }
+
+    public Vector3i applyRecentering(Vector3i vec) {
+        return new Vector3i(
+                vec.getBlockX() + shrinkOffset.getBlockX(),
+                vec.getBlockY() +  shrinkOffset.getBlockY(),
+                vec.getBlockZ() +  shrinkOffset.getBlockZ()
+        );
+    }
+
+    public IrisPosition applyRecentering(IrisPosition pos) {
+        return new IrisPosition(
+                pos.getX() + shrinkOffset.getBlockX(),
+                pos.getY() +  shrinkOffset.getBlockY(),
+                pos.getZ() +  shrinkOffset.getBlockZ()
+        );
     }
 
     public void clean() {

@@ -18,6 +18,7 @@
 
 package com.volmit.iris.core.commands;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -31,6 +32,7 @@ import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisJigsawPiece;
 import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.context.IrisContext;
@@ -45,6 +47,7 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.io.CountingDataInputStream;
 import com.volmit.iris.util.io.IO;
+import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.mantle.TectonicPlate;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.matter.Matter;
@@ -73,6 +76,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -102,34 +106,48 @@ public class CommandDeveloper implements DecreeExecutor {
 
     @Decree(description = "Dev cmd to fix all the broken objects caused by faulty shrinkwarp")
     public void unfuckAllObjects(
-            @Param(aliases = "dimension", description = "The dimension type to create the world with", defaultValue = "default")
+            @Param(aliases = "dimension", description = "The dimension type to create the world with", defaultValue = "null")
             IrisDimension type
     ) {
-        IrisData dm = IrisData.get(Iris.instance.getDataFolder("packs", type.getLoadKey()));
-        IOFileFilter iobFilter = new SuffixFileFilter(".iob", IOCase.INSENSITIVE);
-        Collection<File> iobFiles = FileUtils.listFiles(
-                new File("plugins/iris/packs/" +  type.getLoadKey()),
-                iobFilter,
-                TrueFileFilter.INSTANCE
-        );
-        AtomicInteger size = new AtomicInteger(iobFiles.size());
+        if (type == null) {
+            sender().sendMessage("Type cant be null?");
+            return;
+        }
         var ps = PrecisionStopwatch.start();
-        sender().sendMessage("Found " + size + " objects in " + type.getFolderName());
-        iobFiles.parallelStream().forEach(file -> {
+        IrisData dm = IrisData.get(Iris.instance.getDataFolder("packs", type.getLoadKey()));
+
+        ConcurrentHashMap<String, IrisJigsawPiece> cache = new ConcurrentHashMap<>();
+        dm.getJigsawPieceLoader().streamAll().parallel().forEach(irisJigsawPiece -> {
             try {
-                String p = file.getPath().split(type.getLoadKey() + Pattern.quote(File.separator + "objects" + File.separator))[1].replace(".iob", "");
-                var o = IrisData.loadAnyObject(p, dm);
+                cache.put(dm.getObjectLoader().load(irisJigsawPiece.getObject()).getLoadFile().getPath(),  irisJigsawPiece);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
+        AtomicInteger size = new AtomicInteger(dm.getObjectLoader().getPossibleKeys().length);
+        sender().sendMessage("Found " + size + " objects in " + type.getFolderName());
+        var gson = new Gson();
+        dm.getObjectLoader().streamAll().parallel().forEach(o -> {
+            try {
                 o.shrinkwrap();
+                if (cache.containsKey(o.getLoadFile().getPath())) {
+                    var piece = cache.get(o.getLoadFile().getPath());
+                    piece.getConnectors().forEach(connector -> connector.setPosition(o.applyRecentering(connector.getPosition())));
+                    IO.writeAll(piece.getLoadFile(), new JSONObject(gson.toJson(piece)).toString(4));
+                }
                 o.write(o.getLoadFile());
                 size.getAndDecrement();
                 Iris.debug("Processed: " + o.getLoadKey() + ", Left: " + size.get());
             } catch (Exception e) {
-                Iris.info("Failed to process: " + file.getPath());
+                Iris.info("Failed to process: " + o.getLoadKey());
+                e.printStackTrace();
             }
+
         });
         ps.end();
-        Iris.info("Took: " + Form.duration(ps.getMillis()));
-        Iris.info(size + " Failed");
+        sender().sendMessage("Took: " + Form.duration(ps.getMillis()));
+        sender().sendMessage(size + " Failed");
     }
 
     @Decree(description = "Test")

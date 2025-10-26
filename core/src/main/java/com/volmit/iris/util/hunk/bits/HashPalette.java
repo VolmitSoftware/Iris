@@ -27,13 +27,14 @@ import java.util.LinkedHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class HashPalette<T> implements Palette<T> {
-    private final LinkedHashMap<T, Integer> palette;
+    private final Object lock = new Object();
+    private final KMap<T, Integer> palette;
     private final KMap<Integer, T> lookup;
     private final AtomicInteger size;
 
     public HashPalette() {
         this.size = new AtomicInteger(1);
-        this.palette = new LinkedHashMap<>();
+        this.palette = new KMap<>();
         this.lookup = new KMap<>();
     }
 
@@ -52,13 +53,13 @@ public class HashPalette<T> implements Palette<T> {
             return 0;
         }
 
-        synchronized (palette) {
-            return palette.computeIfAbsent(t, $ -> {
+        return palette.computeIfAbsent(t, $ -> {
+            synchronized (lock) {
                 int index = size.getAndIncrement();
                 lookup.put(index, t);
                 return index;
-            });
-        }
+            }
+        });
     }
 
     @Override
@@ -78,7 +79,7 @@ public class HashPalette<T> implements Palette<T> {
 
     @Override
     public void iterate(Consumer2<T, Integer> c) {
-        synchronized (palette) {
+        synchronized (lock) {
             for (int i = 1; i < size.get(); i++) {
                 c.accept(lookup.get(i), i);
             }

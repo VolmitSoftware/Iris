@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class IrisEngineSVC implements IrisService {
+    private static final int TRIM_PERIOD = 2_000;
     private final AtomicInteger tectonicLimit = new AtomicInteger(30);
     private final AtomicInteger tectonicPlates = new AtomicInteger();
     private final AtomicInteger queuedTectonicPlates = new AtomicInteger();
@@ -68,6 +69,7 @@ public class IrisEngineSVC implements IrisService {
         sender.sendMessage(C.DARK_PURPLE + "Status:");
         sender.sendMessage(C.DARK_PURPLE + "- Service: " + C.LIGHT_PURPLE + (service.isShutdown() ? "Shutdown" : "Running"));
         sender.sendMessage(C.DARK_PURPLE + "- Updater: " + C.LIGHT_PURPLE + (updateTicker.isAlive() ? "Running" : "Stopped"));
+        sender.sendMessage(C.DARK_PURPLE + "- Period: " + C.LIGHT_PURPLE + Form.duration(TRIM_PERIOD));
         sender.sendMessage(C.DARK_PURPLE + "- Trimmers: " + C.LIGHT_PURPLE + trimmerAlive.get());
         sender.sendMessage(C.DARK_PURPLE + "- Unloaders: " + C.LIGHT_PURPLE + unloaderAlive.get());
         sender.sendMessage(C.DARK_PURPLE + "Tectonic Plates:");
@@ -157,7 +159,7 @@ public class IrisEngineSVC implements IrisService {
     private final class Registered {
         private final String name;
         private final PlatformChunkGenerator access;
-        private final int offset = RNG.r.nextInt(1000);
+        private final int offset = RNG.r.nextInt(TRIM_PERIOD);
         private transient ScheduledFuture<?> trimmer;
         private transient ScheduledFuture<?> unloader;
         private transient boolean closed;
@@ -194,7 +196,7 @@ public class IrisEngineSVC implements IrisService {
                         Iris.error("EngineSVC: Failed to trim for " + name);
                         e.printStackTrace();
                     }
-                }, offset, 2000, TimeUnit.MILLISECONDS);
+                }, offset, TRIM_PERIOD, TimeUnit.MILLISECONDS);
             }
 
             if (unloader == null || unloader.isDone() || unloader.isCancelled()) {
@@ -214,7 +216,7 @@ public class IrisEngineSVC implements IrisService {
                         Iris.error("EngineSVC: Failed to unload for " + name);
                         e.printStackTrace();
                     }
-                }, offset + 1000, 2000, TimeUnit.MILLISECONDS);
+                }, offset + 1000, TRIM_PERIOD, TimeUnit.MILLISECONDS);
             }
         }
 

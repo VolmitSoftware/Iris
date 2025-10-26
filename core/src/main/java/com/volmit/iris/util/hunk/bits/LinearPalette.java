@@ -45,25 +45,23 @@ public class LinearPalette<T> implements Palette<T> {
 
     @Override
     public int add(T t) {
-        if (t == null) {
-            return 0;
-        }
         int index = size.getAndIncrement();
-        grow(index + 1);
+        if (palette.length() <= index)
+            grow(index);
         palette.set(index, t);
         return index;
     }
 
     private synchronized void grow(int newLength) {
-        if (newLength > palette.length()) {
-            AtomicReferenceArray<T> a = new AtomicReferenceArray<>(newLength);
+        if (palette.length() <= newLength)
+            return;
 
-            for (int i = 0; i < palette.length(); i++) {
-                a.set(i, palette.get(i));
-            }
-
-            palette = a;
+        AtomicReferenceArray<T> a = new AtomicReferenceArray<>(newLength + 1);
+        for (int i = 0; i < palette.length(); i++) {
+            a.set(i, palette.get(i));
         }
+
+        palette = a;
     }
 
     @Override

@@ -19,21 +19,30 @@
 package com.volmit.iris.util.hunk.bits;
 
 import com.volmit.iris.util.data.Varint;
-import lombok.Synchronized;
+import it.unimi.dsi.fastutil.ints.*;
 
 import java.io.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class DataContainer<T> {
+    private static final boolean TRIM = Boolean.getBoolean("iris.trim-palette");
     protected static final int INITIAL_BITS = 3;
     protected static final int LINEAR_BITS_LIMIT = 4;
     protected static final int LINEAR_INITIAL_LENGTH = (int) Math.pow(2, LINEAR_BITS_LIMIT) + 1;
     protected static final int[] BIT = computeBitLimits();
+    private final Lock read, write;
+
     private volatile Palette<T> palette;
     private volatile DataBits data;
     private final int length;
     private final Writable<T> writer;
 
     public DataContainer(Writable<T> writer, int length) {
+        var lock = new ReentrantReadWriteLock();
+        this.read = lock.readLock();
+        this.write = lock.writeLock();
+
         this.writer = writer;
         this.length = length;
         this.data = new DataBits(INITIAL_BITS, length);
@@ -41,10 +50,15 @@ public class DataContainer<T> {
     }
 
     public DataContainer(DataInputStream din, Writable<T> writer) throws IOException {
+        var lock = new ReentrantReadWriteLock();
+        this.read = lock.readLock();
+        this.write = lock.writeLock();
+
         this.writer = writer;
         this.length = Varint.readUnsignedVarInt(din);
         this.palette = newPalette(din);
         this.data = new DataBits(palette.bits(), length, din);
+        trim();
     }
 
     private static int[] computeBitLimits() {
@@ -86,13 +100,18 @@ public class DataContainer<T> {
         writeDos(new DataOutputStream(out));
     }
 
-    @Synchronized
     public void writeDos(DataOutputStream dos) throws IOException {
-        Varint.writeUnsignedVarInt(length, dos);
-        Varint.writeUnsignedVarInt(palette.size(), dos);
-        palette.iterateIO((data, __) -> writer.writeNodeData(dos, data));
-        data.write(dos);
-        dos.flush();
+        write.lock();
+        try {
+            trim();
+            Varint.writeUnsignedVarInt(length, dos);
+            Varint.writeUnsignedVarInt(palette.size(), dos);
+            palette.iterateIO((data, __) -> writer.writeNodeData(dos, data));
+            data.write(dos);
+            dos.flush();
+        } finally {
+            write.unlock();
+        }
     }
 
     private Palette<T> newPalette(DataInputStream din) throws IOException {
@@ -110,25 +129,38 @@ public class DataContainer<T> {
         return new HashPalette<>();
     }
 
-    @Synchronized
     public void set(int position, T t) {
-        int id = palette.id(t);
+        int id;
 
-        if (id == -1) {
-            id = palette.add(t);
-            updateBits();
+        read.lock();
+        try {
+            id = palette.id(t);
+            if (id == -1) {
+                id = palette.add(t);
+                if (palette.bits() == data.getBits()) {
+                    data.set(position, id);
+                    return;
+                }
+            }
+        } finally {
+            read.unlock();
         }
 
-        data.set(position, id);
+        write.lock();
+        try {
+            updateBits();
+            data.set(position, id);
+        } finally {
+            write.unlock();
+        }
     }
 
-    @Synchronized
     @SuppressWarnings("NonAtomicOperationOnVolatileField")
     private void updateBits() {
-        if (palette.bits() == data.getBits())
+        int bits = palette.bits();
+        if (bits == data.getBits())
             return;
 
-        int bits = palette.bits();
         if (data.getBits() <= LINEAR_BITS_LIMIT != bits <= LINEAR_BITS_LIMIT) {
             palette = newPalette(bits).from(palette);
         }
@@ -136,18 +168,44 @@ public class DataContainer<T> {
         data = data.setBits(bits);
     }
 
-    @Synchronized
     public T get(int position) {
-        int id = data.get(position);
+        read.lock();
+        try {
+            int id = data.get(position);
 
-        if (id <= 0) {
-            return null;
+            if (id <= 0) {
+                return null;
+            }
+
+            return palette.get(id);
+        } finally {
+            read.unlock();
         }
-
-        return palette.get(id);
     }
 
     public int size() {
         return data.getSize();
+    }
+
+    private void trim() {
+        var ints = new Int2IntRBTreeMap();
+        for (int i = 0; i < length; i++) {
+            int x = data.get(i);
+            if (x <= 0) continue;
+            ints.put(x, x);
+        }
+        if (ints.size() == palette.size())
+            return;
+
+        int bits = bits(ints.size() + 1);
+        var trimmed = newPalette(bits);
+        ints.replaceAll((k, v) -> trimmed.add(palette.get(k)));
+        var tBits = new DataBits(bits, length);
+        for (int i = 0; i < length; i++) {
+            tBits.set(i, ints.get(data.get(i)));
+        }
+
+        data = tBits;
+        palette = trimmed;
     }
 }

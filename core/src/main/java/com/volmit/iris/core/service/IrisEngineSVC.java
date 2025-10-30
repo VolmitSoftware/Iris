@@ -216,7 +216,7 @@ public class IrisEngineSVC implements IrisService {
                         Iris.error("EngineSVC: Failed to unload for " + name);
                         e.printStackTrace();
                     }
-                }, offset + 1000, TRIM_PERIOD, TimeUnit.MILLISECONDS);
+                }, offset + TRIM_PERIOD / 2, TRIM_PERIOD, TimeUnit.MILLISECONDS);
             }
         }
 

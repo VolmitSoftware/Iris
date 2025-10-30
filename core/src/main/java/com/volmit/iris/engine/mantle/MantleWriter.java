@@ -62,7 +62,8 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
     public MantleWriter(EngineMantle engineMantle, Mantle mantle, int x, int z, int radius) {
         this.engineMantle = engineMantle;
         this.mantle = mantle;
-        this.cachedChunks = new KMap<>();
+        int d = radius * 2 + 1;
+        this.cachedChunks = new KMap<>(d * d);
         this.radius = radius;
         this.x = x;
         this.z = z;

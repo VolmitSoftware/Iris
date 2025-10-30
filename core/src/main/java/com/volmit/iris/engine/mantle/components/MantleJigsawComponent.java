@@ -35,7 +35,6 @@ import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.slices.container.JigsawStructuresContainer;
 import com.volmit.iris.util.noise.CNG;
-import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -45,7 +44,7 @@ public class MantleJigsawComponent extends IrisMantleComponent {
     private final CNG cng;
 
     public MantleJigsawComponent(EngineMantle engineMantle) {
-        super(engineMantle, ReservedFlag.JIGSAW, 2);
+        super(engineMantle, ReservedFlag.JIGSAW, 1);
         cng = NoiseStyle.STATIC.create(new RNG(jigsaw()));
     }
 

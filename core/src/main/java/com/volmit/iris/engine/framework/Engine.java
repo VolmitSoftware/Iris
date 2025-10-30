@@ -295,7 +295,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         var chunk = mantle.getChunk(c).use();
         try {
             Semaphore semaphore = new Semaphore(1024);
-            chunk.raiseFlag(MantleFlag.ETCHED, () -> {
+            chunk.raiseFlagUnchecked(MantleFlag.ETCHED, () -> {
                 chunk.raiseFlagUnchecked(MantleFlag.TILE, run(semaphore, () -> {
                     chunk.iterate(TileWrapper.class, (x, y, z, v) -> {
                         Block block = c.getBlock(x & 15, y + getWorld().minHeight(), z & 15);

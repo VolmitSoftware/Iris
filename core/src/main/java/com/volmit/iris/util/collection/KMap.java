@@ -33,7 +33,11 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
     private static final long serialVersionUID = 7288942695300448163L;
 
     public KMap() {
-        super();
+        this(16);
+    }
+
+    public KMap(int initialCapacity) {
+        super(initialCapacity, 0.75f, Runtime.getRuntime().availableProcessors());
     }
 
     public KMap(Map<K, V> gMap) {

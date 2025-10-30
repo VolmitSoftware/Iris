@@ -407,18 +407,6 @@ public class Mantle {
     }
 
     /**
-     * Estimates the memory usage of the lastUse map.
-     *
-     * @return Estimated memory usage in bytes.
-     */
-
-    public long LastUseMapMemoryUsage() {
-        long numberOfEntries = lastUse.size();
-        long bytesPerEntry = Long.BYTES * 2;
-        return numberOfEntries * bytesPerEntry;
-    }
-
-    /**
      * Save & unload regions that have not been used for more than the
      * specified amount of milliseconds
      *

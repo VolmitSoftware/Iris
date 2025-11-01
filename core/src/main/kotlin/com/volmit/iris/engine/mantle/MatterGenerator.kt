@@ -7,13 +7,12 @@ import com.volmit.iris.util.context.ChunkContext
 import com.volmit.iris.util.documentation.ChunkCoordinates
 import com.volmit.iris.util.mantle.Mantle
 import com.volmit.iris.util.mantle.flag.MantleFlag
+import com.volmit.iris.util.parallel.MultiBurst
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.util.concurrent.Executors
 import kotlin.coroutines.EmptyCoroutineContext
 
 interface MatterGenerator {
@@ -61,7 +60,7 @@ interface MatterGenerator {
     }
 
     companion object {
-        private val dispatcher = Executors.newVirtualThreadPerTaskExecutor().asCoroutineDispatcher()
+        private val dispatcher = MultiBurst.burst.dispatcher
         private fun CoroutineScope.launch(block: suspend CoroutineScope.() -> Unit) =
             launch(if (IrisSettings.get().generator.isUseMulticoreMantle) dispatcher else EmptyCoroutineContext, block = block)
     }

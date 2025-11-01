@@ -183,8 +183,13 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
             Iris.error("Mantle Writer Accessed chunk out of bounds" + cx + "," + cz);
             return null;
         }
-        MantleChunk chunk = cachedChunks.computeIfAbsent(Cache.key(cx, cz), k -> mantle.getChunk(cx, cz).use());
-        if (chunk == null) Iris.error("Mantle Writer Accessed " + cx + "," + cz + " and came up null (and yet within bounds!)");
+        final Long key = Cache.key(cx, cz);
+        MantleChunk chunk = cachedChunks.get(key);
+        if (chunk == null) {
+            chunk = mantle.getChunk(cx, cz).use();
+            var old = cachedChunks.put(key, chunk);
+            if (old != null) old.release();
+        }
         return chunk;
     }
 

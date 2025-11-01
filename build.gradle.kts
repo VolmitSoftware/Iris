@@ -58,8 +58,9 @@ registerCustomOutputTaskUnix("PixelMac", "/Users/test/Desktop/mcserver/plugins")
 registerCustomOutputTaskUnix("CrazyDev22LT", "/home/julian/Desktop/server/plugins")
 // ==============================================================
 
-val serverMinHeap = "2G"
-val serverMaxHeap = "8G"
+val serverMinHeap = "10G"
+val serverMaxHeap = "10G"
+val additionalFlags = "-XX:+AlwaysPreTouch"
 //Valid values are: none, truecolor, indexed256, indexed16, indexed8
 val color = "truecolor"
 val errorReporting = findProperty("errorReporting") as Boolean? ?: false
@@ -106,6 +107,7 @@ nmsBindings.forEach { key, value ->
         systemProperty("com.mojang.eula.agree", true)
         systemProperty("iris.suppressReporting", !errorReporting)
         jvmArgs("-javaagent:${project(":core:agent").tasks.jar.flatMap { it.archiveFile }.get().asFile.absolutePath}")
+        jvmArgs(additionalFlags.split(' '))
     }
 }
 

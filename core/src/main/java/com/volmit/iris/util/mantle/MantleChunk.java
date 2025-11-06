@@ -19,6 +19,7 @@
 package com.volmit.iris.util.mantle;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.documentation.ChunkRelativeBlockCoordinates;
 import com.volmit.iris.util.function.Consumer4;
@@ -270,6 +271,8 @@ public class MantleChunk extends FlaggedChunk {
     }
 
     public void deleteSlices(Class<?> c) {
+        if (IrisToolbelt.isRetainingMantleDataForSlice(c.getCanonicalName()))
+            return;
         for (int i = 0; i < sections.length(); i++) {
             Matter m = sections.get(i);
             if (m != null && m.hasSlice(c)) {

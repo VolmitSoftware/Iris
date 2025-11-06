@@ -34,6 +34,7 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,6 +46,7 @@ import java.util.Map;
  * Hope you packed snacks & road sodas.
  */
 public class IrisToolbelt {
+    @ApiStatus.Internal
     public static Map<String, Boolean> toolbeltConfiguration = new HashMap<>();
 
     /**
@@ -233,6 +235,10 @@ public class IrisToolbelt {
 
     public static void retainMantleDataForSlice(String className) {
         toolbeltConfiguration.put("retain.mantle." + className, true);
+    }
+
+    public static boolean isRetainingMantleDataForSlice(String className) {
+        return !toolbeltConfiguration.isEmpty() && toolbeltConfiguration.get("retain.mantle." + className) == Boolean.TRUE;
     }
 
     public static <T> T getMantleData(World world, int x, int y, int z, Class<T> of) {

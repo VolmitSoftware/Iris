@@ -25,7 +25,7 @@ class ScriptRunner(
 ) {
     private val configs = ConcurrentHashMap<KClass<*>, ScriptCompilationConfiguration>()
     private val hostConfig = host.baseHostConfiguration.withDefaultsFrom(defaultJvmScriptingHostConfiguration)
-    private val sharedClassLoader: SharedClassLoader = parent?.let { SharedClassLoader(it.sharedClassLoader) } ?: SharedClassLoader()
+    private val sharedClassLoader: SharedClassLoader = parent?.sharedClassLoader ?: SharedClassLoader()
     private val resolver = createResolver(baseDir)
 
     fun compile(type: KClass<*>, raw: String, name: String? = null) = compile(type, raw.toScriptSource(name))

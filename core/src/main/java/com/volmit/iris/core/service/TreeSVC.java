@@ -190,6 +190,16 @@ public class TreeSVC implements IrisService {
             }
 
             @Override
+            public <T> void setData(int xx, int yy, int zz, T data) {
+
+            }
+
+            @Override
+            public <T> T getData(int xx, int yy, int zz, Class<T> t) {
+                return null;
+            }
+
+            @Override
             public Engine getEngine() {
                 return engine;
             }

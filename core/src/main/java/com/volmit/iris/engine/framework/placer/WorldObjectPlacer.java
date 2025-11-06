@@ -124,4 +124,13 @@ public class WorldObjectPlacer implements IObjectPlacer {
     public void setTile(int xx, int yy, int zz, TileData tile) {
         tile.toBukkitTry(world.getBlockAt(xx, yy + world.getMinHeight(), zz));
     }
+
+    @Override
+    public <T> void setData(int xx, int yy, int zz, T data) {
+    }
+
+    @Override
+    public <T> T getData(int xx, int yy, int zz, Class<T> t) {
+        return null;
+    }
 }

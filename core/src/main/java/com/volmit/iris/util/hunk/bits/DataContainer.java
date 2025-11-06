@@ -29,7 +29,7 @@ public class DataContainer<T> {
     private static final boolean TRIM = Boolean.getBoolean("iris.trim-palette");
     protected static final int INITIAL_BITS = 3;
     protected static final int LINEAR_BITS_LIMIT = 4;
-    protected static final int LINEAR_INITIAL_LENGTH = (int) Math.pow(2, LINEAR_BITS_LIMIT) + 1;
+    protected static final int LINEAR_INITIAL_LENGTH = (int) Math.pow(2, LINEAR_BITS_LIMIT) + 2;
     protected static final int[] BIT = computeBitLimits();
     private final Lock read, write;
 

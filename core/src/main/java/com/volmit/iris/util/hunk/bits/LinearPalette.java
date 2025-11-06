@@ -52,11 +52,11 @@ public class LinearPalette<T> implements Palette<T> {
         return index;
     }
 
-    private synchronized void grow(int newLength) {
-        if (palette.length() <= newLength)
+    private synchronized void grow(int lastIndex) {
+        if (palette.length() > lastIndex)
             return;
 
-        AtomicReferenceArray<T> a = new AtomicReferenceArray<>(newLength + 1);
+        AtomicReferenceArray<T> a = new AtomicReferenceArray<>(lastIndex + 1);
         for (int i = 0; i < palette.length(); i++) {
             a.set(i, palette.get(i));
         }

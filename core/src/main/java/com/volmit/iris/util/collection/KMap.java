@@ -37,7 +37,11 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
     }
 
     public KMap(int initialCapacity) {
-        super(initialCapacity, 0.75f, Runtime.getRuntime().availableProcessors());
+        this(initialCapacity, 0.75f, 1);
+    }
+
+    public KMap(int initialCapacity, float loadFactor, int concurrencyLevel) {
+        super(initialCapacity, loadFactor, concurrencyLevel);
     }
 
     public KMap(Map<K, V> gMap) {

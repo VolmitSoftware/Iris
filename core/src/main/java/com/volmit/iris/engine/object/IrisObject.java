@@ -39,7 +39,6 @@ import com.volmit.iris.util.matter.MatterMarker;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
-import com.volmit.iris.util.scheduling.IrisLock;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.scheduling.jobs.Job;
 import com.volmit.iris.util.stream.ProceduralStream;
@@ -63,6 +62,8 @@ import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiConsumer;
 import java.util.stream.StreamSupport;
 
@@ -74,16 +75,16 @@ public class IrisObject extends IrisRegistrant {
     protected static final BlockData VAIR = B.get("VOID_AIR");
     protected static final BlockData VAIR_DEBUG = B.get("COBWEB");
     protected static final BlockData[] SNOW_LAYERS = new BlockData[]{B.get("minecraft:snow[layers=1]"), B.get("minecraft:snow[layers=2]"), B.get("minecraft:snow[layers=3]"), B.get("minecraft:snow[layers=4]"), B.get("minecraft:snow[layers=5]"), B.get("minecraft:snow[layers=6]"), B.get("minecraft:snow[layers=7]"), B.get("minecraft:snow[layers=8]")};
-    protected transient final IrisLock readLock = new IrisLock("read-conclock");
+    protected transient final Lock readLock;
+    protected transient final Lock writeLock;
     @Getter
     @Setter
     protected transient volatile boolean smartBored = false;
-    @Getter
-    @Setter
-    protected transient IrisLock lock = new IrisLock("Preloadcache");
     @Setter
     protected transient AtomicCache<AxisAlignedBB> aabb = new AtomicCache<>();
+    @Getter
     private VectorMap<BlockData> blocks;
+    @Getter
     private VectorMap<TileData> states;
     @Getter
     @Setter
@@ -105,6 +106,9 @@ public class IrisObject extends IrisRegistrant {
         this.h = h;
         this.d = d;
         center = new Vector3i(w / 2, h / 2, d / 2);
+        var lock = new ReentrantReadWriteLock();
+        readLock = lock.readLock();
+        writeLock = lock.writeLock();
     }
 
     public IrisObject() {
@@ -160,10 +164,10 @@ public class IrisObject extends IrisRegistrant {
 
         PrecisionStopwatch p = PrecisionStopwatch.start();
         BlockData vair = debug ? VAIR_DEBUG : VAIR;
-        lock.lock();
+        writeLock.lock();
         AtomicInteger applied = new AtomicInteger();
-        if (getBlocks().isEmpty()) {
-            lock.unlock();
+        if (blocks.isEmpty()) {
+            writeLock.unlock();
             Iris.warn("Cannot Smart Bore " + getLoadKey() + " because it has 0 blocks in it.");
             smartBored = true;
             return;
@@ -172,7 +176,7 @@ public class IrisObject extends IrisRegistrant {
         BlockVector max = new BlockVector(Double.MIN_VALUE, Double.MIN_VALUE, Double.MIN_VALUE);
         BlockVector min = new BlockVector(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE);
 
-        for (BlockVector i : getBlocks().keys()) {
+        for (BlockVector i : blocks.keys()) {
             max.setX(Math.max(i.getX(), max.getX()));
             min.setX(Math.min(i.getX(), min.getX()));
             max.setY(Math.max(i.getY(), max.getY()));
@@ -192,7 +196,7 @@ public class IrisObject extends IrisRegistrant {
                     int end = Integer.MIN_VALUE;
 
                     for (int ray = min.getBlockX(); ray <= max.getBlockX(); ray++) {
-                        if (getBlocks().containsKey(new Vector3i(ray, finalRayY, rayZ))) {
+                        if (blocks.containsKey(new Vector3i(ray, finalRayY, rayZ))) {
                             start = Math.min(ray, start);
                             end = Math.max(ray, end);
                         }
@@ -202,8 +206,8 @@ public class IrisObject extends IrisRegistrant {
                         for (int i = start; i <= end; i++) {
                             Vector3i v = new Vector3i(i, finalRayY, rayZ);
 
-                            if (!vair.equals(getBlocks().get(v))) {
-                                getBlocks().computeIfAbsent(v, (vv) -> vair);
+                            if (!vair.equals(blocks.get(v))) {
+                                blocks.computeIfAbsent(v, (vv) -> vair);
                                 applied.getAndIncrement();
                             }
                         }
@@ -221,7 +225,7 @@ public class IrisObject extends IrisRegistrant {
                     int end = Integer.MIN_VALUE;
 
                     for (int ray = min.getBlockY(); ray <= max.getBlockY(); ray++) {
-                        if (getBlocks().containsKey(new Vector3i(finalRayX, ray, rayZ))) {
+                        if (blocks.containsKey(new Vector3i(finalRayX, ray, rayZ))) {
                             start = Math.min(ray, start);
                             end = Math.max(ray, end);
                         }
@@ -231,8 +235,8 @@ public class IrisObject extends IrisRegistrant {
                         for (int i = start; i <= end; i++) {
                             Vector3i v = new Vector3i(finalRayX, i, rayZ);
 
-                            if (!vair.equals(getBlocks().get(v))) {
-                                getBlocks().computeIfAbsent(v, (vv) -> vair);
+                            if (!vair.equals(blocks.get(v))) {
+                                blocks.computeIfAbsent(v, (vv) -> vair);
                                 applied.getAndIncrement();
                             }
                         }
@@ -250,7 +254,7 @@ public class IrisObject extends IrisRegistrant {
                     int end = Integer.MIN_VALUE;
 
                     for (int ray = min.getBlockZ(); ray <= max.getBlockZ(); ray++) {
-                        if (getBlocks().containsKey(new Vector3i(finalRayX, rayY, ray))) {
+                        if (blocks.containsKey(new Vector3i(finalRayX, rayY, ray))) {
                             start = Math.min(ray, start);
                             end = Math.max(ray, end);
                         }
@@ -260,8 +264,8 @@ public class IrisObject extends IrisRegistrant {
                         for (int i = start; i <= end; i++) {
                             Vector3i v = new Vector3i(finalRayX, rayY, i);
 
-                            if (!vair.equals(getBlocks().get(v))) {
-                                getBlocks().computeIfAbsent(v, (vv) -> vair);
+                            if (!vair.equals(blocks.get(v))) {
+                                blocks.computeIfAbsent(v, (vv) -> vair);
                                 applied.getAndIncrement();
                             }
                         }
@@ -272,7 +276,7 @@ public class IrisObject extends IrisRegistrant {
 
         burst.complete();
         smartBored = true;
-        lock.unlock();
+        writeLock.unlock();
         Iris.debug("Smart Bore: " + getLoadKey() + " in " + Form.duration(p.getMilliseconds(), 2) + " (" + Form.f(applied.get()) + ")");
     }
 
@@ -283,8 +287,8 @@ public class IrisObject extends IrisRegistrant {
         o.setLoadFile(getLoadFile());
         o.setCenter(getCenter().clone());
 
-        getBlocks().forEach((i, v) -> o.getBlocks().put(i.clone(), v.clone()));
-        getStates().forEach((i, v) -> o.getStates().put(i.clone(), v.clone()));
+        blocks.forEach((i, v) -> o.blocks.put(i.clone(), v.clone()));
+        states.forEach((i, v) -> o.states.put(i.clone(), v.clone()));
 
         return o;
     }
@@ -298,14 +302,14 @@ public class IrisObject extends IrisRegistrant {
         int s = din.readInt();
 
         for (int i = 0; i < s; i++) {
-            getBlocks().put(new Vector3i(din.readShort(), din.readShort(), din.readShort()), B.get(din.readUTF()));
+            blocks.put(new Vector3i(din.readShort(), din.readShort(), din.readShort()), B.get(din.readUTF()));
         }
 
         try {
             int size = din.readInt();
 
             for (int i = 0; i < size; i++) {
-                getStates().put(new Vector3i(din.readShort(), din.readShort(), din.readShort()), TileData.read(din));
+                states.put(new Vector3i(din.readShort(), din.readShort(), din.readShort()), TileData.read(din));
             }
         } catch (Throwable e) {
             Iris.reportError(e);
@@ -333,13 +337,13 @@ public class IrisObject extends IrisRegistrant {
         s = din.readInt();
 
         for (i = 0; i < s; i++) {
-            getBlocks().put(new Vector3i(din.readShort(), din.readShort(), din.readShort()), B.get(palette.get(din.readShort())));
+            blocks.put(new Vector3i(din.readShort(), din.readShort(), din.readShort()), B.get(palette.get(din.readShort())));
         }
 
         s = din.readInt();
 
         for (i = 0; i < s; i++) {
-            getStates().put(new Vector3i(din.readShort(), din.readShort(), din.readShort()), TileData.read(din));
+            states.put(new Vector3i(din.readShort(), din.readShort(), din.readShort()), TileData.read(din));
         }
     }
 
@@ -351,7 +355,7 @@ public class IrisObject extends IrisRegistrant {
         dos.writeUTF("Iris V2 IOB;");
         KList<String> palette = new KList<>();
 
-        for (BlockData i : getBlocks().values()) {
+        for (BlockData i : blocks.values()) {
             palette.addIfMissing(i.getAsString());
         }
 
@@ -361,9 +365,9 @@ public class IrisObject extends IrisRegistrant {
             dos.writeUTF(i);
         }
 
-        dos.writeInt(getBlocks().size());
+        dos.writeInt(blocks.size());
 
-        for (var entry : getBlocks()) {
+        for (var entry : blocks) {
             var i = entry.getKey();
             dos.writeShort(i.getBlockX());
             dos.writeShort(i.getBlockY());
@@ -371,8 +375,8 @@ public class IrisObject extends IrisRegistrant {
             dos.writeShort(palette.indexOf(entry.getValue().getAsString()));
         }
 
-        dos.writeInt(getStates().size());
-        for (var entry : getStates()) {
+        dos.writeInt(states.size());
+        for (var entry : states) {
             var i = entry.getKey();
             dos.writeShort(i.getBlockX());
             dos.writeShort(i.getBlockY());
@@ -385,7 +389,7 @@ public class IrisObject extends IrisRegistrant {
         AtomicReference<IOException> ref = new AtomicReference<>();
         CountDownLatch latch = new CountDownLatch(1);
         new Job() {
-            private int total = getBlocks().size() * 3 + getStates().size();
+            private int total = blocks.size() * 3 + states.size();
             private int c = 0;
 
             @Override
@@ -404,11 +408,11 @@ public class IrisObject extends IrisRegistrant {
 
                     KList<String> palette = new KList<>();
 
-                    for (BlockData i : getBlocks().values()) {
+                    for (BlockData i : blocks.values()) {
                         palette.addIfMissing(i.getAsString());
                         ++c;
                     }
-                    total -= getBlocks().size() - palette.size();
+                    total -= blocks.size() - palette.size();
 
                     dos.writeShort(palette.size());
 
@@ -417,9 +421,9 @@ public class IrisObject extends IrisRegistrant {
                         ++c;
                     }
 
-                    dos.writeInt(getBlocks().size());
+                    dos.writeInt(blocks.size());
 
-                    for (var entry : getBlocks()) {
+                    for (var entry : blocks) {
                         var i = entry.getKey();
                         dos.writeShort(i.getBlockX());
                         dos.writeShort(i.getBlockY());
@@ -428,8 +432,8 @@ public class IrisObject extends IrisRegistrant {
                         ++c;
                     }
 
-                    dos.writeInt(getStates().size());
-                    for (var entry : getStates()) {
+                    dos.writeInt(states.size());
+                    for (var entry : states) {
                         var i = entry.getKey();
                         dos.writeShort(i.getBlockX());
                         dos.writeShort(i.getBlockY());
@@ -503,7 +507,7 @@ public class IrisObject extends IrisRegistrant {
         BlockVector min = new BlockVector();
         BlockVector max = new BlockVector();
 
-        for (BlockVector i : getBlocks().keys()) {
+        for (BlockVector i : blocks.keys()) {
             min.setX(Math.min(min.getX(), i.getX()));
             min.setY(Math.min(min.getY(), i.getY()));
             min.setZ(Math.min(min.getZ(), i.getZ()));
@@ -520,10 +524,10 @@ public class IrisObject extends IrisRegistrant {
 
     public void clean() {
         VectorMap<BlockData> d = new VectorMap<>();
-        d.putAll(getBlocks());
+        d.putAll(blocks);
 
         VectorMap<TileData> dx = new VectorMap<>();
-        dx.putAll(getStates());
+        dx.putAll(states);
 
         blocks = d;
         states = dx;
@@ -541,10 +545,10 @@ public class IrisObject extends IrisRegistrant {
         Vector3i v = getSigned(x, y, z);
 
         if (block == null) {
-            getBlocks().remove(v);
-            getStates().remove(v);
+            blocks.remove(v);
+            states.remove(v);
         } else {
-            getBlocks().put(v, block);
+            blocks.put(v, block);
         }
     }
 
@@ -552,15 +556,15 @@ public class IrisObject extends IrisRegistrant {
         Vector3i v = getSigned(x, y, z);
 
         if (block == null) {
-            getBlocks().remove(v);
-            getStates().remove(v);
+            blocks.remove(v);
+            states.remove(v);
         } else {
             BlockData data = block.getBlockData();
-            getBlocks().put(v, data);
+            blocks.put(v, data);
             TileData state = TileData.getTileState(block, legacy);
             if (state != null) {
                 Iris.debug("Saved State " + v);
-                getStates().put(v, state);
+                states.put(v, state);
             }
         }
     }
@@ -857,7 +861,7 @@ public class IrisObject extends IrisRegistrant {
         try {
             if (config.getMarkers().isNotEmpty() && placer.getEngine() != null) {
                 markers = new KMap<>();
-                var list = StreamSupport.stream(getBlocks().keys().spliterator(), false)
+                var list = StreamSupport.stream(blocks.keys().spliterator(), false)
                         .collect(KList.collector());
 
                 for (IrisObjectMarker j : config.getMarkers()) {
@@ -873,7 +877,7 @@ public class IrisObject extends IrisRegistrant {
                             break;
                         }
 
-                        BlockData data = getBlocks().get(i);
+                        BlockData data = blocks.get(i);
 
                         for (BlockData k : j.getMark(rdata)) {
                             if (max <= 0) {
@@ -894,14 +898,14 @@ public class IrisObject extends IrisRegistrant {
                 }
             }
 
-            for (var entry : getBlocks()) {
+            for (var entry : blocks) {
                 var g = entry.getKey();
                 BlockData d;
                 TileData tile = null;
 
                 try {
                     d = entry.getValue();
-                    tile = getStates().get(g);
+                    tile = states.get(g);
                 } catch (Throwable e) {
                     Iris.reportError(e);
                     Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (cme)");
@@ -1019,12 +1023,12 @@ public class IrisObject extends IrisRegistrant {
         if (stilting) {
             readLock.lock();
             IrisStiltSettings settings = config.getStiltSettings();
-            for (BlockVector g : getBlocks().keys()) {
+            for (BlockVector g : blocks.keys()) {
                 BlockData d;
 
                 if (settings == null || settings.getPalette() == null) {
                     try {
-                        d = getBlocks().get(g);
+                        d = blocks.get(g);
                     } catch (Throwable e) {
                         Iris.reportError(e);
                         Iris.warn("Failed to read block node " + g.getBlockX() + "," + g.getBlockY() + "," + g.getBlockZ() + " in object " + getLoadKey() + " (stilt cme)");
@@ -1131,60 +1135,60 @@ public class IrisObject extends IrisRegistrant {
     }
 
     public void rotate(IrisObjectRotation r, int spinx, int spiny, int spinz) {
+        writeLock.lock();
         VectorMap<BlockData> d = new VectorMap<>();
 
-        for (var entry : getBlocks()) {
+        for (var entry : blocks) {
             d.put(r.rotate(entry.getKey(), spinx, spiny, spinz), r.rotate(entry.getValue(), spinx, spiny, spinz));
         }
 
         VectorMap<TileData> dx = new VectorMap<>();
 
-        for (var entry : getStates()) {
+        for (var entry : states) {
             dx.put(r.rotate(entry.getKey(), spinx, spiny, spinz), entry.getValue());
         }
 
         blocks = d;
         states = dx;
+        writeLock.unlock();
         shrinkwrap();
     }
 
     public void place(Location at) {
-        for (var entry : getBlocks()) {
+        readLock.lock();
+        for (var entry : blocks) {
             var i = entry.getKey();
             Block b = at.clone().add(0, getCenter().getY(), 0).add(i).getBlock();
             b.setBlockData(Objects.requireNonNull(entry.getValue()), false);
 
-            if (getStates().containsKey(i)) {
+            if (states.containsKey(i)) {
                 Iris.info(Objects.requireNonNull(states.get(i)).toString());
-                Objects.requireNonNull(getStates().get(i)).toBukkitTry(b);
+                Objects.requireNonNull(states.get(i)).toBukkitTry(b);
             }
         }
+        readLock.unlock();
     }
 
     public void placeCenterY(Location at) {
-        for (var entry : getBlocks()) {
+        readLock.lock();
+        for (var entry : blocks) {
             var i = entry.getKey();
             Block b = at.clone().add(getCenter().getX(), getCenter().getY(), getCenter().getZ()).add(i).getBlock();
             b.setBlockData(Objects.requireNonNull(entry.getValue()), false);
 
-            if (getStates().containsKey(i)) {
-                Objects.requireNonNull(getStates().get(i)).toBukkitTry(b);
+            if (states.containsKey(i)) {
+                Objects.requireNonNull(states.get(i)).toBukkitTry(b);
             }
         }
-    }
-
-    public synchronized VectorMap<BlockData> getBlocks() {
-        return blocks;
-    }
-
-    public synchronized VectorMap<TileData> getStates() {
-        return states;
+        readLock.unlock();
     }
 
     public void unplaceCenterY(Location at) {
-        for (BlockVector i : getBlocks().keys()) {
+        readLock.lock();
+        for (BlockVector i : blocks.keys()) {
             at.clone().add(getCenter().getX(), getCenter().getY(), getCenter().getZ()).add(i).getBlock().setBlockData(AIR, false);
         }
+        readLock.unlock();
     }
 
     public IrisObject scaled(double scale, IrisObjectPlacementScaleInterpolator interpolation) {
@@ -1211,17 +1215,19 @@ public class IrisObject extends IrisRegistrant {
 
         IrisObject oo = new IrisObject((int) Math.ceil((w * scale) + (scale * 2)), (int) Math.ceil((h * scale) + (scale * 2)), (int) Math.ceil((d * scale) + (scale * 2)));
 
+        readLock.lock();
         for (var entry : blocks) {
             BlockData bd = entry.getValue();
             placeBlock.put(entry.getKey().clone().add(HALF).subtract(center)
                     .multiply(scale).add(sm1).toBlockVector(), bd);
         }
+        readLock.unlock();
 
         for (var entry : placeBlock) {
             BlockVector v = entry.getKey();
             if (scale > 1) {
                 for (BlockVector vec : blocksBetweenTwoPoints(v.clone().add(center), v.clone().add(center).add(sm1))) {
-                    oo.getBlocks().put(vec, entry.getValue());
+                    oo.blocks.put(vec, entry.getValue());
                 }
             } else {
                 oo.setUnsigned(v.getBlockX(), v.getBlockY(), v.getBlockZ(), entry.getValue());
@@ -1240,7 +1246,8 @@ public class IrisObject extends IrisRegistrant {
     }
 
     public void trilinear(int rad) {
-        VectorMap<BlockData> v = getBlocks();
+        writeLock.lock();
+        VectorMap<BlockData> v = blocks;
         VectorMap<BlockData> b = new VectorMap<>();
         BlockVector min = getAABB().minbv();
         BlockVector max = getAABB().maxbv();
@@ -1266,10 +1273,12 @@ public class IrisObject extends IrisRegistrant {
         }
 
         blocks = b;
+        writeLock.unlock();
     }
 
     public void tricubic(int rad) {
-        VectorMap<BlockData> v = getBlocks();
+        writeLock.lock();
+        VectorMap<BlockData> v = blocks;
         VectorMap<BlockData> b = new VectorMap<>();
         BlockVector min = getAABB().minbv();
         BlockVector max = getAABB().maxbv();
@@ -1295,6 +1304,7 @@ public class IrisObject extends IrisRegistrant {
         }
 
         blocks = b;
+        writeLock.unlock();
     }
 
     public void trihermite(int rad) {
@@ -1302,7 +1312,8 @@ public class IrisObject extends IrisRegistrant {
     }
 
     public void trihermite(int rad, double tension, double bias) {
-        VectorMap<BlockData> v = getBlocks();
+        writeLock.lock();
+        VectorMap<BlockData> v = blocks;
         VectorMap<BlockData> b = new VectorMap<>();
         BlockVector min = getAABB().minbv();
         BlockVector max = getAABB().maxbv();
@@ -1328,11 +1339,13 @@ public class IrisObject extends IrisRegistrant {
         }
 
         blocks = b;
+        writeLock.unlock();
     }
 
     private BlockData nearestBlockData(int x, int y, int z) {
         BlockVector vv = new BlockVector(x, y, z);
-        BlockData r = getBlocks().get(vv);
+        readLock.lock();
+        BlockData r = blocks.get(vv);
 
         if (r != null && !r.getMaterial().isAir()) {
             return r;
@@ -1354,6 +1367,7 @@ public class IrisObject extends IrisRegistrant {
                 r = dat;
             }
         }
+        readLock.unlock();
 
         return r;
     }

@@ -37,7 +37,7 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
         super();
         this.stream = stream;
         this.engine = engine;
-        cache = new WorldCache2D<>(stream::get);
+        cache = new WorldCache2D<>(stream::get, size);
         Iris.service(PreservationSVC.class).registerCache(this);
     }
 

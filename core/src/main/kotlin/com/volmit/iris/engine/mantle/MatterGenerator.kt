@@ -6,9 +6,12 @@ import com.volmit.iris.engine.framework.Engine
 import com.volmit.iris.util.context.ChunkContext
 import com.volmit.iris.util.documentation.ChunkCoordinates
 import com.volmit.iris.util.mantle.Mantle
+import com.volmit.iris.util.mantle.MantleChunk
 import com.volmit.iris.util.mantle.flag.MantleFlag
 import com.volmit.iris.util.parallel.MultiBurst
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
@@ -25,6 +28,7 @@ interface MatterGenerator {
     fun generateMatter(x: Int, z: Int, multicore: Boolean, context: ChunkContext) {
         if (!engine.dimension.isUseMantle || mantle.hasFlag(x, z, MantleFlag.PLANNED))
             return
+        val multicore = multicore || IrisSettings.get().generator.isUseMulticoreMantle
 
         mantle.write(engine.mantle, x, z, radius * 2).use { writer ->
             for (pair in components) {
@@ -32,8 +36,8 @@ interface MatterGenerator {
                     for (c in pair.a) {
                         emit(Triple(x, z, c))
                     }
-                }, { (x, z, c) -> launch {
-                    writer.acquireChunk(x, z)
+                }, { (x, z, c) -> launch(multicore) {
+                    acquireChunk(multicore, writer, x, z)
                         .raiseFlagSuspend(MantleFlag.PLANNED, c.flag) {
                             if (c.isEnabled) c.generateLayer(writer, x, z, context)
                         }
@@ -61,7 +65,12 @@ interface MatterGenerator {
 
     companion object {
         private val dispatcher = MultiBurst.burst.dispatcher
-        private fun CoroutineScope.launch(block: suspend CoroutineScope.() -> Unit) =
-            launch(if (IrisSettings.get().generator.isUseMulticoreMantle) dispatcher else EmptyCoroutineContext, block = block)
+        private fun CoroutineScope.launch(multicore: Boolean, block: suspend CoroutineScope.() -> Unit) =
+            launch(if (multicore) dispatcher else EmptyCoroutineContext, block = block)
+
+        private suspend fun CoroutineScope.acquireChunk(multicore: Boolean, writer: MantleWriter, x: Int, z: Int): MantleChunk {
+            return if (multicore) async(Dispatchers.IO) { writer.acquireChunk(x, z) }.await()
+            else writer.acquireChunk(x, z)
+        }
     }
 }

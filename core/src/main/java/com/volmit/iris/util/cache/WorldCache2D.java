@@ -8,12 +8,12 @@ public class WorldCache2D<T> {
     private final ConcurrentLinkedHashMap<Long, ChunkCache2D<T>> chunks;
     private final Function2<Integer, Integer, T> resolver;
 
-    public WorldCache2D(Function2<Integer, Integer, T> resolver) {
+    public WorldCache2D(Function2<Integer, Integer, T> resolver, int size) {
         this.resolver = resolver;
         chunks = new ConcurrentLinkedHashMap.Builder<Long, ChunkCache2D<T>>()
-                .initialCapacity(1024)
-                .maximumWeightedCapacity(1024)
-                .concurrencyLevel(32)
+                .initialCapacity(size)
+                .maximumWeightedCapacity(size)
+                .concurrencyLevel(Math.max(32, Runtime.getRuntime().availableProcessors() * 4))
                 .build();
     }
 

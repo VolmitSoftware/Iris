@@ -22,6 +22,7 @@ interface MatterGenerator {
     val engine: Engine
     val mantle: Mantle
     val radius: Int
+    val realRadius: Int
     val components: List<Pair<List<MantleComponent>, Int>>
 
     @ChunkCoordinates
@@ -39,12 +40,12 @@ interface MatterGenerator {
                 }, { (x, z, c) -> launch(multicore) {
                     acquireChunk(multicore, writer, x, z)
                         .raiseFlagSuspend(MantleFlag.PLANNED, c.flag) {
-                            if (c.isEnabled) c.generateLayer(writer, x, z, context)
+                            c.generateLayer(writer, x, z, context)
                         }
                 }})
             }
 
-            radius(x, z, radius, { x, z ->
+            radius(x, z, realRadius, { x, z ->
                 emit(Pair(x, z))
             }, {
                 writer.acquireChunk(it.a, it.b)

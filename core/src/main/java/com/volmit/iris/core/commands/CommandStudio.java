@@ -78,6 +78,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
@@ -174,14 +175,16 @@ public class CommandStudio implements DecreeExecutor {
             PlatformChunkGenerator plat = IrisToolbelt.access(world);
             Engine engine = plat.getEngine();
             DecreeContext.touch(sender);
-            try (SyncExecutor executor = new SyncExecutor(20)) {
+            try (SyncExecutor executor = new SyncExecutor(20);
+                 var service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
+            ) {
                 int x = loc.getBlockX() >> 4;
                 int z = loc.getBlockZ() >> 4;
 
                 int rad = engine.getMantle().getRadius();
                 var mantle = engine.getMantle().getMantle();
                 var chunkMap = new KMap<Position2, MantleChunk>();
-                ParallelRadiusJob prep = new ParallelRadiusJob(Integer.MAX_VALUE) {
+                ParallelRadiusJob prep = new ParallelRadiusJob(Integer.MAX_VALUE, service) {
                     @Override
                     protected void execute(int rX, int rZ) {
                         if (Math.abs(rX) <= radius && Math.abs(rZ) <= radius) {
@@ -204,7 +207,7 @@ public class CommandStudio implements DecreeExecutor {
                 pLatch.await();
 
 
-                ParallelRadiusJob job = new ParallelRadiusJob(Integer.MAX_VALUE) {
+                ParallelRadiusJob job = new ParallelRadiusJob(Integer.MAX_VALUE, service) {
                     @Override
                     protected void execute(int x, int z) {
                         plat.injectChunkReplacement(world, x, z, executor);

@@ -47,6 +47,7 @@ class ScriptRunner(
         dependencyResolver(resolver)
         packDirectory(baseDir)
         sharedClassloader(sharedClassLoader)
+        server(true)
 
         if (SimpleScript::class.java.isAssignableFrom(type.java))
             return@createCompilationConfigurationFromTemplate

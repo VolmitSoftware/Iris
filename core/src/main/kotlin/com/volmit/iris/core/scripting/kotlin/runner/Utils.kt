@@ -12,6 +12,7 @@ import kotlin.script.experimental.dependencies.addRepository
 import kotlin.script.experimental.dependencies.impl.SimpleExternalDependenciesResolverOptionsParser
 import kotlin.script.experimental.jvm.JvmDependency
 import kotlin.script.experimental.jvm.JvmDependencyFromClassLoader
+import kotlin.script.experimental.jvm.updateClasspath
 import kotlin.script.experimental.jvm.util.classpathFromClassloader
 import kotlin.script.experimental.util.PropertiesCollection
 import kotlin.script.experimental.util.filterByAnnotationType
@@ -67,8 +68,9 @@ private fun configureMavenDepsOnAnnotations(context: ScriptConfigurationRefineme
         ?: return context.compilationConfiguration.asSuccess()
 
     val reports = mutableListOf<ScriptDiagnostic>()
-    val loader = context.compilationConfiguration[ScriptCompilationConfiguration.sharedClassloader] ?: loader
+    val loader = context.compilationConfiguration[ScriptCompilationConfiguration.sharedClassloader]
     val resolver = context.compilationConfiguration[ScriptCompilationConfiguration.dependencyResolver] ?: resolver
+    val server = context.compilationConfiguration[ScriptCompilationConfiguration.server] ?: false
     context.compilationConfiguration[ScriptCompilationConfiguration.packDirectory]
         ?.addPack(resolver)
         ?: context.script.locationId
@@ -93,13 +95,18 @@ private fun configureMavenDepsOnAnnotations(context: ScriptConfigurationRefineme
             }
 
     return runBlocking {
-        resolver.resolveDependencies(annotations)
+        resolver.resolveDependencies(annotations, server)
     }.onSuccess { classpath ->
         context.compilationConfiguration.with {
+            if (!server) {
+                updateClasspath(classpath.map { it.first })
+                return@with
+            }
+
             val newClasspath = classpath.filterNewClasspath(this[ScriptCompilationConfiguration.dependencies])
                 ?: return@with
             val shared = classpath.mapNotNull { p -> p.first.takeIf { p.second } }
-            if (shared.isNotEmpty()) loader.addFiles(shared)
+            if (shared.isNotEmpty()) loader!!.addFiles(shared)
 
             val regular = newClasspath
                 .map { p -> p.first }
@@ -120,7 +127,8 @@ private fun Collection<Pair<File, Boolean>>.filterNewClasspath(known: Collection
 }
 
 private suspend fun ExternalDependenciesResolver.resolveDependencies(
-    annotations: Iterable<ScriptSourceAnnotation<*>>
+    annotations: Iterable<ScriptSourceAnnotation<*>>,
+    server: Boolean
 ): ResultWithDiagnostics<List<Pair<File, Boolean>>> {
     val reports = mutableListOf<ScriptDiagnostic>()
     annotations.forEach { (annotation, locationWithId) ->
@@ -152,6 +160,10 @@ private suspend fun ExternalDependenciesResolver.resolveDependencies(
                 *annotation.options,
                 locationWithId = locationWithId
             ).onSuccess { options ->
+                if (!server && true == options.server) {
+                    return@onSuccess listOf<Pair<File, Boolean>>().asSuccess()
+                }
+
                 annotation.artifactsCoordinates.asIterable().flatMapSuccess { artifactCoordinates ->
                     resolve(artifactCoordinates, options, locationWithId)
                 }.map { files -> files.map { it to (options.shared ?: false) } }
@@ -160,6 +172,7 @@ private suspend fun ExternalDependenciesResolver.resolveDependencies(
 }
 
 private val ExternalDependenciesResolver.Options.shared get() = flag("shared")
+private val ExternalDependenciesResolver.Options.server get() = flag("server")
 internal val ClassLoader.classpath get() = classpathFromClassloader(this) ?: emptyList()
 
 internal fun <R> ResultWithDiagnostics<R>.valueOrThrow(message: CharSequence): R = valueOr {
@@ -168,7 +181,8 @@ internal fun <R> ResultWithDiagnostics<R>.valueOrThrow(message: CharSequence): R
 
 internal val ScriptCompilationConfigurationKeys.dependencyResolver by PropertiesCollection.key(resolver, true)
 internal val ScriptCompilationConfigurationKeys.packDirectory by PropertiesCollection.key<File>(null, true)
-internal val ScriptCompilationConfigurationKeys.sharedClassloader by PropertiesCollection.key(loader, true)
+internal val ScriptCompilationConfigurationKeys.sharedClassloader by PropertiesCollection.key<SharedClassLoader>(null, true)
+internal val ScriptCompilationConfigurationKeys.server by PropertiesCollection.key(false, isTransient = true)
 
 private fun File.addPack(resolver: CompoundDependenciesResolver) = resolver.addPack(this)
 private fun <R> ResultWithDiagnostics<R>.appendReports(reports : Collection<ScriptDiagnostic>) =
@@ -190,7 +204,9 @@ internal fun ScriptCompilationConfiguration.Builder.configure() {
     refineConfiguration {
         beforeParsing { context -> try {
             context.compilationConfiguration.with {
-                ScriptCompilationConfiguration.dependencies.append((this[ScriptCompilationConfiguration.sharedClassloader] ?: loader).dependency)
+                if (context.compilationConfiguration[ScriptCompilationConfiguration.server] ?: false) {
+                    ScriptCompilationConfiguration.dependencies.append(this[ScriptCompilationConfiguration.sharedClassloader]!!.dependency)
+                }
             }.asSuccess()
         } catch (e: Throwable) {
             ResultWithDiagnostics.Failure(e.asDiagnostics())

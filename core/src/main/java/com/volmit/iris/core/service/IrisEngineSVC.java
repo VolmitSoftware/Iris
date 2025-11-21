@@ -3,7 +3,7 @@ package com.volmit.iris.core.service;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.loader.ResourceLoader;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
@@ -14,6 +14,8 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.Looper;
+import com.volmit.iris.util.stream.utility.CachedStream2D;
+import com.volmit.iris.util.stream.utility.CachedStream3D;
 import lombok.Synchronized;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -65,6 +67,21 @@ public class IrisEngineSVC implements IrisService {
     }
 
     public void engineStatus(VolmitSender sender) {
+        long[] sizes = new long[4];
+        long[] count = new long[4];
+
+        for (var cache : Iris.service(PreservationSVC.class).getCaches()) {
+            var type = switch (cache) {
+                case ResourceLoader<?> ignored -> 0;
+                case CachedStream2D<?> ignored -> 1;
+                case CachedStream3D<?> ignored -> 2;
+                default -> 3;
+            };
+
+            sizes[type] += cache.getSize();
+            count[type]++;
+        }
+
         sender.sendMessage(C.DARK_PURPLE + "-------------------------");
         sender.sendMessage(C.DARK_PURPLE + "Status:");
         sender.sendMessage(C.DARK_PURPLE + "- Service: " + C.LIGHT_PURPLE + (service.isShutdown() ? "Shutdown" : "Running"));
@@ -78,10 +95,14 @@ public class IrisEngineSVC implements IrisService {
         sender.sendMessage(C.DARK_PURPLE + "- Queued: " + C.LIGHT_PURPLE + queuedTectonicPlates.get());
         sender.sendMessage(C.DARK_PURPLE + "- Max Idle Duration: " + C.LIGHT_PURPLE + Form.duration(maxIdleDuration.get(), 2));
         sender.sendMessage(C.DARK_PURPLE + "- Min Idle Duration: " + C.LIGHT_PURPLE + Form.duration(minIdleDuration.get(), 2));
+        sender.sendMessage(C.DARK_PURPLE + "Caches:");
+        sender.sendMessage(C.DARK_PURPLE + "- Resource: " + C.LIGHT_PURPLE + sizes[0] + " (" + count[0] + ")");
+        sender.sendMessage(C.DARK_PURPLE + "- 2D Stream: " + C.LIGHT_PURPLE + sizes[1] + " (" + count[1] + ")");
+        sender.sendMessage(C.DARK_PURPLE + "- 3D Stream: " + C.LIGHT_PURPLE + sizes[2] + " (" + count[2] + ")");
+        sender.sendMessage(C.DARK_PURPLE + "- Other: " + C.LIGHT_PURPLE + sizes[3] + " (" + count[3] + ")");
         sender.sendMessage(C.DARK_PURPLE + "Other:");
         sender.sendMessage(C.DARK_PURPLE + "- Iris Worlds: " + C.LIGHT_PURPLE + totalWorlds.get());
         sender.sendMessage(C.DARK_PURPLE + "- Loaded Chunks: " + C.LIGHT_PURPLE + loadedChunks.get());
-        sender.sendMessage(C.DARK_PURPLE + "- Cache Size: " + C.LIGHT_PURPLE + Form.f(IrisData.cacheSize()));
         sender.sendMessage(C.DARK_PURPLE + "-------------------------");
     }
 

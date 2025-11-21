@@ -25,7 +25,7 @@ open class IrisSimpleExecutionEnvironment internal constructor(
 ) : SimpleEnvironment {
     @JvmOverloads
     constructor(baseDir: File = File(".").absoluteFile) : this(baseDir, null)
-    protected val compileCache = KCache<String, KMap<KClass<*>, ResultWithDiagnostics<Script>>>({ _ -> KMap() }, IrisSettings.get().performance.cacheSize.toLong())
+    protected val compileCache = KCache<String, KMap<KClass<*>, ResultWithDiagnostics<Script>>>({ _ -> KMap() }, 1024L)
     protected val runner = ScriptRunner(baseDir, parent)
 
     override fun execute(

@@ -74,7 +74,7 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
 
     @Override
     public long getMaxSize() {
-        return 256 * 32;
+        return cache.getMaxSize();
     }
 
     @Override

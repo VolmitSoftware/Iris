@@ -159,7 +159,7 @@ public class IrisSettings {
         private IrisSettingsEngineSVC engineSVC = new IrisSettingsEngineSVC();
         public boolean trimMantleInStudio = false; 
         public int mantleKeepAlive = 30;
-        public int cacheSize = 4_096;
+        public int noiseCacheSize = 1_024;
         public int resourceLoaderCacheSize = 1_024;
         public int objectLoaderCacheSize = 4_096;
         public int scriptLoaderCacheSize = 512;

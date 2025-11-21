@@ -176,8 +176,8 @@ public class Mantle {
      * @return the writer
      */
     @ChunkCoordinates
-    public MantleWriter write(EngineMantle engineMantle, int x, int z, int radius) {
-        return new MantleWriter(engineMantle, this, x, z, radius);
+    public MantleWriter write(EngineMantle engineMantle, int x, int z, int radius, boolean multicore) {
+        return new MantleWriter(engineMantle, this, x, z, radius, multicore);
     }
 
     /**

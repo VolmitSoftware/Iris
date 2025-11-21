@@ -44,9 +44,7 @@ import lombok.Data;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.Vector;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static com.volmit.iris.engine.mantle.EngineMantle.AIR;
 
@@ -54,21 +52,21 @@ import static com.volmit.iris.engine.mantle.EngineMantle.AIR;
 public class MantleWriter implements IObjectPlacer, AutoCloseable {
     private final EngineMantle engineMantle;
     private final Mantle mantle;
-    private final KMap<Long, MantleChunk> cachedChunks;
+    private final Map<Long, MantleChunk> cachedChunks;
     private final int radius;
     private final int x;
     private final int z;
 
-    public MantleWriter(EngineMantle engineMantle, Mantle mantle, int x, int z, int radius) {
+    public MantleWriter(EngineMantle engineMantle, Mantle mantle, int x, int z, int radius, boolean multicore) {
         this.engineMantle = engineMantle;
         this.mantle = mantle;
-        int d = radius * 2 + 1;
-        this.cachedChunks = new KMap<>(d * d, 0.75f, Math.max(32, Runtime.getRuntime().availableProcessors() * 4));
-        this.radius = radius;
+        this.radius = radius * 2;
+        int d = this.radius + 1;
+        this.cachedChunks = multicore ? new KMap<>(d * d, 0.75f, Math.max(32, Runtime.getRuntime().availableProcessors() * 4)) : new HashMap<>(d * d);
         this.x = x;
         this.z = z;
 
-        int r = radius / 4;
+        int r = radius / 2;
         for (int i = -r; i <= r; i++) {
             for (int j = -r; j <= r; j++) {
                 cachedChunks.put(Cache.key(i + x, j + z), mantle.getChunk(i + x, j + z).use());

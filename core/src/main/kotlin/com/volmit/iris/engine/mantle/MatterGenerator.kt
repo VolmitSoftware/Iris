@@ -31,7 +31,7 @@ interface MatterGenerator {
             return
         val multicore = multicore || IrisSettings.get().generator.isUseMulticoreMantle
 
-        mantle.write(engine.mantle, x, z, radius * 2).use { writer ->
+        mantle.write(engine.mantle, x, z, radius, multicore).use { writer ->
             for (pair in components) {
                 radius(x, z, pair.b, { x, z ->
                     for (c in pair.a) {

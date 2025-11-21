@@ -48,6 +48,7 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.hunk.Hunk;
+import com.volmit.iris.util.mantle.MantleChunk;
 import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.math.BlockPosition;
 import com.volmit.iris.util.math.M;
@@ -340,14 +341,14 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                         for (int z = 0; z < 16; z++) {
                             if (grid[x][z] == Integer.MIN_VALUE)
                                 continue;
-                            update(x, grid[x][z], z, c, rng);
+                            update(x, grid[x][z], z, c, chunk, rng);
                         }
                     }
 
                     chunk.iterate(MatterUpdate.class, (x, yf, z, v) -> {
                         int y = yf + getWorld().minHeight();
                         if (v != null && v.isUpdate()) {
-                            update(x, y, z, c, rng);
+                            update(x, y, z, c, chunk, rng);
                         }
                     });
                     chunk.deleteSlices(MatterUpdate.class);
@@ -394,7 +395,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     @BlockCoordinates
     @Override
 
-    default void update(int x, int y, int z, Chunk c, RNG rf) {
+    default void update(int x, int y, int z, Chunk c, MantleChunk mc, RNG rf) {
         Block block = c.getBlock(x, y, z);
         BlockData data = block.getBlockData();
         blockUpdatedMetric();
@@ -407,17 +408,11 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             }
 
             if (slot != null) {
-                KList<IrisLootTable> tables = getLootTables(rx, block);
+                KList<IrisLootTable> tables = getLootTables(rx, block, mc);
 
                 try {
                     Bukkit.getPluginManager().callEvent(new IrisLootEvent(this, block, slot, tables));
-
-                    if (!tables.isEmpty()){
-                        Iris.debug("IrisLootEvent has been accessed");
-                    }
-
-                    if (tables.isEmpty())
-                        return;
+                    if (tables.isEmpty()) return;
                     InventoryHolder m = (InventoryHolder) block.getState();
                     addItems(false, m.getInventory(), rx, tables, slot, c.getWorld(), x, y, z, 15);
 
@@ -483,13 +478,23 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     @BlockCoordinates
     @Override
     default KList<IrisLootTable> getLootTables(RNG rng, Block b) {
+        MantleChunk mc = getMantle().getMantle().getChunk(b.getChunk()).use();
+        try {
+            return getLootTables(rng, b, mc);
+        } finally {
+            mc.release();
+        }
+    }
+
+    @BlockCoordinates
+    default KList<IrisLootTable> getLootTables(RNG rng, Block b, MantleChunk mc) {
         int rx = b.getX();
         int rz = b.getZ();
         int ry = b.getY() - getWorld().minHeight();
         double he = getComplex().getHeightStream().get(rx, rz);
         KList<IrisLootTable> tables = new KList<>();
 
-        PlacedObject po = getObjectPlacement(rx, ry, rz);
+        PlacedObject po = getObjectPlacement(rx, ry, rz, mc);
         if (po != null && po.getPlacement() != null) {
             if (B.isStorageChest(b.getBlockData())) {
                 IrisLootTable table = po.getPlacement().getTable(b.getBlockData(), getData());
@@ -812,7 +817,16 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     default PlacedObject getObjectPlacement(int x, int y, int z) {
-        String objectAt = getMantle().getMantle().get(x, y, z, String.class);
+        MantleChunk chunk = getMantle().getMantle().getChunk(x >> 4, z >> 4).use();
+        try {
+            return getObjectPlacement(x, y, z, chunk);
+        } finally {
+            chunk.release();
+        }
+    }
+
+    default PlacedObject getObjectPlacement(int x, int y, int z, MantleChunk chunk) {
+        String objectAt = chunk.get(x & 15, y, z & 15, String.class);
         if (objectAt == null || objectAt.isEmpty()) {
             return null;
         }
@@ -822,7 +836,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         int id = Integer.parseInt(v[1]);
 
 
-        JigsawPieceContainer container = getMantle().getMantle().get(x, y, z, JigsawPieceContainer.class);
+        JigsawPieceContainer container = chunk.get(x & 15, y, z & 15, JigsawPieceContainer.class);
         if (container != null) {
             IrisJigsawPiece piece = container.load(getData());
             if (piece.getObject().equals(object))

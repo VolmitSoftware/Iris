@@ -234,7 +234,7 @@ public class IrisToolbelt {
     }
 
     public static void retainMantleDataForSlice(String className) {
-        toolbeltConfiguration.put("retain.mantle." + className, true);
+        toolbeltConfiguration.put("retain.mantle." + className, Boolean.TRUE);
     }
 
     public static boolean isRetainingMantleDataForSlice(String className) {

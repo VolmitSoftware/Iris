@@ -25,4 +25,8 @@ public class WorldCache2D<T> {
     public long getSize() {
         return chunks.size() * 256L;
     }
+
+    public long getMaxSize() {
+        return chunks.capacity() * 256L;
+    }
 }

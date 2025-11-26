@@ -47,7 +47,7 @@ public class ItemAdderDataProvider extends ExternalDataProvider {
         if (block == null) {
             throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
         }
-        return new IrisCustomData(block.getBaseBlockData(), blockId);
+        return IrisCustomData.of(block.getBaseBlockData(), blockId);
     }
 
     @NotNull

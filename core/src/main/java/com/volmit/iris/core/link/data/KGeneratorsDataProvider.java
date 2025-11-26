@@ -33,7 +33,7 @@ public class KGeneratorsDataProvider extends ExternalDataProvider {
     @Override
     public @NotNull BlockData getBlockData(@NotNull Identifier blockId, @NotNull KMap<String, String> state) throws MissingResourceException {
         if (Main.getGenerators().get(blockId.key()) == null) throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
-        return new IrisCustomData(Material.STRUCTURE_VOID.createBlockData(), ExternalDataSVC.buildState(blockId, state));
+        return IrisCustomData.of(Material.STRUCTURE_VOID.createBlockData(), ExternalDataSVC.buildState(blockId, state));
     }
 
     @Override

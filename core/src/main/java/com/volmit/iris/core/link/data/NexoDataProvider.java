@@ -49,9 +49,9 @@ public class NexoDataProvider extends ExternalDataProvider {
             BlockData data = NexoBlocks.blockData(blockId.key());
             if (data == null)
                 throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());
-            return new IrisCustomData(data, blockState);
+            return IrisCustomData.of(data, blockState);
         } else if (NexoFurniture.isFurniture(blockId.key())) {
-            return new IrisCustomData(B.getAir(), blockState);
+            return IrisCustomData.of(B.getAir(), blockState);
         }
 
         throw new MissingResourceException("Failed to find BlockData!", blockId.namespace(), blockId.key());

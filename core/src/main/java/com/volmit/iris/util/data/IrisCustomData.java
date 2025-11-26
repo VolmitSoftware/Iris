@@ -1,127 +1,78 @@
 package com.volmit.iris.util.data;
 
 import com.volmit.iris.core.link.Identifier;
-import lombok.Data;
+import com.volmit.iris.util.collection.KMap;
 import lombok.NonNull;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.SoundGroup;
-import org.bukkit.block.*;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.block.structure.Mirror;
-import org.bukkit.block.structure.StructureRotation;
-import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-@Data
-public class IrisCustomData implements BlockData {
-	private final @NonNull BlockData base;
-	private final @NotNull Identifier custom;
+import java.lang.reflect.Proxy;
+import java.util.*;
 
-	@NotNull
-	@Override
-	public Material getMaterial() {
-		return base.getMaterial();
+public interface IrisCustomData extends BlockData {
+	@NonNull BlockData getBase();
+	@NonNull Identifier getCustom();
+
+	static IrisCustomData of(@NotNull BlockData base, @NotNull Identifier custom) {
+		var clazz = base.getClass();
+		var loader = clazz.getClassLoader();
+		return (IrisCustomData) Proxy.newProxyInstance(loader, Internal.getInterfaces(loader, clazz), (proxy, method, args) ->
+				switch (method.getName()) {
+					case "getBase" -> base;
+					case "getCustom" -> custom;
+					case "merge" -> of(base.merge((BlockData) args[0]), custom);
+					case "clone" -> of(base.clone(), custom);
+					case "hashCode" -> Objects.hash(base, custom);
+                    case "copyTo" -> throw new UnsupportedOperationException("Cannot copy from custom block data");
+					case "matches" -> {
+						if (!(args[0] instanceof IrisCustomData store))
+							yield false;
+						yield base.matches(store.getBase()) && custom.equals(store.getCustom());
+					}
+					case "equals" -> {
+						if (!(args[0] instanceof IrisCustomData store))
+							yield false;
+						yield store.getBase().equals(base) && store.getCustom().equals(custom);
+					}
+					default -> method.invoke(base, args);
+				});
 	}
 
-	@NotNull
-	@Override
-	public String getAsString() {
-		return base.getAsString();
-	}
+	@ApiStatus.Internal
+	abstract class Internal {
+		private static final KMap<Class<?>, Class<?>[]> cache = new KMap<>();
 
-	@NotNull
-	@Override
-	public String getAsString(boolean b) {
-		return base.getAsString(b);
-	}
+		private static Class<?>[] getInterfaces(ClassLoader loader, Class<?> base) {
+			return cache.computeIfAbsent(base, k -> {
+				Queue<Class<?>> queue = new LinkedList<>();
+				Set<Class<?>> set = new HashSet<>();
 
-	@NotNull
-	@Override
-	public BlockData merge(@NotNull BlockData blockData) {
-		return new IrisCustomData(base.merge(blockData), custom);
-	}
+				queue.add(k);
+				while (!queue.isEmpty()) {
+					Class<?> i = queue.poll();
 
-	@Override
-	public boolean matches(@Nullable BlockData blockData) {
-		if (blockData instanceof IrisCustomData b)
-			return custom.equals(b.custom) && base.matches(b.base);
-		return base.matches(blockData);
-	}
+					if (!BlockData.class.isAssignableFrom(i))
+						continue;
 
-	@NotNull
-	@Override
-	public BlockData clone() {
-		return new IrisCustomData(base.clone(), custom);
-	}
+					for (Class<?> j : i.getInterfaces()) {
+						if (j.isSealed() || j.isHidden())
+							continue;
 
-	@NotNull
-	@Override
-	public SoundGroup getSoundGroup() {
-		return base.getSoundGroup();
-	}
+						try {
+							Class.forName(j.getName(), false, loader);
+							set.add(j);
+						} catch (ClassNotFoundException ignored) {}
+					}
 
-	@Override
-	public int getLightEmission() {
-		return base.getLightEmission();
-	}
+					var parent = i.getSuperclass();
+					if (parent != null)
+						queue.add(parent);
+				}
 
-	@Override
-	public boolean isOccluding() {
-		return base.isOccluding();
-	}
-
-	@Override
-	public boolean requiresCorrectToolForDrops() {
-		return base.requiresCorrectToolForDrops();
-	}
-
-	@Override
-	public boolean isPreferredTool(@NotNull ItemStack itemStack) {
-		return base.isPreferredTool(itemStack);
-	}
-
-	@NotNull
-	@Override
-	public PistonMoveReaction getPistonMoveReaction() {
-		return base.getPistonMoveReaction();
-	}
-
-	@Override
-	public boolean isSupported(@NotNull Block block) {
-		return base.isSupported(block);
-	}
-
-	@Override
-	public boolean isSupported(@NotNull Location location) {
-		return base.isSupported(location);
-	}
-
-	@Override
-	public boolean isFaceSturdy(@NotNull BlockFace blockFace, @NotNull BlockSupport blockSupport) {
-		return base.isFaceSturdy(blockFace, blockSupport);
-	}
-
-	@NotNull
-	@Override
-	public Material getPlacementMaterial() {
-		return base.getPlacementMaterial();
-	}
-
-	@Override
-	public void rotate(@NotNull StructureRotation structureRotation) {
-		base.rotate(structureRotation);
-	}
-
-	@Override
-	public void mirror(@NotNull Mirror mirror) {
-		base.mirror(mirror);
-	}
-
-	@NotNull
-	@Override
-	public BlockState createBlockState() {
-		return base.createBlockState();
+				set.add(IrisCustomData.class);
+				return set.toArray(Class<?>[]::new);
+			});
+		}
 	}
 }

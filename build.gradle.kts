@@ -66,6 +66,7 @@ val color = "truecolor"
 val errorReporting = findProperty("errorReporting") as Boolean? ?: false
 
 val nmsBindings = mapOf(
+        "v1_21_R6" to "1.21.10-R0.1-SNAPSHOT",
         "v1_21_R5" to "1.21.8-R0.1-SNAPSHOT",
         "v1_21_R4" to "1.21.5-R0.1-SNAPSHOT",
         "v1_21_R3" to "1.21.4-R0.1-SNAPSHOT",

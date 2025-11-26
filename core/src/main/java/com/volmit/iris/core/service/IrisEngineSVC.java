@@ -136,12 +136,12 @@ public class IrisEngineSVC implements IrisService {
             @Override
             protected long loop() {
                 try {
-                    queuedTectonicPlates.set(0);
-                    tectonicPlates.set(0);
-                    loadedChunks.set(0);
-                    unloaderAlive.set(0);
-                    trimmerAlive.set(0);
-                    totalWorlds.set(0);
+                    int queuedPlates = 0;
+                    int totalPlates = 0;
+                    long chunks = 0;
+                    int unloaders = 0;
+                    int trimmers = 0;
+                    int iris = 0;
 
                     double maxDuration = Long.MIN_VALUE;
                     double minDuration = Long.MAX_VALUE;
@@ -149,23 +149,30 @@ public class IrisEngineSVC implements IrisService {
                         var registered = entry.getValue();
                         if (registered.closed) continue;
 
-                        totalWorlds.incrementAndGet();
-                        unloaderAlive.addAndGet(registered.unloaderAlive() ? 1 : 0);
-                        trimmerAlive.addAndGet(registered.trimmerAlive() ? 1 : 0);
+                        iris++;
+                        if (registered.unloaderAlive()) unloaders++;
+                        if (registered.trimmerAlive()) trimmers++;
 
                         var engine = registered.getEngine();
                         if (engine == null) continue;
 
-                        queuedTectonicPlates.addAndGet((int) engine.getMantle().getUnloadRegionCount());
-                        tectonicPlates.addAndGet(engine.getMantle().getLoadedRegionCount());
-                        loadedChunks.addAndGet(entry.getKey().getLoadedChunks().length);
+                        queuedPlates += engine.getMantle().getUnloadRegionCount();
+                        totalPlates += engine.getMantle().getLoadedRegionCount();
+                        chunks += entry.getKey().getLoadedChunks().length;
 
                         double duration = engine.getMantle().getAdjustedIdleDuration();
                         if (duration > maxDuration) maxDuration = duration;
                         if (duration < minDuration) minDuration = duration;
                     }
+
+                    trimmerAlive.set(trimmers);
+                    unloaderAlive.set(unloaders);
+                    tectonicPlates.set(totalPlates);
+                    queuedTectonicPlates.set(queuedPlates);
                     maxIdleDuration.set(maxDuration);
                     minIdleDuration.set(minDuration);
+                    loadedChunks.set(chunks);
+                    totalWorlds.set(iris);
 
                     worlds.values().forEach(Registered::update);
                 } catch (Throwable e) {

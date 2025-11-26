@@ -207,7 +207,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
             Chunk c = PaperLib.getChunkAtAsync(world, x, z)
                     .thenApply(d -> {
-                        d.addPluginChunkTicket(Iris.instance);
+                        Iris.tickets.addTicket(d);
 
                         for (Entity ee : d.getEntities()) {
                             if (ee instanceof Player) {
@@ -217,7 +217,6 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
                             ee.remove();
                         }
 
-                        engine.getWorldManager().onChunkLoad(d, false);
                         return d;
                     }).get();
 
@@ -243,7 +242,7 @@ public class BukkitChunkGenerator extends ChunkGenerator implements PlatformChun
 
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
                     .thenRunAsync(() -> {
-                        c.removePluginChunkTicket(Iris.instance);
+                        Iris.tickets.removeTicket(c);
                         engine.getWorldManager().onChunkLoad(c, true);
                     }, syncExecutor)
                     .get();

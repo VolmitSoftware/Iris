@@ -249,7 +249,7 @@ public interface EngineMantle extends MatterGenerator {
         }
     }
 
-    default long getUnloadRegionCount() {
+    default int getUnloadRegionCount() {
         return getMantle().getUnloadRegionCount();
     }
 

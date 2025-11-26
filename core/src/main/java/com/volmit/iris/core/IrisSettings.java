@@ -177,12 +177,19 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsUpdater {
         public int maxConcurrency = 256;
+        public boolean nativeThreads = false;
+        public double threadMultiplier = 2;
+
         public double chunkLoadSensitivity = 0.7;
         public MsRange emptyMsRange = new MsRange(80, 100);
         public MsRange defaultMsRange = new MsRange(20, 40);
 
         public int getMaxConcurrency() {
             return Math.max(Math.abs(maxConcurrency), 1);
+        }
+
+        public double getThreadMultiplier() {
+            return Math.min(Math.abs(threadMultiplier), 0.1);
         }
 
         public double getChunkLoadSensitivity() {

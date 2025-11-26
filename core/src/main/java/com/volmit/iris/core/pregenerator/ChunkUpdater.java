@@ -2,16 +2,15 @@ package com.volmit.iris.core.pregenerator;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.nms.container.Pair;
+import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
-import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RollingSequence;
+import com.volmit.iris.util.plugin.chunk.TicketHolder;
 import com.volmit.iris.util.profile.LoadBalancer;
 import com.volmit.iris.util.scheduling.J;
 import io.papermc.lib.PaperLib;
@@ -21,7 +20,6 @@ import org.bukkit.World;
 
 import java.io.File;
 
-import java.util.ArrayList;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -31,7 +29,7 @@ public class ChunkUpdater {
     private static final String REGION_PATH = "region" + File.separator + "r.";
     private final AtomicBoolean paused = new AtomicBoolean();
     private final AtomicBoolean cancelled = new AtomicBoolean();
-    private final KMap<Long, Pair<Long, AtomicInteger>> lastUse = new KMap<>();
+    private final TicketHolder holder;
     private final RollingSequence chunksPerSecond = new RollingSequence(5);
     private final AtomicInteger totalMaxChunks = new AtomicInteger();
     private final AtomicInteger chunksProcessed = new AtomicInteger();
@@ -40,13 +38,13 @@ public class ChunkUpdater {
     private final AtomicBoolean serverEmpty = new AtomicBoolean(true);
     private final AtomicLong lastCpsTime = new AtomicLong(M.ms());
     private final int maxConcurrency = IrisSettings.get().getUpdater().getMaxConcurrency();
+    private final int coreLimit = (int) Math.max(Runtime.getRuntime().availableProcessors() * IrisSettings.get().getUpdater().getThreadMultiplier(), 1);
     private final Semaphore semaphore = new Semaphore(maxConcurrency);
     private final LoadBalancer loadBalancer = new LoadBalancer(semaphore, maxConcurrency, IrisSettings.get().getUpdater().emptyMsRange);
     private final AtomicLong startTime = new AtomicLong();
     private final Dimensions dimensions;
     private final PregenTask task;
-    private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-    private final ExecutorService chunkExecutor = Executors.newVirtualThreadPerTaskExecutor();
+    private final ExecutorService chunkExecutor = IrisSettings.get().getUpdater().isNativeThreads() ? Executors.newFixedThreadPool(coreLimit) : Executors.newVirtualThreadPerTaskExecutor();
     private final ScheduledExecutorService scheduler  = Executors.newScheduledThreadPool(1);
     private final CountDownLatch latch;
     private final Engine engine;
@@ -55,6 +53,7 @@ public class ChunkUpdater {
     public ChunkUpdater(World world) {
         this.engine = IrisToolbelt.access(world).getEngine();
         this.world = world;
+        this.holder = Iris.tickets.getHolder(world);
         this.dimensions = calculateWorldDimensions(new File(world.getWorldFolder(), "region"));
         this.task = dimensions.task();
         this.totalMaxChunks.set(dimensions.count * 1024);
@@ -113,7 +112,6 @@ public class ChunkUpdater {
                     e.printStackTrace();
                 }
             }, 0, 3, TimeUnit.SECONDS);
-            scheduler.scheduleAtFixedRate(this::unloadChunks, 0, 1, TimeUnit.SECONDS);
             scheduler.scheduleAtFixedRate(() -> {
                 boolean empty = Bukkit.getOnlinePlayers().isEmpty();
                 if (serverEmpty.getAndSet(empty) == empty)
@@ -128,6 +126,7 @@ public class ChunkUpdater {
             t.setPriority(Thread.MAX_PRIORITY);
             t.start();
 
+            Iris.service(PreservationSVC.class).register(t);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -140,8 +139,6 @@ public class ChunkUpdater {
 
             chunkExecutor.shutdown();
             chunkExecutor.awaitTermination(5, TimeUnit.SECONDS);
-            executor.shutdown();
-            executor.awaitTermination(5, TimeUnit.SECONDS);
             scheduler.shutdownNow();
             unloadAndSaveAllChunks();
         } catch (Exception ignored) {}
@@ -200,20 +197,16 @@ public class ChunkUpdater {
             return;
         }
 
+        var mc = engine.getMantle().getMantle().getChunk(x, z).use();
         try {
             Chunk c = world.getChunkAt(x, z);
-            engine.getMantle().getMantle().getChunk(c);
             engine.updateChunk(c);
 
-            for (int xx = -1; xx <= 1; xx++) {
-                for (int zz = -1; zz <= 1; zz++) {
-                    var counter = lastUse.get(Cache.key(x + xx, z + zz));
-                    if (counter != null) counter.getB().decrementAndGet();
-                }
-            }
+            removeTickets(x, z);
         } finally {
             chunksUpdated.incrementAndGet();
             chunksProcessed.getAndIncrement();
+            mc.release();
         }
     }
 
@@ -235,41 +228,16 @@ public class ChunkUpdater {
             for (int dz = -1; dz <= 1; dz++) {
                 int xx = x + dx;
                 int zz = z + dz;
-                executor.submit(() -> {
-                    try {
-                        Chunk c;
-                        try {
-                            c = PaperLib.getChunkAtAsync(world, xx, zz, false, true)
-                                    .thenApply(chunk -> {
-                                        if (chunk != null)
-                                            chunk.addPluginChunkTicket(Iris.instance);
-                                        return chunk;
-                                    }).get();
-                        } catch (InterruptedException | ExecutionException e) {
-                            generated.set(false);
-                            return;
-                        }
-
-                        if (c == null) {
-                            generated.set(false);
-                            return;
-                        }
-
-                        if (!c.isLoaded()) {
-                            var future = J.sfut(() -> c.load(false));
-                            if (future != null) future.join();
-                        }
-
-                        if (!PaperLib.isChunkGenerated(c.getWorld(), xx, zz))
-                            generated.set(false);
-
-                        var pair = lastUse.computeIfAbsent(Cache.key(c), k -> new Pair<>(0L, new AtomicInteger(-1)));
-                        pair.setA(M.ms());
-                        pair.getB().updateAndGet(i -> i == -1 ? 1 : ++i);
-                    } finally {
-                        latch.countDown();
-                    }
-                });
+                PaperLib.getChunkAtAsync(world, xx, zz, false, true)
+                        .thenAccept(chunk -> {
+                            if (chunk == null || !chunk.isGenerated()) {
+                                latch.countDown();
+                                generated.set(false);
+                                return;
+                            }
+                            holder.addTicket(chunk);
+                            latch.countDown();
+                        });
             }
         }
 
@@ -278,27 +246,16 @@ public class ChunkUpdater {
         } catch (InterruptedException e) {
             Iris.info("Interrupted while waiting for chunks to load");
         }
-        return generated.get();
+
+        if (generated.get()) return true;
+        removeTickets(x, z);
+        return false;
     }
 
-    private synchronized void unloadChunks() {
-        for (var key : new ArrayList<>(lastUse.keySet())) {
-            if (key == null) continue;
-            var pair = lastUse.get(key);
-            if (pair == null) continue;
-            var lastUseTime = pair.getA();
-            var counter = pair.getB();
-            if (lastUseTime == null || counter == null)
-                continue;
-
-            if (M.ms() - lastUseTime >= 5000 && counter.get() == 0) {
-                int x = Cache.keyX(key);
-                int z = Cache.keyZ(key);
-                J.s(() -> {
-                    world.removePluginChunkTicket(x, z, Iris.instance);
-                    world.unloadChunk(x, z);
-                    lastUse.remove(key);
-                });
+    private void removeTickets(int x, int z) {
+        for (int xx = -1; xx <= 1; xx++) {
+            for (int zz = -1; zz <= 1; zz++) {
+                holder.removeTicket(x + xx, z + zz);
             }
         }
     }
@@ -311,7 +268,6 @@ public class ChunkUpdater {
                     return;
                 }
 
-                unloadChunks();
                 world.save();
             }).get();
         } catch (Throwable e) {

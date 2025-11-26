@@ -90,6 +90,7 @@ public class WandSVC implements IrisService {
 
             int total = c.getSizeX() * c.getSizeY() * c.getSizeZ();
             var latch = new CountDownLatch(1);
+            var holder = Iris.tickets.getHolder(p.getWorld());
             new Job() {
                 private int i;
                 private Chunk chunk;
@@ -108,7 +109,7 @@ public class WandSVC implements IrisService {
                             while (time > M.ms()) {
                                 if (!it.hasNext()) {
                                     if (chunk != null) {
-                                        chunk.removePluginChunkTicket(Iris.instance);
+                                        holder.removeTicket(chunk);
                                         chunk = null;
                                     }
 
@@ -122,9 +123,10 @@ public class WandSVC implements IrisService {
                                     var bChunk = b.getChunk();
                                     if (chunk == null) {
                                         chunk = bChunk;
-                                        chunk.addPluginChunkTicket(Iris.instance);
+                                        holder.addTicket(chunk);
                                     } else if (chunk != bChunk) {
-                                        chunk.removePluginChunkTicket(Iris.instance);
+                                        holder.removeTicket(chunk);
+                                        holder.addTicket(bChunk);
                                         chunk = bChunk;
                                     }
 

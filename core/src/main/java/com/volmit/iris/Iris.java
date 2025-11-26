@@ -58,6 +58,7 @@ import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitPlugin;
 import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.plugin.chunk.ChunkTickets;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.Queue;
 import com.volmit.iris.util.scheduling.ShurikenQueue;
@@ -95,6 +96,7 @@ public class Iris extends VolmitPlugin implements Listener {
     public static MultiverseCoreLink linkMultiverseCore;
     public static IrisCompat compat;
     public static FileWatcher configWatcher;
+    public static ChunkTickets tickets;
     private static VolmitSender sender;
     private static Thread shutdownHook;
 
@@ -450,6 +452,7 @@ public class Iris extends VolmitPlugin implements Listener {
         IrisSafeguard.IrisSafeguardSystem();
         getSender().setTag(getTag());
         IrisSafeguard.splash(true);
+        tickets = new ChunkTickets();
         linkMultiverseCore = new MultiverseCoreLink();
         configWatcher = new FileWatcher(getDataFile("settings.json"));
         services.values().forEach(IrisService::onEnable);

@@ -24,8 +24,7 @@ public interface IrisCustomData extends BlockData {
 					case "merge" -> of(base.merge((BlockData) args[0]), custom);
 					case "clone" -> of(base.clone(), custom);
 					case "hashCode" -> Objects.hash(base, custom);
-                    case "copyTo" -> throw new UnsupportedOperationException("Cannot copy from custom block data");
-					case "matches" -> {
+                    case "matches" -> {
 						if (!(args[0] instanceof IrisCustomData store))
 							yield false;
 						yield base.matches(store.getBase()) && custom.equals(store.getCustom());

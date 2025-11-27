@@ -122,6 +122,10 @@ public class IrisCompat {
     private static KList<IrisCompatabilityBlockFilter> getDefaultBlockCompatabilityFilters() {
         KList<IrisCompatabilityBlockFilter> filters = new KList<>();
 
+        filters.add(new IrisCompatabilityBlockFilter("CHAIN", "IRON_CHAIN"));
+        filters.add(new IrisCompatabilityBlockFilter("GRASS", "SHORT_GRASS"));
+        filters.add(new IrisCompatabilityBlockFilter("SHORT_GRASS", "GRASS"));
+
         // Below 1.16
         filters.add(new IrisCompatabilityBlockFilter("WEEPING_VINES", "NETHER_FENCE"));
         filters.add(new IrisCompatabilityBlockFilter("WEEPING_VINES_PLANT", "NETHER_FENCE"));
@@ -160,7 +164,7 @@ public class IrisCompat {
         filters.add(new IrisCompatabilityBlockFilter("CRACKED_NETHER_BRICKS", "NETHER_BRICKS"));
         filters.add(new IrisCompatabilityBlockFilter("CHISELED_NETHER_BRICKS", "NETHER_BRICKS"));
         filters.add(new IrisCompatabilityBlockFilter("NETHER_FENCE", "LEGACY_NETHER_FENCE"));
-        filters.add(new IrisCompatabilityBlockFilter("CHAIN", "IRON_BARS"));
+        filters.add(new IrisCompatabilityBlockFilter("IRON_CHAIN", "IRON_BARS"));
         filters.add(new IrisCompatabilityBlockFilter("NETHERITE_BLOCK", "QUARTZ_BLOCK"));
         filters.add(new IrisCompatabilityBlockFilter("BLACKSTONE", "COBBLESTONE"));
         filters.add(new IrisCompatabilityBlockFilter("BASALT", "STONE"));
@@ -254,7 +258,6 @@ public class IrisCompat {
         filters.add(new IrisCompatabilityBlockFilter("BAMBOO", "BIRCH_FENCE"));
         filters.add(new IrisCompatabilityBlockFilter("BAMBOO_SAPLING", "BIRCH_SAPLING"));
         filters.add(new IrisCompatabilityBlockFilter("POTTED_BAMBOO", "POTTED_BIRCH_SAPLING"));
-        filters.add(new IrisCompatabilityBlockFilter("GRASS", "SHORT_GRASS"));
 
         return filters;
     }

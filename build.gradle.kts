@@ -1,5 +1,3 @@
-import com.volmit.nmstools.NMSToolsExtension
-import com.volmit.nmstools.NMSToolsPlugin
 import de.undercouch.gradle.tasks.download.Download
 import xyz.jpenilla.runpaper.task.RunServer
 import kotlin.system.exitProcess
@@ -30,7 +28,6 @@ buildscript {
 plugins {
     java
     `java-library`
-    alias(libs.plugins.shadow)
     alias(libs.plugins.download)
     alias(libs.plugins.runPaper)
 }
@@ -78,14 +75,14 @@ val nmsBindings = mapOf(
         "v1_20_R1" to "1.20.1-R0.1-SNAPSHOT",
 )
 val jvmVersion = mapOf<String, Int>()
-nmsBindings.forEach { key, value ->
+nmsBindings.forEach { (key, value) ->
     project(":nms:$key") {
         apply<JavaPlugin>()
-        apply<NMSToolsPlugin>()
 
-        extensions.configure(NMSToolsExtension::class) {
+        nmsBinding {
             jvm = jvmVersion.getOrDefault(key, 21)
             version = value
+            type = NMSBinding.Type.DIRECT
         }
 
         dependencies {
@@ -112,14 +109,18 @@ nmsBindings.forEach { key, value ->
     }
 }
 
+dependencies {
+    for (key in nmsBindings.keys) {
+        implementation(project(":nms:$key", "reobf"))
+    }
+    implementation(project(":core", "shadow"))
+    implementation(project(":core:agent"))
+}
+
 tasks {
     jar {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-        nmsBindings.forEach { key, _ ->
-            from(project(":nms:$key").tasks.named("remap").map { zipTree(it.outputs.files.singleFile) })
-        }
-        from(project(":core").tasks.shadowJar.flatMap { it.archiveFile }.map { zipTree(it) })
-        from(project(":core:agent").tasks.jar.flatMap { it.archiveFile })
+        from(configurations.runtimeClasspath.map { it.resolve().map(::zipTree) })
         archiveFileName.set("Iris-${project.version}.jar")
     }
 

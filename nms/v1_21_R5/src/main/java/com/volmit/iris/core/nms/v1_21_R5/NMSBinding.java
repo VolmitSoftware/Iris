@@ -168,13 +168,13 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public boolean hasTile(Location l) {
-        return ((CraftWorld) l.getWorld()).getHandle().getBlockEntity(new BlockPos(l.getBlockX(), l.getBlockY(), l.getBlockZ()), false) != null;
+        return ((CraftWorld) l.getWorld()).getHandle().getBlockEntity(new BlockPos(l.getBlockX(), l.getBlockY(), l.getBlockZ())) != null;
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public KMap<String, Object> serializeTile(Location location) {
-        BlockEntity e = ((CraftWorld) location.getWorld()).getHandle().getBlockEntity(new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()), false);
+        BlockEntity e = ((CraftWorld) location.getWorld()).getHandle().getBlockEntity(new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()));
 
         if (e == null) {
             return null;

@@ -63,21 +63,25 @@ class NMSBinding : Plugin<Project> {
             }
         }
 
+        val (major, minor) = config.version.parseVersion()
+        if (major <= 20 && minor <= 4) return@with
         tasks.register("convert", ConversionTask::class.java, type)
-        val tasks = gradle.startParameter.taskNames
-        tasks.addFirst("$path:convert")
-        gradle.startParameter.setTaskNames(tasks)
+        tasks.named("compileJava") { it.dependsOn("convert") }
+        rootProject.tasks.named("prepareKotlinBuildScriptModel") { it.dependsOn("$path:convert") }
     }
 
     @CacheableTask
-    open class ConversionTask @Inject constructor(type: Type, ) : DefaultTask() {
+    open class ConversionTask @Inject constructor(type: Type) : DefaultTask() {
         private val pattern: Regex
         private val replacement: String
 
         init {
             group = "nms"
             inputs.property("type", type)
-            outputs.file("dummy")
+            val java = project.extensions.findByType(JavaPluginExtension::class.java) ?: throw GradleException("Java plugin not found")
+            val source = java.sourceSets.findByName("main")?.allJava ?: throw GradleException("No main source set found")
+            outputs.files(source)
+
             if (type == Type.USER_DEV) {
                 pattern = "org\\.bukkit\\.craftbukkit\\.${project.name}".toRegex()
                 replacement = "org.bukkit.craftbukkit"
@@ -89,11 +93,9 @@ class NMSBinding : Plugin<Project> {
 
         @TaskAction
         fun process() {
-            val java = project.extensions.findByType(JavaPluginExtension::class.java) ?: throw GradleException("Java plugin not found")
-            val source = java.sourceSets.findByName("main")?.allJava ?: throw GradleException("No main source set found")
             val dispatcher = Dispatchers.IO.limitedParallelism(16)
             runBlocking {
-                for (file in source) {
+                for (file in outputs.files) {
                     if (file.extension !in listOf("java"))
                         continue
 
@@ -153,7 +155,9 @@ class NMSBinding : Plugin<Project> {
 }
 
 private val NEW_LINE = System.lineSeparator()
-
+private fun String.parseVersion() = substringBefore('-').split(".").let {
+    it[1].toInt() to it[2].toInt()
+}
 
 class Config(
     var jvm: Int = 21,

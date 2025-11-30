@@ -109,18 +109,19 @@ nmsBindings.forEach { (key, value) ->
     }
 }
 
+val jarJar: Configuration by configurations.creating
 dependencies {
     for (key in nmsBindings.keys) {
         implementation(project(":nms:$key", "reobf"))
     }
     implementation(project(":core", "shadow"))
-    implementation(project(":core:agent"))
+    jarJar(project(":core:agent"))
 }
 
 tasks {
     jar {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-        from(configurations.runtimeClasspath.map { it.resolve().map(::zipTree) })
+        from(jarJar, configurations.runtimeClasspath.map { it.resolve().map(::zipTree) })
         archiveFileName.set("Iris-${project.version}.jar")
     }
 

@@ -16,11 +16,12 @@ import org.gradle.api.attributes.LibraryElements
 import org.gradle.api.attributes.Usage
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.JavaPluginExtension
-import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.TaskAction
 import org.gradle.internal.extensions.core.extra
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.jvm.toolchain.JavaToolchainService
+import org.gradle.work.DisableCachingByDefault
+import java.io.RandomAccessFile
 import javax.inject.Inject
 
 class NMSBinding : Plugin<Project> {
@@ -70,8 +71,8 @@ class NMSBinding : Plugin<Project> {
         rootProject.tasks.named("prepareKotlinBuildScriptModel") { it.dependsOn("$path:convert") }
     }
 
-    @CacheableTask
-    open class ConversionTask @Inject constructor(type: Type) : DefaultTask() {
+    @DisableCachingByDefault
+    abstract class ConversionTask @Inject constructor(type: Type) : DefaultTask() {
         private val pattern: Regex
         private val replacement: String
 
@@ -79,7 +80,8 @@ class NMSBinding : Plugin<Project> {
             group = "nms"
             inputs.property("type", type)
             val java = project.extensions.findByType(JavaPluginExtension::class.java) ?: throw GradleException("Java plugin not found")
-            val source = java.sourceSets.findByName("main")?.allJava ?: throw GradleException("No main source set found")
+            val source = java.sourceSets.named("main").map { it.allJava }
+            inputs.files(source)
             outputs.files(source)
 
             if (type == Type.USER_DEV) {
@@ -95,17 +97,16 @@ class NMSBinding : Plugin<Project> {
         fun process() {
             val dispatcher = Dispatchers.IO.limitedParallelism(16)
             runBlocking {
-                for (file in outputs.files) {
+                for (file in inputs.files) {
                     if (file.extension !in listOf("java"))
                         continue
-
 
                     launch(dispatcher) {
                         val output = ArrayList<String>()
                         var changed = false
 
-                        file.useLines {
-                            for (line in it) {
+                        file.bufferedReader().use {
+                            for (line in it.lines()) {
                                 if (line.startsWith("package") || line.isBlank()) {
                                     output += line
                                     continue
@@ -127,11 +128,17 @@ class NMSBinding : Plugin<Project> {
                                 output += line.replace(pattern, replacement)
                                 changed = true
                             }
-
-
                         }
 
                         if (changed) {
+                            RandomAccessFile(file, "r").use { raf ->
+                                val bytes = ByteArray(NEW_LINE_BYTES.size)
+                                raf.seek(raf.length() - bytes.size)
+                                raf.readFully(bytes)
+                                if (bytes.contentEquals(NEW_LINE_BYTES))
+                                    output += ""
+                            }
+
                             file.writer().use {
                                 val iterator = output.iterator()
                                 while (iterator.hasNext()) {
@@ -155,6 +162,7 @@ class NMSBinding : Plugin<Project> {
 }
 
 private val NEW_LINE = System.lineSeparator()
+private val NEW_LINE_BYTES = NEW_LINE.encodeToByteArray()
 private fun String.parseVersion() = substringBefore('-').split(".").let {
     it[1].toInt() to it[2].toInt()
 }

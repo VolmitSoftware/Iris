@@ -142,6 +142,7 @@ slimJar {
     relocate("com.google.inject", "$lib.guice")
     relocate("org.dom4j", "$lib.dom4j")
     relocate("org.jaxen", "$lib.jaxen")
+    relocate("com.github.benmanes.caffeine", "$lib.caffeine")
 }
 
 tasks {

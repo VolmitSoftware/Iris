@@ -27,8 +27,4 @@ public interface SimpleEnvironment {
 
     @Nullable
     Object evaluate(@NonNull String script, @NonNull Class<?> type, @Nullable Map<@NonNull String, Object> vars);
-
-    default void close() {
-
-    }
 }

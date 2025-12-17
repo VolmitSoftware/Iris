@@ -440,7 +440,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             //INMS.get().injectBiomesFromMantle(e, getMantle());
 
             if (!IrisSettings.get().getGenerator().earlyCustomBlocks) return;
-            e.addPluginChunkTicket(Iris.instance);
+            Iris.tickets.addTicket(e);
             J.s(() -> {
                 var chunk = getMantle().getChunk(e).use();
                 int minY = getTarget().getWorld().minHeight();
@@ -452,7 +452,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                     });
                 } finally {
                     chunk.release();
-                    e.removePluginChunkTicket(Iris.instance);
+                    Iris.tickets.removeTicket(e);
                 }
             }, RNG.r.i(20, 60));
         }

@@ -1,5 +1,3 @@
-import com.volmit.nmstools.NMSToolsExtension
-import com.volmit.nmstools.NMSToolsPlugin
 import de.undercouch.gradle.tasks.download.Download
 import xyz.jpenilla.runpaper.task.RunServer
 import kotlin.system.exitProcess
@@ -30,7 +28,6 @@ buildscript {
 plugins {
     java
     `java-library`
-    alias(libs.plugins.shadow)
     alias(libs.plugins.download)
     alias(libs.plugins.runPaper)
 }
@@ -58,13 +55,15 @@ registerCustomOutputTaskUnix("PixelMac", "/Users/test/Desktop/mcserver/plugins")
 registerCustomOutputTaskUnix("CrazyDev22LT", "/home/julian/Desktop/server/plugins")
 // ==============================================================
 
-val serverMinHeap = "2G"
-val serverMaxHeap = "8G"
+val serverMinHeap = "10G"
+val serverMaxHeap = "10G"
+val additionalFlags = "-XX:+AlwaysPreTouch"
 //Valid values are: none, truecolor, indexed256, indexed16, indexed8
 val color = "truecolor"
 val errorReporting = findProperty("errorReporting") as Boolean? ?: false
 
 val nmsBindings = mapOf(
+        "v1_21_R6" to "1.21.10-R0.1-SNAPSHOT",
         "v1_21_R5" to "1.21.8-R0.1-SNAPSHOT",
         "v1_21_R4" to "1.21.5-R0.1-SNAPSHOT",
         "v1_21_R3" to "1.21.4-R0.1-SNAPSHOT",
@@ -76,14 +75,14 @@ val nmsBindings = mapOf(
         "v1_20_R1" to "1.20.1-R0.1-SNAPSHOT",
 )
 val jvmVersion = mapOf<String, Int>()
-nmsBindings.forEach { key, value ->
+nmsBindings.forEach { (key, value) ->
     project(":nms:$key") {
         apply<JavaPlugin>()
-        apply<NMSToolsPlugin>()
 
-        extensions.configure(NMSToolsExtension::class) {
+        nmsBinding {
             jvm = jvmVersion.getOrDefault(key, 21)
             version = value
+            type = NMSBinding.Type.DIRECT
         }
 
         dependencies {
@@ -106,17 +105,23 @@ nmsBindings.forEach { key, value ->
         systemProperty("com.mojang.eula.agree", true)
         systemProperty("iris.suppressReporting", !errorReporting)
         jvmArgs("-javaagent:${project(":core:agent").tasks.jar.flatMap { it.archiveFile }.get().asFile.absolutePath}")
+        jvmArgs(additionalFlags.split(' '))
     }
+}
+
+val jarJar: Configuration by configurations.creating
+dependencies {
+    for (key in nmsBindings.keys) {
+        implementation(project(":nms:$key", "reobf"))
+    }
+    implementation(project(":core", "shadow"))
+    jarJar(project(":core:agent"))
 }
 
 tasks {
     jar {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-        nmsBindings.forEach { key, _ ->
-            from(project(":nms:$key").tasks.named("remap").map { zipTree(it.outputs.files.singleFile) })
-        }
-        from(project(":core").tasks.shadowJar.flatMap { it.archiveFile }.map { zipTree(it) })
-        from(project(":core:agent").tasks.jar.flatMap { it.archiveFile })
+        from(jarJar, configurations.runtimeClasspath.map { it.resolve().map(::zipTree) })
         archiveFileName.set("Iris-${project.version}.jar")
     }
 

@@ -159,7 +159,7 @@ public class IrisSettings {
         private IrisSettingsEngineSVC engineSVC = new IrisSettingsEngineSVC();
         public boolean trimMantleInStudio = false; 
         public int mantleKeepAlive = 30;
-        public int cacheSize = 4_096;
+        public int noiseCacheSize = 1_024;
         public int resourceLoaderCacheSize = 1_024;
         public int objectLoaderCacheSize = 4_096;
         public int scriptLoaderCacheSize = 512;
@@ -177,12 +177,19 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsUpdater {
         public int maxConcurrency = 256;
+        public boolean nativeThreads = false;
+        public double threadMultiplier = 2;
+
         public double chunkLoadSensitivity = 0.7;
         public MsRange emptyMsRange = new MsRange(80, 100);
         public MsRange defaultMsRange = new MsRange(20, 40);
 
         public int getMaxConcurrency() {
             return Math.max(Math.abs(maxConcurrency), 1);
+        }
+
+        public double getThreadMultiplier() {
+            return Math.min(Math.abs(threadMultiplier), 0.1);
         }
 
         public double getChunkLoadSensitivity() {
@@ -243,6 +250,7 @@ public class IrisSettings {
         public int maxBiomeChildDepth = 4;
         public boolean preventLeafDecay = true;
         public boolean useMulticore = false;
+        public boolean useMulticoreMantle = false;
         public boolean offsetNoiseTypes = false;
         public boolean earlyCustomBlocks = false;
     }

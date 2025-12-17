@@ -24,7 +24,6 @@ import com.volmit.iris.engine.object.IObjectPlacer;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.math.RNG;
-import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 
 public class HeightmapObjectPlacer implements IObjectPlacer {
@@ -81,6 +80,16 @@ public class HeightmapObjectPlacer implements IObjectPlacer {
 
     public void setTile(int param1Int1, int param1Int2, int param1Int3, TileData param1TileData) {
         oplacer.setTile(param1Int1, param1Int2, param1Int3, param1TileData);
+    }
+
+    @Override
+    public <T> void setData(int xx, int yy, int zz, T data) {
+        oplacer.setData(xx, yy, zz, data);
+    }
+
+    @Override
+    public <T> T getData(int xx, int yy, int zz, Class<T> t) {
+        return oplacer.getData(xx, yy, zz, t);
     }
 
     @Override

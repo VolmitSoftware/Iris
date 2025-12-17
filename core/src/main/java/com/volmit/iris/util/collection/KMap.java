@@ -33,7 +33,15 @@ public class KMap<K, V> extends ConcurrentHashMap<K, V> {
     private static final long serialVersionUID = 7288942695300448163L;
 
     public KMap() {
-        super();
+        this(16);
+    }
+
+    public KMap(int initialCapacity) {
+        this(initialCapacity, 0.75f, 1);
+    }
+
+    public KMap(int initialCapacity, float loadFactor, int concurrencyLevel) {
+        super(initialCapacity, loadFactor, concurrencyLevel);
     }
 
     public KMap(Map<K, V> gMap) {

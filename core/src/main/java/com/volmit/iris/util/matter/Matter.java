@@ -85,13 +85,13 @@ public interface Matter {
         BlockVector min = new BlockVector();
         Matter m = new IrisMatter(Math.max(object.getW(), 1) + 1, Math.max(object.getH(), 1) + 1, Math.max(object.getD(), 1) + 1);
 
-        for (BlockVector i : object.getBlocks().keySet()) {
+        for (BlockVector i : object.getBlocks().keys()) {
             min.setX(Math.min(min.getX(), i.getX()));
             min.setY(Math.min(min.getY(), i.getY()));
             min.setZ(Math.min(min.getZ(), i.getZ()));
         }
 
-        for (BlockVector i : object.getBlocks().keySet()) {
+        for (BlockVector i : object.getBlocks().keys()) {
             m.slice(BlockData.class).set(i.getBlockX() - min.getBlockX(), i.getBlockY() - min.getBlockY(), i.getBlockZ() - min.getBlockZ(), object.getBlocks().get(i));
         }
 

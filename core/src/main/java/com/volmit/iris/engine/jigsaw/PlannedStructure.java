@@ -154,9 +154,9 @@ public class PlannedStructure {
         JigsawStructureContainer structure = JigsawStructureContainer.toContainer(getStructure());
         i.setRealPositions(xx, height, zz, placer);
         return v.place(xx, height, zz, placer, options, rng, (b, data) -> {
-            e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);
-            e.set(b.getX(), b.getY(), b.getZ(), structure);
-            e.set(b.getX(), b.getY(), b.getZ(), piece);
+            placer.setData(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);
+            placer.setData(b.getX(), b.getY(), b.getZ(), structure);
+            placer.setData(b.getX(), b.getY(), b.getZ(), piece);
         }, null, getData().getEngine() != null ? getData() : eng.getData()) != -1;
     }
 

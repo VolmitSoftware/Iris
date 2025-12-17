@@ -58,7 +58,7 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import com.volmit.iris.util.scheduling.jobs.ParallelQueueJob;
+import com.volmit.iris.util.scheduling.jobs.ParallelRadiusJob;
 import io.papermc.lib.PaperLib;
 import org.bukkit.*;
 import org.bukkit.event.inventory.InventoryType;
@@ -78,6 +78,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
@@ -174,56 +175,49 @@ public class CommandStudio implements DecreeExecutor {
             PlatformChunkGenerator plat = IrisToolbelt.access(world);
             Engine engine = plat.getEngine();
             DecreeContext.touch(sender);
-            try (SyncExecutor executor = new SyncExecutor(20)) {
+            try (SyncExecutor executor = new SyncExecutor(20);
+                 var service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
+            ) {
                 int x = loc.getBlockX() >> 4;
                 int z = loc.getBlockZ() >> 4;
 
                 int rad = engine.getMantle().getRadius();
                 var mantle = engine.getMantle().getMantle();
                 var chunkMap = new KMap<Position2, MantleChunk>();
-                ParallelQueueJob<Position2> prep = new ParallelQueueJob<>() {
+                ParallelRadiusJob prep = new ParallelRadiusJob(Integer.MAX_VALUE, service) {
                     @Override
-                    public void execute(Position2 pos) {
-                        var cpos = pos.add(x, z);
-                        if (Math.abs(pos.getX()) <= radius && Math.abs(pos.getZ()) <= radius) {
-                            mantle.deleteChunk(cpos.getX(), cpos.getZ());
+                    protected void execute(int rX, int rZ) {
+                        if (Math.abs(rX) <= radius && Math.abs(rZ) <= radius) {
+                            mantle.deleteChunk(rX + x, rZ + z);
                             return;
                         }
-                        chunkMap.put(cpos, mantle.getChunk(cpos.getX(), cpos.getZ()));
-                        mantle.deleteChunk(cpos.getX(), cpos.getZ());
+                        rX += x;
+                        rZ += z;
+                        chunkMap.put(new Position2(rX, rZ), mantle.getChunk(rX, rZ));
+                        mantle.deleteChunk(rX, rZ);
                     }
 
                     @Override
                     public String getName() {
                         return "Preparing Mantle";
                     }
-                };
-                for (int xx = -(radius + rad); xx <= radius + rad; xx++) {
-                    for (int zz = -(radius + rad); zz <= radius + rad; zz++) {
-                        prep.queue(new Position2(xx, zz));
-                    }
-                }
+                }.retarget(radius + rad, 0, 0);
                 CountDownLatch pLatch = new CountDownLatch(1);
                 prep.execute(sender(), pLatch::countDown);
                 pLatch.await();
 
 
-                ParallelQueueJob<Position2> job = new ParallelQueueJob<>() {
+                ParallelRadiusJob job = new ParallelRadiusJob(Integer.MAX_VALUE, service) {
                     @Override
-                    public void execute(Position2 p) {
-                        plat.injectChunkReplacement(world, p.getX(), p.getZ(), executor);
+                    protected void execute(int x, int z) {
+                        plat.injectChunkReplacement(world, x, z, executor);
                     }
 
                     @Override
                     public String getName() {
                         return "Regenerating";
                     }
-                };
-                for (int i = -radius; i <= radius; i++) {
-                    for (int j = -radius; j <= radius; j++) {
-                        job.queue(new Position2(i + x, j + z));
-                    }
-                }
+                }.retarget(radius, x, z);
                 CountDownLatch latch = new CountDownLatch(1);
                 job.execute(sender(), latch::countDown);
                 latch.await();
@@ -339,11 +333,15 @@ public class CommandStudio implements DecreeExecutor {
         O<Integer> ta = new O<>();
         ta.set(-1);
 
+        var sender = sender();
+        var player = player();
+        var engine = engine();
+
         ta.set(Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, () ->
         {
-            if (!player().getOpenInventory().getType().equals(InventoryType.CHEST)) {
+            if (!player.getOpenInventory().getType().equals(InventoryType.CHEST)) {
                 Bukkit.getScheduler().cancelTask(ta.get());
-                sender().sendMessage(C.GREEN + "Opened inventory!");
+                sender.sendMessage(C.GREEN + "Opened inventory!");
                 return;
             }
 
@@ -351,7 +349,7 @@ public class CommandStudio implements DecreeExecutor {
                 inv.clear();
             }
 
-            engine().addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, player().getWorld(), player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ(), 1);
+            engine.addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, player.getWorld(), player.getLocation().getBlockX(), player.getLocation().getBlockY(), player.getLocation().getBlockZ(), 1);
         }, 0, fast ? 5 : 35));
 
         sender().sendMessage(C.GREEN + "Opening inventory now!");

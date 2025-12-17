@@ -24,9 +24,11 @@ public interface PregenCache {
 
     void write();
 
+    void trim(long unloadDuration);
+
     static PregenCache create(File directory) {
         if (directory == null) return EMPTY;
-        return new PregenCacheImpl(directory);
+        return new PregenCacheImpl(directory, 16);
     }
 
     default PregenCache sync() {
@@ -51,19 +53,16 @@ public interface PregenCache {
         }
 
         @Override
-        public void cacheChunk(int x, int z) {
-
-        }
+        public void cacheChunk(int x, int z) {}
 
         @Override
-        public void cacheRegion(int x, int z) {
-
-        }
+        public void cacheRegion(int x, int z) {}
 
         @Override
-        public void write() {
+        public void write() {}
 
-        }
+        @Override
+        public void trim(long unloadDuration) {}
     };
 
 

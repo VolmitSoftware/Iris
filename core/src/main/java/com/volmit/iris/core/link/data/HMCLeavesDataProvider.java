@@ -67,7 +67,7 @@ public class HMCLeavesDataProvider extends ExternalDataProvider {
 		BlockData blockData = Bukkit.createBlockData(material);
 		if (IrisSettings.get().getGenerator().preventLeafDecay && blockData instanceof Leaves leaves)
 			leaves.setPersistent(true);
-		return new IrisCustomData(blockData, ExternalDataSVC.buildState(blockId, state));
+		return IrisCustomData.of(blockData, ExternalDataSVC.buildState(blockId, state));
 	}
 
 	@NotNull

@@ -190,6 +190,16 @@ public class TreeSVC implements IrisService {
             }
 
             @Override
+            public <T> void setData(int xx, int yy, int zz, T data) {
+
+            }
+
+            @Override
+            public <T> T getData(int xx, int yy, int zz, Class<T> t) {
+                return null;
+            }
+
+            @Override
             public Engine getEngine() {
                 return engine;
             }
@@ -225,7 +235,7 @@ public class TreeSVC implements IrisService {
                     if (d instanceof IrisCustomData data) {
                         block.setBlockData(data.getBase(), false);
                         Iris.service(ExternalDataSVC.class).processUpdate(engine, block, data.getCustom());
-                    } else block.setBlockData(d);
+                    } else block.setBlockData(d, false);
                 }
             }
         });

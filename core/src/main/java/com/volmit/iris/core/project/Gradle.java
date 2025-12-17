@@ -9,9 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.HashMap;
-import java.util.Optional;
-import java.util.Scanner;
+import java.util.*;
 
 public class Gradle {
     private static final boolean WINDOWS = System.getProperty("os.name").toLowerCase().contains("win");
@@ -38,10 +36,15 @@ public class Gradle {
         cmd[0] = gradle.getAbsolutePath();
         System.arraycopy(args, 0, cmd, 1, args.length);
         var process = Runtime.getRuntime().exec(cmd, ENVIRONMENT, projectDir);
-        attach(process.getInputStream());
-        attach(process.getErrorStream());
+        var lines = Collections.synchronizedList(new ArrayList<String>());
+        attach(process.getInputStream(), lines);
+        attach(process.getErrorStream(), lines);
         var code = process.waitFor();
-        if (code == 0) return;
+        if (code == 0) {
+            lines.forEach(Iris::debug);
+            return;
+        }
+        lines.forEach(Iris::error);
         throw new RuntimeException("Gradle exited with code " + code);
     }
 
@@ -91,12 +94,12 @@ public class Gradle {
                 .orElseThrow(() -> new RuntimeException("Failed to find java home, please set java.home system property"));
     }
 
-    private static void attach(InputStream stream) {
-        Thread.ofVirtual().start(() -> {
+    private static void attach(InputStream stream, List<String> list) {
+        Thread.ofPlatform().start(() -> {
             try (var in = new Scanner(stream)) {
                 while (in.hasNextLine()) {
                     String line = in.nextLine();
-                    Iris.debug("[GRADLE] " + line);
+                    list.add(line);
                 }
             }
         });

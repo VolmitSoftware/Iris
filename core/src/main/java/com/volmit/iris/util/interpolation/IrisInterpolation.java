@@ -999,7 +999,7 @@ public class IrisInterpolation {
 
     public static double getNoise(InterpolationMethod method, int x, int z, double h, NoiseProvider noise) {
         HashMap<NoiseKey, Double> cache = new HashMap<>(64);
-        NoiseProvider n = (x1, z1) -> cache.computeIfAbsent(new NoiseKey(x1, z1), k -> noise.noise(k.x, k.z));
+        NoiseProvider n = (x1, z1) -> cache.computeIfAbsent(new NoiseKey(x1 - x, z1 - z), k -> noise.noise(x1, z1));
 
         if (method.equals(InterpolationMethod.BILINEAR)) {
             return getBilinearNoise(x, z, h, n);

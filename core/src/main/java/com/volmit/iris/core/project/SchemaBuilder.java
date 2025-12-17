@@ -38,6 +38,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.lang.reflect.Field;
+import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Map;
@@ -117,49 +118,13 @@ public class SchemaBuilder {
         JSONArray required = new JSONArray();
         JSONArray extended = new JSONArray();
 
-        if (c.isAssignableFrom(IrisRegistrant.class) || IrisRegistrant.class.isAssignableFrom(c)) {
-            for (Field k : IrisRegistrant.class.getDeclaredFields()) {
-                k.setAccessible(true);
-
-                if (Modifier.isStatic(k.getModifiers()) || Modifier.isFinal(k.getModifiers()) || Modifier.isTransient(k.getModifiers())) {
-                    continue;
-                }
-
-                JSONObject property = buildProperty(k, c);
-
-                if (Boolean.TRUE == property.remove("!required")) {
-                    required.put(k.getName());
-                }
-
-                if (Boolean.TRUE == property.remove("!top")) {
-                    extended.put(property);
-                    continue;
-                }
-
-                properties.put(k.getName(), property);
-            }
+        var parent = c.getSuperclass();
+        while (parent != null && IrisRegistrant.class.isAssignableFrom(parent)) {
+            buildProperties(properties, required, extended, parent);
+            parent = parent.getSuperclass();
         }
 
-        for (Field k : c.getDeclaredFields()) {
-            k.setAccessible(true);
-
-            if (Modifier.isStatic(k.getModifiers()) || Modifier.isFinal(k.getModifiers()) || Modifier.isTransient(k.getModifiers())) {
-                continue;
-            }
-
-            JSONObject property = buildProperty(k, c);
-
-            if (Boolean.TRUE == property.remove("!required")) {
-                required.put(k.getName());
-            }
-
-            if (Boolean.TRUE == property.remove("!top")) {
-                extended.put(property);
-                continue;
-            }
-
-            properties.put(k.getName(), property);
-        }
+        buildProperties(properties, required, extended, c);
 
         if (required.length() > 0) {
             o.put("required", required);
@@ -172,6 +137,33 @@ public class SchemaBuilder {
 
 
         return buildSnippet(o, c);
+    }
+
+    private void buildProperties(JSONObject properties, JSONArray required, JSONArray extended, Class<?> c) {
+        for (Field k : c.getDeclaredFields()) {
+            if (Modifier.isStatic(k.getModifiers()) || Modifier.isFinal(k.getModifiers()) || Modifier.isTransient(k.getModifiers())) {
+                continue;
+            }
+
+            try {
+                k.setAccessible(true);
+            } catch (InaccessibleObjectException e) {
+                continue;
+            }
+
+            JSONObject property = buildProperty(k, c);
+
+            if (Boolean.TRUE == property.remove("!top")) {
+                extended.put(property);
+                continue;
+            }
+
+            if (Boolean.TRUE == property.remove("!required")) {
+                required.put(k.getName());
+            }
+
+            properties.put(k.getName(), property);
+        }
     }
 
     private JSONObject buildProperty(Field k, Class<?> cl) {
@@ -616,7 +608,7 @@ public class SchemaBuilder {
                 if (present) d.add("    ");
                 if (value instanceof List) {
                     d.add(SYMBOL_LIMIT__N + " Default Value is an empty list");
-                } else if (!cl.isPrimitive() && !(value instanceof Number) && !(value instanceof String) && !(cl.isEnum()) && !KeyedType.isKeyed(cl)) {
+                } else if (!k.getType().isPrimitive() && !(value instanceof Number) && !(value instanceof String) && !(value instanceof Enum<?>) && !KeyedType.isKeyed(k.getType())) {
                     d.add(SYMBOL_LIMIT__N + " Default Value is a default object (create this object to see default properties)");
                 } else {
                     d.add(SYMBOL_LIMIT__N + " Default Value is " + value);

@@ -46,6 +46,7 @@ import lombok.ToString;
 
 import java.io.*;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -170,7 +171,6 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
             return possibleKeys;
         }
 
-        KSet<String> m = new KSet<>();
         KList<File> files = getFolders();
 
         if (files == null) {
@@ -178,6 +178,7 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
             return possibleKeys;
         }
 
+        HashSet<String> m = new HashSet<>();
         for (File i : files) {
             for (File j : matchAllFiles(i, (f) -> f.getName().endsWith(".json"))) {
                 m.add(i.toURI().relativize(j.toURI()).getPath().replaceAll("\\Q.json\\E", ""));
@@ -319,7 +320,8 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
             return null;
         }
 
-        firstAccess.add(name);
+        var set = firstAccess;
+        if (set != null) firstAccess.add(name);
         return loadCache.get(name);
     }
 
@@ -342,21 +344,24 @@ public class ResourceLoader<T extends IrisRegistrant> implements MeteredCache {
         }
 
         din.close();
-        file.deleteOnExit();
         Iris.info("Loading " + s.size() + " prefetch " + getFolderName());
+        firstAccess = null;
         loadAllParallel(s);
     }
 
     public void saveFirstAccess(Engine engine) throws IOException {
+        if (firstAccess == null) return;
         String id = "DIM" + Math.abs(engine.getSeedManager().getSeed() + engine.getDimension().getVersion() + engine.getDimension().getLoadKey().hashCode());
         File file = Iris.instance.getDataFile("prefetch/" + id + "/" + Math.abs(getFolderName().hashCode()) + ".ipfch");
         file.getParentFile().mkdirs();
         FileOutputStream fos = new FileOutputStream(file);
         GZIPOutputStream gzo = new CustomOutputStream(fos, 9);
         DataOutputStream dos = new DataOutputStream(gzo);
-        dos.writeInt(firstAccess.size());
+        var set = firstAccess;
+        firstAccess = null;
+        dos.writeInt(set.size());
 
-        for (String i : firstAccess) {
+        for (String i : set) {
             dos.writeUTF(i);
         }
 

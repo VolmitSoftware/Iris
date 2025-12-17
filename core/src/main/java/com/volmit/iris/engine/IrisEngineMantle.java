@@ -86,11 +86,13 @@ public class IrisEngineMantle implements EngineMantle {
                     .map(components::get)
                     .map(components -> {
                         int radius = components.stream()
+                                .filter(MantleComponent::isEnabled)
                                 .mapToInt(MantleComponent::getRadius)
                                 .max()
                                 .orElse(0);
                         return new Pair<>(List.copyOf(components), radius);
                     })
+                    .filter(pair -> !pair.getA().isEmpty())
                     .toList();
 
             int radius = 0;

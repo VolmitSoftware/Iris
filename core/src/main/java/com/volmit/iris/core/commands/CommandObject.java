@@ -38,7 +38,6 @@ import com.volmit.iris.util.decree.specialhandlers.ObjectHandler;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.Direction;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.scheduling.Queue;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
@@ -79,9 +78,9 @@ public class CommandObject implements DecreeExecutor {
                 futureBlockChanges.put(block, block.getBlockData());
 
                 if (d instanceof IrisCustomData data) {
-                    block.setBlockData(data.getBase());
+                    block.setBlockData(data.getBase(), false);
                     Iris.warn("Tried to place custom block at " + x + ", " + y + ", " + z + " which is not supported!");
-                } else block.setBlockData(d);
+                } else block.setBlockData(d, false);
             }
 
             @Override
@@ -125,6 +124,16 @@ public class CommandObject implements DecreeExecutor {
             }
 
             @Override
+            public <T> void setData(int xx, int yy, int zz, T data) {
+
+            }
+
+            @Override
+            public <T> T getData(int xx, int yy, int zz, Class<T> t) {
+                return null;
+            }
+
+            @Override
             public Engine getEngine() {
                 return null;
             }
@@ -140,7 +149,7 @@ public class CommandObject implements DecreeExecutor {
         sender().sendMessage("Object Size: " + o.getW() + " * " + o.getH() + " * " + o.getD() + "");
         sender().sendMessage("Blocks Used: " + NumberFormat.getIntegerInstance().format(o.getBlocks().size()));
 
-        Queue<BlockData> queue = o.getBlocks().enqueueValues();
+        var queue = o.getBlocks().values();
         Map<Material, Set<BlockData>> unsorted = new HashMap<>();
         Map<BlockData, Integer> amounts = new HashMap<>();
         Map<Material, Integer> materials = new HashMap<>();

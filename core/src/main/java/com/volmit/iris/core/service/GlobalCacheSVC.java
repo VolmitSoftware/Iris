@@ -1,13 +1,11 @@
 package com.volmit.iris.core.service;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.Scheduler;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.core.pregenerator.cache.PregenCache;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.plugin.IrisService;
+import com.volmit.iris.util.scheduling.Looper;
 import lombok.NonNull;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -19,21 +17,33 @@ import org.bukkit.event.world.WorldUnloadEvent;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.lang.ref.Reference;
+import java.lang.ref.WeakReference;
 import java.util.function.Function;
 
 public class GlobalCacheSVC implements IrisService {
-    private static final Cache<String, PregenCache> REFERENCE_CACHE = Caffeine.newBuilder()
-            .executor(KCache.EXECUTOR)
-            .scheduler(Scheduler.systemScheduler())
-            .weakValues()
-            .build();
+    private static final KMap<String, Reference<PregenCache>> REFERENCE_CACHE = new KMap<>();
     private final KMap<String, PregenCache> globalCache = new KMap<>();
     private transient boolean lastState;
     private static boolean disabled = true;
+    private Looper trimmer;
 
     @Override
     public void onEnable() {
         disabled = false;
+        trimmer = new Looper() {
+            @Override
+            protected long loop() {
+                var it = REFERENCE_CACHE.values().iterator();
+                while (it.hasNext()) {
+                    var cache = it.next().get();
+                    if (cache == null) it.remove();
+                    else cache.trim(10_000);
+                }
+                return disabled ? -1 : 2_000;
+            }
+        };
+        trimmer.start();
         lastState = !IrisSettings.get().getWorld().isGlobalPregenCache();
         if (lastState) return;
         Bukkit.getWorlds().forEach(this::createCache);
@@ -42,6 +52,9 @@ public class GlobalCacheSVC implements IrisService {
     @Override
     public void onDisable() {
         disabled = true;
+        try {
+            trimmer.join();
+        } catch (InterruptedException ignored) {}
         globalCache.qclear((world, cache) -> cache.write());
     }
 
@@ -76,6 +89,7 @@ public class GlobalCacheSVC implements IrisService {
     }
 
     private void createCache(World world) {
+        if (!IrisToolbelt.isIrisWorld(world)) return;
         globalCache.computeIfAbsent(world.getName(), GlobalCacheSVC::createDefault);
     }
 
@@ -99,7 +113,15 @@ public class GlobalCacheSVC implements IrisService {
 
     @NonNull
     public static PregenCache createCache(@NonNull String worldName, @NonNull Function<String, PregenCache> provider) {
-        return REFERENCE_CACHE.get(worldName, provider);
+        PregenCache[] holder = new PregenCache[1];
+        REFERENCE_CACHE.compute(worldName, (name, ref) -> {
+            if (ref != null) {
+                if ((holder[0] = ref.get()) != null)
+                    return ref;
+            }
+            return new WeakReference<>(holder[0] = provider.apply(worldName));
+        });
+        return holder[0];
     }
 
     @NonNull

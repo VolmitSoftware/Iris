@@ -14,9 +14,9 @@ abstract class EngineScript
 object EngineScriptDefinition : ScriptCompilationConfiguration(listOf(DataScriptDefinition), {
     providedProperties(
         "engine" to Engine::class,
-        "complex" to IrisComplex::class,
         "seed" to Long::class,
         "dimension" to IrisDimension::class,
+        "complex" to IrisComplex::class,
         "biome" to BiomeLookup::class,
     )
 }) {

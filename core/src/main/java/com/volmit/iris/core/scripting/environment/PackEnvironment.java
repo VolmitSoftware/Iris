@@ -2,6 +2,7 @@ package com.volmit.iris.core.scripting.environment;
 
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.scripting.kotlin.environment.IrisPackExecutionEnvironment;
+import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.math.RNG;
 import lombok.NonNull;
 import org.jetbrains.annotations.Nullable;
@@ -16,4 +17,6 @@ public interface PackEnvironment extends SimpleEnvironment {
 
     @Nullable
     Object createNoise(@NonNull String script, @NonNull RNG rng);
+
+    EngineEnvironment with(@NonNull Engine engine);
 }

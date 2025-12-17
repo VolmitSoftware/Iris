@@ -23,6 +23,8 @@ import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
+import kotlinx.coroutines.CoroutineDispatcher;
+import kotlinx.coroutines.ExecutorsKt;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
@@ -39,7 +41,9 @@ public class MultiBurst implements ExecutorService {
     private final String name;
     private final int priority;
     private final IntSupplier parallelism;
-    private ExecutorService service;
+    private final Object lock = new Object();
+    private volatile ExecutorService service;
+    private volatile CoroutineDispatcher dispatcher;
 
     public MultiBurst() {
         this("Iris");
@@ -60,25 +64,36 @@ public class MultiBurst implements ExecutorService {
         last = new AtomicLong(M.ms());
     }
 
-    private synchronized ExecutorService getService() {
+    private ExecutorService getService() {
         last.set(M.ms());
-        if (service == null || service.isShutdown()) {
+        if (service != null && !service.isShutdown())
+            return service;
+
+        synchronized (lock) {
+            if (service != null && !service.isShutdown())
+                return service;
+
             service = new ForkJoinPool(IrisSettings.getThreadCount(parallelism.getAsInt()),
-                    new ForkJoinPool.ForkJoinWorkerThreadFactory() {
-                        int m = 0;
+                            new ForkJoinPool.ForkJoinWorkerThreadFactory() {
+                                int m = 0;
 
-                        @Override
-                        public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
-                            final ForkJoinWorkerThread worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
-                            worker.setPriority(priority);
-                            worker.setName(name + " " + ++m);
-                            return worker;
-                        }
-                    },
-                    (t, e) -> e.printStackTrace(), true);
+                                @Override
+                                public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
+                                    final ForkJoinWorkerThread worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
+                                    worker.setPriority(priority);
+                                    worker.setName(name + " " + ++m);
+                                    return worker;
+                                }
+                            },
+                            (t, e) -> e.printStackTrace(), true);
+            dispatcher = ExecutorsKt.from(service);
+            return service;
         }
+    }
 
-        return service;
+    public CoroutineDispatcher getDispatcher() {
+        getService();
+        return dispatcher;
     }
 
     public void burst(Runnable... r) {

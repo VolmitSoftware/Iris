@@ -20,8 +20,8 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.framework.Engine;
-import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
+import org.jetbrains.annotations.Nullable;
 
 public interface IObjectPlacer {
     int getHighest(int x, int z, IrisData data);
@@ -45,6 +45,10 @@ public interface IObjectPlacer {
     boolean isDebugSmartBore();
 
     void setTile(int xx, int yy, int zz, TileData tile);
+
+    <T> void setData(int xx, int yy, int zz, T data);
+
+    <T> @Nullable T getData(int xx, int yy, int zz, Class<T> t);
 
     Engine getEngine();
 }

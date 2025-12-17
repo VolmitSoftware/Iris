@@ -9,15 +9,20 @@ import com.volmit.iris.core.scripting.kotlin.base.EngineScript
 import com.volmit.iris.core.scripting.kotlin.base.MobSpawningScript
 import com.volmit.iris.core.scripting.kotlin.base.PostMobSpawningScript
 import com.volmit.iris.core.scripting.kotlin.base.PreprocessorScript
+import com.volmit.iris.core.scripting.kotlin.environment.IrisSimpleExecutionEnvironment
+import com.volmit.iris.core.scripting.kotlin.runner.ScriptRunner
 import com.volmit.iris.engine.framework.Engine
 import com.volmit.iris.util.mantle.MantleChunk
 import org.bukkit.Chunk
 import org.bukkit.Location
 import org.bukkit.entity.Entity
+import java.io.File
 
-data class IrisExecutionEnvironment(
-    private val engine: Engine
-) : IrisPackExecutionEnvironment(engine.data), EngineEnvironment {
+class IrisExecutionEnvironment internal constructor(
+    private val engine: Engine,
+    parent: ScriptRunner?,
+) : IrisPackExecutionEnvironment(engine.data, parent), EngineEnvironment {
+    constructor(engine: Engine) : this(engine, null)
     override fun getEngine() = engine
 
     override fun execute(script: String) =
@@ -33,18 +38,24 @@ data class IrisExecutionEnvironment(
         execute(script, PostMobSpawningScript::class.java, engine.parameters("location" to location, "entity" to mob))
 
     override fun preprocessObject(script: String, `object`: IrisRegistrant) =
-        execute(script, PreprocessorScript::class.java, engine.parameters("object" to `object`))
+        execute(script, PreprocessorScript::class.java, engine.limitedParameters("object" to `object`))
 
     override fun updateChunk(script: String, mantleChunk: MantleChunk, chunk: Chunk, executor: UpdateExecutor) =
         execute(script, ChunkUpdateScript::class.java, engine.parameters("mantleChunk" to mantleChunk, "chunk" to chunk, "executor" to executor))
 
-    private fun Engine.parameters(vararg values: Pair<String, Any?>): Map<String, Any?> {
+    private fun Engine.limitedParameters(vararg values: Pair<String, Any?>): Map<String, Any?> {
         return mapOf(
             "data" to data,
             "engine" to this,
-            "complex" to complex,
             "seed" to seedManager.seed,
             "dimension" to dimension,
+            *values,
+        )
+    }
+
+    private fun Engine.parameters(vararg values: Pair<String, Any?>): Map<String, Any?> {
+        return limitedParameters(
+            "complex" to complex,
             "biome" to BiomeLookup(::getSurfaceBiome),
             *values,
         )

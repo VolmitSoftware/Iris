@@ -176,8 +176,8 @@ public class Mantle {
      * @return the writer
      */
     @ChunkCoordinates
-    public MantleWriter write(EngineMantle engineMantle, int x, int z, int radius) {
-        return new MantleWriter(engineMantle, this, x, z, radius);
+    public MantleWriter write(EngineMantle engineMantle, int x, int z, int radius, boolean multicore) {
+        return new MantleWriter(engineMantle, this, x, z, radius, multicore);
     }
 
     /**
@@ -407,18 +407,6 @@ public class Mantle {
     }
 
     /**
-     * Estimates the memory usage of the lastUse map.
-     *
-     * @return Estimated memory usage in bytes.
-     */
-
-    public long LastUseMapMemoryUsage() {
-        long numberOfEntries = lastUse.size();
-        long bytesPerEntry = Long.BYTES * 2;
-        return numberOfEntries * bytesPerEntry;
-    }
-
-    /**
      * Save & unload regions that have not been used for more than the
      * specified amount of milliseconds
      *
@@ -635,7 +623,7 @@ public class Mantle {
     }
 
     public void deleteChunkSlice(int x, int z, Class<?> c) {
-        if (!IrisToolbelt.toolbeltConfiguration.isEmpty() && IrisToolbelt.toolbeltConfiguration.getOrDefault("retain.mantle." + c.getCanonicalName(), false)) {
+        if (IrisToolbelt.isRetainingMantleDataForSlice(c.getCanonicalName())) {
             return;
         }
 

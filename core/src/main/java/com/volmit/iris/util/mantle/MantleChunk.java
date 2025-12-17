@@ -19,16 +19,14 @@
 package com.volmit.iris.util.mantle;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.util.data.Varint;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.documentation.ChunkRelativeBlockCoordinates;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.io.CountingDataInputStream;
-import com.volmit.iris.util.mantle.flag.MantleFlag;
 import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterSlice;
-import com.volmit.iris.util.parallel.AtomicBooleanArray;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import org.jetbrains.annotations.Nullable;
@@ -44,13 +42,11 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
  * Represents a mantle chunk. Mantle chunks contain sections of matter (see matter api)
  * Mantle Chunks are fully atomic & thread safe
  */
-public class MantleChunk {
+public class MantleChunk extends FlaggedChunk {
     @Getter
     private final int x;
     @Getter
     private final int z;
-    private final AtomicBooleanArray flags;
-    private final Object[] flagLocks;
     private final AtomicReferenceArray<Matter> sections;
     private final Semaphore ref = new Semaphore(Integer.MAX_VALUE, true);
     private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -63,14 +59,8 @@ public class MantleChunk {
     @ChunkCoordinates
     public MantleChunk(int sectionHeight, int x, int z) {
         sections = new AtomicReferenceArray<>(sectionHeight);
-        flags = new AtomicBooleanArray(MantleFlag.MAX_ORDINAL + 1);
-        flagLocks = new Object[flags.length()];
         this.x = x;
         this.z = z;
-
-        for (int i = 0; i < flags.length(); i++) {
-            flagLocks[i] = new Object();
-        }
     }
 
     /**
@@ -84,20 +74,7 @@ public class MantleChunk {
     public MantleChunk(int version, int sectionHeight, CountingDataInputStream din) throws IOException {
         this(sectionHeight, din.readByte(), din.readByte());
         int s = din.readByte();
-        int l = version < 0 ? 16 : Varint.readUnsignedVarInt(din);
-
-        if (version >= 1) {
-            for (int i = 0; i < l;) {
-                byte f = din.readByte();
-                for (int j = 0; j < Byte.SIZE && i < flags.length(); j++, i++) {
-                    flags.set(i, (f & (1 << j)) != 0);
-                }
-            }
-        } else {
-            for (int i = 0; i < flags.length() && i < l; i++) {
-                flags.set(i, din.readBoolean());
-            }
-        }
+        readFlags(version, din);
 
         for (int i = 0; i < s; i++) {
             Iris.addPanic("read.section", "Section[" + i + "]");
@@ -156,50 +133,8 @@ public class MantleChunk {
 
     public void copyFlags(MantleChunk chunk) {
         use();
-        for (int i = 0; i < flags.length(); i++) {
-            flags.set(i, chunk.flags.get(i));
-        }
+        super.copyFlags(chunk);
         release();
-    }
-
-    public void flag(MantleFlag flag, boolean f) {
-        if (closed.get()) throw new IllegalStateException("Chunk is closed!");
-        flags.set(flag.ordinal(), f);
-    }
-
-    public void raiseFlag(MantleFlag flag, Runnable r) {
-        raiseFlag(null, flag, r);
-    }
-
-    public void raiseFlag(@Nullable MantleFlag guard, MantleFlag flag, Runnable r) {
-        if (closed.get()) throw new IllegalStateException("Chunk is closed!");
-        if (guard != null && isFlagged(guard)) return;
-        synchronized (flagLocks[flag.ordinal()]) {
-            if (flags.compareAndSet(flag.ordinal(), false, true)) {
-                try {
-                    r.run();
-                } catch (RuntimeException | Error e) {
-                    flags.set(flag.ordinal(), false);
-                    throw e;
-                }
-            }
-        }
-    }
-
-    public void raiseFlagUnchecked(MantleFlag flag, Runnable r) {
-        if (closed.get()) throw new IllegalStateException("Chunk is closed!");
-        if (flags.compareAndSet(flag.ordinal(), false, true)) {
-            try {
-                r.run();
-            } catch (RuntimeException | Error e) {
-                flags.set(flag.ordinal(), false);
-                throw e;
-            }
-        }
-    }
-
-    public boolean isFlagged(MantleFlag flag) {
-        return flags.get(flag.ordinal());
     }
 
     /**
@@ -283,16 +218,7 @@ public class MantleChunk {
         dos.writeByte(x);
         dos.writeByte(z);
         dos.writeByte(sections.length());
-        Varint.writeUnsignedVarInt(flags.length(), dos);
-
-        int count = flags.length();
-        for (int i = 0; i < count;) {
-            int f = 0;
-            for (int j = 0; j < Byte.SIZE && i < flags.length(); j++, i++) {
-                f |= flags.get(i) ? (1 << j) : 0;
-            }
-            dos.write(f);
-        }
+        writeFlags(dos);
 
         var bytes = new ByteArrayOutputStream(8192);
         var sub = new DataOutputStream(bytes);
@@ -345,6 +271,8 @@ public class MantleChunk {
     }
 
     public void deleteSlices(Class<?> c) {
+        if (IrisToolbelt.isRetainingMantleDataForSlice(c.getCanonicalName()))
+            return;
         for (int i = 0; i < sections.length(); i++) {
             Matter m = sections.get(i);
             if (m != null && m.hasSlice(c)) {
@@ -359,5 +287,10 @@ public class MantleChunk {
                 trimSlice(i);
             }
         }
+    }
+
+    @Override
+    public boolean isClosed() {
+        return closed.get();
     }
 }

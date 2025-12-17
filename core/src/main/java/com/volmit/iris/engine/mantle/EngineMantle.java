@@ -29,8 +29,6 @@ import com.volmit.iris.engine.mantle.components.MantleObjectComponent;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.context.ChunkContext;
-import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
@@ -38,7 +36,6 @@ import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
 import com.volmit.iris.util.mantle.flag.MantleFlag;
-import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.matter.*;
 import com.volmit.iris.util.matter.slices.UpdateMatter;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -49,10 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static com.volmit.iris.util.parallel.StreamUtils.forEach;
-import static com.volmit.iris.util.parallel.StreamUtils.streamRadius;
-
-public interface EngineMantle {
+public interface EngineMantle extends MatterGenerator {
     BlockData AIR = B.get("AIR");
 
     Mantle getMantle();
@@ -181,49 +175,6 @@ public interface EngineMantle {
     }
 
     @ChunkCoordinates
-    default void generateMatter(int x, int z, boolean multicore, ChunkContext context) {
-        if (!getEngine().getDimension().isUseMantle() || getMantle().hasFlag(x, z, MantleFlag.PLANNED)) {
-            return;
-        }
-
-        try (MantleWriter writer = getMantle().write(this, x, z, getRadius() * 2)) {
-            var iterator = getComponents().iterator();
-            while (iterator.hasNext()) {
-                var pair = iterator.next();
-                int radius = pair.getB();
-                boolean last = !iterator.hasNext();
-                forEach(streamRadius(x, z, radius),
-                        pos -> pair.getA()
-                                .stream()
-                                .filter(MantleComponent::isEnabled)
-                                .map(c -> new Pair<>(c, pos)),
-                        p -> {
-                            MantleComponent c = p.getA();
-                            Position2 pos = p.getB();
-                            int xx = pos.getX();
-                            int zz = pos.getZ();
-                            IrisContext.getOr(getEngine()).setChunkContext(context);
-                            generateMantleComponent(writer, xx, zz, c, writer.acquireChunk(xx, zz), context);
-                        },
-                        multicore ? burst() : null
-                );
-
-                if (!last) continue;
-                forEach(streamRadius(x, z, radius),
-                        p -> writer.acquireChunk(x, z).flag(MantleFlag.PLANNED, true),
-                        multicore ? burst() : null
-                );
-            }
-        }
-    }
-
-    default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, MantleChunk mc, ChunkContext context) {
-        mc.raiseFlag(MantleFlag.PLANNED, c.getFlag(), () -> {
-            if (c.isEnabled()) c.generateLayer(writer, x, z, context);
-        });
-    }
-
-    @ChunkCoordinates
     default <T> void insertMatter(int x, int z, Class<T> t, Hunk<T> blocks, boolean multicore) {
         if (!getEngine().getDimension().isUseMantle()) {
             return;
@@ -262,9 +213,6 @@ public interface EngineMantle {
     default int getLoadedRegionCount() {
         return getMantle().getLoadedRegionCount();
     }
-    default long getLastUseMapMemoryUsage(){
-        return getMantle().LastUseMapMemoryUsage();
-    }
 
     MantleJigsawComponent getJigsawComponent();
 
@@ -290,7 +238,7 @@ public interface EngineMantle {
         if (!isCovered(x, z)) return;
         MantleChunk chunk = getMantle().getChunk(x, z).use();
         try {
-            chunk.raiseFlag(MantleFlag.CLEANED, () -> {
+            chunk.raiseFlagUnchecked(MantleFlag.CLEANED, () -> {
                 chunk.deleteSlices(BlockData.class);
                 chunk.deleteSlices(String.class);
                 chunk.deleteSlices(MatterCavern.class);
@@ -301,7 +249,7 @@ public interface EngineMantle {
         }
     }
 
-    default long getUnloadRegionCount() {
+    default int getUnloadRegionCount() {
         return getMantle().getUnloadRegionCount();
     }
 

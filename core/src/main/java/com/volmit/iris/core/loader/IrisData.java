@@ -50,16 +50,15 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 @Data
 public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     private static final KMap<File, IrisData> dataLoaders = new KMap<>();
     private final File dataFolder;
     private final int id;
-    private final PackEnvironment environment;
     private boolean closed = false;
+    private PackEnvironment environment;
     private ResourceLoader<IrisBiome> biomeLoader;
     private ResourceLoader<IrisLootTable> lootLoader;
     private ResourceLoader<IrisRegion> regionLoader;
@@ -92,7 +91,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.engine = null;
         this.dataFolder = dataFolder;
         this.id = RNG.r.imax();
-        this.environment = PackEnvironment.create(this);
         hotloaded();
     }
 
@@ -350,7 +348,6 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
 
     public synchronized void hotloaded() {
         closed = false;
-        environment.close();
         possibleSnippets = new KMap<>();
         builder = new GsonBuilder()
                 .addDeserializationExclusionStrategy(this)
@@ -382,6 +379,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
         this.imageLoader = registerLoader(IrisImage.class);
         this.scriptLoader = registerLoader(IrisScript.class);
         this.matterObjectLoader = registerLoader(IrisMatterObject.class);
+        this.environment = PackEnvironment.create(this);
         builder.registerTypeAdapterFactory(KeyedType::createTypeAdapter);
 
         gson = builder.create();
@@ -389,6 +387,10 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
                 .map(IrisDimension::getDataScripts)
                 .flatMap(KList::stream)
                 .forEach(environment::execute);
+
+        if (engine != null) {
+            engine.hotload();
+        }
     }
 
     public void dump() {
@@ -402,6 +404,33 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
             i.clearList();
         }
         possibleSnippets.clear();
+    }
+
+    public Set<Class<?>> resolveSnippets() {
+        var result = new HashSet<Class<?>>();
+        var processed = new HashSet<Class<?>>();
+        var excluder = gson.excluder();
+
+        var queue = new LinkedList<Class<?>>(loaders.keySet());
+        while (!queue.isEmpty()) {
+            var type = queue.poll();
+            if (excluder.excludeClass(type, false) || !processed.add(type))
+                continue;
+            if (type.isAnnotationPresent(Snippet.class))
+                result.add(type);
+
+            try {
+                for (var field : type.getDeclaredFields()) {
+                    if (excluder.excludeField(field, false))
+                        continue;
+
+                    queue.add(field.getType());
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+
+        return result;
     }
 
     public String toLoadKey(File f) {

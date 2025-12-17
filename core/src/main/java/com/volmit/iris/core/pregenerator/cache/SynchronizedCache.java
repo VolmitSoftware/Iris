@@ -1,11 +1,6 @@
 package com.volmit.iris.core.pregenerator.cache;
 
-import lombok.AllArgsConstructor;
-
-@AllArgsConstructor
-class SynchronizedCache implements PregenCache {
-    private final PregenCache cache;
-
+record SynchronizedCache(PregenCache cache) implements PregenCache {
     @Override
     public boolean isThreadSafe() {
         return true;
@@ -43,6 +38,13 @@ class SynchronizedCache implements PregenCache {
     public void write() {
         synchronized (cache) {
             cache.write();
+        }
+    }
+
+    @Override
+    public void trim(long unloadDuration) {
+        synchronized (cache) {
+            cache.trim(unloadDuration);
         }
     }
 }

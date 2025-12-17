@@ -72,7 +72,7 @@ public class MythicCrucibleDataProvider extends ExternalDataProvider {
         CustomBlockItemContext blockItemContext = crucibleItem.getBlockData();
         FurnitureItemContext furnitureItemContext = crucibleItem.getFurnitureData();
         if (furnitureItemContext != null) {
-            return new IrisCustomData(B.getAir(), ExternalDataSVC.buildState(blockId, state));
+            return IrisCustomData.of(B.getAir(), ExternalDataSVC.buildState(blockId, state));
         } else if (blockItemContext != null) {
             return blockItemContext.getBlockData();
         }

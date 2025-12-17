@@ -119,7 +119,7 @@ public class IrisDepositModifier extends EngineAssignedModifier<BlockData> {
             if (y > k.getMaxHeight() || y < k.getMinHeight() || y > height - 2)
                 continue;
 
-            for (BlockVector j : clump.getBlocks().keySet()) {
+            for (BlockVector j : clump.getBlocks().keys()) {
                 int nx = j.getBlockX() + x;
                 int ny = j.getBlockY() + y;
                 int nz = j.getBlockZ() + z;

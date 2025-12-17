@@ -3,7 +3,7 @@ package com.volmit.iris.core.service;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.loader.ResourceLoader;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
@@ -14,6 +14,8 @@ import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.Looper;
+import com.volmit.iris.util.stream.utility.CachedStream2D;
+import com.volmit.iris.util.stream.utility.CachedStream3D;
 import lombok.Synchronized;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -27,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class IrisEngineSVC implements IrisService {
+    private static final int TRIM_PERIOD = 2_000;
     private final AtomicInteger tectonicLimit = new AtomicInteger(30);
     private final AtomicInteger tectonicPlates = new AtomicInteger();
     private final AtomicInteger queuedTectonicPlates = new AtomicInteger();
@@ -64,10 +67,26 @@ public class IrisEngineSVC implements IrisService {
     }
 
     public void engineStatus(VolmitSender sender) {
+        long[] sizes = new long[4];
+        long[] count = new long[4];
+
+        for (var cache : Iris.service(PreservationSVC.class).getCaches()) {
+            var type = switch (cache) {
+                case ResourceLoader<?> ignored -> 0;
+                case CachedStream2D<?> ignored -> 1;
+                case CachedStream3D<?> ignored -> 2;
+                default -> 3;
+            };
+
+            sizes[type] += cache.getSize();
+            count[type]++;
+        }
+
         sender.sendMessage(C.DARK_PURPLE + "-------------------------");
         sender.sendMessage(C.DARK_PURPLE + "Status:");
         sender.sendMessage(C.DARK_PURPLE + "- Service: " + C.LIGHT_PURPLE + (service.isShutdown() ? "Shutdown" : "Running"));
         sender.sendMessage(C.DARK_PURPLE + "- Updater: " + C.LIGHT_PURPLE + (updateTicker.isAlive() ? "Running" : "Stopped"));
+        sender.sendMessage(C.DARK_PURPLE + "- Period: " + C.LIGHT_PURPLE + Form.duration(TRIM_PERIOD));
         sender.sendMessage(C.DARK_PURPLE + "- Trimmers: " + C.LIGHT_PURPLE + trimmerAlive.get());
         sender.sendMessage(C.DARK_PURPLE + "- Unloaders: " + C.LIGHT_PURPLE + unloaderAlive.get());
         sender.sendMessage(C.DARK_PURPLE + "Tectonic Plates:");
@@ -76,10 +95,14 @@ public class IrisEngineSVC implements IrisService {
         sender.sendMessage(C.DARK_PURPLE + "- Queued: " + C.LIGHT_PURPLE + queuedTectonicPlates.get());
         sender.sendMessage(C.DARK_PURPLE + "- Max Idle Duration: " + C.LIGHT_PURPLE + Form.duration(maxIdleDuration.get(), 2));
         sender.sendMessage(C.DARK_PURPLE + "- Min Idle Duration: " + C.LIGHT_PURPLE + Form.duration(minIdleDuration.get(), 2));
+        sender.sendMessage(C.DARK_PURPLE + "Caches:");
+        sender.sendMessage(C.DARK_PURPLE + "- Resource: " + C.LIGHT_PURPLE + sizes[0] + " (" + count[0] + ")");
+        sender.sendMessage(C.DARK_PURPLE + "- 2D Stream: " + C.LIGHT_PURPLE + sizes[1] + " (" + count[1] + ")");
+        sender.sendMessage(C.DARK_PURPLE + "- 3D Stream: " + C.LIGHT_PURPLE + sizes[2] + " (" + count[2] + ")");
+        sender.sendMessage(C.DARK_PURPLE + "- Other: " + C.LIGHT_PURPLE + sizes[3] + " (" + count[3] + ")");
         sender.sendMessage(C.DARK_PURPLE + "Other:");
         sender.sendMessage(C.DARK_PURPLE + "- Iris Worlds: " + C.LIGHT_PURPLE + totalWorlds.get());
         sender.sendMessage(C.DARK_PURPLE + "- Loaded Chunks: " + C.LIGHT_PURPLE + loadedChunks.get());
-        sender.sendMessage(C.DARK_PURPLE + "- Cache Size: " + C.LIGHT_PURPLE + Form.f(IrisData.cacheSize()));
         sender.sendMessage(C.DARK_PURPLE + "-------------------------");
     }
 
@@ -113,12 +136,12 @@ public class IrisEngineSVC implements IrisService {
             @Override
             protected long loop() {
                 try {
-                    queuedTectonicPlates.set(0);
-                    tectonicPlates.set(0);
-                    loadedChunks.set(0);
-                    unloaderAlive.set(0);
-                    trimmerAlive.set(0);
-                    totalWorlds.set(0);
+                    int queuedPlates = 0;
+                    int totalPlates = 0;
+                    long chunks = 0;
+                    int unloaders = 0;
+                    int trimmers = 0;
+                    int iris = 0;
 
                     double maxDuration = Long.MIN_VALUE;
                     double minDuration = Long.MAX_VALUE;
@@ -126,23 +149,30 @@ public class IrisEngineSVC implements IrisService {
                         var registered = entry.getValue();
                         if (registered.closed) continue;
 
-                        totalWorlds.incrementAndGet();
-                        unloaderAlive.addAndGet(registered.unloaderAlive() ? 1 : 0);
-                        trimmerAlive.addAndGet(registered.trimmerAlive() ? 1 : 0);
+                        iris++;
+                        if (registered.unloaderAlive()) unloaders++;
+                        if (registered.trimmerAlive()) trimmers++;
 
                         var engine = registered.getEngine();
                         if (engine == null) continue;
 
-                        queuedTectonicPlates.addAndGet((int) engine.getMantle().getUnloadRegionCount());
-                        tectonicPlates.addAndGet(engine.getMantle().getLoadedRegionCount());
-                        loadedChunks.addAndGet(entry.getKey().getLoadedChunks().length);
+                        queuedPlates += engine.getMantle().getUnloadRegionCount();
+                        totalPlates += engine.getMantle().getLoadedRegionCount();
+                        chunks += entry.getKey().getLoadedChunks().length;
 
                         double duration = engine.getMantle().getAdjustedIdleDuration();
                         if (duration > maxDuration) maxDuration = duration;
                         if (duration < minDuration) minDuration = duration;
                     }
+
+                    trimmerAlive.set(trimmers);
+                    unloaderAlive.set(unloaders);
+                    tectonicPlates.set(totalPlates);
+                    queuedTectonicPlates.set(queuedPlates);
                     maxIdleDuration.set(maxDuration);
                     minIdleDuration.set(minDuration);
+                    loadedChunks.set(chunks);
+                    totalWorlds.set(iris);
 
                     worlds.values().forEach(Registered::update);
                 } catch (Throwable e) {
@@ -157,7 +187,7 @@ public class IrisEngineSVC implements IrisService {
     private final class Registered {
         private final String name;
         private final PlatformChunkGenerator access;
-        private final int offset = RNG.r.nextInt(1000);
+        private final int offset = RNG.r.nextInt(TRIM_PERIOD);
         private transient ScheduledFuture<?> trimmer;
         private transient ScheduledFuture<?> unloader;
         private transient boolean closed;
@@ -194,7 +224,7 @@ public class IrisEngineSVC implements IrisService {
                         Iris.error("EngineSVC: Failed to trim for " + name);
                         e.printStackTrace();
                     }
-                }, offset, 2000, TimeUnit.MILLISECONDS);
+                }, offset, TRIM_PERIOD, TimeUnit.MILLISECONDS);
             }
 
             if (unloader == null || unloader.isDone() || unloader.isCancelled()) {
@@ -214,7 +244,7 @@ public class IrisEngineSVC implements IrisService {
                         Iris.error("EngineSVC: Failed to unload for " + name);
                         e.printStackTrace();
                     }
-                }, offset + 1000, 2000, TimeUnit.MILLISECONDS);
+                }, offset + TRIM_PERIOD / 2, TRIM_PERIOD, TimeUnit.MILLISECONDS);
             }
         }
 

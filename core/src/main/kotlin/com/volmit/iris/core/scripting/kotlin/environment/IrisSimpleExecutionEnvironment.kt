@@ -4,10 +4,11 @@ import com.volmit.iris.Iris
 import com.volmit.iris.core.IrisSettings
 import com.volmit.iris.core.scripting.environment.SimpleEnvironment
 import com.volmit.iris.core.scripting.kotlin.base.*
+import com.volmit.iris.core.scripting.kotlin.runner.FileComponents
 import com.volmit.iris.core.scripting.kotlin.runner.Script
 import com.volmit.iris.core.scripting.kotlin.runner.ScriptRunner
 import com.volmit.iris.core.scripting.kotlin.runner.classpath
-import com.volmit.iris.core.scripting.kotlin.runner.valueOrNull
+import com.volmit.iris.core.scripting.kotlin.runner.value
 import com.volmit.iris.core.scripting.kotlin.runner.valueOrThrow
 import com.volmit.iris.util.collection.KMap
 import com.volmit.iris.util.data.KCache
@@ -18,11 +19,14 @@ import kotlin.script.experimental.annotations.KotlinScript
 import kotlin.script.experimental.api.ResultWithDiagnostics
 import kotlin.text.split
 
-open class IrisSimpleExecutionEnvironment(
-    baseDir: File = File(".").absoluteFile
+open class IrisSimpleExecutionEnvironment internal constructor(
+    baseDir: File,
+    parent: ScriptRunner?
 ) : SimpleEnvironment {
-    protected val compileCache = KCache<String, KMap<KClass<*>, ResultWithDiagnostics<Script>>>({ _ -> KMap() }, IrisSettings.get().performance.cacheSize.toLong())
-    protected val runner = ScriptRunner(baseDir)
+    @JvmOverloads
+    constructor(baseDir: File = File(".").absoluteFile) : this(baseDir, null)
+    protected val compileCache = KCache<String, KMap<KClass<*>, ResultWithDiagnostics<Script>>>({ _ -> KMap() }, 1024L)
+    protected val runner = ScriptRunner(baseDir, parent)
 
     override fun execute(
         script: String
@@ -50,11 +54,6 @@ open class IrisSimpleExecutionEnvironment(
         return evaluate0(script, type.kotlin, vars)
     }
 
-    override fun close() {
-        compileCache.invalidate()
-        runner.clear()
-    }
-
     protected open fun compile(script: String, type: KClass<*>) =
         compileCache.get(script)
             .computeIfAbsent(type) { _ -> runner.compile(type, script) }
@@ -68,7 +67,7 @@ open class IrisSimpleExecutionEnvironment(
             return compile(name, type)
                 .evaluate(properties)
                 .valueOrThrow("Failed to evaluate script")
-                .valueOrNull()
+                .value()
         } catch (e: Throwable) {
             e.printStackTrace()
         }
@@ -89,7 +88,7 @@ open class IrisSimpleExecutionEnvironment(
     }
 
     companion object {
-        private const val CLASSPATH = "val classpath = files("
+        private const val CLASSPATH = "val classpath = mapOf("
 
         private fun File.updateClasspath(classpath: List<File>) {
             val test = if (exists()) readLines() else BASE_GRADLE
@@ -97,24 +96,71 @@ open class IrisSimpleExecutionEnvironment(
         }
 
         private fun List<String>.updateClasspath(classpath: List<File>): String {
-            val classpath = classpath.joinToString(",", CLASSPATH, ")") { "\"${it.escapedPath}\"" }
-            val index = indexOfFirst { it.startsWith(CLASSPATH) }
-            if (index == -1) {
-                return "$classpath\n${joinToString("\n")}"
+            val components = linkedMapOf<String, FileComponents>()
+            classpath.forEach {
+                val parts = it.canonicalPath.split(File.separatorChar)
+                if (parts.size <= 1) {
+                    Iris.error("Invalid classpath entry: $it")
+                    return@forEach
+                }
+
+                var parent = components.computeIfAbsent(parts[0]) { FileComponents(parts[0], true) }
+                for (part in parts.subList(1, parts.size)) {
+                    parent = parent.append(part)
+                }
             }
 
+            val mapped = components.values.associate {
+                var current = it
+                val root = buildString {
+                    while (current.children.size == 1) {
+                        append(current.segment)
+                        append(File.separatorChar)
+                        current = current.children.first()
+                    }
+                    append(current.segment)
+                    append(File.separatorChar)
+                }.escapedPath
+
+                val result = mutableSetOf<String>()
+                val queue = ArrayDeque<Pair<String?, Collection<FileComponents>>>()
+                queue.add(null to current.children)
+                while (queue.isNotEmpty()) {
+                    val pair = queue.removeFirst()
+                    val path = pair.first?.let { p -> p + File.separatorChar } ?: ""
+                    pair.second.forEach { child ->
+                        val path = path + child.segment
+                        if (child.children.isEmpty()) result.add(path.escapedPath)
+                        else queue.add(path to child.children)
+                    }
+                }
+
+                root to result
+            }
+
+
+            val classpath = mapped.entries.joinToString(",", CLASSPATH, ")") {
+                "\"${it.key}\" to setOf(${it.value.joinToString(", ") { f -> "\"$f\"" }})"
+            }
+
+
             val mod = toMutableList()
-            mod[index] = classpath
+            val index = indexOfFirst { it.startsWith(CLASSPATH) }
+            if (index == -1) {
+                mod.clear()
+                mod.addAll(BASE_GRADLE)
+            }
+
+            mod[if (index == -1) 0 else index] = classpath
             return mod.joinToString("\n")
         }
 
-        private val File.escapedPath
-            get() = absolutePath.replace("\\", "\\\\").replace("\"", "\\\"")
+        private val String.escapedPath
+            get() = replace("\\", "\\\\").replace("\"", "\\\"")
 
-        private const val ARTIFACT_ID = $$"local:${it.relativeTo(home).path.substringBeforeLast(\".jar\")}:1.0.0"
+        private const val ARTIFACT_ID = $$"local:${it.substringBeforeLast(\".jar\")}:1.0.0"
         private val BASE_GRADLE = """
-            val classpath = files()
-            val home = file(System.getProperty("user.home"))
+            val classpath = mapOf()
             
             plugins {
                 kotlin("jvm") version("2.2.0")
@@ -123,7 +169,7 @@ open class IrisSimpleExecutionEnvironment(
             repositories {
                 mavenCentral()
                 flatDir {
-                    dirs(home)
+                    dirs(classpath.keys)
                 }
             }
 
@@ -135,7 +181,7 @@ open class IrisSimpleExecutionEnvironment(
             configurations.kotlinCompilerPluginClasspath { extendsFrom(script) }
 
             dependencies {
-                classpath.forEach { script("$ARTIFACT_ID") }
+                classpath.values.flatMap { it }.forEach { script("$ARTIFACT_ID") }
             }""".trimIndent().split("\n")
     }
 }

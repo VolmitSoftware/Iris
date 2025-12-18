@@ -3,6 +3,9 @@ package com.volmit.iris.util.mantle
 import com.volmit.iris.util.data.Varint
 import com.volmit.iris.util.mantle.flag.MantleFlag
 import com.volmit.iris.util.parallel.AtomicBooleanArray
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.DataInput
@@ -22,9 +25,21 @@ abstract class FlaggedChunk() {
 
     abstract fun isClosed(): Boolean
 
-    protected fun copyFlags(other: FlaggedChunk) {
+    protected fun copyFrom(other: FlaggedChunk, action: Runnable) = runBlocking {
+        coroutineScope {
+            for (i in 0 until flags.length()) {
+                launch { locks[i].lock() }.start()
+            }
+        }
+
+        action.run()
+
         for (i in 0 until flags.length()) {
-            flags.set(i, other.flags.get(i))
+            flags[i] = other.flags[i]
+        }
+
+        for (i in 0 until flags.length()) {
+            locks[i].unlock()
         }
     }
 

@@ -222,22 +222,8 @@ public class CommandStudio implements DecreeExecutor {
                 job.execute(sender(), latch::countDown);
                 latch.await();
 
-                int sections = mantle.getWorldHeight() >> 4;
-                chunkMap.forEach((pos, chunk) -> {
-                    var c = mantle.getChunk(pos.getX(), pos.getZ()).use();
-                    try {
-                        c.copyFlags(chunk);
-                        c.clear();
-                        for (int y = 0; y < sections; y++) {
-                            var slice = chunk.get(y);
-                            if (slice == null) continue;
-                            var s = c.getOrCreate(y);
-                            slice.getSliceMap().forEach(s::putSlice);
-                        }
-                    } finally {
-                        c.release();
-                    }
-                });
+                chunkMap.forEach((pos, chunk) ->
+                        mantle.getChunk(pos.getX(), pos.getZ()).copyFrom(chunk));
             } catch (Throwable e) {
                 sender().sendMessage("Error while regenerating chunks");
                 e.printStackTrace();

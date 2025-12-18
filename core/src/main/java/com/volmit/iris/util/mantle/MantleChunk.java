@@ -131,9 +131,13 @@ public class MantleChunk extends FlaggedChunk {
         ref.release();
     }
 
-    public void copyFlags(MantleChunk chunk) {
+    public void copyFrom(MantleChunk chunk) {
         use();
-        super.copyFlags(chunk);
+        super.copyFrom(chunk, () -> {
+            for (int i = 0; i < sections.length(); i++) {
+                sections.set(i, chunk.get(i));
+            }
+        });
         release();
     }
 

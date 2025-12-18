@@ -851,7 +851,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
             }
         }
 
-        IrisBiome biome = getBiome(x, y, z);
+        IrisBiome biome = getSurfaceBiome(x, z);
 
         for (IrisObjectPlacement i : biome.getObjects()) {
             if (i.getPlace().contains(object)) {

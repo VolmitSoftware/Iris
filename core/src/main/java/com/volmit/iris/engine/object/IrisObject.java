@@ -507,6 +507,7 @@ public class IrisObject extends IrisRegistrant {
     }
 
     public void shrinkwrap() {
+        if (blocks.isEmpty()) return;
         BlockVector min = new BlockVector(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
         BlockVector max = new BlockVector(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
 

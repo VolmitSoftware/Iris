@@ -121,6 +121,7 @@ dependencies {
 
 tasks {
     jar {
+        inputs.files(included)
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         from(jarJar, provider { included.resolve().map(::zipTree) })
         archiveFileName.set("Iris-${project.version}.jar")

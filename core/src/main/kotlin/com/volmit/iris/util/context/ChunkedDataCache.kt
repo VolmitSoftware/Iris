@@ -35,6 +35,7 @@ class ChunkedDataCache<T> private constructor(
     }
 
     @BlockCoordinates
+    @Suppress("UNCHECKED_CAST")
     fun get(x: Int, z: Int): T? {
         if (!cache) {
             return stream.get((this.x + x).toDouble(), (this.z + z).toDouble())

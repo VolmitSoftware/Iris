@@ -529,9 +529,10 @@ public class Iris extends VolmitPlugin implements Listener {
                 Player r = new KList<>(getServer().getOnlinePlayers()).getRandom();
                 Iris.service(StudioSVC.class).open(r != null ? new VolmitSender(r) : getSender(), 1337, IrisSettings.get().getGenerator().getDefaultWorldType(), (w) -> {
                     J.s(() -> {
+                        var spawn = w.getSpawnLocation();
                         for (Player i : getServer().getOnlinePlayers()) {
                             i.setGameMode(GameMode.SPECTATOR);
-                            i.teleport(new Location(w, 0, 200, 0));
+                            i.teleport(spawn);
                         }
                     });
                 });

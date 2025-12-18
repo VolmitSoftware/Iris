@@ -688,8 +688,14 @@ public class CommandStudio implements DecreeExecutor {
         }
 
         sender().sendMessage(C.GREEN + "Sending you to the studio world!");
-        player().teleport(Iris.service(StudioSVC.class).getActiveProject().getActiveProvider().getTarget().getWorld().spawnLocation());
-        player().setGameMode(GameMode.SPECTATOR);
+        var player = player();
+        PaperLib.teleportAsync(player(), Iris.service(StudioSVC.class)
+                .getActiveProject()
+                .getActiveProvider()
+                .getTarget()
+                .getWorld()
+                .spawnLocation()
+        ).thenRun(() -> player.setGameMode(GameMode.SPECTATOR));
     }
 
     @Decree(description = "Update your dimension projects VSCode workspace")

@@ -101,15 +101,15 @@ public class IrisObjectRotation {
         return e.rotateCopy(this);
     }
 
-    public IrisJigsawPiece rotateCopy(IrisJigsawPiece v) {
+    public IrisJigsawPiece rotateCopy(IrisJigsawPiece v, IrisPosition offset) {
         IrisJigsawPiece piece = v.copy();
         for (IrisJigsawPieceConnector i : piece.getConnectors()) {
-            i.setPosition(rotate(i.getPosition()));
+            i.setPosition(rotate(i.getPosition()).add(offset));
             i.setDirection(rotate(i.getDirection()));
         }
         try {
             var translate = piece.getPlacementOptions().getTranslate();
-            var pos = rotate(new IrisPosition(translate.getX(), translate.getY(), translate.getZ()));
+            var pos = rotate(new IrisPosition(translate.getX(), translate.getY(), translate.getZ())).add(offset);
             translate.setX(pos.getX()).setY(pos.getY()).setZ(pos.getZ());
         } catch (NullPointerException ignored) {}
 

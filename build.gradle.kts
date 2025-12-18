@@ -60,7 +60,7 @@ val serverMaxHeap = "10G"
 val additionalFlags = "-XX:+AlwaysPreTouch"
 //Valid values are: none, truecolor, indexed256, indexed16, indexed8
 val color = "truecolor"
-val errorReporting = findProperty("errorReporting") as Boolean? ?: false
+val errorReporting = "true" == findProperty("errorReporting")
 
 val nmsBindings = mapOf(
         "v1_21_R6" to "1.21.10-R0.1-SNAPSHOT",

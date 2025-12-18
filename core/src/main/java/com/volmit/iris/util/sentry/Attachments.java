@@ -2,6 +2,7 @@ package com.volmit.iris.util.sentry;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.volmit.iris.core.safeguard.IrisSafeguard;
 import com.volmit.iris.util.collection.KMap;
 import io.sentry.Attachment;
 import org.bukkit.Bukkit;
@@ -12,6 +13,7 @@ import java.util.concurrent.Callable;
 public class Attachments {
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
     public static final Attachment PLUGINS = jsonProvider(Attachments::plugins, "plugins.json");
+    public static final Attachment SAFEGUARD = jsonProvider(IrisSafeguard::asAttachment, "safeguard.json");
 
     public static Attachment json(Object object, String name) {
         return new Attachment(GSON.toJson(object).getBytes(StandardCharsets.UTF_8), name, "application/json", "event.attachment", true);

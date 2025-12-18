@@ -189,10 +189,10 @@ val generateTemplates = tasks.register<Copy>("generateTemplates") {
         "commit" to provider {
             val res = runCatching { project.extensions.getByType<Grgit>().head().id }
             res.getOrDefault("")
-                .takeIf { it.length == 40 } ?: {
-                logger.error("Git commit hash not found", res.exceptionOrNull())
+                .takeIf { it.length == 40 } ?: run {
+                this.logger.error("Git commit hash not found", res.exceptionOrNull())
                 "unknown"
-            }()
+            }
         },
     )
 

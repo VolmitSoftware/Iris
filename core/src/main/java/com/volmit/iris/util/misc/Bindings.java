@@ -56,7 +56,7 @@ public class Bindings {
             options.setEnvironment(BuildConstants.ENVIRONMENT);
             options.setBeforeSend((event, hint) -> {
                 if (suppress(event.getThrowable())) return null;
-                event.setTag("iris.safeguard", IrisSafeguard.mode());
+                event.setTag("iris.safeguard", IrisSafeguard.mode().getId());
                 event.setTag("iris.nms", INMS.get().getClass().getCanonicalName());
                 var context = IrisContext.get();
                 if (context != null) event.getContexts().set("engine", context.asContext());
@@ -67,6 +67,7 @@ public class Bindings {
         Sentry.configureScope(scope -> {
             if (settings.includeServerId) scope.setUser(ServerID.asUser());
             scope.addAttachment(Attachments.PLUGINS);
+            scope.addAttachment(Attachments.SAFEGUARD);
             scope.setTag("server", Bukkit.getVersion());
             scope.setTag("server.type", Bukkit.getName());
             scope.setTag("server.api", Bukkit.getBukkitVersion());

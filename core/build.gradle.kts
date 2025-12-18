@@ -115,7 +115,7 @@ java {
 }
 
 sentry {
-    url = "http://sentry.volmit.com:8080/"
+    url = "http://sentry.volmit.com:8080"
     autoInstallation.enabled = false
     includeSourceContext = true
 
@@ -174,6 +174,10 @@ tasks {
         //minimize()
         relocate("io.github.slimjar", "$lib.slimjar")
         exclude("modules/loader-agent.isolated-jar")
+    }
+
+    sentryCollectSourcesJava {
+        dependsOn(generateTemplates)
     }
 }
 

@@ -28,13 +28,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.Axis;
-import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.*;
+import org.bukkit.block.data.type.RedstoneWire;
 import org.bukkit.block.data.type.Wall;
-import org.bukkit.block.structure.StructureRotation;
 import org.bukkit.util.BlockVector;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -259,14 +259,14 @@ public class IrisObjectRotation {
 
                 g.setRotation(face);
 
-            } else if (d instanceof Orientable) {
-                BlockFace f = getFace(((Orientable) d).getAxis());
+            } else if (d instanceof Orientable g) {
+                BlockFace f = getFace(g.getAxis());
                 BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
                 bv = rotate(bv.clone(), spinx, spiny, spinz);
                 Axis a = getAxis(bv);
 
-                if (!a.equals(((Orientable) d).getAxis()) && ((Orientable) d).getAxes().contains(a)) {
-                    ((Orientable) d).setAxis(a);
+                if (!a.equals(g.getAxis()) && g.getAxes().contains(a)) {
+                    g.setAxis(a);
                 }
             } else if (d instanceof MultipleFacing g) {
                 List<BlockFace> faces = new KList<>();
@@ -304,14 +304,22 @@ public class IrisObjectRotation {
                 for (BlockFace i : WALL_FACES) {
                     wall.setHeight(i, faces.getOrDefault(i, Wall.Height.NONE));
                 }
-            } else if (d.getMaterial().equals(Material.NETHER_PORTAL) && d instanceof Orientable g) {
-                //TODO: Fucks up logs
-                BlockFace f = faceForAxis(g.getAxis());
-                BlockVector bv = new BlockVector(f.getModX(), f.getModY(), f.getModZ());
-                bv = rotate(bv.clone(), spinx, spiny, spinz);
-                BlockFace t = getFace(bv);
-                Axis a = !g.getAxes().contains(Axis.Y) ? axisFor(t) : axisFor2D(t);
-                ((Orientable) d).setAxis(a);
+            } else if (d instanceof RedstoneWire wire) {
+                Map<BlockFace, RedstoneWire.Connection> faces = new HashMap<>();
+
+                var allowed = wire.getAllowedFaces();
+                for (BlockFace i : allowed) {
+                    RedstoneWire.Connection connection = wire.getFace(i);
+                    BlockVector bv = new BlockVector(i.getModX(), i.getModY(), i.getModZ());
+                    bv = rotate(bv.clone(), spinx, spiny, spinz);
+                    BlockFace r = getFace(bv);
+                    if (allowed.contains(r))
+                        faces.put(r, connection);
+                }
+
+                for (BlockFace i : allowed) {
+                    wire.setFace(i, faces.getOrDefault(i, RedstoneWire.Connection.NONE));
+                }
             }
         } catch (Throwable e) {
             Iris.reportError(e);

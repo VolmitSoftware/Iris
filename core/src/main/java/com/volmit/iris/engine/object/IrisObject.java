@@ -308,6 +308,9 @@ public class IrisObject extends IrisRegistrant {
             blocks.put(new Vector3i(din.readShort(), din.readShort(), din.readShort()), B.get(din.readUTF()));
         }
 
+        if (din.available() == 0)
+            return;
+
         try {
             int size = din.readInt();
 
@@ -316,7 +319,6 @@ public class IrisObject extends IrisRegistrant {
             }
         } catch (Throwable e) {
             Iris.reportError(e);
-
         }
     }
 
@@ -326,7 +328,7 @@ public class IrisObject extends IrisRegistrant {
         this.h = din.readInt();
         this.d = din.readInt();
         if (!din.readUTF().equals("Iris V2 IOB;")) {
-            return;
+            throw new HeaderException();
         }
         center = new Vector3i(w / 2, h / 2, d / 2);
         int s = din.readShort();
@@ -473,16 +475,14 @@ public class IrisObject extends IrisRegistrant {
     }
 
     public void read(File file) throws IOException {
-        var fin = new BufferedInputStream(new FileInputStream(file));
-        try {
+        try (var fin = new BufferedInputStream(new FileInputStream(file))) {
             read(fin);
-            fin.close();
         } catch (Throwable e) {
-            Iris.reportError(e);
-            fin.close();
-            fin = new BufferedInputStream(new FileInputStream(file));
-            readLegacy(fin);
-            fin.close();
+            if (!(e instanceof HeaderException))
+                Iris.reportError(e);
+            try (var fin = new BufferedInputStream(new FileInputStream(file))) {
+                readLegacy(fin);
+            }
         }
     }
 
@@ -1416,5 +1416,11 @@ public class IrisObject extends IrisRegistrant {
 
     @Override
     public void scanForErrors(JSONObject p, VolmitSender sender) {
+    }
+
+    private static class HeaderException extends IOException {
+        public HeaderException() {
+            super("Invalid Header");
+        }
     }
 }

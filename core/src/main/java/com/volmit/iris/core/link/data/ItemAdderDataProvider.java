@@ -5,7 +5,6 @@ import com.volmit.iris.core.link.ExternalDataProvider;
 import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KMap;
-import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.IrisCustomData;
 import dev.lone.itemsadder.api.CustomBlock;
 import dev.lone.itemsadder.api.CustomStack;
@@ -19,12 +18,13 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.List;
 import java.util.MissingResourceException;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ItemAdderDataProvider extends ExternalDataProvider {
 
-    private final KSet<String> itemNamespaces = new KSet<>();
-    private final KSet<String> blockNamespaces = new KSet<>();
+    private volatile Set<String> itemNamespaces = Set.of();
+    private volatile Set<String> blockNamespaces = Set.of();
 
     public ItemAdderDataProvider() {
         super("ItemsAdder");
@@ -94,9 +94,9 @@ public class ItemAdderDataProvider extends ExternalDataProvider {
 
     private void updateNamespaces(DataType dataType) {
         var namespaces = getTypes(dataType).stream().map(Identifier::namespace).collect(Collectors.toSet());
-        var currentNamespaces = dataType == DataType.ITEM ? itemNamespaces : blockNamespaces;
-        currentNamespaces.removeIf(n -> !namespaces.contains(n));
-        currentNamespaces.addAll(namespaces);
+        if (dataType == DataType.ITEM) itemNamespaces = namespaces;
+        else blockNamespaces = namespaces;
+        Iris.debug("Updated ItemAdder namespaces: " + dataType + " - " + namespaces);
     }
 
     @Override

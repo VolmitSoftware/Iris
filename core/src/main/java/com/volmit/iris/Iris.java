@@ -411,6 +411,7 @@ public class Iris extends VolmitPlugin implements Listener {
                 pw.println();
                 pw.println();
             }
+            pw.println("[%%__USER__%%,%%__RESOURCE__%%,%%__PRODUCT__%%,%%__BUILTBYBIT__%%]");
 
             pw.close();
             Iris.info("DUMPED! See " + fi.getAbsolutePath());

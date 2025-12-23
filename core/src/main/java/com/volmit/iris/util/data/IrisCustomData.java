@@ -16,7 +16,7 @@ public interface IrisCustomData extends BlockData {
 
 	static IrisCustomData of(@NotNull BlockData base, @NotNull Identifier custom) {
 		var clazz = base.getClass();
-		var loader = clazz.getClassLoader();
+		var loader = IrisCustomData.class.getClassLoader();
 		return (IrisCustomData) Proxy.newProxyInstance(loader, Internal.getInterfaces(loader, clazz), (proxy, method, args) ->
 				switch (method.getName()) {
 					case "getBase" -> base;
@@ -44,15 +44,12 @@ public interface IrisCustomData extends BlockData {
 
 		private static Class<?>[] getInterfaces(ClassLoader loader, Class<?> base) {
 			return cache.computeIfAbsent(base, k -> {
-				Queue<Class<?>> queue = new LinkedList<>();
 				Set<Class<?>> set = new HashSet<>();
 
-				queue.add(k);
-				while (!queue.isEmpty()) {
-					Class<?> i = queue.poll();
-
+				Class<?> i = base;
+				while (i != null) {
 					if (!BlockData.class.isAssignableFrom(i))
-						continue;
+						break;
 
 					for (Class<?> j : i.getInterfaces()) {
 						if (j.isSealed() || j.isHidden())
@@ -64,9 +61,7 @@ public interface IrisCustomData extends BlockData {
 						} catch (ClassNotFoundException ignored) {}
 					}
 
-					var parent = i.getSuperclass();
-					if (parent != null)
-						queue.add(parent);
+					i = i.getSuperclass();
 				}
 
 				set.add(IrisCustomData.class);

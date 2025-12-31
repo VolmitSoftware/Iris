@@ -46,6 +46,16 @@ public class CommandEdit implements DecreeExecutor {
             sender().sendMessage(C.RED + "You must be in a studio world!");
             return true;
         }
+
+        if (GraphicsEnvironment.isHeadless()) {
+            sender().sendMessage(C.RED + "Cannot open files in headless environments!");
+            return true;
+        }
+
+        if (!Desktop.isDesktopSupported()) {
+            sender().sendMessage(C.RED + "Desktop is not supported by this environment!");
+            return true;
+        }
         return false;
     }
 

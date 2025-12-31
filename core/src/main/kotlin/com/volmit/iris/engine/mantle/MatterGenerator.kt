@@ -27,8 +27,7 @@ interface MatterGenerator {
 
     @ChunkCoordinates
     fun generateMatter(x: Int, z: Int, multicore: Boolean, context: ChunkContext) {
-        if (!engine.dimension.isUseMantle || mantle.hasFlag(x, z, MantleFlag.PLANNED))
-            return
+        if (!engine.dimension.isUseMantle) return
         val multicore = multicore || IrisSettings.get().generator.isUseMulticoreMantle
 
         mantle.write(engine.mantle, x, z, radius, multicore).use { writer ->

@@ -175,10 +175,13 @@ public class TectonicPlate {
      */
     @ChunkCoordinates
     public MantleChunk getOrCreate(int x, int z) {
-        return chunks.updateAndGet(index(x, z), chunk -> {
-            if (chunk != null) return chunk;
-            return new MantleChunk(sectionHeight, x & 31, z & 31);
-        });
+        final int index = index(x, z);
+        final MantleChunk chunk = chunks.get(index);
+        if (chunk != null) return chunk;
+
+        final MantleChunk instance = new MantleChunk(sectionHeight, x & 31, z & 31);
+        final MantleChunk value = chunks.compareAndExchange(index, null, instance);
+        return value == null ? instance : value;
     }
 
     @ChunkCoordinates

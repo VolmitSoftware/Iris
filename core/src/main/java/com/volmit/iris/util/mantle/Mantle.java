@@ -33,6 +33,7 @@ import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.documentation.RegionCoordinates;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.function.Consumer3;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.mantle.io.IOWorker;
@@ -50,6 +51,9 @@ import java.io.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * The mantle can store any type of data slice anywhere and manage regions & IO on it's own.
@@ -199,6 +203,68 @@ public class Mantle {
     @ChunkCoordinates
     public MantleChunk getChunk(int x, int z) {
         return get(x >> 5, z >> 5).getOrCreate(x & 31, z & 31);
+    }
+
+    public void getChunks(final int minChunkX,
+                          final int maxChunkX,
+                          final int minChunkZ,
+                          final int maxChunkZ,
+                          int parallelism,
+                          final Consumer3<Integer, Integer, MantleChunk> consumer
+    ) {
+        if (parallelism <= 0) parallelism = 1;
+        final var lock = new Semaphore(parallelism);
+
+        final int minRegionX = minChunkX >> 5;
+        final int maxRegionX = maxChunkX >> 5;
+        final int minRegionZ = minChunkZ >> 5;
+        final int maxRegionZ = maxChunkZ >> 5;
+
+        final int minRelativeX = minChunkX & 31;
+        final int maxRelativeX = maxChunkX & 31;
+        final int minRelativeZ = minChunkZ & 31;
+        final int maxRelativeZ = maxChunkZ & 31;
+
+        final AtomicReference<Throwable> error = new AtomicReference<>();
+        for (int rX = minRegionX; rX <= maxRegionX; rX++) {
+            final int minX = rX == minRegionX ? minRelativeX : 0;
+            final int maxX = rX == maxRegionX ? maxRelativeX : 31;
+            for (int rZ = minRegionZ; rZ <= maxRegionZ; rZ++) {
+                final int minZ = rZ == minRegionZ ? minRelativeZ : 0;
+                final int maxZ = rZ == maxRegionZ ? maxRelativeZ : 31;
+                final int realX = rX << 5;
+                final int realZ = rZ << 5;
+
+                lock.acquireUninterruptibly();
+                final var e = error.get();
+                if (e != null) {
+                    if (e instanceof RuntimeException ex) throw ex;
+                    else if (e instanceof Error ex) throw ex;
+                    else throw new RuntimeException(error.get());
+                }
+
+                getFuture(rX, rZ)
+                        .thenAccept(region -> {
+                            final MantleChunk zero = region.getOrCreate(0, 0).use();
+                            try {
+                                for (int xx = minX; xx <= maxX; xx++) {
+                                    for (int zz = minZ; zz <= maxZ; zz++) {
+                                        consumer.accept(realX + xx, realZ + zz, region.getOrCreate(xx, zz));
+                                    }
+                                }
+                            } finally {
+                                zero.release();
+                            }
+                        })
+                        .exceptionally(ex -> {
+                            error.set(ex);
+                            return null;
+                        })
+                        .thenRun(lock::release);
+            }
+        }
+
+        lock.acquireUninterruptibly(parallelism);
     }
 
     /**
@@ -554,6 +620,53 @@ public class Mantle {
         return get(x, z);
     }
 
+    private CompletableFuture<TectonicPlate> getFuture(int x, int z) {
+        final boolean trim = ioTrim.tryAcquire();
+        final boolean unload = ioTectonicUnload.tryAcquire();
+        final Function<TectonicPlate, TectonicPlate> release = p -> {
+            if (trim) ioTrim.release();
+            if (unload) ioTectonicUnload.release();
+            return p;
+        };
+
+        final Supplier<CompletableFuture<TectonicPlate>> fallback = () -> getSafe(x, z)
+                .exceptionally(e -> {
+                    if (e instanceof InterruptedException) {
+                        Iris.warn("Failed to get Tectonic Plate " + x + " " + z + " Due to a thread intterruption (hotload?)");
+                        Iris.reportError(e);
+                    } else {
+                        Iris.warn("Failed to get Tectonic Plate " + x + " " + z + " Due to a unknown exception");
+                        Iris.reportError(e);
+                        e.printStackTrace();
+                    }
+                    return null;
+                })
+                .thenCompose(p -> {
+                    release.apply(p);
+                    if (p != null) return CompletableFuture.completedFuture(p);
+                    Iris.warn("Retrying to get " + x + " " + z + " Mantle Region");
+                    return getFuture(x, z);
+                });
+
+        if (!trim || !unload) {
+            return getSafe(x, z)
+                    .thenApply(release)
+                    .exceptionallyCompose(e -> {
+                        e.printStackTrace();
+                        return fallback.get();
+                    });
+        }
+
+        Long key = key(x, z);
+        TectonicPlate p = loadedRegions.get(key);
+        if (p != null && !p.isClosed()) {
+            use(key);
+            return CompletableFuture.completedFuture(release.apply(p));
+        }
+
+        return fallback.get();
+    }
+
     /**
      * This retreives a future of the Tectonic Plate at the given coordinates.
      * All methods accessing tectonic plates should go through this method
@@ -563,8 +676,8 @@ public class Mantle {
      * @return the future of a tectonic plate.
      */
     @RegionCoordinates
-    private Future<TectonicPlate> getSafe(int x, int z) {
-        return ioBurst.completeValue(() -> hyperLock.withResult(x, z, () -> {
+    protected CompletableFuture<TectonicPlate> getSafe(int x, int z) {
+        return ioBurst.completableFuture(() -> hyperLock.withResult(x, z, () -> {
             Long k = key(x, z);
             use(k);
             TectonicPlate r = loadedRegions.get(k);

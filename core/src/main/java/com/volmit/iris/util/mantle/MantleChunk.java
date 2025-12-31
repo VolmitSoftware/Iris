@@ -199,16 +199,12 @@ public class MantleChunk extends FlaggedChunk {
      */
     @ChunkCoordinates
     public Matter getOrCreate(int section) {
-        Matter matter = get(section);
+        final Matter matter = get(section);
+        if (matter != null) return matter;
 
-        if (matter == null) {
-            matter = new IrisMatter(16, 16, 16);
-            if (!sections.compareAndSet(section, null, matter)) {
-                matter = get(section);
-            }
-        }
-
-        return matter;
+        final Matter instance = new IrisMatter(16, 16, 16);
+        final Matter value = sections.compareAndExchange(section, null, instance);
+        return value == null ? instance : value;
     }
 
     /**

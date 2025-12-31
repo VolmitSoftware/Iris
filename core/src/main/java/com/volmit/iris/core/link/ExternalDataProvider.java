@@ -157,7 +157,7 @@ public abstract class ExternalDataProvider implements Listener {
     protected static List<BlockProperty> YAW_FACE_BIOME_PROPERTIES = List.of(
             BlockProperty.ofEnum(BiomeColor.class, "matchBiome", null),
             BlockProperty.ofBoolean("randomYaw", false),
-            BlockProperty.ofFloat("yaw", 0, 0, 360f, false, true),
+            BlockProperty.ofDouble("yaw", 0, 0, 360f, false, true),
             BlockProperty.ofBoolean("randomFace", true),
             new BlockProperty(
                     "face",

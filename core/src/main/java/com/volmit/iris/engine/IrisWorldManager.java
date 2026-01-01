@@ -128,10 +128,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                     getEngine().getWorld().tryGetRealWorld();
                 }
 
-                if (!IrisSettings.get().getWorld().isMarkerEntitySpawningSystem() && !IrisSettings.get().getWorld().isAnbientEntitySpawningSystem()) {
-                    return 3000;
-                }
-
                 if (getEngine().getWorld().hasRealWorld()) {
                     if (getEngine().getWorld().getPlayers().isEmpty()) {
                         return 5000;
@@ -145,6 +141,13 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                         discoverChunks();
                     }
 
+                    if (cln.flip()) {
+                        engine.getEngineData().cleanup(getEngine());
+                    }
+
+                    if (!IrisSettings.get().getWorld().isMarkerEntitySpawningSystem() && !IrisSettings.get().getWorld().isAnbientEntitySpawningSystem()) {
+                        return 3000;
+                    }
 
                     if (getDimension().isInfiniteEnergy()) {
                         energy += 1000;
@@ -154,10 +157,6 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                     if (M.ms() < charge) {
                         energy += 70;
                         fixEnergy();
-                    }
-
-                    if (cln.flip()) {
-                        engine.getEngineData().cleanup(getEngine());
                     }
 
                     if (precount != null) {
@@ -187,7 +186,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             }
         };
         looper.setPriority(Thread.MIN_PRIORITY);
-        looper.setName("Iris World Manager");
+        looper.setName("Iris World Manager " + getTarget().getWorld().name());
         looper.start();
     }
 

@@ -98,6 +98,8 @@ public class IrisObject extends IrisRegistrant {
     @Getter
     @Setter
     private transient Vector3i center;
+    @Getter
+    private transient Vector3i shrinkOffset;
 
     public IrisObject(int w, int h, int d) {
         blocks = new VectorMap<>();
@@ -106,6 +108,7 @@ public class IrisObject extends IrisRegistrant {
         this.h = h;
         this.d = d;
         center = new Vector3i(w / 2, h / 2, d / 2);
+        shrinkOffset = new Vector3i(0, 0, 0);
         var lock = new ReentrantReadWriteLock();
         readLock = lock.readLock();
         writeLock = lock.writeLock();
@@ -305,6 +308,9 @@ public class IrisObject extends IrisRegistrant {
             blocks.put(new Vector3i(din.readShort(), din.readShort(), din.readShort()), B.get(din.readUTF()));
         }
 
+        if (din.available() == 0)
+            return;
+
         try {
             int size = din.readInt();
 
@@ -313,7 +319,6 @@ public class IrisObject extends IrisRegistrant {
             }
         } catch (Throwable e) {
             Iris.reportError(e);
-
         }
     }
 
@@ -323,7 +328,7 @@ public class IrisObject extends IrisRegistrant {
         this.h = din.readInt();
         this.d = din.readInt();
         if (!din.readUTF().equals("Iris V2 IOB;")) {
-            return;
+            throw new HeaderException();
         }
         center = new Vector3i(w / 2, h / 2, d / 2);
         int s = din.readShort();
@@ -470,16 +475,14 @@ public class IrisObject extends IrisRegistrant {
     }
 
     public void read(File file) throws IOException {
-        var fin = new BufferedInputStream(new FileInputStream(file));
-        try {
+        try (var fin = new BufferedInputStream(new FileInputStream(file))) {
             read(fin);
-            fin.close();
         } catch (Throwable e) {
-            Iris.reportError(e);
-            fin.close();
-            fin = new BufferedInputStream(new FileInputStream(file));
-            readLegacy(fin);
-            fin.close();
+            if (!(e instanceof HeaderException))
+                Iris.reportError(e);
+            try (var fin = new BufferedInputStream(new FileInputStream(file))) {
+                readLegacy(fin);
+            }
         }
     }
 
@@ -504,8 +507,9 @@ public class IrisObject extends IrisRegistrant {
     }
 
     public void shrinkwrap() {
-        BlockVector min = new BlockVector();
-        BlockVector max = new BlockVector();
+        if (blocks.isEmpty()) return;
+        BlockVector min = new BlockVector(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
+        BlockVector max = new BlockVector(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
 
         for (BlockVector i : blocks.keys()) {
             min.setX(Math.min(min.getX(), i.getX()));
@@ -520,6 +524,31 @@ public class IrisObject extends IrisRegistrant {
         h = max.getBlockY() - min.getBlockY() + 1;
         d = max.getBlockZ() - min.getBlockZ() + 1;
         center = new Vector3i(w / 2, h / 2, d / 2);
+
+        Vector3i offset = new Vector3i(
+                -center.getBlockX() - min.getBlockX(),
+                -center.getBlockY() - min.getBlockY(),
+                -center.getBlockZ() - min.getBlockZ()
+        );
+        if (offset.getBlockX() == 0 && offset.getBlockY() == 0 && offset.getBlockZ() == 0)
+            return;
+
+        VectorMap<BlockData> b = new VectorMap<>();
+        VectorMap<TileData> s = new VectorMap<>();
+
+        blocks.forEach((vector, data) -> {
+            vector.add(offset);
+            b.put(vector, data);
+        });
+
+        states.forEach((vector, data) -> {
+            vector.add(offset);
+            s.put(vector, data);
+        });
+
+        shrinkOffset = offset;
+        blocks = b;
+        states = s;
     }
 
     public void clean() {
@@ -1150,8 +1179,8 @@ public class IrisObject extends IrisRegistrant {
 
         blocks = d;
         states = dx;
-        writeLock.unlock();
         shrinkwrap();
+        writeLock.unlock();
     }
 
     public void place(Location at) {
@@ -1388,5 +1417,11 @@ public class IrisObject extends IrisRegistrant {
 
     @Override
     public void scanForErrors(JSONObject p, VolmitSender sender) {
+    }
+
+    private static class HeaderException extends IOException {
+        public HeaderException() {
+            super("Invalid Header");
+        }
     }
 }

@@ -31,7 +31,9 @@ import com.volmit.iris.core.tools.IrisPackBenchmarking;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
@@ -52,6 +54,7 @@ import com.volmit.iris.util.nbt.mca.MCAFile;
 import com.volmit.iris.util.nbt.mca.MCAUtil;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
+import com.volmit.iris.util.scheduling.jobs.Job;
 import lombok.SneakyThrows;
 import net.jpountz.lz4.LZ4BlockInputStream;
 import net.jpountz.lz4.LZ4BlockOutputStream;
@@ -90,6 +93,124 @@ public class CommandDeveloper implements DecreeExecutor {
         Engine engine = engine();
         if (engine != null) IrisContext.getOr(engine);
         Iris.reportError(new Exception("This is a test"));
+    }
+
+    @Decree(description = "Dev cmd to fix all the broken objects caused by faulty shrinkwarp")
+    public void fixObjects(
+            @Param(aliases = "dimension", description = "The dimension type to create the world with")
+            IrisDimension type
+    ) {
+        if (type == null) {
+            sender().sendMessage("Type cant be null?");
+            return;
+        }
+
+        IrisData dm = IrisData.get(Iris.instance.getDataFolder("packs", type.getLoadKey()));
+        var loader = dm.getObjectLoader();
+        var processed = new KMap<String, IrisPosition>();
+
+        var objects = loader.getPossibleKeys();
+        var pieces = dm.getJigsawPieceLoader().getPossibleKeys();
+        var sender = sender();
+
+        sender.sendMessage(C.IRIS + "Found " + objects.length + " objects in " + type.getLoadKey());
+        sender.sendMessage(C.IRIS + "Found " + pieces.length + " jigsaw pieces in " + type.getLoadKey());
+
+        final int total = objects.length;
+        final AtomicInteger completed = new AtomicInteger();
+        final AtomicInteger changed = new AtomicInteger();
+
+        new Job() {
+            @Override
+            public String getName() {
+                return "Fixing Objects";
+            }
+
+            @Override
+            public void execute() {
+                Arrays.stream(pieces).parallel()
+                        .map(dm.getJigsawPieceLoader()::load)
+                        .filter(Objects::nonNull)
+                        .forEach(piece -> {
+                            var offset = processed.compute(piece.getObject(), (key, o) -> {
+                                if (o != null) return o;
+                                var obj = loader.load(key);
+                                if (obj == null) return new IrisPosition();
+
+                                obj.shrinkwrap();
+                                try {
+                                    if (!obj.getShrinkOffset().isZero()) {
+                                        changed.incrementAndGet();
+                                        obj.write(obj.getLoadFile());
+                                    }
+                                    completeWork();
+                                } catch (IOException e) {
+                                    Iris.error("Failed to write object " + obj.getLoadKey());
+                                    e.printStackTrace();
+                                    return new IrisPosition();
+                                }
+
+                                return new IrisPosition(obj.getShrinkOffset());
+                            });
+                            if (offset.getX() == 0 && offset.getY() == 0 && offset.getZ() == 0)
+                                return;
+
+                            piece.getConnectors().forEach(connector -> connector.setPosition(connector.getPosition().add(offset)));
+
+                            try {
+                                IO.writeAll(piece.getLoadFile(), dm.getGson().toJson(piece));
+                            } catch (IOException e) {
+                                Iris.error("Failed to write jigsaw piece " + piece.getLoadKey());
+                                e.printStackTrace();
+                            }
+                        });
+
+                Arrays.stream(loader.getPossibleKeys()).parallel()
+                        .filter(key -> !processed.containsKey(key))
+                        .map(loader::load)
+                        .forEach(obj -> {
+                            if (obj == null) {
+                                completeWork();
+                                return;
+                            }
+
+                            obj.shrinkwrap();
+                            if (obj.getShrinkOffset().isZero()) {
+                                completeWork();
+                                return;
+                            }
+
+                            try {
+                                obj.write(obj.getLoadFile());
+                                completeWork();
+                                changed.incrementAndGet();
+                            } catch (IOException e) {
+                                Iris.error("Failed to write object " + obj.getLoadKey());
+                                e.printStackTrace();
+                            }
+                        });
+            }
+
+            @Override
+            public void completeWork() {
+                completed.incrementAndGet();
+            }
+
+            @Override
+            public int getTotalWork() {
+                return total;
+            }
+
+            @Override
+            public int getWorkCompleted() {
+                return completed.get();
+            }
+        }.execute(sender, () -> {
+            var failed = total - completed.get();
+            if (failed != 0) sender.sendMessage(C.IRIS + "" + failed + " objects failed!");
+            if (changed.get() != 0) sender.sendMessage(C.IRIS + "" + changed.get() + " objects had their offsets changed!");
+            else sender.sendMessage(C.IRIS + "No objects had their offsets changed!");
+        });
     }
 
     @Decree(description = "Test")

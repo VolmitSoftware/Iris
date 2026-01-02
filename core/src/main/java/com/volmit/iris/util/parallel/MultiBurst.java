@@ -172,6 +172,18 @@ public class MultiBurst implements ExecutorService {
         return getService().submit(o);
     }
 
+    public <T> CompletableFuture<T> completableFuture(Callable<T> o) {
+        CompletableFuture<T> f = new CompletableFuture<>();
+        getService().submit(() -> {
+            try {
+                f.complete(o.call());
+            } catch (Exception e) {
+                f.completeExceptionally(e);
+            }
+        });
+        return f;
+    }
+
     @Override
     public void shutdown() {
         close();

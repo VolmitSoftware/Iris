@@ -60,7 +60,7 @@ val serverMaxHeap = "10G"
 val additionalFlags = "-XX:+AlwaysPreTouch"
 //Valid values are: none, truecolor, indexed256, indexed16, indexed8
 val color = "truecolor"
-val errorReporting = findProperty("errorReporting") as Boolean? ?: false
+val errorReporting = "true" == findProperty("errorReporting")
 
 val nmsBindings = mapOf(
         "v1_21_R6" to "1.21.10-R0.1-SNAPSHOT",
@@ -109,19 +109,21 @@ nmsBindings.forEach { (key, value) ->
     }
 }
 
+val included: Configuration by configurations.creating
 val jarJar: Configuration by configurations.creating
 dependencies {
     for (key in nmsBindings.keys) {
-        implementation(project(":nms:$key", "reobf"))
+        included(project(":nms:$key", "reobf"))
     }
-    implementation(project(":core", "shadow"))
+    included(project(":core", "shadow"))
     jarJar(project(":core:agent"))
 }
 
 tasks {
     jar {
+        inputs.files(included)
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-        from(jarJar, configurations.runtimeClasspath.map { it.resolve().map(::zipTree) })
+        from(jarJar, provider { included.resolve().map(::zipTree) })
         archiveFileName.set("Iris-${project.version}.jar")
     }
 

@@ -28,7 +28,6 @@ import com.volmit.iris.core.link.IrisPapiExpansion;
 import com.volmit.iris.core.link.MultiverseCoreLink;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.core.pregenerator.LazyPregenerator;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
@@ -43,7 +42,6 @@ import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.exceptions.IrisException;
 import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.function.NastyRunnable;
 import com.volmit.iris.util.io.FileWatcher;
 import com.volmit.iris.util.io.IO;
@@ -53,7 +51,6 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.misc.Bindings;
 import com.volmit.iris.util.misc.SlimJar;
-import com.volmit.iris.util.misc.getHardware;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.plugin.VolmitPlugin;
@@ -83,9 +80,6 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static com.volmit.iris.core.safeguard.IrisSafeguard.*;
-import static com.volmit.iris.core.safeguard.ServerBootSFG.passedserversoftware;
 
 @SuppressWarnings("CanBeFinal")
 public class Iris extends VolmitPlugin implements Listener {
@@ -308,9 +302,6 @@ public class Iris extends VolmitPlugin implements Listener {
     public static void info(String format, Object... args) {
         msg(C.WHITE + String.format(format, args));
     }
-    public static void safeguard(String format, Object... args) {
-        msg(C.RESET + String.format(format, args));
-    }
 
     @SuppressWarnings("deprecation")
     public static void later(NastyRunnable object) {
@@ -420,6 +411,7 @@ public class Iris extends VolmitPlugin implements Listener {
                 pw.println();
                 pw.println();
             }
+            pw.println("[%%__USER__%%,%%__RESOURCE__%%,%%__PRODUCT__%%,%%__BUILTBYBIT__%%]");
 
             pw.close();
             Iris.info("DUMPED! See " + fi.getAbsolutePath());
@@ -449,9 +441,9 @@ public class Iris extends VolmitPlugin implements Listener {
         IO.delete(new File("iris"));
         compat = IrisCompat.configured(getDataFile("compat.json"));
         ServerConfigurator.configure();
-        IrisSafeguard.IrisSafeguardSystem();
+        IrisSafeguard.execute();
         getSender().setTag(getTag());
-        IrisSafeguard.splash(true);
+        IrisSafeguard.splash();
         tickets = new ChunkTickets();
         linkMultiverseCore = new MultiverseCoreLink();
         configWatcher = new FileWatcher(getDataFile("settings.json"));
@@ -459,7 +451,6 @@ public class Iris extends VolmitPlugin implements Listener {
         services.values().forEach(this::registerListener);
         addShutdownHook();
         J.s(() -> {
-            J.a(IrisSafeguard::suggestPaper);
             J.a(() -> IO.delete(getTemp()));
             J.a(LazyPregenerator::loadLazyGenerators, 100);
             J.a(this::bstats);
@@ -467,7 +458,6 @@ public class Iris extends VolmitPlugin implements Listener {
             J.sr(this::tickQueue, 0);
             J.s(this::setupPapi);
             J.a(ServerConfigurator::configure, 20);
-            IrisSafeguard.splash(false);
 
             autoStartStudio();
             checkForBukkitWorlds(s -> true);
@@ -529,9 +519,10 @@ public class Iris extends VolmitPlugin implements Listener {
                 Player r = new KList<>(getServer().getOnlinePlayers()).getRandom();
                 Iris.service(StudioSVC.class).open(r != null ? new VolmitSender(r) : getSender(), 1337, IrisSettings.get().getGenerator().getDefaultWorldType(), (w) -> {
                     J.s(() -> {
+                        var spawn = w.getSpawnLocation();
                         for (Player i : getServer().getOnlinePlayers()) {
                             i.setGameMode(GameMode.SPECTATOR);
-                            i.teleport(new Location(w, 0, 200, 0));
+                            i.teleport(spawn);
                         }
                     });
                 });
@@ -560,10 +551,10 @@ public class Iris extends VolmitPlugin implements Listener {
         enable();
         super.onEnable();
         Bukkit.getPluginManager().registerEvents(this, this);
-        setupChecks();
     }
 
     public void onDisable() {
+        if (IrisSafeguard.isForceShutdown()) return;
         services.values().forEach(IrisService::onDisable);
         Bukkit.getScheduler().cancelTasks(this);
         HandlerList.unregisterAll((Plugin) this);
@@ -591,49 +582,7 @@ public class Iris extends VolmitPlugin implements Listener {
 
     @Override
     public String getTag(String subTag) {
-        if (unstablemode) {
-            return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.RED + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
-        }
-        if (warningmode) {
-            return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.GOLD + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
-        }
-        return C.BOLD + "" + C.DARK_GRAY + "[" + C.BOLD + "" + C.IRIS + "Iris" + C.BOLD + C.DARK_GRAY + "]" + C.RESET + "" + C.GRAY + ": ";
-
-    }
-
-    private boolean setupChecks() {
-        boolean passed = true;
-        Iris.info("Version Information: " + instance.getServer().getVersion() + " | " + instance.getServer().getBukkitVersion());
-        if (INMS.get() instanceof NMSBinding1X) {
-            passed = false;
-            Iris.warn("============================================");
-            Iris.warn("=");
-            Iris.warn("=");
-            Iris.warn("=");
-            Iris.warn("Iris is not compatible with this version of Minecraft.");
-            Iris.warn("=");
-            Iris.warn("=");
-            Iris.warn("=");
-            Iris.warn("============================================");
-        }
-
-        try {
-            Class.forName("io.papermc.paper.configuration.PaperConfigurations");
-        } catch (ClassNotFoundException e) {
-            Iris.info(C.RED + "Iris requires paper or above to function properly..");
-            return false;
-        }
-
-        try {
-            Class.forName("org.purpurmc.purpur.PurpurConfig");
-        } catch (ClassNotFoundException e) {
-            Iris.info("We recommend using Purpur for the best experience with Iris.");
-            Iris.info("Purpur is a fork of Paper that is optimized for performance and stability.");
-            Iris.info("Plugins that work on Spigot / Paper work on Purpur.");
-            Iris.info("You can download it here: https://purpurmc.org");
-            return false;
-        }
-        return passed;
+        return IrisSafeguard.mode().tag(subTag);
     }
 
     private void checkConfigHotload() {
@@ -741,88 +690,11 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     public void splash() {
-        if (!IrisSettings.get().getGeneral().isSplashLogoStartup()) {
-            return;
-        }
-
-        String padd = Form.repeat(" ", 8);
-        String padd2 = Form.repeat(" ", 4);
-        String[] info = {"", "", "", "", "", padd2 + C.IRIS + " Iris", padd2 + C.GRAY + " by " + "<rainbow>Volmit Software", padd2 + C.GRAY + " v" + C.IRIS + getDescription().getVersion()};
-        if (unstablemode) {
-            info = new String[]{"", "", "", "", "", padd2 + C.RED + " Iris", padd2 + C.GRAY + " by " + C.DARK_RED + "Volmit Software", padd2 + C.GRAY + " v" + C.RED + getDescription().getVersion()};
-        }
-        if (warningmode) {
-            info = new String[]{"", "", "", "", "", padd2 + C.GOLD + " Iris", padd2 + C.GRAY + " by " + C.GOLD + "Volmit Software", padd2 + C.GRAY + " v" + C.GOLD + getDescription().getVersion()};
-        }
-
-        String[] splashstable = {
-                padd + C.GRAY + "   @@@@@@@@@@@@@@" + C.DARK_GRAY + "@@@",
-                padd + C.GRAY + " @@&&&&&&&&&" + C.DARK_GRAY + "&&&&&&" + C.IRIS + "   .(((()))).                     ",
-                padd + C.GRAY + "@@@&&&&&&&&" + C.DARK_GRAY + "&&&&&" + C.IRIS + "  .((((((())))))).                  ",
-                padd + C.GRAY + "@@@&&&&&" + C.DARK_GRAY + "&&&&&&&" + C.IRIS + "  ((((((((()))))))))               " + C.GRAY + " @",
-                padd + C.GRAY + "@@@&&&&" + C.DARK_GRAY + "@@@@@&" + C.IRIS + "    ((((((((-)))))))))              " + C.GRAY + " @@",
-                padd + C.GRAY + "@@@&&" + C.IRIS + "            ((((((({ }))))))))           " + C.GRAY + " &&@@@",
-                padd + C.GRAY + "@@" + C.IRIS + "               ((((((((-)))))))))    " + C.DARK_GRAY + "&@@@@@" + C.GRAY + "&&&&@@@",
-                padd + C.GRAY + "@" + C.IRIS + "                ((((((((()))))))))  " + C.DARK_GRAY + "&&&&&" + C.GRAY + "&&&&&&&@@@",
-                padd + C.GRAY + "" + C.IRIS + "                  '((((((()))))))'  " + C.DARK_GRAY + "&&&&&" + C.GRAY + "&&&&&&&&@@@",
-                padd + C.GRAY + "" + C.IRIS + "                     '(((())))'   " + C.DARK_GRAY + "&&&&&&&&" + C.GRAY + "&&&&&&&@@",
-                padd + C.GRAY + "                               " + C.DARK_GRAY + "@@@" + C.GRAY + "@@@@@@@@@@@@@@"
-        };
-
-        String[] splashunstable = {
-                padd + C.GRAY + "   @@@@@@@@@@@@@@" + C.DARK_GRAY + "@@@",
-                padd + C.GRAY + " @@&&&&&&&&&" + C.DARK_GRAY + "&&&&&&" + C.RED + "   .(((()))).                     ",
-                padd + C.GRAY + "@@@&&&&&&&&" + C.DARK_GRAY + "&&&&&" + C.RED + "  .((((((())))))).                  ",
-                padd + C.GRAY + "@@@&&&&&" + C.DARK_GRAY + "&&&&&&&" + C.RED + "  ((((((((()))))))))               " + C.GRAY + " @",
-                padd + C.GRAY + "@@@&&&&" + C.DARK_GRAY + "@@@@@&" + C.RED + "    ((((((((-)))))))))              " + C.GRAY + " @@",
-                padd + C.GRAY + "@@@&&" + C.RED + "            ((((((({ }))))))))           " + C.GRAY + " &&@@@",
-                padd + C.GRAY + "@@" + C.RED + "               ((((((((-)))))))))    " + C.DARK_GRAY + "&@@@@@" + C.GRAY + "&&&&@@@",
-                padd + C.GRAY + "@" + C.RED + "                ((((((((()))))))))  " + C.DARK_GRAY + "&&&&&" + C.GRAY + "&&&&&&&@@@",
-                padd + C.GRAY + "" + C.RED + "                  '((((((()))))))'  " + C.DARK_GRAY + "&&&&&" + C.GRAY + "&&&&&&&&@@@",
-                padd + C.GRAY + "" + C.RED + "                     '(((())))'   " + C.DARK_GRAY + "&&&&&&&&" + C.GRAY + "&&&&&&&@@",
-                padd + C.GRAY + "                               " + C.DARK_GRAY + "@@@" + C.GRAY + "@@@@@@@@@@@@@@"
-        };
-        String[] splashwarning = {
-                padd + C.GRAY + "   @@@@@@@@@@@@@@" + C.DARK_GRAY + "@@@",
-                padd + C.GRAY + " @@&&&&&&&&&" + C.DARK_GRAY + "&&&&&&" + C.GOLD + "   .(((()))).                     ",
-                padd + C.GRAY + "@@@&&&&&&&&" + C.DARK_GRAY + "&&&&&" + C.GOLD + "  .((((((())))))).                  ",
-                padd + C.GRAY + "@@@&&&&&" + C.DARK_GRAY + "&&&&&&&" + C.GOLD + "  ((((((((()))))))))               " + C.GRAY + " @",
-                padd + C.GRAY + "@@@&&&&" + C.DARK_GRAY + "@@@@@&" + C.GOLD + "    ((((((((-)))))))))              " + C.GRAY + " @@",
-                padd + C.GRAY + "@@@&&" + C.GOLD + "            ((((((({ }))))))))           " + C.GRAY + " &&@@@",
-                padd + C.GRAY + "@@" + C.GOLD + "               ((((((((-)))))))))    " + C.DARK_GRAY + "&@@@@@" + C.GRAY + "&&&&@@@",
-                padd + C.GRAY + "@" + C.GOLD + "                ((((((((()))))))))  " + C.DARK_GRAY + "&&&&&" + C.GRAY + "&&&&&&&@@@",
-                padd + C.GRAY + "" + C.GOLD + "                  '((((((()))))))'  " + C.DARK_GRAY + "&&&&&" + C.GRAY + "&&&&&&&&@@@",
-                padd + C.GRAY + "" + C.GOLD + "                     '(((())))'   " + C.DARK_GRAY + "&&&&&&&&" + C.GRAY + "&&&&&&&@@",
-                padd + C.GRAY + "                               " + C.DARK_GRAY + "@@@" + C.GRAY + "@@@@@@@@@@@@@@"
-        };
-        String[] splash;
-        File freeSpace = new File(Bukkit.getWorldContainer() + ".");
-        if (unstablemode) {
-            splash = splashunstable;
-        } else if (warningmode) {
-            splash = splashwarning;
-        } else {
-            splash = splashstable;
-        }
-
-        if (!passedserversoftware) {
-            Iris.info("Server type & version: " + C.RED + Bukkit.getVersion());
-        } else { Iris.info("Server type & version: " + Bukkit.getVersion()); }
-        Iris.info("Java: " + getJava());
-        if (getHardware.getProcessMemory() < 5999) {
-            Iris.warn("6GB+ Ram is recommended");
-            Iris.warn("Process Memory: " + getHardware.getProcessMemory() + " MB");
-        }
-        Iris.info("Bukkit distro: " + Bukkit.getName());
+        Iris.info("Server type & version: " + Bukkit.getName() + " v" + Bukkit.getVersion());
         Iris.info("Custom Biomes: " + INMS.get().countCustomBiomes());
-        setupChecks();
         printPacks();
 
-        for (int i = 0; i < info.length; i++) {
-            splash[i] += info[i];
-        }
-
-        Iris.info("\n\n " + new KList<>(splash).toString("\n") + "\n");
+        IrisSafeguard.mode().trySplash();
     }
 
     private void printPacks() {

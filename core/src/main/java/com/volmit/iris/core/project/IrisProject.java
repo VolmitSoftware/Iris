@@ -225,7 +225,7 @@ public class IrisProject {
                 sender.sendMessage("Can't find dimension: " + getName());
                 return;
             } else if (sender.isPlayer()) {
-                sender.player().setGameMode(GameMode.SPECTATOR);
+                J.s(() -> sender.player().setGameMode(GameMode.SPECTATOR));
             }
 
             try {

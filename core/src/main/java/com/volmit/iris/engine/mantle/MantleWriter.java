@@ -61,17 +61,22 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
         this.engineMantle = engineMantle;
         this.mantle = mantle;
         this.radius = radius * 2;
-        int d = this.radius + 1;
+        final int d = this.radius + 1;
         this.cachedChunks = multicore ? new KMap<>(d * d, 0.75f, Math.max(32, Runtime.getRuntime().availableProcessors() * 4)) : new HashMap<>(d * d);
         this.x = x;
         this.z = z;
 
-        int r = radius / 2;
-        for (int i = -r; i <= r; i++) {
-            for (int j = -r; j <= r; j++) {
-                cachedChunks.put(Cache.key(i + x, j + z), mantle.getChunk(i + x, j + z).use());
-            }
-        }
+        final int parallelism = multicore ? Runtime.getRuntime().availableProcessors() / 2 : 4;
+        final var map = multicore ? cachedChunks : new KMap<Long, MantleChunk>(d * d, 1f, parallelism);
+        mantle.getChunks(
+                x - radius,
+                x + radius,
+                z - radius,
+                z + radius,
+                parallelism,
+                (i, j, c) -> map.put(Cache.key(i, j), c.use())
+        );
+        if (!multicore) cachedChunks.putAll(map);
     }
 
     private static Set<IrisPosition> getBallooned(Set<IrisPosition> vset, double radius) {

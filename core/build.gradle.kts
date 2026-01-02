@@ -115,7 +115,7 @@ java {
 }
 
 sentry {
-    url = "http://sentry.volmit.com:8080/"
+    url = "http://sentry.volmit.com:8080"
     autoInstallation.enabled = false
     includeSourceContext = true
 
@@ -175,6 +175,10 @@ tasks {
         relocate("io.github.slimjar", "$lib.slimjar")
         exclude("modules/loader-agent.isolated-jar")
     }
+
+    sentryCollectSourcesJava {
+        dependsOn(generateTemplates)
+    }
 }
 
 val templateSource = file("src/main/templates")
@@ -185,10 +189,10 @@ val generateTemplates = tasks.register<Copy>("generateTemplates") {
         "commit" to provider {
             val res = runCatching { project.extensions.getByType<Grgit>().head().id }
             res.getOrDefault("")
-                .takeIf { it.length == 40 } ?: {
-                logger.error("Git commit hash not found", res.exceptionOrNull())
+                .takeIf { it.length == 40 } ?: run {
+                this.logger.error("Git commit hash not found", res.exceptionOrNull())
                 "unknown"
-            }()
+            }
         },
     )
 

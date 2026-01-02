@@ -69,7 +69,7 @@ public class PlannedPiece {
         this.setRotation(rot);
         this.ogObject = data.getObjectLoader().load(piece.getObject());
         this.object = structure.rotated(piece, rotation);
-        this.piece = rotation.rotateCopy(piece);
+        this.piece = rotation.rotateCopy(piece, new IrisPosition(object.getShrinkOffset()));
         this.piece.setLoadKey(piece.getLoadKey());
         this.object.setLoadKey(piece.getObject());
         this.ogObject.setLoadKey(piece.getObject());

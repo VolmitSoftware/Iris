@@ -360,6 +360,7 @@ public class B {
 
     public static boolean isFoliagePlantable(BlockData d) {
         return d.getMaterial().equals(Material.GRASS_BLOCK)
+                || d.getMaterial().equals(Material.MOSS_BLOCK)
                 || d.getMaterial().equals(Material.ROOTED_DIRT)
                 || d.getMaterial().equals(Material.DIRT)
                 || d.getMaterial().equals(Material.COARSE_DIRT)
@@ -368,6 +369,7 @@ public class B {
 
     public static boolean isFoliagePlantable(Material d) {
         return d.equals(Material.GRASS_BLOCK)
+                || d.equals(Material.MOSS_BLOCK)
                 || d.equals(Material.DIRT)
                 || d.equals(TALL_GRASS)
                 || d.equals(TALL_SEAGRASS)

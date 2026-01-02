@@ -182,10 +182,14 @@ tasks {
 }
 
 val templateSource = file("src/main/templates")
-val templateDest = layout.buildDirectory.dir("generated/sources/templates")
+val templateDest = layout.buildDirectory.dir("generated/sources/templates")!!
 val generateTemplates = tasks.register<Copy>("generateTemplates") {
     inputs.properties(
-        "environment" to if (project.hasProperty("release")) "production" else "development",
+        "environment" to when {
+            project.hasProperty("release") -> "producction"
+            project.hasProperty("argghh") -> "Argghh!"
+            else -> "development"
+        },
         "commit" to provider {
             val res = runCatching { project.extensions.getByType<Grgit>().head().id }
             res.getOrDefault("")

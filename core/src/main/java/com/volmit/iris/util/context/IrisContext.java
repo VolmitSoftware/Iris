@@ -63,14 +63,20 @@ public class IrisContext {
         }
     }
 
-    public static void dereference() {
-        for (Thread i : context.k()) {
-            if (!i.isAlive() || context.get(i).engine.isClosed()) {
-                if (context.get(i).engine.isClosed()) {
-                    Iris.debug("Dereferenced Context<Engine> " + i.getName() + " " + i.threadId());
-                }
+    public static synchronized void dereference() {
+        var it = context.entrySet().iterator();
+        while (it.hasNext()) {
+            var entry = it.next();
+            var thread = entry.getKey();
+            var context = entry.getValue();
+            if (thread == null || context == null) {
+                it.remove();
+                continue;
+            }
 
-                context.remove(i);
+            if (!thread.isAlive() || context.engine.isClosed()) {
+                Iris.debug("Dereferenced Context<Engine> " + thread.getName() + " " + thread.threadId());
+                it.remove();
             }
         }
     }

@@ -34,8 +34,11 @@ interface MatterGenerator {
                             return@radius
 
                         for (c in pair.a) {
+                            if (mc.isFlagged(c.flag))
+                                continue
+
                             launch(multicore) {
-                                mc.raiseFlagSuspend(MantleFlag.PLANNED, c.flag) {
+                                mc.raiseFlagSuspend(c.flag) {
                                     c.generateLayer(writer, x, z, context)
                                 }
                             }

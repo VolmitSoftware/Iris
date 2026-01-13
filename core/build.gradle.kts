@@ -186,7 +186,7 @@ val templateDest = layout.buildDirectory.dir("generated/sources/templates")!!
 val generateTemplates = tasks.register<Copy>("generateTemplates") {
     inputs.properties(
         "environment" to when {
-            project.hasProperty("release") -> "producction"
+            project.hasProperty("release") -> "production"
             project.hasProperty("argghh") -> "Argghh!"
             else -> "development"
         },

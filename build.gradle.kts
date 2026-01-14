@@ -63,16 +63,17 @@ val color = "truecolor"
 val errorReporting = "true" == findProperty("errorReporting")
 
 val nmsBindings = mapOf(
-        "v1_21_R6" to "1.21.10-R0.1-SNAPSHOT",
-        "v1_21_R5" to "1.21.8-R0.1-SNAPSHOT",
-        "v1_21_R4" to "1.21.5-R0.1-SNAPSHOT",
-        "v1_21_R3" to "1.21.4-R0.1-SNAPSHOT",
-        "v1_21_R2" to "1.21.3-R0.1-SNAPSHOT",
-        "v1_21_R1" to "1.21.1-R0.1-SNAPSHOT",
-        "v1_20_R4" to "1.20.6-R0.1-SNAPSHOT",
-        "v1_20_R3" to "1.20.4-R0.1-SNAPSHOT",
-        "v1_20_R2" to "1.20.2-R0.1-SNAPSHOT",
-        "v1_20_R1" to "1.20.1-R0.1-SNAPSHOT",
+    "v1_21_R7" to "1.21.11-R0.1-SNAPSHOT",
+    "v1_21_R6" to "1.21.10-R0.1-SNAPSHOT",
+    "v1_21_R5" to "1.21.8-R0.1-SNAPSHOT",
+    "v1_21_R4" to "1.21.5-R0.1-SNAPSHOT",
+    "v1_21_R3" to "1.21.4-R0.1-SNAPSHOT",
+    "v1_21_R2" to "1.21.3-R0.1-SNAPSHOT",
+    "v1_21_R1" to "1.21.1-R0.1-SNAPSHOT",
+    "v1_20_R4" to "1.20.6-R0.1-SNAPSHOT",
+    "v1_20_R3" to "1.20.4-R0.1-SNAPSHOT",
+    "v1_20_R2" to "1.20.2-R0.1-SNAPSHOT",
+    "v1_20_R1" to "1.20.1-R0.1-SNAPSHOT",
 )
 val jvmVersion = mapOf<String, Int>()
 nmsBindings.forEach { (key, value) ->

@@ -19,10 +19,8 @@
 package com.volmit.iris.core.nms;
 
 import com.volmit.iris.core.link.Identifier;
-import com.volmit.iris.core.nms.container.AutoClosing;
 import com.volmit.iris.core.nms.container.BiomeColor;
 import com.volmit.iris.core.nms.container.BlockProperty;
-import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.core.nms.container.StructurePlacement;
 import com.volmit.iris.core.nms.datapack.DataVersion;
 import com.volmit.iris.engine.framework.Engine;
@@ -124,7 +122,7 @@ public interface INMSBinding {
     Color getBiomeColor(Location location, BiomeColor type);
 
     default DataVersion getDataVersion() {
-        return DataVersion.V1192;
+        return DataVersion.V1_19_2;
     }
 
     default int getSpawnChunkCount(World world) {

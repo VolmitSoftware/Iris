@@ -653,7 +653,7 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public DataVersion getDataVersion() {
-        return DataVersion.V1213;
+        return DataVersion.V1_21_3;
     }
 
     @Override

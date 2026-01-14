@@ -46,8 +46,6 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.RandomSequences;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.component.CustomData;
-import net.minecraft.world.level.CustomSpawner;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Block;
@@ -89,7 +87,6 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nullable;
 import java.awt.Color;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -655,7 +652,7 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public DataVersion getDataVersion() {
-        return DataVersion.V1213;
+        return DataVersion.V1_21_3;
     }
 
     @Override

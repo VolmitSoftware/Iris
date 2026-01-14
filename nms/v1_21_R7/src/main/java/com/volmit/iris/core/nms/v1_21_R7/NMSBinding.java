@@ -1,25 +1,16 @@
-package com.volmit.iris.core.nms.v1_21_R1;
-
-import java.awt.Color;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
+package com.volmit.iris.core.nms.v1_21_R7;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.datafixers.util.Pair;
-import com.volmit.iris.core.link.Identifier;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMSBinding;
 import com.volmit.iris.core.nms.container.BiomeColor;
-import com.volmit.iris.core.nms.container.BlockProperty;
+import com.volmit.iris.core.nms.container.Pair;
 import com.volmit.iris.core.nms.container.StructurePlacement;
+import com.volmit.iris.core.nms.container.BlockProperty;
 import com.volmit.iris.core.nms.datapack.DataVersion;
-import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.agent.Agent;
 import com.volmit.iris.util.collection.KList;
@@ -35,28 +26,26 @@ import com.volmit.iris.util.nbt.mca.palette.*;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.scheduling.J;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.shorts.ShortList;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.matcher.ElementMatchers;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
+import net.minecraft.core.*;
 import net.minecraft.core.Registry;
-import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.*;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.commands.data.BlockDataAccessor;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.progress.ChunkProgressListener;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.RandomSequences;
+import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.component.CustomData;
-import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -80,15 +69,15 @@ import net.minecraft.world.level.storage.PrimaryLevelData;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.craftbukkit.v1_21_R1.CraftChunk;
-import org.bukkit.craftbukkit.v1_21_R1.CraftServer;
-import org.bukkit.craftbukkit.v1_21_R1.CraftWorld;
-import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlockState;
-import org.bukkit.craftbukkit.v1_21_R1.block.CraftBlockStates;
-import org.bukkit.craftbukkit.v1_21_R1.block.data.CraftBlockData;
-import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
-import org.bukkit.craftbukkit.v1_21_R1.util.CraftMagicNumbers;
-import org.bukkit.craftbukkit.v1_21_R1.util.CraftNamespacedKey;
+import org.bukkit.craftbukkit.v1_21_R7.CraftChunk;
+import org.bukkit.craftbukkit.v1_21_R7.CraftServer;
+import org.bukkit.craftbukkit.v1_21_R7.CraftWorld;
+import org.bukkit.craftbukkit.v1_21_R7.block.CraftBlockState;
+import org.bukkit.craftbukkit.v1_21_R7.block.CraftBlockStates;
+import org.bukkit.craftbukkit.v1_21_R7.block.data.CraftBlockData;
+import org.bukkit.craftbukkit.v1_21_R7.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_21_R7.util.CraftMagicNumbers;
+import org.bukkit.craftbukkit.v1_21_R7.util.CraftNamespacedKey;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.generator.BiomeProvider;
@@ -97,10 +86,17 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.Color;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.*;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class NMSBinding implements INMSBinding {
     private final KMap<Biome, Object> baseBiomeCache = new KMap<>();
@@ -170,13 +166,13 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public boolean hasTile(Location l) {
-        return ((CraftWorld) l.getWorld()).getHandle().getBlockEntity(new BlockPos(l.getBlockX(), l.getBlockY(), l.getBlockZ()), false) != null;
+        return ((CraftWorld) l.getWorld()).getHandle().getBlockEntity(new BlockPos(l.getBlockX(), l.getBlockY(), l.getBlockZ())) != null;
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public KMap<String, Object> serializeTile(Location location) {
-        BlockEntity e = ((CraftWorld) location.getWorld()).getHandle().getBlockEntity(new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()), false);
+        BlockEntity e = ((CraftWorld) location.getWorld()).getHandle().getBlockEntity(new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()));
 
         if (e == null) {
             return null;
@@ -187,14 +183,14 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Contract(value = "null, _, _ -> null", pure = true)
-    private Object convertFromTag(net.minecraft.nbt.Tag tag, int depth, int maxDepth) {
+    private Object convertFromTag(Tag tag, int depth, int maxDepth) {
         if (tag == null || depth > maxDepth) return null;
         return switch (tag) {
-            case CollectionTag<?> collection -> {
+            case CollectionTag collection -> {
                 KList<Object> list = new KList<>();
 
                 for (Object i : collection) {
-                    if (i instanceof net.minecraft.nbt.Tag t)
+                    if (i instanceof Tag t)
                         list.add(convertFromTag(t, depth + 1, maxDepth));
                     else list.add(i);
                 }
@@ -203,7 +199,7 @@ public class NMSBinding implements INMSBinding {
             case net.minecraft.nbt.CompoundTag compound -> {
                 KMap<String, Object> map = new KMap<>();
 
-                for (String key : compound.getAllKeys()) {
+                for (String key : compound.keySet()) {
                     var child = compound.get(key);
                     if (child == null) continue;
                     var value = convertFromTag(child, depth + 1, maxDepth);
@@ -212,8 +208,8 @@ public class NMSBinding implements INMSBinding {
                 }
                 yield map;
             }
-            case NumericTag numeric -> numeric.getAsNumber();
-            default -> tag.getAsString();
+            case NumericTag numeric -> numeric.box();
+            default -> tag.asString().orElse(null);
         };
     }
 
@@ -251,7 +247,7 @@ public class NMSBinding implements INMSBinding {
                 yield tag;
             }
             case List<?> list -> {
-                var tag = new net.minecraft.nbt.ListTag();
+                var tag = new ListTag();
                 for (var i : list) {
                     tag.add(convertToTag(i, depth + 1, maxDepth));
                 }
@@ -288,16 +284,16 @@ public class NMSBinding implements INMSBinding {
     }
 
     private Registry<net.minecraft.world.level.biome.Biome> getCustomBiomeRegistry() {
-        return registry().registry(Registries.BIOME).orElse(null);
+        return registry().lookup(Registries.BIOME).orElse(null);
     }
 
     private Registry<Block> getBlockRegistry() {
-        return registry().registry(Registries.BLOCK).orElse(null);
+        return registry().lookup(Registries.BLOCK).orElse(null);
     }
 
     @Override
     public Object getBiomeBaseFromId(int id) {
-        return getCustomBiomeRegistry().getHolder(id);
+        return getCustomBiomeRegistry().get(id);
     }
 
     @Override
@@ -327,16 +323,16 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public Object getCustomBiomeBaseFor(String mckey) {
-        return getCustomBiomeRegistry().get(ResourceLocation.parse(mckey));
+        return getCustomBiomeRegistry().getValue(net.minecraft.resources.Identifier.parse(mckey));
     }
 
     @Override
     public Object getCustomBiomeBaseHolderFor(String mckey) {
-        return getCustomBiomeRegistry().getHolder(getTrueBiomeBaseId(getCustomBiomeRegistry().get(ResourceLocation.parse(mckey)))).get();
+        return getCustomBiomeRegistry().get(getTrueBiomeBaseId(getCustomBiomeRegistry().get(net.minecraft.resources.Identifier.parse(mckey)))).orElse(null);
     }
 
     public int getBiomeBaseIdForKey(String key) {
-        return getCustomBiomeRegistry().getId(getCustomBiomeRegistry().get(ResourceLocation.parse(key)));
+        return getCustomBiomeRegistry().getId(getCustomBiomeRegistry().get(net.minecraft.resources.Identifier.parse(key)).map(Holder::value).orElse(null));
     }
 
     @Override
@@ -347,7 +343,7 @@ public class NMSBinding implements INMSBinding {
     @Override
     public Object getBiomeBase(World world, Biome biome) {
         return biomeToBiomeBase(((CraftWorld) world).getHandle()
-                .registryAccess().registry(Registries.BIOME).orElse(null), biome);
+                .registryAccess().lookup(Registries.BIOME).orElse(null), biome);
     }
 
     @Override
@@ -384,7 +380,7 @@ public class NMSBinding implements INMSBinding {
     public int getBiomeId(Biome biome) {
         for (World i : Bukkit.getWorlds()) {
             if (i.getEnvironment().equals(World.Environment.NORMAL)) {
-                Registry<net.minecraft.world.level.biome.Biome> registry = ((CraftWorld) i).getHandle().registryAccess().registry(Registries.BIOME).orElse(null);
+                Registry<net.minecraft.world.level.biome.Biome> registry = ((CraftWorld) i).getHandle().registryAccess().lookup(Registries.BIOME).orElse(null);
                 return registry.getId((net.minecraft.world.level.biome.Biome) getBiomeBase(registry, biome));
             }
         }
@@ -467,7 +463,7 @@ public class NMSBinding implements INMSBinding {
     public void setBiomes(int cx, int cz, World world, Hunk<Object> biomes) {
         LevelChunk c = ((CraftWorld) world).getHandle().getChunk(cx, cz);
         biomes.iterateSync((x, y, z, b) -> c.setBiome(x, y, z, (Holder<net.minecraft.world.level.biome.Biome>) b));
-        c.setUnsaved(true);
+        c.markUnsaved();
     }
 
     @Override
@@ -505,13 +501,13 @@ public class NMSBinding implements INMSBinding {
     @Override
     public MCAPaletteAccess createPalette() {
         MCAIdMapper<BlockState> registry = registryCache.aquireNasty(() -> {
-            Field cf = net.minecraft.core.IdMapper.class.getDeclaredField("tToId");
-            Field df = net.minecraft.core.IdMapper.class.getDeclaredField("idToT");
-            Field bf = net.minecraft.core.IdMapper.class.getDeclaredField("nextId");
+            Field cf = IdMapper.class.getDeclaredField("tToId");
+            Field df = IdMapper.class.getDeclaredField("idToT");
+            Field bf = IdMapper.class.getDeclaredField("nextId");
             cf.setAccessible(true);
             df.setAccessible(true);
             bf.setAccessible(true);
-            net.minecraft.core.IdMapper<BlockState> blockData = Block.BLOCK_STATE_REGISTRY;
+            IdMapper<BlockState> blockData = Block.BLOCK_STATE_REGISTRY;
             int b = bf.getInt(blockData);
             Object2IntMap<BlockState> c = (Object2IntMap<BlockState>) cf.get(blockData);
             List<BlockState> d = (List<BlockState>) df.get(blockData);
@@ -535,7 +531,7 @@ public class NMSBinding implements INMSBinding {
         mantle.iterateChunk(e.getX(), e.getZ(), MatterBiomeInject.class, (x, y, z, b) -> {
             if (b != null) {
                 if (b.isCustom()) {
-                    chunk.setBiome(x, y, z, getCustomBiomeRegistry().getHolder(b.getBiomeId()).get());
+                    chunk.setBiome(x, y, z, getCustomBiomeRegistry().get(b.getBiomeId()).get());
                     c.getAndIncrement();
                 } else {
                     chunk.setBiome(x, y, z, (Holder<net.minecraft.world.level.biome.Biome>) getBiomeBase(e.getWorld(), b.getBiome()));
@@ -550,8 +546,8 @@ public class NMSBinding implements INMSBinding {
             net.minecraft.world.item.ItemStack s = CraftItemStack.asNMSCopy(itemStack);
 
             try {
-                net.minecraft.nbt.CompoundTag tag = TagParser.parseTag((new JSONObject(customNbt)).toString());
-                tag.merge(s.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).getUnsafe());
+                net.minecraft.nbt.CompoundTag tag = TagParser.parseCompoundFully((new JSONObject(customNbt)).toString());
+                tag.merge(s.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag());
                 s.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
             } catch (CommandSyntaxException var5) {
                 throw new IllegalArgumentException(var5);
@@ -569,12 +565,12 @@ public class NMSBinding implements INMSBinding {
         worldGenContextField.setAccessible(true);
         var worldGenContext = (WorldGenContext) worldGenContextField.get(chunkMap);
         var dimensionType = chunkMap.level.dimensionTypeRegistration().unwrapKey().orElse(null);
-        if (dimensionType != null && !dimensionType.location().getNamespace().equals("iris"))
-            Iris.error("Loaded world %s with invalid dimension type! (%s)", world.getName(), dimensionType.location().toString());
+        if (dimensionType != null && !dimensionType.identifier().getNamespace().equals("iris"))
+            Iris.error("Loaded world %s with invalid dimension type! (%s)", world.getName(), dimensionType.identifier().toString());
 
         var newContext = new WorldGenContext(
                 worldGenContext.level(), new IrisChunkGenerator(worldGenContext.generator(), seed, engine, world),
-                worldGenContext.structureManager(), worldGenContext.lightEngine(), worldGenContext.mainThreadMailBox());
+                worldGenContext.structureManager(), worldGenContext.lightEngine(), worldGenContext.mainThreadExecutor(), worldGenContext.unsavedListener());
 
         worldGenContextField.set(chunkMap, newContext);
     }
@@ -609,24 +605,26 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
-    public java.awt.Color getBiomeColor(Location location, BiomeColor type) {
-        LevelReader reader = ((CraftWorld) location.getWorld()).getHandle();
-        var holder = reader.getBiome(new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()));
+    public Color getBiomeColor(Location location, BiomeColor type) {
+        ServerLevel reader = ((CraftWorld) location.getWorld()).getHandle();
+        var pos = new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ());
+        var holder = reader.getBiome(pos);
         var biome = holder.value();
         if (biome == null) throw new IllegalArgumentException("Invalid biome: " + holder.unwrapKey().orElse(null));
 
+        var attributes = reader.environmentAttributes();
         int rgba = switch (type) {
-            case FOG -> biome.getFogColor();
+            case FOG -> attributes.getValue(EnvironmentAttributes.FOG_COLOR, pos);
             case WATER -> biome.getWaterColor();
-            case WATER_FOG -> biome.getWaterFogColor();
-            case SKY -> biome.getSkyColor();
+            case WATER_FOG -> attributes.getValue(EnvironmentAttributes.WATER_FOG_COLOR, pos);
+            case SKY -> attributes.getValue(EnvironmentAttributes.SKY_COLOR, pos);
             case FOLIAGE -> biome.getFoliageColor();
             case GRASS -> biome.getGrassColor(location.getBlockX(), location.getBlockZ());
         };
         if (rgba == 0) {
-            if (BiomeColor.FOLIAGE == type && biome.getSpecialEffects().getFoliageColorOverride().isEmpty())
+            if (BiomeColor.FOLIAGE == type && biome.getSpecialEffects().foliageColorOverride().isEmpty())
                 return null;
-            if (BiomeColor.GRASS == type && biome.getSpecialEffects().getGrassColorOverride().isEmpty())
+            if (BiomeColor.GRASS == type && biome.getSpecialEffects().grassColorOverride().isEmpty())
                 return null;
         }
         return new Color(rgba, true);
@@ -650,33 +648,30 @@ public class NMSBinding implements INMSBinding {
     }
 
     public static Holder<net.minecraft.world.level.biome.Biome> biomeToBiomeBase(Registry<net.minecraft.world.level.biome.Biome> registry, Biome biome) {
-        return registry.getHolderOrThrow(ResourceKey.create(Registries.BIOME, CraftNamespacedKey.toMinecraft(biome.getKey())));
+        return registry.getOrThrow(ResourceKey.create(Registries.BIOME, CraftNamespacedKey.toMinecraft(biome.getKey())));
     }
 
     @Override
     public DataVersion getDataVersion() {
-        return DataVersion.V1_20_5;
+        return DataVersion.V1_21_11;
     }
 
     @Override
     public int getSpawnChunkCount(World world) {
-        var radius = Optional.ofNullable(world.getGameRuleValue(GameRule.SPAWN_CHUNK_RADIUS))
-                .orElseGet(() -> world.getGameRuleDefault(GameRule.SPAWN_CHUNK_RADIUS));
-        if (radius == null) throw new IllegalStateException("GameRule.SPAWN_CHUNK_RADIUS is null!");
-        return (int) Math.pow(2 * radius + 1, 2);
+        return 0;
     }
 
     @Override
     public KList<String> getStructureKeys() {
         KList<String> keys = new KList<>();
 
-        var registry = registry().registry(Registries.STRUCTURE).orElse(null);
+        var registry = registry().lookup(Registries.STRUCTURE).orElse(null);
         if (registry == null) return keys;
-        registry.keySet().stream().map(ResourceLocation::toString).forEach(keys::add);
+        registry.keySet().stream().map(Identifier::toString).forEach(keys::add);
         registry.getTags()
-                .map(Pair::getFirst)
+                .map(HolderSet.Named::key)
                 .map(TagKey::location)
-                .map(ResourceLocation::toString)
+                .map(Identifier::toString)
                 .map(s -> "#" + s)
                 .forEach(keys::add);
 
@@ -685,9 +680,9 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public boolean missingDimensionTypes(String... keys) {
-        var type = registry().registryOrThrow(Registries.DIMENSION_TYPE);
+        var type = registry().lookupOrThrow(Registries.DIMENSION_TYPE);
         return !Arrays.stream(keys)
-                .map(key -> ResourceLocation.fromNamespaceAndPath("iris", key))
+                .map(key -> Identifier.fromNamespaceAndPath("iris", key))
                 .allMatch(type::containsKey);
     }
 
@@ -701,13 +696,13 @@ public class NMSBinding implements INMSBinding {
             buddy.redefine(ServerLevel.class)
                     .visit(Advice.to(ServerLevelAdvice.class).on(ElementMatchers.isConstructor().and(ElementMatchers.takesArguments(
                             MinecraftServer.class, Executor.class, LevelStorageSource.LevelStorageAccess.class, PrimaryLevelData.class,
-                            ResourceKey.class, LevelStem.class, ChunkProgressListener.class, boolean.class, long.class, List.class,
+                            ResourceKey.class, LevelStem.class, boolean.class, long.class, List.class,
                             boolean.class, RandomSequences.class, World.Environment.class, ChunkGenerator.class, BiomeProvider.class))))
                     .make()
                     .load(ServerLevel.class.getClassLoader(), Agent.installed());
             for (Class<?> clazz : List.of(ChunkAccess.class, ProtoChunk.class)) {
                 buddy.redefine(clazz)
-                        .visit(Advice.to(ChunkAccessAdvice.class).on(ElementMatchers.isMethod().and(ElementMatchers.takesArguments(short.class, int.class))))
+                        .visit(Advice.to(ChunkAccessAdvice.class).on(ElementMatchers.isMethod().and(ElementMatchers.takesArguments(ShortList.class, int.class))))
                         .make()
                         .load(clazz.getClassLoader(), Agent.installed());
             }
@@ -724,7 +719,7 @@ public class NMSBinding implements INMSBinding {
     public KMap<Material, List<BlockProperty>> getBlockProperties() {
         KMap<Material, List<BlockProperty>> states = new KMap<>();
 
-        for (var block : registry().registryOrThrow(Registries.BLOCK)) {
+        for (var block : registry().lookupOrThrow(Registries.BLOCK)) {
             var state = block.defaultBlockState();
             if (state == null) state = block.getStateDefinition().any();
             final var finalState = state;
@@ -751,18 +746,18 @@ public class NMSBinding implements INMSBinding {
     }
 
     @Override
-    public KMap<Identifier, StructurePlacement> collectStructures() {
-        var structureSets = registry().registryOrThrow(Registries.STRUCTURE_SET);
-        var structurePlacements = registry().registryOrThrow(Registries.STRUCTURE_PLACEMENT);
+    public KMap<com.volmit.iris.core.link.Identifier, StructurePlacement> collectStructures() {
+        var structureSets = registry().lookupOrThrow(Registries.STRUCTURE_SET);
+        var structurePlacements = registry().lookupOrThrow(Registries.STRUCTURE_PLACEMENT);
         return structureSets.keySet()
                 .stream()
-                .map(structureSets::getHolder)
+                .map(structureSets::get)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .map(holder -> {
                     var set = holder.value();
                     var placement = set.placement();
-                    var key = holder.key().location();
+                    var key = holder.key().identifier();
                     StructurePlacement.StructurePlacementBuilder<?, ?> builder;
                     if (placement instanceof RandomSpreadStructurePlacement random) {
                         builder = StructurePlacement.RandomSpread.builder()
@@ -782,7 +777,7 @@ public class NMSBinding implements INMSBinding {
                         return null;
                     }
 
-                    return new com.volmit.iris.core.nms.container.Pair<>(new Identifier(key.getNamespace(), key.getPath()), builder
+                    return new Pair<>(new com.volmit.iris.core.link.Identifier(key.getNamespace(), key.getPath()), builder
                             .salt(placement.salt)
                             .frequency(placement.frequency)
                             .structures(set.structures()
@@ -791,12 +786,12 @@ public class NMSBinding implements INMSBinding {
                                             entry.weight(),
                                             entry.structure()
                                                     .unwrapKey()
-                                                    .map(ResourceKey::location)
-                                                    .map(ResourceLocation::toString)
+                                                    .map(ResourceKey::identifier)
+                                                    .map(Identifier::toString)
                                                     .orElse(null),
                                             entry.structure().tags()
                                                     .map(TagKey::location)
-                                                    .map(ResourceLocation::toString)
+                                                    .map(Identifier::toString)
                                                     .toList()
                                     ))
                                     .filter(StructurePlacement.Structure::isValid)
@@ -804,20 +799,20 @@ public class NMSBinding implements INMSBinding {
                             .build());
                 })
                 .filter(Objects::nonNull)
-                .collect(Collectors.toMap(com.volmit.iris.core.nms.container.Pair::getA, com.volmit.iris.core.nms.container.Pair::getB, (a, b) -> a, KMap::new));
+                .collect(Collectors.toMap(Pair::getA, Pair::getB, (a, b) -> a, KMap::new));
     }
 
     public LevelStem levelStem(RegistryAccess access, ChunkGenerator raw) {
         if (!(raw instanceof PlatformChunkGenerator gen))
             throw new IllegalStateException("Generator is not platform chunk generator!");
 
-        var dimensionKey = ResourceLocation.fromNamespaceAndPath("iris", gen.getTarget().getDimension().getDimensionTypeKey());
+        var dimensionKey = Identifier.fromNamespaceAndPath("iris", gen.getTarget().getDimension().getDimensionTypeKey());
         var dimensionType = access.lookupOrThrow(Registries.DIMENSION_TYPE).getOrThrow(ResourceKey.create(Registries.DIMENSION_TYPE, dimensionKey));
         return new LevelStem(dimensionType, chunkGenerator(access));
     }
 
     private net.minecraft.world.level.chunk.ChunkGenerator chunkGenerator(RegistryAccess access) {
-        var settings = new FlatLevelGeneratorSettings(Optional.empty(), access.registryOrThrow(Registries.BIOME).getHolderOrThrow(Biomes.THE_VOID), List.of());
+        var settings = new FlatLevelGeneratorSettings(Optional.empty(), access.lookupOrThrow(Registries.BIOME).getOrThrow(Biomes.THE_VOID), List.of());
         settings.getLayersInfo().add(new FlatLayerInfo(1, Blocks.AIR));
         settings.updateLayers();
         return new FlatLevelSource(settings);
@@ -836,8 +831,8 @@ public class NMSBinding implements INMSBinding {
                 @Advice.Argument(0) MinecraftServer server,
                 @Advice.Argument(3) PrimaryLevelData levelData,
                 @Advice.Argument(value = 5, readOnly = false) LevelStem levelStem,
-                @Advice.Argument(12) World.Environment env,
-                @Advice.Argument(value = 13) ChunkGenerator gen
+                @Advice.Argument(11) World.Environment env,
+                @Advice.Argument(12) ChunkGenerator gen
         ) {
             if (gen == null || !gen.getClass().getPackageName().startsWith("com.volmit.iris"))
                 return;

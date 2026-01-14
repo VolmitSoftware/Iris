@@ -17,7 +17,7 @@ public class BlockProperty {
     private final Function<Object, String> nameFunction;
     private final Function<Object, Object> jsonFunction;
 
-    public  <T extends Comparable<T>> BlockProperty(
+    public <T extends Comparable<T>> BlockProperty(
             String name,
             Class<T> type,
             T defaultValue,
@@ -42,7 +42,7 @@ public class BlockProperty {
         );
     }
 
-    public static BlockProperty ofFloat(String name, float defaultValue, float min, float max, boolean exclusiveMin, boolean exclusiveMax) {
+    public static BlockProperty ofDouble(String name, float defaultValue, float min, float max, boolean exclusiveMin, boolean exclusiveMax) {
         return new BoundedDouble(
                 name,
                 defaultValue,
@@ -51,6 +51,18 @@ public class BlockProperty {
                 exclusiveMin,
                 exclusiveMax,
                 (f) -> String.format("%.2f", f)
+        );
+    }
+
+    public static BlockProperty ofLong(String name, long defaultValue, long min, long max, boolean exclusiveMin, boolean exclusiveMax) {
+        return new BoundedLong(
+                name,
+                defaultValue,
+                min,
+                max,
+                exclusiveMin,
+                exclusiveMax,
+                (l) -> Long.toString(l)
         );
     }
 
@@ -120,6 +132,36 @@ public class BlockProperty {
     @Override
     public int hashCode() {
         return Objects.hash(name, values, type);
+    }
+
+    private static class BoundedLong extends BlockProperty {
+        private final long min, max;
+        private final boolean exclusiveMin, exclusiveMax;
+
+        public BoundedLong(
+                String name,
+                long defaultValue,
+                long min,
+                long max,
+                boolean exclusiveMin,
+                boolean exclusiveMax,
+                Function<Long, String> nameFunction
+        ) {
+            super(name, Long.class, defaultValue, List.of(), nameFunction);
+            this.min = min;
+            this.max = max;
+            this.exclusiveMin = exclusiveMin;
+            this.exclusiveMax = exclusiveMax;
+        }
+
+        @Override
+        public JSONObject buildJson() {
+            return super.buildJson()
+                    .put("minimum", min)
+                    .put("maximum", max)
+                    .put("exclusiveMinimum", exclusiveMin)
+                    .put("exclusiveMaximum", exclusiveMax);
+        }
     }
 
     private static class BoundedDouble extends BlockProperty {

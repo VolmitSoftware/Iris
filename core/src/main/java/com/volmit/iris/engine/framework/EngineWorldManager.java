@@ -45,6 +45,8 @@ public interface EngineWorldManager {
 
     void onChunkLoad(Chunk e, boolean generated);
 
+    void onChunkUnload(Chunk e);
+
     void chargeEnergy();
 
     void teleportAsync(PlayerTeleportEvent e);

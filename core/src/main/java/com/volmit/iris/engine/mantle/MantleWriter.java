@@ -40,6 +40,7 @@ import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.matter.TileWrapper;
 import com.volmit.iris.util.noise.CNG;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import lombok.Data;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.Vector;
@@ -62,7 +63,7 @@ public class MantleWriter implements IObjectPlacer, AutoCloseable {
         this.mantle = mantle;
         this.radius = radius * 2;
         final int d = this.radius + 1;
-        this.cachedChunks = multicore ? new KMap<>(d * d, 0.75f, Math.max(32, Runtime.getRuntime().availableProcessors() * 4)) : new HashMap<>(d * d);
+        this.cachedChunks = multicore ? new KMap<>(d * d, 0.75f, Math.max(32, Runtime.getRuntime().availableProcessors() * 4)) : new Long2ObjectOpenHashMap<>(d * d);
         this.x = x;
         this.z = z;
 

@@ -49,19 +49,15 @@ abstract class FlaggedChunk() {
         flags.set(flag.ordinal(), value)
     }
 
-    suspend fun raiseFlagSuspend(guard: MantleFlag?, flag: MantleFlag, task: suspend () -> Unit) {
+    suspend fun raiseFlagSuspend(flag: MantleFlag, task: suspend () -> Unit) {
         if (isClosed()) throw IllegalStateException("Chunk is closed!")
-        if (guard != null && isFlagged(guard)) return
+        if (isFlagged(flag)) return
 
         locks[flag.ordinal()].withLock {
-            if (flags.compareAndSet(flag.ordinal(), false, true)) {
-                try {
-                    task()
-                } catch (e: Throwable) {
-                    flags.set(flag.ordinal(), false)
-                    throw e
-                }
-            }
+            if (isFlagged(flag)) return
+            task()
+            if (flags.getAndSet(flag.ordinal(), true))
+                throw IllegalStateException("Flag ${flag.name()} was already set after task ran!")
         }
     }
 

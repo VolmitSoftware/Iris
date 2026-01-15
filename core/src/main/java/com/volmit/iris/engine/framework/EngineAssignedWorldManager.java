@@ -34,6 +34,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
+import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -122,6 +123,13 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
     public void on(ChunkLoadEvent e) {
         if (e.getChunk().getWorld().equals(getTarget().getWorld().realWorld())) {
             onChunkLoad(e.getChunk(), e.isNewChunk());
+        }
+    }
+
+    @EventHandler
+    public void on(ChunkUnloadEvent e) {
+        if (e.getChunk().getWorld().equals(getTarget().getWorld().realWorld())) {
+            onChunkUnload(e.getChunk());
         }
     }
 

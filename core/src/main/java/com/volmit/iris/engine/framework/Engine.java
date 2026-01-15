@@ -1000,7 +1000,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     default void cleanupMantleChunk(int x, int z) {
         if (IrisSettings.get().getPerformance().isTrimMantleInStudio() || !isStudio()) {
-            J.a(() -> getMantle().cleanupChunk(x, z));
+            getMantle().cleanupChunk(x, z);
         }
     }
 }

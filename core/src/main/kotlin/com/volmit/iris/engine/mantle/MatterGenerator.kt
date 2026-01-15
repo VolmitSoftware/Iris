@@ -27,13 +27,21 @@ interface MatterGenerator {
 
         mantle.write(engine.mantle, x, z, radius, multicore).use { writer ->
             for (pair in components) {
-                radius(x, z, pair.b) { x, z ->
-                    for (c in pair.a) {
-                        launch(multicore) {
-                            writer.acquireChunk(x, z)
-                                .raiseFlagSuspend(MantleFlag.PLANNED, c.flag) {
+                runBlocking {
+                    radius(x, z, pair.b) { x, z ->
+                        val mc = writer.acquireChunk(x, z)
+                        if (mc.isFlagged(MantleFlag.PLANNED))
+                            return@radius
+
+                        for (c in pair.a) {
+                            if (mc.isFlagged(c.flag))
+                                continue
+
+                            launch(multicore) {
+                                mc.raiseFlagSuspend(c.flag) {
                                     c.generateLayer(writer, x, z, context)
                                 }
+                            }
                         }
                     }
                 }
@@ -46,7 +54,7 @@ interface MatterGenerator {
         }
     }
 
-    private inline fun radius(x: Int, z: Int, radius: Int, crossinline task: suspend CoroutineScope.(Int, Int) -> Unit) = runBlocking {
+    private inline fun radius(x: Int, z: Int, radius: Int, crossinline task: (Int, Int) -> Unit) {
         for (i in -radius..radius) {
             for (j in -radius..radius) {
                 task(x + i, z + j)

@@ -103,7 +103,7 @@ public class IrisData implements ExclusionStrategy, TypeAdapterFactory {
     }
 
     public static void dereference() {
-        dataLoaders.v().forEach(IrisData::cleanupEngine);
+        dataLoaders.values().forEach(IrisData::cleanupEngine);
     }
 
     public static int cacheSize() {

@@ -24,6 +24,10 @@ public class AtomicBooleanArray implements Serializable {
         AA.setVolatile(array, index, newValue);
     }
 
+    public final boolean getAndSet(int index, boolean newValue) {
+        return (boolean) AA.getAndSet(array, index, newValue);
+    }
+
     public final boolean compareAndSet(int index, boolean expectedValue, boolean newValue) {
         return (boolean) AA.compareAndSet(array, index, expectedValue, newValue);
     }

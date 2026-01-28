@@ -170,7 +170,7 @@ public class IrisSettings {
             if (tectonicPlateSize > 0)
                 return tectonicPlateSize;
 
-            return (int) (getHardware.getProcessMemory() / 200L);
+            return (int) (getHardware.getProcessMemory() / 512L);
         }
     }
 

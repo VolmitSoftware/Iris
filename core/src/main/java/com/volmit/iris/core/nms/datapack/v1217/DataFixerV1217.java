@@ -100,6 +100,7 @@ public class DataFixerV1217 extends DataFixerV1213 {
                     .put(particle.getJSONObject("options")
                             .put("probability", particle.get("probability"))));
         }
+        json.put("attributes", attributes);
 
         return json;
     }
@@ -154,10 +155,10 @@ public class DataFixerV1217 extends DataFixerV1213 {
 
     private void merge(JSONObject base, JSONObject override) {
         for (String key : override.keySet()) {
-            switch (base.get(key)) {
-                case null -> base.put(key, override.get(key));
-                case JSONObject base1 when override.get(key) instanceof JSONObject override1 -> merge(base1, override1);
-                case JSONArray base1 when override.get(key) instanceof JSONArray override1 -> {
+            switch (base.opt(key)) {
+                case null -> base.put(key, override.opt(key));
+                case JSONObject base1 when override.opt(key) instanceof JSONObject override1 -> merge(base1, override1);
+                case JSONArray base1 when override.opt(key) instanceof JSONArray override1 -> {
                     for (Object o : override1) {
                         base1.put(o);
                     }

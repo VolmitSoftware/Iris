@@ -96,9 +96,9 @@ public class DataFixerV1217 extends DataFixerV1213 {
 
         JSONObject particle = (JSONObject) effects.remove("particle");
         if (particle != null) {
+            particle.put("particle", particle.remove("options"));
             attributes.put("minecraft:visual/ambient_particles", new JSONArray()
-                    .put(particle.getJSONObject("options")
-                            .put("probability", particle.get("probability"))));
+                    .put(particle));
         }
         json.put("attributes", attributes);
 

@@ -55,6 +55,7 @@ mythic = "5.9.5"
 mythic-chrucible = "2.1.0"
 kgenerators = "7.3" # https://repo.codemc.io/repository/maven-public/me/kryniowesegryderiusz/kgenerators-core/maven-metadata.xml
 multiverseCore = "5.1.0"
+craftengine = "0.0.63" # https://github.com/Xiao-MoMi/craft-engine/releases
 
 [libraries]
 # Core Libraries
@@ -110,6 +111,8 @@ mythic = { module = "io.lumine:Mythic-Dist", version.ref = "mythic" }
 mythicChrucible = { module = "io.lumine:MythicCrucible-Dist", version.ref = "mythic-chrucible" }
 kgenerators = { module = "me.kryniowesegryderiusz:kgenerators-core", version.ref = "kgenerators" }
 multiverseCore = { module = "org.mvplugins.multiverse.core:multiverse-core", version.ref = "multiverseCore" }
+craftengine-core = { module = "net.momirealms:craft-engine-core", version.ref = "craftengine" }
+craftengine-bukkit = { module = "net.momirealms:craft-engine-bukkit", version.ref = "craftengine" }
 
 [plugins]
 shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }

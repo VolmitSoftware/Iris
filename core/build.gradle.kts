@@ -1,6 +1,8 @@
 import io.github.slimjar.func.slimjarHelper
 import io.github.slimjar.resolver.data.Mirror
 import org.ajoberstar.grgit.Grgit
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.net.URI
 
 /*
@@ -112,6 +114,16 @@ dependencies {
 
 java {
     disableAutoTargetJvm()
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
+}
+
+kotlin {
+    jvmToolchain(21)
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_21)
+    }
 }
 
 sentry {

@@ -1,4 +1,5 @@
 import de.undercouch.gradle.tasks.download.Download
+import org.gradle.jvm.toolchain.JavaLanguageVersion
 import xyz.jpenilla.runpaper.task.RunServer
 import kotlin.system.exitProcess
 
@@ -50,7 +51,7 @@ registerCustomOutputTask("PixelFury", "C://Users/repix/workplace/Iris/1.21.3 - D
 registerCustomOutputTask("PixelFuryDev", "C://Users/repix/workplace/Iris/1.21 - Development-v3/plugins")
 // ========================== UNIX ==============================
 registerCustomOutputTaskUnix("CyberpwnLT", "/Users/danielmills/development/server/plugins")
-registerCustomOutputTaskUnix("PsychoLT", "/Users/brianfopiano/Developer/RemoteGit/Server/plugins")
+registerCustomOutputTaskUnix("PsychoLT", "/Users/brianfopiano/Developer/RemoteGit/[Minecraft Server]/plugins")
 registerCustomOutputTaskUnix("PixelMac", "/Users/test/Desktop/mcserver/plugins")
 registerCustomOutputTaskUnix("CrazyDev22LT", "/home/julian/Desktop/server/plugins")
 // ==============================================================
@@ -187,6 +188,12 @@ configurations.configureEach {
 allprojects {
     apply<JavaPlugin>()
 
+    java {
+        toolchain {
+            languageVersion.set(JavaLanguageVersion.of(21))
+        }
+    }
+
     repositories {
         mavenCentral()
         maven("https://repo.papermc.io/repository/maven-public/")
@@ -234,14 +241,14 @@ allprojects {
     }
 }
 
-if (JavaVersion.current().toString() != "21") {
+if (!JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_21)) {
     System.err.println()
     System.err.println("=========================================================================================================")
-    System.err.println("You must run gradle on Java 21. You are using " + JavaVersion.current())
+    System.err.println("You must run gradle on Java 21 or newer. You are using " + JavaVersion.current())
     System.err.println()
     System.err.println("=== For IDEs ===")
-    System.err.println("1. Configure the project for Java 21")
-    System.err.println("2. Configure the bundled gradle to use Java 21 in settings")
+    System.err.println("1. Configure the project for Java 21 toolchain")
+    System.err.println("2. Configure the bundled gradle to use Java 21+ in settings")
     System.err.println()
     System.err.println("=== For Command Line (gradlew) ===")
     System.err.println("1. Install JDK 21 from https://www.oracle.com/java/technologies/javase/jdk21-archive-downloads.html")

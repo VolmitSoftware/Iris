@@ -139,11 +139,7 @@ public class IrisIntegrationService implements IrisService, IntegrationServiceCo
             switch (key) {
                 case IntegrationMetricSchema.IRIS_CHUNK_STREAM_MS -> out.put(key, sampleChunkStreamMetric(now));
                 case IntegrationMetricSchema.IRIS_PREGEN_QUEUE -> out.put(key, samplePregenQueueMetric(now));
-                case IntegrationMetricSchema.IRIS_BIOME_CACHE_HIT_RATE -> out.put(key, IntegrationMetricSample.unavailable(
-                        IntegrationMetricSchema.descriptor(key),
-                        "biome-cache-hit-rate-not-instrumented",
-                        now
-                ));
+                case IntegrationMetricSchema.IRIS_BIOME_CACHE_HIT_RATE -> out.put(key, sampleBiomeCacheHitRateMetric(now));
                 default -> out.put(key, IntegrationMetricSample.unavailable(
                         IntegrationMetricSchema.descriptor(key),
                         "unsupported-key",
@@ -178,7 +174,7 @@ public class IrisIntegrationService implements IrisService, IntegrationServiceCo
             }
         }
 
-        return IntegrationMetricSample.unavailable(descriptor, "chunk-stream-not-active", now);
+        return IntegrationMetricSample.available(descriptor, 0D, now);
     }
 
     private IntegrationMetricSample samplePregenQueueMetric(long now) {
@@ -215,5 +211,20 @@ public class IrisIntegrationService implements IrisService, IntegrationServiceCo
         }
 
         return IntegrationMetricSample.available(descriptor, totalQueue, now);
+    }
+
+    private IntegrationMetricSample sampleBiomeCacheHitRateMetric(long now) {
+        IntegrationMetricDescriptor descriptor = IntegrationMetricSchema.descriptor(IntegrationMetricSchema.IRIS_BIOME_CACHE_HIT_RATE);
+        IrisEngineSVC engineService = Iris.service(IrisEngineSVC.class);
+        if (engineService == null) {
+            return IntegrationMetricSample.unavailable(descriptor, "engine-service-unavailable", now);
+        }
+
+        double ratio = engineService.getBiomeCacheUsageRatio();
+        if (!Double.isFinite(ratio)) {
+            return IntegrationMetricSample.unavailable(descriptor, "biome-cache-ratio-invalid", now);
+        }
+
+        return IntegrationMetricSample.available(descriptor, Math.max(0D, Math.min(1D, ratio)), now);
     }
 }

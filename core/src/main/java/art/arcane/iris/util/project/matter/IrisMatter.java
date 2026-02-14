@@ -1,0 +1,107 @@
+/*
+ * Iris is a World Generator for Minecraft Bukkit Servers
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package art.arcane.iris.util.matter;
+
+import art.arcane.iris.Iris;
+import art.arcane.iris.core.loader.IrisRegistrant;
+import art.arcane.volmlib.util.collection.KMap;
+import art.arcane.volmlib.util.json.JSONObject;
+import art.arcane.iris.util.plugin.VolmitSender;
+import lombok.Getter;
+
+import java.util.Objects;
+
+public class IrisMatter extends IrisRegistrant implements Matter {
+    protected static final KMap<Class<?>, MatterSlice<?>> slicers = buildSlicers();
+
+    @Getter
+    private final MatterHeader header;
+
+    @Getter
+    private final int width;
+
+    @Getter
+    private final int height;
+
+    @Getter
+    private final int depth;
+
+    @Getter
+    private final KMap<Class<?>, MatterSlice<?>> sliceMap;
+
+    public IrisMatter(int width, int height, int depth) {
+        if (width < 1 || height < 1 || depth < 1) {
+            throw new RuntimeException("Invalid Matter Size " + width + "x" + height + "x" + depth);
+        }
+
+        this.width = width;
+        this.height = height;
+        this.depth = depth;
+        this.header = new MatterHeader();
+        this.sliceMap = new KMap<>();
+    }
+
+    private static KMap<Class<?>, MatterSlice<?>> buildSlicers() {
+        KMap<Class<?>, MatterSlice<?>> c = new KMap<>();
+        for (Object i : Iris.initialize("art.arcane.iris.util.matter.slices", Sliced.class)) {
+            MatterSlice<?> s = (MatterSlice<?>) i;
+            c.put(s.getType(), s);
+        }
+
+        return c;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T> MatterSlice<T> slice(Class<?> c) {
+        return (MatterSlice<T>) sliceMap.computeIfAbsent(c, $ -> Objects.requireNonNull(createSlice(c, this), "Bad slice " + c.getCanonicalName()));
+    }
+
+    @Override
+    public <T> MatterSlice<T> createSlice(Class<T> type, Matter m) {
+        MatterSlice<?> slice = slicers.get(type);
+
+        if (slice == null) {
+            return null;
+        }
+
+        try {
+            return slice.getClass().getConstructor(int.class, int.class, int.class).newInstance(getWidth(), getHeight(), getDepth());
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    @Override
+    public String getFolderName() {
+        return "matter";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "matter";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
+    }
+}

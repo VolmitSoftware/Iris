@@ -1,4 +1,4 @@
-package com.volmit.iris;
+package art.arcane.iris;
 
 // The constants are replaced before compilation
 public interface BuildConstants {

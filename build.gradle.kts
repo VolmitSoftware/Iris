@@ -33,7 +33,7 @@ plugins {
     alias(libs.plugins.runPaper)
 }
 
-group = "com.volmit"
+group = "art.arcane"
 version = "3.9.1-1.20.1-1.21.11"
 
 apply<ApiGenerator>()

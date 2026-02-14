@@ -1,0 +1,69 @@
+package art.arcane.iris.core.pregenerator.cache;
+
+import art.arcane.volmlib.util.documentation.ChunkCoordinates;
+import art.arcane.volmlib.util.documentation.RegionCoordinates;
+
+import java.io.File;
+
+public interface PregenCache {
+    default boolean isThreadSafe() {
+        return false;
+    }
+
+    @ChunkCoordinates
+    boolean isChunkCached(int x, int z);
+
+    @RegionCoordinates
+    boolean isRegionCached(int x, int z);
+
+    @ChunkCoordinates
+    void cacheChunk(int x, int z);
+
+    @RegionCoordinates
+    void cacheRegion(int x, int z);
+
+    void write();
+
+    void trim(long unloadDuration);
+
+    static PregenCache create(File directory) {
+        if (directory == null) return EMPTY;
+        return new PregenCacheImpl(directory, 16);
+    }
+
+    default PregenCache sync() {
+        if (isThreadSafe()) return this;
+        return new SynchronizedCache(this);
+    }
+
+    PregenCache EMPTY = new PregenCache() {
+        @Override
+        public boolean isThreadSafe() {
+            return true;
+        }
+
+        @Override
+        public boolean isChunkCached(int x, int z) {
+            return false;
+        }
+
+        @Override
+        public boolean isRegionCached(int x, int z) {
+            return false;
+        }
+
+        @Override
+        public void cacheChunk(int x, int z) {}
+
+        @Override
+        public void cacheRegion(int x, int z) {}
+
+        @Override
+        public void write() {}
+
+        @Override
+        public void trim(long unloadDuration) {}
+    };
+
+
+}

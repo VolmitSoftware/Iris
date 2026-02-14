@@ -35,8 +35,8 @@ plugins {
 }
 
 val apiVersion = "1.19"
-val main = "com.volmit.iris.Iris"
-val lib = "com.volmit.iris.util"
+val main = "art.arcane.iris.Iris"
+val lib = "art.arcane.iris.util"
 
 /**
  * Dependencies.
@@ -214,7 +214,7 @@ val generateTemplates = tasks.register<Copy>("generateTemplates") {
 
     from(templateSource)
     into(templateDest)
-    rename { "com/volmit/iris/$it" }
+    rename { "art/arcane/iris/$it" }
     expand(inputs.properties)
 }
 
@@ -227,5 +227,10 @@ rootProject.tasks.named("prepareKotlinBuildScriptModel") {
 }
 
 sourceSets.main {
+    java.srcDir("../../VolmLib/shared/src/main/java")
     java.srcDir(generateTemplates.map { it.outputs })
+}
+
+kotlin.sourceSets.named("main") {
+    kotlin.srcDir("../../VolmLib/shared/src/main/kotlin")
 }

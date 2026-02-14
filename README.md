@@ -45,7 +45,7 @@ Consider supporting our development by buying Iris on spigot! We work hard to ma
 Everyone needs a tool-belt.
 
 ```java
-package com.volmit.iris.core.tools;
+package art.arcane.iris.core.tools;
 
 // Get IrisDataManager from a world
 IrisToolbelt.access(anyWorld).getCompound().getData();

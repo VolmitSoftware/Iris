@@ -66,6 +66,24 @@ public class IrisEngineSVC implements IrisService {
         worlds.clear();
     }
 
+    public int getQueuedTectonicPlateCount() {
+        return queuedTectonicPlates.get();
+    }
+
+    public double getAverageIdleDuration() {
+        double min = minIdleDuration.get();
+        double max = maxIdleDuration.get();
+        if (!Double.isFinite(min) || !Double.isFinite(max) || min < 0D || max < 0D) {
+            return 0D;
+        }
+
+        if (max < min) {
+            return max;
+        }
+
+        return (min + max) / 2D;
+    }
+
     public void engineStatus(VolmitSender sender) {
         long[] sizes = new long[4];
         long[] count = new long[4];

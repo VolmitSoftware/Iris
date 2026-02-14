@@ -285,6 +285,25 @@ public class TurboPregenerator extends Thread implements Listener {
         return job != null && job.isPaused();
     }
 
+    public static long remainingChunks() {
+        TurboPregenerator local = instance;
+        AtomicInteger generated = turboGeneratedChunks;
+        if (local == null || generated == null) {
+            return -1L;
+        }
+
+        return Math.max(0L, local.turboTotalChunks.get() - generated.get());
+    }
+
+    public static double chunksPerSecond() {
+        TurboPregenerator local = instance;
+        if (local == null) {
+            return 0D;
+        }
+
+        return Math.max(0D, local.chunksPerSecond.getAverage());
+    }
+
     public void shutdownInstance(World world) throws IOException {
         Iris.info("turboGen: " + C.IRIS + world.getName() + C.BLUE + " Shutting down..");
         TurboPregenJob job = jobs.get(world.getName());
@@ -338,4 +357,3 @@ public class TurboPregenerator extends Thread implements Listener {
         boolean paused = false;
     }
 }
-

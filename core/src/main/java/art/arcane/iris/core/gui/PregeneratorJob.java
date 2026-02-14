@@ -72,6 +72,8 @@ public class PregeneratorJob implements PregenListener {
     private PregenRenderer renderer;
     private int rgc = 0;
     private String[] info;
+    private volatile double lastChunksPerSecond = 0D;
+    private volatile long lastChunksRemaining = 0L;
 
     public PregeneratorJob(PregenTask task, PregeneratorMethod method, Engine engine) {
         instance.updateAndGet(old -> {
@@ -144,6 +146,16 @@ public class PregeneratorJob implements PregenListener {
         }
 
         return inst.paused();
+    }
+
+    public static double chunksPerSecond() {
+        PregeneratorJob inst = instance.get();
+        return inst == null ? 0D : Math.max(0D, inst.lastChunksPerSecond);
+    }
+
+    public static long chunksRemaining() {
+        PregeneratorJob inst = instance.get();
+        return inst == null ? -1L : Math.max(0L, inst.lastChunksRemaining);
     }
 
     private static Color parseColor(String c) {
@@ -234,6 +246,9 @@ public class PregeneratorJob implements PregenListener {
 
     @Override
     public void onTick(double chunksPerSecond, double chunksPerMinute, double regionsPerMinute, double percent, long generated, long totalChunks, long chunksRemaining, long eta, long elapsed, String method, boolean cached) {
+        lastChunksPerSecond = chunksPerSecond;
+        lastChunksRemaining = chunksRemaining;
+
         info = new String[]{
                 (paused() ? "PAUSED" : (saving ? "Saving... " : "Generating")) + " " + Form.f(generated) + " of " + Form.f(totalChunks) + " (" + Form.pc(percent, 0) + " Complete)",
                 "Speed: " + (cached ? "Cached " : "") + Form.f(chunksPerSecond, 0) + " Chunks/s, " + Form.f(regionsPerMinute, 1) + " Regions/m, " + Form.f(chunksPerMinute, 0) + " Chunks/m",

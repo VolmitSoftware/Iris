@@ -221,6 +221,25 @@ public class LazyPregenerator extends Thread implements Listener {
         return job != null && job.isPaused();
     }
 
+    public static long remainingChunks() {
+        LazyPregenerator local = instance;
+        AtomicInteger generated = lazyGeneratedChunks;
+        if (local == null || generated == null) {
+            return -1L;
+        }
+
+        return Math.max(0L, local.lazyTotalChunks.get() - generated.get());
+    }
+
+    public static double chunksPerSecond() {
+        LazyPregenerator local = instance;
+        if (local == null) {
+            return 0D;
+        }
+
+        return Math.max(0D, local.chunksPerMinute.getAverage() / 60D);
+    }
+
     public void shutdownInstance(World world) throws IOException {
         Iris.info("LazyGen: " + C.IRIS + world.getName() + C.BLUE + " Shutting down..");
         LazyPregenJob job = jobs.get(world.getName());
@@ -282,4 +301,3 @@ public class LazyPregenerator extends Thread implements Listener {
         boolean paused = false;
     }
 }
-

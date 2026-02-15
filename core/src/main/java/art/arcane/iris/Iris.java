@@ -43,7 +43,7 @@ import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.exceptions.IrisException;
 import art.arcane.iris.util.format.C;
 import art.arcane.volmlib.util.function.NastyRunnable;
-import art.arcane.volmlib.util.io.FileWatcher;
+import art.arcane.volmlib.util.hotload.ConfigHotloadEngine;
 import art.arcane.volmlib.util.io.IO;
 import art.arcane.volmlib.util.io.InstanceState;
 import art.arcane.volmlib.util.io.JarScanner;
@@ -89,10 +89,11 @@ public class Iris extends VolmitPlugin implements Listener {
     public static Bindings.Adventure audiences;
     public static MultiverseCoreLink linkMultiverseCore;
     public static IrisCompat compat;
-    public static FileWatcher configWatcher;
+    public static ConfigHotloadEngine configHotloadEngine;
     public static ChunkTickets tickets;
     private static VolmitSender sender;
     private static Thread shutdownHook;
+    private static File settingsFile;
 
     static {
         try {
@@ -446,7 +447,14 @@ public class Iris extends VolmitPlugin implements Listener {
         IrisSafeguard.splash();
         tickets = new ChunkTickets();
         linkMultiverseCore = new MultiverseCoreLink();
-        configWatcher = new FileWatcher(getDataFile("settings.json"));
+        settingsFile = getDataFile("settings.json");
+        configHotloadEngine = new ConfigHotloadEngine(
+                Iris::isSettingsFile,
+                Iris::knownSettingsFiles,
+                Iris::readSettingsContent,
+                Iris::normalizeSettingsContent
+        );
+        configHotloadEngine.configure(3_000L, List.of(settingsFile), List.of());
         services.values().forEach(IrisService::onEnable);
         services.values().forEach(this::registerListener);
         addShutdownHook();
@@ -556,6 +564,10 @@ public class Iris extends VolmitPlugin implements Listener {
     public void onDisable() {
         if (IrisSafeguard.isForceShutdown()) return;
         services.values().forEach(IrisService::onDisable);
+        if (configHotloadEngine != null) {
+            configHotloadEngine.clear();
+            configHotloadEngine = null;
+        }
         Bukkit.getScheduler().cancelTasks(this);
         HandlerList.unregisterAll((Plugin) this);
         postShutdown.forEach(Runnable::run);
@@ -586,12 +598,51 @@ public class Iris extends VolmitPlugin implements Listener {
     }
 
     private void checkConfigHotload() {
-        if (configWatcher.checkModified()) {
-            IrisSettings.invalidate();
-            IrisSettings.get();
-            configWatcher.checkModified();
-            Iris.info("Hotloaded settings.json ");
+        if (configHotloadEngine == null) {
+            return;
         }
+
+        for (File file : configHotloadEngine.pollTouchedFiles()) {
+            configHotloadEngine.processFileChange(file, ignored -> {
+                IrisSettings.invalidate();
+                IrisSettings.get();
+                return true;
+            }, ignored -> Iris.info("Hotloaded settings.json "));
+        }
+    }
+
+    private static boolean isSettingsFile(File file) {
+        if (file == null || settingsFile == null) {
+            return false;
+        }
+        return settingsFile.getAbsoluteFile().equals(file.getAbsoluteFile());
+    }
+
+    private static List<File> knownSettingsFiles() {
+        if (settingsFile == null) {
+            return List.of();
+        }
+        return List.of(settingsFile);
+    }
+
+    private static String readSettingsContent(File file) {
+        if (file == null || !file.exists() || !file.isFile()) {
+            return null;
+        }
+
+        try {
+            return IO.readAll(file);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static String normalizeSettingsContent(String text) {
+        if (text == null) {
+            return null;
+        }
+
+        return text.replace("\r\n", "\n").trim();
     }
 
     private void tickQueue() {

@@ -34,7 +34,7 @@ plugins {
 }
 
 group = "art.arcane"
-version = "3.9.1-1.20.1-1.21.11"
+version = "4.0.0-1.20.1-1.21.11-Dev1"
 
 apply<ApiGenerator>()
 

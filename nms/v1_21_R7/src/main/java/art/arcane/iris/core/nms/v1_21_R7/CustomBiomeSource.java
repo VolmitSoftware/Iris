@@ -55,7 +55,7 @@ public class CustomBiomeSource extends BiomeSource {
             if (i.isCustom()) {
                 for (IrisBiomeCustom j : i.getCustomDerivitives()) {
                     b.add(customRegistry.get(customRegistry.getResourceKey(customRegistry
-                            .getValue(Identifier.fromNamespaceAndPath(engine.getDimension().getLoadKey(), j.getId()))).get()).get());
+                            .getValue(Identifier.fromNamespaceAndPath(engine.getDimension().getLoadKey().toLowerCase(java.util.Locale.ROOT), j.getId().toLowerCase(java.util.Locale.ROOT)))).get()).get());
                 }
             } else {
                 b.add(NMSBinding.biomeToBiomeBase(registry, i.getVanillaDerivative()));
@@ -125,7 +125,7 @@ public class CustomBiomeSource extends BiomeSource {
         for (IrisBiome i : engine.getAllBiomes()) {
             if (i.isCustom()) {
                 for (IrisBiomeCustom j : i.getCustomDerivitives()) {
-                    Identifier resourceLocation = Identifier.fromNamespaceAndPath(engine.getDimension().getLoadKey(), j.getId());
+                    Identifier resourceLocation = Identifier.fromNamespaceAndPath(engine.getDimension().getLoadKey().toLowerCase(java.util.Locale.ROOT), j.getId().toLowerCase(java.util.Locale.ROOT));
                     Biome biome = customRegistry.getValue(resourceLocation);
                     Optional<ResourceKey<Biome>> optionalBiomeKey = customRegistry.getResourceKey(biome);
                     if (optionalBiomeKey.isEmpty()) {

@@ -61,17 +61,77 @@ public class IrisToolbelt {
      * @return the IrisDimension or null
      */
     public static IrisDimension getDimension(String dimension) {
-        File pack = Iris.instance.getDataFolder("packs", dimension);
+        if (dimension == null) {
+            return null;
+        }
+
+        String requested = dimension.trim();
+        if (requested.isEmpty()) {
+            return null;
+        }
+
+        File packsFolder = Iris.instance.getDataFolder("packs");
+        File pack = new File(packsFolder, requested);
+        if (!pack.exists()) {
+            File found = findCaseInsensitivePack(packsFolder, requested);
+            if (found != null) {
+                pack = found;
+            }
+        }
 
         if (!pack.exists()) {
-            Iris.service(StudioSVC.class).downloadSearch(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), dimension, false, false);
+            Iris.service(StudioSVC.class).downloadSearch(new VolmitSender(Bukkit.getConsoleSender(), Iris.instance.getTag()), requested, false, false);
+            File found = findCaseInsensitivePack(packsFolder, requested);
+            if (found != null) {
+                pack = found;
+            }
         }
 
         if (!pack.exists()) {
             return null;
         }
 
-        return IrisData.get(pack).getDimensionLoader().load(dimension);
+        IrisData data = IrisData.get(pack);
+        IrisDimension resolved = data.getDimensionLoader().load(requested, false);
+        if (resolved != null) {
+            return resolved;
+        }
+
+        String packName = pack.getName();
+        if (!packName.equals(requested)) {
+            resolved = data.getDimensionLoader().load(packName, false);
+            if (resolved != null) {
+                return resolved;
+            }
+        }
+
+        for (String key : data.getDimensionLoader().getPossibleKeys()) {
+            if (!key.equalsIgnoreCase(requested) && !key.equalsIgnoreCase(packName)) {
+                continue;
+            }
+
+            resolved = data.getDimensionLoader().load(key, false);
+            if (resolved != null) {
+                return resolved;
+            }
+        }
+
+        return null;
+    }
+
+    private static File findCaseInsensitivePack(File packsFolder, String requested) {
+        File[] children = packsFolder.listFiles();
+        if (children == null) {
+            return null;
+        }
+
+        for (File child : children) {
+            if (child.isDirectory() && child.getName().equalsIgnoreCase(requested)) {
+                return child;
+            }
+        }
+
+        return null;
     }
 
     /**

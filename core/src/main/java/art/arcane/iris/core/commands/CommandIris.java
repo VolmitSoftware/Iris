@@ -74,8 +74,8 @@ public class CommandIris implements DecreeExecutor {
     public void create(
             @Param(aliases = "world-name", description = "The name of the world to create")
             String name,
-            @Param(aliases = "dimension", description = "The dimension type to create the world with", defaultValue = "default")
-            IrisDimension type,
+            @Param(aliases = {"dimension", "pack"}, description = "The dimension/pack to create the world with", defaultValue = "default")
+            String type,
             @Param(description = "The seed to generate the world with", defaultValue = "1337")
             long seed,
             @Param(aliases = "main-world", description = "Whether or not to automatically use this world as the main world", defaultValue = "false")
@@ -98,10 +98,22 @@ public class CommandIris implements DecreeExecutor {
             return;
         }
 
+        String resolvedType = type.equalsIgnoreCase("default")
+                ? IrisSettings.get().getGenerator().getDefaultWorldType()
+                : type;
+
+        IrisDimension dimension = IrisToolbelt.getDimension(resolvedType);
+        if (dimension == null) {
+            sender().sendMessage(C.RED + "Could not find or download dimension \"" + resolvedType + "\".");
+            sender().sendMessage(C.YELLOW + "Try one of: overworld, vanilla, flat, theend");
+            sender().sendMessage(C.YELLOW + "Or download manually: /iris download IrisDimensions/" + resolvedType);
+            return;
+        }
+
         try {
             worldCreation = true;
             IrisToolbelt.createWorld()
-                    .dimension(type.getLoadKey())
+                    .dimension(dimension.getLoadKey())
                     .name(name)
                     .seed(seed)
                     .sender(sender())
@@ -195,12 +207,6 @@ public class CommandIris implements DecreeExecutor {
             Iris.info(C.GREEN + "" + mainWorld.getMinHeight() + " to " + mainWorld.getMaxHeight());
             Iris.info(C.GREEN + "Total Height: " + (mainWorld.getMaxHeight() - mainWorld.getMinHeight()));
         }
-    }
-
-    @Decree(description = "QOL command to open a overworld studio world.", sync = true)
-    public void so() {
-        sender().sendMessage(C.GREEN + "Opening studio for the \"Overworld\" pack (seed: 1337)");
-        Iris.service(StudioSVC.class).open(sender(), 1337, "overworld");
     }
 
     @Decree(description = "Check access of all worlds.", aliases = {"accesslist"})
@@ -317,47 +323,6 @@ public class CommandIris implements DecreeExecutor {
         return dir.delete();
     }
 
-    @Decree(description = "Set aura spins")
-    public void aura(
-            @Param(description = "The h color value", defaultValue = "-20")
-            int h,
-            @Param(description = "The s color value", defaultValue = "7")
-            int s,
-            @Param(description = "The b color value", defaultValue = "8")
-            int b
-    ) {
-        IrisSettings.get().getGeneral().setSpinh(h);
-        IrisSettings.get().getGeneral().setSpins(s);
-        IrisSettings.get().getGeneral().setSpinb(b);
-        IrisSettings.get().forceSave();
-        sender().sendMessage("<rainbow>Aura Spins updated to " + h + " " + s + " " + b);
-    }
-
-    @Decree(description = "Bitwise calculations")
-    public void bitwise(
-            @Param(description = "The first value to run calculations on")
-            int value1,
-            @Param(description = "The operator: | & ^ ≺≺ ≻≻ ％")
-            String operator,
-            @Param(description = "The second value to run calculations on")
-            int value2
-    ) {
-        Integer v = null;
-        switch (operator) {
-            case "|" -> v = value1 | value2;
-            case "&" -> v = value1 & value2;
-            case "^" -> v = value1 ^ value2;
-            case "%" -> v = value1 % value2;
-            case ">>" -> v = value1 >> value2;
-            case "<<" -> v = value1 << value2;
-        }
-        if (v == null) {
-            sender().sendMessage(C.RED + "The operator you entered: (" + operator + ") is invalid!");
-            return;
-        }
-        sender().sendMessage(C.GREEN + "" + value1 + " " + C.GREEN + operator.replaceAll("<", "≺").replaceAll(">", "≻").replaceAll("%", "％") + " " + C.GREEN + value2 + C.GREEN + " returns " + C.GREEN + v);
-    }
-
     @Decree(description = "Toggle debug")
     public void debug(
             @Param(name = "on", description = "Whether or not debug should be on", defaultValue = "other")
@@ -406,42 +371,6 @@ public class CommandIris implements DecreeExecutor {
         IrisSettings.invalidate();
         IrisSettings.get();
         sender().sendMessage(C.GREEN + "Hotloaded settings");
-    }
-
-    @Decree(description = "Update the pack of a world (UNSAFE!)", name = "^world", aliases = "update-world")
-    public void updateWorld(
-            @Param(description = "The world to update", contextual = true)
-            World world,
-            @Param(description = "The pack to install into the world", contextual = true, aliases = "dimension")
-            IrisDimension pack,
-            @Param(description = "Make sure to make a backup & read the warnings first!", defaultValue = "false", aliases = "c")
-            boolean confirm,
-            @Param(description = "Should Iris download the pack again for you", defaultValue = "false", name = "fresh-download", aliases = {"fresh", "new"})
-            boolean freshDownload
-    ) {
-        if (!confirm) {
-            sender().sendMessage(new String[]{
-                    C.RED + "You should always make a backup before using this",
-                    C.YELLOW + "Issues caused by this can be, but are not limited to:",
-                    C.YELLOW + " - Broken chunks (cut-offs) between old and new chunks (before & after the update)",
-                    C.YELLOW + " - Regenerated chunks that do not fit in with the old chunks",
-                    C.YELLOW + " - Structures not spawning again when regenerating",
-                    C.YELLOW + " - Caves not lining up",
-                    C.YELLOW + " - Terrain layers not lining up",
-                    C.RED + "Now that you are aware of the risks, and have made a back-up:",
-                    C.RED + "/iris ^world " + world.getName() + " " + pack.getLoadKey() + " confirm=true"
-            });
-            return;
-        }
-
-        File folder = world.getWorldFolder();
-        folder.mkdirs();
-
-        if (freshDownload) {
-            Iris.service(StudioSVC.class).downloadSearch(sender(), pack.getLoadKey(), false, true);
-        }
-
-        Iris.service(StudioSVC.class).installIntoWorld(sender(), pack.getLoadKey(), folder);
     }
 
     @Decree(description = "Unload an Iris World", origin = DecreeOrigin.PLAYER, sync = true)

@@ -32,7 +32,8 @@ public interface DecreeExecutor extends DecreeExecutorBase {
     }
 
     default Player player() {
-        return sender().player();
+        VolmitSender sender = sender();
+        return sender == null ? null : sender.player();
     }
 
     default IrisData data() {
@@ -44,8 +45,9 @@ public interface DecreeExecutor extends DecreeExecutorBase {
     }
 
     default Engine engine() {
-        if (sender().isPlayer() && IrisToolbelt.access(sender().player().getWorld()) != null) {
-            PlatformChunkGenerator gen = IrisToolbelt.access(sender().player().getWorld());
+        VolmitSender sender = sender();
+        if (sender != null && sender.isPlayer() && IrisToolbelt.access(sender.player().getWorld()) != null) {
+            PlatformChunkGenerator gen = IrisToolbelt.access(sender.player().getWorld());
             if (gen != null) {
                 return gen.getEngine();
             }
@@ -55,7 +57,8 @@ public interface DecreeExecutor extends DecreeExecutorBase {
     }
 
     default PlatformChunkGenerator access() {
-        if (sender().isPlayer()) {
+        VolmitSender sender = sender();
+        if (sender != null && sender.isPlayer()) {
             return IrisToolbelt.access(world());
         }
         return null;

@@ -55,7 +55,7 @@ public class CustomBiomeSource extends BiomeSource {
             if (i.isCustom()) {
                 for (IrisBiomeCustom j : i.getCustomDerivitives()) {
                     b.add(customRegistry.getHolder(customRegistry.getResourceKey(customRegistry
-                            .get(new ResourceLocation(engine.getDimension().getLoadKey() + ":" + j.getId()))).get()).get());
+                            .get(new ResourceLocation(engine.getDimension().getLoadKey().toLowerCase(java.util.Locale.ROOT) + ":" + j.getId().toLowerCase(java.util.Locale.ROOT)))).get()).get());
                 }
             } else {
                 b.add(CraftBlock.biomeToBiomeBase(registry, i.getVanillaDerivative()));
@@ -125,7 +125,7 @@ public class CustomBiomeSource extends BiomeSource {
         for (IrisBiome i : engine.getAllBiomes()) {
             if (i.isCustom()) {
                 for (IrisBiomeCustom j : i.getCustomDerivitives()) {
-                    ResourceLocation resourceLocation = new ResourceLocation(engine.getDimension().getLoadKey() + ":" + j.getId());
+                    ResourceLocation resourceLocation = new ResourceLocation(engine.getDimension().getLoadKey().toLowerCase(java.util.Locale.ROOT) + ":" + j.getId().toLowerCase(java.util.Locale.ROOT));
                     Biome biome = customRegistry.get(resourceLocation);
                     Optional<ResourceKey<Biome>> optionalBiomeKey = customRegistry.getResourceKey(biome);
                     if (optionalBiomeKey.isEmpty()) {

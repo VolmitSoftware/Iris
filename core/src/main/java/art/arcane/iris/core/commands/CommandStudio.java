@@ -35,6 +35,8 @@ import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.collection.KSet;
 import art.arcane.iris.util.decree.DecreeContext;
 import art.arcane.iris.util.decree.DecreeExecutor;
+import art.arcane.iris.util.decree.handlers.DimensionHandler;
+import art.arcane.iris.util.decree.specialhandlers.NullableDimensionHandler;
 import art.arcane.volmlib.util.decree.DecreeOrigin;
 import art.arcane.volmlib.util.decree.annotations.Decree;
 import art.arcane.volmlib.util.decree.annotations.Param;
@@ -109,7 +111,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Open a new studio world", aliases = "o", sync = true)
     public void open(
-            @Param(defaultValue = "default", description = "The dimension to open a studio for", aliases = "dim")
+            @Param(defaultValue = "default", description = "The dimension to open a studio for", aliases = "dim", customHandler = DimensionHandler.class)
             IrisDimension dimension,
             @Param(defaultValue = "1337", description = "The seed to generate the studio with", aliases = "s")
             long seed) {
@@ -119,7 +121,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Open VSCode for a dimension", aliases = {"vsc", "edit"})
     public void vscode(
-            @Param(defaultValue = "default", description = "The dimension to open VSCode for", aliases = "dim")
+            @Param(defaultValue = "default", description = "The dimension to open VSCode for", aliases = "dim", customHandler = DimensionHandler.class)
             IrisDimension dimension
     ) {
         sender().sendMessage(C.GREEN + "Opening VSCode for the \"" + dimension.getName() + "\" pack");
@@ -141,7 +143,11 @@ public class CommandStudio implements DecreeExecutor {
     public void create(
             @Param(description = "The name of this new Iris Project.")
             String name,
-            @Param(description = "Copy the contents of an existing project in your packs folder and use it as a template in this new project.", contextual = true)
+            @Param(
+                    description = "Copy the contents of an existing project in your packs folder and use it as a template in this new project.",
+                    contextual = true,
+                    customHandler = NullableDimensionHandler.class
+            )
             IrisDimension template) {
         if (template != null) {
             Iris.service(StudioSVC.class).create(sender(), name, template.getLoadKey());
@@ -152,7 +158,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Get the version of a pack")
     public void version(
-            @Param(defaultValue = "default", description = "The dimension get the version of", aliases = "dim", contextual = true)
+            @Param(defaultValue = "default", description = "The dimension get the version of", aliases = "dim", contextual = true, customHandler = DimensionHandler.class)
             IrisDimension dimension
     ) {
         sender().sendMessage(C.GREEN + "The \"" + dimension.getName() + "\" pack has version: " + dimension.getVersion());
@@ -463,7 +469,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Package a dimension into a compressed format", aliases = "package")
     public void pkg(
-            @Param(name = "dimension", description = "The dimension pack to compress", contextual = true, defaultValue = "default")
+            @Param(name = "dimension", description = "The dimension pack to compress", contextual = true, defaultValue = "default", customHandler = DimensionHandler.class)
             IrisDimension dimension,
             @Param(name = "obfuscate", description = "Whether or not to obfuscate the pack", defaultValue = "false")
             boolean obfuscate,
@@ -475,7 +481,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Profiles the performance of a dimension", origin = DecreeOrigin.PLAYER)
     public void profile(
-            @Param(description = "The dimension to profile", contextual = true, defaultValue = "default")
+            @Param(description = "The dimension to profile", contextual = true, defaultValue = "default", customHandler = DimensionHandler.class)
             IrisDimension dimension
     ) {
         // Todo: Make this more accurate
@@ -700,7 +706,7 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Update your dimension projects VSCode workspace")
     public void update(
-            @Param(description = "The dimension to update the workspace of", contextual = true, defaultValue = "default")
+            @Param(description = "The dimension to update the workspace of", contextual = true, defaultValue = "default", customHandler = DimensionHandler.class)
             IrisDimension dimension
     ) {
         sender().sendMessage(C.GOLD + "Updating Code Workspace for " + dimension.getName() + "...");

@@ -11,6 +11,7 @@ import art.arcane.iris.core.safeguard.task.Task.Companion.of
 import art.arcane.iris.util.agent.Agent
 import art.arcane.iris.util.misc.getHardware
 import org.bukkit.Bukkit
+import java.util.Locale
 import java.util.stream.Collectors
 import javax.tools.ToolProvider
 import kotlin.properties.PropertyDelegateProvider
@@ -75,7 +76,13 @@ private val version by task {
 }
 
 private val injection by task {
-    if (!Agent.install()) UNSTABLE.withDiagnostics(
+    if (!isPaperPreferredServer() && !Agent.isInstalled()) {
+        WARNING.withDiagnostics(
+            WARN.create("Java Agent"),
+            WARN.create("- Skipping dynamic Java agent attach on Spigot/Bukkit to avoid runtime agent warnings."),
+            WARN.create("- For full runtime injection support, run with -javaagent:" + Agent.AGENT_JAR.path + " or use Paper/Purpur.")
+        )
+    } else if (!Agent.install()) UNSTABLE.withDiagnostics(
         ERROR.create("Java Agent"),
         ERROR.create("- Please enable dynamic agent loading by adding -XX:+EnableDynamicAgentLoading to your jvm arguments."),
         ERROR.create("- or add the jvm argument -javaagent:" + Agent.AGENT_JAR.path)
@@ -132,6 +139,10 @@ val tasks = listOf(
 )
 
 private val server get() = Bukkit.getServer()
+private fun isPaperPreferredServer(): Boolean {
+    val name = server.name.lowercase(Locale.ROOT)
+    return name.contains("paper") || name.contains("purpur") || name.contains("pufferfish")
+}
 private fun <T> MutableList<T>.addAll(vararg values: T) = values.forEach(this::add)
 fun task(action: () -> ValueWithDiagnostics<Mode>) = PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Task>> { _, _ ->
     ReadOnlyProperty { _, property -> of(property.name, action) }

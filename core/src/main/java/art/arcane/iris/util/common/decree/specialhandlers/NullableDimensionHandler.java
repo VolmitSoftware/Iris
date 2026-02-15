@@ -19,8 +19,12 @@
 package art.arcane.iris.util.decree.specialhandlers;
 
 import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.object.IrisDimension;
+import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.decree.exceptions.DecreeParsingException;
+
+import java.util.Locale;
 
 public class NullableDimensionHandler extends RegistrantHandler<IrisDimension> {
     public NullableDimensionHandler() {
@@ -29,10 +33,50 @@ public class NullableDimensionHandler extends RegistrantHandler<IrisDimension> {
 
     @Override
     public IrisDimension parse(String in, boolean force) throws DecreeParsingException {
-        if (in.equalsIgnoreCase("default")) {
-            return parse(IrisSettings.get().getGenerator().getDefaultWorldType());
+        String key = in.trim();
+        if (key.equalsIgnoreCase("default")) {
+            key = IrisSettings.get().getGenerator().getDefaultWorldType();
         }
-        return super.parse(in, force);
+
+        try {
+            return super.parse(key, force);
+        } catch (DecreeParsingException ignored) {
+            String normalized = key.toLowerCase(Locale.ROOT);
+            IrisDimension resolved = IrisToolbelt.getDimension(normalized);
+            if (resolved != null) {
+                return resolved;
+            }
+
+            if (!normalized.equals(key)) {
+                resolved = IrisToolbelt.getDimension(key);
+                if (resolved != null) {
+                    return resolved;
+                }
+            }
+
+            throw ignored;
+        }
+    }
+
+    @Override
+    public KList<IrisDimension> getPossibilities(String input) {
+        KList<IrisDimension> possibilities = super.getPossibilities();
+        String normalizedInput = input == null ? "" : input.trim().toLowerCase(Locale.ROOT);
+        if (normalizedInput.isEmpty()) {
+            return possibilities;
+        }
+
+        KList<IrisDimension> filtered = new KList<>();
+        for (IrisDimension dimension : possibilities) {
+            if (dimension != null && dimension.getLoadKey() != null) {
+                String key = dimension.getLoadKey().toLowerCase(Locale.ROOT);
+                if (key.startsWith(normalizedInput)) {
+                    filtered.add(dimension);
+                }
+            }
+        }
+
+        return filtered;
     }
 
     @Override

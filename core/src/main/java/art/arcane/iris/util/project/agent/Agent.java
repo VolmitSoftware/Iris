@@ -17,6 +17,10 @@ public class Agent {
         return ClassReloadingStrategy.of(getInstrumentation());
     }
 
+    public static boolean isInstalled() {
+        return doGetInstrumentation() != null;
+    }
+
     public static Instrumentation getInstrumentation() {
         Instrumentation instrumentation = doGetInstrumentation();
         if (instrumentation == null) throw new IllegalStateException("The agent is not initialized or unavailable");
@@ -24,11 +28,12 @@ public class Agent {
     }
 
     public static boolean install() {
-        if (doGetInstrumentation() != null)
+        if (isInstalled())
             return true;
         try {
             Files.copy(Iris.instance.getResource("agent.jar"), AGENT_JAR.toPath(), StandardCopyOption.REPLACE_EXISTING);
             Iris.info("Installing Java Agent...");
+            Iris.info("Note: JVM [Attach Listener/ERROR] [STDERR] warning lines during this step are expected and not Iris errors.");
             ByteBuddyAgent.attach(AGENT_JAR, ByteBuddyAgent.ProcessProvider.ForCurrentVm.INSTANCE);
         } catch (Throwable e) {
             e.printStackTrace();

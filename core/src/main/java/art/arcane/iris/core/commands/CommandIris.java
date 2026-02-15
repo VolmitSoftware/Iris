@@ -20,16 +20,19 @@ package art.arcane.iris.core.commands;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.IrisSettings;
+import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.nms.INMS;
 import art.arcane.iris.core.service.StudioSVC;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.iris.engine.framework.Engine;
 import art.arcane.iris.engine.object.IrisDimension;
 import art.arcane.volmlib.util.collection.KList;
+import art.arcane.volmlib.util.decree.DecreeParameterHandler;
 import art.arcane.iris.util.decree.DecreeExecutor;
 import art.arcane.volmlib.util.decree.DecreeOrigin;
 import art.arcane.volmlib.util.decree.annotations.Decree;
 import art.arcane.volmlib.util.decree.annotations.Param;
+import art.arcane.volmlib.util.decree.exceptions.DecreeParsingException;
 import art.arcane.iris.util.decree.specialhandlers.NullablePlayerHandler;
 import art.arcane.iris.util.format.C;
 import art.arcane.volmlib.util.io.IO;
@@ -45,7 +48,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.*;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static art.arcane.iris.core.service.EditSVC.deletingWorld;
@@ -74,7 +79,12 @@ public class CommandIris implements DecreeExecutor {
     public void create(
             @Param(aliases = "world-name", description = "The name of the world to create")
             String name,
-            @Param(aliases = {"dimension", "pack"}, description = "The dimension/pack to create the world with", defaultValue = "default")
+            @Param(
+                    aliases = {"dimension", "pack"},
+                    description = "The dimension/pack to create the world with",
+                    defaultValue = "default",
+                    customHandler = PackDimensionTypeHandler.class
+            )
             String type,
             @Param(description = "The seed to generate the world with", defaultValue = "1337")
             long seed,
@@ -465,5 +475,54 @@ public class CommandIris implements DecreeExecutor {
         File worldContainer = Bukkit.getWorldContainer();
         File worldDirectory = new File(worldContainer, worldName);
         return worldDirectory.exists() && worldDirectory.isDirectory();
+    }
+
+    public static class PackDimensionTypeHandler implements DecreeParameterHandler<String> {
+        @Override
+        public KList<String> getPossibilities() {
+            Set<String> options = new LinkedHashSet<>();
+            options.add("default");
+
+            File packsFolder = Iris.instance.getDataFolder("packs");
+            File[] packs = packsFolder.listFiles();
+            if (packs != null) {
+                for (File pack : packs) {
+                    if (pack == null || !pack.isDirectory()) {
+                        continue;
+                    }
+
+                    options.add(pack.getName());
+
+                    try {
+                        IrisData data = IrisData.get(pack);
+                        for (String key : data.getDimensionLoader().getPossibleKeys()) {
+                            options.add(key);
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            }
+
+            return new KList<>(options);
+        }
+
+        @Override
+        public String toString(String value) {
+            return value == null ? "" : value;
+        }
+
+        @Override
+        public String parse(String in, boolean force) throws DecreeParsingException {
+            if (in == null || in.trim().isEmpty()) {
+                throw new DecreeParsingException("World type cannot be empty");
+            }
+
+            return in.trim();
+        }
+
+        @Override
+        public boolean supports(Class<?> type) {
+            return type == String.class;
+        }
     }
 }

@@ -51,7 +51,7 @@ registerCustomOutputTask("PixelFury", "C://Users/repix/workplace/Iris/1.21.3 - D
 registerCustomOutputTask("PixelFuryDev", "C://Users/repix/workplace/Iris/1.21 - Development-v3/plugins")
 // ========================== UNIX ==============================
 registerCustomOutputTaskUnix("CyberpwnLT", "/Users/danielmills/development/server/plugins")
-registerCustomOutputTaskUnix("PsychoLT", "/Users/brianfopiano/Developer/RemoteGit/[Minecraft Server]/plugins")
+registerCustomOutputTaskUnix("PsychoLT", "/Users/brianfopiano/Developer/RemoteGit/[Minecraft Server]/plugin-jars")
 registerCustomOutputTaskUnix("PixelMac", "/Users/test/Desktop/mcserver/plugins")
 registerCustomOutputTaskUnix("CrazyDev22LT", "/home/julian/Desktop/server/plugins")
 // ==============================================================

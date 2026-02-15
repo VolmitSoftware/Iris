@@ -84,6 +84,35 @@ public class IrisEngineSVC implements IrisService {
         return (min + max) / 2D;
     }
 
+    public double getBiomeCacheUsageRatio() {
+        PreservationSVC preservation = Iris.service(PreservationSVC.class);
+        if (preservation == null) {
+            return 0D;
+        }
+
+        double total = 0D;
+        int count = 0;
+        for (var cache : preservation.getCaches()) {
+            if (!(cache instanceof CachedStream2D<?>)) {
+                continue;
+            }
+
+            double usage = cache.getUsage();
+            if (!Double.isFinite(usage)) {
+                continue;
+            }
+
+            total += Math.max(0D, Math.min(1D, usage));
+            count++;
+        }
+
+        if (count <= 0) {
+            return 0D;
+        }
+
+        return total / count;
+    }
+
     public void engineStatus(VolmitSender sender) {
         long[] sizes = new long[4];
         long[] count = new long[4];

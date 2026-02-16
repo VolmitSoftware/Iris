@@ -115,6 +115,13 @@ public class CommandStudio implements DecreeExecutor {
             IrisDimension dimension,
             @Param(defaultValue = "1337", description = "The seed to generate the studio with", aliases = "s")
             long seed) {
+        if (J.isFolia()) {
+            sender().sendMessage(C.RED + "Studio world opening is disabled on Folia.");
+            sender().sendMessage(C.YELLOW + "Folia does not currently support runtime world creation via Bukkit.createWorld().");
+            sender().sendMessage(C.YELLOW + "Use Paper/Purpur for Studio mode, or preconfigure worlds and restart.");
+            return;
+        }
+
         sender().sendMessage(C.GREEN + "Opening studio for the \"" + dimension.getName() + "\" pack (seed: " + seed + ")");
         Iris.service(StudioSVC.class).open(sender(), seed, dimension.getLoadKey());
     }
@@ -329,10 +336,10 @@ public class CommandStudio implements DecreeExecutor {
         var player = player();
         var engine = engine();
 
-        ta.set(Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, () ->
+        ta.set(J.sr(() ->
         {
             if (!player.getOpenInventory().getType().equals(InventoryType.CHEST)) {
-                Bukkit.getScheduler().cancelTask(ta.get());
+                J.csr(ta.get());
                 sender.sendMessage(C.GREEN + "Opened inventory!");
                 return;
             }
@@ -342,7 +349,7 @@ public class CommandStudio implements DecreeExecutor {
             }
 
             engine.addItems(true, inv, new RNG(RNG.r.imax()), tables, InventorySlotType.STORAGE, player.getWorld(), player.getLocation().getBlockX(), player.getLocation().getBlockY(), player.getLocation().getBlockZ(), 1);
-        }, 0, fast ? 5 : 35));
+        }, fast ? 5 : 35));
 
         sender().sendMessage(C.GREEN + "Opening inventory now!");
         player().openInventory(inv);

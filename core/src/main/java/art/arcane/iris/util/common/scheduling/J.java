@@ -20,29 +20,39 @@ package art.arcane.iris.util.scheduling;
 
 import art.arcane.iris.Iris;
 import art.arcane.iris.core.service.PreservationSVC;
+import art.arcane.iris.util.parallel.MultiBurst;
 import art.arcane.volmlib.util.function.NastyFunction;
 import art.arcane.volmlib.util.function.NastyFuture;
 import art.arcane.volmlib.util.function.NastyRunnable;
 import art.arcane.volmlib.util.function.NastySupplier;
+import art.arcane.volmlib.util.math.FinalInteger;
 import art.arcane.volmlib.util.scheduling.AR;
+import art.arcane.volmlib.util.scheduling.FoliaScheduler;
 import art.arcane.volmlib.util.scheduling.JSupport;
 import art.arcane.volmlib.util.scheduling.SR;
 import art.arcane.volmlib.util.scheduling.SchedulerBridge;
 import art.arcane.volmlib.util.scheduling.StartupQueueSupport;
-import art.arcane.volmlib.util.math.FinalInteger;
-import art.arcane.iris.util.parallel.MultiBurst;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.entity.Entity;
+import org.bukkit.plugin.Plugin;
 
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 @SuppressWarnings("ALL")
 public class J {
-    private static int tid = 0;
+    private static final long TICK_MS = 50L;
+    private static final AtomicInteger TASK_IDS = new AtomicInteger(1);
+    private static final Map<Integer, Runnable> REPEATING_CANCELLERS = new ConcurrentHashMap<>();
     private static final StartupQueueSupport STARTUP_QUEUE = new StartupQueueSupport();
 
     static {
@@ -100,10 +110,13 @@ public class J {
     }
 
     public static void aBukkit(Runnable a) {
-        if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
+        if (!isPluginEnabled()) {
             return;
         }
-        Bukkit.getScheduler().scheduleAsyncDelayedTask(Iris.instance, a);
+
+        if (!runAsyncImmediate(a)) {
+            a(a, 0);
+        }
     }
 
     public static <T> Future<T> a(Callable<T> a) {
@@ -142,89 +155,210 @@ public class J {
         return JSupport.attempt(t::get, i, Iris::reportError);
     }
 
-    /**
-     * Dont call this unless you know what you are doing!
-     */
     public static void executeAfterStartupQueue() {
         JSupport.executeAfterStartupQueue(STARTUP_QUEUE, J::s, J::a);
     }
 
-    /**
-     * Schedule a sync task to be run right after startup. If the server has already
-     * started ticking, it will simply run it in a sync task.
-     * <p>
-     * If you dont know if you should queue this or not, do so, it's pretty
-     * forgiving.
-     *
-     * @param r the runnable
-     */
     public static void ass(Runnable r) {
         JSupport.enqueueAfterStartupSync(STARTUP_QUEUE, r, J::s);
     }
 
-    /**
-     * Schedule an async task to be run right after startup. If the server has
-     * already started ticking, it will simply run it in an async task.
-     * <p>
-     * If you dont know if you should queue this or not, do so, it's pretty
-     * forgiving.
-     *
-     * @param r the runnable
-     */
     public static void asa(Runnable r) {
         JSupport.enqueueAfterStartupAsync(STARTUP_QUEUE, r, J::a);
     }
 
-    /**
-     * Queue a sync task
-     *
-     * @param r the runnable
-     */
-    public static void s(Runnable r) {
-        if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
+    public static boolean isFolia() {
+        return FoliaScheduler.isFolia(Iris.instance);
+    }
+
+    public static boolean isPrimaryThread() {
+        return FoliaScheduler.isPrimaryThread();
+    }
+
+    public static boolean isOwnedByCurrentRegion(Entity entity) {
+        return FoliaScheduler.isOwnedByCurrentRegion(entity);
+    }
+
+    public static boolean isOwnedByCurrentRegion(World world, int chunkX, int chunkZ) {
+        return FoliaScheduler.isOwnedByCurrentRegion(world, chunkX, chunkZ);
+    }
+
+    public static boolean runEntity(Entity entity, Runnable runnable) {
+        if (entity == null || runnable == null) {
+            return false;
+        }
+
+        if (isFolia()) {
+            if (isOwnedByCurrentRegion(entity)) {
+                runnable.run();
+                return true;
+            }
+
+            return runEntityImmediate(entity, runnable);
+        }
+
+        if (isPrimaryThread()) {
+            runnable.run();
+            return true;
+        }
+
+        s(runnable);
+        return true;
+    }
+
+    public static boolean runEntity(Entity entity, Runnable runnable, int delayTicks) {
+        if (entity == null || runnable == null) {
+            return false;
+        }
+
+        if (delayTicks <= 0) {
+            return runEntity(entity, runnable);
+        }
+
+        if (isFolia() && runEntityDelayed(entity, runnable, delayTicks)) {
+            return true;
+        }
+
+        s(() -> runEntity(entity, runnable), delayTicks);
+        return true;
+    }
+
+    public static boolean runRegion(World world, int chunkX, int chunkZ, Runnable runnable) {
+        if (world == null || runnable == null) {
+            return false;
+        }
+
+        if (isFolia() && isOwnedByCurrentRegion(world, chunkX, chunkZ)) {
+            runnable.run();
+            return true;
+        }
+
+        if (runRegionImmediate(world, chunkX, chunkZ, runnable)) {
+            return true;
+        }
+
+        if (isFolia()) {
+            Iris.verbose("Failed to schedule immediate region task for " + world.getName() + "@" + chunkX + "," + chunkZ + " on Folia.");
+            return false;
+        }
+
+        s(runnable);
+        return true;
+    }
+
+    public static boolean runRegion(World world, int chunkX, int chunkZ, Runnable runnable, int delayTicks) {
+        if (world == null || runnable == null) {
+            return false;
+        }
+
+        if (delayTicks <= 0) {
+            return runRegion(world, chunkX, chunkZ, runnable);
+        }
+
+        if (runRegionDelayed(world, chunkX, chunkZ, runnable, delayTicks)) {
+            return true;
+        }
+
+        if (isFolia()) {
+            Iris.verbose("Failed to schedule delayed region task for " + world.getName() + "@" + chunkX + "," + chunkZ
+                    + " (" + delayTicks + "t) on Folia.");
+            return false;
+        }
+
+        s(runnable, delayTicks);
+        return true;
+    }
+
+    public static boolean runAt(Location location, Runnable runnable) {
+        if (location == null || runnable == null || location.getWorld() == null) {
+            return false;
+        }
+
+        return runRegion(location.getWorld(), location.getBlockX() >> 4, location.getBlockZ() >> 4, runnable);
+    }
+
+    public static boolean runAt(Location location, Runnable runnable, int delayTicks) {
+        if (location == null || runnable == null || location.getWorld() == null) {
+            return false;
+        }
+
+        return runRegion(location.getWorld(), location.getBlockX() >> 4, location.getBlockZ() >> 4, runnable, delayTicks);
+    }
+
+    public static void cancelPluginTasks() {
+        if (Iris.instance == null) {
             return;
         }
-        Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, r);
+
+        FoliaScheduler.cancelTasks(Iris.instance);
+
+        try {
+            Bukkit.getScheduler().cancelTasks(Iris.instance);
+        } catch (UnsupportedOperationException ex) {
+            // Folia blocks BukkitScheduler usage.
+            Iris.verbose("Skipping BukkitScheduler#cancelTasks for Iris on this server.");
+        }
+    }
+
+    public static void s(Runnable r) {
+        if (!isPluginEnabled()) {
+            return;
+        }
+
+        if (!runGlobalImmediate(r)) {
+            try {
+                Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, r);
+            } catch (UnsupportedOperationException e) {
+                throw new IllegalStateException("Failed to schedule sync task (Folia scheduler unavailable, BukkitScheduler unsupported).", e);
+            }
+        }
     }
 
     public static CompletableFuture sfut(Runnable r) {
         CompletableFuture f = new CompletableFuture();
 
-        if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
+        if (!isPluginEnabled()) {
             return null;
         }
-        Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
+
+        s(() -> {
             r.run();
             f.complete(null);
         });
+
         return f;
     }
 
     public static <T> CompletableFuture<T> sfut(Supplier<T> r) {
         CompletableFuture<T> f = new CompletableFuture<>();
-        if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
+
+        if (!isPluginEnabled()) {
             return null;
         }
-        Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
+
+        s(() -> {
             try {
                 f.complete(r.get());
             } catch (Throwable e) {
                 f.completeExceptionally(e);
             }
         });
+
         return f;
     }
 
     public static CompletableFuture sfut(Runnable r, int delay) {
         CompletableFuture f = new CompletableFuture();
 
-        if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
+        if (!isPluginEnabled()) {
             return null;
         }
-        Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
+
+        s(() -> {
             r.run();
             f.complete(null);
         }, delay);
+
         return f;
     }
 
@@ -237,53 +371,58 @@ public class J {
         return f;
     }
 
-    /**
-     * Queue a sync task
-     *
-     * @param r     the runnable
-     * @param delay the delay to wait in ticks before running
-     */
     public static void s(Runnable r, int delay) {
+        if (!isPluginEnabled()) {
+            return;
+        }
+
+        if (delay <= 0) {
+            s(r);
+            return;
+        }
+
         try {
-            if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
-                return;
+            if (!runGlobalDelayed(r, delay)) {
+                Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, r, delay);
             }
-            Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, r, delay);
         } catch (Throwable e) {
             Iris.reportError(e);
         }
     }
 
-    /**
-     * Cancel a sync repeating task
-     *
-     * @param id the task id
-     */
     public static void csr(int id) {
-        Bukkit.getScheduler().cancelTask(id);
+        cancelRepeatingTask(id);
     }
 
-    /**
-     * Start a sync repeating task
-     *
-     * @param r        the runnable
-     * @param interval the interval
-     * @return the task id
-     */
     public static int sr(Runnable r, int interval) {
-        if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
+        if (!isPluginEnabled()) {
             return -1;
         }
-        return Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, r, 0, interval);
+
+        int safeInterval = Math.max(1, interval);
+        RepeatingState state = new RepeatingState();
+        int taskId = trackRepeatingTask(() -> state.cancelled = true);
+
+        Runnable[] loop = new Runnable[1];
+        loop[0] = () -> {
+            if (state.cancelled || !isPluginEnabled()) {
+                REPEATING_CANCELLERS.remove(taskId);
+                return;
+            }
+
+            r.run();
+            if (state.cancelled || !isPluginEnabled()) {
+                REPEATING_CANCELLERS.remove(taskId);
+                return;
+            }
+
+            s(loop[0], safeInterval);
+        };
+
+        s(loop[0]);
+        return taskId;
     }
 
-    /**
-     * Start a sync repeating task for a limited amount of ticks
-     *
-     * @param r         the runnable
-     * @param interval  the interval in ticks
-     * @param intervals the maximum amount of intervals to run
-     */
     public static void sr(Runnable r, int interval, int intervals) {
         FinalInteger fi = new FinalInteger(0);
 
@@ -300,50 +439,60 @@ public class J {
         };
     }
 
-    /**
-     * Call an async task dealyed
-     *
-     * @param r     the runnable
-     * @param delay the delay to wait before running
-     */
-    @SuppressWarnings("deprecation")
     public static void a(Runnable r, int delay) {
-        if (Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
-            Bukkit.getScheduler().scheduleAsyncDelayedTask(Iris.instance, r, delay);
+        if (!isPluginEnabled()) {
+            return;
+        }
+
+        if (delay <= 0) {
+            if (!runAsyncImmediate(r)) {
+                a(r);
+            }
+            return;
+        }
+
+        if (!runAsyncDelayed(r, delay)) {
+            a(() -> {
+                if (sleep(ticksToMilliseconds(delay))) {
+                    r.run();
+                }
+            });
         }
     }
 
-    /**
-     * Cancel an async repeat task
-     *
-     * @param id the id
-     */
     public static void car(int id) {
-        Bukkit.getScheduler().cancelTask(id);
+        cancelRepeatingTask(id);
     }
 
-    /**
-     * Start an async repeat task
-     *
-     * @param r        the runnable
-     * @param interval the interval in ticks
-     * @return the task id
-     */
-    @SuppressWarnings("deprecation")
     public static int ar(Runnable r, int interval) {
-        if (!Bukkit.getPluginManager().isPluginEnabled(Iris.instance)) {
+        if (!isPluginEnabled()) {
             return -1;
         }
-        return Bukkit.getScheduler().scheduleAsyncRepeatingTask(Iris.instance, r, 0, interval);
+
+        int safeInterval = Math.max(1, interval);
+        RepeatingState state = new RepeatingState();
+        int taskId = trackRepeatingTask(() -> state.cancelled = true);
+
+        Runnable[] loop = new Runnable[1];
+        loop[0] = () -> {
+            if (state.cancelled || !isPluginEnabled()) {
+                REPEATING_CANCELLERS.remove(taskId);
+                return;
+            }
+
+            r.run();
+            if (state.cancelled || !isPluginEnabled()) {
+                REPEATING_CANCELLERS.remove(taskId);
+                return;
+            }
+
+            a(loop[0], safeInterval);
+        };
+
+        a(loop[0], 0);
+        return taskId;
     }
 
-    /**
-     * Start an async repeating task for a limited time
-     *
-     * @param r         the runnable
-     * @param interval  the interval
-     * @param intervals the intervals to run
-     */
     public static void ar(Runnable r, int interval, int intervals) {
         FinalInteger fi = new FinalInteger(0);
 
@@ -358,5 +507,62 @@ public class J {
                 }
             }
         };
+    }
+
+    private static int trackRepeatingTask(Runnable cancelAction) {
+        int id = TASK_IDS.getAndIncrement();
+        REPEATING_CANCELLERS.put(id, cancelAction);
+        return id;
+    }
+
+    private static void cancelRepeatingTask(int id) {
+        Runnable cancelAction = REPEATING_CANCELLERS.remove(id);
+        if (cancelAction != null) {
+            cancelAction.run();
+        }
+    }
+
+    private static boolean isPluginEnabled() {
+        return Iris.instance != null && Bukkit.getPluginManager().isPluginEnabled(Iris.instance);
+    }
+
+    private static long ticksToMilliseconds(int ticks) {
+        return Math.max(0L, ticks) * TICK_MS;
+    }
+
+    private static boolean runGlobalImmediate(Runnable runnable) {
+        return FoliaScheduler.runGlobal(Iris.instance, runnable);
+    }
+
+    private static boolean runGlobalDelayed(Runnable runnable, int delayTicks) {
+        return FoliaScheduler.runGlobal(Iris.instance, runnable, Math.max(0, delayTicks));
+    }
+
+    private static boolean runRegionImmediate(World world, int chunkX, int chunkZ, Runnable runnable) {
+        return FoliaScheduler.runRegion(Iris.instance, world, chunkX, chunkZ, runnable);
+    }
+
+    private static boolean runRegionDelayed(World world, int chunkX, int chunkZ, Runnable runnable, int delayTicks) {
+        return FoliaScheduler.runRegion(Iris.instance, world, chunkX, chunkZ, runnable, Math.max(0, delayTicks));
+    }
+
+    private static boolean runAsyncImmediate(Runnable runnable) {
+        return FoliaScheduler.runAsync(Iris.instance, runnable);
+    }
+
+    private static boolean runAsyncDelayed(Runnable runnable, int delayTicks) {
+        return FoliaScheduler.runAsync(Iris.instance, runnable, Math.max(0, delayTicks));
+    }
+
+    private static boolean runEntityImmediate(Entity entity, Runnable runnable) {
+        return FoliaScheduler.runEntity(Iris.instance, entity, runnable);
+    }
+
+    private static boolean runEntityDelayed(Entity entity, Runnable runnable, int delayTicks) {
+        return FoliaScheduler.runEntity(Iris.instance, entity, runnable, Math.max(0, delayTicks));
+    }
+
+    private static final class RepeatingState {
+        private volatile boolean cancelled;
     }
 }

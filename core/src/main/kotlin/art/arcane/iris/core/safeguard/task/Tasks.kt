@@ -13,18 +13,25 @@ import art.arcane.iris.util.misc.getHardware
 import org.bukkit.Bukkit
 import java.util.Locale
 import java.util.stream.Collectors
-import javax.tools.ToolProvider
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 
 private val memory by task {
     val mem = getHardware.getProcessMemory()
-    if (mem >= 5999) STABLE.withDiagnostics()
-    else STABLE.withDiagnostics(
-        WARN.create("Low Memory"),
-        WARN.create("- 6GB+ Ram is recommended"),
-        WARN.create("- Process Memory: $mem MB")
-    )
+    when {
+        mem >= 3072 -> STABLE.withDiagnostics()
+        mem > 2048 -> STABLE.withDiagnostics(
+            INFO.create("Memory Recommendation"),
+            INFO.create("- 3GB+ process memory is recommended for Iris."),
+            INFO.create("- Process Memory: $mem MB")
+        )
+        else -> WARNING.withDiagnostics(
+            WARN.create("Low Memory"),
+            WARN.create("- Iris is running with 2GB or less process memory."),
+            WARN.create("- 3GB+ process memory is recommended for Iris."),
+            WARN.create("- Process Memory: $mem MB")
+        )
+    }
 }
 
 private val incompatibilities by task {
@@ -49,6 +56,7 @@ private val incompatibilities by task {
 
 private val software by task {
     val supported = setOf(
+        "folia",
         "purpur",
         "pufferfish",
         "paper",
@@ -59,7 +67,7 @@ private val software by task {
     if (supported.any { server.name.contains(it, true) }) STABLE.withDiagnostics()
     else WARNING.withDiagnostics(
         WARN.create("Unsupported Server Software"),
-        WARN.create("- Please consider using Paper or Purpur instead.")
+        WARN.create("- Please consider using Folia, Paper, or Purpur instead.")
     )
 }
 
@@ -118,12 +126,17 @@ private val diskSpace by task {
 
 private val java by task {
     val version = Iris.getJavaVersion()
-    val jdk = runCatching { ToolProvider.getSystemJavaCompiler() }.getOrNull() != null
-    if (version in setOf(21) && jdk) STABLE.withDiagnostics()
-    else WARNING.withDiagnostics(
-        WARN.create("Unsupported Java version"),
-        WARN.create("- Please consider using JDK 21 Instead of ${if(jdk) "JDK" else "JRE"} $version")
-    )
+    when {
+        version == 21 -> STABLE.withDiagnostics()
+        version > 21 -> STABLE.withDiagnostics(
+            INFO.create("Java Runtime"),
+            INFO.create("- Running Java $version. Iris is tested primarily on Java 21.")
+        )
+        else -> WARNING.withDiagnostics(
+            WARN.create("Unsupported Java version"),
+            WARN.create("- Java 21+ is recommended. Current runtime: Java $version")
+        )
+    }
 }
 
 
@@ -141,7 +154,7 @@ val tasks = listOf(
 private val server get() = Bukkit.getServer()
 private fun isPaperPreferredServer(): Boolean {
     val name = server.name.lowercase(Locale.ROOT)
-    return name.contains("paper") || name.contains("purpur") || name.contains("pufferfish")
+    return name.contains("folia") || name.contains("paper") || name.contains("purpur") || name.contains("pufferfish")
 }
 private fun <T> MutableList<T>.addAll(vararg values: T) = values.forEach(this::add)
 fun task(action: () -> ValueWithDiagnostics<Mode>) = PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, Task>> { _, _ ->

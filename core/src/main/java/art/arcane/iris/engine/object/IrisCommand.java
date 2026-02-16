@@ -23,6 +23,7 @@ import art.arcane.iris.engine.object.annotations.ArrayType;
 import art.arcane.iris.engine.object.annotations.Desc;
 import art.arcane.iris.engine.object.annotations.Required;
 import art.arcane.iris.engine.object.annotations.Snippet;
+import art.arcane.iris.util.scheduling.J;
 import art.arcane.volmlib.util.collection.KList;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -73,10 +74,12 @@ public class IrisCommand {
                     .replaceAll("\\Q{y}\\E", String.valueOf(at.getBlockY()))
                     .replaceAll("\\Q{z}\\E", String.valueOf(at.getBlockZ()));
             final String finalCommand = command;
+            int safeDelay = (int) Math.max(0, Math.min(Integer.MAX_VALUE, delay));
             if (repeat) {
-                Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, () -> Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), finalCommand), delay, repeatDelay);
+                int safeRepeatDelay = (int) Math.max(1, Math.min(Integer.MAX_VALUE, repeatDelay));
+                J.s(() -> J.sr(() -> Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), finalCommand), safeRepeatDelay), safeDelay);
             } else {
-                Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), finalCommand), delay);
+                J.s(() -> Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), finalCommand), safeDelay);
             }
         }
     }

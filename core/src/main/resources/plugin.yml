@@ -1,6 +1,7 @@
 name: ${name}
 version: ${version}
 main: ${main}
+folia-supported: true
 load: STARTUP
 authors: [ cyberpwn, NextdoorPsycho, Vatuu ]
 website: volmit.com

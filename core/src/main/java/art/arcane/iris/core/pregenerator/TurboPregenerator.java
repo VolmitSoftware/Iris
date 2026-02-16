@@ -26,7 +26,6 @@ import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldUnloadEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.checkerframework.checker.units.qual.N;
 
 import java.io.File;
@@ -233,7 +232,9 @@ public class TurboPregenerator extends Thread implements Listener {
                     });
             try {
                 latch.await();
-            } catch (InterruptedException ignored) {
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                Iris.verbose("Turbo pregenerator worker interrupted while waiting for chunk " + chunk + ".");
             }
             turboGeneratedChunks.addAndGet(1);
         });
@@ -321,16 +322,13 @@ public class TurboPregenerator extends Thread implements Listener {
             }
             save();
             jobs.remove(world.getName());
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    while (turboFile.exists()) {
-                        turboFile.delete();
-                        J.sleep(1000);
-                    }
-                    Iris.info("turboGen: " + C.IRIS + world.getName() + C.BLUE + " File deleted and instance closed.");
+            J.a(() -> {
+                while (turboFile.exists()) {
+                    turboFile.delete();
+                    J.sleep(1000);
                 }
-            }.runTaskLater(Iris.instance, 20L);
+                Iris.info("turboGen: " + C.IRIS + world.getName() + C.BLUE + " File deleted and instance closed.");
+            }, 20);
         } catch (Exception e) {
             Iris.error("Failed to shutdown turbogen for " + world.getName());
             e.printStackTrace();

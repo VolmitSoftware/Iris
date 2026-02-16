@@ -2,6 +2,7 @@ import io.github.slimjar.func.slimjarHelper
 import io.github.slimjar.resolver.data.Mirror
 import org.ajoberstar.grgit.Grgit
 import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.jvm.tasks.Jar
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.net.URI
 
@@ -157,6 +158,8 @@ slimJar {
     relocate("com.github.benmanes.caffeine", "$lib.caffeine")
 }
 
+val embeddedAgentJar = project(":core:agent").tasks.named<Jar>("jar")
+
 tasks {
     /**
      * We need parameter meta for the decree command system
@@ -182,10 +185,14 @@ tasks {
     }
 
     shadowJar {
+        dependsOn(embeddedAgentJar)
         mergeServiceFiles()
         //minimize()
         relocate("io.github.slimjar", "$lib.slimjar")
         exclude("modules/loader-agent.isolated-jar")
+        from(embeddedAgentJar.map { it.archiveFile }) {
+            rename { "agent.jar" }
+        }
     }
 
     sentryCollectSourcesJava {

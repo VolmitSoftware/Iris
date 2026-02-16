@@ -39,7 +39,6 @@ import art.arcane.volmlib.util.io.IO;
 import art.arcane.iris.util.misc.ServerProperties;
 import art.arcane.iris.util.plugin.VolmitSender;
 import art.arcane.iris.util.scheduling.J;
-import lombok.SneakyThrows;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
@@ -120,6 +119,13 @@ public class CommandIris implements DecreeExecutor {
             return;
         }
 
+        if (J.isFolia()) {
+            if (stageFoliaWorldCreation(name, dimension, seed, main)) {
+                sender().sendMessage(C.GREEN + "World staging completed. Restart the server to generate/load \"" + name + "\".");
+            }
+            return;
+        }
+
         try {
             worldCreation = true;
             IrisToolbelt.createWorld()
@@ -147,20 +153,98 @@ public class CommandIris implements DecreeExecutor {
         if (main) sender().sendMessage(C.GREEN + "Your world will automatically be set as the main world when the server restarts.");
     }
 
-    @SneakyThrows
-    private void updateMainWorld(String newName) {
-        File worlds = Bukkit.getWorldContainer();
-        var data = ServerProperties.DATA;
-        try (var in = new FileInputStream(ServerProperties.SERVER_PROPERTIES)) {
-            data.load(in);
+    private boolean updateMainWorld(String newName) {
+        try {
+            File worlds = Bukkit.getWorldContainer();
+            var data = ServerProperties.DATA;
+            try (var in = new FileInputStream(ServerProperties.SERVER_PROPERTIES)) {
+                data.load(in);
+            }
+
+            File oldWorldFolder = new File(worlds, ServerProperties.LEVEL_NAME);
+            File newWorldFolder = new File(worlds, newName);
+            if (!newWorldFolder.exists() && !newWorldFolder.mkdirs()) {
+                Iris.warn("Could not create target main world folder: " + newWorldFolder.getAbsolutePath());
+            }
+
+            for (String sub : List.of("datapacks", "playerdata", "advancements", "stats")) {
+                File source = new File(oldWorldFolder, sub);
+                if (!source.exists()) {
+                    continue;
+                }
+
+                IO.copyDirectory(source.toPath(), new File(newWorldFolder, sub).toPath());
+            }
+
+            data.setProperty("level-name", newName);
+            try (var out = new FileOutputStream(ServerProperties.SERVER_PROPERTIES)) {
+                data.store(out, null);
+            }
+            return true;
+        } catch (Throwable e) {
+            Iris.error("Failed to update server.properties main world to \"" + newName + "\"");
+            Iris.reportError(e);
+            return false;
         }
-        for (String sub : List.of("datapacks", "playerdata", "advancements", "stats")) {
-            IO.copyDirectory(new File(worlds, ServerProperties.LEVEL_NAME + "/" + sub).toPath(), new File(worlds, newName + "/" + sub).toPath());
+    }
+
+    private boolean stageFoliaWorldCreation(String name, IrisDimension dimension, long seed, boolean main) {
+        sender().sendMessage(C.YELLOW + "Runtime world creation is disabled on Folia.");
+        sender().sendMessage(C.YELLOW + "Preparing world files and bukkit.yml for next startup...");
+
+        File worldFolder = new File(Bukkit.getWorldContainer(), name);
+        IrisDimension installed = Iris.service(StudioSVC.class).installIntoWorld(sender(), dimension.getLoadKey(), worldFolder);
+        if (installed == null) {
+            sender().sendMessage(C.RED + "Failed to stage world files for dimension \"" + dimension.getLoadKey() + "\".");
+            return false;
         }
 
-        data.setProperty("level-name", newName);
-        try (var out = new FileOutputStream(ServerProperties.SERVER_PROPERTIES)) {
-            data.store(out, null);
+        if (!registerWorldInBukkitYml(name, dimension.getLoadKey(), seed)) {
+            return false;
+        }
+
+        if (main) {
+            if (updateMainWorld(name)) {
+                sender().sendMessage(C.GREEN + "Updated server.properties level-name to \"" + name + "\".");
+            } else {
+                sender().sendMessage(C.RED + "World was staged, but failed to update server.properties main world.");
+                return false;
+            }
+        }
+
+        sender().sendMessage(C.GREEN + "Staged Iris world \"" + name + "\" with generator Iris:" + dimension.getLoadKey() + " and seed " + seed + ".");
+        if (main) {
+            sender().sendMessage(C.GREEN + "This world is now configured as main for next restart.");
+        }
+        return true;
+    }
+
+    private boolean registerWorldInBukkitYml(String worldName, String dimension, Long seed) {
+        YamlConfiguration yml = YamlConfiguration.loadConfiguration(BUKKIT_YML);
+        ConfigurationSection worlds = yml.getConfigurationSection("worlds");
+        if (worlds == null) {
+            worlds = yml.createSection("worlds");
+        }
+        ConfigurationSection worldSection = worlds.getConfigurationSection(worldName);
+        if (worldSection == null) {
+            worldSection = worlds.createSection(worldName);
+        }
+
+        String generator = "Iris:" + dimension;
+        worldSection.set("generator", generator);
+        if (seed != null) {
+            worldSection.set("seed", seed);
+        }
+
+        try {
+            yml.save(BUKKIT_YML);
+            Iris.info("Registered \"" + worldName + "\" in bukkit.yml");
+            return true;
+        } catch (IOException e) {
+            sender().sendMessage(C.RED + "Failed to update bukkit.yml: " + e.getMessage());
+            Iris.error("Failed to update bukkit.yml!");
+            Iris.reportError(e);
+            return false;
         }
     }
 
@@ -439,22 +523,23 @@ public class CommandIris implements DecreeExecutor {
             sender().sendMessage(C.GOLD + world + " is not an iris world.");
             return;
         }
+
+        if (dimension == null) {
+            sender().sendMessage(C.RED + "Could not determine Iris dimension for " + world + ".");
+            return;
+        }
+
         sender().sendMessage(C.GREEN + "Loading world: " + world);
 
-        YamlConfiguration yml = YamlConfiguration.loadConfiguration(BUKKIT_YML);
-        String gen = "Iris:" + dimension;
-        ConfigurationSection section = yml.contains("worlds") ? yml.getConfigurationSection("worlds") : yml.createSection("worlds");
-        if (!section.contains(world)) {
-            section.createSection(world).set("generator", gen);
-            try {
-                yml.save(BUKKIT_YML);
-                Iris.info("Registered \"" + world + "\" in bukkit.yml");
-            } catch (IOException e) {
-                Iris.error("Failed to update bukkit.yml!");
-                e.printStackTrace();
-                return;
-            }
+        if (!registerWorldInBukkitYml(world, dimension, null)) {
+            return;
         }
+
+        if (J.isFolia()) {
+            sender().sendMessage(C.YELLOW + "Folia cannot load new worlds at runtime. Restart the server to load \"" + world + "\".");
+            return;
+        }
+
         Iris.instance.checkForBukkitWorlds(world::equals);
         sender().sendMessage(C.GREEN + world + " loaded successfully.");
     }
@@ -498,7 +583,12 @@ public class CommandIris implements DecreeExecutor {
                         for (String key : data.getDimensionLoader().getPossibleKeys()) {
                             options.add(key);
                         }
-                    } catch (Throwable ignored) {
+                    } catch (Throwable ex) {
+                        Iris.warn("Failed to read dimension keys from pack %s: %s%s",
+                                pack.getName(),
+                                ex.getClass().getSimpleName(),
+                                ex.getMessage() == null ? "" : " - " + ex.getMessage());
+                        Iris.reportError(ex);
                     }
                 }
             }

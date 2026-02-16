@@ -338,9 +338,7 @@ public class IrisEntity extends IrisRegistrant {
         if (e instanceof Villager) {
             Villager villager = (Villager) e;
             villager.setRemoveWhenFarAway(false);
-            Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> {
-                villager.setPersistent(true);
-            }, 1);
+            J.s(() -> villager.setPersistent(true), 1);
         }
 
         if (e instanceof Mob) {

@@ -23,8 +23,8 @@ import art.arcane.iris.core.IrisSettings;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.iris.util.format.C;
+import art.arcane.iris.util.scheduling.J;
 import art.arcane.volmlib.util.reflect.V;
-import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
 
@@ -171,7 +171,7 @@ public class VirtualCommand {
         for (String i : command.getRequiredPermissions()) {
             if (!sender.hasPermission(i)) {
                 failed = true;
-                Bukkit.getScheduler().scheduleSyncDelayedTask(Iris.instance, () -> sender.sendMessage("- " + C.WHITE + i), 0);
+                J.s(() -> sender.sendMessage("- " + C.WHITE + i), 0);
             }
         }
 

@@ -1,14 +1,12 @@
 package art.arcane.iris.core.safeguard
 
 import art.arcane.iris.Iris
-import art.arcane.iris.core.IrisSettings
 import art.arcane.iris.core.safeguard.task.Diagnostic
 import art.arcane.iris.core.safeguard.task.Task
 import art.arcane.iris.core.safeguard.task.ValueWithDiagnostics
 import art.arcane.iris.core.safeguard.task.tasks
 import art.arcane.iris.util.format.C
 import art.arcane.iris.util.scheduling.J
-import org.bukkit.Bukkit
 import java.util.*
 
 object IrisSafeguard {
@@ -93,51 +91,18 @@ object IrisSafeguard {
 
     private fun warning() {
         Iris.warn(C.GOLD.toString() + "Iris is running in Warning Mode")
-
-        Iris.warn("")
-        Iris.warn(C.DARK_GRAY.toString() + "--==<" + C.GOLD + " IMPORTANT " + C.DARK_GRAY + ">==--")
-        Iris.warn(C.GOLD.toString() + "Iris is running in warning mode which may cause the following issues:")
-        Iris.warn("- Data Loss")
-        Iris.warn("- Errors")
-        Iris.warn("- Broken worlds")
-        Iris.warn("- Unexpected behavior.")
-        Iris.warn("- And perhaps further complications.")
+        Iris.warn(C.GRAY.toString() + "Some startup checks need attention. Review the messages above for tuning suggestions.")
+        Iris.warn(C.GRAY.toString() + "Iris will continue startup normally.")
         Iris.warn("")
     }
 
     private fun unstable() {
-        Iris.error(C.DARK_RED.toString() + "Iris is running in Unstable Mode")
-
+        Iris.error(C.DARK_RED.toString() + "Iris is running in Danger Mode")
         Iris.error("")
         Iris.error(C.DARK_GRAY.toString() + "--==<" + C.RED + " IMPORTANT " + C.DARK_GRAY + ">==--")
-        Iris.error("Iris is running in unstable mode which may cause the following issues:")
-        Iris.error(C.DARK_RED.toString() + "Server Issues")
-        Iris.error("- Server won't boot")
-        Iris.error("- Data Loss")
-        Iris.error("- Unexpected behavior.")
-        Iris.error("- And More...")
-        Iris.error(C.DARK_RED.toString() + "World Issues")
-        Iris.error("- Worlds can't load due to corruption.")
-        Iris.error("- Worlds may slowly corrupt until they can't load.")
-        Iris.error("- World data loss.")
-        Iris.error("- And More...")
-        Iris.error(C.DARK_RED.toString() + "ATTENTION: " + C.RED + "While running Iris in unstable mode, you won't be eligible for support.")
-
-        if (IrisSettings.get().general.isDoomsdayAnnihilationSelfDestructMode) {
-            Iris.error(C.DARK_RED.toString() + "Boot Unstable is set to true, continuing with the startup process in 10 seconds.")
-            J.sleep(10000L)
-        } else {
-            Iris.error(C.DARK_RED.toString() + "Go to plugins/iris/settings.json and set DoomsdayAnnihilationSelfDestructMode to true if you wish to proceed.")
-            Iris.error(C.DARK_RED.toString() + "The server will shutdown in 10 seconds.")
-            J.sleep(10000L)
-            Iris.error(C.DARK_RED.toString() + "Shutting down server.")
-            forceShutdown = true
-            try {
-                Bukkit.getPluginManager().disablePlugins()
-            } finally {
-                Runtime.getRuntime().halt(42)
-            }
-        }
+        Iris.error("Critical startup checks failed. Iris will continue startup in 10 seconds.")
+        Iris.error("Review and resolve the errors above as soon as possible.")
+        J.sleep(10000L)
         Iris.info("")
     }
 }

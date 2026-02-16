@@ -104,7 +104,13 @@ public class ServerConfigurator {
     }
 
     public static boolean installDataPacks(boolean fullInstall) {
-        return installDataPacks(DataVersion.getDefault(), fullInstall);
+        IDataFixer fixer = DataVersion.getDefault();
+        if (fixer == null) {
+            DataVersion fallback = DataVersion.getLatest();
+            Iris.warn("Primary datapack fixer was null, forcing latest fixer: " + fallback.getVersion());
+            fixer = fallback.get();
+        }
+        return installDataPacks(fixer, fullInstall);
     }
 
     public static boolean installDataPacks(IDataFixer fixer, boolean fullInstall) {

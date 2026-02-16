@@ -341,8 +341,8 @@ public class StudioSVC implements IrisService {
             });
         } catch (Exception e) {
             Iris.reportError(e);
-            sender.sendMessage("Error when creating studio world:");
-            e.printStackTrace();
+            sender.sendMessage("Failed to open studio world: " + e.getMessage());
+            Iris.error("Studio world creation failed: " + e.getMessage());
         }
     }
 

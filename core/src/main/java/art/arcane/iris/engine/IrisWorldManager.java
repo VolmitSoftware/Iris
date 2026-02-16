@@ -62,7 +62,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -192,52 +191,94 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
 
     private void discoverChunks() {
         var mantle = getEngine().getMantle().getMantle();
-        for (Player i : getEngine().getWorld().realWorld().getPlayers()) {
-            int r = 1;
-
-            for (int x = -r; x <= r; x++) {
-                for (int z = -r; z <= r; z++) {
-                    mantle.getChunk(i.getLocation().getChunk()).flag(MantleFlag.DISCOVERED, true);
-                }
-            }
+        World world = getEngine().getWorld().realWorld();
+        if (world == null) {
+            return;
         }
+
+        J.s(() -> {
+            for (Player player : world.getPlayers()) {
+                if (player == null || !player.isOnline()) {
+                    continue;
+                }
+
+                J.runEntity(player, () -> {
+                    int centerX = player.getLocation().getBlockX() >> 4;
+                    int centerZ = player.getLocation().getBlockZ() >> 4;
+                    int radius = 1;
+                    for (int x = -radius; x <= radius; x++) {
+                        for (int z = -radius; z <= radius; z++) {
+                            mantle.getChunk(centerX + x, centerZ + z).flag(MantleFlag.DISCOVERED, true);
+                        }
+                    }
+                });
+            }
+        });
     }
 
     private void updateChunks() {
-        for (Player i : getEngine().getWorld().realWorld().getPlayers()) {
-            int r = 1;
+        World world = getEngine().getWorld().realWorld();
+        if (world == null) {
+            return;
+        }
 
-            Chunk c = i.getLocation().getChunk();
-            for (int x = -r; x <= r; x++) {
-                for (int z = -r; z <= r; z++) {
-                    if (c.getWorld().isChunkLoaded(c.getX() + x, c.getZ() + z) && Chunks.isSafe(getEngine().getWorld().realWorld(), c.getX() + x, c.getZ() + z)) {
+        J.s(() -> {
+            for (Player player : world.getPlayers()) {
+                if (player == null || !player.isOnline()) {
+                    continue;
+                }
 
-                        if (IrisSettings.get().getWorld().isPostLoadBlockUpdates()) {
-                            getEngine().updateChunk(c.getWorld().getChunkAt(c.getX() + x, c.getZ() + z));
-                        }
+                J.runEntity(player, () -> {
+                    int centerX = player.getLocation().getBlockX() >> 4;
+                    int centerZ = player.getLocation().getBlockZ() >> 4;
+                    int radius = 1;
 
-                        if (IrisSettings.get().getWorld().isMarkerEntitySpawningSystem()) {
-                            Chunk cx = getEngine().getWorld().realWorld().getChunkAt(c.getX() + x, c.getZ() + z);
-                            int finalX = c.getX() + x;
-                            int finalZ = c.getZ() + z;
-                            J.a(() -> getMantle().raiseFlag(finalX, finalZ, MantleFlag.INITIAL_SPAWNED_MARKER,
-                                    () -> {
-                                        J.a(() -> spawnIn(cx, true), RNG.r.i(5, 200));
-                                        getSpawnersFromMarkers(cx).forEach((blockf, spawners) -> {
-                                            if (spawners.isEmpty()) {
-                                                return;
-                                            }
-
-                                            IrisPosition block = new IrisPosition(blockf.getX(), blockf.getY() + getEngine().getWorld().minHeight(), blockf.getZ());
-                                            IrisSpawner s = new KList<>(spawners).getRandom();
-                                            spawn(block, s, true);
-                                        });
-                                    }));
+                    for (int x = -radius; x <= radius; x++) {
+                        for (int z = -radius; z <= radius; z++) {
+                            int targetX = centerX + x;
+                            int targetZ = centerZ + z;
+                            J.runRegion(world, targetX, targetZ, () -> updateChunkRegion(world, targetX, targetZ));
                         }
                     }
-                }
+                });
             }
+        });
+    }
+
+    private void updateChunkRegion(World world, int chunkX, int chunkZ) {
+        if (world == null || !world.isChunkLoaded(chunkX, chunkZ) || !Chunks.isSafe(world, chunkX, chunkZ)) {
+            return;
         }
+
+        Chunk chunk = world.getChunkAt(chunkX, chunkZ);
+
+        if (IrisSettings.get().getWorld().isPostLoadBlockUpdates()) {
+            getEngine().updateChunk(chunk);
+        }
+
+        if (!IrisSettings.get().getWorld().isMarkerEntitySpawningSystem()) {
+            return;
+        }
+
+        getMantle().raiseFlag(chunkX, chunkZ, MantleFlag.INITIAL_SPAWNED_MARKER, () -> {
+            int delay = RNG.r.i(5, 200);
+            J.runRegion(world, chunkX, chunkZ, () -> {
+                if (!world.isChunkLoaded(chunkX, chunkZ)) {
+                    return;
+                }
+                spawnIn(world.getChunkAt(chunkX, chunkZ), true);
+            }, delay);
+
+            getSpawnersFromMarkers(chunk).forEach((blockf, spawners) -> {
+                if (spawners.isEmpty()) {
+                    return;
+                }
+
+                IrisPosition block = new IrisPosition(blockf.getX(), blockf.getY() + getEngine().getWorld().minHeight(), blockf.getZ());
+                IrisSpawner s = new KList<>(spawners).getRandom();
+                spawn(block, s, true);
+            });
+        });
     }
 
     private boolean onAsyncTick() {
@@ -274,8 +315,12 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         }
 
         int spawnBuffer = RNG.r.i(2, 12);
+        World world = getEngine().getWorld().realWorld();
+        if (world == null) {
+            return false;
+        }
 
-        Chunk[] cc = getEngine().getWorld().realWorld().getLoadedChunks();
+        Chunk[] cc = getLoadedChunksSnapshot(world);
         while (spawnBuffer-- > 0) {
             if (cc.length == 0) {
                 Iris.debug("Can't spawn. No chunks!");
@@ -283,16 +328,58 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             }
 
             Chunk c = cc[RNG.r.nextInt(cc.length)];
-
-            if (!c.isLoaded() || !Chunks.isSafe(c.getWorld(), c.getX(), c.getZ())) {
-                continue;
-            }
-
-            spawnIn(c, false);
+            spawnChunkSafely(world, c.getX(), c.getZ(), false);
         }
 
         energy -= (actuallySpawned / 2D);
         return actuallySpawned > 0;
+    }
+
+    private Chunk[] getLoadedChunksSnapshot(World world) {
+        if (world == null) {
+            return new Chunk[0];
+        }
+
+        CompletableFuture<Chunk[]> future = new CompletableFuture<>();
+        J.s(() -> {
+            try {
+                future.complete(world.getLoadedChunks());
+            } catch (Throwable e) {
+                future.completeExceptionally(e);
+            }
+        });
+
+        try {
+            return future.get(2, TimeUnit.SECONDS);
+        } catch (Throwable e) {
+            Iris.reportError(e);
+            return new Chunk[0];
+        }
+    }
+
+    private void spawnChunkSafely(World world, int chunkX, int chunkZ, boolean initial) {
+        if (world == null) {
+            return;
+        }
+
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        J.runRegion(world, chunkX, chunkZ, () -> {
+            try {
+                if (!world.isChunkLoaded(chunkX, chunkZ) || !Chunks.isSafe(world, chunkX, chunkZ)) {
+                    return;
+                }
+
+                spawnIn(world.getChunkAt(chunkX, chunkZ), initial);
+            } finally {
+                future.complete(null);
+            }
+        });
+
+        try {
+            future.get(5, TimeUnit.SECONDS);
+        } catch (Throwable e) {
+            Iris.reportError(e);
+        }
     }
 
     private void fixEnergy() {
@@ -317,7 +404,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 IrisPosition block = new IrisPosition(blockf.getX(), blockf.getY() + getEngine().getWorld().minHeight(), blockf.getZ());
                 IrisSpawner s = new KList<>(spawners).getRandom();
                 spawn(block, s, false);
-                J.a(() -> getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.INITIAL_SPAWNED_MARKER,
+                J.runRegion(c.getWorld(), c.getX(), c.getZ(), () -> getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.INITIAL_SPAWNED_MARKER,
                         () -> spawn(block, s, true)));
             });
         }
@@ -359,7 +446,7 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
         try {
             spawn(c, v);
         } catch (Throwable e) {
-            J.s(() -> spawn(c, v));
+            J.runRegion(c.getWorld(), c.getX(), c.getZ(), () -> spawn(c, v));
         }
     }
 
@@ -537,8 +624,11 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
                 public void execute(Future<Chunk> chunkFuture) {
                     try {
                         chunkFuture.get();
-                    } catch (InterruptedException | ExecutionException ignored) {
-
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                        Iris.verbose("Chunk warmup interrupted while loading async teleport chunk.");
+                    } catch (ExecutionException ex) {
+                        Iris.reportError(ex);
                     }
                 }
 
@@ -562,19 +652,10 @@ public class IrisWorldManager extends EngineAssignedWorldManager {
             IrisPosition pos = new IrisPosition((c.getX() << 4) + x, y, (c.getZ() << 4) + z);
 
             if (mark.isEmptyAbove()) {
-                AtomicBoolean remove = new AtomicBoolean(false);
+                boolean remove = c.getBlock(x, y + 1, z).getBlockData().getMaterial().isSolid()
+                        || c.getBlock(x, y + 2, z).getBlockData().getMaterial().isSolid();
 
-                try {
-                    J.sfut(() -> {
-                        if (c.getBlock(x, y + 1, z).getBlockData().getMaterial().isSolid() || c.getBlock(x, y + 2, z).getBlockData().getMaterial().isSolid()) {
-                            remove.set(true);
-                        }
-                    }).get();
-                } catch (InterruptedException | ExecutionException e) {
-                    e.printStackTrace();
-                }
-
-                if (remove.get()) {
+                if (remove) {
                     b.add(pos);
                     return;
                 }

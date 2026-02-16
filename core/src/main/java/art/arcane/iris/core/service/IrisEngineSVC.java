@@ -24,6 +24,7 @@ import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Locale;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -231,6 +232,20 @@ public class IrisEngineSVC implements IrisService {
         updateTicker.start();
     }
 
+    private static boolean isMantleClosed(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && message.toLowerCase(Locale.ROOT).contains("mantle is closed")) {
+                return true;
+            }
+
+            current = current.getCause();
+        }
+
+        return false;
+    }
+
     private final class Registered {
         private final String name;
         private final PlatformChunkGenerator access;
@@ -261,12 +276,19 @@ public class IrisEngineSVC implements IrisService {
             if (trimmer == null || trimmer.isDone() || trimmer.isCancelled()) {
                 trimmer = service.scheduleAtFixedRate(() -> {
                     Engine engine = getEngine();
-                    if (engine == null || !engine.getMantle().getMantle().shouldReduce(engine))
+                    if (engine == null
+                            || engine.isClosed()
+                            || engine.getMantle().getMantle().isClosed()
+                            || !engine.getMantle().getMantle().shouldReduce(engine))
                         return;
 
                     try {
                         engine.getMantle().trim(tectonicLimit());
                     } catch (Throwable e) {
+                        if (isMantleClosed(e)) {
+                            close();
+                            return;
+                        }
                         Iris.reportError(e);
                         Iris.error("EngineSVC: Failed to trim for " + name);
                         e.printStackTrace();
@@ -277,7 +299,10 @@ public class IrisEngineSVC implements IrisService {
             if (unloader == null || unloader.isDone() || unloader.isCancelled()) {
                 unloader = service.scheduleAtFixedRate(() -> {
                     Engine engine = getEngine();
-                    if (engine == null || !engine.getMantle().getMantle().shouldReduce(engine))
+                    if (engine == null
+                            || engine.isClosed()
+                            || engine.getMantle().getMantle().isClosed()
+                            || !engine.getMantle().getMantle().shouldReduce(engine))
                         return;
 
                     try {
@@ -287,6 +312,10 @@ public class IrisEngineSVC implements IrisService {
                             Iris.debug(C.GOLD + "Unloaded " + C.YELLOW + count + " TectonicPlates in " + C.RED + Form.duration(System.currentTimeMillis() - unloadStart, 2));
                         }
                     } catch (Throwable e) {
+                        if (isMantleClosed(e)) {
+                            close();
+                            return;
+                        }
                         Iris.reportError(e);
                         Iris.error("EngineSVC: Failed to unload for " + name);
                         e.printStackTrace();

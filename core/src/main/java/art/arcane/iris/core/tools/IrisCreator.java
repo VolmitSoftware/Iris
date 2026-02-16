@@ -114,6 +114,10 @@ public class IrisCreator {
             throw new IrisException("You cannot invoke create() on the main thread.");
         }
 
+        if (J.isFolia()) {
+            throw new IrisException("Folia does not support runtime world creation via Bukkit.createWorld(). Configure worlds before startup and restart the server.");
+        }
+
         IrisDimension d = IrisToolbelt.getDimension(dimension());
 
         if (d == null) {
@@ -171,6 +175,9 @@ public class IrisCreator {
             world = J.sfut(() -> INMS.get().createWorld(wc)).get();
         } catch (Throwable e) {
             done.set(true);
+            if (containsCreateWorldUnsupportedOperation(e)) {
+                throw new IrisException("Runtime world creation is not supported on this server variant. Configure worlds before startup and restart the server.", e);
+            }
             throw new IrisException("Failed to create world!", e);
         }
 
@@ -224,6 +231,22 @@ public class IrisCreator {
             }
         }
         return world;
+    }
+
+    private static boolean containsCreateWorldUnsupportedOperation(Throwable throwable) {
+        Throwable cursor = throwable;
+        while (cursor != null) {
+            if (cursor instanceof UnsupportedOperationException) {
+                for (StackTraceElement element : cursor.getStackTrace()) {
+                    if ("org.bukkit.craftbukkit.CraftServer".equals(element.getClassName())
+                            && "createWorld".equals(element.getMethodName())) {
+                        return true;
+                    }
+                }
+            }
+            cursor = cursor.getCause();
+        }
+        return false;
     }
 
     private void addToBukkitYml() {

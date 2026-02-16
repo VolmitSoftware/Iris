@@ -207,7 +207,6 @@ public class IrisSettings {
 
     @Data
     public static class IrisSettingsGeneral {
-        public boolean DoomsdayAnnihilationSelfDestructMode = false;
         public boolean commandSounds = true;
         public boolean debug = false;
         public boolean dumpMantleOnError = false;

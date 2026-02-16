@@ -22,7 +22,6 @@ import art.arcane.iris.Iris;
 import art.arcane.iris.util.plugin.IrisService;
 import art.arcane.iris.util.scheduling.J;
 import lombok.Getter;
-import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 
@@ -71,7 +70,7 @@ public class ObjectSVC implements IrisService {
      */
     private void revert(Map<Block, BlockData> blocks) {
         Iterator<Map.Entry<Block, BlockData>> it = blocks.entrySet().iterator();
-        Bukkit.getScheduler().runTask(Iris.instance, () -> {
+        J.s(() -> {
             int amount = 0;
             while (it.hasNext()) {
                 Map.Entry<Block, BlockData> entry = it.next();

@@ -98,8 +98,10 @@ public class Iris extends VolmitPlugin implements Listener {
     static {
         try {
             InstanceState.updateInstanceId();
-        } catch (Throwable ignored) {
-
+        } catch (Throwable ex) {
+            System.err.println("[Iris] Failed to update instance id: " + ex.getClass().getSimpleName()
+                    + (ex.getMessage() == null ? "" : " - " + ex.getMessage()));
+            ex.printStackTrace();
         }
     }
 
@@ -135,8 +137,12 @@ public class Iris extends VolmitPlugin implements Listener {
             if (slicedClass == null || i.isAnnotationPresent(slicedClass)) {
                 try {
                     v.add(i.getDeclaredConstructor().newInstance());
-                } catch (Throwable ignored) {
-
+                } catch (Throwable ex) {
+                    Iris.warn("Skipped class initialization for %s: %s%s",
+                            i.getName(),
+                            ex.getClass().getSimpleName(),
+                            ex.getMessage() == null ? "" : " - " + ex.getMessage());
+                    Iris.reportError(ex);
                 }
             }
         }
@@ -152,8 +158,12 @@ public class Iris extends VolmitPlugin implements Listener {
             if (slicedClass == null || i.isAnnotationPresent(slicedClass)) {
                 try {
                     v.add(i);
-                } catch (Throwable ignored) {
-
+                } catch (Throwable ex) {
+                    Iris.warn("Skipped class discovery entry for %s: %s%s",
+                            i.getName(),
+                            ex.getClass().getSimpleName(),
+                            ex.getMessage() == null ? "" : " - " + ex.getMessage());
+                    Iris.reportError(ex);
                 }
             }
         }
@@ -181,8 +191,9 @@ public class Iris extends VolmitPlugin implements Listener {
         } catch (Throwable e) {
             try {
                 instance.getLogger().info(instance.getTag() + string.replaceAll("(<([^>]+)>)", ""));
-            } catch (Throwable ignored1) {
-
+            } catch (Throwable inner) {
+                System.err.println("[Iris] Failed to emit log message: " + inner.getMessage());
+                inner.printStackTrace(System.err);
             }
         }
     }
@@ -307,8 +318,7 @@ public class Iris extends VolmitPlugin implements Listener {
     @SuppressWarnings("deprecation")
     public static void later(NastyRunnable object) {
         try {
-            Bukkit.getScheduler().scheduleAsyncDelayedTask(instance, () ->
-            {
+            J.a(() -> {
                 try {
                     object.run();
                 } catch (Throwable e) {
@@ -316,8 +326,10 @@ public class Iris extends VolmitPlugin implements Listener {
                     Iris.reportError(e);
                 }
             }, RNG.r.i(100, 1200));
-        } catch (IllegalPluginAccessException ignored) {
-
+        } catch (IllegalPluginAccessException ex) {
+            Iris.verbose("Skipping deferred task registration because plugin access is unavailable: "
+                    + ex.getClass().getSimpleName()
+                    + (ex.getMessage() == null ? "" : " - " + ex.getMessage()));
         }
     }
 
@@ -476,7 +488,12 @@ public class Iris extends VolmitPlugin implements Listener {
 
     public void addShutdownHook() {
         if (shutdownHook != null) {
-            Runtime.getRuntime().removeShutdownHook(shutdownHook);
+            try {
+                Runtime.getRuntime().removeShutdownHook(shutdownHook);
+            } catch (IllegalStateException ex) {
+                Iris.debug("Skipping shutdown hook replacement because JVM shutdown is already in progress.");
+                return;
+            }
         }
         shutdownHook = new Thread(() -> {
             Bukkit.getWorlds()
@@ -487,9 +504,15 @@ public class Iris extends VolmitPlugin implements Listener {
 
             MultiBurst.burst.close();
             MultiBurst.ioBurst.close();
-            services.clear();
-        });
-        Runtime.getRuntime().addShutdownHook(shutdownHook);
+            if (services != null) {
+                services.clear();
+            }
+        }, "Iris-ShutdownHook");
+        try {
+            Runtime.getRuntime().addShutdownHook(shutdownHook);
+        } catch (IllegalStateException ex) {
+            Iris.debug("Skipping shutdown hook registration because JVM shutdown is already in progress.");
+        }
     }
 
     public void checkForBukkitWorlds(Predicate<String> filter) {
@@ -563,12 +586,14 @@ public class Iris extends VolmitPlugin implements Listener {
 
     public void onDisable() {
         if (IrisSafeguard.isForceShutdown()) return;
-        services.values().forEach(IrisService::onDisable);
+        if (services != null) {
+            services.values().forEach(IrisService::onDisable);
+        }
         if (configHotloadEngine != null) {
             configHotloadEngine.clear();
             configHotloadEngine = null;
         }
-        Bukkit.getScheduler().cancelTasks(this);
+        J.cancelPluginTasks();
         HandlerList.unregisterAll((Plugin) this);
         postShutdown.forEach(Runnable::run);
         super.onDisable();
@@ -632,7 +657,12 @@ public class Iris extends VolmitPlugin implements Listener {
 
         try {
             return IO.readAll(file);
-        } catch (Throwable ignored) {
+        } catch (Throwable ex) {
+            Iris.warn("Failed to read settings file %s: %s%s",
+                    file.getAbsolutePath(),
+                    ex.getClass().getSimpleName(),
+                    ex.getMessage() == null ? "" : " - " + ex.getMessage());
+            Iris.reportError(ex);
             return null;
         }
     }
@@ -765,7 +795,10 @@ public class Iris extends VolmitPlugin implements Listener {
             JsonObject json = JsonParser.parseReader(r).getAsJsonObject();
             if (json.has("version"))
                 version = json.get("version").getAsString();
-        } catch (IOException | JsonParseException ignored) {
+        } catch (IOException | JsonParseException ex) {
+            Iris.verbose("Failed to read dimension version metadata for " + dimName + ": "
+                    + ex.getClass().getSimpleName()
+                    + (ex.getMessage() == null ? "" : " - " + ex.getMessage()));
         }
         Iris.info("  " + dimName + " v" + version);
     }

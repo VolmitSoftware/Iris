@@ -245,7 +245,7 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     @Override
     public void onDisable() {
         stop();
-        Bukkit.getScheduler().cancelTasks(this);
+        J.cancelPluginTasks();
         unregisterListener(this);
         unregisterAll();
     }
@@ -339,6 +339,10 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command,
                                       String alias, String[] args) {
+        if (commands == null || commands.isEmpty()) {
+            return super.onTabComplete(sender, command, alias, args);
+        }
+
         KList<String> chain = new KList<>();
 
         for (String i : args) {
@@ -368,6 +372,9 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
     @Override
     public boolean onCommand(CommandSender sender, org.bukkit.command.Command command, String label, String[] args) {
         if (bad) {
+            return false;
+        }
+        if (commands == null || commands.isEmpty()) {
             return false;
         }
 
@@ -470,6 +477,9 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
         if (bad) {
             return;
         }
+        if (commands == null || commands.isEmpty()) {
+            return;
+        }
         for (VirtualCommand i : commands.v()) {
             try {
                 unregisterCommand(i.getCommand());
@@ -485,8 +495,15 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
             return;
         }
         for (org.bukkit.permissions.Permission i : computePermissions()) {
-            Bukkit.getPluginManager().removePermission(i);
-            v("Unregistered Permission " + i.getName());
+            if (i == null) {
+                continue;
+            }
+            try {
+                Bukkit.getPluginManager().removePermission(i);
+                v("Unregistered Permission " + i.getName());
+            } catch (Throwable e) {
+                Iris.reportError(e);
+            }
         }
     }
 

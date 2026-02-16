@@ -24,7 +24,7 @@ import art.arcane.iris.core.edit.BukkitBlockEditor;
 import art.arcane.volmlib.util.collection.KMap;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.iris.util.plugin.IrisService;
-import org.bukkit.Bukkit;
+import art.arcane.iris.util.scheduling.J;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -33,16 +33,21 @@ import org.bukkit.event.world.WorldUnloadEvent;
 
 public class EditSVC implements IrisService {
     private KMap<World, BlockEditor> editors;
+    private int updateTaskId = -1;
     public static boolean deletingWorld = false;
 
     @Override
     public void onEnable() {
         this.editors = new KMap<>();
-        Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::update, 1000, 1000);
+        updateTaskId = J.sr(this::update, 1000);
     }
 
     @Override
     public void onDisable() {
+        if (updateTaskId != -1) {
+            J.csr(updateTaskId);
+            updateTaskId = -1;
+        }
         flushNow();
     }
 

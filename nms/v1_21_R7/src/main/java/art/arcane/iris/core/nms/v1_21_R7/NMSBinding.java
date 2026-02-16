@@ -215,25 +215,46 @@ public class NMSBinding implements INMSBinding {
 
     @Override
     public void deserializeTile(KMap<String, Object> map, Location pos) {
-        net.minecraft.nbt.CompoundTag tag = (net.minecraft.nbt.CompoundTag) convertToTag(map, 0, 64);
+        if (map == null || pos == null || pos.getWorld() == null) {
+            return;
+        }
+
+        Tag converted = convertToTag(map, 0, 64);
+        if (!(converted instanceof net.minecraft.nbt.CompoundTag tag)) {
+            return;
+        }
+
         var level = ((CraftWorld) pos.getWorld()).getHandle();
         var blockPos = new BlockPos(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ());
-        J.s(() -> merge(level, blockPos, tag));
+        if (!J.runAt(pos, () -> merge(level, blockPos, tag))) {
+            Iris.warn("[NMS] Failed to schedule tile deserialize at " + blockPos + " in world " + pos.getWorld().getName());
+        }
     }
 
     private void merge(ServerLevel level, BlockPos blockPos, net.minecraft.nbt.CompoundTag tag) {
-        var blockEntity = level.getBlockEntity(blockPos);
-        if (blockEntity == null) {
-            Iris.warn("[NMS] BlockEntity not found at " + blockPos);
-            var state = level.getBlockState(blockPos);
-            if (!state.hasBlockEntity())
-                return;
-
-            blockEntity = ((EntityBlock) state.getBlock())
-                    .newBlockEntity(blockPos, state);
+        if (level == null || blockPos == null || tag == null) {
+            return;
         }
-        var accessor = new BlockDataAccessor(blockEntity, blockPos);
-        accessor.setData(accessor.getData().merge(tag));
+
+        try {
+            var blockEntity = level.getBlockEntity(blockPos);
+            if (blockEntity == null) {
+                Iris.warn("[NMS] BlockEntity not found at " + blockPos);
+                var state = level.getBlockState(blockPos);
+                if (!state.hasBlockEntity()) {
+                    return;
+                }
+
+                blockEntity = ((EntityBlock) state.getBlock())
+                        .newBlockEntity(blockPos, state);
+            }
+
+            var accessor = new BlockDataAccessor(blockEntity, blockPos);
+            accessor.setData(accessor.getData().merge(tag));
+        } catch (Throwable e) {
+            Iris.warn("[NMS] Failed to merge tile data at " + blockPos + ": " + e.getMessage());
+            Iris.reportError(e);
+        }
     }
 
     private Tag convertToTag(Object object, int depth, int maxDepth) {

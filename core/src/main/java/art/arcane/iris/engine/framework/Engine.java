@@ -297,20 +297,20 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         try {
             Semaphore semaphore = new Semaphore(1024);
             chunk.raiseFlagUnchecked(MantleFlag.ETCHED, () -> {
-                chunk.raiseFlagUnchecked(MantleFlag.TILE, run(semaphore, () -> {
+                chunk.raiseFlagUnchecked(MantleFlag.TILE, run(semaphore, c, () -> {
                     chunk.iterate(TileWrapper.class, (x, y, z, v) -> {
                         Block block = c.getBlock(x & 15, y + getWorld().minHeight(), z & 15);
                         if (!TileData.setTileState(block, v.getData()))
                             Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", block.getX(), block.getY(), block.getZ(), block.getType().getKey(), v.getData().getMaterial().getKey());
                     });
                 }, 0));
-                chunk.raiseFlagUnchecked(MantleFlag.CUSTOM, run(semaphore, () -> {
+                chunk.raiseFlagUnchecked(MantleFlag.CUSTOM, run(semaphore, c, () -> {
                     chunk.iterate(Identifier.class, (x, y, z, v) -> {
                         Iris.service(ExternalDataSVC.class).processUpdate(this, c.getBlock(x & 15, y + getWorld().minHeight(), z & 15), v);
                     });
                 }, 0));
 
-                chunk.raiseFlagUnchecked(MantleFlag.UPDATE, run(semaphore, () -> {
+                chunk.raiseFlagUnchecked(MantleFlag.UPDATE, run(semaphore, c, () -> {
                     PrecisionStopwatch p = PrecisionStopwatch.start();
                     int[][] grid = new int[16][16];
                     for (int x = 0; x < 16; x++) {
@@ -362,19 +362,22 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                     return;
 
                 for (var script : scripts) {
-                    getExecution().updateChunk(script, chunk, c, (delay, task) -> run(semaphore, task, delay));
+                    getExecution().updateChunk(script, chunk, c, (delay, task) -> run(semaphore, c, task, delay));
                 }
             });
 
             try {
                 semaphore.acquire(1024);
-            } catch (InterruptedException ignored) {}
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                Iris.reportError(ex);
+            }
         } finally {
             chunk.release();
         }
     }
 
-    private static Runnable run(Semaphore semaphore, Runnable runnable, int delay) {
+    private static Runnable run(Semaphore semaphore, Chunk contextChunk, Runnable runnable, int delay) {
         return () -> {
             try {
                 semaphore.acquire();
@@ -382,13 +385,14 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 throw new RuntimeException(e);
             }
 
-            J.s(() -> {
+            int effectiveDelay = J.isFolia() ? 0 : delay;
+            J.runRegion(contextChunk.getWorld(), contextChunk.getX(), contextChunk.getZ(), () -> {
                 try {
                     runnable.run();
                 } finally {
                     semaphore.release();
                 }
-            }, delay);
+            }, effectiveDelay);
         };
     }
 

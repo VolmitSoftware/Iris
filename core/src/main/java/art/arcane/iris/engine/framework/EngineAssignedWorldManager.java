@@ -24,6 +24,7 @@ import art.arcane.volmlib.util.collection.KList;
 import art.arcane.iris.util.format.C;
 import art.arcane.iris.util.math.Position2;
 import art.arcane.iris.util.plugin.VolmitSender;
+import art.arcane.iris.util.scheduling.J;
 import org.bukkit.*;
 import org.bukkit.entity.EnderSignal;
 import org.bukkit.entity.Player;
@@ -53,7 +54,7 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
     public EngineAssignedWorldManager(Engine engine) {
         super(engine, "World");
         Iris.instance.registerListener(this);
-        taskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(Iris.instance, this::onTick, 0, 0);
+        taskId = J.sr(this::onTick, 1);
     }
 
     @EventHandler
@@ -137,6 +138,8 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
     public void close() {
         super.close();
         Iris.instance.unregisterListener(this);
-        Bukkit.getScheduler().cancelTask(taskId);
+        if (taskId != -1) {
+            J.csr(taskId);
+        }
     }
 }

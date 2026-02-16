@@ -80,7 +80,9 @@ public class LegacyTileData extends TileData {
 
     @Override
     public void toBukkit(Block block) {
-        J.s(() -> handler.toBukkit(block));
+        if (!J.runAt(block.getLocation(), () -> handler.toBukkit(block))) {
+            J.s(() -> handler.toBukkit(block));
+        }
     }
 
     @Override

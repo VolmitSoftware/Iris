@@ -3,7 +3,6 @@ package art.arcane.iris.util.profile;
 import art.arcane.volmlib.util.math.M;
 import art.arcane.iris.util.scheduling.J;
 import art.arcane.volmlib.util.scheduling.Looper;
-import org.bukkit.Bukkit;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -52,12 +51,13 @@ public abstract class MsptTimings extends Looper {
     protected abstract void update(int mspt);
 
     private boolean startTickTask() {
-        if (taskId != -1 && (Bukkit.getScheduler().isQueued(taskId) || Bukkit.getScheduler().isCurrentlyRunning(taskId)))
+        if (taskId != -1)
             return false;
 
         taskId = J.sr(() -> {
             if (isInterrupted()) {
                 J.csr(taskId);
+                taskId = -1;
                 return;
             }
 

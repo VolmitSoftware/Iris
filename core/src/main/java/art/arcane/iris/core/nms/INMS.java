@@ -93,7 +93,9 @@ public class INMS {
                 Iris.reportError(e);
                 e.printStackTrace();
             }
-        } catch (ClassNotFoundException|NoClassDefFoundError classNotFoundException) {}
+        } catch (ClassNotFoundException|NoClassDefFoundError classNotFoundException) {
+            Iris.warn("Failed to load NMS binding class for " + code + ": " + classNotFoundException.getMessage());
+        }
 
         Iris.info("Craftbukkit " + code + " <-> " + NMSBinding1X.class.getSimpleName() + " Successfully Bound");
         Iris.warn("Note: Some features of Iris may not work the same since you are on an unsupported version of Minecraft.");

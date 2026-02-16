@@ -23,7 +23,6 @@ import art.arcane.iris.core.IrisSettings;
 import art.arcane.iris.core.loader.IrisData;
 import art.arcane.iris.core.tools.IrisToolbelt;
 import art.arcane.volmlib.util.board.Board;
-import art.arcane.volmlib.util.board.BoardManager;
 import art.arcane.volmlib.util.board.BoardProvider;
 import art.arcane.volmlib.util.board.BoardSettings;
 import art.arcane.volmlib.util.board.ScoreDirection;
@@ -43,40 +42,43 @@ import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 public class BoardSVC implements IrisService, BoardProvider {
     private final KMap<Player, PlayerBoard> boards = new KMap<>();
-    private ScheduledExecutorService executor;
-    private BoardManager<Board> manager;
+    private BoardSettings settings;
+    private boolean boardEnabled;
 
     @Override
     public void onEnable() {
-        executor = Executors.newScheduledThreadPool(0, Thread.ofVirtual().factory());
-        manager = new BoardManager<>(Iris.instance, BoardSettings.builder()
+        boardEnabled = true;
+        settings = BoardSettings.builder()
                 .boardProvider(this)
                 .scoreDirection(ScoreDirection.DOWN)
-                .build(), Board::new);
+                .build();
+
+        for (Player player : Iris.instance.getServer().getOnlinePlayers()) {
+            J.runEntity(player, () -> updatePlayer(player));
+        }
     }
 
     @Override
     public void onDisable() {
-        executor.shutdownNow();
-        manager.onDisable();
+        boardEnabled = false;
+        for (PlayerBoard board : new ArrayList<>(boards.values())) {
+            board.cancel();
+        }
         boards.clear();
+        settings = null;
     }
 
     @EventHandler
     public void on(PlayerChangedWorldEvent e) {
-        J.s(() -> updatePlayer(e.getPlayer()));
+        J.runEntity(e.getPlayer(), () -> updatePlayer(e.getPlayer()));
     }
 
     @EventHandler
     public void on(PlayerJoinEvent e) {
-        J.s(() -> updatePlayer(e.getPlayer()));
+        J.runEntity(e.getPlayer(), () -> updatePlayer(e.getPlayer()));
     }
 
     @EventHandler
@@ -85,16 +87,34 @@ public class BoardSVC implements IrisService, BoardProvider {
     }
 
     public void updatePlayer(Player p) {
+        if (!boardEnabled || settings == null) {
+            return;
+        }
+
+        if (!J.isOwnedByCurrentRegion(p)) {
+            J.runEntity(p, () -> updatePlayer(p));
+            return;
+        }
+
         if (IrisToolbelt.isIrisStudioWorld(p.getWorld())) {
-            manager.remove(p);
-            manager.setup(p);
+            boards.computeIfAbsent(p, PlayerBoard::new);
         } else remove(p);
     }
 
     private void remove(Player player) {
-        manager.remove(player);
+        if (player == null) {
+            return;
+        }
+
+        if (!J.isOwnedByCurrentRegion(player)) {
+            J.runEntity(player, () -> remove(player));
+            return;
+        }
+
         var board = boards.remove(player);
-        if (board != null) board.task.cancel(true);
+        if (board != null) {
+            board.cancel();
+        }
     }
 
     @Override
@@ -104,27 +124,60 @@ public class BoardSVC implements IrisService, BoardProvider {
 
     @Override
     public List<String> getLines(Player player) {
-        return boards.computeIfAbsent(player, PlayerBoard::new).lines;
+        PlayerBoard board = boards.get(player);
+        if (board == null) {
+            return List.of();
+        }
+        return board.lines;
     }
 
     @Data
     public class PlayerBoard {
         private final Player player;
-        private final ScheduledFuture<?> task;
+        private final Board board;
         private volatile List<String> lines;
+        private volatile boolean cancelled;
 
         public PlayerBoard(Player player) {
             this.player = player;
+            this.board = new Board(player, settings);
             this.lines = new ArrayList<>();
-            this.task = executor.scheduleAtFixedRate(this::tick, 0, 1, TimeUnit.SECONDS);
+            this.cancelled = false;
+            schedule(0);
+        }
+
+        private void schedule(int delayTicks) {
+            if (cancelled || !boardEnabled || !player.isOnline()) {
+                return;
+            }
+            J.runEntity(player, this::tick, delayTicks);
         }
 
         private void tick() {
+            if (cancelled || !boardEnabled || !player.isOnline()) {
+                return;
+            }
+
+            if (!IrisToolbelt.isIrisStudioWorld(player.getWorld())) {
+                boards.remove(player);
+                cancel();
+                return;
+            }
+
             if (!Iris.service(StudioSVC.class).isProjectOpen()) {
+                board.update();
+                schedule(20);
                 return;
             }
 
             update();
+            board.update();
+            schedule(20);
+        }
+
+        public void cancel() {
+            cancelled = true;
+            J.runEntity(player, board::remove);
         }
 
         public void update() {
